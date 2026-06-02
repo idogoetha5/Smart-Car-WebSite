@@ -99,6 +99,7 @@ export default function BranchesSection({ locale }: { locale: string }) {
                   src={branch.image}
                   alt={isHe ? `${branch.nameHe} – ${branch.addressHe}` : `${branch.nameEn} – ${branch.addressEn}`}
                   fill
+                  loading="lazy"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0D2B2B]/80 to-transparent" />

@@ -21,8 +21,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return {
     title: t('title'),
     description: isHe
-      ? 'ליסינג פרטי ועסקי – רכבים חדשים עם תנאים גמישים, כולל ביטוח ותחזוקה. קבל הצעת מחיר תוך 24 שעות.'
-      : 'Private and business leasing – new cars with flexible terms including insurance and maintenance.',
+      ? 'ליסינג פרטי ועסקי עם SmartCar – רכבים חדשים, תנאים גמישים, ביטוח ותחזוקה כלולים. מגוון חבילות לכל תקציב. קבלו הצעת מחיר תוך 24 שעות.'
+      : 'Private and business car leasing with SmartCar – new vehicles, flexible terms, insurance and maintenance included. Get a quote within 24 hours.',
     alternates: { canonical: `/${locale}/leasing` },
   };
 }

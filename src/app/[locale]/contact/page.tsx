@@ -14,8 +14,8 @@ export async function generateMetadata({
   return {
     title: t('contact'),
     description: isHe
-      ? 'צור קשר עם SmartCar – טלפון, וואטסאפ, או מייל. נציג יחזור אליך תוך שעה בשעות הפעילות.'
-      : 'Contact SmartCar – phone, WhatsApp, or email. A representative will get back to you within an hour.',
+      ? 'צרו קשר עם SmartCar – חייגו 09-9509757, שלחו וואטסאפ או מייל לoffice@smartcar.co.il. נציג יחזור אליכם תוך שעה בשעות הפעילות א׳–ה׳ 8:00–20:00.'
+      : 'Contact SmartCar – call 09-9509757, WhatsApp or email office@smartcar.co.il. A representative will respond within one hour, Sun–Thu 8:00–20:00.',
     alternates: { canonical: `/${locale}/contact` },
   };
 }

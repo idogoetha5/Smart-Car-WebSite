@@ -11,8 +11,8 @@ export async function generateMetadata({
   const isHe = locale === 'he';
   return {
     description: isHe
-      ? 'השכרת רכב - עד בית הלקוח'
-      : 'Car rental – delivered to your door',
+      ? 'SmartCar – השכרת רכב עם שירות עד בית הלקוח בכל ישראל. בחרו ממגוון רכבים: מיני, קומפקט, SUV וחשמלי. מחירים שקופים, הזמנה מהירה ותמיכה מלאה.'
+      : 'SmartCar – car rental with home delivery across Israel. Choose from mini, compact, SUV and electric. Transparent pricing, fast booking, full support.',
     alternates: {
       canonical: `/${locale}`,
       languages: { he: '/he', en: '/en', 'x-default': '/he' },

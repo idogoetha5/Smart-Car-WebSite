@@ -97,7 +97,8 @@ export default async function LocaleLayout({
       className={`${nunito.variable} ${heebo.variable}`}
     >
       <head>
-        <link rel="preconnect" href="https://iovpoxmdsgsstaduggvb.supabase.co" />
+        <link rel="preconnect" href="https://iovpoxmdsgsstaduggvb.supabase.co" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://iovpoxmdsgsstaduggvb.supabase.co" />
       </head>
       <body
         className={`min-h-screen bg-gray-50 text-gray-900 antialiased flex flex-col ${

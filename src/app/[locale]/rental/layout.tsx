@@ -10,8 +10,8 @@ export async function generateMetadata({
   return {
     title: isHe ? 'השכרת רכב' : 'Car Rental',
     description: isHe
-      ? 'השכר רכב עם משלוח עד הבית – בחר מתוך צי רכבים מגוון, מחירים שקופים וזמינות מיידית בכל ישראל.'
-      : 'Rent a car with home delivery – choose from a diverse fleet, transparent pricing, and immediate availability across Israel.',
+      ? 'השכירו רכב בקלות דרך SmartCar – בחרו ממגוון רכבים קטנים, סדאנים, SUV ויוקרה. קבלת הרכב עד הבית בכל ישראל. בדקו זמינות והזמינו עכשיו.'
+      : 'Rent a car easily through SmartCar – choose from small cars, sedans, SUVs and luxury. Home delivery across Israel. Check availability and book now.',
     alternates: { canonical: `/${locale}/rental` },
   };
 }

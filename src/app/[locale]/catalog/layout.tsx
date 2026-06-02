@@ -10,8 +10,8 @@ export async function generateMetadata({
   return {
     title: isHe ? 'צי הרכבים' : 'Vehicle Catalog',
     description: isHe
-      ? 'עיין בצי הרכבים המלא של SmartCar – מיני, קומפקט, SUV, חשמלי ועוד. סנן לפי קטגוריה, תיבת הילוכים ומחיר.'
-      : 'Browse SmartCar\'s full vehicle catalog – mini, compact, SUV, electric and more. Filter by category, transmission, and price.',
+      ? 'עיינו בצי הרכבים המלא של SmartCar – מיני, קומפקט, סדאן, SUV, חשמלי ומסחרי. סננו לפי קטגוריה, תיבת הילוכים ומחיר יומי. מצאו את הרכב המושלם.'
+      : 'Browse SmartCar\'s full vehicle catalog – mini, compact, sedan, SUV, electric and commercial. Filter by category, transmission, and daily price.',
     alternates: { canonical: `/${locale}/catalog` },
   };
 }

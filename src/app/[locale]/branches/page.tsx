@@ -1,7 +1,21 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 
-export const metadata: Metadata = { title: 'סניפים' };
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const isHe = locale === 'he';
+  return {
+    title: isHe ? 'סניפים' : 'Branches',
+    description: isHe
+      ? 'ל-SmartCar 4 סניפים ברחבי ישראל: הרצליה, תל אביב, ירושלים ונמל התעופה בן גוריון. הגיעו אלינו או הזמינו רכב שיגיע עד אליכם בכל מקום.'
+      : 'SmartCar has 4 branches across Israel: Herzliya, Tel Aviv, Jerusalem and Ben Gurion Airport. Visit us or book a car delivered straight to you.',
+    alternates: { canonical: `/${locale}/branches` },
+  };
+}
 
 const BRANCHES = [
   {
