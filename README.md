@@ -22,7 +22,7 @@ SmartCar הוא אתר השכרת רכב ישראלי המציע:
 | Framework | [Next.js 16](https://nextjs.org/) + React 19, App Router |
 | Styling | Tailwind CSS v4, Framer Motion |
 | Database | [Supabase](https://supabase.com/) (PostgreSQL) |
-| Auth | Supabase Auth + HMAC-SHA256 admin cookie |
+| Auth | Supabase Auth OTP (email) + HMAC-SHA256 admin cookie |
 | Email | [EmailJS](https://www.emailjs.com/) (client-side + REST API) |
 | Rate Limiting | [Upstash Redis](https://upstash.com/) |
 | Anti-bot | [Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/) |
@@ -49,7 +49,7 @@ SmartCar הוא אתר השכרת רכב ישראלי המציע:
 | `/[locale]/cars-for-sale` | רכבים למכירה |
 | `/[locale]/contact` | טופס יצירת קשר |
 | `/[locale]/branches` | סניפים ומפה |
-| `/[locale]/my-bookings` | פורטל לקוח — צפייה וביטול הזמנות |
+| `/[locale]/my-bookings` | פורטל לקוח — אימות OTP במייל, צפייה וביטול הזמנות |
 | `/[locale]/about` | אודות החברה |
 
 ### פאנל ניהול (`/[locale]/admin`)
@@ -64,6 +64,8 @@ SmartCar הוא אתר השכרת רכב ישראלי המציע:
 ### פיצ'רים טכניים
 
 - בדיקת זמינות רכב בזמן אמת (מניעת חפיפות)
+- אימות לקוחות ב-OTP (קוד 8 ספרות למייל) — ללא סיסמה
+- SMTP מותאם (Gmail) עבור Supabase Auth — ללא מגבלת 2 מיילים לשעה
 - Rate limiting על כל טפסי יצירת הקשר (Upstash)
 - Honeypot anti-spam על טפסי פנייה
 - HSTS + Security Headers (X-Frame-Options, nosniff, Referrer-Policy)
@@ -203,4 +205,4 @@ ALTER TABLE public.vehicles ENABLE ROW LEVEL SECURITY;
 
 ## רישיון
 
-© 2025 SmartCar. כל הזכויות שמורות.
+© 2026 SmartCar. כל הזכויות שמורות.

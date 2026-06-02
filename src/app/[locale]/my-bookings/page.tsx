@@ -36,14 +36,12 @@ const EXTRA_LABELS: Record<string, { he: string; en: string }> = {
 };
 
 function mapAuthError(err: string, isHe: boolean): string {
-  if (err.includes('Invalid login credentials'))
-    return isHe ? 'מייל או סיסמה שגויים' : 'Incorrect email or password';
-  if (err.includes('Email not confirmed'))
-    return isHe ? 'אנא אשר את המייל שלך תחילה' : 'Please confirm your email first';
-  if (err.includes('User already registered'))
-    return isHe ? 'מייל זה כבר רשום, נסה להתחבר' : 'Email already registered, try signing in';
-  if (err.includes('Password should be at least'))
-    return isHe ? 'הסיסמה חייבת להכיל לפחות 6 תווים' : 'Password must be at least 6 characters';
+  if (err.includes('Token has expired') || err.includes('expired'))
+    return isHe ? 'הקוד פג תוקף, שלח מחדש' : 'Code expired, please resend';
+  if (err.includes('Invalid') || err.includes('invalid') || err.includes('incorrect'))
+    return isHe ? 'קוד שגוי, נסה שנית' : 'Incorrect code, please try again';
+  if (err.includes('rate limit') || err.includes('too many'))
+    return isHe ? 'יותר מדי ניסיונות, המתן מעט' : 'Too many attempts, please wait';
   return isHe ? 'שגיאה, נסה שנית' : 'An error occurred, please try again';
 }
 
@@ -54,11 +52,12 @@ export default function MyBookingsPage() {
 
   const supabase = createClient();
 
-  const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
   const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -100,26 +99,48 @@ export default function MyBookingsPage() {
     if (userEmail) fetchBookings();
   }, [userEmail, fetchBookings]);
 
-  const handleAuthSubmit = async (e: React.FormEvent) => {
+  const startCooldown = () => {
+    setResendCooldown(60);
+    const t = setInterval(() => {
+      setResendCooldown(prev => {
+        if (prev <= 1) { clearInterval(t); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
     setAuthError('');
     try {
-      let result;
-      if (authTab === 'login') {
-        result = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
-      } else {
-        result = await supabase.auth.signUp({ email: authEmail, password: authPassword });
-      }
-      if (result.error) {
-        setAuthError(mapAuthError(result.error.message, isHe));
-        return;
-      }
-      const email = result.data.user?.email;
-      if (!email) {
-        setAuthError(isHe ? 'שגיאה, נסה שנית' : 'An error occurred, please try again');
-        return;
-      }
+      const { error } = await supabase.auth.signInWithOtp({
+        email: authEmail,
+        options: { shouldCreateUser: true },
+      });
+      if (error) { setAuthError(mapAuthError(error.message, isHe)); return; }
+      setOtpSent(true);
+      startCooldown();
+    } catch {
+      setAuthError(isHe ? 'שגיאה, נסה שנית' : 'An error occurred, please try again');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError('');
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: authEmail,
+        token: otpCode.trim(),
+        type: 'email',
+      });
+      if (error) { setAuthError(mapAuthError(error.message, isHe)); return; }
+      const email = data.user?.email;
+      if (!email) { setAuthError(isHe ? 'שגיאה, נסה שנית' : 'An error occurred'); return; }
       setUserEmail(email);
     } catch {
       setAuthError(isHe ? 'שגיאה, נסה שנית' : 'An error occurred, please try again');
@@ -133,7 +154,8 @@ export default function MyBookingsPage() {
     setUserEmail(null);
     setBookings(null);
     setAuthEmail('');
-    setAuthPassword('');
+    setOtpCode('');
+    setOtpSent(false);
     setAuthError('');
   };
 
@@ -204,72 +226,112 @@ export default function MyBookingsPage() {
       {/* Auth form */}
       {!userEmail && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 max-w-sm mx-auto">
-          <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1">
-            {(['login', 'register'] as const).map(tab => (
-              <button
-                key={tab}
-                onClick={() => { setAuthTab(tab); setAuthError(''); }}
-                className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${
-                  authTab === tab ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {tab === 'login' ? (isHe ? 'התחברות' : 'Sign in') : (isHe ? 'הרשמה' : 'Register')}
-              </button>
-            ))}
-          </div>
 
-          {authTab === 'register' && (
-            <p className="text-xs text-gray-400 mb-4 text-center">
-              {isHe
-                ? 'הירשם עם אותו מייל שהשתמשת בו בהזמנה'
-                : 'Register with the same email you used when booking'}
-            </p>
+          {/* Step 1 — enter email */}
+          {!otpSent && (
+            <>
+              <div className="text-center mb-6">
+                <div className="w-12 h-12 bg-[#eef6f6] rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <span className="text-2xl">✉️</span>
+                </div>
+                <p className="text-sm text-gray-500">
+                  {isHe
+                    ? 'הכניסי את כתובת המייל שלך ונשלח לך קוד אימות'
+                    : 'Enter your email address and we\'ll send you a verification code'}
+                </p>
+              </div>
+              <form onSubmit={handleSendOtp} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                    {isHe ? 'כתובת מייל' : 'Email address'}
+                  </label>
+                  <input
+                    type="email"
+                    value={authEmail}
+                    onChange={e => setAuthEmail(e.target.value)}
+                    required
+                    dir="ltr"
+                    placeholder="your@email.com"
+                    className="w-full h-11 rounded-xl border-2 border-gray-200 px-4 text-sm focus:outline-none focus:border-[#2D5F5F] transition-colors"
+                  />
+                </div>
+                {authError && (
+                  <p className="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-lg">{authError}</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full h-11 bg-[#2D5F5F] text-white text-sm font-bold rounded-xl hover:bg-[#1A3A3A] disabled:opacity-40 transition-colors"
+                >
+                  {authLoading ? '...' : (isHe ? 'שלח קוד אימות' : 'Send verification code')}
+                </button>
+              </form>
+            </>
           )}
 
-          <form onSubmit={handleAuthSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                {isHe ? 'כתובת מייל' : 'Email address'}
-              </label>
-              <input
-                type="email"
-                value={authEmail}
-                onChange={e => setAuthEmail(e.target.value)}
-                required
-                dir="ltr"
-                placeholder="your@email.com"
-                className="w-full h-11 rounded-xl border-2 border-gray-200 px-4 text-sm focus:outline-none focus:border-[#2D5F5F] transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                {isHe ? 'סיסמה' : 'Password'}
-              </label>
-              <input
-                type="password"
-                value={authPassword}
-                onChange={e => setAuthPassword(e.target.value)}
-                required
-                dir="ltr"
-                placeholder="••••••"
-                className="w-full h-11 rounded-xl border-2 border-gray-200 px-4 text-sm focus:outline-none focus:border-[#2D5F5F] transition-colors"
-              />
-            </div>
-            {authError && (
-              <p className="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-lg">{authError}</p>
-            )}
-            <button
-              type="submit"
-              disabled={authLoading}
-              className="w-full h-11 bg-[#2D5F5F] text-white text-sm font-bold rounded-xl hover:bg-[#1A3A3A] disabled:opacity-40 transition-colors"
-            >
-              {authLoading
-                ? '...'
-                : authTab === 'login'
-                  ? (isHe ? 'התחבר' : 'Sign in')
-                  : (isHe ? 'הירשם' : 'Create account')}
-            </button>
-          </form>
+          {/* Step 2 — enter OTP */}
+          {otpSent && (
+            <>
+              <div className="text-center mb-6">
+                <div className="w-12 h-12 bg-[#eef6f6] rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <span className="text-2xl">🔑</span>
+                </div>
+                <p className="text-sm text-gray-700 font-medium mb-1">
+                  {isHe ? 'בדוק את תיבת המייל שלך' : 'Check your inbox'}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {isHe
+                    ? `שלחנו קוד אימות ל-${authEmail}`
+                    : `We sent a verification code to ${authEmail}`}
+                </p>
+              </div>
+              <form onSubmit={handleVerifyOtp} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                    {isHe ? 'קוד אימות' : 'Verification code'}
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]{6,8}"
+                    maxLength={8}
+                    value={otpCode}
+                    onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    required
+                    dir="ltr"
+                    placeholder="12345678"
+                    className="w-full h-12 rounded-xl border-2 border-gray-200 px-4 text-center text-xl font-bold tracking-widest focus:outline-none focus:border-[#2D5F5F] transition-colors"
+                    autoFocus
+                  />
+                </div>
+                {authError && (
+                  <p className="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-lg">{authError}</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={authLoading || otpCode.length < 6}
+                  className="w-full h-11 bg-[#2D5F5F] text-white text-sm font-bold rounded-xl hover:bg-[#1A3A3A] disabled:opacity-40 transition-colors"
+                >
+                  {authLoading ? '...' : (isHe ? 'אמת ← כנס' : 'Verify & sign in')}
+                </button>
+                <div className="text-center">
+                  {resendCooldown > 0 ? (
+                    <p className="text-xs text-gray-400">
+                      {isHe ? `שלח שוב בעוד ${resendCooldown} שניות` : `Resend in ${resendCooldown}s`}
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setOtpSent(false); setOtpCode(''); setAuthError(''); }}
+                      className="text-xs text-[#2D5F5F] hover:underline"
+                    >
+                      {isHe ? 'לא קיבלת? שנה מייל או שלח שוב' : 'Didn\'t receive it? Change email or resend'}
+                    </button>
+                  )}
+                </div>
+              </form>
+            </>
+          )}
         </div>
       )}
 
