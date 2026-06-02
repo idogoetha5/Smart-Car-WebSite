@@ -17,7 +17,14 @@ import { LeasingInquirySection } from './LeasingInquirySection';
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'leasing' });
-  return { title: t('title') };
+  const isHe = locale === 'he';
+  return {
+    title: t('title'),
+    description: isHe
+      ? 'ליסינג פרטי ועסקי – רכבים חדשים עם תנאים גמישים, כולל ביטוח ותחזוקה. קבל הצעת מחיר תוך 24 שעות.'
+      : 'Private and business leasing – new cars with flexible terms including insurance and maintenance.',
+    alternates: { canonical: `/${locale}/leasing` },
+  };
 }
 
 function VehicleLeaseCard({ vehicle, locale }: { vehicle: Vehicle; locale: string }) {
@@ -150,10 +157,13 @@ export default async function LeasingPage({
                   <>Business leasing<br /><span className="text-[#E8743B]">made smarter</span></>
                 )}
               </h1>
-              <p className="text-[#B8D8D8] text-lg mb-8">
+              <p className="text-[#B8D8D8] text-lg mb-3">
                 {isHe
                   ? 'תוכניות ליסינג מותאמות אישית לעסקים וללקוחות פרטיים, עם מגוון רכבים וגמישות מלאה'
                   : 'Tailored leasing plans for businesses and private customers, with a wide range of vehicles and full flexibility'}
+              </p>
+              <p className="text-[#E8743B] text-base font-semibold mb-8">
+                {isHe ? 'קבל הצעת מחיר עוד היום!' : 'Get a quote today!'}
               </p>
               <div className={`flex gap-4 ${isHe ? 'justify-end flex-row-reverse' : ''}`}>
                 <a

@@ -1,5 +1,24 @@
+import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const isHe = locale === 'he';
+  return {
+    description: isHe
+      ? 'השכרת רכב - עד בית הלקוח'
+      : 'Car rental – delivered to your door',
+    alternates: {
+      canonical: `/${locale}`,
+      languages: { he: '/he', en: '/en', 'x-default': '/he' },
+    },
+  };
+}
 import Image from 'next/image';
 import { Suspense } from 'react';
 import { getFeaturedVehicles } from '@/lib/db/vehicles';

@@ -10,7 +10,14 @@ export async function generateMetadata({
 }) {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'nav' });
-  return { title: t('contact') };
+  const isHe = locale === 'he';
+  return {
+    title: t('contact'),
+    description: isHe
+      ? 'צור קשר עם SmartCar – טלפון, וואטסאפ, או מייל. נציג יחזור אליך תוך שעה בשעות הפעילות.'
+      : 'Contact SmartCar – phone, WhatsApp, or email. A representative will get back to you within an hour.',
+    alternates: { canonical: `/${locale}/contact` },
+  };
 }
 
 function WhatsAppIcon() {

@@ -44,7 +44,7 @@ export async function generateMetadata({
       process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il'
     ),
     alternates: {
-      canonical: '/',
+      canonical: `/${locale}`,
       languages: {
         he: '/he',
         en: '/en',
@@ -96,6 +96,9 @@ export default async function LocaleLayout({
       dir={isRTL ? 'rtl' : 'ltr'}
       className={`${nunito.variable} ${heebo.variable}`}
     >
+      <head>
+        <link rel="preconnect" href="https://iovpoxmdsgsstaduggvb.supabase.co" />
+      </head>
       <body
         className={`min-h-screen bg-gray-50 text-gray-900 antialiased flex flex-col ${
           isRTL ? 'font-[family-name:var(--font-heebo)]' : 'font-[family-name:var(--font-nunito)]'
