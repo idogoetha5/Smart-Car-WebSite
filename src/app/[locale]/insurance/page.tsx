@@ -190,14 +190,14 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
                 'נזק מתאונה בדרך (פגיעה בעמוד, חניה, תאונת דרכים)',
                 'שריפה לא מכוונת',
                 'נזק כתוצאה מסחף של עצם חיצוני (ענף, אבן)',
-                'גניבה חלקית או מלאה של הרכב (בכפוף לדוח משטרה)',
+                'גניבה חלקית או מלאה של הרכב (בכפוף לדוח משטרה)*',
                 'שקט נפשי מלא לכל תקופת ההשכרה',
               ] : [
                 'Reduces your deductible to zero (₪0) for Type A damage',
                 'Accident damage on the road (collision with a post, parking damage, traffic accidents)',
                 'Unintentional fire damage',
                 'Damage from external objects (branches, stones)',
-                'Partial or full vehicle theft (subject to police report)',
+                'Partial or full vehicle theft (subject to police report)*',
                 'Full peace of mind throughout the rental period',
               ]).map((item, i) => (
                 <li key={i} className="flex items-start gap-2">
@@ -205,6 +205,10 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
                   {item}
                 </li>
               ))}
+              <li className="text-xs text-gray-400 mt-2 pe-1">
+                {isHe
+                  ? '* כיסוי גניבה תלוי בתנאי הפוליסה ואינו מובטח בכל מצב — פרטים מלאים בחוזה השכירות.'
+                  : '* Theft coverage is subject to policy conditions and is not guaranteed in all circumstances — full details in the rental agreement.'}</li>
             </ul>
           </div>
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">

@@ -116,7 +116,10 @@ export default function MyBookingsPage() {
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email: authEmail,
-        options: { shouldCreateUser: true },
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: `${window.location.origin}/${locale}/my-bookings`,
+        },
       });
       if (error) { setAuthError(mapAuthError(error.message, isHe)); return; }
       setOtpSent(true);

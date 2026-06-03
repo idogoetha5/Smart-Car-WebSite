@@ -35,6 +35,7 @@ export default function AdminVehiclesPage() {
   const [form, setForm] = useState<VehicleForm>({ ...EMPTY_VEHICLE });
   const [imageUrl, setImageUrl] = useState('');
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
   const router = useRouter();
 
   const fetchVehicles = useCallback(async () => {
@@ -291,6 +292,17 @@ export default function AdminVehiclesPage() {
         </div>
       )}
 
+      {/* Search */}
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="חיפוש לפי מותג..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full sm:w-72 p-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] text-right"
+        />
+      </div>
+
       {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {vehicles.length === 0 ? (
@@ -309,7 +321,7 @@ export default function AdminVehiclesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {vehicles.map((v) => (
+                {vehicles.filter(v => v.make?.toLowerCase().includes(search.toLowerCase())).map((v) => (
                   <tr key={v.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-4 font-medium text-gray-900">{v.make} {v.model} <span className="text-xs text-gray-400 font-normal">{v.year}</span></td>
                     <td className="p-4 text-gray-600">{v.category}</td>

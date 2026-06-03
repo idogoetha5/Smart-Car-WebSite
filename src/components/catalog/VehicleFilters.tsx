@@ -119,8 +119,8 @@ export default function VehicleFiltersPanel({
           className="w-full accent-blue-600"
         />
         <div className="flex justify-between text-xs text-gray-400 mt-1">
-          <span>₪1000</span>
           <span>₪100</span>
+          <span>₪1000</span>
         </div>
       </div>
 
@@ -149,21 +149,6 @@ export default function VehicleFiltersPanel({
             </button>
           ))}
         </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          id="available-only"
-          checked={filters.isAvailable === true}
-          onChange={(e) =>
-            onChange({ ...filters, isAvailable: e.target.checked ? true : undefined })
-          }
-          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-        />
-        <label htmlFor="available-only" className="text-sm text-gray-700">
-          {t('available_only')}
-        </label>
       </div>
 
       <button

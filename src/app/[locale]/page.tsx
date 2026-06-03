@@ -91,7 +91,7 @@ export default async function HomePage({
       image: '/images/branch-herzliya.webp',
       address: isHe ? 'רחוב רמת ים 122 (מלון דן אכדיה)' : '122 Ramat Yam St (Dan Accadia Hotel)',
       phone: '09-9509757',
-      wazeUrl: 'https://waze.com/ul?ll=32.1663,34.8399&navigate=yes',
+      wazeUrl: 'https://www.waze.com/live-map/directions/il/tel-aviv-district/herzliya/smart-car?navigate=yes&to=place.ChIJJXb_-pRIHRURHCc4EPqsxxE',
     },
     {
       name: isHe ? 'סניף תל אביב' : 'Tel Aviv',
@@ -189,7 +189,7 @@ export default async function HomePage({
                 </Link>
                 <div className="p-4 text-start flex flex-col flex-1">
                   <h3 className="font-bold text-[#0D2B2B] text-sm mb-1">{b.name}</h3>
-                  <p className="text-xs text-gray-500 mb-2 leading-snug">📍 {b.address}</p>
+                  <p className="text-xs text-gray-500 mb-2 leading-snug" style={{ minHeight: '33px' }}>📍 {b.address}</p>
                   <a href={`tel:${b.phone}`} className="text-xs text-[#E8743B] font-semibold block mb-2">
                     📞 {b.phone}
                   </a>
@@ -275,12 +275,14 @@ export default async function HomePage({
             >
               📞 09-9509757
             </a>
-            <Link
-              href={`/${locale}/contact`}
+            <a
+              href="https://wa.me/97299509757"
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-6 py-3 bg-[#2D5F5F] hover:bg-[#1a3f3f] text-white font-bold rounded-full transition-colors"
             >
               {isHe ? 'שלח הודעה' : 'Send a Message'}
-            </Link>
+            </a>
           </div>
         </div>
       </section>

@@ -26,7 +26,7 @@ const branches: Branch[] = [
     phone: OFFICE_PHONE,
     hoursHe: 'א–ה 08:00–20:00 | ו 08:00–14:00',
     hoursEn: 'Sun–Thu 08:00–20:00 | Fri 08:00–14:00',
-    wazeUrl: 'https://waze.com/ul?ll=32.16278,34.79306&navigate=yes',
+    wazeUrl: 'https://www.waze.com/live-map/directions/il/tel-aviv-district/herzliya/smart-car?navigate=yes&to=place.ChIJJXb_-pRIHRURHCc4EPqsxxE',
     mapsUrl: 'https://maps.google.com/?q=32.16278,34.79306',
     image: '/images/branch-herzliya.webp',
   },
@@ -102,40 +102,54 @@ export default function BranchesSection({ locale }: { locale: string }) {
                   loading="lazy"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0D2B2B]/80 to-transparent" />
-                <div className="absolute bottom-3 left-3 right-3">
-                  <h3 className="font-bold text-white text-base drop-shadow-sm">
-                    {isHe ? branch.nameHe : branch.nameEn}
-                  </h3>
-                </div>
               </div>
 
-              <div className="p-4 flex flex-col gap-3 flex-1">
-                <div className={`flex items-start gap-2 text-sm text-gray-600 ${isHe ? 'flex-row-reverse text-right' : ''}`}>
-                  <MapPin className="w-4 h-4 text-[#2D5F5F] shrink-0 mt-0.5" />
-                  <span>{isHe ? branch.addressHe : branch.addressEn}</span>
-                </div>
+              <div
+                className="flex-1"
+                style={{
+                  padding: '16px',
+                  display: 'grid',
+                  gridTemplateRows: '22px 24px 40px 14px 1fr',
+                  rowGap: '10px',
+                  direction: isHe ? 'rtl' : 'ltr',
+                }}
+              >
+                {/* Row 1 – 22px: branch name */}
+                <h3 style={{ fontWeight: 700, fontSize: '15px', color: '#0D2B2B', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                  {isHe ? branch.nameHe : branch.nameEn}
+                </h3>
 
+                {/* Row 2 – 24px: phone (before address so nothing variable sits above it) */}
                 {branch.phone ? (
                   <a
                     href={`tel:${branch.phone}`}
-                    className={`flex items-center gap-2 text-sm text-[#2D5F5F] font-semibold hover:text-[#E8743B] transition-colors ${isHe ? 'flex-row-reverse' : ''}`}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#E8743B', fontWeight: 600, textDecoration: 'none' }}
                   >
-                    <Phone className="w-4 h-4 shrink-0" />
+                    <Phone className="w-4 h-4" style={{ flexShrink: 0 }} />
                     {branch.phone}
                   </a>
                 ) : (
-                  <div className={`flex items-center gap-2 text-sm text-[#E8743B] font-semibold ${isHe ? 'flex-row-reverse' : ''}`}>
-                    <Clock className="w-4 h-4 shrink-0" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#E8743B', fontWeight: 600 }}>
+                    <Clock className="w-4 h-4" style={{ flexShrink: 0 }} />
                     {isHe ? 'שירות 24/7' : '24/7 Service'}
                   </div>
                 )}
 
-                <div className={`text-xs text-gray-400 ${isHe ? 'text-right' : ''}`}>
+                {/* Row 3 – 40px: address */}
+                <div style={{ overflow: 'hidden', display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '13px', color: '#4B5563' }}>
+                  <MapPin className="w-4 h-4 text-[#2D5F5F] mt-0.5" style={{ flexShrink: 0 }} />
+                  <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {isHe ? branch.addressHe : branch.addressEn}
+                  </span>
+                </div>
+
+                {/* Row 4 – 14px: hours */}
+                <div style={{ fontSize: '11px', color: '#9CA3AF', textAlign: isHe ? 'right' : 'left', overflow: 'hidden' }}>
                   {isHe ? branch.hoursHe : branch.hoursEn}
                 </div>
 
-                <div className="flex gap-2 mt-auto pt-2 border-t border-gray-50">
+                {/* Row 5 – 1fr: buttons at bottom */}
+                <div style={{ alignSelf: 'end', paddingTop: '8px', borderTop: '1px solid #F9FAFB', display: 'flex', gap: '8px' }}>
                   <a
                     href={branch.wazeUrl}
                     target="_blank"

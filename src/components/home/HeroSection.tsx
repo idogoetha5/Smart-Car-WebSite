@@ -404,12 +404,12 @@ export default function HeroSection({ locale }: { locale: string }) {
       </div>
 
       {/* ══ MIDDLE: White bg, full car visible ══ */}
-      <div className="bg-white relative overflow-hidden min-h-[140px] md:min-h-[320px]">
+      <div className="bg-white relative overflow-hidden md:h-[320px]" style={{ height: 'calc(55vw * 705 / 1400)' }}>
 
-        {/* Tagline — LEFT, always bilingual */}
-        <div className="absolute left-8 md:left-16 top-1/2 -translate-y-1/2 z-10">
-          <p className="text-[#E8743B] text-4xl md:text-6xl font-bold italic leading-tight whitespace-nowrap">
-            join us for a ride
+        {/* Tagline — LEFT, wraps on mobile, single line on desktop */}
+        <div className="absolute left-4 md:left-16 top-2 translate-y-0 md:top-1/2 md:-translate-y-1/2 z-10 max-w-[48%] md:max-w-none">
+          <p className="text-[#E8743B] text-3xl md:text-6xl font-bold italic leading-tight md:whitespace-nowrap">
+            {'Join us'}<br className="md:hidden" /><span className="hidden md:inline">{' '}</span>{'for a ride'}
           </p>
         </div>
 
