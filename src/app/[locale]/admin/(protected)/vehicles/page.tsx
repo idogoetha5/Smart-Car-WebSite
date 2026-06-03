@@ -304,9 +304,14 @@ export default function AdminVehiclesPage() {
       </div>
 
       {/* Table */}
+      {(() => {
+        const filtered = vehicles.filter(v => v.make?.toLowerCase().includes(search.toLowerCase()));
+        return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        {vehicles.length === 0 ? (
-          <p className="text-center text-gray-400 py-12">אין רכבים עדיין</p>
+        {filtered.length === 0 ? (
+          <p className="text-center text-gray-400 py-12">
+            {vehicles.length === 0 ? 'אין רכבים עדיין' : 'לא נמצאו תוצאות'}
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-right">
@@ -321,7 +326,7 @@ export default function AdminVehiclesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {vehicles.filter(v => v.make?.toLowerCase().includes(search.toLowerCase())).map((v) => (
+                {filtered.map((v) => (
                   <tr key={v.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-4 font-medium text-gray-900">{v.make} {v.model} <span className="text-xs text-gray-400 font-normal">{v.year}</span></td>
                     <td className="p-4 text-gray-600">{v.category}</td>
@@ -365,6 +370,8 @@ export default function AdminVehiclesPage() {
           </div>
         )}
       </div>
+        );
+      })()}
     </div>
   );
 }

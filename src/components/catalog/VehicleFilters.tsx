@@ -118,7 +118,7 @@ export default function VehicleFiltersPanel({
           }
           className="w-full accent-blue-600"
         />
-        <div className="flex justify-between text-xs text-gray-400 mt-1">
+        <div dir="ltr" className="flex justify-between text-xs text-gray-400 mt-1">
           <span>₪100</span>
           <span>₪1000</span>
         </div>

@@ -150,7 +150,7 @@ export default function RentalPage() {
 
         {!isLoading && (
           <span className="ms-auto self-center text-sm text-gray-400">
-            {filteredVehicles.length} {isHe ? 'רכבים' : 'vehicles'}
+            {filteredVehicles.length} {isHe ? 'דגמים' : 'models'}
           </span>
         )}
       </div>
