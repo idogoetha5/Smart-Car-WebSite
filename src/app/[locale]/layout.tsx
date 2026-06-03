@@ -8,7 +8,7 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import WhatsAppFloat from '@/components/ui/WhatsAppFloat';
 import CookieBanner from '@/components/ui/CookieBanner';
-import { Analytics } from '@vercel/analytics/react';
+import ConsentedAnalytics from '@/components/analytics/ConsentedAnalytics';
 import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
 import '../globals.css';
 
@@ -120,7 +120,7 @@ export default async function LocaleLayout({
           <Footer />
           <WhatsAppFloat />
           <CookieBanner />
-          <Analytics />
+          <ConsentedAnalytics />
           <GoogleAnalytics />
         </NextIntlClientProvider>
       </body>

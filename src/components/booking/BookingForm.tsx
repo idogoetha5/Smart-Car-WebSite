@@ -586,10 +586,11 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="pickup-time" className="block text-sm font-medium text-gray-700 mb-1">
             {isHe ? 'שעת איסוף' : 'Pickup time'}
           </label>
           <select
+            id="pickup-time"
             value={pickupTime}
             onChange={(e) => setPickupTime(e.target.value)}
             className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
@@ -598,10 +599,11 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="return-time" className="block text-sm font-medium text-gray-700 mb-1">
             {isHe ? 'שעת החזרה' : 'Return time'}
           </label>
           <select
+            id="return-time"
             value={returnTime}
             onChange={(e) => setReturnTime(e.target.value)}
             className="w-full h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
@@ -665,12 +667,13 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           </div>
           <div>
             <div className="flex items-center gap-1.5 mb-1">
-              <label className="text-sm font-medium text-gray-700">{t('id_number')}</label>
+              <label htmlFor="customer-id-number" className="text-sm font-medium text-gray-700">{t('id_number')}</label>
               <span className="text-xs text-gray-400" title={isHe ? 'לתיירים — מספר דרכון' : 'Tourists — passport number'}>
                 {isHe ? '(לתיירים: מספר דרכון)' : '(Tourists: passport number)'}
               </span>
             </div>
             <input
+              id="customer-id-number"
               type="text"
               inputMode="numeric"
               placeholder={isHe ? 'עד 9 ספרות' : 'Up to 9 digits'}

@@ -80,8 +80,11 @@ function VehicleLeaseCard({ vehicle, locale }: { vehicle: Vehicle; locale: strin
             </span>
             <span className="text-sm text-gray-400">/{isHe ? 'חודש' : 'month'}</span>
           </div>
-          <div className="text-xs text-gray-400 mb-3">
+          <div className="text-xs text-gray-400 mb-1">
             {isHe ? 'מינימום 12 חודשים' : 'Min. 12 months'}
+          </div>
+          <div className="text-xs text-gray-400 mb-3">
+            {isHe ? 'כולל מע"מ 18%' : 'Incl. 18% VAT'}
           </div>
           <Link
             href={`/${locale}/leasing?vehicle=${vehicle.id}#calculator`}
