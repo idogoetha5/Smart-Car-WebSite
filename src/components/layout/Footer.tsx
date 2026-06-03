@@ -107,7 +107,9 @@ export default function Footer() {
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-[#E8743B] shrink-0 mt-0.5" />
-                <span>{locale === 'he' ? 'רמת ים 122 (מלון דן אכדיה), הרצליה' : '122 Ramat Yam St (Dan Accadia Hotel), Herzliya'}</span>
+                <a href="https://www.waze.com/live-map/directions/il/tel-aviv-district/herzliya/smart-car?navigate=yes&to=place.ChIJJXb_-pRIHRURHCc4EPqsxxE" target="_blank" rel="noopener noreferrer" className="hover:text-[#F5F0E8] transition-colors">
+                  {locale === 'he' ? 'רמת ים 122 (מלון דן אכדיה), הרצליה' : '122 Ramat Yam St (Dan Accadia Hotel), Herzliya'}
+                </a>
               </li>
             </ul>
           </div>

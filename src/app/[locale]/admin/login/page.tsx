@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Image from 'next/image';
 
 export default function AdminLogin() {
   const [password, setPassword] = useState('');
@@ -35,10 +36,10 @@ export default function AdminLogin() {
     <div className="min-h-screen bg-[#0D2B2B] flex items-center justify-center" dir={locale === 'he' ? 'rtl' : 'ltr'}>
       <div className="bg-white rounded-2xl p-10 w-full max-w-md shadow-2xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#0D2B2B]">
-            SMART<span className="text-[#E8743B]">CAR</span>
-          </h1>
-          <p className="text-gray-500 mt-2">כניסה למערכת ניהול</p>
+          <div className="flex justify-center mb-3">
+            <Image src="/images/logo.png" alt="SmartCar" width={160} height={60} className="object-contain" />
+          </div>
+          <p className="text-gray-500">כניסה למערכת ניהול</p>
         </div>
 
         <div className="space-y-4">

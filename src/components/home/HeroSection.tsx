@@ -21,6 +21,61 @@ const BRANCHES_EN = [
   { value: 'airport',   label: 'Ben Gurion Airport' },
 ];
 
+function LocationField({
+  label, value, setValue, customVal, setCustomVal, showCustom, setShowCustom, isHe, branches,
+}: {
+  label: string;
+  value: string;
+  setValue: (v: string) => void;
+  customVal: string;
+  setCustomVal: (v: string) => void;
+  showCustom: boolean;
+  setShowCustom: (v: boolean) => void;
+  isHe: boolean;
+  branches: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <div className="flex-1 min-w-0">
+      <p className="text-xs text-gray-400 whitespace-nowrap">{label}</p>
+      {showCustom ? (
+        <div className="flex items-center gap-1">
+          <input
+            type="text"
+            autoFocus
+            value={customVal}
+            onChange={(e) => setCustomVal(e.target.value)}
+            placeholder={isHe ? 'הקלד כתובת...' : 'Type address...'}
+            className="w-full text-xs sm:text-sm text-gray-700 outline-none bg-transparent"
+          />
+          <button
+            onClick={() => { setShowCustom(false); setCustomVal(''); setValue(''); }}
+            className="text-gray-400 hover:text-gray-600 text-xs shrink-0"
+          >✕</button>
+        </div>
+      ) : (
+        <select
+          value={value}
+          onChange={(e) => {
+            if (e.target.value === 'custom') {
+              setShowCustom(true);
+              setValue('');
+            } else {
+              setValue(e.target.value);
+            }
+          }}
+          className="w-full text-xs sm:text-sm text-gray-700 outline-none bg-transparent cursor-pointer"
+        >
+          <option value="">{isHe ? 'בחר סניף' : 'Select location'}</option>
+          {branches.map(b => (
+            <option key={b.value} value={b.value}>{b.label}</option>
+          ))}
+          <option value="custom">📍 {isHe ? 'כתובת אחרת...' : 'Other address...'}</option>
+        </select>
+      )}
+    </div>
+  );
+}
+
 export default function HeroSection({ locale }: { locale: string }) {
   const t  = useTranslations('hero');
   const ts = useTranslations('services');
@@ -54,65 +109,6 @@ export default function HeroSection({ locale }: { locale: string }) {
     if (rLoc) params.set('returnLocation', rLoc);
     router.push(`/${locale}/rental?${params.toString()}`);
   };
-
-  function LocationField({
-    label,
-    value,
-    setValue,
-    customVal,
-    setCustomVal,
-    showCustom,
-    setShowCustom,
-  }: {
-    label: string;
-    value: string;
-    setValue: (v: string) => void;
-    customVal: string;
-    setCustomVal: (v: string) => void;
-    showCustom: boolean;
-    setShowCustom: (v: boolean) => void;
-  }) {
-    return (
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-gray-400 whitespace-nowrap">{label}</p>
-        {showCustom ? (
-          <div className="flex items-center gap-1">
-            <input
-              type="text"
-              autoFocus
-              value={customVal}
-              onChange={(e) => setCustomVal(e.target.value)}
-              placeholder={isHe ? 'הקלד כתובת...' : 'Type address...'}
-              className="w-full text-xs sm:text-sm text-gray-700 outline-none bg-transparent"
-            />
-            <button
-              onClick={() => { setShowCustom(false); setCustomVal(''); setValue(''); }}
-              className="text-gray-400 hover:text-gray-600 text-xs shrink-0"
-            >✕</button>
-          </div>
-        ) : (
-          <select
-            value={value}
-            onChange={(e) => {
-              if (e.target.value === 'custom') {
-                setShowCustom(true);
-                setValue('');
-              } else {
-                setValue(e.target.value);
-              }
-            }}
-            className="w-full text-xs sm:text-sm text-gray-700 outline-none bg-transparent cursor-pointer"
-          >
-            <option value="">{isHe ? 'בחר סניף' : 'Select location'}</option>
-            {branches.map(b => (
-              <option key={b.value} value={b.value}>{b.label}</option>
-            ))}
-            <option value="custom">📍 {isHe ? 'כתובת אחרת...' : 'Other address...'}</option>
-          </select>
-        )}
-      </div>
-    );
-  }
 
   const SERVICES = [
     {
@@ -266,6 +262,8 @@ export default function HeroSection({ locale }: { locale: string }) {
                 setCustomVal={setPickupCustom}
                 showCustom={showPickupCustom}
                 setShowCustom={setShowPickupCustom}
+                isHe={isHe}
+                branches={branches}
               />
             </div>
             {/* Return location */}
@@ -278,6 +276,8 @@ export default function HeroSection({ locale }: { locale: string }) {
                 setCustomVal={setReturnCustom}
                 showCustom={showReturnCustom}
                 setShowCustom={setShowReturnCustom}
+                isHe={isHe}
+                branches={branches}
               />
             </div>
             {/* Dates — side by side */}
@@ -337,6 +337,8 @@ export default function HeroSection({ locale }: { locale: string }) {
                 setCustomVal={setPickupCustom}
                 showCustom={showPickupCustom}
                 setShowCustom={setShowPickupCustom}
+                isHe={isHe}
+                branches={branches}
               />
             </div>
             <div className="w-px h-8 bg-gray-200 flex-shrink-0"/>
@@ -350,6 +352,8 @@ export default function HeroSection({ locale }: { locale: string }) {
                 setCustomVal={setReturnCustom}
                 showCustom={showReturnCustom}
                 setShowCustom={setShowReturnCustom}
+                isHe={isHe}
+                branches={branches}
               />
             </div>
             <div className="w-px h-8 bg-gray-200 flex-shrink-0"/>
@@ -404,12 +408,12 @@ export default function HeroSection({ locale }: { locale: string }) {
       </div>
 
       {/* ══ MIDDLE: White bg, full car visible ══ */}
-      <div className="bg-white relative overflow-hidden min-h-[140px] md:min-h-[320px]">
+      <div className="bg-white relative overflow-hidden h-[calc(55vw*705/1400)] md:h-[320px]">
 
-        {/* Tagline — LEFT, always bilingual */}
-        <div className="absolute left-8 md:left-16 top-1/2 -translate-y-1/2 z-10">
-          <p className="text-[#E8743B] text-4xl md:text-6xl font-bold italic leading-tight whitespace-nowrap">
-            join us for a ride
+        {/* Tagline — LEFT, wraps on mobile, single line on desktop */}
+        <div className="absolute left-4 md:left-16 top-2 translate-y-0 md:top-1/2 md:-translate-y-1/2 z-10 max-w-[48%] md:max-w-none">
+          <p className="text-[#E8743B] text-3xl md:text-6xl font-bold italic leading-tight md:whitespace-nowrap">
+            {'Join us'}<br className="md:hidden" /><span className="hidden md:inline">{' '}</span>{'for a ride'}
           </p>
         </div>
 

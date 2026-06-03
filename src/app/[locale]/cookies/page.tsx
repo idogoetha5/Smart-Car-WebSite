@@ -67,7 +67,7 @@ export default async function CookiesPage({ params }: { params: Promise<{ locale
                     <tr className="bg-gray-50">
                       <td className="border border-gray-200 p-3 font-mono text-xs">va_* (Vercel Analytics)</td>
                       <td className="border border-gray-200 p-3"><span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-xs">ביצועים</span></td>
-                      <td className="border border-gray-200 p-3">ניתוח תנועה אנונימי — לא כולל PII. מופעל על ידי Vercel Inc.</td>
+                      <td className="border border-gray-200 p-3">ניתוח תנועה אנונימי — לא כולל PII. מופעל על ידי Vercel Inc. <strong>פועל רק לאחר אישור.</strong></td>
                       <td className="border border-gray-200 p-3">24 שעות</td>
                       <td className="border border-gray-200 p-3">כן</td>
                     </tr>
@@ -159,6 +159,13 @@ export default async function CookiesPage({ params }: { params: Promise<{ locale
                       <td className="border border-gray-200 p-3">No</td>
                     </tr>
                     <tr>
+                      <td className="border border-gray-200 p-3 font-mono text-xs">cf_clearance, _cf_bm (Cloudflare Turnstile)</td>
+                      <td className="border border-gray-200 p-3"><span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs">Essential</span></td>
+                      <td className="border border-gray-200 p-3">Bot protection on booking, contact and review forms. Operated by Cloudflare Inc.</td>
+                      <td className="border border-gray-200 p-3">30 min – 24 hours</td>
+                      <td className="border border-gray-200 p-3">No</td>
+                    </tr>
+                    <tr className="bg-gray-50">
                       <td className="border border-gray-200 p-3 font-mono text-xs">booking_draft_*</td>
                       <td className="border border-gray-200 p-3"><span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs">Essential</span></td>
                       <td className="border border-gray-200 p-3">Saves booking form draft in localStorage to prevent data loss</td>

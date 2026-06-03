@@ -207,33 +207,6 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
           </h3>
         </div>
 
-        {/* Color selector */}
-        {allVariants.length > 1 && (
-          <div className={`flex gap-2 mb-3 ${isHe ? 'justify-end' : 'justify-start'}`}>
-            {allVariants.map((v, i) => {
-              const colorKey = v.colorEn ?? v.colorHe ?? '';
-              const swatchStyle = colorSwatchStyle[colorKey] ?? colorSwatchStyle[v.colorHe ?? ''] ?? { backgroundColor: '#9ca3af' };
-              const label = isHe ? (v.colorHe ?? v.colorEn) : (v.colorEn ?? v.colorHe);
-              return (
-                <button
-                  key={v.id}
-                  onClick={() => setSelected(i)}
-                  title={label}
-                  className={`w-7 h-7 rounded-full transition-all duration-200 ${
-                    selected === i
-                      ? 'ring-2 ring-[#E8743B] ring-offset-2 scale-110'
-                      : 'hover:scale-105 ring-1 ring-gray-200'
-                  }`}
-                  style={swatchStyle}
-                  aria-label={label ?? undefined}
-                />
-              );
-            })}
-            <span className={`text-xs text-gray-400 self-center ${isHe ? 'mr-1' : 'ml-1'}`}>
-              {isHe ? allVariants[selected].colorHe : allVariants[selected].colorEn}
-            </span>
-          </div>
-        )}
 
         <div className="grid grid-cols-2 gap-2 mb-4 text-sm text-gray-500">
           <div className="flex items-center gap-1.5">

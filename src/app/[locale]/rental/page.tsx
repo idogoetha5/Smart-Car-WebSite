@@ -47,7 +47,8 @@ export default function RentalPage() {
         }
         return true;
       })
-      .sort((a, b) => (CATEGORY_ORDER[a.category] ?? 99) - (CATEGORY_ORDER[b.category] ?? 99));
+      .sort((a, b) => (CATEGORY_ORDER[a.category] ?? 99) - (CATEGORY_ORDER[b.category] ?? 99))
+      .filter((v, _, arr) => arr.findIndex(x => x.make === v.make && x.model === v.model) === arr.indexOf(v));
   }, [vehicles, categoryFilter, seatsFilter, transmissionFilter]);
 
   const hasFilters = categoryFilter || seatsFilter || transmissionFilter;
@@ -149,7 +150,7 @@ export default function RentalPage() {
 
         {!isLoading && (
           <span className="ms-auto self-center text-sm text-gray-400">
-            {filteredVehicles.length} {isHe ? 'רכבים' : 'vehicles'}
+            {filteredVehicles.length} {isHe ? 'דגמים' : 'models'}
           </span>
         )}
       </div>

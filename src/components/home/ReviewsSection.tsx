@@ -144,7 +144,7 @@ export default function ReviewsSection({ locale }: { locale: string }) {
           </div>
           {/* Google Reviews link */}
           <a
-            href="https://www.google.com/maps/search/SmartCar+הרצליה"
+            href="https://www.google.com/search?q=smart+car#lrd=0x151d4894faff7625:0x11c7acfa1038271c,1,,,,"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 mt-3 text-xs text-[#2D5F5F] hover:text-[#E8743B] underline transition-colors"
