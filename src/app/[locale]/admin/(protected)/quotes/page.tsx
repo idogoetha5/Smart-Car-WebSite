@@ -203,7 +203,8 @@ export default function AdminQuotesPage() {
         <div className="lg:sticky lg:top-6 rounded-xl bg-gray-200/60 p-4">
           <div ref={previewWrapRef} className="w-full">
             <div
-              className="mx-auto overflow-hidden rounded-lg bg-white"
+              dir="ltr"
+              className="relative mx-auto overflow-hidden rounded-lg bg-white"
               style={{ width: A4_W * previewScale, height: A4_H * previewScale, boxShadow: '0 12px 34px rgba(0,0,0,.14)' }}
             >
               <iframe
@@ -212,6 +213,9 @@ export default function AdminQuotesPage() {
                 srcDoc={previewShell}
                 scrolling="no"
                 style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
                   width: A4_W,
                   height: A4_H,
                   border: 'none',
