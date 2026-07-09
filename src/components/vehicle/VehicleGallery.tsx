@@ -36,7 +36,7 @@ export default function VehicleGallery({ images, alt }: Props) {
             alt={`${alt} — תמונה ${active + 1}`}
             fill
             priority={active === 0}
-            className="object-contain p-2 scale-[0.3]"
+            className="object-contain p-2 scale-[0.65]"
             sizes="(max-width: 768px) 100vw, 50vw"
           />
         </Tilt3D>

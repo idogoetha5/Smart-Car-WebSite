@@ -104,22 +104,20 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
   };
 
   return (
-    <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden border border-gray-100 flex flex-col">
+    <Tilt3D hoverScale={1.4} className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden border border-gray-100 flex flex-col">
 
       {/* Image carousel */}
       <div className="relative overflow-hidden bg-gray-50" style={{ height: '200px' }}>
         {currentImg ? (
-          <Tilt3D>
-            <Image
-              key={currentImg}
-              src={currentImg}
-              alt={`${vehicle.year} ${vehicle.make} ${vehicle.model} — תמונה ${imgIdx + 1} מתוך ${images.length}`}
-              fill
-              priority={imgIdx === 0}
-              className="object-contain p-2 scale-[0.3]"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            />
-          </Tilt3D>
+          <Image
+            key={currentImg}
+            src={currentImg}
+            alt={`${vehicle.year} ${vehicle.make} ${vehicle.model} — תמונה ${imgIdx + 1} מתוך ${images.length}`}
+            fill
+            priority={imgIdx === 0}
+            className="object-contain p-2"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          />
         ) : (
           <CarPlaceholder />
         )}
@@ -288,6 +286,6 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
           </Link>
         </div>
       </div>
-    </div>
+    </Tilt3D>
   );
 }

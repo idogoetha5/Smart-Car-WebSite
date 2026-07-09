@@ -122,20 +122,19 @@ export default async function CarsForSalePage({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
           {cars.map((car) => (
-            <div
+            <Tilt3D
               key={car.id}
+              hoverScale={1.4}
               className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 border border-gray-100 overflow-hidden group"
             >
               <div className="relative h-52 bg-[#eef6f6] overflow-hidden">
                 {car.image_url ? (
-                  <Tilt3D>
-                    <Image
-                      src={car.image_url}
-                      alt={`${car.make} ${car.model}`}
-                      fill
-                      className="object-contain p-2 scale-[0.3]"
-                    />
-                  </Tilt3D>
+                  <Image
+                    src={car.image_url}
+                    alt={`${car.make} ${car.model}`}
+                    fill
+                    className="object-contain p-2"
+                  />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <svg viewBox="0 0 80 48" fill="none" className="w-28 h-20 text-[#2D5F5F]" aria-hidden="true">
@@ -188,7 +187,7 @@ export default async function CarsForSalePage({
                   </a>
                 </div>
               </div>
-            </div>
+            </Tilt3D>
           ))}
         </div>
       )}

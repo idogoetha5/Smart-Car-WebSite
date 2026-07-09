@@ -11,6 +11,7 @@ import {
   LogOut,
   Tag,
   Star,
+  Send,
 } from 'lucide-react';
 
 export default function AdminSidebar() {
@@ -54,6 +55,11 @@ export default function AdminSidebar() {
       href: `/${locale}/admin/reviews`,
       label: 'ביקורות',
       icon: Star,
+    },
+    {
+      href: `/${locale}/admin/quotes`,
+      label: 'הצעות מחיר',
+      icon: Send,
     },
   ];
 
