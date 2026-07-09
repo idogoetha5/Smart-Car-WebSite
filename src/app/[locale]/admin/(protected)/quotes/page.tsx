@@ -71,9 +71,14 @@ export default function AdminQuotesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(quoteData),
     });
+    if (res.status === 401) {
+      setError('ההתחברות שלך פגה — מעביר אותך לדף ההתחברות...');
+      setTimeout(() => { window.location.href = '/he/admin/login'; }, 1200);
+      return null;
+    }
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error || 'יצירת ה-PDF נכשלה');
+      setError(body.error || 'יצירת ה-PDF נכשלה, נסה שוב');
       return null;
     }
     return res.blob();
