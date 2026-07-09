@@ -114,7 +114,7 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
             alt={`${vehicle.year} ${vehicle.make} ${vehicle.model} — תמונה ${imgIdx + 1} מתוך ${images.length}`}
             fill
             priority={imgIdx === 0}
-            className="object-contain p-2"
+            className="object-contain p-2 scale-[0.55] transition-transform duration-300 group-hover:scale-[0.62]"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (
