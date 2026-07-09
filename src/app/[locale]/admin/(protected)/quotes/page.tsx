@@ -1,7 +1,10 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 import { Plus, Trash2, Download, Send } from 'lucide-react';
+
+const A4_W = 794;
+const A4_H = 1123;
 import {
   generateQuoteHTML,
   generateQuoteNumber,
@@ -25,6 +28,18 @@ export default function AdminQuotesPage() {
   const [inventory, setInventory] = useState<InventoryVehicle[]>([]);
   const [busy, setBusy] = useState<'pdf' | 'send' | null>(null);
   const [error, setError] = useState('');
+  const previewWrapRef = useRef<HTMLDivElement>(null);
+  const [previewScale, setPreviewScale] = useState(0.5);
+
+  useLayoutEffect(() => {
+    const el = previewWrapRef.current;
+    if (!el) return;
+    const update = () => setPreviewScale(Math.min(1, el.clientWidth / A4_W));
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     fetch('/api/admin/vehicles')
@@ -155,10 +170,31 @@ export default function AdminQuotesPage() {
         <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: preview */}
-        <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-100" style={{ height: '80vh' }}>
-          <iframe title="תצוגה מקדימה" srcDoc={previewHTML} className="w-full h-full" style={{ border: 'none' }} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Preview — the A4 page is rendered at true size and scaled to fit
+            the panel width so the whole quote is always visible while editing. */}
+        <div className="lg:sticky lg:top-6">
+          <div
+            ref={previewWrapRef}
+            className="rounded-xl bg-gray-200/60 p-3 overflow-hidden flex justify-center"
+          >
+            <div style={{ width: A4_W * previewScale, height: A4_H * previewScale }}>
+              <iframe
+                title="תצוגה מקדימה"
+                srcDoc={previewHTML}
+                scrolling="no"
+                style={{
+                  width: A4_W,
+                  height: A4_H,
+                  border: 'none',
+                  borderRadius: 8,
+                  boxShadow: '0 10px 30px rgba(0,0,0,.12)',
+                  transform: `scale(${previewScale})`,
+                  transformOrigin: 'top left',
+                }}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Right: form */}
