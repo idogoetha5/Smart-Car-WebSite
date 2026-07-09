@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { Suspense, useState, useMemo } from 'react';
 
 const CATEGORY_ORDER: Record<string, number> = {
   MINI: 0, ECONOMY: 1, COMPACT: 2, SEDAN: 3,
@@ -13,6 +13,14 @@ import { Car, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 
 export default function RentalPage() {
+  return (
+    <Suspense fallback={null}>
+      <RentalPageContent />
+    </Suspense>
+  );
+}
+
+function RentalPageContent() {
   const t = useTranslations('booking');
   const locale = useLocale();
   const isHe = locale === 'he';

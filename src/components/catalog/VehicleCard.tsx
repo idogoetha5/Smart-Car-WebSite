@@ -103,7 +103,7 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
   };
 
   return (
-    <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col">
+    <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl [transition-property:box-shadow,transform] duration-300 will-change-transform hover:[transform:perspective(1000px)_rotateX(3deg)_rotateY(-4deg)_translateY(-4px)] overflow-hidden border border-gray-100 flex flex-col">
 
       {/* Image carousel */}
       <div className="relative overflow-hidden bg-gray-50" style={{ height: '200px' }}>

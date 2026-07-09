@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
+
+export const revalidate = 3600;
 
 export async function generateMetadata({
   params,
@@ -8,6 +10,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  setRequestLocale(locale);
   const isHe = locale === 'he';
   return {
     description: isHe
@@ -69,6 +72,7 @@ export default async function HomePage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  setRequestLocale(locale);
   const isHe = locale === 'he';
 
   const WHY_US = isHe

@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import DatePickerInput, { type DatePickerHandle } from '@/components/ui/DatePickerInput';
 
 const BRANCHES_HE = [
@@ -91,6 +91,21 @@ export default function HeroSection({ locale }: { locale: string }) {
   const [pickupDate, setPickupDate]             = useState('');
   const [returnDate, setReturnDate]             = useState('');
   const returnRefMobile  = useRef<DatePickerHandle>(null);
+
+  // Pointer-driven 3D tilt for the hero car
+  const carTiltX = useMotionValue(0);
+  const carTiltY = useMotionValue(0);
+  const carRotateX = useSpring(useTransform(carTiltY, [-0.5, 0.5], [12, -12]), { stiffness: 200, damping: 20 });
+  const carRotateY = useSpring(useTransform(carTiltX, [-0.5, 0.5], [-12, 12]), { stiffness: 200, damping: 20 });
+  const handleCarPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    carTiltX.set((e.clientX - rect.left) / rect.width - 0.5);
+    carTiltY.set((e.clientY - rect.top) / rect.height - 0.5);
+  };
+  const handleCarPointerLeave = () => {
+    carTiltX.set(0);
+    carTiltY.set(0);
+  };
   const returnRefDesktop = useRef<DatePickerHandle>(null);
   const router = useRouter();
   const branches = isHe ? BRANCHES_HE : BRANCHES_EN;
@@ -417,26 +432,30 @@ export default function HeroSection({ locale }: { locale: string }) {
           </p>
         </div>
 
-        {/* Car — RIGHT, drives in from off-screen on mount */}
+        {/* Car — RIGHT, drives in from off-screen on mount, tilts in 3D on hover */}
         <motion.div
           className="absolute right-0 bottom-0"
-          style={{ width: '55%', maxWidth: '600px' }}
+          style={{ width: '55%', maxWidth: '600px', perspective: 1000 }}
           initial={{ x: '110%', opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.1 }}
+          onPointerMove={handleCarPointerMove}
+          onPointerLeave={handleCarPointerLeave}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/hero-car.webp"
-            alt="SmartCar"
-            className="w-full"
-            style={{
-              objectFit: 'contain',
-              objectPosition: 'bottom right',
-              display: 'block',
-            }}
-            onError={(e) => { e.currentTarget.src = '/images/car-placeholder.svg'; }}
-          />
+          <motion.div style={{ rotateX: carRotateX, rotateY: carRotateY, transformStyle: 'preserve-3d' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/hero-car.webp"
+              alt="SmartCar"
+              className="w-full"
+              style={{
+                objectFit: 'contain',
+                objectPosition: 'bottom right',
+                display: 'block',
+              }}
+              onError={(e) => { e.currentTarget.src = '/images/car-placeholder.svg'; }}
+            />
+          </motion.div>
         </motion.div>
       </div>
 

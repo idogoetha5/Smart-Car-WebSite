@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages, getTranslations } from 'next-intl/server';
+import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { Nunito, Heebo } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { locales } from '../../../i18n';
@@ -32,6 +32,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'hero' });
 
   return {
@@ -86,6 +87,8 @@ export default async function LocaleLayout({
   const { locale } = await params;
 
   if (!locales.includes(locale as (typeof locales)[number])) notFound();
+
+  setRequestLocale(locale);
 
   const messages = await getMessages();
   const isRTL = locale === 'he';
