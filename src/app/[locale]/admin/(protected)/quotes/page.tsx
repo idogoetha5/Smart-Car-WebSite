@@ -55,7 +55,9 @@ export default function AdminQuotesPage() {
     updateVehicle(i, {
       name: `${v.make} ${v.model}`,
       year: String(v.year ?? ''),
-      listPrice: Number(v.price_per_day ? v.price_per_month : 0) || 0,
+      // Monthly lease price + the car photo auto-fill from inventory.
+      // מחירון יבואן / מקדמה are leasing-catalog figures not stored on the
+      // vehicle, so they stay for manual entry.
       monthlyPrice: Number(v.price_per_month) || 0,
       imageUrl: Array.isArray(v.image_urls) ? v.image_urls[0] ?? '' : '',
     });

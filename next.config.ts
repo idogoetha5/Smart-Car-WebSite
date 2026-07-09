@@ -30,6 +30,18 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // @sparticuz/chromium ships binary assets (a .br archive) that must be
+  // copied as-is into the serverless function, not bundled/relocated —
+  // without this the quote-PDF route fails at runtime with "input
+  // directory .../chromium/bin does not exist".
+  serverExternalPackages: ['@sparticuz/chromium', 'puppeteer-core'],
+  // The chromium binary is read dynamically at runtime (fs calls inside
+  // chromium.executablePath()), not via a static import, so Next.js's file
+  // tracer misses it and drops it from the deployed function unless told
+  // explicitly to keep it.
+  outputFileTracingIncludes: {
+    '/api/admin/quote-pdf/route': ['./node_modules/@sparticuz/chromium/bin/**'],
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'iovpoxmdsgsstaduggvb.supabase.co' },
