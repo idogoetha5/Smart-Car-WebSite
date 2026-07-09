@@ -51,79 +51,7 @@ const FONT_FACES = `
 @font-face{font-family:'Assistant';font-weight:600;font-style:normal;src:url(data:font/ttf;base64,${assistant600}) format('truetype');}
 `;
 
-export function generateQuoteHTML(data: QuoteData): string {
-  const logoUrl = `data:image/png;base64,${logo_png}`;
-  const validUntil = data.validUntil ?? (data.date ? addDays(data.date, 30) : '—');
-  const activeVehicles = data.vehicles.filter((v) => v.name);
-  const isSingle = activeVehicles.length <= 1;
-
-  const SVG_CAR = `<svg class="ph" viewBox="0 0 220 86" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#8ea79c" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M14 58h192"/>
-    <path d="M28 58c-3-15 3-25 16-29 8-2 14-9 24-11 14-3 30-2 44 3 7 3 12 8 20 10 14 2 28 3 36 8 5 3 6 9 6 14"/>
-    <path d="M58 19c10-2 24-2 36 1l10 16H66z"/>
-    <circle cx="66" cy="60" r="12"/><circle cx="164" cy="60" r="12"/>
-    <circle cx="66" cy="60" r="4"/><circle cx="164" cy="60" r="4"/>
-  </svg>`;
-
-  const CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>`;
-
-  const vehicleCards = activeVehicles.map((v) => {
-    const img = v.imageUrl ? `<img src="${v.imageUrl}" alt="${v.name}">` : SVG_CAR;
-    const inclVat = Math.round(v.monthlyPrice * VAT);
-    return `
-    <div class="car">
-      <div class="photo">
-        ${v.trim ? `<span class="badge">${v.trim}</span>` : ''}
-        ${v.year ? `<span class="year"><span class="num">${v.year}</span></span>` : ''}
-        ${img}
-      </div>
-      <div class="cbody">
-        <div class="cname">${v.name}</div>
-        ${v.subtitle ? `<div class="csub">${v.subtitle}</div>` : '<div class="csub">&nbsp;</div>'}
-        <div class="price">
-          <div class="plbl">תשלום חודשי</div>
-          <div class="pbig"><span class="num">&#8362;${fmt(v.monthlyPrice)}</span><span class="pvat">לפני מע&quot;מ</span></div>
-          <div class="pincl">כולל מע&quot;מ 18% &middot; <b><span class="num">&#8362;${fmt(inclVat)}</span></b></div>
-        </div>
-        <div class="specs">
-          <div class="spec"><span>מחירון יבואן</span><span class="sv"><span class="num">&#8362;${fmt(v.listPrice)}</span></span></div>
-          <div class="spec"><span>מקדמה <em>(כולל מע&quot;מ)</em></span><span class="sv"><span class="num">&#8362;${fmt(v.downPayment)}</span></span></div>
-        </div>
-        <div class="pills">
-          <div class="pill"><span class="num">${v.months || 36}</span> חודשים</div>
-          <div class="pill"><span class="num">${fmt(v.annualKm)}</span> ק&quot;מ/שנה</div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-
-  const subParts = ['סמארט קאר 2008 בע&quot;מ'];
-  if (data.companyName) subParts.push(data.companyName);
-  const subStr = subParts.join(' &middot; ');
-  const companyIdStr = data.companyId ? ` &middot; ח.פ <span class="num">${data.companyId}</span>` : '';
-
-  const included = [
-    'זמינות מיידית של הרכב — במלאי',
-    'החלפת 4 צמיגים בגין בלאי, מצבר וסט מגבים',
-    'טיפולים שוטפים לפי הוראות יצרן במוסכים מורשים',
-    'אגרת רישוי שנתית',
-    'רכב חליפי במקרה של תקלה או תאונה',
-    'אופציית רכישה: 16% הנחה ממחירון יבואן',
-    'כיסוי ביטוחי מורחב לפי תנאי ההסכם',
-  ];
-  const terms = [
-    'המחיר החודשי צמוד למדד המחירים לצרכן',
-    'תשלום חודשי בהוראת קבע',
-    'השתתפות עצמית <span class="num">2,500 &#8362;</span> + מע&quot;מ',
-    'חריגת ק&quot;מ: <span class="num">0.5 &#8362;</span> בתוספת מע&quot;מ לק&quot;מ',
-  ];
-
-  return `<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<style>
-  ${FONT_FACES}
+const QUOTE_CSS = `
   :root{
     --ink:#0f2620;--ink-2:#081712;--panel:#12352c;
     --amber:#c9823f;--amber-soft:#e2a86e;
@@ -213,10 +141,88 @@ export function generateQuoteHTML(data: QuoteData): string {
   .branches .tel{color:var(--amber-soft);font-weight:700;direction:ltr;unicode-bidi:isolate;display:inline-block;margin-top:2px;}
   .fbase{margin-top:12px;padding-top:10px;border-top:1px solid var(--line-d);text-align:center;font-size:11px;color:#8ea49b;direction:ltr;letter-spacing:.3px;}
   @page{size:794px 1123px;margin:0;}
-</style>
-</head>
-<body>
-<div class="doc">
+`;
+
+export function quoteHeadHTML(): string {
+  return `<style>${FONT_FACES}${QUOTE_CSS}</style>`;
+}
+
+export function generateQuoteHTML(data: QuoteData): string {
+  return `<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head><meta charset="UTF-8">${quoteHeadHTML()}</head>
+<body>${quoteBodyHTML(data)}</body>
+</html>`;
+}
+
+export function quoteBodyHTML(data: QuoteData): string {
+  const logoUrl = `data:image/png;base64,${logo_png}`;
+  const validUntil = data.validUntil ?? (data.date ? addDays(data.date, 30) : '—');
+  const activeVehicles = data.vehicles.filter((v) => v.name);
+  const isSingle = activeVehicles.length <= 1;
+
+  const SVG_CAR = `<svg class="ph" viewBox="0 0 220 86" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#8ea79c" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 58h192"/>
+    <path d="M28 58c-3-15 3-25 16-29 8-2 14-9 24-11 14-3 30-2 44 3 7 3 12 8 20 10 14 2 28 3 36 8 5 3 6 9 6 14"/>
+    <path d="M58 19c10-2 24-2 36 1l10 16H66z"/>
+    <circle cx="66" cy="60" r="12"/><circle cx="164" cy="60" r="12"/>
+    <circle cx="66" cy="60" r="4"/><circle cx="164" cy="60" r="4"/>
+  </svg>`;
+
+  const CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>`;
+
+  const vehicleCards = activeVehicles.map((v) => {
+    const img = v.imageUrl ? `<img src="${v.imageUrl}" alt="${v.name}">` : SVG_CAR;
+    const inclVat = Math.round(v.monthlyPrice * VAT);
+    return `
+    <div class="car">
+      <div class="photo">
+        ${v.trim ? `<span class="badge">${v.trim}</span>` : ''}
+        ${v.year ? `<span class="year"><span class="num">${v.year}</span></span>` : ''}
+        ${img}
+      </div>
+      <div class="cbody">
+        <div class="cname">${v.name}</div>
+        ${v.subtitle ? `<div class="csub">${v.subtitle}</div>` : '<div class="csub">&nbsp;</div>'}
+        <div class="price">
+          <div class="plbl">תשלום חודשי</div>
+          <div class="pbig"><span class="num">&#8362;${fmt(v.monthlyPrice)}</span><span class="pvat">לפני מע&quot;מ</span></div>
+          <div class="pincl">כולל מע&quot;מ 18% &middot; <b><span class="num">&#8362;${fmt(inclVat)}</span></b></div>
+        </div>
+        <div class="specs">
+          <div class="spec"><span>מחירון יבואן</span><span class="sv"><span class="num">&#8362;${fmt(v.listPrice)}</span></span></div>
+          <div class="spec"><span>מקדמה <em>(כולל מע&quot;מ)</em></span><span class="sv"><span class="num">&#8362;${fmt(v.downPayment)}</span></span></div>
+        </div>
+        <div class="pills">
+          <div class="pill"><span class="num">${v.months || 36}</span> חודשים</div>
+          <div class="pill"><span class="num">${fmt(v.annualKm)}</span> ק&quot;מ/שנה</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const subParts = ['סמארט קאר 2008 בע&quot;מ'];
+  if (data.companyName) subParts.push(data.companyName);
+  const subStr = subParts.join(' &middot; ');
+  const companyIdStr = data.companyId ? ` &middot; ח.פ <span class="num">${data.companyId}</span>` : '';
+
+  const included = [
+    'זמינות מיידית של הרכב — במלאי',
+    'החלפת 4 צמיגים בגין בלאי, מצבר וסט מגבים',
+    'טיפולים שוטפים לפי הוראות יצרן במוסכים מורשים',
+    'אגרת רישוי שנתית',
+    'רכב חליפי במקרה של תקלה או תאונה',
+    'אופציית רכישה: 16% הנחה ממחירון יבואן',
+    'כיסוי ביטוחי מורחב לפי תנאי ההסכם',
+  ];
+  const terms = [
+    'המחיר החודשי צמוד למדד המחירים לצרכן',
+    'תשלום חודשי בהוראת קבע',
+    'השתתפות עצמית <span class="num">2,500 &#8362;</span> + מע&quot;מ',
+    'חריגת ק&quot;מ: <span class="num">0.5 &#8362;</span> בתוספת מע&quot;מ לק&quot;מ',
+  ];
+
+  return `<div class="doc">
   <header class="top">
     <div class="brand">
       <img class="logo" src="${logoUrl}" alt="SMART CAR">
@@ -271,9 +277,7 @@ export function generateQuoteHTML(data: QuoteData): string {
     </div>
     <div class="fbase">www.smartcar.co.il &middot; office@smartcar.co.il</div>
   </footer>
-</div>
-</body>
-</html>`;
+</div>`;
 }
 
 export function generateQuoteNumber(): string {

@@ -6,7 +6,8 @@ import { Plus, Trash2, Download, Send } from 'lucide-react';
 const A4_W = 794;
 const A4_H = 1123;
 import {
-  generateQuoteHTML,
+  quoteHeadHTML,
+  quoteBodyHTML,
   generateQuoteNumber,
   todayIL,
   emptyVehicle,
@@ -58,7 +59,33 @@ export default function AdminQuotesPage() {
     vehicles,
   }), [quoteNumber, date, customerName, customerEmail, companyName, companyId, vehicles]);
 
-  const previewHTML = useMemo(() => generateQuoteHTML(quoteData), [quoteData]);
+  // Stable shell (fonts + styles) rendered once so the iframe never reloads;
+  // the body is written live on every edit for an instant, flicker-free preview.
+  const previewShell = useMemo(
+    () => `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8">${quoteHeadHTML()}</head><body></body></html>`,
+    []
+  );
+  const bodyHTML = useMemo(() => quoteBodyHTML(quoteData), [quoteData]);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Write the quote body into the preview iframe once the font/style shell
+  // has loaded, then on every edit. Polls via rAF instead of relying on the
+  // iframe load event, which doesn't fire reliably for srcDoc in React.
+  useEffect(() => {
+    let raf = 0;
+    let cancelled = false;
+    const write = () => {
+      if (cancelled) return;
+      const doc = iframeRef.current?.contentDocument;
+      if (doc?.body && doc.head?.querySelector('style')) {
+        doc.body.innerHTML = bodyHTML;
+      } else {
+        raf = requestAnimationFrame(write);
+      }
+    };
+    write();
+    return () => { cancelled = true; cancelAnimationFrame(raf); };
+  }, [bodyHTML]);
 
   const updateVehicle = (i: number, patch: Partial<QuoteVehicle>) => {
     setVehicles((prev) => prev.map((v, idx) => (idx === i ? { ...v, ...patch } : v)));
@@ -171,24 +198,23 @@ export default function AdminQuotesPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        {/* Preview — the A4 page is rendered at true size and scaled to fit
-            the panel width so the whole quote is always visible while editing. */}
-        <div className="lg:sticky lg:top-6">
-          <div
-            ref={previewWrapRef}
-            className="rounded-xl bg-gray-200/60 p-3 overflow-hidden flex justify-center"
-          >
-            <div style={{ width: A4_W * previewScale, height: A4_H * previewScale }}>
+        {/* Preview — true A4 page scaled to fit the panel, so the whole quote
+            is always visible and updates live as the form is edited. */}
+        <div className="lg:sticky lg:top-6 rounded-xl bg-gray-200/60 p-4">
+          <div ref={previewWrapRef} className="w-full">
+            <div
+              className="mx-auto overflow-hidden rounded-lg bg-white"
+              style={{ width: A4_W * previewScale, height: A4_H * previewScale, boxShadow: '0 12px 34px rgba(0,0,0,.14)' }}
+            >
               <iframe
+                ref={iframeRef}
                 title="תצוגה מקדימה"
-                srcDoc={previewHTML}
+                srcDoc={previewShell}
                 scrolling="no"
                 style={{
                   width: A4_W,
                   height: A4_H,
                   border: 'none',
-                  borderRadius: 8,
-                  boxShadow: '0 10px 30px rgba(0,0,0,.12)',
                   transform: `scale(${previewScale})`,
                   transformOrigin: 'top left',
                 }}
