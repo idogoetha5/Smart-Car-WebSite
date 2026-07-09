@@ -29,7 +29,9 @@ function fmt(n: number) {
 }
 
 function addDays(dateStr: string, days: number): string {
-  const [d, m, y] = dateStr.split('/').map(Number);
+  // todayIL() (and the date field in general) formats as DD.MM.YYYY, not DD/MM/YYYY
+  const [d, m, y] = dateStr.split(/[./]/).map(Number);
+  if (!d || !m || !y) return '—';
   const dt = new Date(y, m - 1, d);
   dt.setDate(dt.getDate() + days);
   return dt.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
