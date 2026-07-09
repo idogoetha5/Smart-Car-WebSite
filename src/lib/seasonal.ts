@@ -67,3 +67,35 @@ export function getSeasonalPrice(vehicle: Vehicle, date?: Date): number {
 export function getCurrentSeason(): Season {
   return getSeason(new Date());
 }
+
+/**
+ * Sums the correct per-day seasonal rate across the full rental range,
+ * instead of pricing every day at the pickup date's season. A booking
+ * that starts in June and ends in July must be charged the summer rate
+ * for the July days, not the regular rate for the whole stay.
+ */
+export function getSeasonalPriceRange(
+  vehicle: Vehicle,
+  pickupDate: Date,
+  dropoffDate: Date
+): { subtotal: number; days: number; avgPricePerDay: number; sameSeasonThroughout: boolean } {
+  const days = Math.max(
+    1,
+    Math.ceil((dropoffDate.getTime() - pickupDate.getTime()) / (1000 * 60 * 60 * 24))
+  );
+
+  let subtotal = 0;
+  let firstSeason: Season | null = null;
+  let sameSeasonThroughout = true;
+
+  for (let i = 0; i < days; i++) {
+    const day = new Date(pickupDate);
+    day.setDate(day.getDate() + i);
+    const season = getSeason(day);
+    if (firstSeason === null) firstSeason = season;
+    else if (season !== firstSeason) sameSeasonThroughout = false;
+    subtotal += getSeasonalPrice(vehicle, day);
+  }
+
+  return { subtotal, days, avgPricePerDay: Math.round(subtotal / days), sameSeasonThroughout };
+}

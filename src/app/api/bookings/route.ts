@@ -4,7 +4,8 @@ import { cookies } from 'next/headers';
 import { verifyTurnstile } from '@/lib/turnstile';
 import { verifyAdminToken } from '@/lib/admin-auth';
 import { checkRateLimit } from '@/lib/ratelimit';
-import { getSeasonalPrice } from '@/lib/seasonal';
+import { getSeasonalPriceRange } from '@/lib/seasonal';
+import { bookingSchema } from '@/lib/validations';
 import type { Vehicle } from '@/types';
 
 const EXTRAS_PRICE: Record<string, number> = {
@@ -56,6 +57,14 @@ export async function POST(request: NextRequest) {
   // Honeypot check — bots fill hidden fields, humans don't
   if (body._website) {
     return NextResponse.json({ data: { id: 'bot' } }, { status: 201 }); // silent reject
+  }
+
+  const parsed = bookingSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? 'Invalid booking data' },
+      { status: 400 }
+    );
   }
 
   const vehicleId    = body.vehicleId;
@@ -112,11 +121,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Vehicle pricing is not configured' }, { status: 422 });
   }
 
-  // Calculate authoritative price server-side (mirrors BookingForm logic)
+  // Calculate authoritative price server-side (mirrors BookingForm logic).
+  // Priced per-day across the full range so a rental crossing a season
+  // boundary (e.g. June → July) is charged the correct rate for each day.
   const vehicleForPricing = { make: vehicle.make, model: vehicle.model, pricePerDay: vehicle.price_per_day } as Pick<Vehicle, 'make' | 'model' | 'pricePerDay'>;
-  const serverPricePerDay = getSeasonalPrice(vehicleForPricing as Vehicle, new Date(pickupDate));
+  const { subtotal, avgPricePerDay: serverPricePerDay } = getSeasonalPriceRange(
+    vehicleForPricing as Vehicle,
+    new Date(pickupDate),
+    new Date(dropoffDate)
+  );
   const discountPct = totalDays >= 60 ? 15 : totalDays >= 30 ? 10 : totalDays >= 14 ? 7 : 0;
-  const subtotal = serverPricePerDay * totalDays;
   const serverDiscount = Math.round(subtotal * discountPct / 100);
   const vehicleTotal = subtotal - serverDiscount;
   const selectedExtras: string[] = Array.isArray(body.extras) ? body.extras : [];

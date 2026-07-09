@@ -12,19 +12,32 @@ const intlMiddleware = createMiddleware({
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // CSRF protection for admin API routes
-  if (pathname.startsWith('/api/admin/') && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
-    const origin = request.headers.get('origin');
-    const host = request.headers.get('host');
-    if (origin && host) {
-      try {
-        if (new URL(origin).host !== host) {
+  if (pathname.startsWith('/api/admin/')) {
+    // CSRF protection for mutating admin API requests
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+      const origin = request.headers.get('origin');
+      const host = request.headers.get('host');
+      if (origin && host) {
+        try {
+          if (new URL(origin).host !== host) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+          }
+        } catch {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
-      } catch {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
+
+    // Defense-in-depth: every admin API route already verifies the session
+    // itself, but enforce it here too (except login, which issues the
+    // cookie) so a future route can't be silently exposed by forgetting to.
+    if (!pathname.startsWith('/api/admin/login')) {
+      const token = request.cookies.get('admin_auth')?.value ?? '';
+      if (!await verifyAdminToken(token)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    }
+
     return NextResponse.next();
   }
 

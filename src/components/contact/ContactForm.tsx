@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { sendContactEmail } from '@/lib/emailjs';
 import TurnstileWidget from '@/components/ui/Turnstile';
 
 export default function ContactForm({ isHe }: { isHe: boolean }) {
@@ -28,15 +27,6 @@ export default function ContactForm({ isHe }: { isHe: boolean }) {
         body: JSON.stringify({ name, phone, email, message, turnstileToken }),
       });
       if (!res.ok) throw new Error('api');
-      if (email) {
-        await sendContactEmail({
-          customerName:  name,
-          customerEmail: email,
-          customerPhone: phone,
-          message,
-          subject: 'פנייה כללית מהאתר',
-        }).catch(() => {});
-      }
       setSubmitted(true);
     } catch {
       setSubmitError(true);

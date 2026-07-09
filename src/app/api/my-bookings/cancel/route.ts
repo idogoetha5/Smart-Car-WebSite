@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-
-const rateLimit = new Map<string, { count: number; resetAt: number }>();
+import { checkRateLimit } from '@/lib/ratelimit';
 
 const PG_INVALID_ENUM = '22P02';
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  const now = Date.now();
-  const entry = rateLimit.get(ip);
-  if (entry && now < entry.resetAt) {
-    if (entry.count >= 5) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
-    entry.count++;
-  } else {
-    rateLimit.set(ip, { count: 1, resetAt: now + 60_000 });
+  const { success, retryAfter } = await checkRateLimit(`my-bookings-cancel:${ip}`, 5, 60_000);
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: { 'Retry-After': String(retryAfter ?? 60) } }
+    );
   }
 
   // Email comes from the authenticated session — not trusted from the request body

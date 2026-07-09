@@ -4,6 +4,9 @@ import { cookies } from 'next/headers';
 import { verifyAdminToken } from '@/lib/admin-auth';
 import { verifyTurnstile } from '@/lib/turnstile';
 import { checkRateLimit } from '@/lib/ratelimit';
+import { isValidInternationalPhone } from '@/lib/validations';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 async function checkAdminAuth() {
   const cookieStore = await cookies();
@@ -42,13 +45,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'אימות אנטי-בוט נכשל. נסה שנית.' }, { status: 400 });
   }
 
+  const customerName  = String(body.customer_name ?? body.customerName ?? '').trim();
+  const customerPhone = String(body.customer_phone ?? body.customerPhone ?? '').trim();
+  const customerEmail = String(body.customer_email ?? body.customerEmail ?? '').trim();
+
+  if (!customerName || customerName.length < 2) {
+    return NextResponse.json({ error: 'שם מלא הוא שדה חובה' }, { status: 400 });
+  }
+  if (!customerPhone || !isValidInternationalPhone(customerPhone)) {
+    return NextResponse.json({ error: 'מספר טלפון לא תקין' }, { status: 400 });
+  }
+  if (customerEmail && !EMAIL_RE.test(customerEmail)) {
+    return NextResponse.json({ error: 'כתובת אימייל לא תקינה' }, { status: 400 });
+  }
+
   const supabase = createAdminClient();
 
   // Allowlist only known fields — never pass raw body to Supabase
   const allowedData = {
-    customer_name:    String(body.customer_name ?? body.customerName ?? '').trim() || null,
-    customer_phone:   String(body.customer_phone ?? body.customerPhone ?? '').trim() || null,
-    customer_email:   String(body.customer_email ?? body.customerEmail ?? '').trim() || null,
+    customer_name:    customerName,
+    customer_phone:   customerPhone,
+    customer_email:   customerEmail || null,
     vehicle_id:       body.vehicle_id ?? null,
     duration_months:  Number(body.duration ?? body.duration_months) || 36,
     mileage_package:  Number(body.mileage_package ?? body.mileagePackage) || 15000,

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { sendNewsletterSubscribeEmail } from '@/lib/emailjs';
 import TurnstileWidget from '@/components/ui/Turnstile';
 
 export default function NewsletterSection({ locale }: { locale: string }) {
@@ -15,7 +14,12 @@ export default function NewsletterSection({ locale }: { locale: string }) {
     if (!email.trim() || !turnstileToken) return;
     setStatus('loading');
     try {
-      await sendNewsletterSubscribeEmail(email.trim().toLowerCase());
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), turnstileToken }),
+      });
+      if (!res.ok) throw new Error('api');
       setStatus('success');
       setEmail('');
     } catch {

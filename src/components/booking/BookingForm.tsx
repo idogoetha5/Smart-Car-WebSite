@@ -11,7 +11,7 @@ import { Toast } from '@/components/ui/Toast';
 import DatePickerInput, { type DatePickerHandle } from '@/components/ui/DatePickerInput';
 import { bookingSchema, type BookingInput } from '@/lib/validations';
 import { calculateTotalDays } from '@/lib/utils';
-import { getSeasonalPrice } from '@/lib/seasonal';
+import { getSeasonalPrice, getSeasonalPriceRange } from '@/lib/seasonal';
 import { sendBookingEmail } from '@/lib/emailjs';
 import type { Vehicle } from '@/types';
 import { AvailabilityChecker } from './AvailabilityChecker';
@@ -407,9 +407,14 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
       ? calculateTotalDays(new Date(pickupDate), new Date(dropoffDate))
       : 0;
 
-  const pricePerDay = getSeasonalPrice(vehicle, pickupDate ? new Date(pickupDate) : undefined);
+  // Priced per-day across the full range so a rental crossing a season
+  // boundary (e.g. June → July) shows the correct total, not just the
+  // pickup day's rate applied to every night.
+  const { subtotal, avgPricePerDay: pricePerDay } =
+    pickupDate && dropoffDate
+      ? getSeasonalPriceRange(vehicle, new Date(pickupDate), new Date(dropoffDate))
+      : { subtotal: 0, avgPricePerDay: getSeasonalPrice(vehicle, pickupDate ? new Date(pickupDate) : undefined) };
   const discountPct = totalDays >= 60 ? 15 : totalDays >= 30 ? 10 : totalDays >= 14 ? 7 : 0;
-  const subtotal = pricePerDay * totalDays;
   const discount = Math.round(subtotal * discountPct / 100);
   const vehicleTotal = subtotal - discount;
 

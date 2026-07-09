@@ -31,11 +31,12 @@ export async function POST(request: Request) {
 
   if (passwordHash && isBcryptHash(passwordHash)) {
     passwordValid = await bcrypt.compare(password, passwordHash);
-  } else if (plaintextPassword) {
-    console.warn('[admin-login] ADMIN_PASSWORD_HASH not set — using plaintext comparison (insecure)');
+  } else if (plaintextPassword && process.env.NODE_ENV !== 'production') {
+    console.warn('[admin-login] ADMIN_PASSWORD_HASH not set — using plaintext comparison (insecure, dev-only)');
     passwordValid = password === plaintextPassword;
   } else {
-    return NextResponse.json({ success: false }, { status: 500 });
+    console.error('[admin-login] ADMIN_PASSWORD_HASH is not set to a valid bcrypt hash — refusing all logins');
+    return NextResponse.json({ success: false, error: 'Server configuration error' }, { status: 500 });
   }
 
   if (!passwordValid) {

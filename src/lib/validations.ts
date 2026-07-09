@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 
-function isValidInternationalPhone(value: string): boolean {
+export function isValidInternationalPhone(value: string): boolean {
   const cleaned = value.trim();
   if (!cleaned) return false;
   // Accept Israeli numbers without country code (starts with 05 or 0)
