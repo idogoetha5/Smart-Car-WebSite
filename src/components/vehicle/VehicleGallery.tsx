@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Tilt3D from '@/components/ui/Tilt3D';
 
 interface Props {
   images: string[];
@@ -28,15 +29,17 @@ export default function VehicleGallery({ images, alt }: Props) {
     <div className="mb-6">
       {/* Main image */}
       <div className="aspect-video bg-[#eef6f6] rounded-2xl overflow-hidden mb-3 relative">
-        <Image
-          key={images[active]}
-          src={images[active]}
-          alt={`${alt} — תמונה ${active + 1}`}
-          fill
-          priority={active === 0}
-          className="object-contain p-2"
-          sizes="(max-width: 768px) 100vw, 50vw"
-        />
+        <Tilt3D>
+          <Image
+            key={images[active]}
+            src={images[active]}
+            alt={`${alt} — תמונה ${active + 1}`}
+            fill
+            priority={active === 0}
+            className="object-contain p-2 scale-[0.3]"
+            sizes="(max-width: 768px) 100vw, 50vw"
+          />
+        </Tilt3D>
       </div>
 
       {/* Thumbnails */}

@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Users, DoorOpen, Fuel, Settings, Star } from 'lucide-react';
 import type { Vehicle } from '@/types';
 import { getSeasonalPrice } from '@/lib/seasonal';
+import Tilt3D from '@/components/ui/Tilt3D';
 
 const categoryLabelHe: Record<string, string> = {
   MINI:       'מיני',
@@ -103,20 +104,22 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
   };
 
   return (
-    <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl [transition-property:box-shadow,transform] duration-300 will-change-transform hover:[transform:perspective(1000px)_rotateX(3deg)_rotateY(-4deg)_translateY(-4px)] overflow-hidden border border-gray-100 flex flex-col">
+    <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden border border-gray-100 flex flex-col">
 
       {/* Image carousel */}
       <div className="relative overflow-hidden bg-gray-50" style={{ height: '200px' }}>
         {currentImg ? (
-          <Image
-            key={currentImg}
-            src={currentImg}
-            alt={`${vehicle.year} ${vehicle.make} ${vehicle.model} — תמונה ${imgIdx + 1} מתוך ${images.length}`}
-            fill
-            priority={imgIdx === 0}
-            className="object-contain p-2 scale-[0.55] transition-transform duration-300 group-hover:scale-[0.62]"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          />
+          <Tilt3D>
+            <Image
+              key={currentImg}
+              src={currentImg}
+              alt={`${vehicle.year} ${vehicle.make} ${vehicle.model} — תמונה ${imgIdx + 1} מתוך ${images.length}`}
+              fill
+              priority={imgIdx === 0}
+              className="object-contain p-2 scale-[0.3]"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            />
+          </Tilt3D>
         ) : (
           <CarPlaceholder />
         )}

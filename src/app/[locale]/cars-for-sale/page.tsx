@@ -22,6 +22,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Car, Phone } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import Tilt3D from '@/components/ui/Tilt3D';
 
 interface CarForSale {
   id: string;
@@ -123,16 +124,18 @@ export default async function CarsForSalePage({
           {cars.map((car) => (
             <div
               key={car.id}
-              className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden group"
+              className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 border border-gray-100 overflow-hidden group"
             >
               <div className="relative h-52 bg-[#eef6f6] overflow-hidden">
                 {car.image_url ? (
-                  <Image
-                    src={car.image_url}
-                    alt={`${car.make} ${car.model}`}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
+                  <Tilt3D>
+                    <Image
+                      src={car.image_url}
+                      alt={`${car.make} ${car.model}`}
+                      fill
+                      className="object-contain p-2 scale-[0.3]"
+                    />
+                  </Tilt3D>
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <svg viewBox="0 0 80 48" fill="none" className="w-28 h-20 text-[#2D5F5F]" aria-hidden="true">
