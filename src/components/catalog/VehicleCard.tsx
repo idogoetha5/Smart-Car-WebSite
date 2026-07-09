@@ -78,9 +78,11 @@ export interface VehicleCardProps {
   location?: string;
   pickupLocation?: string;
   returnLocation?: string;
+  /** Eager-load the image (only for the first few above-the-fold cards). */
+  priority?: boolean;
 }
 
-export default function VehicleCard({ vehicle: initialVehicle, variants = [], pickupDate, returnDate, location, pickupLocation, returnLocation }: VehicleCardProps) {
+export default function VehicleCard({ vehicle: initialVehicle, variants = [], pickupDate, returnDate, location, pickupLocation, returnLocation, priority = false }: VehicleCardProps) {
   const t = useTranslations('catalog');
   const locale = useLocale();
   const isHe = locale === 'he';
@@ -114,7 +116,8 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
             src={currentImg}
             alt={`${vehicle.year} ${vehicle.make} ${vehicle.model} — תמונה ${imgIdx + 1} מתוך ${images.length}`}
             fill
-            priority={imgIdx === 0}
+            priority={priority && imgIdx === 0}
+            loading={priority ? undefined : 'lazy'}
             className="object-contain p-2"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />

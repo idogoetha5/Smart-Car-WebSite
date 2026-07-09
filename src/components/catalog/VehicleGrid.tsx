@@ -92,7 +92,7 @@ export default function VehicleGrid({ vehicles, isLoading, pickupDate, returnDat
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-      {groups.map((group) => (
+      {groups.map((group, i) => (
         <VehicleCard
           key={group[0].id}
           vehicle={group[0]}
@@ -102,6 +102,7 @@ export default function VehicleGrid({ vehicles, isLoading, pickupDate, returnDat
           location={location}
           pickupLocation={pickupLocation}
           returnLocation={returnLocation}
+          priority={i < 6}
         />
       ))}
     </div>
