@@ -104,7 +104,7 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
   };
 
   return (
-    <Tilt3D hoverScale={1.4} className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden border border-gray-100 flex flex-col">
+    <Tilt3D hoverScale={1.2} className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden border border-gray-100 flex flex-col">
 
       {/* Image carousel */}
       <div className="relative overflow-hidden bg-gray-50" style={{ height: '200px' }}>

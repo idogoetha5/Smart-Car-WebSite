@@ -33,7 +33,7 @@ function VehicleLeaseCard({ vehicle, locale }: { vehicle: Vehicle; locale: strin
   const img = vehicle.imageUrls?.[0];
 
   return (
-    <Tilt3D hoverScale={1.4} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-[#B8D8D8] transition-all duration-300 flex flex-col">
+    <Tilt3D hoverScale={1.2} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-[#B8D8D8] transition-all duration-300 flex flex-col">
       {/* Image */}
       <div className="relative h-44 bg-[#eef6f6] overflow-hidden">
         {img ? (
