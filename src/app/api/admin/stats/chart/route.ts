@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     .select('created_at')
     .gte('created_at', since.toISOString());
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) { console.error(error.message); return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 }); }
 
   const counts: Record<string, number> = {};
   for (let i = days - 1; i >= 0; i--) {

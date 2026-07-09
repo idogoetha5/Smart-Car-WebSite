@@ -41,6 +41,6 @@ export async function POST(request: NextRequest) {
     .from('reviews')
     .insert([{ name, text, rating, approved: false, date: new Date().toISOString() }]);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) { console.error(error.message); return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 }); }
   return NextResponse.json({ ok: true }, { status: 201 });
 }

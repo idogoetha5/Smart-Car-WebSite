@@ -13,7 +13,7 @@ export async function GET() {
   if (!await checkAuth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const supabase = createAdminClient();
   const { data, error } = await supabase.from('vehicles').select('*').order('make');
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) { console.error(error.message); return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 }); }
   return NextResponse.json(data ?? []);
 }
 
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid transmission' }, { status: 400 });
   }
   const { data, error } = await supabase.from('vehicles').insert(body).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) { console.error(error.message); return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 }); }
   revalidatePath('/', 'layout');
   return NextResponse.json(data);
 }
