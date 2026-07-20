@@ -26,6 +26,12 @@ ALTER TABLE seo_redirects    ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Public can read own booking conflicts" ON bookings;
 
+-- vehicles: every read in the codebase already goes through the
+-- service-role client and allowlists its own output columns (excluding
+-- license_plate). The old "Public can read vehicles" policy bypassed
+-- that allowlist via the raw Supabase REST API.
+DROP POLICY IF EXISTS "Public can read vehicles" ON vehicles;
+
 ALTER TABLE IF EXISTS reviews        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS cars_for_sale  ENABLE ROW LEVEL SECURITY;
 

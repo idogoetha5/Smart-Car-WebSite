@@ -216,11 +216,14 @@ ALTER TABLE seo_redirects      ENABLE ROW LEVEL SECURITY;
 -- 6. POLICIES
 -- =============================================================
 
--- vehicles: anyone can read, only service-role can write
-CREATE POLICY "Public can read vehicles"
-  ON vehicles FOR SELECT
-  USING (TRUE);
-
+-- vehicles: NO public SELECT policy, service-role only.
+-- The catalog/rental pages, /api/vehicles, and every other vehicle read
+-- in this codebase go through the service-role client (see
+-- src/lib/db/vehicles.ts, src/app/api/vehicles/route.ts) and that public
+-- API already allowlists which columns it returns (make/model/price/
+-- images/etc — deliberately excluding license_plate). A public SELECT
+-- policy here would bypass that allowlist and expose license_plate
+-- directly via the raw Supabase REST API, which the app never intends.
 CREATE POLICY "Service role manages vehicles"
   ON vehicles FOR ALL
   USING (auth.role() = 'service_role');
