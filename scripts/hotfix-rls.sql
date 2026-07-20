@@ -29,12 +29,28 @@ DROP POLICY IF EXISTS "Public can read own booking conflicts" ON bookings;
 ALTER TABLE IF EXISTS reviews        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS cars_for_sale  ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Service role manages reviews" ON reviews;
+-- reviews/cars_for_sale were created outside this repo's scripts at some
+-- point, so we don't know every policy name that might already exist on
+-- them (Postgres OR's all permissive policies together — a leftover
+-- "public can read" policy from whenever the table was first set up would
+-- silently keep anon access open even after we add our own restrictive
+-- one). Drop every existing policy on both tables by name, dynamically,
+-- then add back exactly one.
+DO $$
+DECLARE pol RECORD;
+BEGIN
+  FOR pol IN SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = 'reviews' LOOP
+    EXECUTE format('DROP POLICY %I ON public.reviews', pol.policyname);
+  END LOOP;
+  FOR pol IN SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = 'cars_for_sale' LOOP
+    EXECUTE format('DROP POLICY %I ON public.cars_for_sale', pol.policyname);
+  END LOOP;
+END $$;
+
 CREATE POLICY "Service role manages reviews"
   ON reviews FOR ALL
   USING (auth.role() = 'service_role');
 
-DROP POLICY IF EXISTS "Service role manages cars_for_sale" ON cars_for_sale;
 CREATE POLICY "Service role manages cars_for_sale"
   ON cars_for_sale FOR ALL
   USING (auth.role() = 'service_role');

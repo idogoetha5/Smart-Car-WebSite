@@ -263,12 +263,25 @@ CREATE POLICY "Service role manages seo_redirects"
 ALTER TABLE IF EXISTS reviews        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS cars_for_sale  ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Service role manages reviews" ON reviews;
+-- Drop every existing policy on these two by name (dynamically — we don't
+-- control how they were originally created) before adding back exactly
+-- one. A leftover permissive "public can read" policy would otherwise
+-- stay OR'd in alongside ours and keep anon access open.
+DO $$
+DECLARE pol RECORD;
+BEGIN
+  FOR pol IN SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = 'reviews' LOOP
+    EXECUTE format('DROP POLICY %I ON public.reviews', pol.policyname);
+  END LOOP;
+  FOR pol IN SELECT policyname FROM pg_policies WHERE schemaname = 'public' AND tablename = 'cars_for_sale' LOOP
+    EXECUTE format('DROP POLICY %I ON public.cars_for_sale', pol.policyname);
+  END LOOP;
+END $$;
+
 CREATE POLICY "Service role manages reviews"
   ON reviews FOR ALL
   USING (auth.role() = 'service_role');
 
-DROP POLICY IF EXISTS "Service role manages cars_for_sale" ON cars_for_sale;
 CREATE POLICY "Service role manages cars_for_sale"
   ON cars_for_sale FOR ALL
   USING (auth.role() = 'service_role');
