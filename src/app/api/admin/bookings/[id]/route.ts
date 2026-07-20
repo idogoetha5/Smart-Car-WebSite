@@ -5,8 +5,29 @@ import { verifyAdminToken } from '@/lib/admin-auth';
 
 const LOGO_URL = 'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/logo.png';
 
+// TEMPORARY (2026-07-20): there is no working online payment link yet.
+// HYP_TERMINAL/HYP_PASSP/HYP_REFERER exist in Vercel (Hyp/YaadPay clearing
+// credentials) but the integration needs a HYP_KEY we don't have, plus
+// real testing in Hyp's sandbox before it touches real money — not
+// something to guess and ship. Once that's built, this should generate
+// a real Hyp hosted-payment-page link instead, AND the "Post-transaction
+// address" callback URLs must be reconfigured in the Hyp Portal to point
+// at the final smartcar.co.il domain (not this Vercel one) once the
+// domain migration lands — see smartcar_icloud_git_corruption.md memory.
+const EXTRAS_LABELS_HE: Record<string, string> = {
+  insurance: '🛡️ ביטול השתתפות עצמית',
+  highway6:  '🛣️ כביש 6',
+  baby_seat: '👶 כיסא בטיחות',
+  driver:    '👤 נהג נוסף',
+};
+
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function whatsappDepositLink(orderId: string): string {
+  const text = `שלום, אני רוצה לשלם מקדמה עבור ההזמנה שלי מספר #${orderId}`;
+  return `https://wa.me/97299509757?text=${encodeURIComponent(text)}`;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,20 +52,25 @@ async function sendConfirmationEmail(booking: any) {
         user_id: publicKey,
         accessToken: privateKey,
         template_params: {
-          to_email:        booking.customer_email,
-          to_name:         booking.customer_name,
-          order_id:        String(booking.id).slice(0, 8).toUpperCase(),
-          booking_type:    'השכרה',
-          vehicle_name:    `${booking.vehicle?.make ?? ''} ${booking.vehicle?.model ?? ''}`.trim(),
-          start_date:      formatDate(booking.pickup_date),
-          end_date:        formatDate(booking.dropoff_date),
-          pickup_location: booking.pickup_location,
-          return_location: booking.dropoff_location,
-          customer_phone:  booking.customer_phone,
-          total_price:     booking.total_price ? `₪${Number(booking.total_price).toLocaleString()}` : '-',
-          deposit_amount:  booking.vehicle?.deposit_amount ? `₪${Number(booking.vehicle.deposit_amount).toLocaleString()}` : '-',
-          bcc_email:       'office@smartcar.co.il',
-          logo_url:        LOGO_URL,
+          to_email:          booking.customer_email,
+          to_name:           booking.customer_name,
+          order_id:          String(booking.id).slice(0, 8).toUpperCase(),
+          booking_type:      'השכרה',
+          vehicle_name:      `${booking.vehicle?.make ?? ''} ${booking.vehicle?.model ?? ''}`.trim(),
+          start_date:        formatDate(booking.pickup_date),
+          end_date:          formatDate(booking.dropoff_date),
+          pickup_location:   booking.pickup_location,
+          return_location:   booking.dropoff_location,
+          customer_phone:    booking.customer_phone,
+          total_price:       booking.total_price ? `₪${Number(booking.total_price).toLocaleString()}` : '-',
+          extras:            Array.isArray(booking.extras) && booking.extras.length > 0
+                                ? booking.extras.map((e: string) => EXTRAS_LABELS_HE[e] ?? e).join(', ')
+                                : 'ללא',
+          down_payment:      booking.total_price ? `₪${Math.round(Number(booking.total_price) * 0.05).toLocaleString()}` : '-',
+          payment_link:      whatsappDepositLink(String(booking.id).slice(0, 8).toUpperCase()),
+          payment_link_text: whatsappDepositLink(String(booking.id).slice(0, 8).toUpperCase()),
+          bcc_email:         'office@smartcar.co.il',
+          logo_url:          LOGO_URL,
         },
       }),
     });
