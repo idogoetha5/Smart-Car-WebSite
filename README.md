@@ -191,15 +191,7 @@ vercel --prod
 
 ## RLS (Row Level Security)
 
-כל הגישה ל-DB מתבצעת דרך `service_role` (bypasses RLS). להפעלת RLS הרץ ב-Supabase SQL Editor:
-
-```sql
-ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.leasing_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.cars_for_sale ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.vehicles ENABLE ROW LEVEL SECURITY;
-```
+כל הגישה ל-DB מתבצעת דרך `service_role` (bypasses RLS) — אין ולא צריך להיות שום SELECT ציבורי על `bookings`/`leasing_requests`/`reviews`/`cars_for_sale`, כי גם ה-anon key חשוף בכל טעינת דף בדפדפן. המדיניות המלאה מוגדרת בסעיף 6 של `supabase-setup.sql`. **אזהרה: אל תריץ מחדש את כל `supabase-setup.sql` על בסיס נתונים עם מידע אמיתי — הוא מוחק (`DROP TABLE`) ובונה מחדש `vehicles`/`bookings`/`leasing_requests`/`seo_redirects`.** אם צריך רק לתקן/לוודא RLS על DB קיים, הריצו את `scripts/hotfix-rls.sql` בלבד — הוא אידמפוטנטי ולא נוגע בנתונים.
 
 ---
 

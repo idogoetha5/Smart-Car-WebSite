@@ -226,6 +226,13 @@ CREATE POLICY "Service role manages vehicles"
   USING (auth.role() = 'service_role');
 
 -- bookings: anyone can insert (to book), service-role can read/update
+-- NOTE: there is intentionally NO public SELECT policy on bookings.
+-- customer_name/email/phone/id_number live on this table, and every
+-- read the app needs (availability checks, admin, "my bookings") goes
+-- through /api/* routes using the service-role client, which bypasses
+-- RLS entirely. A public SELECT policy here would let anyone with the
+-- public anon key dump every customer's PII directly via the Supabase
+-- REST API, bypassing the app altogether.
 CREATE POLICY "Public can create bookings"
   ON bookings FOR INSERT
   WITH CHECK (TRUE);
@@ -233,11 +240,6 @@ CREATE POLICY "Public can create bookings"
 CREATE POLICY "Service role manages bookings"
   ON bookings FOR ALL
   USING (auth.role() = 'service_role');
-
--- Allow server-side availability check (SELECT only for conflict detection)
-CREATE POLICY "Public can read own booking conflicts"
-  ON bookings FOR SELECT
-  USING (TRUE);
 
 -- leasing_requests: anyone can insert, service-role can read/update
 CREATE POLICY "Public can submit leasing requests"
@@ -251,6 +253,24 @@ CREATE POLICY "Service role manages leasing requests"
 -- seo_redirects: service-role only
 CREATE POLICY "Service role manages seo_redirects"
   ON seo_redirects FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- reviews & cars_for_sale are created outside this script (not in the
+-- CLEAN SLATE section above), but ship the same lockdown here for
+-- completeness — the app only ever touches them via the service-role
+-- client (see /api/reviews, /api/cars-for-sale), so no public policy
+-- is needed or safe to add.
+ALTER TABLE IF EXISTS reviews        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS cars_for_sale  ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Service role manages reviews" ON reviews;
+CREATE POLICY "Service role manages reviews"
+  ON reviews FOR ALL
+  USING (auth.role() = 'service_role');
+
+DROP POLICY IF EXISTS "Service role manages cars_for_sale" ON cars_for_sale;
+CREATE POLICY "Service role manages cars_for_sale"
+  ON cars_for_sale FOR ALL
   USING (auth.role() = 'service_role');
 
 
