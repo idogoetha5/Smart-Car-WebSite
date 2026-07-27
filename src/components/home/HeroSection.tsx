@@ -426,9 +426,12 @@ export default function HeroSection({ locale }: { locale: string }) {
       <div className="bg-white relative overflow-hidden h-[calc(55vw*705/1400)] md:h-[320px]">
 
         {/* Tagline — LEFT, wraps on mobile, single line on desktop */}
-        <div className="absolute left-4 md:left-16 top-2 translate-y-0 md:top-1/2 md:-translate-y-1/2 z-10 max-w-[48%] md:max-w-none">
+        <div
+          className="absolute left-4 md:left-16 top-2 translate-y-0 md:top-1/2 md:-translate-y-1/2 z-10 max-w-[48%] md:max-w-none"
+          dir={isHe ? 'rtl' : 'ltr'}
+        >
           <p className="text-[#E8743B] text-3xl md:text-6xl font-bold italic leading-tight md:whitespace-nowrap">
-            {'Join us'}<br className="md:hidden" /><span className="hidden md:inline">{' '}</span>{'for a ride'}
+            {t('tagline_line1')}<br className="md:hidden" /><span className="hidden md:inline">{' '}</span>{t('tagline_line2')}
           </p>
         </div>
 

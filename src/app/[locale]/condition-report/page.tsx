@@ -106,7 +106,7 @@ export default function ConditionReportPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {isHe ? 'קריאת מד אוץ (ק"מ)' : 'Odometer Reading (km)'}
+                {isHe ? 'קריאת קילומטראז\' (ק"מ)' : 'Odometer Reading (km)'}
               </label>
               <input
                 type="number"

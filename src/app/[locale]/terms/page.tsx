@@ -33,7 +33,7 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
             <section>
               <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">1. הגדרות</h2>
               <ul className="list-none space-y-2 text-sm">
-                <li><strong>"SmartCar" / "החברה"</strong> — חברת SmartCar (ח.פ. / ע.מ.), המפעילה שירותי השכרת רכב וליסינג בישראל.</li>
+                <li><strong>"SmartCar" / "החברה"</strong> — חברת SmartCar, המפעילה שירותי השכרת רכב וליסינג בישראל.</li>
                 <li><strong>"שוכר"</strong> — כל אדם שהזמין ו/או חתם על חוזה שכירות עם החברה.</li>
                 <li><strong>"נהג נוסף"</strong> — כל אדם המורשה לנהוג ברכב השכור מעבר לשוכר הראשי.</li>
                 <li><strong>"תקופת השכירות"</strong> — מועד האיסוף הנקוב בחוזה עד מועד ההחזרה הנקוב בחוזה.</li>

@@ -94,6 +94,6 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     '/api/admin/(.*)',
-    '/((?!api|_next/static|_next/image|favicon.ico|icons|images|robots.txt|sitemap.xml).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|icon.png|icons|images|robots.txt|sitemap.xml).*)',
   ],
 };
