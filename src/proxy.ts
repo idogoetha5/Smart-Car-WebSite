@@ -39,8 +39,6 @@ export async function proxy(request: NextRequest) {
     // pathname wasn't encoded (or was malformed) — use it as-is
   }
 
-  console.log('[old-url-redirect-debug]', JSON.stringify({ pathname, decodedPathname }));
-
   const oldPathDestination = OLD_PATH_REDIRECTS[decodedPathname];
   if (oldPathDestination) {
     return NextResponse.redirect(new URL(oldPathDestination, request.url), 308);
