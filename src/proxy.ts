@@ -29,15 +29,26 @@ const OLD_PATH_REDIRECTS: Record<string, string> = {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  // request.nextUrl.pathname's decode-state for non-ASCII segments isn't
+  // guaranteed here — normalize so the old-URL matching below works
+  // whether it arrives decoded or still percent-encoded.
+  let decodedPathname = pathname;
+  try {
+    decodedPathname = decodeURIComponent(pathname);
+  } catch {
+    // pathname wasn't encoded (or was malformed) — use it as-is
+  }
 
-  const oldPathDestination = OLD_PATH_REDIRECTS[pathname];
+  console.log('[old-url-redirect-debug]', JSON.stringify({ pathname, decodedPathname }));
+
+  const oldPathDestination = OLD_PATH_REDIRECTS[decodedPathname];
   if (oldPathDestination) {
     return NextResponse.redirect(new URL(oldPathDestination, request.url), 308);
   }
   // Old fleet section (category + individual vehicle pages) has no 1:1
   // equivalent under the new vehicle data model — send it all to the
   // live catalog.
-  if (pathname === '/צי-רכבים' || pathname.startsWith('/צי-רכבים/')) {
+  if (decodedPathname === '/צי-רכבים' || decodedPathname.startsWith('/צי-רכבים/')) {
     return NextResponse.redirect(new URL('/he/catalog', request.url), 308);
   }
 
