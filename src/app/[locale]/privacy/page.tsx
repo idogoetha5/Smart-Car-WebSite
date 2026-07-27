@@ -26,7 +26,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
           <>
             <section>
               <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">1. מי אנחנו</h2>
-              <p>SmartCar (להלן: "החברה") היא מפעילת שירותי השכרת רכב וליסינג הפועלת בישראל. החברה היא "בעל מאגר מידע" כהגדרת חוק הגנת הפרטיות, תשמ"א-1981, ורשומה ברשימת מאגרי המידע של הרשות להגנת הפרטיות.</p>
+              <p>SmartCar (להלן: "החברה") היא מפעילת שירותי השכרת רכב וליסינג הפועלת בישראל. החברה היא "בעל מאגר מידע" כהגדרת חוק הגנת הפרטיות, תשמ"א-1981.</p>
               <p className="mt-2">לשאלות פרטיות ניתן לפנות לממונה הגנת הפרטיות: <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a></p>
             </section>
 
@@ -206,7 +206,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
           <>
             <section>
               <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">1. Who We Are</h2>
-              <p>SmartCar ("the Company") operates car rental and leasing services in Israel. We are a registered "database holder" under the Israeli Privacy Protection Law, 5741-1981. Contact our Privacy Officer at <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a>.</p>
+              <p>SmartCar ("the Company") operates car rental and leasing services in Israel. We are a "database holder" under the Israeli Privacy Protection Law, 5741-1981. Contact our Privacy Officer at <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a>.</p>
             </section>
 
             <section>
