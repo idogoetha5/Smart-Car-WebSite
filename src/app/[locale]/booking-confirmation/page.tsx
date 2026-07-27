@@ -14,6 +14,7 @@ function ConfirmationContent() {
   const vehicleName = searchParams.get('vehicle');
   const startDate = searchParams.get('start');
   const endDate = searchParams.get('end');
+  const emailSent = searchParams.get('emailSent') !== 'false';
 
   const confirmationNumber = bookingId?.slice(0, 8).toUpperCase() ?? 'PENDING';
 
@@ -33,7 +34,7 @@ function ConfirmationContent() {
           <h1 className="text-3xl font-bold text-[#0D2B2B]">
             {isHe ? 'בקשתך התקבלה לבדיקה' : 'Your request is under review'}
           </h1>
-          <p className="text-gray-500 mt-2">
+          <p className="text-gray-600 mt-2">
             {isHe
               ? 'ההזמנה תאושר רק לאחר שנציג יצור אתך קשר ויאשר את הזמינות והתשלום'
               : 'Booking is confirmed only after an agent contacts you to confirm availability and payment'}
@@ -48,30 +49,32 @@ function ConfirmationContent() {
 
         <div className="bg-[#f0f7f7] border-s-4 border-[#2D5F5F] rounded-xl p-5 mb-6">
           <div className="text-center mb-4">
-            <p className="text-sm text-gray-500">{isHe ? 'מספר בקשה' : 'Request number'}</p>
-            <p className="text-3xl font-bold text-[#C24E17]">#{confirmationNumber}</p>
+            <p className="text-sm text-gray-600">{isHe ? 'מספר בקשה' : 'Request number'}</p>
+            <p className="text-3xl font-bold text-[#B64916]">#{confirmationNumber}</p>
           </div>
           <div className="space-y-2 text-sm">
             {vehicleName && (
               <div className="flex justify-between">
-                <span className="text-gray-500">{isHe ? 'רכב' : 'Vehicle'}</span>
+                <span className="text-gray-600">{isHe ? 'רכב' : 'Vehicle'}</span>
                 <span className="font-medium">{vehicleName}</span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-gray-500">{isHe ? 'תאריך איסוף' : 'Pickup date'}</span>
+              <span className="text-gray-600">{isHe ? 'תאריך איסוף' : 'Pickup date'}</span>
               <span className="font-medium">{formatDate(startDate)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">{isHe ? 'תאריך החזרה' : 'Return date'}</span>
+              <span className="text-gray-600">{isHe ? 'תאריך החזרה' : 'Return date'}</span>
               <span className="font-medium">{formatDate(endDate)}</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-orange-50 border border-[#C24E17] rounded-xl p-4 mb-6 text-center">
+        <div className="bg-orange-50 border border-[#B64916] rounded-xl p-4 mb-6 text-center">
           <p className="text-sm text-gray-600">
-            📧 {isHe ? 'שלחנו לך אישור למייל' : 'We sent a confirmation to your email'}
+            📧 {emailSent
+              ? (isHe ? 'שלחנו לך אישור למייל' : 'We sent a confirmation to your email')
+              : (isHe ? 'שמרנו את הבקשה שלך — אם לא קיבלת אישור למייל, ניתן ליצור קשר' : "We've saved your request — if you don't receive an email confirmation, feel free to reach out")}
           </p>
           <p className="text-sm text-gray-600 mt-1">
             📞 {isHe ? 'לשאלות:' : 'Questions:'} <strong>09-9509757</strong>

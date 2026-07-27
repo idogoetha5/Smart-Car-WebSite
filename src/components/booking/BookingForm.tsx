@@ -467,6 +467,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
       const result = await res.json();
       const bookingId = result.data?.id ?? result.id ?? '';
 
+      let emailSent = true;
       try {
         await sendBookingEmail({
           customerName:    data.customerName,
@@ -484,12 +485,14 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           returnTime,
         });
       } catch {
-        // EmailJS failure is non-critical — booking already saved
+        // EmailJS failure is non-critical — booking already saved.
+        // Confirmation page must not claim an email was sent if it wasn't.
+        emailSent = false;
       }
 
       localStorage.removeItem(DRAFT_KEY(vehicle.id, locale));
       router.push(
-        `/${locale}/booking-confirmation?id=${bookingId}&vehicle=${encodeURIComponent(vehicle.make + ' ' + vehicle.model)}&start=${pickupDate}&end=${dropoffDate}`
+        `/${locale}/booking-confirmation?id=${bookingId}&vehicle=${encodeURIComponent(vehicle.make + ' ' + vehicle.model)}&start=${pickupDate}&end=${dropoffDate}&emailSent=${emailSent}`
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
