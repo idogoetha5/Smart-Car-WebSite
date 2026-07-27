@@ -147,7 +147,7 @@ function IsraelAddressInput({
         aria-autocomplete="list"
         aria-expanded={showDropdown}
         className={`w-full h-10 rounded-lg border-2 px-3 pe-9 text-sm outline-none transition-colors ${
-          isValid ? 'border-green-500 bg-green-50' : 'border-[#C24E17] focus:border-[#2D5F5F]'
+          isValid ? 'border-green-500 bg-green-50' : 'border-[#B64916] focus:border-[#2D5F5F]'
         }`}
       />
       <span className="absolute end-3 top-2 text-base pointer-events-none" aria-hidden="true">
@@ -179,7 +179,7 @@ function IsraelAddressInput({
         </p>
       )}
       {!isValid && inputValue.length > 2 && (
-        <p className="text-gray-400 text-xs mt-1">
+        <p className="text-gray-600 text-xs mt-1">
           {isHe ? 'בחר כתובת מהרשימה' : 'Select an address from the list'}
         </p>
       )}
@@ -352,22 +352,20 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
       dropoffDate:      savedDraft?.dropoffDate ?? initialReturnDate,
       pickupLocation:   savedDraft?.pickupLocation ?? initialLocation,
       dropoffLocation:  savedDraft?.dropoffLocation ?? initialReturnLocation,
-      customerName:     savedDraft?.customerName ?? '',
-      customerEmail:    savedDraft?.customerEmail ?? '',
-      customerPhone:    savedDraft?.customerPhone ?? '',
-      customerIdNumber: savedDraft?.customerIdNumber ?? '',
-      notes:            savedDraft?.notes ?? '',
+      customerName:     '',
+      customerEmail:    '',
+      customerPhone:    '',
+      customerIdNumber: '',
+      notes:            '',
     },
   });
 
-  // Restore non-form state from draft
+  // Restore non-form state from draft (booking preferences only — no PII)
   useEffect(() => {
     if (!savedDraft) return;
     if (savedDraft.pickupTime) setPickupTime(savedDraft.pickupTime);
     if (savedDraft.returnTime) setReturnTime(savedDraft.returnTime);
     if (savedDraft.selectedExtras) setSelectedExtras(savedDraft.selectedExtras);
-    if (savedDraft.additionalDriverName) setAdditionalDriverName(savedDraft.additionalDriverName);
-    if (savedDraft.additionalDriverId) setAdditionalDriverId(savedDraft.additionalDriverId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -378,15 +376,17 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
     if (draftTimer.current) clearTimeout(draftTimer.current);
     draftTimer.current = setTimeout(() => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { agreeTerms: _a, marketingConsent: _m, ...draftValues } = allValues;
+        // Only persist non-personal booking preferences — never PII
+        // (name/email/phone/ID/notes/additional-driver details) to
+        // browser storage.
         localStorage.setItem(DRAFT_KEY(vehicle.id, locale), JSON.stringify({
-          ...draftValues,
+          pickupDate: allValues.pickupDate,
+          dropoffDate: allValues.dropoffDate,
+          pickupLocation: allValues.pickupLocation,
+          dropoffLocation: allValues.dropoffLocation,
           pickupTime,
           returnTime,
           selectedExtras,
-          additionalDriverName,
-          additionalDriverId,
           savedAt: new Date().toISOString(),
         }));
         setDraftSaved(true);
@@ -517,12 +517,12 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
       <input type="text" name="_website" tabIndex={-1} autoComplete="off" style={{ display: 'none' }} aria-hidden="true" />
 
       {/* Draft indicator */}
-      <div className="flex items-center justify-between text-xs text-gray-400 h-4">
+      <div className="flex items-center justify-between text-xs text-gray-600 h-4">
         <span className={`transition-opacity duration-500 ${draftSaved ? 'opacity-100' : 'opacity-0'}`}>
           {isHe ? '✓ טיוטה נשמרה' : '✓ Draft saved'}
         </span>
         {savedDraft && (
-          <button type="button" onClick={clearDraft} className="text-gray-400 hover:text-red-400 transition-colors underline">
+          <button type="button" onClick={clearDraft} className="text-gray-600 hover:text-red-400 transition-colors underline">
             {isHe ? 'נקה טיוטה' : 'Clear draft'}
           </button>
         )}
@@ -673,7 +673,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           <div>
             <div className="flex items-center gap-1.5 mb-1">
               <label htmlFor="customer-id-number" className="text-sm font-medium text-gray-700">{t('id_number')}</label>
-              <span className="text-xs text-gray-400" title={isHe ? 'לתיירים — מספר דרכון' : 'Tourists — passport number'}>
+              <span className="text-xs text-gray-600" title={isHe ? 'לתיירים — מספר דרכון' : 'Tourists — passport number'}>
                 {isHe ? '(לתיירים: מספר דרכון)' : '(Tourists: passport number)'}
               </span>
             </div>
@@ -712,7 +712,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
                 key={extra.id}
                 className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${
                   selectedExtras.includes(extra.id)
-                    ? 'border-[#C24E17] bg-orange-50'
+                    ? 'border-[#B64916] bg-orange-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
@@ -722,7 +722,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
                   onChange={() => toggleExtra(extra.id)}
                   className="hidden"
                 />
-                <span className="font-bold text-[#C24E17] shrink-0">{extra.priceLabel}</span>
+                <span className="font-bold text-[#B64916] shrink-0">{extra.priceLabel}</span>
                 <div className="text-right">
                   <div className="flex items-center gap-2 justify-end">
                     {extra.popular && (
@@ -730,7 +730,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
                     )}
                     <span className="font-semibold">{extra.icon} {isHe ? extra.name : (extra as { nameEn?: string }).nameEn ?? extra.name}</span>
                   </div>
-                  <p className="text-xs text-gray-500">{isHe ? extra.description : (extra as { descriptionEn?: string }).descriptionEn ?? extra.description}</p>
+                  <p className="text-xs text-gray-600">{isHe ? extra.description : (extra as { descriptionEn?: string }).descriptionEn ?? extra.description}</p>
                 </div>
               </label>
             ))}
@@ -740,7 +740,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
             href={`/${locale}/insurance`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block mt-2 text-xs text-[#2D5F5F] hover:text-[#C24E17] underline transition-colors"
+            className="inline-block mt-2 text-xs text-[#2D5F5F] hover:text-[#B64916] underline transition-colors"
           >
             {isHe ? 'מה כלול בביטוח שלנו? ←' : 'What does our insurance cover? →'}
           </a>
@@ -846,10 +846,10 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
             </div>
           )}
           <div className="flex justify-between font-bold text-lg border-t border-[#B8D8D8] pt-2">
-            <span className="text-[#C24E17]">₪{grandTotal.toLocaleString()}</span>
+            <span className="text-[#B64916]">₪{grandTotal.toLocaleString()}</span>
             <span>{isHe ? 'סה"כ לתשלום' : 'Total'}</span>
           </div>
-          <p className="text-xs text-gray-400 text-center pt-1">
+          <p className="text-xs text-gray-600 text-center pt-1">
             {isHe
               ? `כולל מע"מ 18% • עד ${getRentalMileageAllowance(totalDays).toLocaleString()} ק"מ • דלק מלא`
               : `Incl. 18% VAT • Up to ${getRentalMileageAllowance(totalDays).toLocaleString()} km • Full tank`}
@@ -909,7 +909,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
             {...register('marketingConsent')}
             className="mt-0.5 w-4 h-4 accent-[#2D5F5F] shrink-0"
           />
-          <span className="text-xs text-gray-500 leading-relaxed">
+          <span className="text-xs text-gray-600 leading-relaxed">
             {isHe
               ? 'אני מעוניין/ת לקבל עדכונים ומבצעים מ-SmartCar בדוא"ל (ניתן לביטול בכל עת)'
               : 'I would like to receive updates and deals from SmartCar by email (unsubscribe anytime)'}
