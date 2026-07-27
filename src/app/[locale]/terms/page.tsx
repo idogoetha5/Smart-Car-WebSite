@@ -12,11 +12,11 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
   return (
     <div className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 ${isHe ? 'text-right' : 'text-left'}`} dir={isHe ? 'rtl' : 'ltr'}>
       <div className="mb-10">
-        <p className="text-[#C24E17] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
+        <p className="text-[#B64916] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
         <h1 className="text-4xl font-black text-[#0D2B2B] mb-2">
           {isHe ? 'תנאי שימוש ושכירות' : 'Terms of Service & Rental Conditions'}
         </h1>
-        <p className="text-gray-500 text-sm">
+        <p className="text-gray-600 text-sm">
           {isHe ? 'גרסה 2.0 — תחולה מ-1 ביוני 2026' : 'Version 2.0 — Effective June 1, 2026'}
         </p>
         <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">

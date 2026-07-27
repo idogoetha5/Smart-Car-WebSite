@@ -12,11 +12,11 @@ export default async function CookiesPage({ params }: { params: Promise<{ locale
   return (
     <div className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 ${isHe ? 'text-right' : 'text-left'}`} dir={isHe ? 'rtl' : 'ltr'}>
       <div className="mb-10">
-        <p className="text-[#C24E17] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
+        <p className="text-[#B64916] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
         <h1 className="text-4xl font-black text-[#0D2B2B] mb-2">
           {isHe ? 'מדיניות עוגיות' : 'Cookies Policy'}
         </h1>
-        <p className="text-gray-500 text-sm">
+        <p className="text-gray-600 text-sm">
           {isHe ? 'גרסה 2.0 — תחולה מ-1 ביוני 2026' : 'Version 2.0 — Effective June 1, 2026'}
         </p>
       </div>
@@ -88,7 +88,7 @@ export default async function CookiesPage({ params }: { params: Promise<{ locale
                   </tbody>
                 </table>
               </div>
-              <p className="text-sm text-gray-500 mt-3">* "לא מופעל בשלב זה" — אנו מחויבים לעדכן מסמך זה <strong>לפני</strong> הפעלת כל עוגייה חדשה.</p>
+              <p className="text-sm text-gray-600 mt-3">* "לא מופעל בשלב זה" — אנו מחויבים לעדכן מסמך זה <strong>לפני</strong> הפעלת כל עוגייה חדשה.</p>
             </section>
 
             <section>
@@ -108,7 +108,7 @@ export default async function CookiesPage({ params }: { params: Promise<{ locale
                 <li><strong>Safari:</strong> העדפות › פרטיות</li>
                 <li><strong>Edge:</strong> הגדרות › עוגיות והרשאות אתר</li>
               </ul>
-              <p className="mt-3 text-sm text-gray-500">למחיקת נתוני localStorage (טיוטת הזמנה): בדפדפן, פתח כלי מפתח (F12) › Application › Local Storage › smartcar.co.il › מחק שורות booking_draft_*.</p>
+              <p className="mt-3 text-sm text-gray-600">למחיקת נתוני localStorage (טיוטת הזמנה): בדפדפן, פתח כלי מפתח (F12) › Application › Local Storage › smartcar.co.il › מחק שורות booking_draft_*.</p>
             </section>
 
             <section>
@@ -189,7 +189,7 @@ export default async function CookiesPage({ params }: { params: Promise<{ locale
                   </tbody>
                 </table>
               </div>
-              <p className="text-sm text-gray-500 mt-3">* "Not currently active" — we commit to updating this document <strong>before</strong> activating any new cookie.</p>
+              <p className="text-sm text-gray-600 mt-3">* "Not currently active" — we commit to updating this document <strong>before</strong> activating any new cookie.</p>
             </section>
 
             <section>

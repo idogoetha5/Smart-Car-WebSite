@@ -13,7 +13,7 @@ export default function VehicleSearch({ value, onChange }: VehicleSearchProps) {
 
   return (
     <div className="relative">
-      <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
       <input
         type="text"
         value={value}

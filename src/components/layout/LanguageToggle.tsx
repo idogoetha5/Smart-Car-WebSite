@@ -20,7 +20,7 @@ export default function LanguageToggle() {
       aria-label="Toggle language"
     >
       <span>{locale === 'he' ? '🇮🇱 עב' : '🇺🇸 EN'}</span>
-      <span className="text-gray-400">→</span>
+      <span className="text-gray-600">→</span>
       <span>{locale === 'he' ? 'EN' : 'עב'}</span>
     </button>
   );

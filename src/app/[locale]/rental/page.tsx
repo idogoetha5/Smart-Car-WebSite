@@ -71,7 +71,7 @@ function RentalPageContent() {
           </span>
         </div>
         <h1 className="text-4xl font-black text-gray-900 mb-3">{t('title')}</h1>
-        <p className="text-gray-500 text-lg">
+        <p className="text-gray-600 text-lg">
           {isHe
             ? 'בחר רכב מהמלאי ובצע הזמנה מהירה'
             : 'Choose a vehicle from our fleet and make a quick booking'}
@@ -93,8 +93,8 @@ function RentalPageContent() {
               </span>
               <span>{step}</span>
               {i < 3 && (isHe
-                ? <ChevronLeft className="w-4 h-4 text-gray-400" />
-                : <ChevronRight className="w-4 h-4 text-gray-400" />
+                ? <ChevronLeft className="w-4 h-4 text-gray-600" />
+                : <ChevronRight className="w-4 h-4 text-gray-600" />
               )}
             </div>
           ))}
@@ -122,7 +122,7 @@ function RentalPageContent() {
         </select>
 
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs text-gray-500 me-1">{isHe ? 'מושבים:' : 'Seats:'}</span>
+          <span className="text-xs text-gray-600 me-1">{isHe ? 'מושבים:' : 'Seats:'}</span>
           {(['', '4', '5', '7', '8'] as const).map(s => (
             <button
               key={s}
@@ -152,14 +152,14 @@ function RentalPageContent() {
         {hasFilters && (
           <button
             onClick={() => { setCategoryFilter(''); setSeatsFilter(''); setTransmissionFilter(''); }}
-            className="px-3 py-2 text-sm text-[#C24E17] border border-[#C24E17] rounded-lg hover:bg-orange-50 transition-colors"
+            className="px-3 py-2 text-sm text-[#B64916] border border-[#B64916] rounded-lg hover:bg-orange-50 transition-colors"
           >
             {isHe ? 'נקה פילטרים' : 'Clear filters'}
           </button>
         )}
 
         {!isLoading && (
-          <span className="ms-auto self-center text-sm text-gray-400">
+          <span className="ms-auto self-center text-sm text-gray-600">
             {filteredVehicles.length} {isHe ? 'דגמים' : 'models'}
           </span>
         )}

@@ -128,7 +128,7 @@ export default function ReviewsSection({ locale }: { locale: string }) {
 
         {/* Header */}
         <div className="text-center mb-10">
-          <p className="text-[#C24E17] text-sm font-semibold uppercase tracking-widest mb-2">
+          <p className="text-[#B64916] text-sm font-semibold uppercase tracking-widest mb-2">
             {isHe ? 'לקוחות מספרים' : 'What customers say'}
           </p>
           <h2 className="text-2xl md:text-3xl font-bold text-[#0D2B2B]">
@@ -137,9 +137,9 @@ export default function ReviewsSection({ locale }: { locale: string }) {
           <div className="flex items-center justify-center gap-2 mt-3">
             <Stars n={5} />
             <span className="text-sm text-gray-600 font-bold">{avgRating}</span>
-            <span className="text-sm text-gray-500">/ 5</span>
+            <span className="text-sm text-gray-600">/ 5</span>
             {total > 0 && (
-              <span className="text-sm text-gray-400">({total} {isHe ? 'ביקורות' : 'reviews'})</span>
+              <span className="text-sm text-gray-600">({total} {isHe ? 'ביקורות' : 'reviews'})</span>
             )}
           </div>
           {/* Google Reviews link */}
@@ -147,7 +147,7 @@ export default function ReviewsSection({ locale }: { locale: string }) {
             href="https://www.google.com/search?q=smart+car#lrd=0x151d4894faff7625:0x11c7acfa1038271c,1,,,,"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 mt-3 text-xs text-[#2D5F5F] hover:text-[#C24E17] underline transition-colors"
+            className="inline-flex items-center gap-1.5 mt-3 text-xs text-[#2D5F5F] hover:text-[#B64916] underline transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -175,7 +175,7 @@ export default function ReviewsSection({ locale }: { locale: string }) {
                 </div>
                 <div>
                   <p className="font-bold text-[#0D2B2B] text-sm">{reviews[active].name}</p>
-                  <p className="text-gray-400 text-xs">
+                  <p className="text-gray-600 text-xs">
                     {formatDisplayDate(reviews[active].date, locale)}
                   </p>
                 </div>

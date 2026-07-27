@@ -23,7 +23,7 @@ export function DateRangePicker({
 
   return (
     <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 p-3">
-      <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+      <Calendar className="w-4 h-4 text-gray-600 shrink-0" />
       <input
         type="date"
         value={startDate ?? ''}
@@ -32,7 +32,7 @@ export function DateRangePicker({
         onChange={(e) => onStartChange(e.target.value)}
         className="flex-1 text-sm border-none outline-none bg-transparent"
       />
-      <span className="text-gray-400">{isRTL ? '←' : '→'}</span>
+      <span className="text-gray-600">{isRTL ? '←' : '→'}</span>
       <input
         type="date"
         value={endDate ?? ''}

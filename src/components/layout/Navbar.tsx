@@ -55,7 +55,7 @@ export default function Navbar() {
                 className={`text-sm font-semibold transition-all px-3 py-2 rounded-lg ${
                   isActive(link.href)
                     ? 'text-[#2D5F5F] bg-[#eef6f6]'
-                    : 'text-gray-500 hover:text-[#2D5F5F] hover:bg-[#f0f7f7]'
+                    : 'text-gray-600 hover:text-[#2D5F5F] hover:bg-[#f0f7f7]'
                 }`}
               >
                 {link.label}
@@ -72,7 +72,7 @@ export default function Navbar() {
               aria-label="Toggle language"
             >
               <span>{locale === 'he' ? '🇮🇱 עב' : '🇺🇸 EN'}</span>
-              <span className="text-gray-400">→</span>
+              <span className="text-gray-600">→</span>
               <span>{locale === 'he' ? 'EN' : 'עב'}</span>
             </button>
 

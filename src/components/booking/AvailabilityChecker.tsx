@@ -27,7 +27,7 @@ export function AvailabilityChecker({
 
   if (isChecking) {
     return (
-      <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-lg px-4 py-3">
+      <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 rounded-lg px-4 py-3">
         <Loader2 className="w-4 h-4 animate-spin" />
         <span>{t('availability_check')}...</span>
       </div>

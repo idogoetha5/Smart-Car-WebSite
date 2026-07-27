@@ -75,13 +75,13 @@ export default function BranchesSection({ locale }: { locale: string }) {
     <section className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className={`mb-12 ${isHe ? 'text-right' : 'text-left'}`}>
-          <p className="text-[#C24E17] text-sm font-semibold uppercase tracking-widest mb-2">
+          <p className="text-[#B64916] text-sm font-semibold uppercase tracking-widest mb-2">
             {isHe ? 'נקודות שירות' : 'Our Locations'}
           </p>
           <h2 className="text-4xl font-black text-[#0D2B2B]">
             {isHe ? 'הסניפים שלנו' : 'Our Branches'}
           </h2>
-          <p className="text-gray-500 mt-2 max-w-xl">
+          <p className="text-gray-600 mt-2 max-w-xl">
             {isHe
               ? 'מגיעים אליכם בכל רחבי הארץ – 4 סניפים לשירותכם'
               : 'We come to you across the country – 4 branches at your service'}
@@ -123,13 +123,13 @@ export default function BranchesSection({ locale }: { locale: string }) {
                 {branch.phone ? (
                   <a
                     href={`tel:${branch.phone}`}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#C24E17', fontWeight: 600, textDecoration: 'none' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#B64916', fontWeight: 600, textDecoration: 'none' }}
                   >
                     <Phone className="w-4 h-4" style={{ flexShrink: 0 }} />
                     {branch.phone}
                   </a>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#C24E17', fontWeight: 600 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: '#B64916', fontWeight: 600 }}>
                     <Clock className="w-4 h-4" style={{ flexShrink: 0 }} />
                     {isHe ? 'שירות 24/7' : '24/7 Service'}
                   </div>
@@ -144,7 +144,7 @@ export default function BranchesSection({ locale }: { locale: string }) {
                 </div>
 
                 {/* Row 4 – 14px: hours */}
-                <div style={{ fontSize: '11px', color: '#9CA3AF', textAlign: isHe ? 'right' : 'left', overflow: 'hidden' }}>
+                <div style={{ fontSize: '11px', color: '#6B7280', textAlign: isHe ? 'right' : 'left', overflow: 'hidden' }}>
                   {isHe ? branch.hoursHe : branch.hoursEn}
                 </div>
 

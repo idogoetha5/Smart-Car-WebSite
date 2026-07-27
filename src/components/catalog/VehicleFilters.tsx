@@ -122,7 +122,7 @@ export default function VehicleFiltersPanel({
           }
           className="w-full accent-blue-600"
         />
-        <div dir="ltr" className="flex justify-between text-xs text-gray-400 mt-1">
+        <div dir="ltr" className="flex justify-between text-xs text-gray-600 mt-1">
           <span>₪100</span>
           <span>₪1000</span>
         </div>
@@ -157,7 +157,7 @@ export default function VehicleFiltersPanel({
 
       <button
         onClick={() => onChange({})}
-        className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 underline transition-colors"
+        className="w-full py-2 text-sm text-gray-600 hover:text-gray-700 underline transition-colors"
       >
         {isHe ? 'נקה סינונים' : 'Clear filters'}
       </button>

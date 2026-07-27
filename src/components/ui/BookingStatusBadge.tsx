@@ -114,7 +114,7 @@ const ADMIN_MAP: Record<string, StatusDef> = {
 const FALLBACK: StatusDef = {
   heLabel: 'לא ידוע',
   enLabel: 'Unknown',
-  className: 'bg-gray-100 text-gray-500',
+  className: 'bg-gray-100 text-gray-600',
   Icon: Clock,
 };
 

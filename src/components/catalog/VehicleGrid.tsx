@@ -60,7 +60,7 @@ export default function VehicleGrid({ vehicles, isLoading, pickupDate, returnDat
           <circle cx="60" cy="38" r="6" fill="currentColor"/>
         </svg>
         <p className="text-gray-700 text-xl font-semibold mb-2">{t('no_results')}</p>
-        <p className="text-gray-400 text-sm mb-6">{isHe ? 'נסה לשנות את הפילטרים או צור קשר לעזרה' : 'Try changing your filters or contact us for help'}</p>
+        <p className="text-gray-600 text-sm mb-6">{isHe ? 'נסה לשנות את הפילטרים או צור קשר לעזרה' : 'Try changing your filters or contact us for help'}</p>
         <div className="flex gap-3 flex-wrap justify-center">
           <a
             href="tel:09-9509757"
@@ -72,7 +72,7 @@ export default function VehicleGrid({ vehicles, isLoading, pickupDate, returnDat
             href="https://wa.me/97299509757"
             target="_blank"
             rel="noopener noreferrer"
-            className="px-5 py-2.5 bg-[#25D366] text-white font-bold rounded-xl hover:bg-[#1ebe5d] transition-colors text-sm"
+            className="px-5 py-2.5 bg-[#178540] text-white font-bold rounded-xl hover:bg-[#1ebe5d] transition-colors text-sm"
           >
             WhatsApp
           </a>

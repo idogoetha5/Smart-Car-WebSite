@@ -206,7 +206,7 @@ export default function MyBookingsPage() {
           {isHe ? 'ההזמנות שלי' : 'My Bookings'}
         </h1>
         {!userEmail && (
-          <p className="text-gray-500 text-sm">
+          <p className="text-gray-600 text-sm">
             {isHe
               ? 'יש להתחבר לחשבון כדי לצפות בהזמנות'
               : 'Sign in to your account to view your bookings'}
@@ -214,10 +214,10 @@ export default function MyBookingsPage() {
         )}
         {userEmail && (
           <div className="flex items-center justify-center gap-3 mt-2">
-            <span className="text-gray-400 text-sm">{userEmail}</span>
+            <span className="text-gray-600 text-sm">{userEmail}</span>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1 text-sm text-gray-400 hover:text-red-500 transition-colors"
+              className="flex items-center gap-1 text-sm text-gray-600 hover:text-red-500 transition-colors"
             >
               <LogOut className="w-3.5 h-3.5" />
               {isHe ? 'התנתק' : 'Sign out'}
@@ -237,7 +237,7 @@ export default function MyBookingsPage() {
                 <div className="w-12 h-12 bg-[#eef6f6] rounded-2xl flex items-center justify-center mx-auto mb-3">
                   <span className="text-2xl">✉️</span>
                 </div>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-600">
                   {isHe
                     ? 'הכניסי את כתובת המייל שלך ונשלח לך קוד אימות'
                     : 'Enter your email address and we\'ll send you a verification code'}
@@ -282,7 +282,7 @@ export default function MyBookingsPage() {
                 <p className="text-sm text-gray-700 font-medium mb-1">
                   {isHe ? 'בדוק את תיבת המייל שלך' : 'Check your inbox'}
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-600">
                   {isHe
                     ? `שלחנו קוד אימות ל-${authEmail}`
                     : `We sent a verification code to ${authEmail}`}
@@ -319,7 +319,7 @@ export default function MyBookingsPage() {
                 </button>
                 <div className="text-center">
                   {resendCooldown > 0 ? (
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-600">
                       {isHe ? `שלח שוב בעוד ${resendCooldown} שניות` : `Resend in ${resendCooldown}s`}
                     </p>
                   ) : (
@@ -358,10 +358,10 @@ export default function MyBookingsPage() {
             bookings.length === 0 ? (
               <div className="text-center py-16">
                 <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg">
+                <p className="text-gray-600 text-lg">
                   {isHe ? 'לא נמצאו הזמנות' : 'No bookings found'}
                 </p>
-                <p className="text-gray-400 text-sm mt-1">
+                <p className="text-gray-600 text-sm mt-1">
                   {isHe
                     ? 'וודא שנרשמת עם אותו מייל שבו השתמשת בהזמנה'
                     : 'Make sure you registered with the same email used when booking'}
@@ -369,7 +369,7 @@ export default function MyBookingsPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-gray-600">
                   {isHe ? `${bookings.length} הזמנות` : `${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`}
                 </p>
                 {bookings.map((booking) => {
@@ -399,7 +399,7 @@ export default function MyBookingsPage() {
                             <BookingStatusBadge status={booking.status} locale={locale} />
                           </div>
 
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
                             <span className="flex items-center gap-1">
                               <CalendarDays className="w-3.5 h-3.5" />
                               {formatDate(booking.pickup_date, locale)} → {formatDate(booking.dropoff_date, locale)}
@@ -409,7 +409,7 @@ export default function MyBookingsPage() {
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-1 text-sm text-gray-400 mt-0.5">
+                          <div className="flex items-center gap-1 text-sm text-gray-600 mt-0.5">
                             <MapPin className="w-3.5 h-3.5" />
                             <span className="capitalize">{booking.pickup_location}</span>
                           </div>
@@ -417,7 +417,7 @@ export default function MyBookingsPage() {
 
                         <div className="text-end shrink-0">
                           <p className="text-xl font-black text-[#2D5F5F]">₪{booking.total_price.toLocaleString()}</p>
-                          <p className="text-xs text-gray-400">#{booking.id.slice(0, 8).toUpperCase()}</p>
+                          <p className="text-xs text-gray-600">#{booking.id.slice(0, 8).toUpperCase()}</p>
                         </div>
                       </div>
 
@@ -461,14 +461,14 @@ export default function MyBookingsPage() {
                               </button>
                               <button
                                 onClick={() => handleCancelAbort(booking.id)}
-                                className="text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                                className="text-xs font-medium text-gray-600 hover:text-gray-700 transition-colors"
                               >
                                 {isHe ? 'לא' : 'No'}
                               </button>
                             </div>
                           )}
                           {cs === 'loading' && (
-                            <p className="text-xs text-gray-400 mt-1">
+                            <p className="text-xs text-gray-600 mt-1">
                               {isHe ? 'מבטל...' : 'Cancelling...'}
                             </p>
                           )}

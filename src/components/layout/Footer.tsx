@@ -57,7 +57,7 @@ export default function Footer() {
                 { href: `/${locale}/about`,   label: locale === 'he' ? 'אודות' : 'About' },
               ].map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="hover:text-[#C24E17] transition-colors">
+                  <Link href={link.href} className="hover:text-[#B64916] transition-colors">
                     {link.label}
                   </Link>
                 </li>
@@ -79,7 +79,7 @@ export default function Footer() {
                 { href: `/${locale}/cars-for-sale`,    labelHe: 'רכבים למכירה',      labelEn: 'Cars for Sale' },
               ].map((s) => (
                 <li key={s.href}>
-                  <Link href={s.href} className="text-[#7fb09f] hover:text-[#C24E17] transition-colors">
+                  <Link href={s.href} className="text-[#7fb09f] hover:text-[#B64916] transition-colors">
                     {locale === 'he' ? s.labelHe : s.labelEn}
                   </Link>
                 </li>
@@ -94,19 +94,19 @@ export default function Footer() {
             </h3>
             <ul className="space-y-3 text-sm">
               <li className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-[#C24E17] shrink-0" />
+                <Phone className="w-4 h-4 text-[#B64916] shrink-0" />
                 <a href="tel:09-9509757" className="hover:text-[#F5F0E8] transition-colors">09-9509757</a>
               </li>
               <li className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-[#C24E17] shrink-0" />
+                <Phone className="w-4 h-4 text-[#B64916] shrink-0" />
                 <a href="tel:03-5233073" className="hover:text-[#F5F0E8] transition-colors">03-5233073</a>
               </li>
               <li className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-[#C24E17] shrink-0" />
+                <Mail className="w-4 h-4 text-[#B64916] shrink-0" />
                 <a href="mailto:office@smartcar.co.il" className="hover:text-[#F5F0E8] transition-colors">office@smartcar.co.il</a>
               </li>
               <li className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-[#C24E17] shrink-0 mt-0.5" />
+                <MapPin className="w-4 h-4 text-[#B64916] shrink-0 mt-0.5" />
                 <a href="https://www.waze.com/live-map/directions/il/tel-aviv-district/herzliya/smart-car?navigate=yes&to=place.ChIJJXb_-pRIHRURHCc4EPqsxxE" target="_blank" rel="noopener noreferrer" className="hover:text-[#F5F0E8] transition-colors">
                   {locale === 'he' ? 'רמת ים 122 (מלון דן אכדיה), הרצליה' : '122 Ramat Yam St (Dan Accadia Hotel), Herzliya'}
                 </a>
@@ -132,7 +132,7 @@ export default function Footer() {
             </Link>
             <a
               href={`/${locale}/admin/login`}
-              className="text-gray-600 hover:text-gray-400 transition-colors text-xs"
+              className="text-gray-600 hover:text-gray-600 transition-colors text-xs"
               title="ניהול"
             >
               ⚙️

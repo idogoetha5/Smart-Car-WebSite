@@ -42,10 +42,10 @@ export default function ContactForm({ isHe }: { isHe: boolean }) {
         <h3 className="text-2xl font-bold text-[#0D2B2B] mb-2">
           {isHe ? 'פנייתך התקבלה!' : 'Message received!'}
         </h3>
-        <p className="text-gray-500">
+        <p className="text-gray-600">
           {isHe ? 'נחזור אליך בהקדם האפשרי' : 'We will get back to you shortly'}
         </p>
-        <p className="text-sm text-gray-400 mt-2">📞 09-9509757</p>
+        <p className="text-sm text-gray-600 mt-2">📞 09-9509757</p>
         <button
           onClick={() => { setSubmitted(false); setName(''); setPhone(''); setEmail(''); setMessage(''); setTurnstileToken(null); }}
           className="mt-6 text-[#2D5F5F] underline text-sm"

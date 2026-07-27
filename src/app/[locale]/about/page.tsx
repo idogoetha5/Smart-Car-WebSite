@@ -36,7 +36,7 @@ export default async function AboutPage({
           />
         </div>
         <div className="relative z-10">
-          <p className="text-[#C24E17] font-medium mb-3 tracking-widest text-sm">
+          <p className="text-[#E8743B] font-medium mb-3 tracking-widest text-sm">
             {isHe ? 'הסיפור שלנו' : 'Our Story'}
           </p>
           <h1 className="mb-6">
@@ -64,7 +64,7 @@ export default async function AboutPage({
 
             {/* Text */}
             <div className="text-start">
-              <p className="text-[#C24E17] font-medium mb-2 tracking-wide text-sm">
+              <p className="text-[#B64916] font-medium mb-2 tracking-wide text-sm">
                 {isHe ? 'המייסדת' : 'The Founder'}
               </p>
               <h2 className="text-3xl font-bold text-[#0D2B2B] mb-6">
@@ -102,7 +102,7 @@ export default async function AboutPage({
       <div className="bg-gray-50 py-20 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <p className="text-[#C24E17] font-medium mb-2 text-sm tracking-wide">
+            <p className="text-[#B64916] font-medium mb-2 text-sm tracking-wide">
               {isHe ? 'מה מניע אותנו' : 'What drives us'}
             </p>
             <h2 className="text-3xl font-bold text-[#0D2B2B]">
@@ -152,7 +152,7 @@ export default async function AboutPage({
               <div key={v.title} className="bg-white rounded-2xl p-8 text-center shadow-sm hover:shadow-md transition-shadow">
                 {v.icon}
                 <h3 className="text-xl font-bold text-[#0D2B2B] mb-3">{v.title}</h3>
-                <p className="text-gray-500 leading-relaxed">{v.desc}</p>
+                <p className="text-gray-600 leading-relaxed">{v.desc}</p>
               </div>
             ))}
           </div>
@@ -162,7 +162,7 @@ export default async function AboutPage({
       {/* Full story */}
       <div className="bg-white py-20 px-6">
         <div className="max-w-3xl mx-auto text-start">
-          <p className="text-[#C24E17] font-medium mb-2 text-sm tracking-wide text-center">
+          <p className="text-[#B64916] font-medium mb-2 text-sm tracking-wide text-center">
             {isHe ? 'הצוות שלנו' : 'Our Team'}
           </p>
           <h2 className="text-3xl font-bold text-[#0D2B2B] mb-8 text-center">
@@ -197,7 +197,7 @@ export default async function AboutPage({
               { number: '24/7', label: isHe ? 'שירות ותמיכה' : 'Service & Support' },
             ].map((stat) => (
               <div key={stat.label}>
-                <p className="text-4xl md:text-5xl font-bold text-[#C24E17] mb-2">{stat.number}</p>
+                <p className="text-4xl md:text-5xl font-bold text-[#E8743B] mb-2">{stat.number}</p>
                 <p className="text-[#B8D8D8] text-sm">{stat.label}</p>
               </div>
             ))}
@@ -208,13 +208,13 @@ export default async function AboutPage({
       {/* Fleet types */}
       <div className="bg-gray-50 py-20 px-6">
         <div className="max-w-5xl mx-auto text-center">
-          <p className="text-[#C24E17] font-medium mb-2 text-sm tracking-wide">
+          <p className="text-[#B64916] font-medium mb-2 text-sm tracking-wide">
             {isHe ? 'הצי שלנו' : 'Our Fleet'}
           </p>
           <h2 className="text-3xl font-bold text-[#0D2B2B] mb-4">
             {isHe ? 'רכב לכל צורך' : 'A vehicle for every need'}
           </h2>
-          <p className="text-gray-500 mb-10 text-lg">
+          <p className="text-gray-600 mb-10 text-lg">
             {isHe
               ? 'מקומפקטי ועד יוקרה - אנחנו מתאימים את הרכב הנכון עבורכם'
               : 'From compact to luxury — we match you with the right vehicle, every time'}
@@ -242,7 +242,7 @@ export default async function AboutPage({
         <h2 className="text-3xl font-bold text-white mb-4">
           {isHe ? 'מוכנים להתחיל?' : 'Ready to get started?'}
         </h2>
-        <p className="text-orange-100 mb-8 text-lg">
+        <p className="text-white mb-8 text-lg">
           {isHe
             ? 'הצטרפו לאלפי לקוחות מרוצים שבוחרים ב-SmartCar'
             : 'Join thousands of satisfied customers who choose SmartCar for every journey'}
@@ -250,13 +250,13 @@ export default async function AboutPage({
         <div className="flex gap-4 justify-center flex-wrap">
           <Link
             href={`/${locale}/rental`}
-            className="bg-white text-[#C24E17] font-bold px-8 py-4 rounded-xl hover:bg-gray-100 transition-colors"
+            className="bg-white text-[#B64916] font-bold px-8 py-4 rounded-xl hover:bg-gray-100 transition-colors"
           >
             {isHe ? 'השכר רכב עכשיו' : 'Book a Vehicle'}
           </Link>
           <Link
             href={`/${locale}/contact`}
-            className="border-2 border-white text-white font-bold px-8 py-4 rounded-xl hover:bg-white hover:text-[#C24E17] transition-colors"
+            className="border-2 border-white text-white font-bold px-8 py-4 rounded-xl hover:bg-white hover:text-[#B64916] transition-colors"
           >
             {isHe ? 'צור קשר' : 'Contact Us'}
           </Link>

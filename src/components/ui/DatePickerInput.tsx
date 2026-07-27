@@ -67,6 +67,18 @@ const DatePickerInput = forwardRef<DatePickerHandle, DatePickerInputProps>(funct
 
   useEffect(() => {
     if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        btnRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
     let active = false;
     const timer = setTimeout(() => { active = true; }, 200);
     const onScroll = () => { if (active) setOpen(false); };
@@ -97,18 +109,22 @@ const DatePickerInput = forwardRef<DatePickerHandle, DatePickerInputProps>(funct
         ref={btnRef}
         type="button"
         onClick={openCal}
+        aria-haspopup="dialog"
+        aria-expanded={open}
         className={`text-start bg-transparent outline-none ${className}`}
       >
         {display ? (
           <span className="text-sm text-gray-800 font-medium">{display}</span>
         ) : (
-          <span className="text-sm text-gray-400">{placeholder}</span>
+          <span className="text-sm text-gray-600">{placeholder}</span>
         )}
       </button>
 
       {open && (
         <div
           ref={calRef}
+          role="dialog"
+          aria-modal="false"
           className="fixed z-[9999] bg-white rounded-2xl shadow-2xl border border-gray-200 p-1"
           style={{ top: calPos.top, left: calPos.left }}
         >

@@ -115,7 +115,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
     <section id="calculator" ref={sectionRef} className="py-16 bg-white scroll-mt-20">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className={`mb-8 ${isHe ? 'text-right' : 'text-left'}`}>
-          <p className="text-[#C24E17] text-sm font-semibold uppercase tracking-widest mb-2">
+          <p className="text-[#B64916] text-sm font-semibold uppercase tracking-widest mb-2">
             {isHe ? 'קבל הצעת מחיר מיידית' : 'Get an Instant Quote'}
           </p>
           <h2 className="text-3xl font-black text-[#0D2B2B]">
@@ -137,7 +137,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
                   <button
                     type="button"
                     onClick={() => setVehicleLockedFromUrl(false)}
-                    className="text-xs text-gray-400 hover:text-gray-600 underline ms-2 shrink-0"
+                    className="text-xs text-gray-600 hover:text-gray-600 underline ms-2 shrink-0"
                   >
                     {isHe ? 'שנה' : 'Change'}
                   </button>
@@ -180,7 +180,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
                   <p className="font-bold text-[#0D2B2B]">
                     {selectedVehicle.make} {selectedVehicle.model}
                   </p>
-                  <div className="flex gap-3 mt-1 text-xs text-gray-500">
+                  <div className="flex gap-3 mt-1 text-xs text-gray-600">
                     <span className="flex items-center gap-1"><Users className="w-3 h-3" />{selectedVehicle.seats}</span>
                     <span className="flex items-center gap-1"><Settings className="w-3 h-3" />{selectedVehicle.transmission === 'AUTOMATIC' ? (isHe ? 'אוטומטי' : 'Auto') : (isHe ? 'ידני' : 'Manual')}</span>
                     <span className="flex items-center gap-1"><Fuel className="w-3 h-3" />{selectedVehicle.fuelType}</span>
@@ -193,7 +193,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
             <div className={isHe ? 'text-right' : 'text-left'}>
               <label className="block font-semibold text-[#0D2B2B] mb-2">
                 {isHe ? 'משך חוזה:' : 'Contract duration:'}{' '}
-                <span className="text-[#C24E17] font-bold">{duration} {isHe ? 'חודשים' : 'months'}</span>
+                <span className="text-[#B64916] font-bold">{duration} {isHe ? 'חודשים' : 'months'}</span>
               </label>
               <input
                 type="range" min={12} max={60} step={6} value={duration}
@@ -202,7 +202,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
                 className="w-full h-2 accent-[#E8743B]"
                 dir={isHe ? 'rtl' : 'ltr'}
               />
-              <div className="flex justify-between text-xs text-gray-400 mt-1">
+              <div className="flex justify-between text-xs text-gray-600 mt-1">
                 <span>12 {isHe ? 'חודש' : 'mo'}</span>
                 <span>60 {isHe ? 'חודש' : 'mo'}</span>
               </div>
@@ -216,7 +216,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
               <div className="grid grid-cols-2 gap-2">
                 {MILEAGE_OPTIONS.map(opt => (
                   <button key={opt.value} onClick={() => setMileage(opt.value)}
-                    className={`p-2.5 rounded-xl border-2 text-sm font-medium transition-all ${mileage === opt.value ? 'border-[#C24E17] bg-orange-50 text-[#C24E17] font-bold' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
+                    className={`p-2.5 rounded-xl border-2 text-sm font-medium transition-all ${mileage === opt.value ? 'border-[#B64916] bg-orange-50 text-[#B64916] font-bold' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
                   >
                     {isHe ? opt.labelHe : opt.labelEn}
                   </button>
@@ -234,7 +234,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
               {selectedVehicle ? (
                 <>
                   <div className={isHe ? 'text-right' : 'text-left'}>
-                    <div className="text-6xl font-black text-[#C24E17] mb-1 tabular-nums">
+                    <div className="text-6xl font-black text-[#B64916] mb-1 tabular-nums">
                       ₪{monthlyPrice.toLocaleString()}
                     </div>
                     <div className="text-[#B8D8D8] text-sm mb-1">
@@ -305,7 +305,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
             <h3 className={`text-xl font-black text-[#0D2B2B] mb-1 ${isHe ? 'text-right' : 'text-left'}`}>
               {isHe ? 'שלח פנייה לליסינג' : 'Submit a Leasing Inquiry'}
             </h3>
-            <p className={`text-sm text-gray-500 mb-6 ${isHe ? 'text-right' : 'text-left'}`}>
+            <p className={`text-sm text-gray-600 mb-6 ${isHe ? 'text-right' : 'text-left'}`}>
               {isHe
                 ? `פנייה עבור: ${selectedVehicle.make} ${selectedVehicle.model} — ${duration} חודשים`
                 : `Inquiry for: ${selectedVehicle.make} ${selectedVehicle.model} — ${duration} months`}

@@ -12,10 +12,10 @@ export default function NotFound() {
             <circle cx="60" cy="38" r="6" fill="currentColor"/>
           </svg>
         </div>
-        <p className="text-[#C24E17] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
+        <p className="text-[#B64916] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
         <h1 className="text-7xl font-black text-[#0D2B2B] mb-3">404</h1>
         <p className="text-xl text-gray-600 mb-2">הדף לא נמצא</p>
-        <p className="text-gray-400 text-sm mb-8">Page not found</p>
+        <p className="text-gray-600 text-sm mb-8">Page not found</p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/he"

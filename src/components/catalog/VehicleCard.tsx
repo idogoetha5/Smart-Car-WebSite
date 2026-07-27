@@ -179,7 +179,7 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
             {(isHe ? categoryLabelHe : categoryLabelEn)[vehicle.category] ?? vehicle.category}
           </span>
           {vehicle.isFeatured && (
-            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#C24E17]/10 text-[#C24E17] flex items-center gap-1">
+            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#C24E17]/10 text-[#B64916] flex items-center gap-1">
               <Star className="w-3 h-3 fill-[#E8743B] stroke-[#E8743B]" />
               {isHe ? 'מומלץ' : 'Featured'}
             </span>
@@ -212,7 +212,7 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
         </div>
 
 
-        <div className="grid grid-cols-2 gap-2 mb-4 text-sm text-gray-500">
+        <div className="grid grid-cols-2 gap-2 mb-4 text-sm text-gray-600">
           <div className="flex items-center gap-1.5">
             <Users className="w-4 h-4 text-[#2D5F5F]" />
             <span>{vehicle.seats} {t('seats')}</span>
@@ -247,14 +247,14 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
             return (
               <div className="text-center">
                 <span className="text-2xl font-black text-[#2D5F5F]">₪{total.toLocaleString()}</span>
-                <span className="text-xs text-gray-400 block mt-0.5">{isHe ? `${days} ימים × ₪${ppd}/יום` : `${days} days × ₪${ppd}/day`}</span>
+                <span className="text-xs text-gray-600 block mt-0.5">{isHe ? `${days} ימים × ₪${ppd}/יום` : `${days} days × ₪${ppd}/day`}</span>
               </div>
             );
           })() : (
             <div className="text-center">
-              <p className="text-xs text-gray-400 mb-0.5">{isHe ? 'החל מ' : 'From'}</p>
+              <p className="text-xs text-gray-600 mb-0.5">{isHe ? 'החל מ' : 'From'}</p>
               <span className="text-2xl font-black text-[#2D5F5F]">₪{vehicle.pricePerDay.toLocaleString()}</span>
-              <span className="text-xs text-gray-400 block mt-0.5">/{isHe ? 'ליום' : 'day'}</span>
+              <span className="text-xs text-gray-600 block mt-0.5">/{isHe ? 'ליום' : 'day'}</span>
             </div>
           )}
         </div>
@@ -283,7 +283,7 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
           )}
           <Link
             href={`/${locale}/leasing?vehicle=${vehicle.id}&make=${encodeURIComponent(vehicle.make)}&model=${encodeURIComponent(vehicle.model)}#calculator`}
-            className="py-2.5 px-4 border-2 border-[#C24E17] text-[#C24E17] text-sm font-bold rounded-xl hover:bg-[#C24E17]/5 transition-colors text-center"
+            className="py-2.5 px-4 border-2 border-[#B64916] text-[#B64916] text-sm font-bold rounded-xl hover:bg-[#C24E17]/5 transition-colors text-center"
           >
             {t('leasing_inquiry')}
           </Link>

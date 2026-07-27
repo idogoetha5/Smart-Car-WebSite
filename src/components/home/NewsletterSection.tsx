@@ -44,7 +44,7 @@ export default function NewsletterSection({ locale }: { locale: string }) {
           </>
         ) : (
           <>
-            <div className="inline-block bg-[#C24E17]/20 text-[#C24E17] text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wide">
+            <div className="inline-block bg-[#C24E17]/20 text-white text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wide">
               {isHe ? 'מבצעים בלעדיים' : 'Exclusive Offers'}
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
@@ -91,7 +91,7 @@ export default function NewsletterSection({ locale }: { locale: string }) {
               </p>
             )}
 
-            <p className="mt-4 text-white/30 text-xs">
+            <p className="mt-4 text-white/50 text-xs">
               {isHe ? 'ללא ספאם. ביטול בכל עת.' : 'No spam. Unsubscribe at any time.'}
             </p>
           </>

@@ -170,7 +170,7 @@ export default async function HomePage({
                   </span>
                   <span className="font-bold text-[#0D2B2B] text-sm">{item.title}</span>
                 </div>
-                <p className="text-gray-500 text-xs leading-relaxed">{item.desc}</p>
+                <p className="text-gray-600 text-xs leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -193,8 +193,8 @@ export default async function HomePage({
                 </Link>
                 <div className="p-4 text-start flex flex-col flex-1">
                   <h3 className="font-bold text-[#0D2B2B] text-sm mb-1">{b.name}</h3>
-                  <p className="text-xs text-gray-500 mb-2 leading-snug" style={{ minHeight: '33px' }}>📍 {b.address}</p>
-                  <a href={`tel:${b.phone}`} className="text-xs text-[#C24E17] font-semibold block mb-2">
+                  <p className="text-xs text-gray-600 mb-2 leading-snug" style={{ minHeight: '33px' }}>📍 {b.address}</p>
+                  <a href={`tel:${b.phone}`} className="text-xs text-[#B64916] font-semibold block mb-2">
                     📞 {b.phone}
                   </a>
                   <a
@@ -231,7 +231,7 @@ export default async function HomePage({
           <div className="flex items-center justify-between mb-8">
             <Link
               href={`/${locale}/catalog`}
-              className="text-sm text-[#2D5F5F] font-semibold hover:text-[#C24E17] transition-colors"
+              className="text-sm text-[#2D5F5F] font-semibold hover:text-[#B64916] transition-colors"
             >
               {isHe ? '← כל הרכבים' : 'View full fleet →'}
             </Link>

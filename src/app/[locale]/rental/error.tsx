@@ -13,7 +13,7 @@ export default function RentalError({
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-      <p className="text-gray-500 text-xl mb-6">
+      <p className="text-gray-600 text-xl mb-6">
         {isHe ? 'לא ניתן לטעון את הרכב, נסה שנית' : 'Unable to load vehicle, please try again'}
       </p>
       <button

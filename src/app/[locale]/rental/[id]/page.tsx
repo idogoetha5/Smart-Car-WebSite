@@ -65,7 +65,7 @@ export default async function RentalDetailPage({
   if (!vehicle) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <p className="text-gray-500 text-xl">
+        <p className="text-gray-600 text-xl">
           {locale === 'he' ? 'רכב לא נמצא' : 'Vehicle not found'}
         </p>
       </div>

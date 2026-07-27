@@ -120,7 +120,7 @@ export default function LeasingCalculator({
             onChange={(e) => setDownPayment(Number(e.target.value))}
             className="w-full accent-blue-600"
           />
-          <div className="flex justify-between text-xs text-gray-400 mt-1">
+          <div className="flex justify-between text-xs text-gray-600 mt-1">
             <span>₪0</span>
             <span>₪50,000</span>
           </div>

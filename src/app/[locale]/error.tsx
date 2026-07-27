@@ -22,7 +22,7 @@ export default function Error({
       <h2 className="text-2xl font-bold text-gray-900 mb-3">
         {isHe ? 'אירעה שגיאה' : 'Something went wrong'}
       </h2>
-      <p className="text-gray-500 mb-6 max-w-md">
+      <p className="text-gray-600 mb-6 max-w-md">
         {isHe
           ? 'אנו מצטערים, אירעה תקלה בטעינת העמוד. נסו שנית.'
           : 'We apologize — something went wrong loading this page. Please try again.'}

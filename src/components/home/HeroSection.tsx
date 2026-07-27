@@ -36,7 +36,7 @@ function LocationField({
 }) {
   return (
     <div className="flex-1 min-w-0">
-      <p className="text-xs text-gray-400 whitespace-nowrap">{label}</p>
+      <p className="text-xs text-gray-600 whitespace-nowrap">{label}</p>
       {showCustom ? (
         <div className="flex items-center gap-1">
           <input
@@ -50,7 +50,7 @@ function LocationField({
           />
           <button
             onClick={() => { setShowCustom(false); setCustomVal(''); setValue(''); }}
-            className="text-gray-400 hover:text-gray-600 text-xs shrink-0"
+            className="text-gray-600 hover:text-gray-600 text-xs shrink-0"
           >✕</button>
         </div>
       ) : (
@@ -260,7 +260,7 @@ export default function HeroSection({ locale }: { locale: string }) {
         <h1 className="font-light text-[#1a1a2e] mb-2 tracking-tight" style={{ fontSize: 'clamp(1.8rem, 4vw, 3.5rem)' }}>
           {t('title')}
         </h1>
-        <p className="text-gray-500 text-sm md:text-base mb-6 md:mb-8 px-2">
+        <p className="text-gray-600 text-sm md:text-base mb-6 md:mb-8 px-2">
           {t('search_subtitle')}
         </p>
 
@@ -300,7 +300,7 @@ export default function HeroSection({ locale }: { locale: string }) {
             {/* Dates — side by side */}
             <div className="flex border-b border-gray-100">
               <div className="flex-1 px-4 py-3 border-e border-gray-100">
-                <p className="text-xs text-gray-400 mb-1">{t('pickup_date_label')}</p>
+                <p className="text-xs text-gray-600 mb-1">{t('pickup_date_label')}</p>
                 <DatePickerInput
                   value={pickupDate}
                   onChange={(date) => {
@@ -315,7 +315,7 @@ export default function HeroSection({ locale }: { locale: string }) {
                 />
               </div>
               <div className="flex-1 px-4 py-3">
-                <p className="text-xs text-gray-400 mb-1">{t('return_date_label')}</p>
+                <p className="text-xs text-gray-600 mb-1">{t('return_date_label')}</p>
                 <DatePickerInput
                   ref={returnRefMobile}
                   value={returnDate}
@@ -377,7 +377,7 @@ export default function HeroSection({ locale }: { locale: string }) {
             {/* Pickup date */}
             <div className="flex-1 flex items-center text-start ps-3 min-w-[110px]">
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-400 whitespace-nowrap">{t('pickup_date_label')}</p>
+                <p className="text-xs text-gray-600 whitespace-nowrap">{t('pickup_date_label')}</p>
                 <DatePickerInput
                   value={pickupDate}
                   onChange={(date) => {
@@ -396,7 +396,7 @@ export default function HeroSection({ locale }: { locale: string }) {
             {/* Return date */}
             <div className="flex-1 flex items-center text-start ps-3 min-w-[110px]">
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-400 whitespace-nowrap">{t('return_date_label')}</p>
+                <p className="text-xs text-gray-600 whitespace-nowrap">{t('return_date_label')}</p>
                 <DatePickerInput
                   ref={returnRefDesktop}
                   value={returnDate}

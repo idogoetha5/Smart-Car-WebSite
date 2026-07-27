@@ -79,7 +79,7 @@ export default function FaqSection({ locale }: { locale: string }) {
             <span className="font-semibold text-[#0D2B2B] text-sm md:text-base text-start flex-1">
               {item.q}
             </span>
-            <span className={`text-lg transition-transform flex-shrink-0 ms-3 ${openIndex === i ? 'text-[#B64916]' : 'text-gray-400'}`}>
+            <span className={`text-lg transition-transform flex-shrink-0 ms-3 ${openIndex === i ? 'text-[#B64916]' : 'text-gray-600'}`}>
               {openIndex === i ? '▲' : '▼'}
             </span>
           </button>

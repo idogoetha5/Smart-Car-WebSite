@@ -32,7 +32,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
               </Dialog.Title>
               <Dialog.Close asChild>
                 <button className="p-1 rounded-lg hover:bg-gray-100 transition-colors" aria-label="סגור">
-                  <X className="w-5 h-5 text-gray-500" aria-hidden="true" />
+                  <X className="w-5 h-5 text-gray-600" aria-hidden="true" />
                 </button>
               </Dialog.Close>
             </div>

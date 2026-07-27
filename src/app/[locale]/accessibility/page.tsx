@@ -11,12 +11,12 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
   return (
     <div className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 ${isHe ? 'text-right' : 'text-left'}`} dir={isHe ? 'rtl' : 'ltr'}>
       <div className="mb-8">
-        <p className="text-[#C24E17] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
+        <p className="text-[#B64916] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
         <h1 className="text-4xl font-black text-[#0D2B2B] mb-2">
           {isHe ? 'הצהרת נגישות' : 'Accessibility Statement'}
         </h1>
-        <p className="text-gray-500 text-sm">
-          {isHe ? 'עדכון אחרון: ינואר 2026' : 'Last updated: January 2026'}
+        <p className="text-gray-600 text-sm">
+          {isHe ? 'עדכון אחרון: יולי 2026' : 'Last updated: July 2026'}
         </p>
       </div>
 
@@ -42,8 +42,10 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">תהליך מתמשך</h2>
-              <p>הנגשת האתר היא תהליך מתמשך, ואנו פועלים באופן שוטף לאיתור ותיקון בעיות נגישות ולשיפור התאמת האתר לתקן ישראלי 5568 ולהנחיות WCAG 2.1 ברמה AA. ייתכן שבחלקים מסוימים באתר טרם הושלמה ההתאמה המלאה.</p>
+              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">בדיקה אוטומטית שבוצעה</h2>
+              <p>ביולי 2026 בוצעה בדיקת נגישות אוטומטית באמצעות שני כלים עצמאיים (pa11y ו-axe-core) על פני כל דפי האתר הפונים ללקוח, בעברית ובאנגלית. הבדיקה איתרה וטיפלה בשני הליקויים הנפוצים ביותר שנמצאו — ניגודיות צבעים לא מספקת ותוויות חסרות בשדות טפסים — וכן ליקוי נוסף שנמצא בבדיקה ידנית: "מלכודת מקלדת" בבורר התאריכים, שתוקנה.</p>
+              <p className="mt-2">חשוב לדעת: אפס ליקויים שהתגלו על ידי הכלים האוטומטיים אינו מהווה אישור להתאמה מלאה לתקן. כלים אוטומטיים מזהים חלק בלבד מבעיות הנגישות האפשריות, וטרם בוצע מעבר מלא באתר על ידי משתמש אמיתי בקורא מסך. אזור הניהול הפנימי (למשתמשי צוות בלבד) לא נכלל בבדיקה זו.</p>
+              <p className="mt-2">הנגשת האתר היא תהליך מתמשך, ואנו פועלים באופן שוטף לאיתור ותיקון בעיות נוספות ולשיפור ההתאמה לתקן ישראלי 5568 ולהנחיות WCAG 2.1 ברמה AA.</p>
             </section>
 
             <section>
@@ -83,7 +85,13 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
                 <li>Alternative text for images</li>
                 <li>Text can be enlarged up to 200% without content loss</li>
               </ul>
-              <p className="mt-3">Accessibility is an ongoing process. We continuously work to identify and fix accessibility issues and improve conformance with Israeli Standard 5568 and WCAG 2.1 AA. Some areas of the site may not yet be fully conformant.</p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">Automated Testing Performed</h2>
+              <p>In July 2026, an automated accessibility scan was performed using two independent tools (pa11y and axe-core) across every customer-facing page on the site, in both Hebrew and English. The scan identified and we fixed the two most common issues found — insufficient color contrast and missing labels on form fields — along with one additional issue found through manual review: a keyboard trap in the date picker, which has been fixed.</p>
+              <p className="mt-2">Important: zero violations detected by these automated tools does not mean full conformance with the standard. Automated tools only detect a subset of possible accessibility issues, and a full walkthrough by an actual screen-reader user has not yet been performed. The internal admin area (staff-only) was not included in this scan.</p>
+              <p className="mt-2">Accessibility is an ongoing process. We continuously work to identify and fix additional issues and improve conformance with Israeli Standard 5568 and WCAG 2.1 AA.</p>
             </section>
 
             <section>

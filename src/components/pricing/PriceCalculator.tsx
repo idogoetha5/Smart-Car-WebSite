@@ -55,7 +55,7 @@ export default function PriceCalculator({ locale }: { locale: string }) {
           onChange={(e) => setDays(parseInt(e.target.value))}
           className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer accent-[#1B4D3E]"
         />
-        <div className="flex justify-between text-xs text-gray-400 mt-1">
+        <div className="flex justify-between text-xs text-gray-600 mt-1">
           <span>1</span>
           <span className="text-[#1B4D3E] font-medium">7 {isHe ? '(הנחה)' : '(discount)'}</span>
           <span className="text-[#1B4D3E] font-medium">14</span>
@@ -78,8 +78,8 @@ export default function PriceCalculator({ locale }: { locale: string }) {
         {discountPct > 0 ? (
           <>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-500 text-sm">{isHe ? 'מחיר מלא' : 'Full price'}</span>
-              <span className="text-gray-400 line-through text-sm">₪{gross.toLocaleString()}</span>
+              <span className="text-gray-600 text-sm">{isHe ? 'מחיר מלא' : 'Full price'}</span>
+              <span className="text-gray-600 line-through text-sm">₪{gross.toLocaleString()}</span>
             </div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-[#1B4D3E] font-semibold text-sm">
@@ -109,7 +109,7 @@ export default function PriceCalculator({ locale }: { locale: string }) {
           </p>
         )}
 
-        <p className="text-xs text-gray-400 mt-3">
+        <p className="text-xs text-gray-600 mt-3">
           {isHe
             ? `פיקדון: ₪${pricing.deposit.toLocaleString()} | מחירים כוללים מע"מ | כפוף לתוספות עונתיות`
             : `Deposit: ₪${pricing.deposit.toLocaleString()} | Prices include VAT | Subject to seasonal surcharges`}

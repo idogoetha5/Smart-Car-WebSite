@@ -43,11 +43,11 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
     >
       {/* Header */}
       <div className="mb-10">
-        <p className="text-[#C24E17] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
+        <p className="text-[#B64916] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
         <h1 className="text-4xl font-black text-[#0D2B2B] mb-3">
           {isHe ? 'מידע על ביטוח' : 'Insurance Information'}
         </h1>
-        <p className="text-gray-500 text-base leading-relaxed max-w-2xl">
+        <p className="text-gray-600 text-base leading-relaxed max-w-2xl">
           {isHe
             ? 'כל ביטוח רכב השכרה שלנו כולל כיסוי בסיסי מלא. הדף הזה מסביר בדיוק מה מכוסה, מה ההשתתפות העצמית שלך, ומה אפשר להוסיף.'
             : 'Every SmartCar rental includes full basic coverage. This page explains exactly what is covered, what your deductible is, and what optional extras are available.'}
@@ -105,7 +105,7 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
               </li>
             </ul>
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-600">
             {isHe
               ? 'הביטוח חל על הנהג הראשי ועל כל נהג נוסף שאושר ונרשם בחוזה השכירות. נהג שאינו רשום בחוזה — אינו מכוסה.'
               : 'Coverage applies to the primary driver and any additional driver approved and listed in the rental agreement. An unlisted driver is not covered.'}
@@ -151,7 +151,7 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
               </tbody>
             </table>
           </div>
-          <p className="text-sm text-gray-500 mt-3">
+          <p className="text-sm text-gray-600 mt-3">
             {isHe
               ? 'הסכומים המוצגים הם אינדיקטיביים. הסכום הסופי יאושר בחוזה ההשכרה הספציפי.'
               : 'Amounts shown are indicative. The final amount is confirmed in the specific rental agreement.'}
@@ -177,8 +177,8 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
                 </p>
               </div>
               <div className={isHe ? 'text-right' : 'text-left'}>
-                <p className="text-3xl font-black text-[#C24E17]">₪45</p>
-                <p className="text-sm text-gray-500">{isHe ? 'לכל יום שכירות' : 'per rental day'}</p>
+                <p className="text-3xl font-black text-[#B64916]">₪45</p>
+                <p className="text-sm text-gray-600">{isHe ? 'לכל יום שכירות' : 'per rental day'}</p>
               </div>
             </div>
             <p className="text-[#2D5F5F] font-semibold mb-3">
@@ -201,11 +201,11 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
                 'Full peace of mind throughout the rental period',
               ]).map((item, i) => (
                 <li key={i} className="flex items-start gap-2">
-                  <span className="text-[#C24E17] font-bold shrink-0">✓</span>
+                  <span className="text-[#B64916] font-bold shrink-0">✓</span>
                   {item}
                 </li>
               ))}
-              <li className="text-xs text-gray-400 mt-2 pe-1">
+              <li className="text-xs text-gray-600 mt-2 pe-1">
                 {isHe
                   ? '* כיסוי גניבה תלוי בתנאי הפוליסה ואינו מובטח בכל מצב — פרטים מלאים בחוזה השכירות.'
                   : '* Theft coverage is subject to policy conditions and is not guaranteed in all circumstances — full details in the rental agreement.'}</li>
@@ -311,7 +311,7 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
                   <span className="text-red-500 font-bold shrink-0 mt-0.5">✗</span>
                   <div>
                     <span className="font-medium text-red-900">{item.label}</span>
-                    {item.detail && <span className="text-red-600 text-xs me-2"> — {item.detail}</span>}
+                    {item.detail && <span className="text-[#C10007] text-xs me-2"> — {item.detail}</span>}
                   </div>
                 </li>
               ))}

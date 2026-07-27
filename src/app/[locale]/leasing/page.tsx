@@ -62,29 +62,29 @@ function VehicleLeaseCard({ vehicle, locale }: { vehicle: Vehicle; locale: strin
             {vehicle.make} {vehicle.model}
           </h3>
           {(vehicle.colorHe || vehicle.colorEn) && (
-            <span className="text-xs text-gray-400 shrink-0">
+            <span className="text-xs text-gray-600 shrink-0">
               {isHe ? vehicle.colorHe : vehicle.colorEn}
             </span>
           )}
         </div>
-        <div className="text-xs text-gray-500 mb-3 flex gap-3">
+        <div className="text-xs text-gray-600 mb-3 flex gap-3">
           <span>{vehicle.seats} {isHe ? 'מושבים' : 'seats'}</span>
           <span>|</span>
           <span>{vehicle.transmission === 'AUTOMATIC' ? (isHe ? 'אוטומטי' : 'Auto') : (isHe ? 'ידני' : 'Manual')}</span>
         </div>
 
         <div className="mt-auto">
-          <div className="text-xs text-gray-400 mb-1">{isHe ? 'ממחיר' : 'From'}</div>
+          <div className="text-xs text-gray-600 mb-1">{isHe ? 'ממחיר' : 'From'}</div>
           <div className="flex items-baseline gap-1 mb-1">
             <span className="text-2xl font-black text-[#2D5F5F]">
               ₪{calcMinLeasingPrice(vehicle.category).toLocaleString()}
             </span>
-            <span className="text-sm text-gray-400">/{isHe ? 'חודש' : 'month'}</span>
+            <span className="text-sm text-gray-600">/{isHe ? 'חודש' : 'month'}</span>
           </div>
-          <div className="text-xs text-gray-400 mb-1">
+          <div className="text-xs text-gray-600 mb-1">
             {isHe ? 'מינימום 12 חודשים' : 'Min. 12 months'}
           </div>
-          <div className="text-xs text-gray-400 mb-3">
+          <div className="text-xs text-gray-600 mb-3">
             {isHe ? 'כולל מע"מ 18%' : 'Incl. 18% VAT'}
           </div>
           <Link
@@ -156,9 +156,9 @@ export default async function LeasingPage({
               </p>
               <h1 className="text-4xl sm:text-5xl font-black leading-tight mb-4">
                 {isHe ? (
-                  <>ליסינג עסקי<br /><span className="text-[#C24E17]">חכם יותר</span></>
+                  <>ליסינג עסקי<br /><span className="text-[#E8743B]">חכם יותר</span></>
                 ) : (
-                  <>Business leasing<br /><span className="text-[#C24E17]">made smarter</span></>
+                  <>Business leasing<br /><span className="text-[#E8743B]">made smarter</span></>
                 )}
               </h1>
               <p className="text-[#B8D8D8] text-lg mb-3">
@@ -166,7 +166,7 @@ export default async function LeasingPage({
                   ? 'תוכניות ליסינג מותאמות אישית לעסקים וללקוחות פרטיים, עם מגוון רכבים וגמישות מלאה'
                   : 'Tailored leasing plans for businesses and private customers, with a wide range of vehicles and full flexibility'}
               </p>
-              <p className="text-[#C24E17] text-base font-semibold mb-8">
+              <p className="text-[#E8743B] text-base font-semibold mb-8">
                 {isHe ? 'קבל הצעת מחיר עוד היום!' : 'Get a quote today!'}
               </p>
               <div className={`flex gap-4 ${isHe ? 'justify-end flex-row-reverse' : ''}`}>
@@ -206,7 +206,7 @@ export default async function LeasingPage({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {benefits.map((b) => (
               <div key={b} className={`flex items-start gap-3 ${isHe ? 'flex-row-reverse text-right' : ''}`}>
-                <CheckCircle2 className="w-6 h-6 text-[#C24E17] shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-6 h-6 text-[#B64916] shrink-0 mt-0.5" />
                 <span className="text-[#B8D8D8] font-medium">{b}</span>
               </div>
             ))}
@@ -218,7 +218,7 @@ export default async function LeasingPage({
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className={`mb-10 ${isHe ? 'text-right' : 'text-left'}`}>
-            <p className="text-[#C24E17] text-sm font-semibold uppercase tracking-widest mb-2">
+            <p className="text-[#B64916] text-sm font-semibold uppercase tracking-widest mb-2">
               {isHe ? 'הצי שלנו' : 'Our Fleet'}
             </p>
             <h2 className="text-3xl font-black text-[#0D2B2B]">
@@ -267,7 +267,7 @@ export default async function LeasingPage({
               >
                 <div className="text-3xl mb-3">{item.icon}</div>
                 <h3 className="font-black text-[#0D2B2B] text-xl mb-2">{item.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
+                <p className="text-gray-600 text-sm leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -282,14 +282,14 @@ export default async function LeasingPage({
               <h3 className="text-2xl font-black mb-1">
                 {isHe ? 'מוכן להתחיל?' : 'Ready to start?'}
               </h3>
-              <p className="text-white/80">
+              <p className="text-white">
                 {isHe ? 'צרו קשר ונדאג לכל השאר' : "Contact us and we'll take care of the rest"}
               </p>
             </div>
             <div className="flex flex-wrap gap-4">
               <a
                 href="tel:09-9509757"
-                className="flex items-center gap-2 px-7 py-3.5 bg-white text-[#C24E17] font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-md"
+                className="flex items-center gap-2 px-7 py-3.5 bg-white text-[#B64916] font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-md"
               >
                 <Phone className="w-4 h-4" />
                 09-9509757

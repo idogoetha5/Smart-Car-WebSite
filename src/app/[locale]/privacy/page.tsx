@@ -12,11 +12,11 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
   return (
     <div className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 ${isHe ? 'text-right' : 'text-left'}`} dir={isHe ? 'rtl' : 'ltr'}>
       <div className="mb-10">
-        <p className="text-[#C24E17] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
+        <p className="text-[#B64916] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
         <h1 className="text-4xl font-black text-[#0D2B2B] mb-2">
           {isHe ? 'מדיניות פרטיות' : 'Privacy Policy'}
         </h1>
-        <p className="text-gray-500 text-sm">
+        <p className="text-gray-600 text-sm">
           {isHe ? 'גרסה 2.0 — תחולה מ-1 ביוני 2026' : 'Version 2.0 — Effective June 1, 2026'}
         </p>
       </div>
@@ -82,7 +82,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
                   </tbody>
                 </table>
               </div>
-              <p className="text-sm text-gray-500 mt-3">אנו לא אוספים נתונים ביומטריים, נתוני בריאות, נתוני גזע, נתוני עמדות פוליטיות, או נתוני קטינים מתחת לגיל 18.</p>
+              <p className="text-sm text-gray-600 mt-3">אנו לא אוספים נתונים ביומטריים, נתוני בריאות, נתוני גזע, נתוני עמדות פוליטיות, או נתוני קטינים מתחת לגיל 18.</p>
             </section>
 
             <section>
@@ -223,7 +223,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
                   </tbody>
                 </table>
               </div>
-              <p className="text-sm text-gray-500 mt-3">We do not collect biometric data, health data, racial data, political opinions, or data from persons under 18.</p>
+              <p className="text-sm text-gray-600 mt-3">We do not collect biometric data, health data, racial data, political opinions, or data from persons under 18.</p>
             </section>
 
             <section>

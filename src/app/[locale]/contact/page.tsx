@@ -42,7 +42,7 @@ export default async function ContactPage({
         <h1 className="text-4xl font-black text-gray-900 mb-4">
           {isHe ? 'צור קשר' : "We're Here to Help"}
         </h1>
-        <p className="text-gray-500 text-lg max-w-xl mx-auto">
+        <p className="text-gray-600 text-lg max-w-xl mx-auto">
           {isHe
             ? 'אנחנו כאן לכל שאלה, פנייה או בקשה. צרו קשר ונחזור אליכם בהקדם'
             : 'Have a question, a special request, or need assistance? Our team is ready — reach out and we will get back to you promptly.'}
@@ -82,7 +82,7 @@ export default async function ContactPage({
                   href="https://wa.me/97299509757"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-1 bg-[#25D366] text-white text-xs font-semibold rounded-full hover:bg-[#1eb755] transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1 bg-[#178540] text-white text-xs font-semibold rounded-full hover:bg-[#1eb755] transition-colors"
                 >
                   <WhatsAppIcon />
                   WhatsApp
@@ -102,7 +102,7 @@ export default async function ContactPage({
               </h3>
               <a
                 href="mailto:office@smartcar.co.il"
-                className="text-gray-500 text-sm hover:text-[#1B4D3E] transition-colors"
+                className="text-gray-600 text-sm hover:text-[#1B4D3E] transition-colors"
               >
                 office@smartcar.co.il
               </a>
@@ -118,7 +118,7 @@ export default async function ContactPage({
               <h3 className="font-semibold text-gray-800 mb-1">
                 {isHe ? 'כתובת ראשית' : 'Main Address'}
               </h3>
-              <p className="text-gray-500 text-sm">
+              <p className="text-gray-600 text-sm">
                 {isHe
                   ? 'רחוב רמת ים 122 (מלון דן אכדיה), הרצליה'
                   : '122 Ramat Yam St (Dan Accadia Hotel), Herzliya'}
@@ -135,7 +135,7 @@ export default async function ContactPage({
               <h3 className="font-semibold text-gray-800 mb-1">
                 {isHe ? 'שעות פעילות' : 'Opening Hours'}
               </h3>
-              <p className="text-gray-500 text-sm">
+              <p className="text-gray-600 text-sm">
                 {isHe
                   ? 'ראשון–חמישי 08:00–20:00 | שישי 08:00–14:00'
                   : 'Sun–Thu 08:00–20:00 | Fri 08:00–14:00'}

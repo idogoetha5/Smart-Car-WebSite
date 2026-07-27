@@ -119,13 +119,13 @@ export default async function BranchesPage({
 
               {/* Info */}
               <div className="p-6 flex flex-col flex-1">
-                <p className="text-gray-500 text-sm mb-5 text-start">
+                <p className="text-gray-600 text-sm mb-5 text-start">
                   {isHe ? branch.descHe : branch.descEn}
                 </p>
 
                 {/* Address */}
                 <div className="flex items-start gap-2 mb-3">
-                  <span className="text-[#C24E17] mt-0.5 shrink-0">📍</span>
+                  <span className="text-[#B64916] mt-0.5 shrink-0">📍</span>
                   <p className="text-[#0D2B2B] font-medium text-sm">
                     {isHe ? branch.addressHe : branch.addressEn}
                   </p>
@@ -133,8 +133,8 @@ export default async function BranchesPage({
 
                 {/* Phone */}
                 <div className="flex items-center gap-2 mb-5">
-                  <span className="text-gray-400 shrink-0">📞</span>
-                  <a href={`tel:${branch.phone}`} className="text-[#C24E17] font-bold hover:underline">
+                  <span className="text-gray-600 shrink-0">📞</span>
+                  <a href={`tel:${branch.phone}`} className="text-[#B64916] font-bold hover:underline">
                     {branch.phone}
                   </a>
                 </div>
@@ -145,7 +145,7 @@ export default async function BranchesPage({
                     {isHe ? 'שעות פעילות' : 'Opening Hours'}
                   </p>
                   {branch.hours.time === '24/7' ? (
-                    <p className="text-green-600 font-semibold">24/7</p>
+                    <p className="text-[#007A3D] font-semibold">24/7</p>
                   ) : (
                     <div className="space-y-1 text-gray-600">
                       <div className="flex justify-between">
@@ -157,7 +157,7 @@ export default async function BranchesPage({
                         <span>{isHe ? 'שישי' : 'Fri'}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-red-500">{isHe ? 'סגור' : 'Closed'}</span>
+                        <span className="text-[#C10007]">{isHe ? 'סגור' : 'Closed'}</span>
                         <span>{isHe ? 'שבת' : 'Sat'}</span>
                       </div>
                     </div>
@@ -170,7 +170,7 @@ export default async function BranchesPage({
                     href={branch.waze}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 bg-[#00ADEF] text-white py-3 rounded-xl text-center font-bold hover:bg-blue-500 transition-colors text-sm"
+                    className="flex-1 bg-[#007DAC] text-white py-3 rounded-xl text-center font-bold hover:bg-blue-500 transition-colors text-sm"
                   >
                     🧭 Waze
                   </a>
@@ -184,7 +184,7 @@ export default async function BranchesPage({
                   </a>
                   <a
                     href={`tel:${branch.phone}`}
-                    className="flex-1 border-2 border-[#C24E17] text-[#C24E17] py-3 rounded-xl text-center font-bold hover:bg-orange-50 transition-colors text-sm"
+                    className="flex-1 border-2 border-[#B64916] text-[#B64916] py-3 rounded-xl text-center font-bold hover:bg-orange-50 transition-colors text-sm"
                   >
                     📞 {isHe ? 'התקשר' : 'Call'}
                   </a>
