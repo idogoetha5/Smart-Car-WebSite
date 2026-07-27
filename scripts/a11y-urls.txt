@@ -30,3 +30,5 @@ http://localhost:3000/he/my-bookings
 http://localhost:3000/en/my-bookings
 http://localhost:3000/he/booking-confirmation
 http://localhost:3000/en/booking-confirmation
+http://localhost:3000/he/unsubscribe
+http://localhost:3000/en/unsubscribe

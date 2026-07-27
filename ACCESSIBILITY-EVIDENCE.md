@@ -3,8 +3,8 @@
 **Date:** 2026-07-28
 **Standard:** Israeli Standard 5568 (Sept 2023 edition, which references
 WCAG 2.0) — tested here against the stricter **WCAG 2.1 Level AA**.
-**Scope:** the public, customer-facing site, 16 route templates × `he`/`en`
-= 32 page/locale combinations, plus dynamic states, reflow/zoom and
+**Scope:** the public, customer-facing site, 17 route templates × `he`/`en`
+= 34 page/locale combinations (includes the new unsubscribe page), plus dynamic states, reflow/zoom and
 keyboard operation.
 **Explicitly out of scope:** the `/admin` area (internal staff tool) and
 the generated quote PDF.
@@ -17,6 +17,7 @@ the generated quote PDF.
 ## How to reproduce
 
 ```bash
+npm install                                   # scan tools are devDependencies
 npm run dev                                   # http://localhost:3000
 bash scripts/run-a11y.sh  evidence/a11y/pa11y-static-after.json
 node scripts/run-axe.js                       # -> axe-results.json
@@ -43,8 +44,8 @@ rules and each catches issues the other misses.
 
 | Scan | Before (2026-07-27) | After |
 |---|---|---|
-| pa11y, 32 pages | 442 errors | **0 errors** |
-| axe-core, 32 pages | 18 violation groups | **0 violation groups** |
+| pa11y, 34 pages | 442 errors | **0 errors** |
+| axe-core, 34 pages | 18 violation groups | **0 violation groups** |
 | axe-core, 16 dynamic scenarios | not previously run | **0 violations, 15 scanned, 1 not tested** |
 | keyboard checks | not previously run | **8 PASS, 0 FAIL, 1 NOT TESTED** |
 
@@ -123,7 +124,7 @@ no claim is made either way.
 
 | Criterion | Level | Status | Evidence / note |
 |---|---|---|---|
-| 1.1.1 Non-text content | A | PASS | 0 axe/pa11y violations across 32 pages; alt text reviewed manually and is descriptive, not filename-based |
+| 1.1.1 Non-text content | A | PASS | 0 axe/pa11y violations across 34 pages; alt text reviewed manually and is descriptive, not filename-based |
 | 1.2.x Time-based media | A/AA | NOT APPLICABLE | No audio or video content on the site |
 | 1.3.1 Info and relationships | A | PASS | 0 violations; labels, accordion and menu relationships wired and verified |
 | 1.3.2 Meaningful sequence | A | PASS | Tab order followed on 3 pages (30/17/30 stops) and matched visual order |
@@ -215,7 +216,7 @@ no claim is made either way.
 ## Honest summary
 
 Two independent engines report zero automatically-detectable WCAG 2.1 AA
-violations across all 32 customer-facing page/locale combinations, and
+violations across all 34 customer-facing page/locale combinations, and
 also across 15 dynamic states, 320px reflow, 200%/400% zoom and
 reduced-motion. Keyboard testing passes 8 of 9 checks with the ninth
 blocked only by a local environment limitation. Ten real defects were
