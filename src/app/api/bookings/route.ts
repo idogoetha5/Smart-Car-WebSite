@@ -152,6 +152,8 @@ export async function POST(request: NextRequest) {
       dropoff_location:    body.dropoffLocation,
       notes:               body.notes ?? null,
       extras:              selectedExtras,
+      additional_driver_name: body.additionalDriverName ?? null,
+      additional_driver_id:   body.additionalDriverId ?? null,
       total_days:          totalDays,
       total_price:         serverTotalPrice,
       price_per_day:       serverPricePerDay,

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { Search, Trash2, RefreshCw } from 'lucide-react';
-import emailjs from '@emailjs/browser';
 import BookingStatusBadge from '@/components/ui/BookingStatusBadge';
 
 function formatDate(val: string) {
@@ -97,56 +96,12 @@ export default function AdminBookingsPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setBookings(prev => prev.map((b: any) => b.id === bookingId ? { ...b, status } : b));
 
-    if (status === 'confirmed') {
-      const extrasText = Array.isArray(booking.extras) && booking.extras.length > 0
-        ? booking.extras.map((e: string) =>
-            e === 'insurance' ? 'ביטול השתתפות עצמית' :
-            e === 'gps'       ? 'ניווט GPS' :
-            e === 'baby_seat' ? 'כיסא בטיחות' :
-            e === 'driver'    ? 'נהג נוסף' : e
-          ).join(', ')
-        : 'ללא תוספות';
-
-      const serviceId  = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
-      const templateId = 'template_d6xkjjo';
-      const publicKey  = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
-
-      if (!serviceId || !templateId || !publicKey) {
-        console.warn('[admin/bookings] EmailJS env vars not configured — skipping confirmation email');
-        alert('✅ הזמנה אושרה (EmailJS לא מוגדר — מייל לא נשלח)');
-      } else {
-        try {
-          await emailjs.send(
-            serviceId,
-            templateId,
-            {
-              to_email:        booking.customer_email || booking.email,
-              to_name:         booking.customer_name  || booking.name || 'לקוח',
-              booking_type:    '✅ הזמנה מאושרת',
-              vehicle_name:    booking.vehicle
-                ? `${booking.vehicle.year} ${booking.vehicle.make} ${booking.vehicle.model}`
-                : '-',
-              order_id:        bookingId.slice(0, 8).toUpperCase(),
-              start_date:      formatDate(booking.pickup_date  || booking.start_date  || ''),
-              end_date:        formatDate(booking.dropoff_date || booking.end_date    || ''),
-              pickup_location: booking.pickup_location  || '-',
-              return_location: booking.dropoff_location || booking.pickup_location || '-',
-              customer_phone:  booking.customer_phone   || booking.phone || '-',
-              total_price:     booking.total_price ? `₪${booking.total_price.toLocaleString()}` : '-',
-              extras:          extrasText,
-              pickup_time:     booking.pickup_time  || '09:00',
-              return_time:     booking.return_time  || '09:00',
-            },
-            publicKey
-          );
-          alert('✅ הזמנה אושרה ומייל נשלח ללקוח!');
-        } catch {
-          alert('✅ הזמנה אושרה אך שליחת המייל נכשלה — בדוק EmailJS');
-        }
-      }
-    } else {
-      alert('❌ הזמנה סורבה');
-    }
+    // Confirmation email is sent server-side by the PATCH route above
+    // (sendConfirmationEmail in api/admin/bookings/[id]/route.ts) — do not
+    // also send one from here. This used to fire a second email with a
+    // different hardcoded template every time an admin confirmed a
+    // booking, so customers could get two different-looking confirmations.
+    alert(status === 'confirmed' ? '✅ הזמנה אושרה ומייל אישור נשלח ללקוח' : '❌ הזמנה סורבה');
   };
 
   const handleDelete = async (id: string, customerName: string) => {
@@ -275,6 +230,11 @@ export default function AdminBookingsPage() {
                         </div>
                       ) : (
                         <span className="text-gray-300 text-xs">—</span>
+                      )}
+                      {b.additional_driver_name && (
+                        <div className="text-gray-500 text-xs mt-1">
+                          נהג נוסף: {b.additional_driver_name}{b.additional_driver_id ? ` (${b.additional_driver_id})` : ''}
+                        </div>
                       )}
                     </td>
                     <td className="p-4 font-semibold text-gray-700">{formatPrice(b.total_price)}</td>
