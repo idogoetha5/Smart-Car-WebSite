@@ -1,11 +1,21 @@
 import { NextResponse } from 'next/server';
 import { verifyTurnstile } from '@/lib/turnstile';
+import { checkRateLimit } from '@/lib/ratelimit';
 
 function escapeHtml(str: string): string {
   return str.replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c] ?? c));
 }
 
 export async function POST(request: Request) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const { success: withinLimit, retryAfter } = await checkRateLimit(`contact:${ip}`, 5, 60 * 60 * 1000);
+  if (!withinLimit) {
+    return NextResponse.json(
+      { error: 'יותר מדי בקשות. נסה שוב מאוחר יותר.' },
+      { status: 429, headers: { 'Retry-After': String(retryAfter ?? 60) } }
+    );
+  }
+
   const body = await request.json();
   const { name, phone, email, message } = body;
 
