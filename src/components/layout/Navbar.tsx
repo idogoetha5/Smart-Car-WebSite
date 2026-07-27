@@ -4,7 +4,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Menu, X } from 'lucide-react';
 
 export default function Navbar() {
@@ -14,6 +14,21 @@ export default function Navbar() {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isRTL = locale === 'he';
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Escape closes the mobile menu and returns focus to the trigger, so a
+  // keyboard user is never stranded inside the open menu.
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isMenuOpen]);
 
   const navLinks = [
     { href: `/${locale}/catalog`,       label: t('catalog') },
@@ -52,6 +67,7 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
+                aria-current={isActive(link.href) ? 'page' : undefined}
                 className={`text-sm font-semibold transition-all px-3 py-2 rounded-lg ${
                   isActive(link.href)
                     ? 'text-[#2D5F5F] bg-[#eef6f6]'
@@ -86,22 +102,28 @@ export default function Navbar() {
 
             {/* Mobile hamburger */}
             <button
+              ref={menuButtonRef}
               className="md:hidden p-2 rounded-lg hover:bg-gray-100"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label="Toggle menu"
+              aria-label={isRTL ? 'תפריט ניווט' : 'Navigation menu'}
+              aria-expanded={isMenuOpen}
+              aria-controls="mobile-menu"
             >
-              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {isMenuOpen
+                ? <X className="w-5 h-5" aria-hidden="true" />
+                : <Menu className="w-5 h-5" aria-hidden="true" />}
             </button>
           </div>
         </div>
 
         {/* Mobile menu */}
         {isMenuOpen && (
-          <div className="md:hidden border-t border-gray-100 py-4" dir={isRTL ? 'rtl' : 'ltr'}>
+          <div id="mobile-menu" className="md:hidden border-t border-gray-100 py-4" dir={isRTL ? 'rtl' : 'ltr'}>
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
+                aria-current={isActive(link.href) ? 'page' : undefined}
                 className={`block px-4 py-3 text-sm font-semibold rounded-lg transition-colors ${
                   isActive(link.href)
                     ? 'text-[#2D5F5F] bg-[#eef6f6]'

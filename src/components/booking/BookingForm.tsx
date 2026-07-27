@@ -692,17 +692,20 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
             {EXTRAS.map(extra => (
               <label
                 key={extra.id}
-                className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all focus-within:ring-2 focus-within:ring-[#2D5F5F] focus-within:ring-offset-2 ${
                   selectedExtras.includes(extra.id)
                     ? 'border-[#B64916] bg-orange-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
+                {/* sr-only (not `hidden`) so the control stays keyboard
+                    focusable and reachable by screen readers while the
+                    styled label remains the visual affordance. */}
                 <input
                   type="checkbox"
                   checked={selectedExtras.includes(extra.id)}
                   onChange={() => toggleExtra(extra.id)}
-                  className="hidden"
+                  className="sr-only"
                 />
                 <span className="font-bold text-[#B64916] shrink-0">{extra.priceLabel}</span>
                 <div className="text-right">
@@ -733,14 +736,22 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
               <p className="text-sm font-semibold text-gray-700">
                 {isHe ? '👤 פרטי הנהג הנוסף' : '👤 Additional Driver Details'}
               </p>
+              <label htmlFor="additional-driver-name" className="sr-only">
+                {isHe ? 'שם מלא של הנהג הנוסף' : 'Full name of additional driver'}
+              </label>
               <input
+                id="additional-driver-name"
                 type="text"
                 value={additionalDriverName}
                 onChange={e => setAdditionalDriverName(e.target.value)}
                 placeholder={isHe ? 'שם מלא של הנהג הנוסף' : 'Full name of additional driver'}
                 className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
               />
+              <label htmlFor="additional-driver-id" className="sr-only">
+                {isHe ? 'תעודת זהות / דרכון של הנהג הנוסף' : 'ID / Passport number of additional driver'}
+              </label>
               <input
+                id="additional-driver-id"
                 type="text"
                 value={additionalDriverId}
                 onChange={e => setAdditionalDriverId(e.target.value.replace(/\D/g, '').slice(0, 9))}
@@ -757,11 +768,12 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
       {/* Coupon code */}
       {totalDays > 0 && (
         <div className="text-start">
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          <label htmlFor="coupon-code" className="block text-sm font-medium text-gray-700 mb-1.5">
             {isHe ? 'קוד קופון בלעדי — מועדון הלקוחות של SmartCar' : 'SmartCar Members-Only Coupon Code'}
           </label>
           <div className="flex gap-2">
             <input
+              id="coupon-code"
               type="text"
               value={couponCode}
               onChange={(e) => {
