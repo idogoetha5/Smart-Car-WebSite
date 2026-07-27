@@ -921,10 +921,10 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
         </p>
         <p>
           {isHe
-            ? 'מסירת הפרטים תלויה ברצונך, אך בלי שם, טלפון ודוא"ל לא נוכל לטפל בבקשה. הפרטים ישמשו את SmartCar לטיפול בבקשה ובהזמנה, ויימסרו לספקי שירות (אחסון, דוא"ל) לפי הצורך. לפרטים על שמירה, עיון, תיקון ומחיקה — '
-            : 'Providing your details is voluntary, but without a name, phone and email we cannot process your request. The details will be used by SmartCar to handle your request and booking, and shared with service providers (hosting, email) as needed. For retention, access, correction and deletion — '}
+            ? 'מסירת הפרטים תלויה ברצונך ובהסכמתך, אך בלעדיהם לא נוכל לטפל בבקשה. הפרטים ישמשו את SmartCar לטיפול בבקשה ובהזמנה, ויימסרו לספקי שירות (אחסון ודוא"ל) למטרה זו בלבד. '
+            : 'Providing your details is voluntary and based on your consent, but without them we cannot process your request. They will be used by SmartCar to handle your request and booking, and shared with service providers (hosting, email) for that purpose only. '}
           <a href={`/${locale}/privacy`} className="text-[#2D5F5F] underline hover:text-[#B64916]">
-            {isHe ? 'מדיניות הפרטיות' : 'see our Privacy Policy'}
+            {isHe ? 'מדיניות הפרטיות' : 'Privacy Policy'}
           </a>
         </p>
       </div>

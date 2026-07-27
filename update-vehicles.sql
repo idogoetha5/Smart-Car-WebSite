@@ -5,6 +5,25 @@
 -- Run in Supabase SQL Editor
 -- ============================================================
 
+-- ============================================================
+--  ⛔ DESTRUCTIVE SCRIPT — GUARD
+--  This script DELETES production data. It will abort unless you
+--  explicitly opt in first, in the same session:
+--
+--      SET smartcar.i_understand_this_deletes_data = 'yes';
+--
+--  Take a verified backup / PITR restore point BEFORE running.
+-- ============================================================
+DO $guard$
+BEGIN
+  IF current_setting('smartcar.i_understand_this_deletes_data', true)
+       IS DISTINCT FROM 'yes' THEN
+    RAISE EXCEPTION
+      'Refusing to run: this script erases data. Run "SET smartcar.i_understand_this_deletes_data = ''yes'';" first, and only after taking a backup.';
+  END IF;
+END
+$guard$;
+
 BEGIN;
 
 DELETE FROM leasing_requests;

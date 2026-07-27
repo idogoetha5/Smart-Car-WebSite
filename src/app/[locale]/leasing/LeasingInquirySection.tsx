@@ -359,10 +359,10 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
                   Protection Law, s.11). */}
               <p className="sm:col-span-2 text-xs text-gray-600 leading-relaxed">
                 {isHe
-                  ? 'מסירת הפרטים תלויה ברצונך, אך בלי שם וטלפון לא נוכל לטפל בפנייה. הפרטים ישמשו את SmartCar לטיפול בפניית הליסינג בלבד, ויימסרו לספקי שירות (אחסון ודוא"ל) לפי הצורך. שליחת הטופס אינה יוצרת התחייבות או חוזה. לפרטים על שמירה, עיון, תיקון ומחיקה — '
-                  : 'Providing your details is voluntary, but without a name and phone we cannot handle your inquiry. The details will be used by SmartCar solely to handle this leasing inquiry, and shared with service providers (hosting, email) as needed. Submitting this form does not create a commitment or contract. For retention, access, correction and deletion — '}
+                  ? 'מסירת הפרטים תלויה ברצונך ובהסכמתך, אך בלעדיהם לא נוכל לטפל בפנייה. הפרטים ישמשו את SmartCar לטיפול בפניית הליסינג בלבד, ויימסרו לספקי שירות (אחסון ודוא"ל) למטרה זו בלבד. שליחת הטופס אינה יוצרת התחייבות או חוזה. '
+                  : 'Providing your details is voluntary and based on your consent, but without them we cannot handle your inquiry. They will be used by SmartCar solely to handle this leasing inquiry, and shared with service providers (hosting, email) for that purpose only. Submitting this form does not create a commitment or contract. '}
                 <a href={`/${locale}/privacy`} className="text-[#2D5F5F] underline hover:text-[#B64916]">
-                  {isHe ? 'מדיניות הפרטיות' : 'see our Privacy Policy'}
+                  {isHe ? 'מדיניות הפרטיות' : 'Privacy Policy'}
                 </a>
               </p>
               <div className="sm:col-span-2 flex gap-3">

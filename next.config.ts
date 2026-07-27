@@ -24,8 +24,21 @@ const securityHeaders = [
       "connect-src 'self' https://*.supabase.co https://api.emailjs.com https://nominatim.openstreetmap.org https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://*.ingest.sentry.io",
       "frame-src https://challenges.cloudflare.com",
       "worker-src blob:",
+      // Defence-in-depth against injected <base>/<object> and form
+      // exfiltration to a third-party endpoint.
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
     ].join('; '),
   },
+];
+
+// Private / transactional routes: keep them out of search results at the
+// HTTP layer too, not only via robots.txt (which is advisory and doesn't
+// remove already-indexed URLs).
+const noIndexHeaders = [
+  { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
 ];
 
 const nextConfig: NextConfig = {
@@ -49,7 +62,13 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
   },
   async headers() {
-    return [{ source: '/(.*)', headers: securityHeaders }];
+    return [
+      { source: '/(.*)', headers: securityHeaders },
+      { source: '/:locale/my-bookings/:path*', headers: noIndexHeaders },
+      { source: '/:locale/booking-confirmation/:path*', headers: noIndexHeaders },
+      { source: '/:locale/condition-report/:path*', headers: noIndexHeaders },
+      { source: '/:locale/admin/:path*', headers: noIndexHeaders },
+    ];
   },
   async redirects() {
     // Old-URL redirects for the pre-migration Hebrew slug structure live in

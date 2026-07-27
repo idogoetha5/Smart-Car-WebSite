@@ -132,14 +132,15 @@ export default function ContactForm({ isHe }: { isHe: boolean }) {
       )}
 
       {/* Privacy notice at the point of collection (Israeli Privacy
-          Protection Law, s.11 — voluntary/mandatory, purpose, recipients,
-          controller and rights). */}
+          Protection Law, s.11 — voluntary/mandatory, purpose, recipients).
+          Retention and access/correction/deletion rights are not required
+          here; they live in the Privacy Policy. */}
       <p className="text-xs text-gray-600 leading-relaxed">
         {isHe
-          ? 'מסירת הפרטים תלויה ברצונך, אך בלי שם, טלפון והודעה לא נוכל לטפל בפנייה. הפרטים ישמשו את SmartCar לטיפול בפנייה בלבד, ויימסרו לספקי שירות (אחסון ודוא"ל) לפי הצורך. לפרטים על שמירה, עיון, תיקון ומחיקה — '
-          : 'Providing your details is voluntary, but without a name, phone and message we cannot handle your inquiry. The details will be used by SmartCar solely to handle this inquiry, and shared with service providers (hosting, email) as needed. For retention, access, correction and deletion — '}
+          ? 'מסירת הפרטים תלויה ברצונך ובהסכמתך, אך בלעדיהם לא נוכל לטפל בפנייה. הפרטים ישמשו את SmartCar לטיפול בפנייה בלבד, ויימסרו לספקי שירות (אחסון ודוא"ל) למטרה זו בלבד. '
+          : 'Providing your details is voluntary and based on your consent, but without them we cannot handle your inquiry. They will be used by SmartCar solely to handle this inquiry, and shared with service providers (hosting, email) for that purpose only. '}
         <a href={isHe ? '/he/privacy' : '/en/privacy'} className="text-[#2D5F5F] underline hover:text-[#B64916]">
-          {isHe ? 'מדיניות הפרטיות' : 'see our Privacy Policy'}
+          {isHe ? 'מדיניות הפרטיות' : 'Privacy Policy'}
         </a>
       </p>
 
