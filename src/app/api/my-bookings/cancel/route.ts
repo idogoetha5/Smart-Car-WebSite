@@ -52,24 +52,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Only pending bookings can be cancelled' }, { status: 409 });
   }
 
+  // The status='PENDING' condition is re-checked atomically as part of the
+  // UPDATE's WHERE clause (not just the earlier SELECT above), so a
+  // concurrent admin confirmation between the fetch and this write can't be
+  // silently overwritten — if 0 rows match, someone else changed it first.
   let finalStatus = 'CANCELLED_BY_CUSTOMER';
-  let { error: updateError } = await supabase
+  let { data: updated, error: updateError } = await supabase
     .from('bookings')
     .update({ status: finalStatus })
-    .eq('id', bookingId);
+    .eq('id', bookingId)
+    .eq('status', 'PENDING')
+    .select('id');
 
   if (updateError?.code === PG_INVALID_ENUM || updateError?.message?.includes('invalid input value for enum')) {
     if (process.env.NODE_ENV !== 'production') console.warn('[cancel] CANCELLED_BY_CUSTOMER not in enum — falling back to CANCELLED.');
     finalStatus = 'CANCELLED';
-    ({ error: updateError } = await supabase
+    ({ data: updated, error: updateError } = await supabase
       .from('bookings')
       .update({ status: finalStatus })
-      .eq('id', bookingId));
+      .eq('id', bookingId)
+      .eq('status', 'PENDING')
+      .select('id'));
   }
 
   if (updateError) {
     if (process.env.NODE_ENV !== 'production') console.error('[cancel] update error:', updateError.message);
     return NextResponse.json({ error: 'Update failed' }, { status: 500 });
+  }
+
+  if (!updated || updated.length === 0) {
+    return NextResponse.json({ error: 'Booking status changed — please refresh' }, { status: 409 });
   }
 
   return NextResponse.json({ ok: true, status: finalStatus });

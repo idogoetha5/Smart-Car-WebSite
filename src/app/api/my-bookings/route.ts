@@ -3,6 +3,13 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/ratelimit';
 
+// PostgREST ilike() treats % and _ in the pattern as wildcards — escape them
+// so an email address that happens to contain those characters can't widen
+// the match to other customers' bookings.
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 export async function GET(request: Request) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   const { success, retryAfter } = await checkRateLimit(`my-bookings:${ip}`, 10, 60_000);
@@ -38,7 +45,7 @@ export async function GET(request: Request) {
       created_at,
       vehicle:vehicles(make, model, year, image_urls)
     `)
-    .ilike('customer_email', user.email)
+    .ilike('customer_email', escapeLikePattern(user.email))
     .order('created_at', { ascending: false })
     .limit(20);
 
