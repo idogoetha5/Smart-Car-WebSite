@@ -29,7 +29,10 @@ export default function ConditionReportPage() {
   const [damages, setDamages] = useState<Record<string, boolean>>({});
   const [notes, setNotes] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [reportId, setReportId] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [website, setWebsite] = useState('');
 
   const toggleDamage = (id: string) =>
     setDamages(prev => ({ ...prev, [id]: !prev[id] }));
@@ -37,9 +40,25 @@ export default function ConditionReportPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await new Promise(r => setTimeout(r, 600));
-    setLoading(false);
-    setSubmitted(true);
+    setError('');
+    try {
+      const res = await fetch('/api/condition-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId, customerName, mileage, fuelLevel, damages, notes, _website: website }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(json.error || (isHe ? 'שמירת הדוח נכשלה. נסה שוב.' : 'Failed to save the report. Please try again.'));
+        return;
+      }
+      setReportId(json.data?.id ?? '');
+      setSubmitted(true);
+    } catch {
+      setError(isHe ? 'שמירת הדוח נכשלה. נסה שוב.' : 'Failed to save the report. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -49,11 +68,16 @@ export default function ConditionReportPage() {
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
           {isHe ? 'דוח מצב נשמר בהצלחה' : 'Condition report saved successfully'}
         </h2>
-        <p className="text-gray-500">
+        <p className="text-gray-600">
           {isHe
             ? 'תודה. הדוח הועבר לצוות SmartCar לבדיקה.'
             : 'Thank you. The report has been forwarded to the SmartCar team.'}
         </p>
+        {reportId && (
+          <p className="text-gray-400 text-xs mt-3">
+            {isHe ? 'מספר אסמכתא: ' : 'Reference ID: '}{reportId}
+          </p>
+        )}
       </div>
     );
   }
@@ -64,7 +88,7 @@ export default function ConditionReportPage() {
         <h1 className="text-3xl font-black text-gray-900 mb-1">
           {isHe ? 'דוח מצב רכב' : 'Vehicle Condition Report'}
         </h1>
-        <p className="text-gray-500 text-sm">
+        <p className="text-gray-600 text-sm">
           {isHe
             ? 'מלא את הטופס בעת קבלת/החזרת הרכב'
             : 'Complete this form when receiving or returning the vehicle'}
@@ -72,6 +96,17 @@ export default function ConditionReportPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Honeypot */}
+        <input
+          type="text"
+          name="_website"
+          value={website}
+          onChange={e => setWebsite(e.target.value)}
+          className="hidden"
+          tabIndex={-1}
+          autoComplete="off"
+        />
+
         {/* Booking info */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h2 className="font-bold text-gray-800">
@@ -183,6 +218,8 @@ export default function ConditionReportPage() {
             className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#2D5F5F] resize-none"
           />
         </div>
+
+        {error && <p className="text-red-600 text-sm text-center">{error}</p>}
 
         <button
           type="submit"
