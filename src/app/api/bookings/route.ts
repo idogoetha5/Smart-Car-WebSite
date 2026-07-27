@@ -82,21 +82,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Pickup date cannot be in the past' }, { status: 400 });
   }
 
-  // Check for conflicts (only CONFIRMED/ACTIVE block availability)
-  const { data: conflicts } = await supabase
-    .from('bookings')
-    .select('id')
-    .eq('vehicle_id', vehicleId)
-    .in('status', ['CONFIRMED', 'ACTIVE'])
-    .lt('pickup_date', dropoffDate)
-    .gt('dropoff_date', pickupDate);
-
-  if (conflicts && conflicts.length > 0) {
-    return NextResponse.json(
-      { error: 'Vehicle not available for selected dates' },
-      { status: 409 }
-    );
-  }
+  // NOTE: booking submissions are REQUESTS, not reservations — the online
+  // catalog shows only part of the company's fleet, so an apparent
+  // conflict here must never block a customer from submitting. A request
+  // is always saved and a representative checks the full fleet (same
+  // group / similar vehicle). The real availability gate is admin
+  // approval, which re-checks conflicts against total_units atomically
+  // (see api/admin/bookings/[id]/route.ts).
 
   const totalDays = Math.ceil(
     (new Date(dropoffDate).getTime() - new Date(pickupDate).getTime()) / (1000 * 60 * 60 * 24)

@@ -41,13 +41,14 @@ export function AvailabilityChecker({
       className={`flex items-center gap-2 text-sm rounded-lg px-4 py-3 ${
         available
           ? 'bg-green-50 text-green-700'
-          : 'bg-red-50 text-red-700'
+          : 'bg-amber-50 text-amber-800'
       }`}
+      role="status"
     >
       {available ? (
-        <CheckCircle className="w-4 h-4" />
+        <CheckCircle className="w-4 h-4 shrink-0" />
       ) : (
-        <XCircle className="w-4 h-4" />
+        <XCircle className="w-4 h-4 shrink-0" />
       )}
       <span>{available ? t('available_message') : t('unavailable_message')}</span>
     </div>

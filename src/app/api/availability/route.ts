@@ -25,13 +25,20 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createAdminClient();
 
-    const { data: conflicts, error } = await supabase
-      .from('bookings')
-      .select('id')
-      .eq('vehicle_id', vehicleId)
-      .in('status', ['CONFIRMED', 'ACTIVE'])
-      .lt('pickup_date', dropoffDate)
-      .gt('dropoff_date', pickupDate);
+    const [{ data: conflicts, error }, { data: vehicleRow }] = await Promise.all([
+      supabase
+        .from('bookings')
+        .select('id')
+        .eq('vehicle_id', vehicleId)
+        .in('status', ['CONFIRMED', 'ACTIVE'])
+        .lt('pickup_date', dropoffDate)
+        .gt('dropoff_date', pickupDate),
+      supabase
+        .from('vehicles')
+        .select('total_units')
+        .eq('id', vehicleId)
+        .single(),
+    ]);
 
     if (error) {
       return NextResponse.json(
@@ -40,8 +47,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // The fleet may hold more than one unit of this model — a date only
+    // reads as taken online once every listed unit is booked. And even
+    // then this is informational: the online catalog is only part of the
+    // full fleet, so the UI never blocks a request based on this.
+    const units = Math.max(1, Number(vehicleRow?.total_units) || 1);
     return NextResponse.json({
-      available: conflicts.length === 0,
+      available: conflicts.length < units,
     });
   } catch {
     return NextResponse.json(

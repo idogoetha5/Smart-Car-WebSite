@@ -84,7 +84,7 @@
     "submit": "Confirm Booking",
     "availability_check": "Check Availability",
     "available_message": "Great news — this vehicle is available for your selected dates",
-    "unavailable_message": "This vehicle is unavailable for the selected dates — please choose alternative dates or contact us",
+    "unavailable_message": "No immediate match in our online inventory — submit your request and a representative will check the full fleet for this or a similar vehicle.",
     "success": "Booking submitted successfully. A SmartCar representative will contact you shortly to confirm.",
     "notes": "Special Requests or Notes"
   },
