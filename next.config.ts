@@ -52,7 +52,27 @@ const nextConfig: NextConfig = {
     return [{ source: '/(.*)', headers: securityHeaders }];
   },
   async redirects() {
-    return [];
+    // Old site (pre smartcar.co.il migration) used root-level Hebrew slugs
+    // with no locale prefix. Google still has ~27 of these indexed; without
+    // these redirects they 404 on the new site, which was breaking indexed
+    // search results and losing existing SEO link equity.
+    return [
+      { source: '/אודות', destination: '/he/about', permanent: true },
+      { source: '/סניפים', destination: '/he/branches', permanent: true },
+      { source: '/השכרת-רכב', destination: '/he/rental', permanent: true },
+      { source: '/לוח-רכבים-למכירה', destination: '/he/cars-for-sale', permanent: true },
+      { source: '/שרותים/מכירת-רכב', destination: '/he/cars-for-sale', permanent: true },
+      { source: '/שרותים/השכרת-רכב', destination: '/he/rental', permanent: true },
+      { source: '/שרותים/ליסינג-עסקי', destination: '/he/leasing', permanent: true },
+      { source: '/שרותים/business-leasing', destination: '/he/leasing', permanent: true },
+      // Old fleet section (category pages + individual vehicle pages, e.g.
+      // /צי-רכבים/קבוצה-a/קיה-פיקנטו) has no 1:1 equivalent under the new
+      // vehicle data model — send all of it to the live catalog.
+      { source: '/צי-רכבים', destination: '/he/catalog', permanent: true },
+      { source: '/צי-רכבים/:path*', destination: '/he/catalog', permanent: true },
+      { source: '/יונדאי-inspire-1-4-i20', destination: '/he/catalog', permanent: true },
+      { source: '/יונדאי-inspire-11-4-i20', destination: '/he/catalog', permanent: true },
+    ];
   },
 };
 
