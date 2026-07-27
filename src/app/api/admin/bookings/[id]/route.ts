@@ -109,40 +109,78 @@ export async function PATCH(
 
   const supabase = createAdminClient();
 
-  const { data: before } = await supabase
+  const { data: current, error: currentError } = await supabase
     .from('bookings')
-    .select('status')
+    .select('*, vehicle:vehicles(make, model, year, deposit_amount, total_units)')
     .eq('id', id)
     .single();
 
-  const { error: updateError } = await supabase
-    .from('bookings')
-    .update({ status: dbStatus })
-    .eq('id', id)
-    .select('id, status');
-
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+  if (currentError || !current) {
+    return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
 
-  const { data: rows, error: fetchError } = await supabase
-    .from('bookings')
-    .select('*, vehicle:vehicles(make, model, year, deposit_amount)')
-    .eq('id', id)
-    .limit(1);
+  let transitionedToConfirmed = false;
 
-  if (fetchError || !rows || rows.length === 0) {
-    return NextResponse.json({ error: 'Booking not found after update' }, { status: 500 });
+  if (dbStatus === 'CONFIRMED') {
+    // Re-check availability at approval time: another overlapping booking
+    // for the same vehicle may have been confirmed since this one was
+    // requested. Counted against the vehicle's total_units (fleet may hold
+    // more than one unit of the same model).
+    const { data: conflicts, error: conflictError } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('vehicle_id', current.vehicle_id)
+      .in('status', ['CONFIRMED', 'ACTIVE'])
+      .neq('id', id)
+      .lt('pickup_date', current.dropoff_date)
+      .gt('dropoff_date', current.pickup_date);
+
+    if (conflictError) {
+      return NextResponse.json({ error: 'שגיאה בבדיקת זמינות, נסה שוב' }, { status: 500 });
+    }
+
+    const units = Math.max(1, Number(current.vehicle?.total_units) || 1);
+    if ((conflicts?.length ?? 0) >= units) {
+      return NextResponse.json(
+        { error: 'לא ניתן לאשר: כל היחידות של רכב זה כבר מאושרות להזמנות חופפות בתאריכים אלה' },
+        { status: 409 }
+      );
+    }
+
+    // Atomic transition — only the request that actually flips the row
+    // into CONFIRMED sends the email, so a double-click/retry can never
+    // send the confirmation twice.
+    const { data: updatedRows, error: updateError } = await supabase
+      .from('bookings')
+      .update({ status: 'CONFIRMED' })
+      .eq('id', id)
+      .neq('status', 'CONFIRMED')
+      .select('id');
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+    transitionedToConfirmed = (updatedRows?.length ?? 0) > 0;
+  } else {
+    const { error: updateError } = await supabase
+      .from('bookings')
+      .update({ status: dbStatus })
+      .eq('id', id);
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
   }
 
-  // Only send the "booking confirmed — deposit due" email on the
-  // transition INTO confirmed, not on every PATCH (e.g. later marking
-  // it active/completed), so the customer never gets it twice.
-  if (dbStatus === 'CONFIRMED' && before?.status !== 'CONFIRMED') {
-    await sendConfirmationEmail(rows[0]);
+  const booking = { ...current, status: dbStatus };
+
+  // "Booking confirmed — deposit due" email: sent exactly once, only by
+  // the request that performed the transition into CONFIRMED.
+  if (transitionedToConfirmed) {
+    await sendConfirmationEmail(booking);
   }
 
-  return NextResponse.json({ success: true, booking: rows[0] });
+  return NextResponse.json({ success: true, booking });
 }
 
 export async function DELETE(

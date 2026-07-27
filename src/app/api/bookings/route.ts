@@ -171,5 +171,81 @@ export async function POST(request: NextRequest) {
 
   if (error) { console.error(error.message); return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 }); }
 
-  return NextResponse.json({ data }, { status: 201 });
+  // "Booking request received" email — sent server-side, exactly once per
+  // successfully created booking (this is a separate EmailJS template from
+  // the "booking confirmed" one, which is only sent by the admin route on
+  // the transition into CONFIRMED). Failure is non-fatal: the booking is
+  // already saved; the response tells the client whether the email went out
+  // so the confirmation page never claims an email that wasn't sent.
+  const emailSent = await sendRequestReceivedEmail({
+    booking: data,
+    vehicle: { make: vehicle.make, model: vehicle.model, year: vehicle.year },
+  });
+
+  return NextResponse.json({ data, emailSent }, { status: 201 });
+}
+
+function formatDateHe(dateStr: string): string {
+  const datePart = String(dateStr).split('T')[0];
+  const [year, month, day] = datePart.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('he-IL', {
+    day: 'numeric', month: 'long', year: 'numeric',
+  });
+}
+
+async function sendRequestReceivedEmail({
+  booking,
+  vehicle,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  booking: any;
+  vehicle: { make: string; model: string; year: number };
+}): Promise<boolean> {
+  const serviceId  = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
+  const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
+  const publicKey  = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
+  const privateKey = process.env.EMAILJS_PRIVATE_KEY;
+
+  if (!serviceId || !templateId || !publicKey || !privateKey) {
+    console.error('[bookings] EmailJS not fully configured — request-received email not sent for', booking.id);
+    return false;
+  }
+
+  try {
+    const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        service_id:  serviceId,
+        template_id: templateId,
+        user_id:     publicKey,
+        accessToken: privateKey,
+        template_params: {
+          to_email:        booking.customer_email,
+          to_name:         booking.customer_name,
+          order_id:        String(booking.id).slice(0, 8).toUpperCase(),
+          booking_type:    'השכרה',
+          vehicle_name:    `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+          start_date:      formatDateHe(booking.pickup_date),
+          end_date:        formatDateHe(booking.dropoff_date),
+          pickup_location: booking.pickup_location,
+          return_location: booking.dropoff_location || booking.pickup_location,
+          customer_phone:  booking.customer_phone,
+          total_price:     booking.total_price ? `₪${Number(booking.total_price).toLocaleString()}` : 'יצור קשר לפרטים',
+          bcc_email:       'office@smartcar.co.il',
+          pickup_time:     booking.pickup_time || '09:00',
+          return_time:     booking.return_time || '09:00',
+          logo_url:        'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/logo.png',
+        },
+      }),
+    });
+    if (!res.ok) {
+      console.error('[bookings] request-received email failed:', res.status, await res.text().catch(() => ''));
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('[bookings] request-received email error:', err);
+    return false;
+  }
 }

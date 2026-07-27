@@ -12,7 +12,6 @@ import DatePickerInput, { type DatePickerHandle } from '@/components/ui/DatePick
 import { bookingSchema, type BookingInput } from '@/lib/validations';
 import { calculateTotalDays } from '@/lib/utils';
 import { getSeasonalPrice, getSeasonalPriceRange } from '@/lib/seasonal';
-import { sendBookingEmail } from '@/lib/emailjs';
 import type { Vehicle } from '@/types';
 import { AvailabilityChecker } from './AvailabilityChecker';
 import TurnstileWidget from '@/components/ui/Turnstile';
@@ -466,29 +465,9 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
 
       const result = await res.json();
       const bookingId = result.data?.id ?? result.id ?? '';
-
-      let emailSent = true;
-      try {
-        await sendBookingEmail({
-          customerName:    data.customerName,
-          customerEmail:   data.customerEmail,
-          customerPhone:   data.customerPhone,
-          vehicleName:     `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-          startDate:       pickupDate,
-          endDate:         dropoffDate,
-          pickupLocation:  data.pickupLocation,
-          returnLocation:  data.dropoffLocation,
-          bookingType:     'השכרה',
-          totalPrice:      grandTotal || totalDays * pricePerDay,
-          bookingId,
-          pickupTime,
-          returnTime,
-        });
-      } catch {
-        // EmailJS failure is non-critical — booking already saved.
-        // Confirmation page must not claim an email was sent if it wasn't.
-        emailSent = false;
-      }
+      // The "request received" email is sent server-side by the API,
+      // exactly once per created booking — the client no longer sends it.
+      const emailSent = result.emailSent !== false;
 
       localStorage.removeItem(DRAFT_KEY(vehicle.id, locale));
       router.push(
