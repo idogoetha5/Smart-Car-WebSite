@@ -233,7 +233,7 @@ export default function AdminBookingsPage() {
                       )}
                       {b.additional_driver_name && (
                         <div className="text-gray-500 text-xs mt-1">
-                          נהג נוסף: {b.additional_driver_name}{b.additional_driver_id ? ` (${b.additional_driver_id})` : ''}
+                          נהג נוסף: {b.additional_driver_name}
                         </div>
                       )}
                     </td>

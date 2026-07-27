@@ -291,7 +291,6 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
   const [turnstileFailed, setTurnstileFailed] = useState(false);
 
   const [additionalDriverName, setAdditionalDriverName] = useState('');
-  const [additionalDriverId, setAdditionalDriverId] = useState('');
 
   const [couponCode, setCouponCode] = useState('');
   const [couponState, setCouponState] = useState<{
@@ -395,7 +394,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
     }, 800);
     return () => { if (draftTimer.current) clearTimeout(draftTimer.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allValues, pickupTime, returnTime, selectedExtras, additionalDriverName, additionalDriverId]);
+  }, [allValues, pickupTime, returnTime, selectedExtras, additionalDriverName]);
 
   const pickupDate      = watch('pickupDate');
   const dropoffDate     = watch('dropoffDate');
@@ -450,7 +449,6 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           pickup_time: pickupTime,
           return_time: returnTime,
           additionalDriverName: selectedExtras.includes('driver') ? additionalDriverName : undefined,
-          additionalDriverId: selectedExtras.includes('driver') ? additionalDriverId : undefined,
           turnstileToken,
         }),
       });
@@ -748,19 +746,11 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
                 placeholder={isHe ? 'שם מלא של הנהג הנוסף' : 'Full name of additional driver'}
                 className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
               />
-              <label htmlFor="additional-driver-id" className="sr-only">
-                {isHe ? 'תעודת זהות / דרכון של הנהג הנוסף' : 'ID / Passport number of additional driver'}
-              </label>
-              <input
-                id="additional-driver-id"
-                type="text"
-                value={additionalDriverId}
-                onChange={e => setAdditionalDriverId(e.target.value.replace(/\D/g, '').slice(0, 9))}
-                placeholder={isHe ? 'תעודת זהות / דרכון (עד 9 ספרות)' : 'ID / Passport number (up to 9 digits)'}
-                className="w-full h-10 rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
-                maxLength={9}
-                inputMode="numeric"
-              />
+              <p className="text-xs text-gray-600">
+                {isHe
+                  ? 'מספר זהות ורישיון הנהג הנוסף יימסרו במעמד האיסוף, לא בשלב זה.'
+                  : "The additional driver's ID and licence are provided at pickup, not now."}
+              </p>
             </div>
           )}
         </div>

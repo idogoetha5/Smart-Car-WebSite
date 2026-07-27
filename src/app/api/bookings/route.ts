@@ -145,7 +145,6 @@ export async function POST(request: NextRequest) {
       notes:               body.notes ?? null,
       extras:              selectedExtras,
       additional_driver_name: body.additionalDriverName ?? null,
-      additional_driver_id:   body.additionalDriverId ?? null,
       // Consent ledger — evidence of what the customer agreed to and when.
       // Version string must match the one shown on /terms.
       terms_version:       body.agreeTerms === true ? '2.0' : null,

@@ -6,6 +6,7 @@
 -- had no columns for it, so the API silently dropped the data — the
 -- customer believed the additional driver was registered, and it wasn't.
 
+-- Only the name is captured at request stage. The additional driver's ID
+-- and licence are taken at pickup, deliberately NOT collected online.
 ALTER TABLE bookings
-  ADD COLUMN IF NOT EXISTS additional_driver_name TEXT,
-  ADD COLUMN IF NOT EXISTS additional_driver_id   TEXT;
+  ADD COLUMN IF NOT EXISTS additional_driver_name TEXT;

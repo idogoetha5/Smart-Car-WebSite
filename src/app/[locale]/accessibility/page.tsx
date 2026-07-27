@@ -50,13 +50,12 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
 
             <section>
               <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">דיווח על בעיות נגישות</h2>
-              <p>נתקלת בבעיית נגישות? נשמח לשמוע ולתקן. ניתן לפנות לרכז הנגישות שלנו:</p>
+              <p>נתקלת בבעיית נגישות? נשמח לשמוע ולתקן. ניתן לפנות אלינו בכל אחת מהדרכים הבאות:</p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">פרטי רכז הנגישות</h2>
+              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">פרטי יצירת קשר בנושא נגישות</h2>
               <ul className="list-none space-y-2">
-                <li><strong>שם:</strong> מחלקת שירות לקוחות SmartCar</li>
                 <li>📧 <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a></li>
                 <li>📞 <a href="tel:09-9509757" className="text-[#2D5F5F] underline">09-9509757</a></li>
                 <li>📍 רמת ים 122, הרצליה</li>
@@ -95,7 +94,7 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">Contact Accessibility Coordinator</h2>
+              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">Accessibility Contact</h2>
               <p>📧 <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a> | 📞 09-9509757</p>
             </section>
           </>
