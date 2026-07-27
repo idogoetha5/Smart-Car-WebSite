@@ -154,6 +154,11 @@ export async function POST(request: NextRequest) {
       extras:              selectedExtras,
       additional_driver_name: body.additionalDriverName ?? null,
       additional_driver_id:   body.additionalDriverId ?? null,
+      // Consent ledger — evidence of what the customer agreed to and when.
+      // Version string must match the one shown on /terms.
+      terms_version:       body.agreeTerms === true ? '2.0' : null,
+      terms_accepted_at:   body.agreeTerms === true ? new Date().toISOString() : null,
+      marketing_consent:   body.marketingConsent === true,
       total_days:          totalDays,
       total_price:         serverTotalPrice,
       price_per_day:       serverPricePerDay,

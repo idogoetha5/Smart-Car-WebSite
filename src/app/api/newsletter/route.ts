@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyTurnstile } from '@/lib/turnstile';
 import { checkRateLimit } from '@/lib/ratelimit';
+import { createAdminClient } from '@/lib/supabase/server';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -23,6 +24,27 @@ export async function POST(request: Request) {
 
   if (!await verifyTurnstile(body?.turnstileToken)) {
     return NextResponse.json({ error: 'אימות אנטי-בוט נכשל. נסה שנית.' }, { status: 400 });
+  }
+
+  // Persist the subscription + consent timestamp BEFORE the notification
+  // email — previously there was no stored subscriber list at all, so no
+  // evidence of consent and no way to honor an unsubscribe request.
+  // upsert keeps re-subscribes idempotent (email is UNIQUE).
+  try {
+    const supabase = createAdminClient();
+    const { error: dbError } = await supabase
+      .from('newsletter_subscribers')
+      .upsert(
+        { email, consent_at: new Date().toISOString(), source: 'newsletter_form', unsubscribed_at: null },
+        { onConflict: 'email' }
+      );
+    if (dbError) {
+      // Table may not exist yet (scripts/add-consent-ledger-columns.sql not
+      // run) — log loudly but don't block the signup itself.
+      console.error('[newsletter] subscriber ledger insert failed:', dbError.message);
+    }
+  } catch (err) {
+    console.error('[newsletter] subscriber ledger error:', err);
   }
 
   const serviceId  = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
