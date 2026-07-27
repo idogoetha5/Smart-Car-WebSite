@@ -42,3 +42,8 @@ next-env.d.ts
 
 # Local accessibility evidence — not deployed to Production
 evidence/
+
+# Accessibility scan artefacts (evidence lives in evidence/, gitignored)
+a11y-before.json
+a11y-after.json
+axe-results.json
