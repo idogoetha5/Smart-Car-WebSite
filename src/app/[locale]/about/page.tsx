@@ -39,8 +39,15 @@ export default async function AboutPage({
           <p className="text-[#E8743B] font-medium mb-3 tracking-widest text-sm">
             {isHe ? 'הסיפור שלנו' : 'Our Story'}
           </p>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6">
-            SMART<span className="text-[#E8743B]">CAR</span>
+          <h1 className="mb-6">
+            <Image
+              src="/images/logo.png"
+              alt="SmartCar"
+              width={280}
+              height={125}
+              className="h-14 sm:h-16 md:h-20 w-auto object-contain mx-auto brightness-0 invert"
+              priority
+            />
           </h1>
           <p className="text-[#B8D8D8] text-xl max-w-2xl mx-auto leading-relaxed">
             {isHe
