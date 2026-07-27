@@ -9,8 +9,37 @@ const intlMiddleware = createMiddleware({
   localePrefix: 'always',
 });
 
+// Old site (pre smartcar.co.il migration) used root-level Hebrew slugs with
+// no locale prefix. Google still has ~27 of these indexed. next-intl's
+// proxy runs before next.config.ts `redirects`, and it was blindly
+// prefixing these unmatched paths with /he/ instead of letting the config
+// redirects fire, so these have to live here instead.
+const OLD_PATH_REDIRECTS: Record<string, string> = {
+  '/אודות': '/he/about',
+  '/סניפים': '/he/branches',
+  '/השכרת-רכב': '/he/rental',
+  '/לוח-רכבים-למכירה': '/he/cars-for-sale',
+  '/שרותים/מכירת-רכב': '/he/cars-for-sale',
+  '/שרותים/השכרת-רכב': '/he/rental',
+  '/שרותים/ליסינג-עסקי': '/he/leasing',
+  '/שרותים/business-leasing': '/he/leasing',
+  '/יונדאי-inspire-1-4-i20': '/he/catalog',
+  '/יונדאי-inspire-11-4-i20': '/he/catalog',
+};
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  const oldPathDestination = OLD_PATH_REDIRECTS[pathname];
+  if (oldPathDestination) {
+    return NextResponse.redirect(new URL(oldPathDestination, request.url), 308);
+  }
+  // Old fleet section (category + individual vehicle pages) has no 1:1
+  // equivalent under the new vehicle data model — send it all to the
+  // live catalog.
+  if (pathname === '/צי-רכבים' || pathname.startsWith('/צי-רכבים/')) {
+    return NextResponse.redirect(new URL('/he/catalog', request.url), 308);
+  }
 
   if (pathname.startsWith('/api/admin/')) {
     // CSRF protection for mutating admin API requests
