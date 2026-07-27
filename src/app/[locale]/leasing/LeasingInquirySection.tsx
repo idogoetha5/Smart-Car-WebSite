@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Phone, Mail, Users, Settings, Fuel, Send, CheckCircle } from 'lucide-react';
 import type { Vehicle } from '@/types';
 import TurnstileWidget from '@/components/ui/Turnstile';
+import PrivacyNotice from '@/components/ui/PrivacyNotice';
 import { LEASING_BASE_PRICE as BASE_LEASING_PRICE, LEASING_MILEAGE_MULTIPLIER as MILEAGE_MULTIPLIER, LEASING_DURATION_DISCOUNT as DURATION_DISCOUNT } from '@/lib/pricing';
 
 const MILEAGE_OPTIONS = [
@@ -355,16 +356,14 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
                 <TurnstileWidget onSuccess={setTurnstileToken} onExpire={() => setTurnstileToken(null)} />
               </div>
               {formError && <p className="sm:col-span-2 text-red-600 text-sm">{formError}</p>}
-              {/* Privacy notice at the point of collection (Israeli Privacy
-                  Protection Law, s.11). */}
-              <p className="sm:col-span-2 text-xs text-gray-600 leading-relaxed">
-                {isHe
-                  ? 'מסירת הפרטים תלויה ברצונך ובהסכמתך, אך בלעדיהם לא נוכל לטפל בפנייה. הפרטים ישמשו את SmartCar לטיפול בפניית הליסינג בלבד, ויימסרו לספקי שירות (אחסון ודוא"ל) למטרה זו בלבד. שליחת הטופס אינה יוצרת התחייבות או חוזה. '
-                  : 'Providing your details is voluntary and based on your consent, but without them we cannot handle your inquiry. They will be used by SmartCar solely to handle this leasing inquiry, and shared with service providers (hosting, email) for that purpose only. Submitting this form does not create a commitment or contract. '}
-                <a href={`/${locale}/privacy`} className="text-[#2D5F5F] underline hover:text-[#B64916]">
-                  {isHe ? 'מדיניות הפרטיות' : 'Privacy Policy'}
-                </a>
-              </p>
+              <div className="sm:col-span-2 space-y-1">
+                <p className="text-xs text-gray-600">
+                  {isHe
+                    ? 'שליחת הטופס אינה יוצרת התחייבות או חוזה.'
+                    : 'Submitting this form does not create a commitment or contract.'}
+                </p>
+                <PrivacyNotice locale={locale} />
+              </div>
               <div className="sm:col-span-2 flex gap-3">
                 <button type="submit" disabled={formSending || !formName.trim() || !formPhone.trim() || !turnstileToken}
                   className="flex-1 bg-[#C24E17] disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm hover:bg-[#d4632a] transition-colors flex items-center justify-center gap-2">

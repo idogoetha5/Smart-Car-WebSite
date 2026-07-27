@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import TurnstileWidget from '@/components/ui/Turnstile';
+import PrivacyNotice from '@/components/ui/PrivacyNotice';
 
 export default function ContactForm({ isHe }: { isHe: boolean }) {
   const [submitted, setSubmitted] = useState(false);
@@ -131,18 +132,7 @@ export default function ContactForm({ isHe }: { isHe: boolean }) {
         </p>
       )}
 
-      {/* Privacy notice at the point of collection (Israeli Privacy
-          Protection Law, s.11 — voluntary/mandatory, purpose, recipients).
-          Retention and access/correction/deletion rights are not required
-          here; they live in the Privacy Policy. */}
-      <p className="text-xs text-gray-600 leading-relaxed">
-        {isHe
-          ? 'מסירת הפרטים תלויה ברצונך ובהסכמתך, אך בלעדיהם לא נוכל לטפל בפנייה. הפרטים ישמשו את SmartCar לטיפול בפנייה בלבד, ויימסרו לספקי שירות (אחסון ודוא"ל) למטרה זו בלבד. '
-          : 'Providing your details is voluntary and based on your consent, but without them we cannot handle your inquiry. They will be used by SmartCar solely to handle this inquiry, and shared with service providers (hosting, email) for that purpose only. '}
-        <a href={isHe ? '/he/privacy' : '/en/privacy'} className="text-[#2D5F5F] underline hover:text-[#B64916]">
-          {isHe ? 'מדיניות הפרטיות' : 'Privacy Policy'}
-        </a>
-      </p>
+      <PrivacyNotice locale={isHe ? 'he' : 'en'} />
 
       <button
         type="submit"

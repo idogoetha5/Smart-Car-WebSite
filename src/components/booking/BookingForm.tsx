@@ -15,6 +15,7 @@ import { getSeasonalPrice, getSeasonalPriceRange } from '@/lib/seasonal';
 import type { Vehicle } from '@/types';
 import { AvailabilityChecker } from './AvailabilityChecker';
 import TurnstileWidget from '@/components/ui/Turnstile';
+import PrivacyNotice from '@/components/ui/PrivacyNotice';
 
 const BRANCHES = [
   { value: 'herzliya',  label: 'סניף הרצליה – רחוב רמת ים 122' },
@@ -911,22 +912,15 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
         </label>
       </div>
 
-      {/* Required disclosures: contract status + privacy notice at the
-          point of collection (Israeli Privacy Protection Law, s.11). */}
+      {/* Required disclosures: contract status, plus the short
+          point-of-collection privacy notice. */}
       <div className="rounded-xl bg-gray-50 border border-gray-200 p-3 text-xs text-gray-600 leading-relaxed space-y-2">
         <p>
           {isHe
             ? 'שליחת הטופס היא בקשת הזמנה בלבד — היא אינה מבטיחה זמינות ואינה יוצרת חוזה. נציג SmartCar יבדוק את הצי המלא ויאשר בכתב את הרכב או הקבוצה, המחיר והתנאים המהותיים.'
             : 'Submitting this form is a booking request only — it does not guarantee availability and does not create a contract. A SmartCar representative will check the full fleet and confirm the vehicle or group, price and material terms in writing.'}
         </p>
-        <p>
-          {isHe
-            ? 'מסירת הפרטים תלויה ברצונך ובהסכמתך, אך בלעדיהם לא נוכל לטפל בבקשה. הפרטים ישמשו את SmartCar לטיפול בבקשה ובהזמנה, ויימסרו לספקי שירות (אחסון ודוא"ל) למטרה זו בלבד. '
-            : 'Providing your details is voluntary and based on your consent, but without them we cannot process your request. They will be used by SmartCar to handle your request and booking, and shared with service providers (hosting, email) for that purpose only. '}
-          <a href={`/${locale}/privacy`} className="text-[#2D5F5F] underline hover:text-[#B64916]">
-            {isHe ? 'מדיניות הפרטיות' : 'Privacy Policy'}
-          </a>
-        </p>
+        <PrivacyNotice locale={locale} />
       </div>
 
       <Button
