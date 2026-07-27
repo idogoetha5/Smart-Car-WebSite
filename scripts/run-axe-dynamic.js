@@ -72,9 +72,18 @@ const scenarios = [
     name: 'hero-datepicker-open (he)',
     url: `${BASE}/he`,
     async setup(page) {
-      const btn = await page.$('button[aria-haspopup="dialog"]');
-      if (!btn) throw new Error('no datepicker trigger found');
-      await btn.click();
+      // There are mobile and desktop copies; only one is visible.
+      const clicked = await page.evaluate(() => {
+        const btns = [...document.querySelectorAll('button[aria-haspopup="dialog"]')];
+        const visible = btns.find((b) => {
+          const r = b.getBoundingClientRect();
+          return r.width > 0 && r.height > 0;
+        });
+        if (!visible) return false;
+        visible.click();
+        return true;
+      });
+      if (!clicked) throw new Error('no visible datepicker trigger');
       await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
     },
   },
@@ -185,10 +194,17 @@ const scenarios = [
   try {
     const p = await browser.newPage();
     await p.goto(`${BASE}/he/rental`, { waitUntil: 'networkidle0', timeout: 45000 });
-    vehicleUrl = await p.evaluate(() => {
-      const a = [...document.querySelectorAll('a[href*="/rental/"]')].find(
-        (x) => !x.getAttribute('href').endsWith('/rental')
+    // Vehicle cards render client-side after the API call resolves.
+    try {
+      await p.waitForFunction(
+        () => [...document.querySelectorAll('a')].some((x) =>
+          /\/(he|en)\/rental\/.+/.test(x.getAttribute('href') || '')),
+        { timeout: 20000 }
       );
+    } catch { /* fall through — reported as NOT TESTED */ }
+    vehicleUrl = await p.evaluate(() => {
+      const a = [...document.querySelectorAll('a')].find((x) =>
+        /\/(he|en)\/rental\/.+/.test(x.getAttribute('href') || ''));
       return a ? a.href : null;
     });
     await p.close();

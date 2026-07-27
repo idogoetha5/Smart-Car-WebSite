@@ -46,7 +46,7 @@ function LocationField({
             value={customVal}
             onChange={(e) => setCustomVal(e.target.value)}
             placeholder={isHe ? 'הקלד כתובת...' : 'Type address...'}
-            className="w-full text-xs sm:text-sm text-gray-700 outline-none bg-transparent"
+            className="w-full text-xs sm:text-sm text-gray-700 outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F] focus-visible:ring-offset-1 rounded bg-transparent"
           />
           <button
             onClick={() => { setShowCustom(false); setCustomVal(''); setValue(''); }}
@@ -65,7 +65,7 @@ function LocationField({
               setValue(e.target.value);
             }
           }}
-          className="w-full text-xs sm:text-sm text-gray-700 outline-none bg-transparent cursor-pointer"
+          className="w-full text-xs sm:text-sm text-gray-700 outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F] focus-visible:ring-offset-1 rounded bg-transparent cursor-pointer"
         >
           <option value="">{isHe ? 'בחר סניף' : 'Select location'}</option>
           {branches.map(b => (

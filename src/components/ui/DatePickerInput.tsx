@@ -111,7 +111,7 @@ const DatePickerInput = forwardRef<DatePickerHandle, DatePickerInputProps>(funct
         onClick={openCal}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className={`text-start bg-transparent outline-none ${className}`}
+        className={`text-start bg-transparent outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F] focus-visible:ring-offset-1 rounded ${className}`}
       >
         {display ? (
           <span className="text-sm text-gray-800 font-medium">{display}</span>
