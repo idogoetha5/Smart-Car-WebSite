@@ -26,22 +26,51 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'אימות אנטי-בוט נכשל. נסה שנית.' }, { status: 400 });
   }
 
-  // Persist the subscription + consent timestamp BEFORE the notification
-  // email — previously there was no stored subscriber list at all, so no
-  // evidence of consent and no way to honor an unsubscribe request.
-  // upsert keeps re-subscribes idempotent (email is UNIQUE).
+  // Explicit consent is required — no implied opt-in.
+  if (body?.consent !== true || !String(body?.consentText ?? '').trim()) {
+    return NextResponse.json(
+      { error: 'יש לאשר את קבלת הדיוור כדי להירשם' },
+      { status: 400 }
+    );
+  }
+
+  const supabase = createAdminClient();
+
+  // Suppression list: once someone unsubscribes we must not silently
+  // re-add them from a stale form. They can re-subscribe only by a fresh
+  // explicit consent, which is what this request is — so we record a new
+  // consent event and clear the suppression, rather than ignoring it.
   try {
-    const supabase = createAdminClient();
+    const { data: existing } = await supabase
+      .from('newsletter_subscribers')
+      .select('unsubscribed_at')
+      .eq('email', email)
+      .maybeSingle();
+
+    // Consent ledger: store the exact wording shown, its version, when it
+    // was given, from where, and in which language — so the consent can be
+    // proven later rather than merely asserted.
     const { error: dbError } = await supabase
       .from('newsletter_subscribers')
       .upsert(
-        { email, consent_at: new Date().toISOString(), source: 'newsletter_form', unsubscribed_at: null },
+        {
+          email,
+          consent_at: new Date().toISOString(),
+          consent_text: String(body.consentText).slice(0, 1000),
+          consent_version: String(body.consentVersion ?? '').slice(0, 20) || null,
+          locale: String(body.locale ?? '').slice(0, 5) || null,
+          source: String(body.source ?? 'newsletter_form').slice(0, 50),
+          // A fresh explicit consent lifts a previous unsubscribe.
+          unsubscribed_at: null,
+        },
         { onConflict: 'email' }
       );
     if (dbError) {
       // Table may not exist yet (scripts/add-consent-ledger-columns.sql not
       // run) — log loudly but don't block the signup itself.
       console.error('[newsletter] subscriber ledger insert failed:', dbError.message);
+    } else if (existing?.unsubscribed_at) {
+      console.info('[newsletter] previously unsubscribed address re-subscribed with fresh consent');
     }
   } catch (err) {
     console.error('[newsletter] subscriber ledger error:', err);
