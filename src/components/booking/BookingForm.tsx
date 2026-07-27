@@ -911,6 +911,24 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
         </label>
       </div>
 
+      {/* Required disclosures: contract status + privacy notice at the
+          point of collection (Israeli Privacy Protection Law, s.11). */}
+      <div className="rounded-xl bg-gray-50 border border-gray-200 p-3 text-xs text-gray-600 leading-relaxed space-y-2">
+        <p>
+          {isHe
+            ? 'שליחת הטופס היא בקשת הזמנה בלבד — היא אינה מבטיחה זמינות ואינה יוצרת חוזה. נציג SmartCar יבדוק את הצי המלא ויאשר בכתב את הרכב או הקבוצה, המחיר והתנאים המהותיים.'
+            : 'Submitting this form is a booking request only — it does not guarantee availability and does not create a contract. A SmartCar representative will check the full fleet and confirm the vehicle or group, price and material terms in writing.'}
+        </p>
+        <p>
+          {isHe
+            ? 'מסירת הפרטים תלויה ברצונך, אך בלי שם, טלפון ודוא"ל לא נוכל לטפל בבקשה. הפרטים ישמשו את SmartCar לטיפול בבקשה ובהזמנה, ויימסרו לספקי שירות (אחסון, דוא"ל) לפי הצורך. לפרטים על שמירה, עיון, תיקון ומחיקה — '
+            : 'Providing your details is voluntary, but without a name, phone and email we cannot process your request. The details will be used by SmartCar to handle your request and booking, and shared with service providers (hosting, email) as needed. For retention, access, correction and deletion — '}
+          <a href={`/${locale}/privacy`} className="text-[#2D5F5F] underline hover:text-[#B64916]">
+            {isHe ? 'מדיניות הפרטיות' : 'see our Privacy Policy'}
+          </a>
+        </p>
+      </div>
+
       <Button
         type="submit"
         size="lg"

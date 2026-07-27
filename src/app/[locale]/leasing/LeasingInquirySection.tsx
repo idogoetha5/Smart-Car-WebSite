@@ -355,6 +355,16 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
                 <TurnstileWidget onSuccess={setTurnstileToken} onExpire={() => setTurnstileToken(null)} />
               </div>
               {formError && <p className="sm:col-span-2 text-red-600 text-sm">{formError}</p>}
+              {/* Privacy notice at the point of collection (Israeli Privacy
+                  Protection Law, s.11). */}
+              <p className="sm:col-span-2 text-xs text-gray-600 leading-relaxed">
+                {isHe
+                  ? 'מסירת הפרטים תלויה ברצונך, אך בלי שם וטלפון לא נוכל לטפל בפנייה. הפרטים ישמשו את SmartCar לטיפול בפניית הליסינג בלבד, ויימסרו לספקי שירות (אחסון ודוא"ל) לפי הצורך. שליחת הטופס אינה יוצרת התחייבות או חוזה. לפרטים על שמירה, עיון, תיקון ומחיקה — '
+                  : 'Providing your details is voluntary, but without a name and phone we cannot handle your inquiry. The details will be used by SmartCar solely to handle this leasing inquiry, and shared with service providers (hosting, email) as needed. Submitting this form does not create a commitment or contract. For retention, access, correction and deletion — '}
+                <a href={`/${locale}/privacy`} className="text-[#2D5F5F] underline hover:text-[#B64916]">
+                  {isHe ? 'מדיניות הפרטיות' : 'see our Privacy Policy'}
+                </a>
+              </p>
               <div className="sm:col-span-2 flex gap-3">
                 <button type="submit" disabled={formSending || !formName.trim() || !formPhone.trim() || !turnstileToken}
                   className="flex-1 bg-[#C24E17] disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm hover:bg-[#d4632a] transition-colors flex items-center justify-center gap-2">

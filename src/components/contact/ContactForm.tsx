@@ -131,6 +131,18 @@ export default function ContactForm({ isHe }: { isHe: boolean }) {
         </p>
       )}
 
+      {/* Privacy notice at the point of collection (Israeli Privacy
+          Protection Law, s.11 — voluntary/mandatory, purpose, recipients,
+          controller and rights). */}
+      <p className="text-xs text-gray-600 leading-relaxed">
+        {isHe
+          ? 'מסירת הפרטים תלויה ברצונך, אך בלי שם, טלפון והודעה לא נוכל לטפל בפנייה. הפרטים ישמשו את SmartCar לטיפול בפנייה בלבד, ויימסרו לספקי שירות (אחסון ודוא"ל) לפי הצורך. לפרטים על שמירה, עיון, תיקון ומחיקה — '
+          : 'Providing your details is voluntary, but without a name, phone and message we cannot handle your inquiry. The details will be used by SmartCar solely to handle this inquiry, and shared with service providers (hosting, email) as needed. For retention, access, correction and deletion — '}
+        <a href={isHe ? '/he/privacy' : '/en/privacy'} className="text-[#2D5F5F] underline hover:text-[#B64916]">
+          {isHe ? 'מדיניות הפרטיות' : 'see our Privacy Policy'}
+        </a>
+      </p>
+
       <button
         type="submit"
         disabled={loading}
