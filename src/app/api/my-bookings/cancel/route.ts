@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/ratelimit';
+import { normalizeEmail } from '@/lib/email';
 
 const PG_INVALID_ENUM = '22P02';
 
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const email = user.email.toLowerCase();
+  const email = normalizeEmail(user.email);
 
   const body = await request.json().catch(() => null);
   const bookingId = String(body?.bookingId ?? '').trim();
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
     .from('bookings')
     .update({ status: finalStatus })
     .eq('id', bookingId)
+    .eq('customer_email', email)
     .eq('status', 'PENDING')
     .select('id');
 
@@ -71,6 +73,7 @@ export async function POST(request: NextRequest) {
       .from('bookings')
       .update({ status: finalStatus })
       .eq('id', bookingId)
+      .eq('customer_email', email)
       .eq('status', 'PENDING')
       .select('id'));
   }

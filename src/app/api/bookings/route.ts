@@ -7,6 +7,7 @@ import { verifyAdminToken } from '@/lib/admin-auth';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { getSeasonalPriceRange } from '@/lib/seasonal';
 import { bookingSchema } from '@/lib/validations';
+import { normalizeEmail } from '@/lib/email';
 import type { Vehicle } from '@/types';
 
 const EXTRAS_PRICE: Record<string, number> = {
@@ -160,7 +161,7 @@ export async function POST(request: NextRequest) {
     .insert([{
       vehicle_id:          vehicleId,
       customer_name:       body.customerName,
-      customer_email:      body.customerEmail,
+      customer_email:      normalizeEmail(body.customerEmail),
       customer_phone:      body.customerPhone,
       customer_id_number:  body.customerIdNumber ?? null,
       pickup_date:         pickupDate,
