@@ -12,7 +12,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
   return (
     <div className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 ${isHe ? 'text-right' : 'text-left'}`} dir={isHe ? 'rtl' : 'ltr'}>
       <div className="mb-10">
-        <p className="text-[#E8743B] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
+        <p className="text-[#C24E17] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
         <h1 className="text-4xl font-black text-[#0D2B2B] mb-2">
           {isHe ? 'מדיניות פרטיות' : 'Privacy Policy'}
         </h1>
@@ -60,12 +60,6 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
                       <td className="border border-gray-200 p-3">בדיקת כשירות לנהיגה</td>
                       <td className="border border-gray-200 p-3">ביצוע חוזה / אינטרס לגיטימי</td>
                       <td className="border border-gray-200 p-3">7 שנים</td>
-                    </tr>
-                    <tr className="bg-gray-50">
-                      <td className="border border-gray-200 p-3">פרטי תשלום (אסימון בלבד)</td>
-                      <td className="border border-gray-200 p-3">חיוב ופיקדון</td>
-                      <td className="border border-gray-200 p-3">ביצוע חוזה</td>
-                      <td className="border border-gray-200 p-3">מחיקה לאחר 90 יום מסגירת עסקה</td>
                     </tr>
                     <tr>
                       <td className="border border-gray-200 p-3">נתוני גלישה (IP, דפדפן)</td>
@@ -167,7 +161,6 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
               <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">6. אבטחת מידע</h2>
               <ul className="list-disc list-inside space-y-2 mr-4">
                 <li>כל תקשורת מוצפנת באמצעות TLS 1.3.</li>
-                <li>פרטי אמצעי תשלום <strong>אינם מאוחסנים</strong> על שרתינו — מטופלים ישירות על ידי חברת הסליקה.</li>
                 <li>גישה למידע מוגבלת לעובדים המורשים בלבד, לפי עיקרון "הצורך לדעת".</li>
                 <li>במקרה של פרצת אבטחה מהותית — נודיע לנפגעים ולרשות להגנת הפרטיות תוך 72 שעות מגילוי הפרצה.</li>
               </ul>
@@ -225,7 +218,6 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
                     <tr><td className="border border-gray-200 p-3">Name, email, phone</td><td className="border border-gray-200 p-3">Processing bookings, contact</td><td className="border border-gray-200 p-3">Contract performance</td><td className="border border-gray-200 p-3">7 years (statutory)</td></tr>
                     <tr className="bg-gray-50"><td className="border border-gray-200 p-3">ID / Passport number</td><td className="border border-gray-200 p-3">Identity verification</td><td className="border border-gray-200 p-3">Legal obligation</td><td className="border border-gray-200 p-3">7 years</td></tr>
                     <tr><td className="border border-gray-200 p-3">Driving licence details</td><td className="border border-gray-200 p-3">Eligibility verification</td><td className="border border-gray-200 p-3">Contract / legitimate interest</td><td className="border border-gray-200 p-3">7 years</td></tr>
-                    <tr className="bg-gray-50"><td className="border border-gray-200 p-3">Payment token (no card numbers stored)</td><td className="border border-gray-200 p-3">Charging & deposit</td><td className="border border-gray-200 p-3">Contract performance</td><td className="border border-gray-200 p-3">Deleted 90 days after transaction close</td></tr>
                     <tr><td className="border border-gray-200 p-3">Browsing data (IP, browser)</td><td className="border border-gray-200 p-3">Security, analytics</td><td className="border border-gray-200 p-3">Legitimate interest</td><td className="border border-gray-200 p-3">90 days</td></tr>
                     <tr className="bg-gray-50"><td className="border border-gray-200 p-3">Marketing email address</td><td className="border border-gray-200 p-3">Offers & updates (consent only)</td><td className="border border-gray-200 p-3">Consent</td><td className="border border-gray-200 p-3">Until consent is withdrawn</td></tr>
                   </tbody>
@@ -275,7 +267,6 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
               <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">5. Security</h2>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>All communications are encrypted using TLS 1.3.</li>
-                <li>No payment card numbers are stored on our servers — handled directly by our payment processor.</li>
                 <li>Data access is limited to authorised personnel on a need-to-know basis.</li>
                 <li>In case of a material security breach, we will notify affected individuals and the Israeli Privacy Protection Authority within 72 hours of discovery.</li>
               </ul>
