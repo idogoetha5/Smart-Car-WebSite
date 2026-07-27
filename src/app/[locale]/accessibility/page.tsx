@@ -29,30 +29,21 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">רמת הנגישות שהושגה</h2>
+              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">אמצעי נגישות שיושמו באתר</h2>
+              <p className="mb-2">בין היתר, יושמו באתר האמצעים הבאים:</p>
               <ul className="list-disc list-inside space-y-2 mr-4">
-                <li>ניווט מלא באמצעות מקלדת</li>
-                <li>תמיכה בקוראי מסך (NVDA, JAWS, VoiceOver)</li>
-                <li>יחסי ניגוד צבעים עומדים בדרישות AA</li>
+                <li>ניווט באמצעות מקלדת</li>
+                <li>תיוג מבני ותגיות ARIA לרכיבי ממשק דינמיים, לתמיכה בקוראי מסך נפוצים</li>
+                <li>עיצוב שמתחשב בדרישות ניגודיות צבעים לפי תקן AA</li>
                 <li>טקסטים חלופיים לתמונות</li>
-                <li>תגיות ARIA לרכיבי ממשק דינמיים</li>
                 <li>פונטים קריאים בגדלים מותאמים</li>
                 <li>תמיכה בהגדלת טקסט עד 200% ללא אובדן תוכן</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">מגבלות ידועות</h2>
-              <p>אנו עדיין עובדים על שיפור הנגישות בתחומים הבאים:</p>
-              <ul className="list-disc list-inside space-y-2 mr-4 mt-2">
-                <li>חלק מהתמונות עשויות להיות ללא תיאור חלופי מפורט</li>
-                <li>טפסים מסוימים נמצאים בתהליך שיפור תוויות</li>
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">טכנולוגיות נגישות נתמכות</h2>
-              <p>האתר נבדק ופועל כראוי עם: Chrome + NVDA, Safari + VoiceOver, Firefox + JAWS.</p>
+              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">תהליך מתמשך</h2>
+              <p>הנגשת האתר היא תהליך מתמשך, ואנו פועלים באופן שוטף לאיתור ותיקון בעיות נגישות ולשיפור התאמת האתר לתקן ישראלי 5568 ולהנחיות WCAG 2.1 ברמה AA. ייתכן שבחלקים מסוימים באתר טרם הושלמה ההתאמה המלאה.</p>
             </section>
 
             <section>
@@ -84,14 +75,15 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">Accessibility Features</h2>
+              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">Accessibility Measures Implemented</h2>
               <ul className="list-disc list-inside space-y-2 ml-4">
-                <li>Full keyboard navigation</li>
-                <li>Screen reader support (NVDA, JAWS, VoiceOver)</li>
-                <li>Color contrast meets AA standards</li>
+                <li>Keyboard navigation</li>
+                <li>Structured markup and ARIA tags for dynamic interface elements, to support common screen readers</li>
+                <li>Design that takes AA color contrast requirements into account</li>
                 <li>Alternative text for images</li>
                 <li>Text can be enlarged up to 200% without content loss</li>
               </ul>
+              <p className="mt-3">Accessibility is an ongoing process. We continuously work to identify and fix accessibility issues and improve conformance with Israeli Standard 5568 and WCAG 2.1 AA. Some areas of the site may not yet be fully conformant.</p>
             </section>
 
             <section>
