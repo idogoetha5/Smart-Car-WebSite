@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeEmail, isValidEmail } from '../email';
+import { normalizeEmail, isValidEmail, escapeLikePattern } from '../email';
 
 describe('normalizeEmail', () => {
   it('lowercases so a differently-cased login still matches stored rows', () => {
@@ -54,5 +54,24 @@ describe('isValidEmail', () => {
     expect(isValidEmail('a@b')).toBe(false);
     expect(isValidEmail('a b@c.com')).toBe(false);
     expect(isValidEmail('@b.com')).toBe(false);
+  });
+});
+
+describe('escapeLikePattern', () => {
+  it('escapes the wildcards that made ilike() dangerous', () => {
+    expect(escapeLikePattern('%@example.com')).toBe('\\%@example.com');
+    expect(escapeLikePattern('a_b@example.com')).toBe('a\\_b@example.com');
+  });
+
+  it('escapes a literal backslash so it cannot re-enable an escape', () => {
+    expect(escapeLikePattern('a\\b@example.com')).toBe('a\\\\b@example.com');
+  });
+
+  it('leaves an ordinary address untouched', () => {
+    expect(escapeLikePattern('user@example.com')).toBe('user@example.com');
+  });
+
+  it('handles null/undefined without throwing', () => {
+    expect(escapeLikePattern(undefined as unknown as string)).toBe('');
   });
 });

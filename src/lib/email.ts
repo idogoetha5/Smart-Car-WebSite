@@ -21,3 +21,12 @@ export function isValidEmail(email: string): boolean {
   const v = normalizeEmail(email);
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
+
+/**
+ * Escapes the PostgREST `like`/`ilike` metacharacters so a value is matched
+ * literally. Without this, an address containing `%` or `_` would act as a
+ * wildcard and could widen a lookup to other customers' rows.
+ */
+export function escapeLikePattern(value: string): string {
+  return String(value ?? '').replace(/[\\%_]/g, (c) => `\\${c}`);
+}

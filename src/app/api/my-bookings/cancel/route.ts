@@ -45,9 +45,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
 
-  if (!booking.customer_email || (booking.customer_email as string).toLowerCase() !== email) {
+  if (!booking.customer_email || normalizeEmail(booking.customer_email as string) !== email) {
     return NextResponse.json({ error: 'Unauthorised' }, { status: 403 });
   }
+
+  // Ownership was just verified above against the normalized value. The
+  // UPDATE below must therefore match the email exactly as stored, which
+  // may still be un-normalized for rows predating the normalization
+  // migration — use the stored value rather than the normalized one so a
+  // legitimate cancellation is never rejected because of casing.
+  const storedEmail = booking.customer_email as string;
 
   if (booking.status !== 'PENDING') {
     return NextResponse.json({ error: 'Only pending bookings can be cancelled' }, { status: 409 });
@@ -62,7 +69,7 @@ export async function POST(request: NextRequest) {
     .from('bookings')
     .update({ status: finalStatus })
     .eq('id', bookingId)
-    .eq('customer_email', email)
+    .eq('customer_email', storedEmail)
     .eq('status', 'PENDING')
     .select('id');
 
@@ -73,7 +80,7 @@ export async function POST(request: NextRequest) {
       .from('bookings')
       .update({ status: finalStatus })
       .eq('id', bookingId)
-      .eq('customer_email', email)
+      .eq('customer_email', storedEmail)
       .eq('status', 'PENDING')
       .select('id'));
   }
