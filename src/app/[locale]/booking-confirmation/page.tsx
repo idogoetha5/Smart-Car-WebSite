@@ -49,7 +49,7 @@ function ConfirmationContent() {
         <div className="bg-[#f0f7f7] border-s-4 border-[#2D5F5F] rounded-xl p-5 mb-6">
           <div className="text-center mb-4">
             <p className="text-sm text-gray-500">{isHe ? 'מספר בקשה' : 'Request number'}</p>
-            <p className="text-3xl font-bold text-[#E8743B]">#{confirmationNumber}</p>
+            <p className="text-3xl font-bold text-[#C24E17]">#{confirmationNumber}</p>
           </div>
           <div className="space-y-2 text-sm">
             {vehicleName && (
@@ -69,7 +69,7 @@ function ConfirmationContent() {
           </div>
         </div>
 
-        <div className="bg-orange-50 border border-[#E8743B] rounded-xl p-4 mb-6 text-center">
+        <div className="bg-orange-50 border border-[#C24E17] rounded-xl p-4 mb-6 text-center">
           <p className="text-sm text-gray-600">
             📧 {isHe ? 'שלחנו לך אישור למייל' : 'We sent a confirmation to your email'}
           </p>

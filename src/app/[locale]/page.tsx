@@ -163,7 +163,7 @@ export default async function HomePage({
             {WHY_US.map(item => (
               <div key={item.title} className="text-start">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="w-7 h-7 rounded-full bg-[#E8743B] flex items-center justify-center flex-shrink-0">
+                  <span className="w-7 h-7 rounded-full bg-[#C24E17] flex items-center justify-center flex-shrink-0">
                     <svg width="14" height="14" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
                       <path d="M20 6 9 17l-5-5"/>
                     </svg>
@@ -194,7 +194,7 @@ export default async function HomePage({
                 <div className="p-4 text-start flex flex-col flex-1">
                   <h3 className="font-bold text-[#0D2B2B] text-sm mb-1">{b.name}</h3>
                   <p className="text-xs text-gray-500 mb-2 leading-snug" style={{ minHeight: '33px' }}>📍 {b.address}</p>
-                  <a href={`tel:${b.phone}`} className="text-xs text-[#E8743B] font-semibold block mb-2">
+                  <a href={`tel:${b.phone}`} className="text-xs text-[#C24E17] font-semibold block mb-2">
                     📞 {b.phone}
                   </a>
                   <a
@@ -231,7 +231,7 @@ export default async function HomePage({
           <div className="flex items-center justify-between mb-8">
             <Link
               href={`/${locale}/catalog`}
-              className="text-sm text-[#2D5F5F] font-semibold hover:text-[#E8743B] transition-colors"
+              className="text-sm text-[#2D5F5F] font-semibold hover:text-[#C24E17] transition-colors"
             >
               {isHe ? '← כל הרכבים' : 'View full fleet →'}
             </Link>
@@ -251,7 +251,7 @@ export default async function HomePage({
           <div className="mt-8 text-center">
             <Link
               href={`/${locale}/catalog`}
-              className="inline-block px-8 py-3 bg-[#E8743B] hover:bg-[#d4632a] text-white font-bold rounded-full transition-colors shadow-md"
+              className="inline-block px-8 py-3 bg-[#C24E17] hover:bg-[#d4632a] text-white font-bold rounded-full transition-colors shadow-md"
             >
               {isHe ? 'לכל הרכבים' : 'View All Vehicles'}
             </Link>
@@ -275,7 +275,7 @@ export default async function HomePage({
           <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
             <a
               href="tel:09-9509757"
-              className="flex items-center gap-2 px-6 py-3 bg-[#E8743B] hover:bg-[#d4632a] text-white font-bold rounded-full transition-colors shadow-md"
+              className="flex items-center gap-2 px-6 py-3 bg-[#C24E17] hover:bg-[#d4632a] text-white font-bold rounded-full transition-colors shadow-md"
             >
               📞 09-9509757
             </a>

@@ -105,6 +105,7 @@ function RentalPageContent() {
       <div className="flex flex-wrap gap-3 mb-6 p-4 bg-white rounded-2xl shadow-sm border border-gray-100">
         <select
           value={categoryFilter}
+          aria-label={isHe ? 'סינון לפי קטגוריה' : 'Filter by category'}
           onChange={(e) => setCategoryFilter(e.target.value)}
           className="p-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:border-[#2D5F5F] cursor-pointer"
         >
@@ -139,6 +140,7 @@ function RentalPageContent() {
 
         <select
           value={transmissionFilter}
+          aria-label={isHe ? 'סינון לפי תיבת הילוכים' : 'Filter by transmission'}
           onChange={(e) => setTransmissionFilter(e.target.value)}
           className="p-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:border-[#2D5F5F] cursor-pointer"
         >
@@ -150,7 +152,7 @@ function RentalPageContent() {
         {hasFilters && (
           <button
             onClick={() => { setCategoryFilter(''); setSeatsFilter(''); setTransmissionFilter(''); }}
-            className="px-3 py-2 text-sm text-[#E8743B] border border-[#E8743B] rounded-lg hover:bg-orange-50 transition-colors"
+            className="px-3 py-2 text-sm text-[#C24E17] border border-[#C24E17] rounded-lg hover:bg-orange-50 transition-colors"
           >
             {isHe ? 'נקה פילטרים' : 'Clear filters'}
           </button>

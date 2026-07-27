@@ -64,7 +64,7 @@ export default function VehicleGrid({ vehicles, isLoading, pickupDate, returnDat
         <div className="flex gap-3 flex-wrap justify-center">
           <a
             href="tel:09-9509757"
-            className="px-5 py-2.5 bg-[#E8743B] text-white font-bold rounded-xl hover:bg-[#d4622a] transition-colors text-sm"
+            className="px-5 py-2.5 bg-[#C24E17] text-white font-bold rounded-xl hover:bg-[#d4622a] transition-colors text-sm"
           >
             {isHe ? 'התקשר עכשיו' : 'Call us'}
           </a>

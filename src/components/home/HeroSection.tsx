@@ -42,6 +42,7 @@ function LocationField({
           <input
             type="text"
             autoFocus
+            aria-label={label}
             value={customVal}
             onChange={(e) => setCustomVal(e.target.value)}
             placeholder={isHe ? 'הקלד כתובת...' : 'Type address...'}
@@ -55,6 +56,7 @@ function LocationField({
       ) : (
         <select
           value={value}
+          aria-label={label}
           onChange={(e) => {
             if (e.target.value === 'custom') {
               setShowCustom(true);
@@ -430,7 +432,7 @@ export default function HeroSection({ locale }: { locale: string }) {
           className="absolute left-4 md:left-16 top-2 translate-y-0 md:top-1/2 md:-translate-y-1/2 z-10 max-w-[48%] md:max-w-none"
           dir={isHe ? 'rtl' : 'ltr'}
         >
-          <p className="text-[#E8743B] text-3xl md:text-6xl font-bold italic leading-tight md:whitespace-nowrap">
+          <p className="text-[#C24E17] text-3xl md:text-6xl font-bold italic leading-tight md:whitespace-nowrap">
             {t('tagline_line1')}<br className="md:hidden" /><span className="hidden md:inline">{' '}</span>{t('tagline_line2')}
           </p>
         </div>
@@ -475,7 +477,7 @@ export default function HeroSection({ locale }: { locale: string }) {
               className="bg-white rounded-3xl p-5 text-center hover:shadow-xl transition-all hover:-translate-y-1 group flex flex-col items-center"
             >
               {item.icon}
-              <p className="text-sm font-semibold text-[#0D2B2B] group-hover:text-[#E8743B] transition-colors leading-tight">
+              <p className="text-sm font-semibold text-[#0D2B2B] group-hover:text-[#C24E17] transition-colors leading-tight">
                 {item.label}
               </p>
             </Link>

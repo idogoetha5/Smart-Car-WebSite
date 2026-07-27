@@ -51,6 +51,7 @@ export default function VehicleFiltersPanel({
         </label>
         <select
           value={filters.category ?? 'ALL'}
+          aria-label={t('filter_category')}
           onChange={(e) =>
             onChange({ ...filters, category: e.target.value as VehicleCategory | 'ALL' | 'ECONOMY_COMPACT' })
           }
@@ -70,6 +71,7 @@ export default function VehicleFiltersPanel({
         </label>
         <select
           value={filters.transmission ?? 'ALL'}
+          aria-label={t('filter_transmission')}
           onChange={(e) =>
             onChange({ ...filters, transmission: e.target.value as Transmission | 'ALL' })
           }
@@ -89,6 +91,7 @@ export default function VehicleFiltersPanel({
         </label>
         <select
           value={filters.fuelType ?? 'ALL'}
+          aria-label={t('filter_fuel')}
           onChange={(e) =>
             onChange({ ...filters, fuelType: e.target.value as FuelType | 'ALL' })
           }
@@ -109,6 +112,7 @@ export default function VehicleFiltersPanel({
         <input
           type="range"
           dir="ltr"
+          aria-label={`${t('filter_price')}: ₪${filters.maxPricePerDay ?? 1000}`}
           min={100}
           max={1000}
           step={50}

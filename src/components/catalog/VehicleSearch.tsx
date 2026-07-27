@@ -18,6 +18,7 @@ export default function VehicleSearch({ value, onChange }: VehicleSearchProps) {
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        aria-label={`${t('title')}...`}
         placeholder={`${t('title')}...`}
         className="w-full h-11 ps-10 pe-4 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       />

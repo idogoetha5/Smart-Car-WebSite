@@ -13,7 +13,7 @@ type FaqItem = {
 const FAQ_HE: FaqItem[] = [
   {
     q: 'מה גיל מינימלי להשכרת רכב?',
-    a: 'אפשר להשכיר רכב אצלנו מגיל 18, עם רישיון נהיגה בתוקף של שנה לפחות. נהגים צעירים מתחת לגיל 25 ישלמו תוספת ביטוח קטנה — זה הכל.',
+    a: 'הגיל המינימלי הוא 21, ו-23 לקטגוריות LUXURY, SUV ו-VAN. בכל המקרים נדרש רישיון נהיגה בתוקף של 24 חודשים רצופים לפחות ממועד הוצאתו.',
   },
   {
     q: 'האם הביטוח כלול במחיר?',
@@ -33,14 +33,14 @@ const FAQ_HE: FaqItem[] = [
   },
   {
     q: 'מה מדיניות הביטול?',
-    a: 'התוכניות השתנו? אין בעיה — ביטול עד 24 שעות לפני האיסוף הוא ללא שום עלות. ביטול מאוחר יותר עשוי לכלול דמי ביטול.',
+    a: 'התוכניות השתנו? אין בעיה — ביטול עד 72 שעות לפני האיסוף הוא ללא שום עלות, עם החזר מלא. ביטול בטווח 72–48 שעות כרוך בעמלה של 25% מדמי השכירות הבסיסיים, ובטווח 48–24 שעות — 50%. ביטול פחות מ-24 שעות לפני האיסוף, או אי-הופעה, אינו מזכה בהחזר.',
   },
 ];
 
 const FAQ_EN: FaqItem[] = [
   {
     q: 'What is the minimum age to rent a vehicle?',
-    a: 'The minimum rental age is 18. A valid driving licence held for at least 12 months is required. Drivers under 25 are subject to a young driver surcharge.',
+    a: 'The minimum rental age is 21 (23 for LUXURY, SUV, and VAN categories). A valid driving licence held for at least 24 consecutive months is required.',
   },
   {
     q: 'Is insurance included in the price?',
@@ -79,7 +79,7 @@ export default function FaqSection({ locale }: { locale: string }) {
             <span className="font-semibold text-[#0D2B2B] text-sm md:text-base text-start flex-1">
               {item.q}
             </span>
-            <span className={`text-lg transition-transform flex-shrink-0 ms-3 ${openIndex === i ? 'text-[#E8743B]' : 'text-gray-400'}`}>
+            <span className={`text-lg transition-transform flex-shrink-0 ms-3 ${openIndex === i ? 'text-[#B64916]' : 'text-gray-400'}`}>
               {openIndex === i ? '▲' : '▼'}
             </span>
           </button>
@@ -89,7 +89,7 @@ export default function FaqSection({ locale }: { locale: string }) {
               {item.learnMoreHref && (
                 <Link
                   href={`/${locale}${item.learnMoreHref}`}
-                  className="inline-block mt-3 text-xs font-semibold text-[#2D5F5F] hover:text-[#E8743B] underline transition-colors"
+                  className="inline-block mt-3 text-xs font-semibold text-[#2D5F5F] hover:text-[#B64916] underline transition-colors"
                 >
                   {item.learnMoreLabel}
                 </Link>

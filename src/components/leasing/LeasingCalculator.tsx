@@ -66,6 +66,7 @@ export default function LeasingCalculator({
           </label>
           <select
             value={vehicleId}
+            aria-label={t('vehicle')}
             onChange={(e) => setVehicleId(e.target.value)}
             className="w-full h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
@@ -111,6 +112,7 @@ export default function LeasingCalculator({
           </label>
           <input
             type="range"
+            aria-label={`${t('down_payment')}: ₪${downPayment.toLocaleString()}`}
             min={0}
             max={50000}
             step={1000}

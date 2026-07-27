@@ -43,7 +43,7 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
     >
       {/* Header */}
       <div className="mb-10">
-        <p className="text-[#E8743B] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
+        <p className="text-[#C24E17] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
         <h1 className="text-4xl font-black text-[#0D2B2B] mb-3">
           {isHe ? 'מידע על ביטוח' : 'Insurance Information'}
         </h1>
@@ -169,7 +169,7 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
           <div className="bg-[#eef6f6] border border-[#B8D8D8] rounded-2xl p-6 mb-4">
             <div className={`flex items-center justify-between mb-4 flex-wrap gap-3 ${isHe ? 'flex-row-reverse' : ''}`}>
               <div>
-                <span className="inline-block bg-[#E8743B] text-white text-xs font-bold px-3 py-1 rounded-full mb-2">
+                <span className="inline-block bg-[#C24E17] text-white text-xs font-bold px-3 py-1 rounded-full mb-2">
                   {isHe ? 'מומלץ' : 'Recommended'}
                 </span>
                 <p className="font-bold text-[#0D2B2B] text-lg">
@@ -177,7 +177,7 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
                 </p>
               </div>
               <div className={isHe ? 'text-right' : 'text-left'}>
-                <p className="text-3xl font-black text-[#E8743B]">₪45</p>
+                <p className="text-3xl font-black text-[#C24E17]">₪45</p>
                 <p className="text-sm text-gray-500">{isHe ? 'לכל יום שכירות' : 'per rental day'}</p>
               </div>
             </div>
@@ -201,7 +201,7 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
                 'Full peace of mind throughout the rental period',
               ]).map((item, i) => (
                 <li key={i} className="flex items-start gap-2">
-                  <span className="text-[#E8743B] font-bold shrink-0">✓</span>
+                  <span className="text-[#C24E17] font-bold shrink-0">✓</span>
                   {item}
                 </li>
               ))}
@@ -371,7 +371,7 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
             <div className={`flex gap-3 shrink-0 flex-wrap ${isHe ? 'flex-row-reverse' : ''}`}>
               <a
                 href="tel:09-9509757"
-                className="bg-[#E8743B] hover:bg-[#d4632a] text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-colors whitespace-nowrap"
+                className="bg-[#C24E17] hover:bg-[#d4632a] text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-colors whitespace-nowrap"
               >
                 {isHe ? '📞 התקשר עכשיו' : '📞 Call Us Now'}
               </a>

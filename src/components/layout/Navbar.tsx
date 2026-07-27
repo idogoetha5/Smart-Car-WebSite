@@ -79,7 +79,7 @@ export default function Navbar() {
             {/* CTA button */}
             <Link
               href={`/${locale}/rental`}
-              className="hidden md:block px-5 py-2 bg-[#E8743B] text-white text-sm font-bold rounded-xl hover:bg-[#d4632a] transition-colors shadow-sm"
+              className="hidden md:block px-5 py-2 bg-[#C24E17] text-white text-sm font-bold rounded-xl hover:bg-[#d4632a] transition-colors shadow-sm"
             >
               {t('rental')}
             </Link>
@@ -115,7 +115,7 @@ export default function Navbar() {
             <div className="mt-3 px-4">
               <Link
                 href={`/${locale}/rental`}
-                className="block w-full py-3 text-center bg-[#E8743B] text-white font-bold rounded-xl hover:bg-[#d4632a] transition-colors"
+                className="block w-full py-3 text-center bg-[#C24E17] text-white font-bold rounded-xl hover:bg-[#d4632a] transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 {t('rental')}

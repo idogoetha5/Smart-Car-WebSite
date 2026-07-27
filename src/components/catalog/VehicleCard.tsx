@@ -179,7 +179,7 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
             {(isHe ? categoryLabelHe : categoryLabelEn)[vehicle.category] ?? vehicle.category}
           </span>
           {vehicle.isFeatured && (
-            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#E8743B]/10 text-[#E8743B] flex items-center gap-1">
+            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#C24E17]/10 text-[#C24E17] flex items-center gap-1">
               <Star className="w-3 h-3 fill-[#E8743B] stroke-[#E8743B]" />
               {isHe ? 'מומלץ' : 'Featured'}
             </span>
@@ -283,7 +283,7 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
           )}
           <Link
             href={`/${locale}/leasing?vehicle=${vehicle.id}&make=${encodeURIComponent(vehicle.make)}&model=${encodeURIComponent(vehicle.model)}#calculator`}
-            className="py-2.5 px-4 border-2 border-[#E8743B] text-[#E8743B] text-sm font-bold rounded-xl hover:bg-[#E8743B]/5 transition-colors text-center"
+            className="py-2.5 px-4 border-2 border-[#C24E17] text-[#C24E17] text-sm font-bold rounded-xl hover:bg-[#C24E17]/5 transition-colors text-center"
           >
             {t('leasing_inquiry')}
           </Link>

@@ -22,7 +22,7 @@ export default function GlobalError({
           <p className="text-gray-500 mb-6">משהו השתבש. אנו כבר עובדים על תיקון הבעיה.</p>
           <button
             onClick={reset}
-            className="px-6 py-3 bg-[#E8743B] text-white font-bold rounded-xl hover:bg-[#d4632a] transition-colors"
+            className="px-6 py-3 bg-[#C24E17] text-white font-bold rounded-xl hover:bg-[#d4632a] transition-colors"
           >
             נסה שנית
           </button>

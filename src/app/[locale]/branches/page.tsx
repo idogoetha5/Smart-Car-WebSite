@@ -125,7 +125,7 @@ export default async function BranchesPage({
 
                 {/* Address */}
                 <div className="flex items-start gap-2 mb-3">
-                  <span className="text-[#E8743B] mt-0.5 shrink-0">📍</span>
+                  <span className="text-[#C24E17] mt-0.5 shrink-0">📍</span>
                   <p className="text-[#0D2B2B] font-medium text-sm">
                     {isHe ? branch.addressHe : branch.addressEn}
                   </p>
@@ -134,7 +134,7 @@ export default async function BranchesPage({
                 {/* Phone */}
                 <div className="flex items-center gap-2 mb-5">
                   <span className="text-gray-400 shrink-0">📞</span>
-                  <a href={`tel:${branch.phone}`} className="text-[#E8743B] font-bold hover:underline">
+                  <a href={`tel:${branch.phone}`} className="text-[#C24E17] font-bold hover:underline">
                     {branch.phone}
                   </a>
                 </div>
@@ -184,7 +184,7 @@ export default async function BranchesPage({
                   </a>
                   <a
                     href={`tel:${branch.phone}`}
-                    className="flex-1 border-2 border-[#E8743B] text-[#E8743B] py-3 rounded-xl text-center font-bold hover:bg-orange-50 transition-colors text-sm"
+                    className="flex-1 border-2 border-[#C24E17] text-[#C24E17] py-3 rounded-xl text-center font-bold hover:bg-orange-50 transition-colors text-sm"
                   >
                     📞 {isHe ? 'התקשר' : 'Call'}
                   </a>

@@ -89,7 +89,7 @@ function VehicleLeaseCard({ vehicle, locale }: { vehicle: Vehicle; locale: strin
           </div>
           <Link
             href={`/${locale}/leasing?vehicle=${vehicle.id}#calculator`}
-            className="block w-full py-2.5 text-center bg-[#E8743B] hover:bg-[#d4632a] text-white font-bold rounded-xl transition-colors text-sm"
+            className="block w-full py-2.5 text-center bg-[#C24E17] hover:bg-[#d4632a] text-white font-bold rounded-xl transition-colors text-sm"
           >
             {isHe ? 'לפרטים' : 'Details'}
           </Link>
@@ -156,9 +156,9 @@ export default async function LeasingPage({
               </p>
               <h1 className="text-4xl sm:text-5xl font-black leading-tight mb-4">
                 {isHe ? (
-                  <>ליסינג עסקי<br /><span className="text-[#E8743B]">חכם יותר</span></>
+                  <>ליסינג עסקי<br /><span className="text-[#C24E17]">חכם יותר</span></>
                 ) : (
-                  <>Business leasing<br /><span className="text-[#E8743B]">made smarter</span></>
+                  <>Business leasing<br /><span className="text-[#C24E17]">made smarter</span></>
                 )}
               </h1>
               <p className="text-[#B8D8D8] text-lg mb-3">
@@ -166,13 +166,13 @@ export default async function LeasingPage({
                   ? 'תוכניות ליסינג מותאמות אישית לעסקים וללקוחות פרטיים, עם מגוון רכבים וגמישות מלאה'
                   : 'Tailored leasing plans for businesses and private customers, with a wide range of vehicles and full flexibility'}
               </p>
-              <p className="text-[#E8743B] text-base font-semibold mb-8">
+              <p className="text-[#C24E17] text-base font-semibold mb-8">
                 {isHe ? 'קבל הצעת מחיר עוד היום!' : 'Get a quote today!'}
               </p>
               <div className={`flex gap-4 ${isHe ? 'justify-end flex-row-reverse' : ''}`}>
                 <a
                   href="tel:09-9509757"
-                  className="flex items-center gap-2 px-7 py-3.5 bg-[#E8743B] hover:bg-[#d4632a] text-white font-bold rounded-xl transition-colors"
+                  className="flex items-center gap-2 px-7 py-3.5 bg-[#C24E17] hover:bg-[#d4632a] text-white font-bold rounded-xl transition-colors"
                 >
                   <Phone className="w-4 h-4" />
                   09-9509757
@@ -206,7 +206,7 @@ export default async function LeasingPage({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {benefits.map((b) => (
               <div key={b} className={`flex items-start gap-3 ${isHe ? 'flex-row-reverse text-right' : ''}`}>
-                <CheckCircle2 className="w-6 h-6 text-[#E8743B] shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-6 h-6 text-[#C24E17] shrink-0 mt-0.5" />
                 <span className="text-[#B8D8D8] font-medium">{b}</span>
               </div>
             ))}
@@ -218,7 +218,7 @@ export default async function LeasingPage({
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className={`mb-10 ${isHe ? 'text-right' : 'text-left'}`}>
-            <p className="text-[#E8743B] text-sm font-semibold uppercase tracking-widest mb-2">
+            <p className="text-[#C24E17] text-sm font-semibold uppercase tracking-widest mb-2">
               {isHe ? 'הצי שלנו' : 'Our Fleet'}
             </p>
             <h2 className="text-3xl font-black text-[#0D2B2B]">
@@ -275,7 +275,7 @@ export default async function LeasingPage({
       </section>
 
       {/* ── CONTACT BAR ───────────────────────────────────────── */}
-      <section className="py-12 bg-[#E8743B] text-white">
+      <section className="py-12 bg-[#C24E17] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className={`flex flex-col sm:flex-row items-center justify-between gap-6 ${isHe ? 'sm:flex-row-reverse' : ''}`}>
             <div className={isHe ? 'text-right' : 'text-left'}>
@@ -289,7 +289,7 @@ export default async function LeasingPage({
             <div className="flex flex-wrap gap-4">
               <a
                 href="tel:09-9509757"
-                className="flex items-center gap-2 px-7 py-3.5 bg-white text-[#E8743B] font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-md"
+                className="flex items-center gap-2 px-7 py-3.5 bg-white text-[#C24E17] font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-md"
               >
                 <Phone className="w-4 h-4" />
                 09-9509757

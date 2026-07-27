@@ -50,7 +50,7 @@ export default function VehicleGallery({ images, alt }: Props) {
               key={i}
               onClick={() => setActive(i)}
               className={`flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-all relative ${
-                i === active ? 'border-[#E8743B]' : 'border-transparent opacity-60 hover:opacity-100'
+                i === active ? 'border-[#C24E17]' : 'border-transparent opacity-60 hover:opacity-100'
               }`}
               aria-label={`תמונה ${i + 1}`}
             >

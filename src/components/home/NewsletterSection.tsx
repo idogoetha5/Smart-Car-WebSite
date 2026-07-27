@@ -44,7 +44,7 @@ export default function NewsletterSection({ locale }: { locale: string }) {
           </>
         ) : (
           <>
-            <div className="inline-block bg-[#E8743B]/20 text-[#E8743B] text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wide">
+            <div className="inline-block bg-[#C24E17]/20 text-[#C24E17] text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wide">
               {isHe ? 'מבצעים בלעדיים' : 'Exclusive Offers'}
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
@@ -70,13 +70,14 @@ export default function NewsletterSection({ locale }: { locale: string }) {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
+                aria-label={isHe ? 'כתובת האימייל שלך' : 'Your email address'}
                 placeholder={isHe ? 'כתובת האימייל שלך' : 'Your email address'}
                 className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#E8743B] text-sm"
               />
               <button
                 type="submit"
                 disabled={status === 'loading'}
-                className="px-6 py-3 bg-[#E8743B] hover:bg-[#d4632a] disabled:opacity-60 text-white font-bold rounded-xl transition-colors text-sm whitespace-nowrap"
+                className="px-6 py-3 bg-[#C24E17] hover:bg-[#d4632a] disabled:opacity-60 text-white font-bold rounded-xl transition-colors text-sm whitespace-nowrap"
               >
                 {status === 'loading'
                   ? (isHe ? 'שולח...' : 'Sending...')

@@ -128,7 +128,7 @@ export default function ReviewsSection({ locale }: { locale: string }) {
 
         {/* Header */}
         <div className="text-center mb-10">
-          <p className="text-[#E8743B] text-sm font-semibold uppercase tracking-widest mb-2">
+          <p className="text-[#C24E17] text-sm font-semibold uppercase tracking-widest mb-2">
             {isHe ? 'לקוחות מספרים' : 'What customers say'}
           </p>
           <h2 className="text-2xl md:text-3xl font-bold text-[#0D2B2B]">
@@ -147,7 +147,7 @@ export default function ReviewsSection({ locale }: { locale: string }) {
             href="https://www.google.com/search?q=smart+car#lrd=0x151d4894faff7625:0x11c7acfa1038271c,1,,,,"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 mt-3 text-xs text-[#2D5F5F] hover:text-[#E8743B] underline transition-colors"
+            className="inline-flex items-center gap-1.5 mt-3 text-xs text-[#2D5F5F] hover:text-[#C24E17] underline transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -198,7 +198,7 @@ export default function ReviewsSection({ locale }: { locale: string }) {
                     key={i}
                     onClick={() => setActive(i)}
                     aria-label={`review ${i + 1}`}
-                    className={`w-2 h-2 rounded-full transition-all ${i === active ? 'bg-[#E8743B] w-6' : 'bg-gray-300'}`}
+                    className={`w-2 h-2 rounded-full transition-all ${i === active ? 'bg-[#C24E17] w-6' : 'bg-gray-300'}`}
                   />
                 ))}
               </div>
@@ -288,7 +288,7 @@ export default function ReviewsSection({ locale }: { locale: string }) {
                 <button
                   type="submit"
                   disabled={submitting || !formName.trim() || !formText.trim() || !turnstileToken}
-                  className="flex-1 bg-[#E8743B] disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm hover:bg-[#d4632a] transition-colors"
+                  className="flex-1 bg-[#C24E17] disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm hover:bg-[#d4632a] transition-colors"
                 >
                   {submitting ? (isHe ? 'שולח...' : 'Sending...') : (isHe ? 'שלח ביקורת' : 'Submit Review')}
                 </button>

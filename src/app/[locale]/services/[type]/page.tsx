@@ -221,7 +221,7 @@ export default async function ServicePage({
       {/* Hero */}
       <div className="bg-[#0D2B2B] py-20 px-6 text-center">
         {SERVICE_ICONS[type]}
-        <p className="text-[#E8743B] font-medium mb-3 tracking-wide text-sm">
+        <p className="text-[#C24E17] font-medium mb-3 tracking-wide text-sm">
           {isHe ? 'השירותים שלנו' : 'Our Services'}
         </p>
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{title}</h1>
@@ -266,7 +266,7 @@ export default async function ServicePage({
               href={`/${locale}/${btn.href}`}
               className={`font-bold px-8 py-4 rounded-xl transition-colors text-lg ${
                 btn.style === 'primary'
-                  ? 'bg-[#E8743B] text-white hover:bg-orange-600'
+                  ? 'bg-[#C24E17] text-white hover:bg-orange-600'
                   : 'border-2 border-white text-white hover:bg-white hover:text-[#0D2B2B]'
               }`}
             >

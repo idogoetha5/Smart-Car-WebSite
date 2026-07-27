@@ -147,7 +147,7 @@ function IsraelAddressInput({
         aria-autocomplete="list"
         aria-expanded={showDropdown}
         className={`w-full h-10 rounded-lg border-2 px-3 pe-9 text-sm outline-none transition-colors ${
-          isValid ? 'border-green-500 bg-green-50' : 'border-[#E8743B] focus:border-[#2D5F5F]'
+          isValid ? 'border-green-500 bg-green-50' : 'border-[#C24E17] focus:border-[#2D5F5F]'
         }`}
       />
       <span className="absolute end-3 top-2 text-base pointer-events-none" aria-hidden="true">
@@ -712,7 +712,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
                 key={extra.id}
                 className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${
                   selectedExtras.includes(extra.id)
-                    ? 'border-[#E8743B] bg-orange-50'
+                    ? 'border-[#C24E17] bg-orange-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
@@ -722,7 +722,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
                   onChange={() => toggleExtra(extra.id)}
                   className="hidden"
                 />
-                <span className="font-bold text-[#E8743B] shrink-0">{extra.priceLabel}</span>
+                <span className="font-bold text-[#C24E17] shrink-0">{extra.priceLabel}</span>
                 <div className="text-right">
                   <div className="flex items-center gap-2 justify-end">
                     {extra.popular && (
@@ -740,7 +740,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
             href={`/${locale}/insurance`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block mt-2 text-xs text-[#2D5F5F] hover:text-[#E8743B] underline transition-colors"
+            className="inline-block mt-2 text-xs text-[#2D5F5F] hover:text-[#C24E17] underline transition-colors"
           >
             {isHe ? 'מה כלול בביטוח שלנו? ←' : 'What does our insurance cover? →'}
           </a>
@@ -846,7 +846,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
             </div>
           )}
           <div className="flex justify-between font-bold text-lg border-t border-[#B8D8D8] pt-2">
-            <span className="text-[#E8743B]">₪{grandTotal.toLocaleString()}</span>
+            <span className="text-[#C24E17]">₪{grandTotal.toLocaleString()}</span>
             <span>{isHe ? 'סה"כ לתשלום' : 'Total'}</span>
           </div>
           <p className="text-xs text-gray-400 text-center pt-1">

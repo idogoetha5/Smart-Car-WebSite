@@ -115,7 +115,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
     <section id="calculator" ref={sectionRef} className="py-16 bg-white scroll-mt-20">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className={`mb-8 ${isHe ? 'text-right' : 'text-left'}`}>
-          <p className="text-[#E8743B] text-sm font-semibold uppercase tracking-widest mb-2">
+          <p className="text-[#C24E17] text-sm font-semibold uppercase tracking-widest mb-2">
             {isHe ? 'קבל הצעת מחיר מיידית' : 'Get an Instant Quote'}
           </p>
           <h2 className="text-3xl font-black text-[#0D2B2B]">
@@ -145,6 +145,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
               ) : (
                 <select
                   value={selectedVehicle?.id ?? ''}
+                  aria-label={isHe ? 'בחר רכב' : 'Select Vehicle'}
                   onChange={(e) => {
                     const found = vehicles.find(v => v.id === e.target.value) ?? null;
                     setSelectedVehicle(found);
@@ -192,10 +193,11 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
             <div className={isHe ? 'text-right' : 'text-left'}>
               <label className="block font-semibold text-[#0D2B2B] mb-2">
                 {isHe ? 'משך חוזה:' : 'Contract duration:'}{' '}
-                <span className="text-[#E8743B] font-bold">{duration} {isHe ? 'חודשים' : 'months'}</span>
+                <span className="text-[#C24E17] font-bold">{duration} {isHe ? 'חודשים' : 'months'}</span>
               </label>
               <input
                 type="range" min={12} max={60} step={6} value={duration}
+                aria-label={`${isHe ? 'משך חוזה' : 'Contract duration'}: ${duration} ${isHe ? 'חודשים' : 'months'}`}
                 onChange={(e) => setDuration(Number(e.target.value))}
                 className="w-full h-2 accent-[#E8743B]"
                 dir={isHe ? 'rtl' : 'ltr'}
@@ -214,7 +216,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
               <div className="grid grid-cols-2 gap-2">
                 {MILEAGE_OPTIONS.map(opt => (
                   <button key={opt.value} onClick={() => setMileage(opt.value)}
-                    className={`p-2.5 rounded-xl border-2 text-sm font-medium transition-all ${mileage === opt.value ? 'border-[#E8743B] bg-orange-50 text-[#E8743B] font-bold' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
+                    className={`p-2.5 rounded-xl border-2 text-sm font-medium transition-all ${mileage === opt.value ? 'border-[#C24E17] bg-orange-50 text-[#C24E17] font-bold' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
                   >
                     {isHe ? opt.labelHe : opt.labelEn}
                   </button>
@@ -232,7 +234,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
               {selectedVehicle ? (
                 <>
                   <div className={isHe ? 'text-right' : 'text-left'}>
-                    <div className="text-6xl font-black text-[#E8743B] mb-1 tabular-nums">
+                    <div className="text-6xl font-black text-[#C24E17] mb-1 tabular-nums">
                       ₪{monthlyPrice.toLocaleString()}
                     </div>
                     <div className="text-[#B8D8D8] text-sm mb-1">
@@ -283,7 +285,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
               <button
                 onClick={handleWhatsApp}
                 disabled={!selectedVehicle}
-                className="w-full bg-[#E8743B] hover:bg-[#d4632a] disabled:opacity-40 disabled:cursor-not-allowed text-white py-3.5 rounded-xl font-bold text-sm transition-colors"
+                className="w-full bg-[#C24E17] hover:bg-[#d4632a] disabled:opacity-40 disabled:cursor-not-allowed text-white py-3.5 rounded-xl font-bold text-sm transition-colors"
               >
                 {isHe ? 'שלח בקשה בוואטסאפ' : 'Send Request via WhatsApp'}
               </button>
@@ -355,7 +357,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
               {formError && <p className="sm:col-span-2 text-red-600 text-sm">{formError}</p>}
               <div className="sm:col-span-2 flex gap-3">
                 <button type="submit" disabled={formSending || !formName.trim() || !formPhone.trim() || !turnstileToken}
-                  className="flex-1 bg-[#E8743B] disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm hover:bg-[#d4632a] transition-colors flex items-center justify-center gap-2">
+                  className="flex-1 bg-[#C24E17] disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm hover:bg-[#d4632a] transition-colors flex items-center justify-center gap-2">
                   <Send className="w-4 h-4" />
                   {formSending ? (isHe ? 'שולח...' : 'Sending...') : (isHe ? 'שלח פנייה' : 'Submit Inquiry')}
                 </button>

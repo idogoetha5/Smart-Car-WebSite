@@ -36,7 +36,7 @@ export default async function AboutPage({
           />
         </div>
         <div className="relative z-10">
-          <p className="text-[#E8743B] font-medium mb-3 tracking-widest text-sm">
+          <p className="text-[#C24E17] font-medium mb-3 tracking-widest text-sm">
             {isHe ? 'הסיפור שלנו' : 'Our Story'}
           </p>
           <h1 className="mb-6">
@@ -64,7 +64,7 @@ export default async function AboutPage({
 
             {/* Text */}
             <div className="text-start">
-              <p className="text-[#E8743B] font-medium mb-2 tracking-wide text-sm">
+              <p className="text-[#C24E17] font-medium mb-2 tracking-wide text-sm">
                 {isHe ? 'המייסדת' : 'The Founder'}
               </p>
               <h2 className="text-3xl font-bold text-[#0D2B2B] mb-6">
@@ -92,7 +92,7 @@ export default async function AboutPage({
                   className="object-cover rounded-3xl"
                 />
               </div>
-              <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-[#E8743B] rounded-2xl opacity-20" />
+              <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-[#C24E17] rounded-2xl opacity-20" />
             </div>
           </div>
         </div>
@@ -102,7 +102,7 @@ export default async function AboutPage({
       <div className="bg-gray-50 py-20 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <p className="text-[#E8743B] font-medium mb-2 text-sm tracking-wide">
+            <p className="text-[#C24E17] font-medium mb-2 text-sm tracking-wide">
               {isHe ? 'מה מניע אותנו' : 'What drives us'}
             </p>
             <h2 className="text-3xl font-bold text-[#0D2B2B]">
@@ -162,7 +162,7 @@ export default async function AboutPage({
       {/* Full story */}
       <div className="bg-white py-20 px-6">
         <div className="max-w-3xl mx-auto text-start">
-          <p className="text-[#E8743B] font-medium mb-2 text-sm tracking-wide text-center">
+          <p className="text-[#C24E17] font-medium mb-2 text-sm tracking-wide text-center">
             {isHe ? 'הצוות שלנו' : 'Our Team'}
           </p>
           <h2 className="text-3xl font-bold text-[#0D2B2B] mb-8 text-center">
@@ -197,7 +197,7 @@ export default async function AboutPage({
               { number: '24/7', label: isHe ? 'שירות ותמיכה' : 'Service & Support' },
             ].map((stat) => (
               <div key={stat.label}>
-                <p className="text-4xl md:text-5xl font-bold text-[#E8743B] mb-2">{stat.number}</p>
+                <p className="text-4xl md:text-5xl font-bold text-[#C24E17] mb-2">{stat.number}</p>
                 <p className="text-[#B8D8D8] text-sm">{stat.label}</p>
               </div>
             ))}
@@ -208,7 +208,7 @@ export default async function AboutPage({
       {/* Fleet types */}
       <div className="bg-gray-50 py-20 px-6">
         <div className="max-w-5xl mx-auto text-center">
-          <p className="text-[#E8743B] font-medium mb-2 text-sm tracking-wide">
+          <p className="text-[#C24E17] font-medium mb-2 text-sm tracking-wide">
             {isHe ? 'הצי שלנו' : 'Our Fleet'}
           </p>
           <h2 className="text-3xl font-bold text-[#0D2B2B] mb-4">
@@ -238,7 +238,7 @@ export default async function AboutPage({
       </div>
 
       {/* CTA */}
-      <div className="bg-[#E8743B] py-16 px-6 text-center">
+      <div className="bg-[#C24E17] py-16 px-6 text-center">
         <h2 className="text-3xl font-bold text-white mb-4">
           {isHe ? 'מוכנים להתחיל?' : 'Ready to get started?'}
         </h2>
@@ -250,13 +250,13 @@ export default async function AboutPage({
         <div className="flex gap-4 justify-center flex-wrap">
           <Link
             href={`/${locale}/rental`}
-            className="bg-white text-[#E8743B] font-bold px-8 py-4 rounded-xl hover:bg-gray-100 transition-colors"
+            className="bg-white text-[#C24E17] font-bold px-8 py-4 rounded-xl hover:bg-gray-100 transition-colors"
           >
             {isHe ? 'השכר רכב עכשיו' : 'Book a Vehicle'}
           </Link>
           <Link
             href={`/${locale}/contact`}
-            className="border-2 border-white text-white font-bold px-8 py-4 rounded-xl hover:bg-white hover:text-[#E8743B] transition-colors"
+            className="border-2 border-white text-white font-bold px-8 py-4 rounded-xl hover:bg-white hover:text-[#C24E17] transition-colors"
           >
             {isHe ? 'צור קשר' : 'Contact Us'}
           </Link>

@@ -84,6 +84,7 @@ export default function ConditionReportPage() {
               </label>
               <input
                 type="text"
+                aria-label={isHe ? 'מספר הזמנה' : 'Booking ID'}
                 value={bookingId}
                 onChange={e => setBookingId(e.target.value.toUpperCase())}
                 placeholder="ABC12345"
@@ -97,6 +98,7 @@ export default function ConditionReportPage() {
               <input
                 type="text"
                 required
+                aria-label={isHe ? 'שם הלקוח' : 'Customer Name'}
                 value={customerName}
                 onChange={e => setCustomerName(e.target.value)}
                 className="w-full h-10 border-2 border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:border-[#2D5F5F]"
@@ -110,6 +112,7 @@ export default function ConditionReportPage() {
               </label>
               <input
                 type="number"
+                aria-label={isHe ? 'קריאת קילומטראז\' (ק"מ)' : 'Odometer Reading (km)'}
                 value={mileage}
                 onChange={e => setMileage(e.target.value)}
                 placeholder="0"
@@ -122,6 +125,7 @@ export default function ConditionReportPage() {
               </label>
               <select
                 value={fuelLevel}
+                aria-label={isHe ? 'רמת דלק' : 'Fuel Level'}
                 onChange={e => setFuelLevel(e.target.value)}
                 className="w-full h-10 border-2 border-gray-200 rounded-xl px-3 text-sm bg-white focus:outline-none focus:border-[#2D5F5F]"
               >
@@ -172,6 +176,7 @@ export default function ConditionReportPage() {
           </label>
           <textarea
             value={notes}
+            aria-label={isHe ? 'הערות נוספות' : 'Additional Notes'}
             onChange={e => setNotes(e.target.value)}
             rows={4}
             placeholder={isHe ? 'תאר כל נזק, בעיה או הערה...' : 'Describe any damage, issues, or notes...'}

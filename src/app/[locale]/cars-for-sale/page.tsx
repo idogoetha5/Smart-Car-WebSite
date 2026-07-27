@@ -67,7 +67,7 @@ export default async function CarsForSalePage({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" dir={isHe ? 'rtl' : 'ltr'}>
       <div className="mb-10">
-        <div className="flex items-center gap-2 text-[#E8743B] mb-3">
+        <div className="flex items-center gap-2 text-[#C24E17] mb-3">
           <Car className="w-5 h-5" />
           <span className="text-sm font-semibold uppercase tracking-wide">
             {isHe ? 'מכירת רכב' : 'Cars for Sale'}
@@ -146,7 +146,7 @@ export default async function CarsForSalePage({
                   </div>
                 )}
                 <div className="absolute top-3 start-3">
-                  <span className="px-3 py-1 bg-[#E8743B] text-white text-xs font-bold rounded-full">
+                  <span className="px-3 py-1 bg-[#C24E17] text-white text-xs font-bold rounded-full">
                     {isHe ? 'למכירה' : 'For Sale'}
                   </span>
                 </div>
@@ -204,7 +204,7 @@ export default async function CarsForSalePage({
         <div className="flex flex-wrap justify-center gap-4">
           <a
             href="tel:09-9509757"
-            className="px-6 py-3 bg-[#E8743B] text-white font-bold rounded-xl hover:bg-[#d4622a] transition-colors"
+            className="px-6 py-3 bg-[#C24E17] text-white font-bold rounded-xl hover:bg-[#d4622a] transition-colors"
           >
             📞 09-9509757
           </a>

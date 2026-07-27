@@ -12,7 +12,7 @@ export default async function CookiesPage({ params }: { params: Promise<{ locale
   return (
     <div className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 ${isHe ? 'text-right' : 'text-left'}`} dir={isHe ? 'rtl' : 'ltr'}>
       <div className="mb-10">
-        <p className="text-[#E8743B] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
+        <p className="text-[#C24E17] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
         <h1 className="text-4xl font-black text-[#0D2B2B] mb-2">
           {isHe ? 'מדיניות עוגיות' : 'Cookies Policy'}
         </h1>

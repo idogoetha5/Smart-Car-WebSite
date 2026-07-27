@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createAdminClient();
 
-    const { data: conflicts } = await supabase
+    const { data: conflicts, error } = await supabase
       .from('bookings')
       .select('id')
       .eq('vehicle_id', vehicleId)
@@ -33,10 +33,20 @@ export async function GET(request: NextRequest) {
       .lt('pickup_date', dropoffDate)
       .gt('dropoff_date', pickupDate);
 
+    if (error) {
+      return NextResponse.json(
+        { available: false, error: 'Availability temporarily unavailable' },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json({
-      available: !conflicts || conflicts.length === 0,
+      available: conflicts.length === 0,
     });
   } catch {
-    return NextResponse.json({ available: true });
+    return NextResponse.json(
+      { available: false, error: 'Availability temporarily unavailable' },
+      { status: 503 }
+    );
   }
 }
