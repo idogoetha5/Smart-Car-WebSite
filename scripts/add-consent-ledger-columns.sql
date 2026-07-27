@@ -31,3 +31,22 @@ DROP POLICY IF EXISTS "Service role manages newsletter_subscribers" ON newslette
 CREATE POLICY "Service role manages newsletter_subscribers"
   ON newsletter_subscribers FOR ALL
   USING (auth.role() = 'service_role');
+
+-- 3) Contact-form leads were only ever sent as an email notification —
+--    an EmailJS outage silently lost the lead with no stored record.
+--    Leads are now saved here BEFORE the notification email is attempted.
+CREATE TABLE IF NOT EXISTS contact_leads (
+  id          TEXT        PRIMARY KEY DEFAULT 'c' || replace(gen_random_uuid()::TEXT, '-', ''),
+  name        TEXT        NOT NULL,
+  phone       TEXT        NOT NULL,
+  email       TEXT,
+  message     TEXT        NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE contact_leads ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Service role manages contact_leads" ON contact_leads;
+CREATE POLICY "Service role manages contact_leads"
+  ON contact_leads FOR ALL
+  USING (auth.role() = 'service_role');
