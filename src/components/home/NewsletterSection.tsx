@@ -3,25 +3,44 @@
 import { useState } from 'react';
 import TurnstileWidget from '@/components/ui/Turnstile';
 
+// Exact consent wording shown to the user. Stored alongside the
+// subscription so we can prove later what was agreed to, and versioned so
+// a future change to the wording is distinguishable.
+const MARKETING_CONSENT_VERSION = '1.0';
+const MARKETING_CONSENT_TEXT = {
+  he: 'אני מאשר/ת קבלת דיוור פרסומי מ-SmartCar לכתובת הדוא"ל שמסרתי, וידוע לי שאוכל להסיר את עצמי בכל עת.',
+  en: 'I agree to receive marketing email from SmartCar at the address I provided, and I understand I can unsubscribe at any time.',
+} as const;
+
 export default function NewsletterSection({ locale }: { locale: string }) {
   const isHe = locale === 'he';
   const [email, setEmail] = useState('');
+  const [consent, setConsent] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !turnstileToken) return;
+    if (!email.trim() || !turnstileToken || !consent) return;
     setStatus('loading');
     try {
       const res = await fetch('/api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), turnstileToken }),
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          turnstileToken,
+          consent: true,
+          consentText: MARKETING_CONSENT_TEXT[isHe ? 'he' : 'en'],
+          consentVersion: MARKETING_CONSENT_VERSION,
+          locale: isHe ? 'he' : 'en',
+          source: 'newsletter_section',
+        }),
       });
       if (!res.ok) throw new Error('api');
       setStatus('success');
       setEmail('');
+      setConsent(false);
     } catch {
       setStatus('error');
     }
@@ -76,7 +95,7 @@ export default function NewsletterSection({ locale }: { locale: string }) {
               />
               <button
                 type="submit"
-                disabled={status === 'loading'}
+                disabled={status === 'loading' || !consent}
                 className="px-6 py-3 bg-[#C24E17] hover:bg-[#d4632a] disabled:opacity-60 text-white font-bold rounded-xl transition-colors text-sm whitespace-nowrap"
               >
                 {status === 'loading'
@@ -85,14 +104,32 @@ export default function NewsletterSection({ locale }: { locale: string }) {
               </button>
             </form>
 
+            <label className="flex items-start gap-2 max-w-md mx-auto mt-4 text-start cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={e => setConsent(e.target.checked)}
+                className="mt-0.5 w-4 h-4 shrink-0 accent-[#C24E17] focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#0D2B2B]"
+              />
+              <span className="text-white/80 text-xs leading-relaxed">
+                {MARKETING_CONSENT_TEXT[isHe ? 'he' : 'en']}
+              </span>
+            </label>
+
             {status === 'error' && (
               <p className="mt-3 text-red-400 text-xs">
                 {isHe ? 'שגיאה בשליחה, נסה שנית' : 'Failed to send, please try again'}
               </p>
             )}
 
-            <p className="mt-4 text-white/50 text-xs">
-              {isHe ? 'ללא ספאם. ביטול בכל עת.' : 'No spam. Unsubscribe at any time.'}
+            <p className="mt-4 text-white/70 text-xs">
+              {isHe ? 'ללא ספאם. ' : 'No spam. '}
+              <a
+                href={`/${isHe ? 'he' : 'en'}/unsubscribe`}
+                className="underline hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#0D2B2B] rounded"
+              >
+                {isHe ? 'להסרה מרשימת הדיוור' : 'Unsubscribe at any time'}
+              </a>
             </p>
           </>
         )}

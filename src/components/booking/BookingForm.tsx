@@ -286,6 +286,9 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
   const submittingRef = useRef(false);
   const today = new Date().toISOString().split('T')[0];
   const [draftSaved, setDraftSaved] = useState(false);
+  // true when the online catalogue reported no match for these dates —
+  // the request is still submitted, and staff check the full fleet.
+  const [availabilityUnmatched, setAvailabilityUnmatched] = useState(false);
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileFailed, setTurnstileFailed] = useState(false);
@@ -448,6 +451,20 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           couponDiscount: couponDiscount || undefined,
           pickup_time: pickupTime,
           return_time: returnTime,
+          locale,
+          // Marketing attribution only (no PII) — read from the URL.
+          attribution: (() => {
+            if (typeof window === 'undefined') return undefined;
+            const q = new URLSearchParams(window.location.search);
+            const keys = ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','gclid','fbclid'];
+            const out: Record<string,string> = {};
+            for (const k of keys) { const v = q.get(k); if (v) out[k] = v; }
+            if (document.referrer) out.referrer = document.referrer;
+            return Object.keys(out).length ? out : undefined;
+          })(),
+          // The online catalogue is only part of the fleet — flag requests
+          // where it showed no match so staff check the full fleet.
+          manualMatchRequired: availabilityUnmatched,
           additionalDriverName: selectedExtras.includes('driver') ? additionalDriverName : undefined,
           turnstileToken,
         }),
@@ -621,6 +638,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           vehicleId={vehicle.id}
           pickupDate={pickupDate}
           dropoffDate={dropoffDate}
+          onResult={(available) => setAvailabilityUnmatched(available === false)}
         />
       )}
 

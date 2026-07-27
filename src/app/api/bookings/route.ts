@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
@@ -14,6 +15,30 @@ const EXTRAS_PRICE: Record<string, number> = {
   baby_seat: 20,
   driver: 25,
 };
+
+// Wording pinned into the consent ledger. TERMS_VERSION must match the
+// version displayed on /terms; the hashes identify the exact text the
+// customer was shown at the moment of acceptance.
+const TERMS_VERSION = '2.0';
+const TERMS_CONSENT_TEXT =
+  'אני מאשר/ת שקראתי והסכמתי לתנאי השימוש ולמדיניות הפרטיות';
+const MARKETING_CONSENT_TEXT =
+  'אני מעוניין/ת לקבל עדכונים ומבצעים מ-SmartCar בדוא"ל (ניתן לביטול בכל עת)';
+const sha256 = (v: string) => createHash('sha256').update(v, 'utf8').digest('hex');
+const TERMS_TEXT_HASH = sha256(`${TERMS_VERSION}|${TERMS_CONSENT_TEXT}`);
+const MARKETING_TEXT_HASH = sha256(MARKETING_CONSENT_TEXT);
+
+/** Marketing attribution only — never PII, and length-capped. */
+function sanitizeAttribution(raw: unknown): Record<string, string> | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const allowed = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid', 'referrer'];
+  const out: Record<string, string> = {};
+  for (const k of allowed) {
+    const v = (raw as Record<string, unknown>)[k];
+    if (typeof v === 'string' && v.trim()) out[k] = v.trim().slice(0, 200);
+  }
+  return Object.keys(out).length ? out : null;
+}
 
 async function checkAdminAuth() {
   const cookieStore = await cookies();
@@ -145,11 +170,21 @@ export async function POST(request: NextRequest) {
       notes:               body.notes ?? null,
       extras:              selectedExtras,
       additional_driver_name: body.additionalDriverName ?? null,
-      // Consent ledger — evidence of what the customer agreed to and when.
-      // Version string must match the one shown on /terms.
-      terms_version:       body.agreeTerms === true ? '2.0' : null,
+      // Consent ledger — evidence of exactly what the customer agreed to,
+      // when, in which language and from where. The text hashes pin the
+      // wording that was on screen, so a later edit to the terms or the
+      // marketing line cannot be confused with what was actually accepted.
+      terms_version:       body.agreeTerms === true ? TERMS_VERSION : null,
+      terms_text_hash:     body.agreeTerms === true ? TERMS_TEXT_HASH : null,
       terms_accepted_at:   body.agreeTerms === true ? new Date().toISOString() : null,
       marketing_consent:   body.marketingConsent === true,
+      marketing_text_hash: body.marketingConsent === true ? MARKETING_TEXT_HASH : null,
+      consent_locale:      typeof body.locale === 'string' ? body.locale.slice(0, 5) : null,
+      consent_source:      'booking_form',
+      attribution:         sanitizeAttribution(body.attribution),
+      // Set when the customer asked for a vehicle the online catalogue
+      // could not match — staff check the full fleet for an equivalent.
+      match_status:        body.manualMatchRequired === true ? 'MANUAL_MATCH_REQUIRED' : null,
       total_days:          totalDays,
       total_price:         serverTotalPrice,
       price_per_day:       serverPricePerDay,
@@ -215,8 +250,11 @@ async function sendRequestReceivedEmail({
           to_email:        booking.customer_email,
           to_name:         booking.customer_name,
           order_id:        String(booking.id).slice(0, 8).toUpperCase(),
-          booking_type:    'השכרה',
+          booking_type:    'בקשת הזמנה התקבלה — ממתינה לבדיקת זמינות ואישור',
           vehicle_name:    `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+          // Never implies "no car available" — the online catalogue is only
+          // part of the fleet and staff check the full fleet before replying.
+          message:         'בקשת ההזמנה שלך התקבלה ונמצאת בבדיקה. נציג יבדוק עבורך את הצי המלא, כולל רכב מאותה קבוצה או דומה, ויחזור אליך לאישור הרכב, המחיר והתנאים. זו אינה הזמנה מאושרת.',
           start_date:      formatDateHe(booking.pickup_date),
           end_date:        formatDateHe(booking.dropoff_date),
           pickup_location: booking.pickup_location,

@@ -6,9 +6,17 @@
 --    version the customer actually agreed to, the timestamp, nor the
 --    marketing opt-in itself were ever stored.
 ALTER TABLE bookings
-  ADD COLUMN IF NOT EXISTS terms_version      TEXT,
-  ADD COLUMN IF NOT EXISTS terms_accepted_at  TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS marketing_consent  BOOLEAN NOT NULL DEFAULT FALSE;
+  ADD COLUMN IF NOT EXISTS terms_version           TEXT,
+  ADD COLUMN IF NOT EXISTS terms_text_hash         TEXT,
+  ADD COLUMN IF NOT EXISTS terms_accepted_at       TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS marketing_consent       BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS marketing_text_hash     TEXT,
+  ADD COLUMN IF NOT EXISTS consent_locale          TEXT,
+  ADD COLUMN IF NOT EXISTS consent_source          TEXT,
+  ADD COLUMN IF NOT EXISTS attribution             JSONB,
+  -- 'MANUAL_MATCH_REQUIRED' when the online catalogue had no match and
+  -- staff must check the full fleet for an equivalent vehicle.
+  ADD COLUMN IF NOT EXISTS match_status            TEXT;
 
 -- 2) Newsletter signups had NO database record at all — the API only
 --    sent a notification email to the marketing inbox, so there was no
@@ -17,13 +25,22 @@ ALTER TABLE bookings
 --    (Full double opt-in / unsubscribe-link automation is a separate,
 --    bigger feature — not built here, flagged as a remaining gap.)
 CREATE TABLE IF NOT EXISTS newsletter_subscribers (
-  id          TEXT        PRIMARY KEY DEFAULT 'c' || replace(gen_random_uuid()::TEXT, '-', ''),
-  email       TEXT        NOT NULL UNIQUE,
-  consent_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  locale      TEXT,
-  source      TEXT        NOT NULL DEFAULT 'newsletter_form',
+  id              TEXT        PRIMARY KEY DEFAULT 'c' || replace(gen_random_uuid()::TEXT, '-', ''),
+  email           TEXT        NOT NULL UNIQUE,
+  consent_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  -- The exact wording the subscriber was shown, so the consent can be
+  -- proven rather than merely asserted, plus its version.
+  consent_text    TEXT,
+  consent_version TEXT,
+  locale          TEXT,
+  source          TEXT        NOT NULL DEFAULT 'newsletter_form',
+  -- Suppression list: non-null means unsubscribed. Every send must
+  -- exclude these rows; only a fresh explicit consent clears it.
   unsubscribed_at TIMESTAMPTZ
 );
+
+CREATE INDEX IF NOT EXISTS idx_newsletter_active
+  ON newsletter_subscribers(email) WHERE unsubscribed_at IS NULL;
 
 ALTER TABLE newsletter_subscribers ENABLE ROW LEVEL SECURITY;
 

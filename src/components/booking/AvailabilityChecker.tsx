@@ -9,12 +9,16 @@ interface AvailabilityCheckerProps {
   vehicleId: string;
   pickupDate: string;
   dropoffDate: string;
+  /** Reports whether the ONLINE catalogue found a match, so the request
+   *  can be flagged for a manual check against the full fleet. */
+  onResult?: (available: boolean | null) => void;
 }
 
 export function AvailabilityChecker({
   vehicleId,
   pickupDate,
   dropoffDate,
+  onResult,
 }: AvailabilityCheckerProps) {
   const t = useTranslations('booking');
   const { available, isChecking, checkAvailability } = useAvailability();
@@ -24,6 +28,10 @@ export function AvailabilityChecker({
       checkAvailability(vehicleId, pickupDate, dropoffDate);
     }
   }, [vehicleId, pickupDate, dropoffDate, checkAvailability]);
+
+  useEffect(() => {
+    if (!isChecking) onResult?.(available);
+  }, [available, isChecking, onResult]);
 
   if (isChecking) {
     return (

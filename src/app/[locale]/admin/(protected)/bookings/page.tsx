@@ -236,6 +236,11 @@ export default function AdminBookingsPage() {
                           נהג נוסף: {b.additional_driver_name}
                         </div>
                       )}
+                      {b.match_status === 'MANUAL_MATCH_REQUIRED' && (
+                        <div className="mt-1 inline-block bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">
+                          ⚠️ נדרשת התאמה ידנית מהצי המלא
+                        </div>
+                      )}
                     </td>
                     <td className="p-4 font-semibold text-gray-700">{formatPrice(b.total_price)}</td>
                     <td className="p-4"><BookingStatusBadge status={b.status} locale={locale} size="md" variant="admin" /></td>
