@@ -14,14 +14,14 @@ async function notifyOffice(report: {
   fuelLevel: string;
   damageList: string;
   notes: string;
-}) {
+}): Promise<boolean> {
   const serviceId  = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
   const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
   const publicKey  = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
   const privateKey = process.env.EMAILJS_PRIVATE_KEY;
   if (!serviceId || !templateId || !publicKey || !privateKey) {
     console.error('[condition-reports] EmailJS not configured — notification not sent for', report.id);
-    return;
+    return false;
   }
 
   const summary = `דוח מצב רכב #${report.id}\nהזמנה: ${report.bookingId || '-'}\nלקוח: ${report.customerName}\nק"מ: ${report.mileage ?? '-'}\nדלק: ${report.fuelLevel}\nנזקים: ${report.damageList || 'אין'}\nהערות: ${report.notes || '-'}`;
@@ -55,9 +55,12 @@ async function notifyOffice(report: {
     });
     if (!res.ok) {
       console.error('[condition-reports] EmailJS notify failed:', res.status, await res.text().catch(() => ''));
+      return false;
     }
+    return true;
   } catch (err) {
     console.error('[condition-reports] EmailJS notify error:', err);
+    return false;
   }
 }
 
@@ -107,7 +110,10 @@ export async function POST(request: NextRequest) {
   }
 
   const damageList = Object.entries(damages).filter(([, v]) => v).map(([k]) => k).join(', ');
-  await notifyOffice({
+  // Delivery state is reported honestly: the page only says the report
+  // was "forwarded to the team" if the office notification actually went
+  // out — otherwise it says "saved" with the reference ID.
+  const officeNotified = await notifyOffice({
     id: data.id,
     bookingId,
     customerName,
@@ -117,5 +123,8 @@ export async function POST(request: NextRequest) {
     notes,
   });
 
-  return NextResponse.json({ data: { id: data.id, createdAt: data.created_at } }, { status: 201 });
+  return NextResponse.json(
+    { data: { id: data.id, createdAt: data.created_at }, officeNotified },
+    { status: 201 }
+  );
 }

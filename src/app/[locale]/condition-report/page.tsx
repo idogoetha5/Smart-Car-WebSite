@@ -30,6 +30,7 @@ export default function ConditionReportPage() {
   const [notes, setNotes] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [reportId, setReportId] = useState('');
+  const [officeNotified, setOfficeNotified] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [website, setWebsite] = useState('');
@@ -53,6 +54,7 @@ export default function ConditionReportPage() {
         return;
       }
       setReportId(json.data?.id ?? '');
+      setOfficeNotified(json.officeNotified !== false);
       setSubmitted(true);
     } catch {
       setError(isHe ? 'שמירת הדוח נכשלה. נסה שוב.' : 'Failed to save the report. Please try again.');
@@ -69,9 +71,13 @@ export default function ConditionReportPage() {
           {isHe ? 'דוח מצב נשמר בהצלחה' : 'Condition report saved successfully'}
         </h2>
         <p className="text-gray-600">
-          {isHe
-            ? 'תודה. הדוח הועבר לצוות SmartCar לבדיקה.'
-            : 'Thank you. The report has been forwarded to the SmartCar team.'}
+          {officeNotified
+            ? (isHe
+                ? 'תודה. הדוח הועבר לצוות SmartCar לבדיקה.'
+                : 'Thank you. The report has been forwarded to the SmartCar team.')
+            : (isHe
+                ? 'הדוח נשמר במערכת. אם לא תקבלו אישור מהצוות בהקדם, אנא צרו קשר וציינו את מספר האסמכתא.'
+                : "The report has been saved. If you don't hear from our team soon, please contact us and mention the reference ID.")}
         </p>
         {reportId && (
           <p className="text-gray-400 text-xs mt-3">

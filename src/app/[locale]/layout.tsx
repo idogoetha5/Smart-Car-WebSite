@@ -110,6 +110,12 @@ export default async function LocaleLayout({
       >
         <NextIntlClientProvider messages={messages}>
           <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:start-4 focus:z-[100] focus:bg-[#0D2B2B] focus:text-white focus:px-4 focus:py-2 focus:rounded-lg"
+          >
+            {isRTL ? 'דלג לתוכן הראשי' : 'Skip to main content'}
+          </a>
+          <a
             href={`/${locale}/accessibility`}
             className="fixed top-4 left-4 z-50 bg-[#2D5F5F] text-white p-3 rounded-full shadow-lg hover:bg-[#1A3A3A] transition-colors"
             aria-label={isRTL ? 'הצהרת נגישות' : 'Accessibility Statement'}
@@ -119,7 +125,7 @@ export default async function LocaleLayout({
             <span className="sr-only">{isRTL ? 'נגישות' : 'Accessibility'}</span>
           </a>
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <main id="main-content" className="flex-1">{children}</main>
           <Footer />
           <WhatsAppFloat />
           <CookieBanner />

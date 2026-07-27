@@ -74,17 +74,20 @@ export default function FaqSection({ locale }: { locale: string }) {
         <div key={i} className="border border-gray-200 rounded-2xl overflow-hidden">
           <button
             onClick={() => setOpenIndex(openIndex === i ? null : i)}
+            aria-expanded={openIndex === i}
+            aria-controls={`faq-panel-${i}`}
+            id={`faq-button-${i}`}
             className="w-full flex items-center justify-between p-5 text-start hover:bg-gray-50 transition-colors"
           >
             <span className="font-semibold text-[#0D2B2B] text-sm md:text-base text-start flex-1">
               {item.q}
             </span>
-            <span className={`text-lg transition-transform flex-shrink-0 ms-3 ${openIndex === i ? 'text-[#B64916]' : 'text-gray-600'}`}>
+            <span aria-hidden="true" className={`text-lg transition-transform flex-shrink-0 ms-3 ${openIndex === i ? 'text-[#B64916]' : 'text-gray-600'}`}>
               {openIndex === i ? '▲' : '▼'}
             </span>
           </button>
           {openIndex === i && (
-            <div className="px-5 pb-5 text-start">
+            <div id={`faq-panel-${i}`} role="region" aria-labelledby={`faq-button-${i}`} className="px-5 pb-5 text-start">
               <p className="text-gray-600 text-sm leading-relaxed">{item.a}</p>
               {item.learnMoreHref && (
                 <Link

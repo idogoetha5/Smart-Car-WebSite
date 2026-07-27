@@ -13,6 +13,8 @@ export function Toast({ message, type = 'success', onClose }: ToastProps) {
   const isSuccess = type === 'success';
   return (
     <div
+      role={isSuccess ? 'status' : 'alert'}
+      aria-live={isSuccess ? 'polite' : 'assertive'}
       className={cn(
         'fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3',
         'px-5 py-3 rounded-xl shadow-lg border text-sm font-medium animate-slide-up',
@@ -22,16 +24,17 @@ export function Toast({ message, type = 'success', onClose }: ToastProps) {
       )}
     >
       {isSuccess ? (
-        <CheckCircle className="w-5 h-5 text-green-500" />
+        <CheckCircle className="w-5 h-5 text-green-500" aria-hidden="true" />
       ) : (
-        <XCircle className="w-5 h-5 text-red-500" />
+        <XCircle className="w-5 h-5 text-red-500" aria-hidden="true" />
       )}
       <span>{message}</span>
       <button
         onClick={onClose}
+        aria-label="Close notification"
         className="ms-2 p-0.5 rounded hover:bg-black/10 transition-colors"
       >
-        <X className="w-4 h-4" />
+        <X className="w-4 h-4" aria-hidden="true" />
       </button>
     </div>
   );

@@ -33,6 +33,27 @@ async function getLimiterFactory() {
   }
 }
 
+function checkInMemory(
+  identifier: string,
+  maxRequests: number,
+  windowMs: number,
+): { success: boolean; retryAfter?: number } {
+  // In-memory fallback (per-instance, not distributed — better than no
+  // limit at all when Redis is unavailable or errors mid-request).
+  const now = Date.now();
+  const key = `${identifier}:${maxRequests}:${windowMs}`;
+  const entry = inMemoryFallback.get(key);
+  if (!entry || now > entry.resetAt) {
+    inMemoryFallback.set(key, { count: 1, resetAt: now + windowMs });
+    return { success: true };
+  }
+  if (entry.count >= maxRequests) {
+    return { success: false, retryAfter: Math.ceil((entry.resetAt - now) / 1000) };
+  }
+  entry.count++;
+  return { success: true };
+}
+
 export async function checkRateLimit(
   identifier: string,
   maxRequests: number,
@@ -45,24 +66,12 @@ export async function checkRateLimit(
     if (process.env.NODE_ENV !== 'production') {
       console.warn('[ratelimit] Upstash not configured — falling back to in-memory rate limiting');
     }
-    // In-memory fallback (not distributed)
-    const now = Date.now();
-    const key = `${identifier}:${maxRequests}:${windowMs}`;
-    const entry = inMemoryFallback.get(key);
-    if (!entry || now > entry.resetAt) {
-      inMemoryFallback.set(key, { count: 1, resetAt: now + windowMs });
-      return { success: true };
-    }
-    if (entry.count >= maxRequests) {
-      return { success: false, retryAfter: Math.ceil((entry.resetAt - now) / 1000) };
-    }
-    entry.count++;
-    return { success: true };
+    return checkInMemory(identifier, maxRequests, windowMs);
   }
 
   try {
     const factory = await getLimiterFactory();
-    if (!factory) return { success: true };
+    if (!factory) return checkInMemory(identifier, maxRequests, windowMs);
     const windowSec = Math.ceil(windowMs / 1000);
     const { success, reset } = await factory(identifier, maxRequests, windowSec);
     return {
@@ -70,7 +79,9 @@ export async function checkRateLimit(
       retryAfter: success ? undefined : Math.ceil(((reset ?? Date.now()) - Date.now()) / 1000),
     };
   } catch (err) {
-    console.error('[ratelimit] Upstash error — failing open:', err);
-    return { success: true };
+    // A Redis outage must not turn into "no rate limiting at all" —
+    // degrade to the per-instance in-memory limiter instead of open.
+    console.error('[ratelimit] Upstash error — degrading to in-memory limiter:', err);
+    return checkInMemory(identifier, maxRequests, windowMs);
   }
 }
