@@ -428,12 +428,9 @@ export default function HeroSection({ locale }: { locale: string }) {
       <div className="bg-white relative overflow-hidden h-[calc(55vw*705/1400)] md:h-[320px]">
 
         {/* Tagline — LEFT, wraps on mobile, single line on desktop */}
-        <div
-          className="absolute left-4 md:left-16 top-2 translate-y-0 md:top-1/2 md:-translate-y-1/2 z-10 max-w-[48%] md:max-w-none"
-          dir={isHe ? 'rtl' : 'ltr'}
-        >
-          <p className="text-[#C24E17] text-3xl md:text-6xl font-bold italic leading-tight md:whitespace-nowrap">
-            {t('tagline_line1')}<br className="md:hidden" /><span className="hidden md:inline">{' '}</span>{t('tagline_line2')}
+        <div className="absolute left-4 md:left-16 top-2 translate-y-0 md:top-1/2 md:-translate-y-1/2 z-10 max-w-[48%] md:max-w-none">
+          <p className="text-[#B64916] text-3xl md:text-6xl font-bold italic leading-tight md:whitespace-nowrap">
+            {'Join us'}<br className="md:hidden" /><span className="hidden md:inline">{' '}</span>{'for a ride'}
           </p>
         </div>
 
@@ -477,7 +474,7 @@ export default function HeroSection({ locale }: { locale: string }) {
               className="bg-white rounded-3xl p-5 text-center hover:shadow-xl transition-all hover:-translate-y-1 group flex flex-col items-center"
             >
               {item.icon}
-              <p className="text-sm font-semibold text-[#0D2B2B] group-hover:text-[#C24E17] transition-colors leading-tight">
+              <p className="text-sm font-semibold text-[#0D2B2B] group-hover:text-[#B64916] transition-colors leading-tight">
                 {item.label}
               </p>
             </Link>
