@@ -66,11 +66,11 @@ export default async function AboutPage({
 
             {/* Text */}
             <div className="text-start">
-              <p className="text-[#B64916] font-medium mb-2 tracking-wide text-sm">
-                {isHe ? 'המייסדת' : 'The Founder'}
-              </p>
+              {/* One heading for this section. The "המייסדת" eyebrow and the
+                  founder's name were removed by explicit owner instruction;
+                  the story text below, which names her, is unchanged. */}
               <h2 className="text-[28px] font-bold text-[#0D2B2B] mb-6">
-                {isHe ? 'ליליאנה נרדאה' : 'Liliana Nardea'}
+                {isHe ? 'הסיפור שלנו' : 'Our Story'}
               </h2>
               <p className="text-gray-600 leading-relaxed text-lg mb-4">
                 {isHe
