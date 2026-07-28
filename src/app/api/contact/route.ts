@@ -35,14 +35,28 @@ export async function POST(request: Request) {
   // provider outage must never lose a customer inquiry. If the table
   // doesn't exist yet (scripts/add-consent-ledger-columns.sql not run),
   // log loudly and continue so the notification still goes out.
+  // Saving the lead is the operation. It used to be attempted, logged on
+  // failure and then ignored, so the API could answer "sent" with nothing
+  // recorded anywhere — the enquiry existed only as an email that may or may
+  // not have arrived. A lead we cannot store is a lead we will lose.
   try {
     const supabase = createAdminClient();
     const { error: dbError } = await supabase
       .from('contact_leads')
       .insert({ name, phone, email: email || null, message });
-    if (dbError) console.error('[contact] lead insert failed:', dbError.message);
+    if (dbError) {
+      console.error('[contact] lead insert failed:', dbError.message);
+      return NextResponse.json(
+        { error: 'לא הצלחנו לשמור את הפנייה. אנא נסו שוב או צרו קשר בטלפון.' },
+        { status: 503 }
+      );
+    }
   } catch (err) {
     console.error('[contact] lead insert error:', err);
+    return NextResponse.json(
+      { error: 'לא הצלחנו לשמור את הפנייה. אנא נסו שוב או צרו קשר בטלפון.' },
+      { status: 503 }
+    );
   }
 
   const serviceId  = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
@@ -51,11 +65,9 @@ export async function POST(request: Request) {
   const privateKey = process.env.EMAILJS_PRIVATE_KEY;
 
   if (!serviceId || !templateId || !publicKey || !privateKey) {
-    console.error('[contact] EmailJS not fully configured — message not sent');
-    return NextResponse.json(
-      { error: 'שירות שליחת ההודעות אינו זמין כרגע. אנא צרו קשר בטלפון.' },
-      { status: 503 }
-    );
+    // The lead is stored; only the notification is unavailable.
+    console.error('[contact][ALERT] EmailJS not configured — lead saved, team not notified');
+    return NextResponse.json({ success: true, notified: false });
   }
 
   try {
@@ -90,19 +102,16 @@ export async function POST(request: Request) {
       }),
     });
     if (!emailRes.ok) {
-      console.error('[contact] EmailJS send failed:', emailRes.status, await emailRes.text().catch(() => ''));
-      return NextResponse.json(
-        { error: 'שליחת ההודעה נכשלה. אנא נסו שוב או צרו קשר בטלפון.' },
-        { status: 502 }
-      );
+      // The lead is already stored. Telling the customer it failed makes them
+      // send again and creates a duplicate, while the team sees the enquiry
+      // either way. [ALERT] so the missing notification is findable.
+      console.error('[contact][ALERT] notification failed after lead was saved:', emailRes.status, await emailRes.text().catch(() => ''));
+      return NextResponse.json({ success: true, notified: false });
     }
   } catch (err) {
-    console.error('[contact] EmailJS error:', err);
-    return NextResponse.json(
-      { error: 'שליחת ההודעה נכשלה. אנא נסו שוב או צרו קשר בטלפון.' },
-      { status: 502 }
-    );
+    console.error('[contact][ALERT] notification error after lead was saved:', err);
+    return NextResponse.json({ success: true, notified: false });
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, notified: true });
 }

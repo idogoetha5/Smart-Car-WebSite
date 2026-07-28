@@ -31,18 +31,37 @@ function whatsappDepositLink(orderId: string): string {
   return `https://wa.me/97299509757?text=${encodeURIComponent(text)}`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function sendConfirmationEmail(booking: any) {
+/** Only the fields the confirmation template actually reads. */
+interface ConfirmableBooking {
+  id: string;
+  customer_email: string;
+  customer_name: string;
+  customer_phone: string;
+  pickup_date: string;
+  dropoff_date: string;
+  pickup_time?: string | null;
+  return_time?: string | null;
+  pickup_location: string;
+  dropoff_location: string;
+  total_price?: number | string | null;
+  extras?: string[] | null;
+  vehicle?: { make?: string; model?: string } | null;
+}
+
+/** Returns whether the customer actually got the mail. */
+async function sendConfirmationEmail(booking: ConfirmableBooking): Promise<boolean> {
   // The RPC guarantees only one caller performs the transition, so this
   // runs once per booking. The idempotency key is belt-and-braces: it also
   // survives a redeploy or a manual re-run of the same approval.
   const key = `booking_confirmed:${booking.id}`;
   if (await alreadyDelivered(key)) {
     console.info('[admin/bookings] confirmation already delivered, skipping (ref %s)', key);
-    return;
+    // Already delivered on an earlier attempt — from the customer's side this
+    // is a success, not a skipped send.
+    return true;
   }
 
-  await sendTemplateEmail({
+  const result = await sendTemplateEmail({
     event: 'booking_confirmed',
     idempotencyKey: key,
     templateId: process.env.NEXT_PUBLIC_EMAILJS_CONFIRMATION_TEMPLATE_ID,
@@ -72,6 +91,8 @@ async function sendConfirmationEmail(booking: any) {
       logo_url:          LOGO_URL,
     },
   });
+
+  return result.ok;
 }
 
 export async function PATCH(
@@ -165,11 +186,19 @@ export async function PATCH(
 
   // "Booking confirmed — deposit due" email: sent exactly once, only by
   // the request that performed the transition into CONFIRMED.
+  let confirmationEmailed: boolean | null = null;
   if (transitionedToConfirmed) {
-    await sendConfirmationEmail(booking);
+    // The result used to be discarded, so the API answered "success" and the
+    // admin screen showed a confirmed booking even when the customer received
+    // nothing — at the exact point the customer is told a deposit is due.
+    // The approval itself stands regardless; it is already committed.
+    confirmationEmailed = await sendConfirmationEmail(booking);
+    if (!confirmationEmailed) {
+      console.error('[admin/bookings][ALERT] booking confirmed but confirmation email failed:', id);
+    }
   }
 
-  return NextResponse.json({ success: true, booking });
+  return NextResponse.json({ success: true, booking, confirmationEmailed });
 }
 
 export async function DELETE(

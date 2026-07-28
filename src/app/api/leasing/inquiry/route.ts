@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { verifyTurnstile } from '@/lib/turnstile';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { isValidInternationalPhone } from '@/lib/validations';
+import { sendTemplateEmail } from '@/lib/email-delivery';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -62,7 +63,41 @@ export async function POST(request: NextRequest) {
 
   if (error) { console.error(error.message); return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 }); }
 
+  // The form told the customer "פנייתך התקבלה" while this route stored a row
+  // and notified nobody. If the team was not watching the admin screen, a hot
+  // lead could sit unseen indefinitely. The save above is still what decides
+  // success — a failed alert must not make the customer send again — but the
+  // alert now actually goes out.
+  const notified = await sendTemplateEmail({
+    event: 'contact_lead',
+    idempotencyKey: `leasing_inquiry:${data.id}`,
+    templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
+    params: {
+      to_email: 'office@smartcar.co.il',
+      to_name: 'צוות SmartCar',
+      bcc_email: 'office@smartcar.co.il',
+      reply_to: email || 'office@smartcar.co.il',
+      booking_type: 'פניית ליסינג',
+      order_id: String(data.id).slice(0, 8).toUpperCase(),
+      vehicle_name: `פניית ליסינג חדשה\n\nשם: ${name}\nטלפון: ${phone}${email ? `\nדוא"ל: ${email}` : ''}\nתקופה: ${body.duration_months ?? 36} חודשים\nחבילת ק"מ: ${body.mileage_package ?? 15000}${body.notes ? `\n\nהערות: ${String(body.notes).slice(0, 500)}` : ''}`,
+      customer_phone: phone,
+      start_date: '-',
+      end_date: '-',
+      pickup_location: '-',
+      return_location: '-',
+      total_price: '-',
+      logo_url: 'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/logo.png',
+    },
+  });
+
+  if (!notified.ok) {
+    console.error('[leasing/inquiry][ALERT] lead saved but team not notified:', data.id, notified.status);
+  }
+
   // Minimal DTO — the row holds the lead's name, phone, email and notes, and
   // the UI only needs to know it was recorded.
-  return NextResponse.json({ data: { id: data.id, status: data.status } }, { status: 201 });
+  return NextResponse.json(
+    { data: { id: data.id, status: data.status }, notified: notified.ok },
+    { status: 201 },
+  );
 }
