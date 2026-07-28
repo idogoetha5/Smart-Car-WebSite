@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint:budget": "node scripts/lint-budget.mjs"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
