@@ -13,6 +13,8 @@
 #   BACKUP_DIR             where to write        (default: ./backups)
 #   BACKUP_RETENTION_DAYS  prune older than this (default: 30)
 #   SENTRY_DSN             optional; failures are reported if set
+#   RCLONE_REMOTE          rclone remote for off-site copy (default: r2)
+#   R2_BUCKET              destination bucket (default: smartcar-backups)
 #
 # A backup you have never restored is not a backup. See RESTORE below.
 set -euo pipefail
@@ -77,14 +79,29 @@ gpg --symmetric --cipher-algo AES256 --batch --yes \
 rm -f "$PLAIN"
 echo "  encrypted -> ${CIPHER} ($(du -h "$CIPHER" | cut -f1))"
 
-# Optional off-site copy. Left as an explicit command rather than a hardcoded
-# provider so the destination is the operator's choice, not this script's.
-if [ -n "${BACKUP_UPLOAD_CMD:-}" ]; then
-  echo "Uploading..."
+# Off-site copy to Cloudflare R2. A backup on the same disk as the thing it
+# protects is half a backup. R2 has no egress fees, so a full restore costs
+# nothing to pull back.
+#
+# One-time setup:
+#   rclone config create r2 s3 provider=Cloudflare \
+#     access_key_id=<id> secret_access_key=<secret> \
+#     endpoint=<account>.r2.cloudflarestorage.com
+if command -v rclone >/dev/null && rclone listremotes 2>/dev/null | grep -q "^${RCLONE_REMOTE:-r2}:"; then
+  REMOTE="${RCLONE_REMOTE:-r2}"; BUCKET="${R2_BUCKET:-smartcar-backups}"
+  echo "Uploading to ${REMOTE}:${BUCKET}/db/ ..."
+  rclone copy "$CIPHER" "${REMOTE}:${BUCKET}/db/" --checksum --stats-one-line \
+    || fail "rclone upload failed"
+  # Verify the remote really has it rather than trusting exit 0.
+  rclone lsf "${REMOTE}:${BUCKET}/db/$(basename "$CIPHER")" >/dev/null 2>&1 \
+    || fail "upload reported success but the object is not on the remote"
+  echo "  uploaded and confirmed on ${REMOTE}"
+elif [ -n "${BACKUP_UPLOAD_CMD:-}" ]; then
+  echo "Uploading via BACKUP_UPLOAD_CMD..."
   BACKUP_FILE="$CIPHER" sh -c "$BACKUP_UPLOAD_CMD" || fail "upload failed"
   echo "  uploaded"
 else
-  echo "  (no BACKUP_UPLOAD_CMD set — backup is LOCAL ONLY)"
+  echo "  WARNING: no rclone remote and no BACKUP_UPLOAD_CMD — backup is LOCAL ONLY."
   echo "  A backup on the same disk as the thing it protects is half a backup."
 fi
 

@@ -54,3 +54,8 @@ evidence/**
 a11y-before.json
 a11y-after.json
 axe-results.json
+
+# Local database backups — contain customer PII. Never commit.
+backups/
+*.sql.gz
+*.sql.gz.gpg
