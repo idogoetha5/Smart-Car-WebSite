@@ -1,71 +1,44 @@
-'use client';
-
-import { Suspense, useState, useMemo } from 'react';
-
-const CATEGORY_ORDER: Record<string, number> = {
-  MINI: 0, ECONOMY: 1, COMPACT: 2, SEDAN: 3,
-  CROSSOVER: 4, SUV: 5, LUXURY: 6, VAN: 7, COMMERCIAL: 8, ELECTRIC: 9,
-};
-import { useTranslations, useLocale } from 'next-intl';
-import { useVehicles } from '@/hooks/useVehicles';
-import VehicleGrid from '@/components/catalog/VehicleGrid';
+import { Suspense } from 'react';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Car, ChevronRight, ChevronLeft } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import RentalResults from './RentalResults';
 
-export default function RentalPage() {
-  return (
-    <Suspense fallback={null}>
-      <RentalPageContent />
-    </Suspense>
-  );
-}
-
-function RentalPageContent() {
-  const t = useTranslations('booking');
-  const locale = useLocale();
+/**
+ * Finding 41. The whole page used to be a client component behind
+ * `Suspense fallback={null}`, so the initial HTML contained no H1 and no
+ * copy at all — everything appeared only after hydration. Search engines can
+ * usually render JavaScript, but it delays discovery, and anyone whose JS
+ * fails or is slow gets a blank page on the highest-intent route on the site.
+ *
+ * The heading and the explanation are static, so they belong on the server.
+ * Only the filters and the vehicle grid need the browser, because the filters
+ * hold local state and the dates come from useSearchParams — and
+ * useSearchParams is what forces the Suspense boundary in the first place.
+ *
+ * The fallback is a visible skeleton rather than null, so the page never
+ * flashes empty beneath a heading that is already there.
+ */
+export default async function RentalPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: 'booking' });
   const isHe = locale === 'he';
-  const { vehicles, isLoading } = useVehicles({ isAvailable: true });
-  const searchParams = useSearchParams();
 
-  const pickupDate     = searchParams.get('pickup') ?? '';
-  const returnDate     = searchParams.get('return') ?? '';
-  const location       = searchParams.get('location') ?? '';
-  const pickupLocation = searchParams.get('pickupLocation') ?? location;
-  const returnLocation = searchParams.get('returnLocation') ?? pickupLocation;
-
-  const [categoryFilter, setCategoryFilter]       = useState('');
-  const [seatsFilter, setSeatsFilter]             = useState('');
-  const [transmissionFilter, setTransmissionFilter] = useState('');
-
-  const filteredVehicles = useMemo(() => {
-    return vehicles
-      .filter(v => {
-        if (categoryFilter) {
-          if (categoryFilter === 'ECONOMY_COMPACT') {
-            if (v.category !== 'ECONOMY' && v.category !== 'COMPACT') return false;
-          } else if (v.category !== categoryFilter) {
-            return false;
-          }
-        }
-        if (transmissionFilter && v.transmission !== transmissionFilter) return false;
-        if (seatsFilter) {
-          const seats = Number(seatsFilter);
-          if (seatsFilter === '8') { if (v.seats < 8) return false; }
-          else { if (v.seats !== seats) return false; }
-        }
-        return true;
-      })
-      .sort((a, b) => (CATEGORY_ORDER[a.category] ?? 99) - (CATEGORY_ORDER[b.category] ?? 99))
-      .filter((v, _, arr) => arr.findIndex(x => x.make === v.make && x.model === v.model) === arr.indexOf(v));
-  }, [vehicles, categoryFilter, seatsFilter, transmissionFilter]);
-
-  const hasFilters = categoryFilter || seatsFilter || transmissionFilter;
+  const steps = isHe
+    // "שלח בקשה", not "אשר הזמנה": the final step submits a request that a
+    // representative confirms in writing. Nothing is reserved here.
+    ? ['בחר רכב', 'בחר תאריכים', 'מלא פרטים', 'שלח בקשה']
+    : ['Choose vehicle', 'Select dates', 'Fill details', 'Send request'];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10" dir={isHe ? 'rtl' : 'ltr'}>
       <div className="mb-10">
         <div className="flex items-center gap-2 text-blue-600 mb-3">
-          <Car className="w-5 h-5" />
+          <Car className="w-5 h-5" aria-hidden="true" />
           <span className="text-sm font-semibold uppercase tracking-wide">
             {isHe ? 'השכרת רכב' : 'Car Rental'}
           </span>
@@ -83,101 +56,37 @@ function RentalPageContent() {
           {isHe ? 'איך זה עובד?' : 'How it works'}
         </h2>
         <div className="flex flex-wrap gap-6 text-sm text-gray-600">
-          {(isHe
-            // "שלח בקשה", not "אשר הזמנה": the final step submits a request
-            // that a representative confirms in writing. Nothing is reserved
-            // here, and the old label promised otherwise. Label only — the
-            // button behaviour and the price are untouched.
-            ? ['בחר רכב', 'בחר תאריכים', 'מלא פרטים', 'שלח בקשה']
-            : ['Choose vehicle', 'Select dates', 'Fill details', 'Send request']
-          ).map((step, i) => (
+          {steps.map((step, i) => (
             <div key={i} className="flex items-center gap-2">
               <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">
                 {i + 1}
               </span>
               <span>{step}</span>
-              {i < 3 && (isHe
-                ? <ChevronLeft className="w-4 h-4 text-gray-600" />
-                : <ChevronRight className="w-4 h-4 text-gray-600" />
-              )}
+              {i < steps.length - 1 &&
+                (isHe ? (
+                  <ChevronLeft className="w-4 h-4 text-gray-600" aria-hidden="true" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-gray-600" aria-hidden="true" />
+                ))}
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── Filters ── */}
-      <div className="flex flex-wrap gap-3 mb-6 p-4 bg-white rounded-2xl shadow-sm border border-gray-100">
-        <select
-          value={categoryFilter}
-          aria-label={isHe ? 'סינון לפי קטגוריה' : 'Filter by category'}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="p-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:border-[#2D5F5F] cursor-pointer"
-        >
-          <option value="">{isHe ? 'כל הקטגוריות' : 'All categories'}</option>
-          <option value="MINI">{isHe ? 'מיני' : 'Mini'}</option>
-          <option value="ECONOMY_COMPACT">{isHe ? 'אקונומי / קומפקטי' : 'Economy / Compact'}</option>
-          <option value="SEDAN">{isHe ? 'סדאן' : 'Sedan'}</option>
-          <option value="CROSSOVER">{isHe ? 'קרוסאובר' : 'Crossover'}</option>
-          <option value="SUV">SUV</option>
-          <option value="LUXURY">{isHe ? 'יוקרה' : 'Luxury'}</option>
-          <option value="VAN">{isHe ? 'ואן' : 'Van'}</option>
-          <option value="COMMERCIAL">{isHe ? 'מסחרי' : 'Commercial'}</option>
-          <option value="ELECTRIC">{isHe ? 'חשמלי' : 'Electric'}</option>
-        </select>
-
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs text-gray-600 me-1">{isHe ? 'מושבים:' : 'Seats:'}</span>
-          {(['', '4', '5', '7', '8'] as const).map(s => (
-            <button
-              key={s}
-              onClick={() => setSeatsFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-sm border-2 transition-colors ${
-                seatsFilter === s
-                  ? 'border-[#2D5F5F] bg-[#2D5F5F] text-white font-bold'
-                  : 'border-gray-200 text-gray-600 hover:border-[#2D5F5F]'
-              }`}
-            >
-              {s === '' ? (isHe ? 'הכל' : 'All') : s === '8' ? '8+' : `${s}`}
-            </button>
-          ))}
-        </div>
-
-        <select
-          value={transmissionFilter}
-          aria-label={isHe ? 'סינון לפי תיבת הילוכים' : 'Filter by transmission'}
-          onChange={(e) => setTransmissionFilter(e.target.value)}
-          className="p-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:border-[#2D5F5F] cursor-pointer"
-        >
-          <option value="">{isHe ? 'כל סוגי ההילוכים' : 'All transmissions'}</option>
-          <option value="AUTOMATIC">{isHe ? 'אוטומטי' : 'Automatic'}</option>
-          <option value="MANUAL">{isHe ? 'ידני' : 'Manual'}</option>
-        </select>
-
-        {hasFilters && (
-          <button
-            onClick={() => { setCategoryFilter(''); setSeatsFilter(''); setTransmissionFilter(''); }}
-            className="px-3 py-2 text-sm text-[#B64916] border border-[#B64916] rounded-lg hover:bg-orange-50 transition-colors"
-          >
-            {isHe ? 'נקה פילטרים' : 'Clear filters'}
-          </button>
-        )}
-
-        {!isLoading && (
-          <span className="ms-auto self-center text-sm text-gray-600">
-            {filteredVehicles.length} {isHe ? 'דגמים' : 'models'}
-          </span>
-        )}
-      </div>
-
-      <VehicleGrid
-        vehicles={filteredVehicles}
-        isLoading={isLoading}
-        pickupDate={pickupDate}
-        returnDate={returnDate}
-        location={location}
-        pickupLocation={pickupLocation}
-        returnLocation={returnLocation}
-      />
+      <Suspense
+        fallback={
+          <div className="animate-pulse" aria-hidden="true">
+            <div className="h-20 bg-gray-100 rounded-2xl mb-6" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-80 bg-gray-100 rounded-2xl" />
+              ))}
+            </div>
+          </div>
+        }
+      >
+        <RentalResults />
+      </Suspense>
     </div>
   );
 }
