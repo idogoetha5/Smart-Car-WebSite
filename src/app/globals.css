@@ -88,16 +88,15 @@ input[type="date"] {
 }
 
 /* ── Reduced motion ─────────────────────────────────────────────────
-   Honour the OS-level "reduce motion" preference site-wide. Tilt3D
-   disables itself in JS, but Tailwind hover:scale-* / transition-*
-   utilities are applied directly in markup across many components, so
-   they are neutralised here rather than hunted down one by one.
+   Honour the OS-level "reduce motion" preference site-wide.
 
-   Transforms are reset to none (not merely un-transitioned) so a hover
-   grow doesn't snap into place — that snap is exactly what this
-   preference asks us to avoid. Animations are collapsed rather than
-   removed outright so anything relying on an animation's completion
-   still fires. */
+   Hover tilt/scale effects have been removed from the site — the only
+   remaining 3D is the hero car, which is driven by framer-motion and
+   responds to pointer movement. This block stays as the safety net for
+   the entry animations and any transition applied directly in markup.
+
+   Animations are collapsed rather than removed outright so anything
+   relying on an animation's completion still fires. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -106,12 +105,5 @@ input[type="date"] {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-
-  /* Decorative hover grow/zoom — the element keeps its real size. */
-  .group:hover .group-hover\:scale-105,
-  .group:hover .group-hover\:scale-110,
-  a:hover, button:hover {
-    transform: none !important;
   }
 }

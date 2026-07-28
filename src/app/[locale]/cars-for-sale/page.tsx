@@ -24,7 +24,6 @@ export async function generateMetadata({
 import { Car, Phone } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import Tilt3D from '@/components/ui/Tilt3D';
 
 interface CarForSale {
   id: string;
@@ -126,9 +125,8 @@ export default async function CarsForSalePage({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
           {cars.map((car) => (
-            <Tilt3D
+            <div
               key={car.id}
-              hoverScale={1.08}
               className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 border border-gray-100 overflow-hidden group"
             >
               <div className="relative h-52 bg-[#eef6f6] overflow-hidden">
@@ -199,7 +197,7 @@ export default async function CarsForSalePage({
                     : 'The details refer to the specific vehicle shown. Further information and disclosure documents are provided before the sale.'}
                 </p>
               </div>
-            </Tilt3D>
+            </div>
           ))}
         </div>
       )}

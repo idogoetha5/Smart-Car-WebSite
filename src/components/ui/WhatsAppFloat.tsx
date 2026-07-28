@@ -24,7 +24,7 @@ export default function WhatsAppFloat() {
         </span>
 
         {/* Button */}
-        <span className="relative flex items-center justify-center w-14 h-14 bg-[#25D366] hover:bg-[#1eb755] rounded-full shadow-xl transition-transform duration-200 hover:scale-110">
+        <span className="relative flex items-center justify-center w-14 h-14 bg-[#25D366] hover:bg-[#1eb755] rounded-full shadow-xl transition-colors duration-200">
           <svg
             className="w-7 h-7 fill-white"
             viewBox="0 0 24 24"

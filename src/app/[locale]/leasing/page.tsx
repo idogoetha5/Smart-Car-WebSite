@@ -13,7 +13,6 @@ import { getVehicles } from '@/lib/db/vehicles';
 import { calcMinLeasingPrice } from '@/lib/pricing';
 import type { Vehicle } from '@/types';
 import { LeasingInquirySection } from './LeasingInquirySection';
-import Tilt3D from '@/components/ui/Tilt3D';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -36,7 +35,7 @@ function VehicleLeaseCard({ vehicle, locale }: { vehicle: Vehicle; locale: strin
   const img = vehicle.imageUrls?.[0];
 
   return (
-    <Tilt3D hoverScale={1.1} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-[#B8D8D8] transition-all duration-300 flex flex-col">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-[#B8D8D8] transition-all duration-300 flex flex-col">
       {/* Image */}
       <div className="relative h-44 bg-[#eef6f6] overflow-hidden">
         {img ? (
@@ -101,7 +100,7 @@ function VehicleLeaseCard({ vehicle, locale }: { vehicle: Vehicle; locale: strin
           </Link>
         </div>
       </div>
-    </Tilt3D>
+    </div>
   );
 }
 

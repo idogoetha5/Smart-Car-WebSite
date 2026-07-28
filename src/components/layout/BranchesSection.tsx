@@ -58,7 +58,7 @@ export default function BranchesSection({ locale }: { locale: string }) {
                   alt={isHe ? `${branch.nameHe} – ${branch.addressHe}` : `${branch.nameEn} – ${branch.addressEn}`}
                   fill
                   loading="lazy"
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="object-cover"
                 />
               </div>
 

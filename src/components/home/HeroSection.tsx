@@ -471,7 +471,7 @@ export default function HeroSection({ locale }: { locale: string }) {
             <Link
               key={item.label}
               href={item.href}
-              className="bg-white rounded-3xl p-5 text-center hover:shadow-xl transition-all hover:-translate-y-1 group flex flex-col items-center"
+              className="bg-white rounded-3xl p-5 text-center hover:shadow-xl transition-shadow group flex flex-col items-center"
             >
               {item.icon}
               <p className="text-sm font-semibold text-[#0D2B2B] group-hover:text-[#B64916] transition-colors leading-tight">

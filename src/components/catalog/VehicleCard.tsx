@@ -7,7 +7,6 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Users, DoorOpen, Fuel, Settings, Star } from 'lucide-react';
 import type { Vehicle } from '@/types';
 import { getSeasonalPrice } from '@/lib/seasonal';
-import Tilt3D from '@/components/ui/Tilt3D';
 
 const categoryLabelHe: Record<string, string> = {
   MINI:       'מיני',
@@ -97,7 +96,7 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
   };
 
   return (
-    <Tilt3D hoverScale={1.08} className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden border border-gray-100 flex flex-col">
+    <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden border border-gray-100 flex flex-col">
 
       {/* Image carousel */}
       <div className="relative overflow-hidden bg-gray-50" style={{ height: '200px' }}>
@@ -266,6 +265,6 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
           {t('book_now')}
         </Link>
       </div>
-    </Tilt3D>
+    </div>
   );
 }

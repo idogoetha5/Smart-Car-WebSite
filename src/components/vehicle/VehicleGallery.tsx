@@ -40,11 +40,12 @@ export default function VehicleGallery({ images, alt }: Props) {
     <div className="mb-6">
       {/*
         The main image is a plain `fill` image inside this relative box.
-        It must NOT be wrapped in Tilt3D: that component sets
-        `transform-style: preserve-3d`, which makes its own zero-height div
-        the containing block for absolutely positioned descendants — so the
-        `fill` image sized itself to nothing and the main image rendered
-        blank on every vehicle while the thumbnails still worked.
+        Do not wrap it in anything that sets a transform or
+        `transform-style: preserve-3d` — that establishes a containing block
+        for absolutely positioned descendants, and a wrapper with no height
+        of its own then collapses the image to nothing. That is exactly how
+        this gallery rendered blank on every vehicle while the thumbnails
+        still worked.
       */}
       <div className="aspect-video bg-[#eef6f6] rounded-2xl overflow-hidden mb-3 relative">
         {currentFailed ? (
