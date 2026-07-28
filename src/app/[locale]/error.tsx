@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 
 export default function Error({
   error,
@@ -10,12 +11,20 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const params = useParams();
+  const locale = typeof params?.locale === 'string' ? params.locale : 'unknown';
+  const isHe = locale === 'he';
+
   useEffect(() => {
     console.error(error);
-  }, [error]);
-
-  const params = useParams();
-  const isHe = (params?.locale as string) === 'he';
+    // Without this the boundary swallows the error: console.error alone does
+    // not reach Sentry, so failures on the rental and leasing routes never
+    // showed up in monitoring. Locale and digest only — no request data.
+    Sentry.captureException(error, {
+      tags: { boundary: 'locale-error', locale },
+      extra: { digest: error.digest },
+    });
+  }, [error, locale]);
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center">

@@ -113,7 +113,9 @@ TURNSTILE_SECRET_KEY=your_secret_key
 NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
 
 # Sentry (אופציונלי)
-SENTRY_DSN=https://your-dsn.sentry.io
+# Must be NEXT_PUBLIC_: the browser SDK reads it too. SENTRY_DSN alone is
+# never read by the code and leaves monitoring silently disabled.
+NEXT_PUBLIC_SENTRY_DSN=https://your-dsn.sentry.io
 ```
 
 ### יצירת bcrypt hash לסיסמת אדמין
