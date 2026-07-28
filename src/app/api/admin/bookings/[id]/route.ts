@@ -122,45 +122,42 @@ export async function PATCH(
   let transitionedToConfirmed = false;
 
   if (dbStatus === 'CONFIRMED') {
-    // Re-check availability at approval time: another overlapping booking
-    // for the same vehicle may have been confirmed since this one was
-    // requested. Counted against the vehicle's total_units (fleet may hold
-    // more than one unit of the same model).
-    const { data: conflicts, error: conflictError } = await supabase
-      .from('bookings')
-      .select('id')
-      .eq('vehicle_id', current.vehicle_id)
-      .in('status', ['CONFIRMED', 'ACTIVE'])
-      .neq('id', id)
-      .lt('pickup_date', current.dropoff_date)
-      .gt('dropoff_date', current.pickup_date);
+    // Availability re-check and the transition into CONFIRMED happen in a
+    // single database transaction (see scripts/add-approve-booking-rpc.sql).
+    // Doing the count here and the UPDATE separately let two concurrent
+    // approvals for the same vehicle both pass the check and oversell it.
+    const { data: rpcRows, error: rpcError } = await supabase
+      .rpc('approve_booking', { p_booking_id: id });
 
-    if (conflictError) {
+    if (rpcError) {
+      console.error('[admin/bookings] approve_booking failed:', rpcError.message);
       return NextResponse.json({ error: 'שגיאה בבדיקת זמינות, נסה שוב' }, { status: 500 });
     }
 
-    const units = Math.max(1, Number(current.vehicle?.total_units) || 1);
-    if ((conflicts?.length ?? 0) >= units) {
-      return NextResponse.json(
-        { error: 'לא ניתן לאשר: כל היחידות של רכב זה כבר מאושרות להזמנות חופפות בתאריכים אלה' },
-        { status: 409 }
-      );
-    }
+    const outcome = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
 
-    // Atomic transition — only the request that actually flips the row
-    // into CONFIRMED sends the email, so a double-click/retry can never
-    // send the confirmation twice.
-    const { data: updatedRows, error: updateError } = await supabase
-      .from('bookings')
-      .update({ status: 'CONFIRMED' })
-      .eq('id', id)
-      .neq('status', 'CONFIRMED')
-      .select('id');
-
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    switch (outcome?.result) {
+      case 'CONFIRMED':
+        // Only the request that actually performed the transition gets
+        // here, so a double-click or retry cannot send a second email.
+        transitionedToConfirmed = true;
+        break;
+      case 'ALREADY_CONFIRMED':
+        transitionedToConfirmed = false;
+        break;
+      case 'NO_UNITS':
+        return NextResponse.json(
+          { error: 'לא ניתן לאשר: כל היחידות של רכב זה כבר מאושרות להזמנות חופפות בתאריכים אלה' },
+          { status: 409 }
+        );
+      case 'NOT_FOUND':
+        return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+      case 'VEHICLE_NOT_FOUND':
+        return NextResponse.json({ error: 'Vehicle not found' }, { status: 404 });
+      default:
+        console.error('[admin/bookings] unexpected approve_booking result:', outcome?.result);
+        return NextResponse.json({ error: 'שגיאה בבדיקת זמינות, נסה שוב' }, { status: 503 });
     }
-    transitionedToConfirmed = (updatedRows?.length ?? 0) > 0;
   } else {
     const { error: updateError } = await supabase
       .from('bookings')
