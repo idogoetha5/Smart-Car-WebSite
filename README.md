@@ -193,7 +193,7 @@ vercel --prod
 
 ## RLS (Row Level Security)
 
-כל הגישה ל-DB מתבצעת דרך `service_role` (bypasses RLS) — אין ולא צריך להיות שום SELECT ציבורי על `bookings`/`leasing_requests`/`reviews`/`cars_for_sale`, כי גם ה-anon key חשוף בכל טעינת דף בדפדפן. המדיניות המלאה מוגדרת בסעיף 6 של `supabase-setup.sql`. **אזהרה: אל תריץ מחדש את כל `supabase-setup.sql` על בסיס נתונים עם מידע אמיתי — הוא מוחק (`DROP TABLE`) ובונה מחדש `vehicles`/`bookings`/`leasing_requests`/`seo_redirects`.** אם צריך רק לתקן/לוודא RLS על DB קיים, הריצו את `scripts/hotfix-rls.sql` בלבד — הוא אידמפוטנטי ולא נוגע בנתונים.
+כל הגישה ל-DB מתבצעת דרך `service_role` (bypasses RLS) — אין ולא צריך להיות שום SELECT ציבורי על `bookings`/`leasing_requests`/`reviews`/`cars_for_sale`, כי גם ה-anon key חשוף בכל טעינת דף בדפדפן. המדיניות המלאה מוגדרת בסעיף 6 של `dangerous/supabase-setup.sql`. **אזהרה: אל תריץ מחדש את כל `dangerous/supabase-setup.sql` על בסיס נתונים עם מידע אמיתי — הוא מוחק (`DROP TABLE`) ובונה מחדש `vehicles`/`bookings`/`leasing_requests`/`seo_redirects`.** אם צריך רק לתקן/לוודא RLS על DB קיים, הריצו את `scripts/hotfix-rls.sql` בלבד — הוא אידמפוטנטי ולא נוגע בנתונים.
 
 ---
 

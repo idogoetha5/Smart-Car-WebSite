@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { DayPicker } from 'react-day-picker';
+import { he as heLocale, enUS } from 'date-fns/locale';
 import 'react-day-picker/style.css';
 
 function toDate(s: string): Date | undefined {
@@ -54,12 +55,25 @@ const DatePickerInput = forwardRef<DatePickerHandle, DatePickerInputProps>(funct
 
   useImperativeHandle(ref, () => ({ openPicker: openCal }));
 
+  /**
+   * Always route closing through here. Escape already restored focus, but
+   * picking a day or clicking away left focus on <body>, so a keyboard user
+   * was dumped at the top of the document and had to tab back through the
+   * whole form.
+   */
+  const closeCal = (restoreFocus = true) => {
+    setOpen(false);
+    if (restoreFocus) btnRef.current?.focus();
+  };
+
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: PointerEvent) => {
       const t = e.target as Node;
       if (btnRef.current?.contains(t) || calRef.current?.contains(t)) return;
-      setOpen(false);
+      // Pointer dismissal: don't yank focus back, the user is already elsewhere.
+      closeCal(false);
     };
     document.addEventListener('pointerdown', handler);
     return () => document.removeEventListener('pointerdown', handler);
@@ -69,8 +83,7 @@ const DatePickerInput = forwardRef<DatePickerHandle, DatePickerInputProps>(funct
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setOpen(false);
-        btnRef.current?.focus();
+        closeCal();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
@@ -81,7 +94,7 @@ const DatePickerInput = forwardRef<DatePickerHandle, DatePickerInputProps>(funct
     if (!open) return;
     let active = false;
     const timer = setTimeout(() => { active = true; }, 200);
-    const onScroll = () => { if (active) setOpen(false); };
+    const onScroll = () => { if (active) closeCal(false); };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       clearTimeout(timer);
@@ -92,7 +105,7 @@ const DatePickerInput = forwardRef<DatePickerHandle, DatePickerInputProps>(funct
   const handleSelect = (date: Date | undefined) => {
     if (!date) return;
     onChange(toYMD(date));
-    setOpen(false);
+    closeCal();
   };
 
   const display = selected
@@ -124,7 +137,10 @@ const DatePickerInput = forwardRef<DatePickerHandle, DatePickerInputProps>(funct
         <div
           ref={calRef}
           role="dialog"
-          aria-modal="false"
+          // Was "false", which tells assistive tech the rest of the page is
+          // still live while a popup covers it.
+          aria-modal="true"
+          aria-label={isHe ? 'בחירת תאריך' : 'Choose a date'}
           className="fixed z-[9999] bg-white rounded-2xl shadow-2xl border border-gray-200 p-1"
           style={{ top: calPos.top, left: calPos.left }}
         >
@@ -135,6 +151,27 @@ const DatePickerInput = forwardRef<DatePickerHandle, DatePickerInputProps>(funct
             disabled={{ before: minD }}
             defaultMonth={selected ?? minD}
             dir={isHe ? 'rtl' : 'ltr'}
+            // Moves focus into the grid on open. Without it focus stayed on
+            // the trigger and arrow keys did nothing.
+            autoFocus
+            // Day names, month names and the nav buttons were announced in
+            // English on a Hebrew, RTL page ("Wednesday, July 1st",
+            // "Go to the Next Month").
+            locale={isHe ? heLocale : enUS}
+            labels={
+              isHe
+                ? {
+                    labelNext: () => 'לחודש הבא',
+                    labelPrevious: () => 'לחודש הקודם',
+                    labelGrid: (date) =>
+                      date.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' }),
+                    labelDayButton: (date, modifiers) =>
+                      `${date.toLocaleDateString('he-IL', {
+                        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+                      })}${modifiers?.selected ? ', נבחר' : ''}`,
+                  }
+                : undefined
+            }
           />
         </div>
       )}
