@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+/** Varied but fixed skeleton bar heights, so the placeholder does not jitter. */
+const SKELETON_HEIGHTS = [46, 72, 28, 61, 39, 80, 34, 55, 68, 24, 50, 76, 31, 64];
+
 interface ChartPoint { date: string; count: number }
 
 const DAY_LABELS_HE: Record<number, string> = { 0: 'א', 1: 'ב', 2: 'ג', 3: 'ד', 4: 'ה', 5: 'ו', 6: 'ש' };
@@ -54,7 +57,15 @@ export default function DashboardChart({ locale }: { locale: string }) {
       {loading ? (
         <div className="h-40 flex items-end gap-1">
           {Array.from({ length: days }).map((_, i) => (
-            <div key={i} className="flex-1 bg-gray-100 rounded-t-lg animate-pulse" style={{ height: `${20 + Math.random() * 80}px` }} />
+            // Deterministic heights. Math.random() here re-rolled on every
+            // render and produced different markup on the server than on the
+            // client, so the skeleton flickered through hydration. A fixed
+            // repeating pattern looks the same and stays put.
+            <div
+              key={i}
+              className="flex-1 bg-gray-100 rounded-t-lg animate-pulse"
+              style={{ height: `${20 + SKELETON_HEIGHTS[i % SKELETON_HEIGHTS.length]}px` }}
+            />
           ))}
         </div>
       ) : (
