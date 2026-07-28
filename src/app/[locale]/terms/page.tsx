@@ -5,6 +5,10 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   return {
     title: locale === 'he' ? 'תנאי שימוש ושכירות' : 'Terms of Service & Rental Conditions',
+    description:
+      locale === 'he'
+        ? 'תנאי השימוש של SmartCar: תהליך הבקשה והאישור, ביטולים, שימוש ברכב ואחריות הצדדים.'
+        : "SmartCar's Terms of Use: the request and confirmation process, cancellations, vehicle use and the responsibilities of each party.",
     alternates: localeAlternates(locale, 'terms'),
   };
 }

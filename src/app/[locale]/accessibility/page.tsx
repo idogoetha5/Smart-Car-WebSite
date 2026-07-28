@@ -4,6 +4,10 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const isHe = locale === 'he';
   return {
     title: isHe ? 'הצהרת נגישות' : 'Accessibility Statement',
+    description:
+      locale === 'he'
+        ? 'הצהרת הנגישות של SmartCar: מה הונגש באתר, מה עדיין בתהליך ואיך לפנות אלינו בנושא נגישות.'
+        : "SmartCar's accessibility statement: what has been made accessible, what is still in progress and how to contact us about accessibility.",
     alternates: localeAlternates(locale, 'accessibility'),
   };
 }

@@ -12,6 +12,10 @@ export async function generateMetadata({
   const { locale } = await params;
   return {
     title: locale === 'he' ? 'אודות' : 'About',
+    description:
+      locale === 'he'
+        ? 'הסיפור של SmartCar — חברת השכרה וליסינג ישראלית, ארבעה סניפים ושירות אישי בכל הארץ.'
+        : 'The SmartCar story — an Israeli rental and leasing company with four branches and personal service across the country.',
     alternates: localeAlternates(locale, 'about'),
   };
 }

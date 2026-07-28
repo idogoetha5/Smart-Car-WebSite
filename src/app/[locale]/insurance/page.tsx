@@ -11,10 +11,14 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
           ? 'מידע על ביטוח והשתתפות בנזק | SmartCar'
           : 'Insurance and Damage Participation | SmartCar',
     },
+    // Describes the page rather than asserting what any rental includes.
+    // "הביטוח הכלול" / "the insurance included" stated cover as a fact, and no
+    // policy document has been produced to support it — the claim then
+    // survives in search results even after the page body is corrected.
     description:
       locale === 'he'
-        ? 'כל מה שצריך לדעת על הביטוח הכלול בהשכרת הרכב שלך ב-SmartCar'
-        : 'Everything you need to know about the insurance included with your SmartCar rental',
+        ? 'מידע על אפשרויות הביטוח, הפיקדון וההשתתפות בנזק בהשכרת רכב ב-SmartCar. התנאים המדויקים נקבעים בהצעה ובחוזה.'
+        : 'Information about insurance options, deposits and damage participation for a SmartCar rental. Exact terms are set out in the quote and the agreement.',
     alternates: localeAlternates(locale, 'insurance'),
   };
 }

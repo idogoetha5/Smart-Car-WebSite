@@ -5,6 +5,10 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const { locale } = await params;
   return {
     title: locale === 'he' ? 'מדיניות פרטיות' : 'Privacy Policy',
+    description:
+      locale === 'he'
+        ? 'מדיניות הפרטיות של SmartCar: איזה מידע נאסף, לשם מה, למי הוא נמסר וכיצד לממש את זכויותיכם.'
+        : "SmartCar's Privacy Policy: what information is collected, why, who it is shared with and how to exercise your rights.",
     alternates: localeAlternates(locale, 'privacy'),
   };
 }
