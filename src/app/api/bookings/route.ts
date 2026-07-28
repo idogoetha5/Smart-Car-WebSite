@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
+import { matchStatusFor } from '@/lib/booking-rules';
 import { cookies } from 'next/headers';
 import { verifyTurnstile } from '@/lib/turnstile';
 import { verifyAdminToken } from '@/lib/admin-auth';
@@ -143,9 +144,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Vehicle not found' }, { status: 404 });
   }
 
-  if (!vehicle.is_available) {
-    return NextResponse.json({ error: 'Vehicle is not available for booking' }, { status: 409 });
-  }
+  // Deliberately NOT a rejection. is_available reflects the online catalogue,
+  // which holds only part of the fleet, so it cannot establish that no vehicle
+  // exists — and the note above says as much. Returning 409 here contradicted
+  // that and turned a serious customer into a dead end. The request is saved
+  // and flagged instead, and staff match it against the full fleet.
+  const manualMatch = matchStatusFor(vehicle.is_available, body.manualMatchRequired === true);
 
   if (!vehicle.price_per_day || vehicle.price_per_day <= 0) {
     return NextResponse.json({ error: 'Vehicle pricing is not configured' }, { status: 422 });
@@ -197,7 +201,10 @@ export async function POST(request: NextRequest) {
       attribution:         sanitizeAttribution(body.attribution),
       // Set when the customer asked for a vehicle the online catalogue
       // could not match — staff check the full fleet for an equivalent.
-      match_status:        body.manualMatchRequired === true ? 'MANUAL_MATCH_REQUIRED' : null,
+      // Derived on the server from is_available, not taken on trust from the
+      // browser: a client that omits the flag must not be able to hide that a
+      // request needs a human to match it.
+      match_status:        manualMatch,
       total_days:          totalDays,
       total_price:         serverTotalPrice,
       price_per_day:       serverPricePerDay,

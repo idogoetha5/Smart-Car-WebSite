@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { canSubmitRequest, matchStatusFor, requiresManualMatch } from '../booking-rules';
 
 /**
  * Rules the booking flow must hold, expressed as pure functions mirroring
@@ -11,19 +12,6 @@ import { describe, it, expect } from 'vitest';
 function isAvailableOnline(conflictCount: number, totalUnits: number): boolean {
   const units = Math.max(1, Number(totalUnits) || 1);
   return conflictCount < units;
-}
-
-/**
- * A booking submission is a REQUEST. The online catalogue lists only part
- * of the fleet, so no availability outcome may ever block submission.
- */
-function canSubmitRequest(_onlineAvailable: boolean | null): boolean {
-  return true;
-}
-
-/** A no-match request is flagged for staff to check the full fleet. */
-function matchStatusFor(onlineAvailable: boolean | null): string | null {
-  return onlineAvailable === false ? 'MANUAL_MATCH_REQUIRED' : null;
 }
 
 /** Only the transition INTO confirmed sends the confirmation email. */
@@ -68,13 +56,13 @@ describe('online availability counts against total_units', () => {
 
 describe('partial online inventory never blocks a request', () => {
   it('allows submission when the catalogue says unavailable', () => {
-    expect(canSubmitRequest(false)).toBe(true);
+    expect(canSubmitRequest()).toBe(true);
   });
   it('allows submission when availability is unknown (API error/empty)', () => {
-    expect(canSubmitRequest(null)).toBe(true);
+    expect(canSubmitRequest()).toBe(true);
   });
   it('allows submission when available', () => {
-    expect(canSubmitRequest(true)).toBe(true);
+    expect(canSubmitRequest()).toBe(true);
   });
 });
 
@@ -85,6 +73,21 @@ describe('manual match flag', () => {
   it('does not flag an available or unknown result', () => {
     expect(matchStatusFor(true)).toBeNull();
     expect(matchStatusFor(null)).toBeNull();
+  });
+
+  // The flag is derived on the server. A browser may ask for a manual match,
+  // but it must never be able to suppress one the server decided on — that is
+  // how an unavailable vehicle would silently skip the staff check.
+  it('honours a client request for a manual match', () => {
+    expect(requiresManualMatch(true, true)).toBe(true);
+    expect(matchStatusFor(true, true)).toBe('MANUAL_MATCH_REQUIRED');
+  });
+  it('still flags an unavailable vehicle when the client omits the flag', () => {
+    expect(requiresManualMatch(false, false)).toBe(true);
+    expect(matchStatusFor(false, false)).toBe('MANUAL_MATCH_REQUIRED');
+  });
+  it('treats undefined availability as no flag needed', () => {
+    expect(requiresManualMatch(undefined)).toBe(false);
   });
 });
 
