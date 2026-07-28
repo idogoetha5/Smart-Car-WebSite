@@ -12,55 +12,55 @@ type FaqItem = {
 
 const FAQ_HE: FaqItem[] = [
   {
-    q: 'מה גיל מינימלי להשכרת רכב?',
-    a: 'אפשר להשכיר אצלנו מגיל 18, גם אם עדיין לא צברתם שנתיים ותק. צריך רישיון נהיגה בתוקף, ולהירשם מראש בחוזה ההשכרה כדי שהכיסוי הביטוחי יחול עליכם. הזכאות והתנאים המדויקים תלויים בקבוצת הרכב ובכיסוי, ונמסרים לפני אישור ההזמנה.',
+    q: 'מי יכול לשכור רכב?',
+    a: 'השירות זמין מגיל 18 לבעלי רישיון נהיגה בתוקף, גם במהלך השנתיים הראשונות לקבלת הרישיון. כל נהג חייב להירשם מראש בחוזה ולהיות מכוסה בכיסוי הביטוחי המתאים. נהג חדש או צעיר נדרש לפעול לפי המגבלות החלות עליו.',
   },
   {
-    q: 'האם הביטוח כלול במחיר?',
-    a: 'בטח — כל הזמנה אצלנו כוללת ביטוח חובה מלא וביטוח מקיף בסיסי, בלי שום עלות נוספת. ואם אתם רוצים שקט נפשי מוחלט, אפשר להוסיף ביטול השתתפות עצמית (CDW) בתוספת יומית קטנה, וכל האחריות האישית שלכם יורדת לאפס.',
+    q: 'האם ביטוח כלול במחיר ההשכרה?',
+    a: 'מחיר ההשכרה כולל את הכיסוי הביטוחי הבסיסי המפורט בהצעה ובחוזה. ניתן להוסיף ביטול השתתפות עצמית בתשלום, בכפוף לתנאים ולחריגים המפורטים בחוזה. לנהג חדש או צעיר עשויה לחול תוספת מחיר בהתאם לכיסוי הביטוחי הנדרש.',
     learnMoreHref: '/insurance',
     learnMoreLabel: 'לפרטים מלאים על הביטוח',
   },
   {
-    q: 'מה אני צריך להביא ביום האיסוף?',
-    a: 'רק שלושה דברים: תעודת זהות, רישיון נהיגה בתוקף, ואמצעי תשלום. חשוב לזכור — המסמכים צריכים להיות מקוריים, צילומים לא יתקבלו.',
+    q: 'אילו מסמכים צריך להציג בעת איסוף הרכב?',
+    a: 'בעת איסוף הרכב יש להציג תעודת זהות או דרכון, רישיון נהיגה מקורי ובתוקף וכרטיס אשראי בתוקף על שם השוכר. גם נהג נוסף נדרש להציג רישיון נהיגה ולהירשם בחוזה לפני הנהיגה.',
     learnMoreHref: '/insurance',
     learnMoreLabel: 'ראה רשימת מסמכים מלאה',
   },
   {
-    q: 'האם ניתן לאסוף ולהחזיר בסניפים שונים?',
-    a: 'כן, בהחלט! אפשר לאסוף מאחד הסניפים שלנו ולהחזיר בסניף אחר, או בכל כתובת אחרת בארץ שנוחה לכם. רק תתאמו מראש עם הנציג שלנו.',
+    q: 'אפשר לקבל ולהחזיר את הרכב במקומות שונים?',
+    a: 'כן. ניתן לתאם מסירה והחזרה בסניפים או בכתובת אחרת בכל הארץ. השירות כפוף לתיאום מראש, והמחיר נקבע מול הנציג לפי הכתובות והזמנים.',
   },
   {
-    q: 'מה מדיניות הביטול?',
-    a: 'התוכניות השתנו? אין בעיה — ביטול עד 72 שעות לפני האיסוף הוא ללא שום עלות, עם החזר מלא. ביטול בטווח 72–48 שעות כרוך בעמלה של 25% מדמי השכירות הבסיסיים, ובטווח 48–24 שעות — 50%. ביטול פחות מ-24 שעות לפני האיסוף, או אי-הופעה, אינו מזכה בהחזר.',
+    q: 'מהי מדיניות הביטול?',
+    a: 'ביטול יותר מ־72 שעות לפני מועד האיסוף אינו כרוך בחיוב ומזכה בהחזר מלא. ביטול 72–48 שעות לפני האיסוף כרוך בחיוב של 25% מדמי השכירות הבסיסיים, וביטול 48–24 שעות לפני האיסוף כרוך בחיוב של 50%. ביטול פחות מ־24 שעות לפני האיסוף או אי־הגעה אינו מזכה בהחזר.',
   },
 ];
 
 const FAQ_EN: FaqItem[] = [
   {
-    q: 'What is the minimum age to rent a vehicle?',
-    a: 'You can rent from age 18, including if you have not yet completed two years of licence seniority. A valid driving licence is required, and every driver must be registered in the rental agreement in advance so the insurance cover applies. Exact eligibility and terms depend on the vehicle category and the cover, and are provided before the booking is approved.',
+    q: 'Who can rent a vehicle?',
+    a: 'The service is available from age 18 to holders of a valid driving licence, including during the first two years after the licence was issued. Every driver must be registered in the agreement in advance and be covered by the applicable insurance. A new or young driver must comply with the restrictions that apply to them.',
   },
   {
-    q: 'Is insurance included in the price?',
-    a: 'Yes — mandatory (third-party) and basic comprehensive insurance are included in every booking. You can add a Collision Damage Waiver (CDW) for an additional daily fee, which reduces your personal liability to zero. Without CDW, you are liable up to the deductible amount stated in the contract.',
+    q: 'Is insurance included in the rental price?',
+    a: 'The rental price includes the basic insurance cover detailed in the quote and in the agreement. A collision damage waiver can be added for a fee, subject to the terms and exclusions set out in the agreement. A new or young driver may be subject to an additional charge according to the insurance cover required.',
     learnMoreHref: '/insurance',
     learnMoreLabel: 'Full insurance details →',
   },
   {
-    q: 'What do I need to bring on pickup day?',
-    a: 'Please bring a valid government-issued photo ID, your original driving licence, and a payment method. All documents must be originals — photocopies are not accepted.',
+    q: 'Which documents must be presented when collecting the vehicle?',
+    a: 'When collecting the vehicle you must present an ID card or passport, an original valid driving licence, and a valid credit card in the renter\'s name. An additional driver must also present a driving licence and be registered in the agreement before driving.',
     learnMoreHref: '/insurance',
     learnMoreLabel: 'See full document checklist →',
   },
   {
-    q: 'Can I pick up and return the vehicle at different locations?',
-    a: 'Yes! You can pick up from one of our branches and return to a different branch, or to any other address in Israel. Coordinate in advance with your representative!',
+    q: 'Can the vehicle be collected and returned at different locations?',
+    a: 'Yes. Delivery and return can be arranged at our branches or at another address anywhere in Israel. The service is subject to prior coordination, and the price is agreed with the representative according to the addresses and times.',
   },
   {
     q: 'What is the cancellation policy?',
-    a: 'Cancellations made 72 hours or more before pickup receive a full refund. Cancellations within 48–72 hours incur a 25% fee; within 24–48 hours, 50%. Cancellations less than 24 hours before pickup are non-refundable.',
+    a: 'Cancellation more than 72 hours before the collection time is free of charge and entitles you to a full refund. Cancellation 72–48 hours before collection is charged at 25% of the basic rental fee, and cancellation 48–24 hours before collection is charged at 50%. Cancellation less than 24 hours before collection, or failure to appear, does not entitle you to a refund.',
   },
 ];
 
