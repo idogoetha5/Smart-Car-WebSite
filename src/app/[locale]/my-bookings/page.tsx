@@ -239,7 +239,7 @@ export default function MyBookingsPage() {
                 </div>
                 <p className="text-sm text-gray-600">
                   {isHe
-                    ? 'הכניסי את כתובת המייל שלך ונשלח לך קוד אימות'
+                    ? 'הזינו את כתובת הדוא״ל ונשלח לכם קוד אימות'
                     : 'Enter your email address and we\'ll send you a verification code'}
                 </p>
               </div>
@@ -287,7 +287,7 @@ export default function MyBookingsPage() {
                   <span className="text-2xl">🔑</span>
                 </div>
                 <p className="text-sm text-gray-700 font-medium mb-1">
-                  {isHe ? 'בדוק את תיבת המייל שלך' : 'Check your inbox'}
+                  {isHe ? 'בדקו את תיבת הדוא״ל' : 'Check your inbox'}
                 </p>
                 <p className="text-xs text-gray-600">
                   {isHe
@@ -329,7 +329,7 @@ export default function MyBookingsPage() {
                   disabled={authLoading || otpCode.length < 6}
                   className="w-full h-11 bg-[#2D5F5F] text-white text-sm font-bold rounded-xl hover:bg-[#1A3A3A] disabled:opacity-40 transition-colors"
                 >
-                  {authLoading ? '...' : (isHe ? 'אמת ← כנס' : 'Verify & sign in')}
+                  {authLoading ? '...' : (isHe ? 'אימות וכניסה' : 'Verify & sign in')}
                 </button>
                 <div className="text-center">
                   {resendCooldown > 0 ? (

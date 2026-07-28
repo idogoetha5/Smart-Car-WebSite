@@ -79,7 +79,13 @@ export default function Footer() {
               {[
                 { href: `/${locale}/rental`,           labelHe: 'השכרת רכב יומית',  labelEn: 'Daily Car Rental' },
                 { href: `/${locale}/leasing`,          labelHe: 'ליסינג פרטי',       labelEn: 'Private Leasing' },
-                { href: `/${locale}/services/business`,labelHe: 'ליסינג עסקי',       labelEn: 'Business Leasing' },
+                // Finding 95: this said "ליסינג עסקי" but pointed at
+                // /services/business, whose heading is "רכב לעסק, מהשכרה קצרה
+                // ועד צי קבוע" and whose CTAs mostly lead into the RENTAL
+                // funnel. Someone asking for business leasing was sent
+                // somewhere else. /leasing covers business explicitly, so the
+                // label now matches where it goes.
+                { href: `/${locale}/leasing`,          labelHe: 'ליסינג עסקי',       labelEn: 'Business Leasing' },
                 { href: `/${locale}/services/new-driver`,labelHe: 'נהג חדש',         labelEn: 'New Driver' },
                 { href: `/${locale}/cars-for-sale`,    labelHe: 'רכבים למכירה',      labelEn: 'Cars for Sale' },
               ].map((s) => (
