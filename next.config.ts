@@ -76,7 +76,20 @@ const nextConfig: NextConfig = {
     // Old-URL redirects for the pre-migration Hebrew slug structure live in
     // src/proxy.ts instead — the next-intl proxy runs before these config
     // redirects and was intercepting those paths first.
-    return [];
+    return [
+      {
+        // Both smartcar.co.il and www.smartcar.co.il answered 200, so every
+        // page existed at two addresses: link equity, crawl budget and cache
+        // state split between them, and the canonical tag alone does not stop
+        // a crawler fetching both. Kept here rather than as a Vercel domain
+        // setting so it is reviewable and revertible with the rest of the
+        // code. :path* preserves the path; Next.js carries the query string.
+        source: '/:path*',
+        has: [{ type: 'host', value: 'smartcar.co.il' }],
+        destination: 'https://www.smartcar.co.il/:path*',
+        permanent: true,
+      },
+    ];
   },
 };
 
