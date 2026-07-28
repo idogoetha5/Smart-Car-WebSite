@@ -4,6 +4,10 @@ import { useLocale, useTranslations } from 'next-intl';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Phone, Mail, MapPin } from 'lucide-react';
+import { branchAddress, getBranch, wazeUrl } from '@/lib/branches';
+
+const HERZLIYA = getBranch('herzliya');
+const TELAVIV = getBranch('telaviv');
 
 export default function Footer() {
   const t = useTranslations('footer');
@@ -95,11 +99,11 @@ export default function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-[#B64916] shrink-0" />
-                <a href="tel:09-9509757" className="hover:text-[#F5F0E8] transition-colors">09-9509757</a>
+                <a href={`tel:${HERZLIYA.phone}`} className="hover:text-[#F5F0E8] transition-colors">{HERZLIYA.phone}</a>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-[#B64916] shrink-0" />
-                <a href="tel:03-5233073" className="hover:text-[#F5F0E8] transition-colors">03-5233073</a>
+                <a href={`tel:${TELAVIV.phone}`} className="hover:text-[#F5F0E8] transition-colors">{TELAVIV.phone}</a>
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-[#B64916] shrink-0" />
@@ -107,8 +111,8 @@ export default function Footer() {
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-[#B64916] shrink-0 mt-0.5" />
-                <a href="https://www.waze.com/live-map/directions/il/tel-aviv-district/herzliya/smart-car?navigate=yes&to=place.ChIJJXb_-pRIHRURHCc4EPqsxxE" target="_blank" rel="noopener noreferrer" className="hover:text-[#F5F0E8] transition-colors">
-                  {locale === 'he' ? 'רמת ים 122 (מלון דן אכדיה), הרצליה' : '122 Ramat Yam St (Dan Accadia Hotel), Herzliya'}
+                <a href={wazeUrl(HERZLIYA)} target="_blank" rel="noopener noreferrer" className="hover:text-[#F5F0E8] transition-colors">
+                  {branchAddress(HERZLIYA, locale)}
                 </a>
               </li>
             </ul>

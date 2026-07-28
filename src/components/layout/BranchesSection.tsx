@@ -2,71 +2,29 @@
 
 import Image from 'next/image';
 import { Phone, MapPin, Clock } from 'lucide-react';
-import { OFFICE_PHONE } from '@/lib/constants';
+import { BRANCHES, mapsUrl, wazeUrl, type BranchId } from '@/lib/branches';
 
-interface Branch {
-  nameHe: string;
-  nameEn: string;
-  addressHe: string;
-  addressEn: string;
-  phone: string | null;
-  hoursHe: string;
-  hoursEn: string;
-  wazeUrl: string;
-  mapsUrl: string;
-  image: string;
-}
+// Opening hours are the only branch detail not held in @/lib/branches —
+// they are operational copy rather than identity, so they stay here.
+const HOURS: Record<BranchId, { he: string; en: string }> = {
+  herzliya:  { he: 'א–ה 08:00–20:00 | ו 08:00–14:00', en: 'Sun–Thu 08:00–20:00 | Fri 08:00–14:00' },
+  telaviv:   { he: 'א–ה 08:00–20:00 | ו 08:00–14:00', en: 'Sun–Thu 08:00–20:00 | Fri 08:00–14:00' },
+  jerusalem: { he: 'א–ה 08:00–20:00 | ו 08:00–14:00', en: 'Sun–Thu 08:00–20:00 | Fri 08:00–14:00' },
+  airport:   { he: 'שירות משלוח 24/7',                en: '24/7 Delivery Service' },
+};
 
-const branches: Branch[] = [
-  {
-    nameHe: 'סניף הרצליה',
-    nameEn: 'Herzliya',
-    addressHe: 'רחוב רמת ים 122 (מלון דן אכדיה)',
-    addressEn: '122 Ramat Yam St (Dan Accadia Hotel)',
-    phone: OFFICE_PHONE,
-    hoursHe: 'א–ה 08:00–20:00 | ו 08:00–14:00',
-    hoursEn: 'Sun–Thu 08:00–20:00 | Fri 08:00–14:00',
-    wazeUrl: 'https://www.waze.com/live-map/directions/il/tel-aviv-district/herzliya/smart-car?navigate=yes&to=place.ChIJJXb_-pRIHRURHCc4EPqsxxE',
-    mapsUrl: 'https://maps.google.com/?q=32.16278,34.79306',
-    image: '/images/branch-herzliya.webp',
-  },
-  {
-    nameHe: 'סניף תל אביב',
-    nameEn: 'Tel Aviv',
-    addressHe: 'מאפו 2 פינת הירקון 112',
-    addressEn: '2 Mapu St, corner of 112 Hayarkon',
-    phone: '03-5233073',
-    hoursHe: 'א–ה 08:00–20:00 | ו 08:00–14:00',
-    hoursEn: 'Sun–Thu 08:00–20:00 | Fri 08:00–14:00',
-    wazeUrl: 'https://waze.com/ul?ll=32.08736,34.76853&navigate=yes',
-    mapsUrl: 'https://maps.google.com/?q=32.08736,34.76853',
-    image: '/images/branch-telaviv.webp',
-  },
-  {
-    nameHe: 'סניף ירושלים',
-    nameEn: 'Jerusalem',
-    addressHe: 'המלך דוד 8',
-    addressEn: '8 King David St',
-    phone: '02-6221150',
-    hoursHe: 'א–ה 08:00–20:00 | ו 08:00–14:00',
-    hoursEn: 'Sun–Thu 08:00–20:00 | Fri 08:00–14:00',
-    wazeUrl: 'https://waze.com/ul?ll=31.77624,35.22380&navigate=yes',
-    mapsUrl: 'https://maps.google.com/?q=31.77624,35.22380',
-    image: '/images/branch-jerusalem.webp',
-  },
-  {
-    nameHe: 'נתב"ג – שירות משלוח',
-    nameEn: 'Ben Gurion Airport',
-    addressHe: 'נמל התעופה בן גוריון',
-    addressEn: 'Ben Gurion International Airport',
-    phone: OFFICE_PHONE,
-    hoursHe: 'שירות משלוח 24/7',
-    hoursEn: '24/7 Delivery Service',
-    wazeUrl: 'https://waze.com/ul?ll=32.0114,34.8858&navigate=yes',
-    mapsUrl: 'https://maps.google.com/?q=32.0114,34.8858',
-    image: '/images/branch-airport.webp',
-  },
-];
+const branches = BRANCHES.map((b) => ({
+  nameHe: b.nameHe,
+  nameEn: b.nameEn,
+  addressHe: `${b.streetHe}, ${b.cityHe}`,
+  addressEn: `${b.streetEn}, ${b.cityEn}`,
+  phone: b.phone,
+  hoursHe: HOURS[b.id].he,
+  hoursEn: HOURS[b.id].en,
+  wazeUrl: wazeUrl(b),
+  mapsUrl: mapsUrl(b),
+  image: b.image,
+}));
 
 export default function BranchesSection({ locale }: { locale: string }) {
   const isHe = locale === 'he';

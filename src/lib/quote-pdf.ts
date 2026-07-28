@@ -1,3 +1,4 @@
+import { BRANCHES } from './branches';
 import {
   heebo400, heebo700, heebo800, heebo900,
   assistant400, assistant600, logo_png,
@@ -271,9 +272,12 @@ export function quoteBodyHTML(data: QuoteData): string {
 
   <footer class="foot">
     <div class="branches">
-      <div><h3>הרצליה</h3><p>רח׳ רמת ים 122<br>מלון דן אכדיה<br><span class="tel">09-9509757</span></p></div>
-      <div><h3>תל אביב</h3><p>רח׳ הירקון 112<br>פינת רח׳ מאפו<br><span class="tel">03-5233073</span></p></div>
-      <div><h3>ירושלים</h3><p>רח׳ המלך דוד 8<br>&nbsp;<br><span class="tel">02-6221150</span></p></div>
+      ${BRANCHES.filter((b) => b.id !== 'airport')
+        .map(
+          (b) =>
+            `<div><h3>${b.cityHe}</h3><p>${b.streetHe}<br>&nbsp;<br><span class="tel">${b.phone}</span></p></div>`
+        )
+        .join('\n      ')}
     </div>
     <div class="fbase">www.smartcar.co.il &middot; office@smartcar.co.il</div>
   </footer>

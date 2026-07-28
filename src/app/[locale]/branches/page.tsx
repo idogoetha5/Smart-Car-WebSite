@@ -1,3 +1,5 @@
+import { BRANCHES as ALL_BRANCHES, mapsUrl, wazeUrl, type BranchId } from '@/lib/branches';
+import { localeAlternates } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 
@@ -13,68 +15,50 @@ export async function generateMetadata({
     description: isHe
       ? 'ל-SmartCar 4 סניפים ברחבי ישראל: הרצליה, תל אביב, ירושלים ונמל התעופה בן גוריון. הגיעו אלינו או הזמינו רכב שיגיע עד אליכם בכל מקום.'
       : 'SmartCar has 4 branches across Israel: Herzliya, Tel Aviv, Jerusalem and Ben Gurion Airport. Visit us or book a car delivered straight to you.',
-    alternates: { canonical: `/${locale}/branches` },
+    alternates: localeAlternates(locale, 'branches'),
   };
 }
 
-const BRANCHES = [
-  {
-    id: 'herzliya',
-    nameHe: 'סניף הרצליה',
-    nameEn: 'Herzliya',
-    addressHe: 'רחוב רמת ים 122 (מלון דן אכדיה), הרצליה',
-    addressEn: '122 Ramat Yam St (Dan Accadia Hotel), Herzliya',
-    phone: '09-9509757',
-    hours: { weekdaysHe: 'א׳–ה׳', weekdaysEn: 'Sun–Thu', time: '08:00–20:00', fridayTime: '08:00–14:00', saturday: false },
-    image: '/images/branch-herzliya.webp',
-    waze: 'https://waze.com/ul?q=רמת ים 122, הרצליה&navigate=yes',
-    maps: 'https://maps.google.com/?q=רמת+ים+122,+הרצליה',
+// Address, phone and map links come from @/lib/branches (single source of
+// truth). Only the page-specific presentation data — opening hours and the
+// descriptive blurb — is defined here.
+const WEEKDAY_HOURS = { weekdaysHe: 'א׳–ה׳', weekdaysEn: 'Sun–Thu', time: '08:00–20:00', fridayTime: '08:00–14:00', saturday: false };
+
+const BRANCH_DETAILS: Record<BranchId, { hours: typeof WEEKDAY_HOURS; descHe: string; descEn: string }> = {
+  herzliya: {
+    hours: WEEKDAY_HOURS,
     descHe: 'הסניף הראשי שלנו בהרצליה, ממוקם במלון דן אכדיה על קו החוף.',
     descEn: 'Our flagship location in Herzliya, situated at the iconic Dan Accadia Hotel directly on the seafront — easily accessible and open six days a week.',
   },
-  {
-    id: 'telaviv',
-    nameHe: 'סניף תל אביב',
-    nameEn: 'Tel Aviv',
-    addressHe: 'מאפו 2 פינת הירקון 112, תל אביב',
-    addressEn: '2 Mapu St, corner of 112 Hayarkon, Tel Aviv',
-    phone: '03-5233073',
-    hours: { weekdaysHe: 'א׳–ה׳', weekdaysEn: 'Sun–Thu', time: '08:00–20:00', fridayTime: '08:00–14:00', saturday: false },
-    image: '/images/branch-telaviv.webp',
-    waze: 'https://waze.com/ul?q=הירקון 112, תל אביב&navigate=yes',
-    maps: 'https://maps.google.com/?q=הירקון+112,+תל+אביב',
+  telaviv: {
+    hours: WEEKDAY_HOURS,
     descHe: 'סניף תל אביב במרכז העיר, קרוב לטיילת ולמלונות.',
     descEn: 'Centrally located in Tel Aviv, steps from the beachfront promenade and major hotels — the ideal starting point for exploring the city or heading out on the road.',
   },
-  {
-    id: 'jerusalem',
-    nameHe: 'סניף ירושלים',
-    nameEn: 'Jerusalem',
-    addressHe: 'המלך דוד 8, ירושלים',
-    addressEn: '8 King David St, Jerusalem',
-    phone: '02-6221150',
-    hours: { weekdaysHe: 'א׳–ה׳', weekdaysEn: 'Sun–Thu', time: '08:00–20:00', fridayTime: '08:00–14:00', saturday: false },
-    image: '/images/branch-jerusalem.webp',
-    waze: 'https://waze.com/ul?q=המלך דוד 8, ירושלים&navigate=yes',
-    maps: 'https://maps.google.com/?q=המלך+דוד+8,+ירושלים',
+  jerusalem: {
+    hours: WEEKDAY_HOURS,
     descHe: 'סניף ירושלים ברחוב המלך דוד, לב ליבה של העיר.',
     descEn: 'Located on the prestigious King David Street in the heart of Jerusalem — perfectly positioned for business travellers and tourists alike.',
   },
-  {
-    id: 'airport',
-    nameHe: 'נתב"ג – שירות משלוח',
-    nameEn: 'Ben Gurion Airport',
-    addressHe: 'נמל התעופה בן גוריון',
-    addressEn: 'Ben Gurion International Airport',
-    phone: '09-9509757',
+  airport: {
     hours: { weekdaysHe: '24/7', weekdaysEn: '24/7', time: '24/7', fridayTime: '24/7', saturday: true },
-    image: '/images/branch-airport.webp',
-    waze: 'https://waze.com/ul?q=נמל התעופה בן גוריון, לוד&navigate=yes',
-    maps: 'https://maps.google.com/?q=נמל+התעופה+בן+גוריון,+לוד',
     descHe: 'שירות משלוח לנמל התעופה בן גוריון – זמין 24/7.',
     descEn: 'Arriving or departing from Ben Gurion Airport? We deliver your vehicle directly to the terminal — a seamless, 24/7 service so you can move the moment you land.',
   },
-];
+};
+
+const BRANCHES = ALL_BRANCHES.map((b) => ({
+  id: b.id,
+  nameHe: b.nameHe,
+  nameEn: b.nameEn,
+  addressHe: `${b.streetHe}, ${b.cityHe}`,
+  addressEn: `${b.streetEn}, ${b.cityEn}`,
+  phone: b.phone,
+  image: b.image,
+  waze: wazeUrl(b),
+  maps: mapsUrl(b),
+  ...BRANCH_DETAILS[b.id],
+}));
 
 export default async function BranchesPage({
   params,

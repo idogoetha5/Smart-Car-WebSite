@@ -1,3 +1,5 @@
+import { BRANCHES, branchAddress, branchName, getBranch, mapsUrl, wazeUrl } from '@/lib/branches';
+import { localeAlternates } from '@/lib/seo';
 import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
@@ -16,10 +18,7 @@ export async function generateMetadata({
     description: isHe
       ? 'SmartCar – השכרת רכב עם שירות עד בית הלקוח בכל ישראל. בחרו ממגוון רכבים: מיני, קומפקט, SUV וחשמלי. מחירים שקופים, הזמנה מהירה ותמיכה מלאה.'
       : 'SmartCar – car rental with home delivery across Israel. Choose from mini, compact, SUV and electric. Transparent pricing, fast booking, full support.',
-    alternates: {
-      canonical: `/${locale}`,
-      languages: { he: '/he', en: '/en', 'x-default': '/he' },
-    },
+    alternates: localeAlternates(locale),
   };
 }
 import Image from 'next/image';
@@ -89,36 +88,15 @@ export default async function HomePage({
         { title: 'Personal Service', desc: 'Our team is available around the clock — because your journey matters to us' },
       ];
 
-  const BRANCHES_DATA = [
-    {
-      name: isHe ? 'סניף הרצליה' : 'Herzliya',
-      image: '/images/branch-herzliya.webp',
-      address: isHe ? 'רחוב רמת ים 122 (מלון דן אכדיה)' : '122 Ramat Yam St (Dan Accadia Hotel)',
-      phone: '09-9509757',
-      wazeUrl: 'https://www.waze.com/live-map/directions/il/tel-aviv-district/herzliya/smart-car?navigate=yes&to=place.ChIJJXb_-pRIHRURHCc4EPqsxxE',
-    },
-    {
-      name: isHe ? 'סניף תל אביב' : 'Tel Aviv',
-      image: '/images/branch-telaviv.webp',
-      address: isHe ? 'מאפו 2 פינת הירקון 112' : '2 Mapu St, corner of HaYarkon 112',
-      phone: '03-5233073',
-      wazeUrl: 'https://waze.com/ul?ll=32.0853,34.7818&navigate=yes',
-    },
-    {
-      name: isHe ? 'סניף ירושלים' : 'Jerusalem',
-      image: '/images/branch-jerusalem.webp',
-      address: isHe ? 'המלך דוד 8' : '8 King David St',
-      phone: '02-6221150',
-      wazeUrl: 'https://waze.com/ul?ll=31.7767,35.2345&navigate=yes',
-    },
-    {
-      name: isHe ? 'נתב"ג' : 'Ben Gurion Airport',
-      image: '/images/branch-airport.webp',
-      address: isHe ? 'נמל התעופה בן גוריון' : 'Ben Gurion International Airport',
-      phone: '09-9509757',
-      wazeUrl: 'https://waze.com/ul?ll=32.0055,34.8854&navigate=yes',
-    },
-  ];
+  const BRANCHES_DATA = BRANCHES.map((b) => ({
+    name: branchName(b, locale),
+    image: b.image,
+    address: branchAddress(b, locale),
+    phone: b.phone,
+    wazeUrl: wazeUrl(b),
+  }));
+
+  const herzliya = getBranch('herzliya');
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
   const jsonLd = {
@@ -135,11 +113,11 @@ export default async function HomePage({
     openingHours: 'Su-Th 08:00-20:00',
     address: {
       '@type': 'PostalAddress',
-      streetAddress: isHe ? 'רמת ים 122' : '122 Ramat Yam St',
-      addressLocality: isHe ? 'הרצליה' : 'Herzliya',
+      streetAddress: isHe ? herzliya.streetHe : herzliya.streetEn,
+      addressLocality: isHe ? herzliya.cityHe : herzliya.cityEn,
       addressCountry: 'IL',
     },
-    hasMap: 'https://maps.google.com/?q=רמת+ים+122+הרצליה',
+    hasMap: mapsUrl(herzliya),
     sameAs: ['https://wa.me/97299509757'],
   };
 

@@ -16,13 +16,12 @@ import type { Vehicle } from '@/types';
 import { AvailabilityChecker } from './AvailabilityChecker';
 import TurnstileWidget from '@/components/ui/Turnstile';
 import PrivacyNotice from '@/components/ui/PrivacyNotice';
+import { BRANCHES as ALL_BRANCHES } from '@/lib/branches';
 
-const BRANCHES = [
-  { value: 'herzliya',  label: 'סניף הרצליה – רחוב רמת ים 122' },
-  { value: 'telaviv',   label: 'סניף תל אביב – מאפו 2 פינת הירקון' },
-  { value: 'jerusalem', label: 'סניף ירושלים – המלך דוד 8' },
-  { value: 'airport',   label: 'נתב"ג – נמל התעופה בן גוריון' },
-];
+const BRANCHES = ALL_BRANCHES.map((b) => ({
+  value: b.id,
+  label: `${b.nameHe} – ${b.streetHe}`,
+}));
 
 function getRentalMileageAllowance(days: number): number {
   if (days <= 7) return 250 * days;
@@ -30,12 +29,10 @@ function getRentalMileageAllowance(days: number): number {
   return 4000 * Math.ceil(days / 30);
 }
 
-const BRANCHES_EN = [
-  { value: 'herzliya',  label: 'Herzliya – 122 Ramat Yam St' },
-  { value: 'telaviv',   label: 'Tel Aviv – 2 Mapu St' },
-  { value: 'jerusalem', label: 'Jerusalem – 8 King David St' },
-  { value: 'airport',   label: 'Ben Gurion Airport' },
-];
+const BRANCHES_EN = ALL_BRANCHES.map((b) => ({
+  value: b.id,
+  label: b.id === 'airport' ? b.nameEn : `${b.nameEn} – ${b.streetEn}`,
+}));
 
 const EXTRAS = [
   {
