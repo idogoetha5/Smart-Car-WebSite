@@ -131,13 +131,13 @@ export default function HeroSection({ locale }: { locale: string }) {
     {
       label: ts('business'),
       href: `/${locale}/services/business`,
-      // briefcase with handle, horizontal divider, centre clasp
+      // briefcase with handle and a softly curved front seam
       icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-3">
           <rect x="2" y="7" width="20" height="14" rx="2"/>
           <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-          <line x1="2" y1="14" x2="22" y2="14"/>
-          <rect x="9" y="12.5" width="6" height="3" rx="1"/>
+          <path d="M22 12.5a18.2 18.2 0 0 1-20 0"/>
+          <path d="M11.4 13.6h1.2"/>
         </svg>
       ),
     },
@@ -146,7 +146,7 @@ export default function HeroSection({ locale }: { locale: string }) {
       href: `/${locale}/services/new-driver`,
       // driver's license card
       icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
           <rect x="2" y="5" width="20" height="14" rx="2"/>
           <circle cx="7.5" cy="10" r="2"/>
           <path d="M4 19a3.5 3.5 0 017 0"/>
@@ -161,7 +161,7 @@ export default function HeroSection({ locale }: { locale: string }) {
       href: `/${locale}/services/sale`,
       // car side-view + transfer/ownership arrow below
       icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
           <rect x="1" y="9" width="18" height="6" rx="2"/>
           <path d="M3 9 l2.5-4 h9 l2.5 4"/>
           <circle cx="5.5" cy="15" r="2"/>
@@ -176,7 +176,7 @@ export default function HeroSection({ locale }: { locale: string }) {
       href: `/${locale}/services/leasing`,
       // contract document: folded corner, text lines, signature + pen nib
       icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
           <polyline points="14 2 14 8 20 8"/>
           <line x1="8" y1="12" x2="16" y2="12"/>
@@ -191,7 +191,7 @@ export default function HeroSection({ locale }: { locale: string }) {
       href: `/${locale}/services/hourly`,
       // history / clock-with-back-arrow
       icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
           <path d="M3 12a9 9 0 1 0 9-9 9.1 9.1 0 0 0-6.36 2.64"/>
           <polyline points="3 3 3 9 9 9"/>
           <polyline points="12 7 12 12 15 14"/>
@@ -203,7 +203,7 @@ export default function HeroSection({ locale }: { locale: string }) {
       href: `/${locale}/services/commercial`,
       // delivery truck with speed lines
       icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
           <rect x="2" y="3" width="14" height="13" rx="1"/>
           <path d="M16 8h4l3 3v5h-7V8z"/>
           <circle cx="6" cy="18.5" r="2.5"/>
@@ -217,22 +217,21 @@ export default function HeroSection({ locale }: { locale: string }) {
     {
       label: ts('daily'),
       href: `/${locale}/services/daily`,
-      // sun above a car — single day rental
+      // sunrise over a car — single day rental
       icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
-          <circle cx="12" cy="4" r="1.8"/>
-          <line x1="12" y1="1.7" x2="12" y2="0.2"/>
-          <line x1="12" y1="6.3" x2="12" y2="7.8"/>
-          <line x1="9.7" y1="4" x2="8.2" y2="4"/>
-          <line x1="14.3" y1="4" x2="15.8" y2="4"/>
-          <line x1="13.63" y1="2.37" x2="14.69" y2="1.31"/>
-          <line x1="10.37" y1="2.37" x2="9.31" y2="1.31"/>
-          <line x1="13.63" y1="5.63" x2="14.69" y2="6.69"/>
-          <line x1="10.37" y1="5.63" x2="9.31" y2="6.69"/>
-          <rect x="2" y="13" width="18" height="6" rx="2"/>
-          <path d="M4 13 l2.5-4 h9 l2.5 4"/>
-          <circle cx="6.5" cy="19" r="2"/>
-          <circle cx="15.5" cy="19" r="2"/>
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-3">
+          <path d="M8.8 9.2a3.2 3.2 0 0 1 6.4 0"/>
+          <line x1="12" y1="1.2" x2="12" y2="2.8"/>
+          <line x1="6.9" y1="4.1" x2="8" y2="5.2"/>
+          <line x1="17.1" y1="4.1" x2="16" y2="5.2"/>
+          <line x1="4.4" y1="9.2" x2="6.4" y2="9.2"/>
+          <line x1="17.6" y1="9.2" x2="19.6" y2="9.2"/>
+          <path d="M2.4 18.6v-3.1a1 1 0 0 1 .7-1l1.6-.5 2-2.6a1.4 1.4 0 0 1 1.1-.6h8.4a1.4 1.4 0 0 1 1.1.6l2 2.6 1.6.5a1 1 0 0 1 .7 1v3.1"/>
+          <path d="M4.7 14h14.6"/>
+          <path d="M11.8 11.2v2.8"/>
+          <path d="M2.4 18.6h2.2M9 18.6h6M19.4 18.6h2.2"/>
+          <circle cx="6.6" cy="18.6" r="1.7"/>
+          <circle cx="17.4" cy="18.6" r="1.7"/>
         </svg>
       ),
     },
@@ -241,7 +240,7 @@ export default function HeroSection({ locale }: { locale: string }) {
       href: `/${locale}/services/monthly`,
       // calendar with "31" and two ring-binders
       icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
           <rect x="3" y="4" width="18" height="18" rx="2"/>
           <line x1="8" y1="2" x2="8" y2="6"/>
           <line x1="16" y1="2" x2="16" y2="6"/>
@@ -333,7 +332,7 @@ export default function HeroSection({ locale }: { locale: string }) {
                 onClick={handleSearch}
                 className="w-full bg-[#2D5F5F] hover:bg-[#1a4040] text-white rounded-xl py-3 font-semibold text-sm transition-colors flex items-center justify-center gap-2"
               >
-                <svg width="16" height="16" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
+                <svg aria-hidden="true" width="16" height="16" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
                   <circle cx="11" cy="11" r="8"/>
                   <path d="m21 21-4.35-4.35"/>
                 </svg>
@@ -414,7 +413,7 @@ export default function HeroSection({ locale }: { locale: string }) {
               className="bg-[#2D5F5F] hover:bg-[#1a4040] text-white rounded-full w-11 h-11 flex items-center justify-center flex-shrink-0 transition-colors ms-1"
               aria-label={t('search_btn')}
             >
-              <svg width="18" height="18" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
+              <svg aria-hidden="true" width="18" height="18" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
                 <circle cx="11" cy="11" r="8"/>
                 <path d="m21 21-4.35-4.35"/>
               </svg>
