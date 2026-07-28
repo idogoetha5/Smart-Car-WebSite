@@ -1,4 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
+import { requireExplicitOptIn, assertUrlsReachable } from './lib/asset-guard.mjs';
+
+requireExplicitOptIn('scripts/seed-vehicles.mjs');
 
 const sb = createClient(
   'https://iovpoxmdsgsstaduggvb.supabase.co',
@@ -222,6 +225,9 @@ const vehicles = [
 ];
 
 async function seed() {
+  // Before the delete: this wipes the whole vehicles table.
+  await assertUrlsReachable(vehicles.flatMap((v) => v.image_urls ?? []));
+
   console.log('Deleting existing vehicles...');
   const { error: delErr } = await sb.from('vehicles').delete().neq('id', 'none');
   if (delErr) { console.error('Delete error:', delErr.message); process.exit(1); }

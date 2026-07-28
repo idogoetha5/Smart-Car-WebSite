@@ -1,14 +1,12 @@
 import { createClient } from '../node_modules/@supabase/supabase-js/dist/index.mjs';
+import { requireExplicitOptIn, assertUrlsReachable } from './lib/asset-guard.mjs';
+
+requireExplicitOptIn('scripts/reseed-vehicles.mjs');
 
 const sb = createClient(
   'https://iovpoxmdsgsstaduggvb.supabase.co',
   'process.env.SUPABASE_SERVICE_ROLE_KEY'
 );
-
-// Delete all existing vehicles
-const { error: delErr } = await sb.from('vehicles').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-if (delErr) { console.error('Delete failed:', delErr.message); process.exit(1); }
-console.log('Deleted all vehicles.');
 
 const vehicles = [
   {
@@ -147,6 +145,14 @@ const vehicles = [
     total_units: 2,
   },
 ];
+
+await assertUrlsReachable(vehicles.flatMap((v) => v.image_urls ?? []));
+
+// Deliberately after the URL check: this wipes the whole vehicles table, so it
+// must not run until we know the replacement rows point at reachable images.
+const { error: delErr } = await sb.from('vehicles').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+if (delErr) { console.error('Delete failed:', delErr.message); process.exit(1); }
+console.log('Deleted all vehicles.');
 
 const { data, error } = await sb.from('vehicles').insert(vehicles).select('make, model, category');
 if (error) {

@@ -1,7 +1,25 @@
 -- ============================================================
 -- SmartCar – Update image_urls for all vehicles
--- Run in Supabase SQL Editor
+--
+-- DO NOT RUN. This file is kept for history only.
+--
+-- Every path below points at /images/vehicles/*.png. Commit 87d004c deleted
+-- those 311 local files; they now return 404 in production, and the live fleet
+-- is served from Supabase URLs instead. Pasting this into the SQL Editor would
+-- overwrite 226 working image URLs with dead ones and blank out every vehicle
+-- image on the site.
+--
+-- The guard below makes that failure loud instead of silent. Anyone who has
+-- genuinely rewritten the paths can delete it, but the URLs must be absolute
+-- Supabase URLs that return 200 first. The Node equivalents in scripts/ check
+-- that automatically — prefer those.
 -- ============================================================
+
+DO $$
+BEGIN
+  RAISE EXCEPTION
+    'update-images.sql is disabled: its 226 image paths were deleted in 87d004c and now 404. Running it would blank every vehicle image. See scripts/lib/asset-guard.mjs.';
+END $$;
 
 -- ── Economy ─────────────────────────────────────────────────
 UPDATE vehicles SET image_urls = ARRAY['/images/vehicles/kia_picanto_2024_white_front_3_4.png','/images/vehicles/kia_picanto_2024_white_rear_3_4.png','/images/vehicles/kia_picanto_2024_white_side_profile.png','/images/vehicles/kia_picanto_2024_white_front_3_4_doors_open.png'] WHERE make = 'KIA' AND model = 'Picanto';

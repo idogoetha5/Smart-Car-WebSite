@@ -1,4 +1,7 @@
 import { createClient } from '../node_modules/@supabase/supabase-js/dist/index.mjs';
+import { requireExplicitOptIn, assertUrlsReachable } from './lib/asset-guard.mjs';
+
+requireExplicitOptIn('scripts/reseed-colors.mjs');
 
 const sb = createClient(
   'https://iovpoxmdsgsstaduggvb.supabase.co',
@@ -120,10 +123,6 @@ const COLORS = [
   { color_he: 'אפור', color_en: 'Gray',  idx: 2, is_featured_override: false },
 ];
 
-const { error: delErr } = await sb.from('vehicles').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-if (delErr) { console.error('Delete failed:', delErr.message); process.exit(1); }
-console.log('Deleted all vehicles.');
-
 const rows = [];
 for (const m of MODELS) {
   for (const c of COLORS) {
@@ -142,6 +141,13 @@ for (const m of MODELS) {
     });
   }
 }
+
+await assertUrlsReachable(rows.flatMap((r) => r.image_urls ?? []));
+
+// Deliberately after the URL check: this wipes the whole vehicles table.
+const { error: delErr } = await sb.from('vehicles').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+if (delErr) { console.error('Delete failed:', delErr.message); process.exit(1); }
+console.log('Deleted all vehicles.');
 
 const { data, error } = await sb.from('vehicles').insert(rows).select('make,model,color_en,image_urls');
 if (error) { console.error('Insert failed:', error.message, error.details); process.exit(1); }

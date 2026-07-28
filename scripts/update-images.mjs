@@ -1,4 +1,7 @@
 import { createClient } from '../node_modules/@supabase/supabase-js/dist/index.mjs';
+import { requireExplicitOptIn, assertUrlsReachable } from './lib/asset-guard.mjs';
+
+requireExplicitOptIn('scripts/update-images.mjs');
 
 const sb = createClient(
   'https://iovpoxmdsgsstaduggvb.supabase.co',
@@ -68,6 +71,8 @@ const updates = [
   { make: 'Fiat', model: 'Doblo', images: ['/images/vehicles/03_2024_fiat_doblo.png'] },
   { make: 'Renault', model: 'Kangoo', images: ['/images/vehicles/26_2024_renault_kangoo.png'] },
 ];
+
+await assertUrlsReachable(updates.flatMap((u) => u.images));
 
 let successCount = 0;
 let failCount = 0;
