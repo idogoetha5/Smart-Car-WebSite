@@ -112,9 +112,12 @@ export default function Tilt3D({
       onPointerLeave={reset}
       style={{
         ...style,
-        // Reserve the layer up front so promoting on hover doesn't reflow
-        // the card and nudge the grid.
-        transformStyle: 'preserve-3d',
+        // Deliberately NOT setting `transform-style: preserve-3d` here.
+        // It establishes a containing block for absolutely positioned
+        // descendants, so any `next/image` with `fill` rendered inside a
+        // Tilt3D that has no height of its own collapses to nothing —
+        // which is exactly what blanked the vehicle gallery's main image.
+        // The tilt does not need it; the rotation still renders correctly.
         transition: enabled ? 'transform 0.16s cubic-bezier(0.22,1,0.36,1)' : undefined,
       }}
     >

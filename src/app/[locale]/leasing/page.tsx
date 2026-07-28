@@ -90,11 +90,14 @@ function VehicleLeaseCard({ vehicle, locale }: { vehicle: Vehicle; locale: strin
           <div className="text-xs text-gray-600 mb-3">
             {isHe ? 'כולל מע"מ 18%' : 'Incl. 18% VAT'}
           </div>
+          {/* One leasing action per card. "לפרטים" was too vague to say
+              what the click actually does. No rental action here — this is
+              the leasing page. */}
           <Link
             href={`/${locale}/leasing?vehicle=${vehicle.id}#calculator`}
-            className="block w-full py-2.5 text-center bg-[#C24E17] hover:bg-[#d4632a] text-white font-bold rounded-xl transition-colors text-sm"
+            className="block w-full py-2.5 text-center bg-[#C24E17] hover:bg-[#d4632a] text-white font-bold rounded-xl transition-colors text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C24E17] focus-visible:ring-offset-2"
           >
-            {isHe ? 'לפרטים' : 'Details'}
+            {isHe ? 'שליחת בקשה לליסינג' : 'Send leasing request'}
           </Link>
         </div>
       </div>

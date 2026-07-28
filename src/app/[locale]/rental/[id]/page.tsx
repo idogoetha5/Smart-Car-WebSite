@@ -1,10 +1,10 @@
 import { localeAlternates } from '@/lib/seo';
 export const revalidate = 60;
 
-import { getTranslations } from 'next-intl/server';
 import { getVehicleById } from '@/lib/db/vehicles';
 import BookingForm from '@/components/booking/BookingForm';
 import VehicleGallery from '@/components/vehicle/VehicleGallery';
+import BackToVehicles from '@/components/vehicle/BackToVehicles';
 import { Users, DoorOpen, Settings, Fuel } from 'lucide-react';
 
 export async function generateMetadata({
@@ -55,7 +55,6 @@ export default async function RentalDetailPage({
 }) {
   const { locale, id } = await params;
   const sp = await searchParams;
-  const t = await getTranslations('booking');
 
   let vehicle = null;
   try {
@@ -96,6 +95,11 @@ export default async function RentalDetailPage({
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 overflow-x-hidden" dir={locale === 'he' ? 'rtl' : 'ltr'}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(vehicleJsonLd) }} />
+
+      {/* First thing on the page — no hero here, the customer is mid-flow
+          and needs the way back to the listing they came from. */}
+      <BackToVehicles locale={locale} />
+
       <div className="grid lg:grid-cols-2 gap-12">
         {/* Vehicle Info — shown below form on mobile, beside it on desktop */}
         <div className="order-2 lg:order-1">
@@ -167,38 +171,27 @@ export default async function RentalDetailPage({
 
         {/* Booking Form — shown first on mobile, beside vehicle info on desktop */}
         <div className="order-1 lg:order-2">
-          {!vehicle.isAvailable ? (
-            <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-8 text-center">
-              <div className="text-5xl mb-4">🚫</div>
-              <h2 className="text-2xl font-black text-red-700 mb-2">
-                {locale === 'he' ? 'הרכב תפוס' : 'Vehicle Unavailable'}
-              </h2>
-              <p className="text-red-600 mb-6">
-                {locale === 'he'
-                  ? 'רכב זה אינו זמין כעת להשכרה. ניתן ליצור קשר עם הצוות שלנו לבדיקת חלופות.'
-                  : 'This vehicle is currently unavailable for rental. Please contact us to explore alternatives.'}
-              </p>
-              <a
-                href="tel:09-9509757"
-                className="inline-flex items-center gap-2 bg-[#0D2B2B] text-white px-6 py-3 rounded-xl font-bold hover:bg-[#1a3f3f] transition-colors"
-              >
-                {locale === 'he' ? 'צור קשר' : 'Contact Us'}
-              </a>
-            </div>
-          ) : (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">
-                {t('title')}
-              </h2>
-              <BookingForm
-                vehicle={vehicle}
-                initialPickupDate={sp.pickup ?? ''}
-                initialReturnDate={sp.return ?? ''}
-                initialLocation={sp.pickupLocation ?? sp.location ?? ''}
-                initialReturnLocation={sp.returnLocation ?? sp.pickupLocation ?? sp.location ?? ''}
-              />
-            </div>
-          )}
+          {/* The form is always shown. The online catalogue holds only part
+              of the fleet, so it cannot conclude that no vehicle exists —
+              the previous "הרכב תפוס" panel replaced the form with a dead
+              end and left the customer no way to ask. Staff check the full
+              fleet and confirm in writing. */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">
+              {/* Name comes from the loaded vehicle record, so the heading
+                  always matches the car actually being requested. */}
+              {locale === 'he'
+                ? `הזמנת רכב – ${vehicle.make} ${vehicle.model}`
+                : `Vehicle booking – ${vehicle.make} ${vehicle.model}`}
+            </h2>
+            <BookingForm
+              vehicle={vehicle}
+              initialPickupDate={sp.pickup ?? ''}
+              initialReturnDate={sp.return ?? ''}
+              initialLocation={sp.pickupLocation ?? sp.location ?? ''}
+              initialReturnLocation={sp.returnLocation ?? sp.pickupLocation ?? sp.location ?? ''}
+            />
+          </div>
         </div>
       </div>
     </div>

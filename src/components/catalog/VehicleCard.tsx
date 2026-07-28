@@ -245,31 +245,26 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          {/* Always available: the request path must never be blocked by
-              the online catalogue, which holds only part of the fleet. */}
-          <Link
-            href={(() => {
-              const p = new URLSearchParams();
-              if (pickupDate) p.set('pickup', pickupDate);
-              if (returnDate) p.set('return', returnDate);
-              if (location) p.set('location', location);
-              if (pickupLocation) p.set('pickupLocation', pickupLocation);
-              if (returnLocation) p.set('returnLocation', returnLocation);
-              const qs = p.toString();
-              return `/${locale}/rental/${vehicle.id}${qs ? '?' + qs : ''}`;
-            })()}
-            className="py-2.5 px-4 bg-[#2D5F5F] text-white text-sm font-bold rounded-xl hover:bg-[#1A3A3A] transition-colors text-center"
-          >
-            {t('book_now')}
-          </Link>
-          <Link
-            href={`/${locale}/leasing?vehicle=${vehicle.id}&make=${encodeURIComponent(vehicle.make)}&model=${encodeURIComponent(vehicle.model)}#calculator`}
-            className="py-2.5 px-4 border-2 border-[#B64916] text-[#B64916] text-sm font-bold rounded-xl hover:bg-[#C24E17]/5 transition-colors text-center"
-          >
-            {t('leasing_inquiry')}
-          </Link>
-        </div>
+        {/* One action per card on the rental pages. The leasing button that
+            used to sit beside this one gave every rental card two competing
+            calls to action; leasing has its own page and its own cards.
+            The request path is never blocked — the online catalogue holds
+            only part of the fleet. */}
+        <Link
+          href={(() => {
+            const p = new URLSearchParams();
+            if (pickupDate) p.set('pickup', pickupDate);
+            if (returnDate) p.set('return', returnDate);
+            if (location) p.set('location', location);
+            if (pickupLocation) p.set('pickupLocation', pickupLocation);
+            if (returnLocation) p.set('returnLocation', returnLocation);
+            const qs = p.toString();
+            return `/${locale}/rental/${vehicle.id}${qs ? '?' + qs : ''}`;
+          })()}
+          className="block w-full py-2.5 px-4 bg-[#2D5F5F] text-white text-sm font-bold rounded-xl hover:bg-[#1A3A3A] transition-colors text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F] focus-visible:ring-offset-2"
+        >
+          {t('book_now')}
+        </Link>
       </div>
     </Tilt3D>
   );
