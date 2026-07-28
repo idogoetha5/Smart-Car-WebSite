@@ -1,0 +1,86 @@
+name: CI
+
+# Runs the same gates that were previously only ever run by hand, so a
+# regression fails here instead of reaching production. Vercel deploys are
+# triggered separately (the project has no Git integration at present), so
+# this workflow only reports — it does not deploy.
+on:
+  push:
+    branches: [clean-main]
+  pull_request:
+    branches: [clean-main]
+
+# A newer push supersedes an in-flight run for the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint .
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        # Secrets are never needed to prove the app compiles, but the
+        # Turnstile guard deliberately throws when TURNSTILE_SECRET_KEY is
+        # missing in a production build (that guard is the fix for the
+        # bypass finding). A throwaway value satisfies it without putting a
+        # real secret in CI — nothing here reaches a deployed environment.
+        env:
+          TURNSTILE_SECRET_KEY: ci-build-placeholder
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-build-placeholder
+          SUPABASE_SERVICE_ROLE_KEY: ci-build-placeholder
+          NEXT_PUBLIC_APP_URL: https://www.smartcar.co.il
+        run: npm run build
+
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Dependency audit (production deps)
+        # Reports current advisories without failing the build: the
+        # outstanding ones come from packages nested inside Next.js and
+        # cannot be resolved from this repo, so a hard failure here would
+        # block every unrelated change. Reviewed per release instead.
+        run: npm audit --omit=dev || true
+
+      - name: Fail on new critical advisories
+        run: npm audit --omit=dev --audit-level=critical
+
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
