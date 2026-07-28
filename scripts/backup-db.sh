@@ -56,15 +56,29 @@ echo "Dumping database..."
 # --no-owner / --no-privileges so the dump restores into any local database
 # without needing Supabase's role names to exist.
 # --clean --if-exists so a restore replaces objects rather than colliding.
-pg_dump "$SUPABASE_DB_URL" \
-  --no-owner --no-privileges --clean --if-exists \
-  | gzip -9 > "$PLAIN" || fail "pg_dump failed"
+#
+# pg_dump's stderr is captured rather than inherited: piping into gzip meant a
+# connection or auth failure printed nothing useful and the caller saw only
+# "pg_dump failed". The reason is the whole point of an error.
+DUMP_ERR="$(mktemp)"
+if ! pg_dump "$SUPABASE_DB_URL" \
+       --no-owner --no-privileges --clean --if-exists 2>"$DUMP_ERR" \
+     | gzip -9 > "$PLAIN"; then
+  echo "--- pg_dump said: ---" >&2
+  sed 's/^/  /' "$DUMP_ERR" >&2
+  # Never leave a partial dump behind; it is indistinguishable from a real one
+  # at a glance and would be pruned on age like a good backup.
+  rm -f "$PLAIN" "$DUMP_ERR"
+  fail "pg_dump failed"
+fi
+rm -f "$DUMP_ERR"
 
 # Verify BEFORE encrypting. An empty or truncated dump that encrypts cleanly is
 # the worst outcome: it looks like a backup and restores to nothing.
-[ -s "$PLAIN" ] || fail "dump is empty: $PLAIN"
+if [ ! -s "$PLAIN" ]; then rm -f "$PLAIN"; fail "dump is empty"; fi
 if ! gzip -cd "$PLAIN" | grep -q "CREATE TABLE"; then
-  fail "dump contains no CREATE TABLE — refusing to keep it: $PLAIN"
+  rm -f "$PLAIN"
+  fail "dump contains no CREATE TABLE — refusing to keep it"
 fi
 TABLES="$(gzip -cd "$PLAIN" | grep -c "CREATE TABLE" || true)"
 echo "  dump OK — ${TABLES} table(s), $(du -h "$PLAIN" | cut -f1)"
