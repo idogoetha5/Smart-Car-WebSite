@@ -8,6 +8,7 @@ import { checkRateLimit } from '@/lib/ratelimit';
 import { getSeasonalPriceRange } from '@/lib/seasonal';
 import { bookingSchema } from '@/lib/validations';
 import { normalizeEmail } from '@/lib/email';
+import { sendTemplateEmail } from '@/lib/email-delivery';
 import type { Vehicle } from '@/types';
 
 const EXTRAS_PRICE: Record<string, number> = {
@@ -228,30 +229,25 @@ async function sendRequestReceivedEmail({
   booking: any;
   vehicle: { make: string; model: string; year: number };
 }): Promise<boolean> {
-  const serviceId  = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
-  const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
-  const publicKey  = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
-  const privateKey = process.env.EMAILJS_PRIVATE_KEY;
-
-  if (!serviceId || !templateId || !publicKey || !privateKey) {
-    console.error('[bookings] EmailJS not fully configured — request-received email not sent for', booking.id);
-    return false;
-  }
-
-  try {
-    const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        service_id:  serviceId,
-        template_id: templateId,
-        user_id:     publicKey,
-        accessToken: privateKey,
-        template_params: {
+  const { ok } = await sendTemplateEmail({
+    event: 'booking_request_received',
+    // One receipt per booking, whatever happens upstream.
+    idempotencyKey: `booking_request_received:${booking.id}`,
+    templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
+    params: {
           to_email:        booking.customer_email,
           to_name:         booking.customer_name,
           order_id:        String(booking.id).slice(0, 8).toUpperCase(),
-          booking_type:    'בקשת הזמנה התקבלה — ממתינה לבדיקת זמינות ואישור',
+          // The EmailJS "request received" template (template_ngg6hyf)
+          // wraps this in its own subject line:
+          //   בקשת {{booking_type}} התקבלה - {{vehicle_name}} | SmartCar
+          // so this must be a short noun, not a sentence. It previously
+          // held the whole explanatory sentence, which rendered as
+          // "בקשת בקשת הזמנה התקבלה — ממתינה... התקבלה".
+          // As a bare noun it renders exactly the approved status wording:
+          //   בקשת הזמנה התקבלה
+          // The full explanation stays in `message` below.
+          booking_type:    'הזמנה',
           vehicle_name:    `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
           // Never implies "no car available" — the online catalogue is only
           // part of the fleet and staff check the full fleet before replying.
@@ -265,17 +261,8 @@ async function sendRequestReceivedEmail({
           bcc_email:       'office@smartcar.co.il',
           pickup_time:     booking.pickup_time || '09:00',
           return_time:     booking.return_time || '09:00',
-          logo_url:        'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/logo.png',
-        },
-      }),
-    });
-    if (!res.ok) {
-      console.error('[bookings] request-received email failed:', res.status, await res.text().catch(() => ''));
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error('[bookings] request-received email error:', err);
-    return false;
-  }
+      logo_url:        'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/logo.png',
+    },
+  });
+  return ok;
 }

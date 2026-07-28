@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/server';
 import { verifyAdminToken } from '@/lib/admin-auth';
+import { alreadyDelivered, sendTemplateEmail } from '@/lib/email-delivery';
 
 const LOGO_URL = 'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/logo.png';
 
@@ -32,26 +33,20 @@ function whatsappDepositLink(orderId: string): string {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function sendConfirmationEmail(booking: any) {
-  const serviceId  = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
-  const templateId = process.env.NEXT_PUBLIC_EMAILJS_CONFIRMATION_TEMPLATE_ID;
-  const publicKey  = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
-  const privateKey = process.env.EMAILJS_PRIVATE_KEY;
-
-  if (!serviceId || !templateId || !publicKey || !privateKey) {
-    console.error('[admin/bookings] EmailJS confirmation template not configured — confirmation email not sent');
+  // The RPC guarantees only one caller performs the transition, so this
+  // runs once per booking. The idempotency key is belt-and-braces: it also
+  // survives a redeploy or a manual re-run of the same approval.
+  const key = `booking_confirmed:${booking.id}`;
+  if (await alreadyDelivered(key)) {
+    console.info('[admin/bookings] confirmation already delivered, skipping (ref %s)', key);
     return;
   }
 
-  try {
-    const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        service_id: serviceId,
-        template_id: templateId,
-        user_id: publicKey,
-        accessToken: privateKey,
-        template_params: {
+  await sendTemplateEmail({
+    event: 'booking_confirmed',
+    idempotencyKey: key,
+    templateId: process.env.NEXT_PUBLIC_EMAILJS_CONFIRMATION_TEMPLATE_ID,
+    params: {
           to_email:          booking.customer_email,
           to_name:           booking.customer_name,
           order_id:          String(booking.id).slice(0, 8).toUpperCase(),
@@ -69,17 +64,10 @@ async function sendConfirmationEmail(booking: any) {
           down_payment:      booking.total_price ? `₪${Math.round(Number(booking.total_price) * 0.05).toLocaleString()}` : '-',
           payment_link:      whatsappDepositLink(String(booking.id).slice(0, 8).toUpperCase()),
           payment_link_text: whatsappDepositLink(String(booking.id).slice(0, 8).toUpperCase()),
-          bcc_email:         'office@smartcar.co.il',
-          logo_url:          LOGO_URL,
-        },
-      }),
-    });
-    if (!res.ok) {
-      console.error('[admin/bookings] confirmation email send failed:', res.status, await res.text().catch(() => ''));
-    }
-  } catch (err) {
-    console.error('[admin/bookings] confirmation email error:', err);
-  }
+      bcc_email:         'office@smartcar.co.il',
+      logo_url:          LOGO_URL,
+    },
+  });
 }
 
 export async function PATCH(
