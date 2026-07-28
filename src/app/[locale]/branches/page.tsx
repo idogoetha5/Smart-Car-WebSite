@@ -22,9 +22,22 @@ export async function generateMetadata({
 // Address, phone and map links come from @/lib/branches (single source of
 // truth). Only the page-specific presentation data — opening hours and the
 // descriptive blurb — is defined here.
-const WEEKDAY_HOURS = { weekdaysHe: 'א׳–ה׳', weekdaysEn: 'Sun–Thu', time: '08:00–20:00', fridayTime: '08:00–14:00', saturday: false };
+// Owner-confirmed 2026-07-28: every branch is 08:00–18:00. The site previously
+// carried three different answers — 08:00–20:00 here and in contact, 08:00–18:00
+// in the terms, and a fourth shape in the JSON-LD — so a customer could be told
+// a different closing time depending on which page they landed on.
+const WEEKDAY_HOURS: BranchHours = { weekdaysHe: 'א׳–ה׳', weekdaysEn: 'Sun–Thu', time: '08:00–18:00', fridayTime: null, saturday: false };
 
-const BRANCH_DETAILS: Record<BranchId, { hours: typeof WEEKDAY_HOURS; descHe: string; descEn: string }> = {
+interface BranchHours {
+  weekdaysHe: string;
+  weekdaysEn: string;
+  time: string;
+  /** null when there is no separate Friday time to show. */
+  fridayTime: string | null;
+  saturday: boolean;
+}
+
+const BRANCH_DETAILS: Record<BranchId, { hours: BranchHours; descHe: string; descEn: string }> = {
   herzliya: {
     hours: WEEKDAY_HOURS,
     descHe: 'הסניף הראשי שלנו בהרצליה, ממוקם במלון דן אכדיה על קו החוף.',
@@ -41,6 +54,12 @@ const BRANCH_DETAILS: Record<BranchId, { hours: typeof WEEKDAY_HOURS; descHe: st
     descEn: 'Located on the prestigious King David Street in the heart of Jerusalem — perfectly positioned for business travellers and tourists alike.',
   },
   airport: {
+    // Deliberately NOT changed to 08:00–18:00 with the other three. This entry
+    // is a 24/7 DELIVERY service to the terminal, not a walk-in desk with
+    // opening hours, and "מענה אנושי 24/7" is on the protected-claims list.
+    // Collapsing it into branch hours would withdraw an approved claim and
+    // mix up two different things — which is the confusion finding 37 is
+    // about in the first place. Raised for the owner to confirm.
     hours: { weekdaysHe: '24/7', weekdaysEn: '24/7', time: '24/7', fridayTime: '24/7', saturday: true },
     descHe: 'שירות משלוח לנמל התעופה בן גוריון – זמין 24/7.',
     descEn: 'Arriving or departing from Ben Gurion Airport? We deliver your vehicle directly to the terminal — a seamless, 24/7 service so you can move the moment you land.',
@@ -138,14 +157,18 @@ export default async function BranchesPage({
                         <span>{branch.hours.time}</span>
                         <span>{isHe ? branch.hours.weekdaysHe : branch.hours.weekdaysEn}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>{branch.hours.fridayTime}</span>
-                        <span>{isHe ? 'שישי' : 'Fri'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-[#C10007]">{isHe ? 'סגור' : 'Closed'}</span>
-                        <span>{isHe ? 'שבת' : 'Sat'}</span>
-                      </div>
+                      {branch.hours.fridayTime && (
+                        <div className="flex justify-between">
+                          <span>{branch.hours.fridayTime}</span>
+                          <span>{isHe ? 'שישי' : 'Fri'}</span>
+                        </div>
+                      )}
+                      {!branch.hours.saturday && (
+                        <div className="flex justify-between">
+                          <span className="text-[#C10007]">{isHe ? 'סגור' : 'Closed'}</span>
+                          <span>{isHe ? 'שבת' : 'Sat'}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

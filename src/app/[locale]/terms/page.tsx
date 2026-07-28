@@ -64,11 +64,11 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">3. פיקדון ותשלום</h2>
+              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">3. פיקדון ותשלום <span className="text-sm font-normal text-gray-600">(המחירים עשויים להשתנות)</span></h2>
               <ul className="list-disc list-inside space-y-2 mr-4">
                 <li>פיקדון יוחזר תוך 14 ימי עסקים מהחזרת הרכב בתנאי שלא נמצא נזק.</li>
                 <li>דמי השכירות יחויבו במלואם לפני מסירת הרכב.</li>
-                <li>גובה הפיקדון האינדיקטיבי לפי קטגוריה: כלכלה — ₪1,000 | קומפקטי/סדאן/חשמלי — ₪1,500 | SUV/ואן/קבריולט — ₪2,000–₪2,500 | יוקרה — ₪3,000. <strong>הסכום הסופי ייקבע בחוזה הכתוב ויאושר על ידי נציג SmartCar.</strong></li>
+                <li>גובה הפיקדון האינדיקטיבי לפי קטגוריה: כלכלה — ₪1,000 | קומפקטי/סדאן/חשמלי — ₪1,500 | SUV/ואן/קבריולט — ₪2,000–₪2,500 | יוקרה — ₪3,000. <strong>הסכום הסופי ייקבע בחוזה הכתוב ויאושר על ידי נציג SmartCar.</strong> (המחירים עשויים להשתנות)</li>
                 <li>החברה רשאית לנכות מהפיקדון: דמי נזק, עלויות ניקוי, דלק חסר, דוחות/קנסות שהגיעו בתקופת השכירות.</li>
                 <li>חיוב נוסף מעבר לפיקדון ייעשה בהודעה מראש בכתב.</li>
               </ul>
@@ -203,7 +203,7 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
                 <li>📧 <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a></li>
                 <li>📞 <a href="tel:09-9509757" className="text-[#2D5F5F] underline">09-9509757</a></li>
                 <li>📍 רמת ים 122, הרצליה 46851</li>
-                <li>שעות פעילות: א&apos;–ה&apos; 08:00–18:00 | ו&apos; 08:00–13:00</li>
+                <li>שעות פעילות: א&apos;–ה&apos; 08:00–18:00</li>
               </ul>
             </section>
           </>
@@ -236,11 +236,11 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">3. Deposit & Payment</h2>
+              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">3. Deposit &amp; Payment <span className="text-sm font-normal text-gray-600">(Prices are subject to change)</span></h2>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>Deposit will be released within 14 business days of vehicle return, provided no damage is found.</li>
                 <li>Rental fees are charged in full before vehicle handover.</li>
-                <li>Indicative deposit amounts by category: Economy — ₪1,000 | Compact/Sedan/Electric — ₪1,500 | SUV/Van/Convertible — ₪2,000–₪2,500 | Luxury — ₪3,000. <strong>Final amounts are determined in the written rental agreement and confirmed by a SmartCar agent.</strong></li>
+                <li>Indicative deposit amounts by category: Economy — ₪1,000 | Compact/Sedan/Electric — ₪1,500 | SUV/Van/Convertible — ₪2,000–₪2,500 | Luxury — ₪3,000. <strong>Final amounts are determined in the written rental agreement and confirmed by a SmartCar agent.</strong> (Prices are subject to change)</li>
                 <li>The Company may deduct from the deposit: damage costs, cleaning fees, missing fuel, fines/penalties incurred during the rental period.</li>
               </ul>
             </section>

@@ -118,7 +118,7 @@ export default async function HomePage({
     priceRange: '₪₪',
     currenciesAccepted: 'ILS',
     paymentAccepted: 'Cash, Credit Card',
-    openingHours: 'Su-Th 08:00-20:00',
+    openingHours: 'Su-Th 08:00-18:00',
     address: {
       '@type': 'PostalAddress',
       streetAddress: isHe ? herzliya.streetHe : herzliya.streetEn,

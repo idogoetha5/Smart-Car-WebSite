@@ -15,8 +15,8 @@ export async function generateMetadata({
   return {
     title: t('contact'),
     description: isHe
-      ? 'צרו קשר עם SmartCar – חייגו 09-9509757, שלחו וואטסאפ או מייל לoffice@smartcar.co.il. נציג יחזור אליכם תוך שעה בשעות הפעילות א׳–ה׳ 8:00–20:00.'
-      : 'Contact SmartCar – call 09-9509757, WhatsApp or email office@smartcar.co.il. A representative will respond within one hour, Sun–Thu 8:00–20:00.',
+      ? 'צרו קשר עם SmartCar – חייגו 09-9509757, שלחו וואטסאפ או מייל לoffice@smartcar.co.il. נציג יחזור אליכם תוך שעה בשעות הפעילות א׳–ה׳ 8:00–18:00.'
+      : 'Contact SmartCar – call 09-9509757, WhatsApp or email office@smartcar.co.il. A representative will respond within one hour, Sun–Thu 8:00–18:00.',
     alternates: localeAlternates(locale, 'contact'),
   };
 }
@@ -138,8 +138,8 @@ export default async function ContactPage({
               </h3>
               <p className="text-gray-600 text-sm">
                 {isHe
-                  ? 'ראשון–חמישי 08:00–20:00 | שישי 08:00–14:00'
-                  : 'Sun–Thu 08:00–20:00 | Fri 08:00–14:00'}
+                  ? 'ראשון–חמישי 08:00–18:00'
+                  : 'Sun–Thu 08:00–18:00'}
               </p>
             </div>
           </div>

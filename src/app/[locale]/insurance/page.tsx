@@ -46,6 +46,8 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
   const isHe = locale === 'he';
 
   const deductibleTable = isHe ? DEDUCTIBLE_TABLE_HE : DEDUCTIBLE_TABLE_EN;
+  // Exact wording supplied by the owner. The amounts themselves are unchanged.
+  const priceNote = isHe ? '(המחירים עשויים להשתנות)' : '(Prices are subject to change)';
 
   return (
     <div
@@ -165,7 +167,8 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
           <p className="text-sm text-gray-600 mt-3">
             {isHe
               ? 'הסכומים המוצגים הם אינדיקטיביים. הסכום הסופי יאושר בחוזה ההשכרה הספציפי.'
-              : 'Amounts shown are indicative. The final amount is confirmed in the specific rental agreement.'}
+              : 'Amounts shown are indicative. The final amount is confirmed in the specific rental agreement.'}{' '}
+            <span className="font-semibold">{priceNote}</span>
           </p>
         </section>
 
@@ -190,6 +193,7 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
               <div className={isHe ? 'text-right' : 'text-left'}>
                 <p className="text-3xl font-black text-[#B64916]">₪45</p>
                 <p className="text-sm text-gray-600">{isHe ? 'לכל יום שכירות' : 'per rental day'}</p>
+                <p className="text-xs text-gray-600 mt-1">{priceNote}</p>
               </div>
             </div>
             <p className="text-[#2D5F5F] font-semibold mb-3">

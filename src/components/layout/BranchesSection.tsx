@@ -7,9 +7,9 @@ import { BRANCHES, mapsUrl, wazeUrl, type BranchId } from '@/lib/branches';
 // Opening hours are the only branch detail not held in @/lib/branches —
 // they are operational copy rather than identity, so they stay here.
 const HOURS: Record<BranchId, { he: string; en: string }> = {
-  herzliya:  { he: 'א–ה 08:00–20:00 | ו 08:00–14:00', en: 'Sun–Thu 08:00–20:00 | Fri 08:00–14:00' },
-  telaviv:   { he: 'א–ה 08:00–20:00 | ו 08:00–14:00', en: 'Sun–Thu 08:00–20:00 | Fri 08:00–14:00' },
-  jerusalem: { he: 'א–ה 08:00–20:00 | ו 08:00–14:00', en: 'Sun–Thu 08:00–20:00 | Fri 08:00–14:00' },
+  herzliya:  { he: 'א–ה 08:00–18:00', en: 'Sun–Thu 08:00–18:00' },
+  telaviv:   { he: 'א–ה 08:00–18:00', en: 'Sun–Thu 08:00–18:00' },
+  jerusalem: { he: 'א–ה 08:00–18:00', en: 'Sun–Thu 08:00–18:00' },
   airport:   { he: 'שירות משלוח 24/7',                en: '24/7 Delivery Service' },
 };
 
