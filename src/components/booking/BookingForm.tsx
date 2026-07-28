@@ -572,13 +572,12 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           </button>
         )}
       </div>
-      {savedDraft?.savedAt && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
-          {isHe
-            ? `📋 טיוטה שמורה מ-${new Date(savedDraft.savedAt).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`
-            : `📋 Draft from ${new Date(savedDraft.savedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`}
-        </div>
-      )}
+      {/* The timestamped amber banner that used to sit here is gone. It was a
+          second, louder announcement of something the line above already
+          says, and a date and time is not information the customer needs to
+          fill in a form — it read like a warning about their own draft. The
+          quiet "draft saved" text and the Clear draft control remain, so the
+          restored values are still explained and still removable. */}
 
       {(!pickupDate || !dropoffDate) ? (
         <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 text-center animate-pulse">
