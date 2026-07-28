@@ -1,7 +1,7 @@
-import { createHash } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { matchStatusFor } from '@/lib/booking-rules';
+import { termsConsent, marketingConsent } from '@/lib/consent';
 import { cookies } from 'next/headers';
 import { verifyTurnstile } from '@/lib/turnstile';
 import { verifyAdminToken } from '@/lib/admin-auth';
@@ -27,20 +27,6 @@ const EXTRAS_LABELS_HE: Record<string, string> = {
   driver:    'נהג נוסף',
 };
 
-// Wording pinned into the consent ledger. TERMS_VERSION must match the
-// version displayed on /terms; the hashes identify the exact text the
-// customer was shown at the moment of acceptance.
-const TERMS_VERSION = '2.0';
-// These MUST match the checkbox labels rendered in BookingForm verbatim —
-// the stored hash is evidence of the exact wording the customer saw, so a
-// drift between the two would make the ledger prove the wrong sentence.
-const TERMS_CONSENT_TEXT =
-  'קראתי ואני מסכים/ה לתנאי השימוש ולמדיניות הפרטיות של SmartCar.';
-const MARKETING_CONSENT_TEXT =
-  'אני מאשר/ת לקבל מ־SmartCar עדכונים והצעות בדוא״ל. אפשר לבטל את ההרשמה בכל עת.';
-const sha256 = (v: string) => createHash('sha256').update(v, 'utf8').digest('hex');
-const TERMS_TEXT_HASH = sha256(`${TERMS_VERSION}|${TERMS_CONSENT_TEXT}`);
-const MARKETING_TEXT_HASH = sha256(MARKETING_CONSENT_TEXT);
 
 /** Marketing attribution only — never PII, and length-capped. */
 function sanitizeAttribution(raw: unknown): Record<string, string> | null {
@@ -171,6 +157,10 @@ export async function POST(request: NextRequest) {
   const extrasTotal = selectedExtras.reduce((sum, id) => sum + (EXTRAS_PRICE[id] ?? 0) * totalDays, 0);
   const serverTotalPrice = vehicleTotal + extrasTotal;
 
+  // Consent wording is derived here, never taken from the request body.
+  const terms = termsConsent(body.locale);
+  const marketing = marketingConsent(body.locale);
+
   // Map camelCase → snake_case for Supabase insert
   const { data, error } = await supabase
     .from('bookings')
@@ -191,12 +181,15 @@ export async function POST(request: NextRequest) {
       // when, in which language and from where. The text hashes pin the
       // wording that was on screen, so a later edit to the terms or the
       // marketing line cannot be confused with what was actually accepted.
-      terms_version:       body.agreeTerms === true ? TERMS_VERSION : null,
-      terms_text_hash:     body.agreeTerms === true ? TERMS_TEXT_HASH : null,
+      // Wording chosen server-side from the verified locale. It used to hash
+      // the Hebrew sentence unconditionally, so an English customer got a
+      // ledger entry proving text they were never shown.
+      terms_version:       body.agreeTerms === true ? terms.version : null,
+      terms_text_hash:     body.agreeTerms === true ? terms.hash : null,
       terms_accepted_at:   body.agreeTerms === true ? new Date().toISOString() : null,
       marketing_consent:   body.marketingConsent === true,
-      marketing_text_hash: body.marketingConsent === true ? MARKETING_TEXT_HASH : null,
-      consent_locale:      typeof body.locale === 'string' ? body.locale.slice(0, 5) : null,
+      marketing_text_hash: body.marketingConsent === true ? marketing.hash : null,
+      consent_locale:      terms.locale,
       consent_source:      'booking_form',
       attribution:         sanitizeAttribution(body.attribution),
       // Set when the customer asked for a vehicle the online catalogue

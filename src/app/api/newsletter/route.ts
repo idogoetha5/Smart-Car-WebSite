@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { verifyTurnstile } from '@/lib/turnstile';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { createAdminClient } from '@/lib/supabase/server';
+import { marketingConsent } from '@/lib/consent';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -26,13 +27,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'אימות אנטי-בוט נכשל. נסה שנית.' }, { status: 400 });
   }
 
-  // Explicit consent is required — no implied opt-in.
-  if (body?.consent !== true || !String(body?.consentText ?? '').trim()) {
+  // Explicit consent is required — no implied opt-in. The wording itself is
+  // NOT read from the request: a client could otherwise post any sentence and
+  // have it filed as the customer's agreement, which would make a forged
+  // ledger entry indistinguishable from a real one.
+  if (body?.consent !== true) {
     return NextResponse.json(
       { error: 'יש לאשר את קבלת הדיוור כדי להירשם' },
       { status: 400 }
     );
   }
+
+  // Server-derived from the verified locale.
+  const consent = marketingConsent(body?.locale);
 
   const supabase = createAdminClient();
 
@@ -56,9 +63,9 @@ export async function POST(request: Request) {
         {
           email,
           consent_at: new Date().toISOString(),
-          consent_text: String(body.consentText).slice(0, 1000),
-          consent_version: String(body.consentVersion ?? '').slice(0, 20) || null,
-          locale: String(body.locale ?? '').slice(0, 5) || null,
+          consent_text: consent.text,
+          consent_version: consent.version,
+          locale: consent.locale,
           source: String(body.source ?? 'newsletter_form').slice(0, 50),
           // A fresh explicit consent lifts a previous unsubscribe.
           unsubscribed_at: null,
