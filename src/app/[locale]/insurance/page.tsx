@@ -1,3 +1,4 @@
+import { localeAlternates } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -9,6 +10,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
       locale === 'he'
         ? 'כל מה שצריך לדעת על הביטוח הכלול בהשכרת הרכב שלך ב-SmartCar'
         : 'Everything you need to know about the insurance included with your SmartCar rental',
+    alternates: localeAlternates(locale, 'insurance'),
   };
 }
 
@@ -390,7 +392,7 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
           <ul className="list-none space-y-1 text-sm text-gray-600">
             <li>📧 <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a></li>
             <li>📞 <a href="tel:09-9509757" className="text-[#2D5F5F] underline">09-9509757</a></li>
-            <li>📍 {isHe ? 'רמת ים 122 (מלון דן אכדיה), הרצליה 46851' : '122 Ramat Yam St (Dan Accadia Hotel), Herzliya 46851, Israel'}</li>
+            <li>📍 {isHe ? 'רמת ים 122, הרצליה 46851' : 'Ramat Yam 122, Herzliya 46851, Israel'}</li>
           </ul>
         </section>
 

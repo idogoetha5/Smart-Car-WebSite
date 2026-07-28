@@ -1,3 +1,4 @@
+import { localeAlternates } from '@/lib/seo';
 import type { Metadata } from 'next';
 
 export async function generateMetadata({
@@ -12,7 +13,7 @@ export async function generateMetadata({
     description: isHe
       ? 'עיינו בצי הרכבים המלא של SmartCar – מיני, קומפקט, סדאן, SUV, חשמלי ומסחרי. סננו לפי קטגוריה, תיבת הילוכים ומחיר יומי. מצאו את הרכב המושלם.'
       : 'Browse SmartCar\'s full vehicle catalog – mini, compact, sedan, SUV, electric and commercial. Filter by category, transmission, and daily price.',
-    alternates: { canonical: `/${locale}/catalog` },
+    alternates: localeAlternates(locale, 'catalog'),
   };
 }
 

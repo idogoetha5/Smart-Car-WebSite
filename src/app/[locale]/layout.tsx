@@ -4,6 +4,7 @@ import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server
 import { Nunito, Heebo } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { locales } from '../../../i18n';
+import { localeAlternates, ogImage } from '@/lib/seo';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import WhatsAppFloat from '@/components/ui/WhatsAppFloat';
@@ -44,27 +45,12 @@ export async function generateMetadata({
     metadataBase: new URL(
       process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il'
     ),
-    alternates: {
-      canonical: `/${locale}`,
-      languages: {
-        he: '/he',
-        en: '/en',
-        'x-default': '/he',
-      },
-    },
+    alternates: localeAlternates(locale),
     openGraph: {
       siteName: 'SmartCar',
       locale: locale === 'he' ? 'he_IL' : 'en_US',
       type: 'website',
-      images: [
-        {
-          url: '/images/og-image.png',
-          width: 1200,
-          height: 630,
-          alt: 'SmartCar – השכרת רכב עד בית הלקוח',
-          type: 'image/png',
-        },
-      ],
+      images: [ogImage(locale)],
     },
     twitter: {
       card: 'summary_large_image',

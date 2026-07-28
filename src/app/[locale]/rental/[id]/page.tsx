@@ -1,3 +1,4 @@
+import { localeAlternates } from '@/lib/seo';
 export const revalidate = 60;
 
 import { notFound } from 'next/navigation';
@@ -42,7 +43,7 @@ export async function generateMetadata({
       description,
       ...(image ? { images: [image] } : {}),
     },
-    alternates: { canonical: pageUrl },
+    alternates: localeAlternates(locale, `rental/${vehicle.id}`),
   };
 }
 

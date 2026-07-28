@@ -1,3 +1,4 @@
+import { localeAlternates } from '@/lib/seo';
 export const revalidate = 60;
 
 import type { Metadata } from 'next';
@@ -14,7 +15,7 @@ export async function generateMetadata({
     description: isHe
       ? 'רכבים יד שנייה למכירה ב-SmartCar – מגוון דגמים במצב מעולה, מחירים הוגנים ושקיפות מלאה. מצאו את הרכב הבא שלכם ופנו אלינו עוד היום.'
       : 'Used cars for sale at SmartCar – a variety of models in excellent condition, fair prices and full transparency. Find your next car and contact us today.',
-    alternates: { canonical: `/${locale}/cars-for-sale` },
+    alternates: localeAlternates(locale, 'cars-for-sale'),
   };
 }
 

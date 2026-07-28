@@ -1,3 +1,4 @@
+import { localeAlternates } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -11,6 +12,7 @@ export async function generateMetadata({
   const { locale } = await params;
   return {
     title: locale === 'he' ? 'אודות' : 'About',
+    alternates: localeAlternates(locale, 'about'),
   };
 }
 

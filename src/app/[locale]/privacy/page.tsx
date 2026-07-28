@@ -1,8 +1,12 @@
+import { localeAlternates } from '@/lib/seo';
 import type { Metadata } from 'next';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
-  return { title: locale === 'he' ? 'מדיניות פרטיות' : 'Privacy Policy' };
+  return {
+    title: locale === 'he' ? 'מדיניות פרטיות' : 'Privacy Policy',
+    alternates: localeAlternates(locale, 'privacy'),
+  };
 }
 
 export default async function PrivacyPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -277,7 +281,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
               <ul className="list-none space-y-1 text-sm">
                 <li>📧 <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a></li>
                 <li>📞 <a href="tel:09-9509757" className="text-[#2D5F5F] underline">09-9509757</a></li>
-                <li>📍 122 Ramat Yam St, Herzliya 46851, Israel</li>
+                <li>📍 Ramat Yam 122, Herzliya 46851, Israel</li>
               </ul>
             </section>
           </>

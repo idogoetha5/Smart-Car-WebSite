@@ -1,3 +1,4 @@
+import { localeAlternates } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -196,6 +197,7 @@ export async function generateMetadata({
   if (!service) return {};
   return {
     title: locale === 'he' ? service.titleHe : service.titleEn,
+    alternates: localeAlternates(locale, `services/${type}`),
   };
 }
 

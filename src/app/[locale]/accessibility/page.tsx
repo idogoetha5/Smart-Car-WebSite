@@ -1,7 +1,11 @@
+import { localeAlternates } from '@/lib/seo';
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const isHe = locale === 'he';
-  return { title: isHe ? 'הצהרת נגישות' : 'Accessibility Statement' };
+  return {
+    title: isHe ? 'הצהרת נגישות' : 'Accessibility Statement',
+    alternates: localeAlternates(locale, 'accessibility'),
+  };
 }
 
 export default async function AccessibilityPage({ params }: { params: Promise<{ locale: string }> }) {

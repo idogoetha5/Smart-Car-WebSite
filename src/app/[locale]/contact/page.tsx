@@ -1,3 +1,4 @@
+import { localeAlternates } from '@/lib/seo';
 import { getTranslations } from 'next-intl/server';
 import { Mail, MapPin, Clock } from 'lucide-react';
 import BranchesSection from '@/components/layout/BranchesSection';
@@ -16,7 +17,7 @@ export async function generateMetadata({
     description: isHe
       ? 'צרו קשר עם SmartCar – חייגו 09-9509757, שלחו וואטסאפ או מייל לoffice@smartcar.co.il. נציג יחזור אליכם תוך שעה בשעות הפעילות א׳–ה׳ 8:00–20:00.'
       : 'Contact SmartCar – call 09-9509757, WhatsApp or email office@smartcar.co.il. A representative will respond within one hour, Sun–Thu 8:00–20:00.',
-    alternates: { canonical: `/${locale}/contact` },
+    alternates: localeAlternates(locale, 'contact'),
   };
 }
 
@@ -120,8 +121,8 @@ export default async function ContactPage({
               </h3>
               <p className="text-gray-600 text-sm">
                 {isHe
-                  ? 'רחוב רמת ים 122 (מלון דן אכדיה), הרצליה'
-                  : '122 Ramat Yam St (Dan Accadia Hotel), Herzliya'}
+                  ? 'רמת ים 122, הרצליה'
+                  : 'Ramat Yam 122, Herzliya'}
               </p>
             </div>
           </div>

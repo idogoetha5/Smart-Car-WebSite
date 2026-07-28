@@ -1,8 +1,12 @@
+import { localeAlternates } from '@/lib/seo';
 import type { Metadata } from 'next';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
-  return { title: locale === 'he' ? 'תנאי שימוש ושכירות' : 'Terms of Service & Rental Conditions' };
+  return {
+    title: locale === 'he' ? 'תנאי שימוש ושכירות' : 'Terms of Service & Rental Conditions',
+    alternates: localeAlternates(locale, 'terms'),
+  };
 }
 
 export default async function TermsPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -194,7 +198,7 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
               <ul className="list-none space-y-1 text-sm">
                 <li>📧 <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a></li>
                 <li>📞 <a href="tel:09-9509757" className="text-[#2D5F5F] underline">09-9509757</a></li>
-                <li>📍 רמת ים 122 (מלון דן אכדיה), הרצליה 46851</li>
+                <li>📍 רמת ים 122, הרצליה 46851</li>
                 <li>שעות פעילות: א&apos;–ה&apos; 08:00–18:00 | ו&apos; 08:00–13:00</li>
               </ul>
             </section>
@@ -336,7 +340,7 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
               <ul className="list-none space-y-1 text-sm">
                 <li>📧 <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a></li>
                 <li>📞 <a href="tel:09-9509757" className="text-[#2D5F5F] underline">09-9509757</a></li>
-                <li>📍 122 Ramat Yam St (Dan Accadia Hotel), Herzliya 46851, Israel</li>
+                <li>📍 Ramat Yam 122, Herzliya 46851, Israel</li>
               </ul>
             </section>
           </>

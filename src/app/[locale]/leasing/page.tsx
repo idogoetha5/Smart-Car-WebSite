@@ -1,3 +1,4 @@
+import { localeAlternates } from '@/lib/seo';
 export const revalidate = 60;
 
 import { getTranslations } from 'next-intl/server';
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     description: isHe
       ? 'ליסינג פרטי ועסקי עם SmartCar – רכבים חדשים, תנאים גמישים, ביטוח ותחזוקה כלולים. מגוון חבילות לכל תקציב. קבלו הצעת מחיר תוך 24 שעות.'
       : 'Private and business car leasing with SmartCar – new vehicles, flexible terms, insurance and maintenance included. Get a quote within 24 hours.',
-    alternates: { canonical: `/${locale}/leasing` },
+    alternates: localeAlternates(locale, 'leasing'),
   };
 }
 
