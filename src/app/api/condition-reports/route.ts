@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/ratelimit';
+import { verifyTurnstile } from '@/lib/turnstile';
+import { verifyConditionReportToken } from '@/lib/signed-link';
 
 function escapeHtml(str: string): string {
   return str.replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c] ?? c));
@@ -84,17 +86,60 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ data: { id: 'bot' } }, { status: 201 });
   }
 
-  const bookingId = String(body.bookingId ?? '').trim().toUpperCase();
+  if (!await verifyTurnstile(body.turnstileToken)) {
+    return NextResponse.json({ error: 'אימות אנטי-בוט נכשל. נסה שנית.' }, { status: 400 });
+  }
+
+  // The booking a report is filed against comes from the signed link the
+  // customer was sent — never from the request body. Trusting the body
+  // let anyone file a report against any booking reference, or against a
+  // reference that was never issued.
+  const link = verifyConditionReportToken(body.token);
+  if (!link.valid) {
+    return NextResponse.json(
+      {
+        error:
+          link.reason === 'expired'
+            ? 'הקישור פג תוקף. פנו למשרד לקבלת קישור חדש.'
+            : 'קישור לא תקין. יש להשתמש בקישור שנשלח אליכם מהמשרד.',
+      },
+      { status: 403 }
+    );
+  }
+  const bookingId = link.bookingId!;
   const mileage = body.mileage !== undefined && body.mileage !== '' ? Number(body.mileage) : null;
   const fuelLevel = String(body.fuelLevel ?? 'full');
   const damages: Record<string, boolean> = body.damages && typeof body.damages === 'object' ? body.damages : {};
   const notes = String(body.notes ?? '').trim();
 
   const supabase = createAdminClient();
+
+  // A validly-signed token still has to name a booking that exists — a
+  // link minted against a since-deleted booking must not create an
+  // orphaned report. The FK added in the migration enforces this at the
+  // database level too; this check is what turns it into a clear 404
+  // rather than a 500.
+  const { data: booking, error: bookingError } = await supabase
+    .from('bookings')
+    .select('id')
+    .eq('id', bookingId)
+    .maybeSingle();
+
+  if (bookingError) {
+    console.error('[condition-reports] booking lookup failed:', bookingError.message);
+    return NextResponse.json({ error: 'שמירת הדוח נכשלה. נסה שוב או פנה למשרד.' }, { status: 500 });
+  }
+  if (!booking) {
+    return NextResponse.json(
+      { error: 'ההזמנה המשויכת לקישור לא נמצאה. פנו למשרד.' },
+      { status: 404 }
+    );
+  }
+
   const { data, error } = await supabase
     .from('condition_reports')
     .insert({
-      booking_id: bookingId || null,
+      booking_id: bookingId,
       customer_name: customerName,
       mileage,
       fuel_level: fuelLevel,

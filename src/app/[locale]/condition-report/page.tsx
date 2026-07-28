@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
+import TurnstileWidget from '@/components/ui/Turnstile';
 import { CheckCircle, AlertTriangle } from 'lucide-react';
 
 const DAMAGE_AREAS = [
@@ -17,12 +18,11 @@ const DAMAGE_AREAS = [
   { id: 'engine',      heLabel: 'תא מנוע',          enLabel: 'Engine Bay' },
 ];
 
-export default function ConditionReportPage() {
+function ConditionReportForm() {
   const params = useParams();
   const locale = (params?.locale as string) || 'he';
   const isHe = locale === 'he';
 
-  const [bookingId, setBookingId] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [fuelLevel, setFuelLevel] = useState('full');
   const [mileage, setMileage] = useState('');
@@ -34,6 +34,16 @@ export default function ConditionReportPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [website, setWebsite] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
+
+  // The booking is carried by the signed link the office sent, not typed
+  // by the customer — the API derives it from the token and ignores any
+  // booking id in the body.
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token') ?? '';
+  // Display only. The server re-derives this from the token's signature —
+  // nothing here is trusted, so reading it without verifying is fine.
+  const linkedBookingId = token.split('.')[0] ?? '';
 
   const toggleDamage = (id: string) =>
     setDamages(prev => ({ ...prev, [id]: !prev[id] }));
@@ -46,7 +56,7 @@ export default function ConditionReportPage() {
       const res = await fetch('/api/condition-reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId, customerName, mileage, fuelLevel, damages, notes, _website: website }),
+        body: JSON.stringify({ token, customerName, mileage, fuelLevel, damages, notes, turnstileToken, _website: website }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -62,6 +72,30 @@ export default function ConditionReportPage() {
       setLoading(false);
     }
   };
+
+  // Reached without a signed link. Say so plainly rather than showing a
+  // form that can never submit.
+  if (!token) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-20 text-center" dir={isHe ? 'rtl' : 'ltr'}>
+        <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4" aria-hidden="true" />
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          {isHe ? 'נדרש קישור אישי' : 'A personal link is required'}
+        </h1>
+        <p className="text-gray-600">
+          {isHe
+            ? 'דוח מצב רכב ניתן למלא רק דרך הקישור שנשלח אליכם מהמשרד עבור ההזמנה שלכם. אם אין לכם קישור, צרו איתנו קשר ונשלח אותו.'
+            : 'A condition report can only be filed through the link the office sent you for your booking. If you do not have one, contact us and we will send it.'}
+        </p>
+        <a
+          href={`/${locale}/contact`}
+          className="inline-block mt-6 px-6 py-3 bg-[#2D5F5F] hover:bg-[#1A3A3A] text-white font-bold rounded-xl transition-colors"
+        >
+          {isHe ? 'צרו קשר' : 'Contact us'}
+        </a>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -123,14 +157,21 @@ export default function ConditionReportPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {isHe ? 'מספר הזמנה' : 'Booking ID'}
               </label>
+              {/* Read-only: the booking comes from the signed link, so it
+                  cannot be edited to point at someone else's booking. */}
               <input
                 type="text"
+                readOnly
                 aria-label={isHe ? 'מספר הזמנה' : 'Booking ID'}
-                value={bookingId}
-                onChange={e => setBookingId(e.target.value.toUpperCase())}
-                placeholder="ABC12345"
-                className="w-full h-10 border-2 border-gray-200 rounded-xl px-3 text-sm focus:outline-none focus:border-[#2D5F5F]"
+                aria-describedby="booking-id-hint"
+                value={linkedBookingId}
+                className="w-full h-10 border-2 border-gray-200 bg-gray-50 text-gray-700 rounded-xl px-3 text-sm focus:outline-none"
               />
+              <p id="booking-id-hint" className="text-xs text-gray-500 mt-1">
+                {isHe
+                  ? 'מזוהה אוטומטית מהקישור שנשלח אליכם'
+                  : 'Identified automatically from the link sent to you'}
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -227,14 +268,30 @@ export default function ConditionReportPage() {
 
         {error && <p className="text-red-600 text-sm text-center">{error}</p>}
 
+        <TurnstileWidget onSuccess={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
+
         <button
           type="submit"
-          disabled={loading || !customerName}
+          disabled={loading || !customerName || !token || !turnstileToken}
           className="w-full py-3 bg-[#2D5F5F] hover:bg-[#1A3A3A] disabled:opacity-40 text-white font-bold rounded-xl transition-colors"
         >
           {loading ? (isHe ? 'שולח...' : 'Submitting...') : (isHe ? 'שלח דוח מצב' : 'Submit Condition Report')}
         </button>
       </form>
     </div>
+  );
+}
+
+/**
+ * useSearchParams opts a route into client-side rendering, which Next.js
+ * requires to sit behind a Suspense boundary or prerendering fails. The
+ * fallback is deliberately minimal — the token is read on the client, so
+ * there is nothing meaningful to show until it is available.
+ */
+export default function ConditionReportPage() {
+  return (
+    <Suspense fallback={<div className="max-w-2xl mx-auto px-4 py-20" aria-busy="true" />}>
+      <ConditionReportForm />
+    </Suspense>
   );
 }
