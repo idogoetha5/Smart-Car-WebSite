@@ -1,8 +1,18 @@
 'use client';
 
-// Add NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX to Vercel environment variables.
-// GA scripts are only injected after the user accepts cookie consent
-// (localStorage key: 'cookie_consent' === 'accepted').
+/**
+ * GA4 with Google Consent Mode.
+ *
+ * The previous version simply did not render the scripts until consent was
+ * accepted, and unmounted them when it was withdrawn. Not rendering is a fine
+ * default; unmounting is not a withdrawal. React removes its element while the
+ * injected gtag script, the dataLayer and any cookies already set stay exactly
+ * where they are — a live DOM check confirmed the tag survives the unmount.
+ *
+ * Consent Mode is the mechanism designed for this. The default is denied, set
+ * before the tag loads, and grant/revoke is signalled explicitly, so a
+ * withdrawal is communicated to Google rather than merely hidden from React.
+ */
 
 import Script from 'next/script';
 import { useState, useEffect } from 'react';
@@ -14,11 +24,24 @@ if (process.env.NODE_ENV === 'development' && !GA_ID) {
   console.warn('[Analytics] NEXT_PUBLIC_GA_ID is not set');
 }
 
+declare global {
+  interface Window {
+    dataLayer?: unknown[];
+  }
+}
+
 export default function GoogleAnalytics() {
   const [consented, setConsented] = useState(false);
+  // Once the tag is on the page it cannot be taken back off, so track whether
+  // it was ever loaded separately from the current answer.
+  const [everAccepted, setEverAccepted] = useState(false);
 
   useEffect(() => {
-    const check = () => setConsented(readConsent() === 'accepted');
+    const check = () => {
+      const accepted = readConsent() === 'accepted';
+      setConsented(accepted);
+      if (accepted) setEverAccepted(true);
+    };
 
     check();
 
@@ -31,22 +54,54 @@ export default function GoogleAnalytics() {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  if (!GA_ID || !consented) return null;
+  // Push every change to the tag. After a withdrawal this is what actually
+  // stops collection — unmounting the element would not.
+  useEffect(() => {
+    if (!GA_ID || !everAccepted) return;
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push([
+      'consent',
+      'update',
+      {
+        analytics_storage: consented ? 'granted' : 'denied',
+        ad_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+      },
+    ]);
+  }, [consented, everAccepted]);
+
+  // Nothing is injected until the visitor accepts at least once.
+  if (!GA_ID || !everAccepted) return null;
 
   return (
     <>
-      <Script
-        src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-        strategy="afterInteractive"
-      />
+      {/* One script, not two. beforeInteractive is only valid in the root
+          layout, and it is not needed here: dataLayer is an ordered queue, so
+          a `consent default` queued ahead of `config` is honoured whenever
+          gtag.js finishes loading. */}
       <Script id="ga4-init" strategy="afterInteractive">
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
+          gtag('consent', 'default', {
+            analytics_storage: 'denied',
+            ad_storage: 'denied',
+            ad_user_data: 'denied',
+            ad_personalization: 'denied',
+            wait_for_update: 500
+          });
           gtag('js', new Date());
-          gtag('config', '${GA_ID}', { send_page_view: true });
+          gtag('config', '${GA_ID}', {
+            send_page_view: true,
+            anonymize_ip: true
+          });
         `}
       </Script>
+      <Script
+        src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+        strategy="afterInteractive"
+      />
     </>
   );
 }

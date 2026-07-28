@@ -1,21 +1,56 @@
 'use client';
 
+/**
+ * Vercel Analytics, gated per event rather than by mounting.
+ *
+ * The old comment claimed withdrawing consent "unmounts analytics
+ * immediately". It does unmount the React element — but a live DOM check found
+ * /_vercel/insights/script.js still present afterwards, so unmounting never
+ * established that measurement had stopped.
+ *
+ * Vercel documents beforeSend as the opt-out mechanism: return null and the
+ * event is dropped. Consent is read at send time, so a withdrawal takes effect
+ * on the very next event, including during SPA navigation where no remount
+ * happens at all.
+ *
+ * beforeSend also strips the query string, since a page URL is exactly what an
+ * analytics event carries and the booking flow used to put a booking id and
+ * dates there.
+ */
+
 import { useState, useEffect } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { readConsent } from '@/lib/cookie-consent';
 
 export default function ConsentedAnalytics() {
-  const [consented, setConsented] = useState(false);
+  // Whether the script has been injected at all. Consent is re-read inside
+  // beforeSend on every event, so this only controls first injection.
+  const [everAccepted, setEverAccepted] = useState(false);
 
   useEffect(() => {
-    // Re-read on every `storage` event: writeConsent dispatches one in the
-    // current tab too, so withdrawing consent from the footer control
-    // unmounts analytics immediately rather than at the next navigation.
-    const check = () => setConsented(readConsent() === 'accepted');
+    const check = () => {
+      if (readConsent() === 'accepted') setEverAccepted(true);
+    };
     check();
+    // writeConsent dispatches `storage` in the current tab too.
     window.addEventListener('storage', check);
     return () => window.removeEventListener('storage', check);
   }, []);
 
-  return consented ? <Analytics /> : null;
+  if (!everAccepted) return null;
+
+  return (
+    <Analytics
+      beforeSend={(event) => {
+        // Read at send time, not at mount time.
+        if (readConsent() !== 'accepted') return null;
+        try {
+          const url = new URL(event.url);
+          return { ...event, url: `${url.origin}${url.pathname}` };
+        } catch {
+          return event;
+        }
+      }}
+    />
+  );
 }
