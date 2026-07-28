@@ -95,12 +95,8 @@ console.log(`${scanned ? '' : '    (QR could not be drawn — use the key below 
       Key:      ${secret}
       Type:     Time based
 
- 2. Check the app shows this code right now:
-
-      ${totp(secret)}
-
-    If it does not match, the phone's clock is off — fix that
-    before continuing, or you will not be able to log in.
+ 2. The live code is shown below and refreshes every second.
+    Google Authenticator must show the SAME six digits.
 
  3. Add to Vercel → Project → Settings → Environment Variables:
 
@@ -117,3 +113,35 @@ console.log(`${scanned ? '' : '    (QR could not be drawn — use the key below 
  here was saved or sent anywhere; it exists only in this output.
 ────────────────────────────────────────────────────────────
 `);
+
+// A single printed code was impossible to compare against: it rotates every
+// 30 seconds, so by the time the app was open the two no longer matched even
+// when enrolment was correct — which is exactly how this went wrong the first
+// time. Printing it live removes the timing variable entirely.
+const RESET = '\x1b[0m', BOLD = '\x1b[1m', DIM = '\x1b[2m';
+let lastCode = '';
+
+function tick() {
+  const code = totp(secret);
+  const left = 30 - Math.floor((Date.now() / 1000) % 30);
+  const bar = '█'.repeat(left) + '░'.repeat(30 - left);
+  const changed = code !== lastCode;
+  lastCode = code;
+  process.stdout.write(
+    `\r  ${BOLD}${code}${RESET}  ${DIM}${bar}${RESET} ${String(left).padStart(2)}s` +
+    (changed ? '   ' : '   '),
+  );
+}
+
+if (process.stdout.isTTY) {
+  tick();
+  const timer = setInterval(tick, 1000);
+  process.on('SIGINT', () => {
+    clearInterval(timer);
+    console.log(`\n\n  Stopped. The secret above is still valid — add it to Vercel.\n`);
+    process.exit(0);
+  });
+  console.log(`\n  ${DIM}(press Ctrl+C when the app shows the same code)${RESET}\n`);
+} else {
+  console.log(`  Current code: ${totp(secret)}\n`);
+}
