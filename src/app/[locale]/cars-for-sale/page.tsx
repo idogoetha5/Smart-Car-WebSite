@@ -125,7 +125,7 @@ export default async function CarsForSalePage({
           {cars.map((car) => (
             <Tilt3D
               key={car.id}
-              hoverScale={1.4}
+              hoverScale={1.08}
               className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 border border-gray-100 overflow-hidden group"
             >
               <div className="relative h-52 bg-[#eef6f6] overflow-hidden">
