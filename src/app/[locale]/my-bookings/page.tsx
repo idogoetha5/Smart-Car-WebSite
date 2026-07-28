@@ -245,11 +245,18 @@ export default function MyBookingsPage() {
               </div>
               <form onSubmit={handleSendOtp} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  {/* The label was not tied to the input, so the field had no
+                      accessible name — a screen reader announced only
+                      "edit text". This was the sole error the production
+                      accessibility scan still reported. */}
+                  <label htmlFor="my-bookings-email" className="block text-xs font-semibold text-gray-600 mb-1.5">
                     {isHe ? 'כתובת מייל' : 'Email address'}
                   </label>
                   <input
+                    id="my-bookings-email"
+                    name="email"
                     type="email"
+                    autoComplete="email"
                     value={authEmail}
                     onChange={e => setAuthEmail(e.target.value)}
                     required
