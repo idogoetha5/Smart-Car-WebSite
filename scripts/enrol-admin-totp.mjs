@@ -13,6 +13,7 @@
  * lock anyone out.
  */
 import { createHmac, randomBytes } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 
 const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
@@ -51,9 +52,25 @@ function totp(secretB32, atMs = Date.now()) {
   return String(bin % 1e6).padStart(6, '0');
 }
 
-/** Minimal QR renderer would be a dependency; use a terminal-safe fallback. */
-function qrHint(uri) {
-  return `Open this URI on the phone, or type the secret in by hand:\n\n  ${uri}\n`;
+/**
+ * Renders a scannable QR in the terminal via npx, so enrolment is "point the
+ * camera at it" rather than typing 32 characters by hand. Not added to
+ * package.json: it is needed once, and a permanent dependency for a one-off
+ * setup step is not worth it. Falls back to the manual key if npx cannot run.
+ */
+function printQr(uri) {
+  try {
+    const r = spawnSync('npx', ['--yes', 'qrcode-terminal'], {
+      input: uri, encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'], timeout: 60_000,
+    });
+    if (r.status === 0 && r.stdout && r.stdout.includes('\u001b[')) {
+      console.log(r.stdout);
+      return true;
+    }
+  } catch {
+    // Offline, or npx unavailable — the manual key below still works.
+  }
+  return false;
 }
 
 const secret = base32Encode(randomBytes(20));
@@ -65,12 +82,19 @@ console.log(`
  SmartCar — admin two-factor enrolment
 ────────────────────────────────────────────────────────────
 
- 1. In Google Authenticator: + → "Enter a setup key"
+ 1. Open Google Authenticator and scan the square below.
+    (+  →  "Scan a QR code")
+`);
+
+const scanned = printQr(uri);
+
+console.log(`${scanned ? '' : '    (QR could not be drawn — use the key below instead)\n'}
+    If scanning does not work, add it by hand instead:
+      +  →  "Enter a setup key"
       Account:  SmartCar admin
       Key:      ${secret}
       Type:     Time based
 
-    ${qrHint(uri).split('\n').join('\n    ')}
  2. Check the app shows this code right now:
 
       ${totp(secret)}
