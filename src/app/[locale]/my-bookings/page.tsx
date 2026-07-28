@@ -266,7 +266,7 @@ export default function MyBookingsPage() {
                   />
                 </div>
                 {authError && (
-                  <p className="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-lg">{authError}</p>
+                  <p role="alert" className="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-lg">{authError}</p>
                 )}
                 <button
                   type="submit"
@@ -297,10 +297,15 @@ export default function MyBookingsPage() {
               </div>
               <form onSubmit={handleVerifyOtp} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  <label htmlFor="otp-code" className="block text-xs font-semibold text-gray-600 mb-1.5">
                     {isHe ? 'קוד אימות' : 'Verification code'}
                   </label>
                   <input
+                    id="otp-code"
+                    name="one-time-code"
+                    // Lets the OS offer the code straight from the SMS/mail
+                    // notification instead of making the customer retype it.
+                    autoComplete="one-time-code"
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]{6,8}"
@@ -309,13 +314,15 @@ export default function MyBookingsPage() {
                     onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
                     required
                     dir="ltr"
+                    aria-invalid={authError ? true : undefined}
+                    aria-describedby={authError ? 'otp-error' : undefined}
                     placeholder="12345678"
                     className="w-full h-12 rounded-xl border-2 border-gray-200 px-4 text-center text-xl font-bold tracking-widest focus:outline-none focus:border-[#2D5F5F] transition-colors"
                     autoFocus
                   />
                 </div>
                 {authError && (
-                  <p className="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-lg">{authError}</p>
+                  <p id="otp-error" role="alert" className="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-lg">{authError}</p>
                 )}
                 <button
                   type="submit"

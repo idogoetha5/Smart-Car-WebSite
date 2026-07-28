@@ -203,12 +203,17 @@ function IsraelAddressInput({
 }
 
 function LocationSelector({
+  id,
   label,
   value,
   onChange,
   locale,
   error,
 }: {
+  // Without this the label floated free of the control and both selects
+  // reached screen readers as an unnamed combobox — a customer using one
+  // could not tell pickup from drop-off.
+  id: string;
   label: string;
   value: string;
   onChange: (val: string) => void;
@@ -241,10 +246,13 @@ function LocationSelector({
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</label>
       <select
+        id={id}
         value={showCustom ? 'custom' : value}
         onChange={(e) => handleSelect(e.target.value)}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
         className={`w-full h-10 rounded-lg border bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] ${error ? 'border-red-400' : 'border-gray-200'}`}
       >
         <option value="">{isHe ? '-- בחר מיקום --' : '-- Select location --'}</option>
@@ -267,7 +275,14 @@ function LocationSelector({
       {showCustom && !customValid && value === '' && (
         <p className="text-xs text-amber-600">{isHe ? 'יש לבחור כתובת מתוך הרשימה.' : 'Please select an address from the list.'}</p>
       )}
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {/* id matches aria-describedby above, so the message is read out with
+          the field rather than being colour-only. role="alert" announces it
+          when validation fails after a submit attempt. */}
+      {error && (
+        <p id={`${id}-error`} role="alert" className="text-xs text-red-500">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -630,6 +645,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <LocationSelector
+          id="pickup-location"
           label={t('pickup_location')}
           value={pickupLocation}
           onChange={(val) => setValue('pickupLocation', val, { shouldValidate: true })}
@@ -637,6 +653,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           error={errors.pickupLocation?.message}
         />
         <LocationSelector
+          id="dropoff-location"
           label={t('dropoff_location')}
           value={dropoffLocation}
           onChange={(val) => setValue('dropoffLocation', val, { shouldValidate: true })}
@@ -703,10 +720,11 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        <label htmlFor="booking-notes" className="block text-sm font-medium text-gray-700 mb-1.5">
           {t('notes')}
         </label>
         <textarea
+          id="booking-notes"
           {...register('notes')}
           rows={3}
           className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
