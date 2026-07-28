@@ -76,11 +76,15 @@ rm -f "$DUMP_ERR"
 # Verify BEFORE encrypting. An empty or truncated dump that encrypts cleanly is
 # the worst outcome: it looks like a backup and restores to nothing.
 if [ ! -s "$PLAIN" ]; then rm -f "$PLAIN"; fail "dump is empty"; fi
-if ! gzip -cd "$PLAIN" | grep -q "CREATE TABLE"; then
+# grep -c, not grep -q. -q exits on the first match, gzip takes SIGPIPE, and
+# under `set -o pipefail` the pipeline then reports failure — so a perfectly
+# good dump with 47 tables was being rejected as empty. Only shows up once the
+# file is large enough that gzip is still writing when grep bails.
+TABLES="$(gzip -cd "$PLAIN" | grep -c "CREATE TABLE" || true)"
+if [ "${TABLES:-0}" -eq 0 ]; then
   rm -f "$PLAIN"
   fail "dump contains no CREATE TABLE — refusing to keep it"
 fi
-TABLES="$(gzip -cd "$PLAIN" | grep -c "CREATE TABLE" || true)"
 echo "  dump OK — ${TABLES} table(s), $(du -h "$PLAIN" | cut -f1)"
 
 echo "Encrypting..."
