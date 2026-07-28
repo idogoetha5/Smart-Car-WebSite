@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Phone, Mail, MapPin } from 'lucide-react';
 import { branchAddress, getBranch, wazeUrl } from '@/lib/branches';
+import { openCookiePreferences } from '@/lib/cookie-consent';
 
 const HERZLIYA = getBranch('herzliya');
 const TELAVIV = getBranch('telaviv');
@@ -134,6 +135,17 @@ export default function Footer() {
             <Link href={`/${locale}/cookies`} className="hover:text-[#B8D8D8] transition-colors">
               {locale === 'he' ? 'עוגיות' : 'Cookies'}
             </Link>
+            {/* The cookies policy states, in both locales, that preferences
+                can be changed at any time from a control at the bottom of
+                every page. This is that control — the label matches the
+                wording already published on that page. */}
+            <button
+              type="button"
+              onClick={openCookiePreferences}
+              className="hover:text-[#B8D8D8] transition-colors underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8D8D8] rounded"
+            >
+              {locale === 'he' ? 'העדפות עוגיות' : 'Cookie Preferences'}
+            </button>
             <a
               href={`/${locale}/admin/login`}
               className="text-gray-600 hover:text-gray-600 transition-colors text-xs"

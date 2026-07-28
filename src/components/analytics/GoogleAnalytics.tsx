@@ -6,6 +6,7 @@
 
 import Script from 'next/script';
 import { useState, useEffect } from 'react';
+import { CONSENT_KEY, readConsent } from '@/lib/cookie-consent';
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
@@ -17,17 +18,14 @@ export default function GoogleAnalytics() {
   const [consented, setConsented] = useState(false);
 
   useEffect(() => {
-    const check = () => {
-      try {
-        setConsented(localStorage.getItem('cookie_consent') === 'accepted');
-      } catch {}
-    };
+    const check = () => setConsented(readConsent() === 'accepted');
 
     check();
 
-    // Re-check when another tab updates consent or the cookie banner fires
+    // Re-check when another tab updates consent, or when the banner (opened
+    // fresh or re-opened from the footer control) records a choice here.
     const onStorage = (e: StorageEvent) => {
-      if (e.key === 'cookie_consent') check();
+      if (e.key === CONSENT_KEY) check();
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
