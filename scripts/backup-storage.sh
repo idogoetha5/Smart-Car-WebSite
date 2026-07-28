@@ -15,9 +15,21 @@
 #   RCLONE_REMOTE      configured rclone remote name  (default: r2)
 #   R2_BUCKET          destination bucket             (default: smartcar-backups)
 #   SUPABASE_URL       project URL                    (required)
-#   SUPABASE_SERVICE_ROLE_KEY  service role key       (required)
+#   SUPABASE_SERVICE_ROLE_KEY  service role key       (optional, see below)
+#   SUPABASE_DB_URL    postgres connection string     (fallback, see below)
 #   STORAGE_BUCKETS    space-separated                (default: vehicles)
 #   SENTRY_DSN         optional; failures reported if set
+#
+# Two ways to find the objects, because the service role key is marked
+# Sensitive in Vercel and therefore exports as an empty string:
+#
+#   1. SUPABASE_SERVICE_ROLE_KEY — lists the bucket via the Storage API. This
+#      is authoritative: it sees every object, including any not referenced by
+#      a vehicle row.
+#   2. SUPABASE_DB_URL — reads the distinct image_urls out of the vehicles
+#      table instead. The bucket is public for reads, so the files download
+#      without a key. This covers every image the site actually serves, which
+#      is what a restore needs, but it would miss an orphaned object.
 #
 # One-time rclone setup:
 #   rclone config create r2 s3 provider=Cloudflare \
@@ -50,11 +62,50 @@ fail() {
 }
 
 : "${SUPABASE_URL:?set SUPABASE_URL}"
-: "${SUPABASE_SERVICE_ROLE_KEY:?set SUPABASE_SERVICE_ROLE_KEY}"
-command -v rclone >/dev/null || fail "rclone not installed (brew install rclone)"
-command -v curl   >/dev/null || fail "curl not installed"
+command -v curl >/dev/null || fail "curl not installed"
+
+MODE=""
+if [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+  MODE="api"
+elif [ -n "${SUPABASE_DB_URL:-}" ]; then
+  command -v psql >/dev/null || fail "psql not installed and no service role key (brew install libpq)"
+  MODE="db"
+else
+  fail "set SUPABASE_SERVICE_ROLE_KEY (preferred) or SUPABASE_DB_URL"
+fi
+echo "Object source: ${MODE}"
 
 total=0
+
+if [ "$MODE" = "db" ]; then
+  bucket="$(echo "$BUCKETS" | awk '{print $1}')"
+  mkdir -p "${WORK}/${bucket}"
+  urls="${WORK}/${bucket}.urls"
+  psql "$SUPABASE_DB_URL" -tAc \
+    "select distinct unnest(image_urls) from vehicles where image_urls is not null order by 1" \
+    > "$urls" 2>/dev/null || fail "could not read image_urls from the database"
+  sed -i '' '/^$/d' "$urls" 2>/dev/null || sed -i '/^$/d' "$urls"
+
+  n="$(wc -l < "$urls" | tr -d ' ')"
+  echo "  ${n} distinct image URL(s) referenced by vehicles"
+  [ "$n" -gt 0 ] || fail "the database references no images — refusing to call that a successful backup"
+
+  while IFS= read -r u; do
+    [ -z "$u" ] && continue
+    rel="${u##*/public/${bucket}/}"
+    out="${WORK}/${bucket}/${rel}"
+    mkdir -p "$(dirname "$out")"
+    curl -sS -f -m 60 "$u" -o "$out" || fail "download failed: ${u}"
+    [ -s "$out" ] || fail "downloaded empty file: ${u}"
+  done < "$urls"
+
+  got="$(find "${WORK}/${bucket}" -type f | wc -l | tr -d ' ')"
+  [ "$got" -eq "$n" ] || fail "expected ${n} files, got ${got}"
+  total="$got"
+  echo "  ${got} file(s) downloaded and non-empty"
+  BUCKETS=""
+fi
+
 for bucket in $BUCKETS; do
   echo "Listing bucket: ${bucket}"
   mkdir -p "${WORK}/${bucket}"
@@ -97,6 +148,16 @@ for bucket in $BUCKETS; do
   total=$((total + got))
   echo "  ${got} file(s) downloaded and non-empty"
 done
+
+if ! command -v rclone >/dev/null || ! rclone listremotes 2>/dev/null | grep -q "^${RCLONE_REMOTE}:"; then
+  KEEP="${BACKUP_DIR:-./backups}/storage-${STAMP}"
+  mkdir -p "$(dirname "$KEEP")"
+  cp -R "$WORK" "$KEEP"
+  echo
+  echo "WARNING: no rclone remote '${RCLONE_REMOTE}' — kept locally at ${KEEP}"
+  echo "${total} object(s). A copy on the same disk is half a backup."
+  exit 0
+fi
 
 echo "Uploading to ${RCLONE_REMOTE}:${R2_BUCKET}/storage/${STAMP}/ ..."
 rclone copy "$WORK" "${RCLONE_REMOTE}:${R2_BUCKET}/storage/${STAMP}/" \
