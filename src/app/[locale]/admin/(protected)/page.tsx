@@ -8,7 +8,7 @@ import StatsCard from '@/components/admin/StatsCard';
 import DashboardChart from '@/components/admin/DashboardChart';
 import Link from 'next/link';
 
-async function getAdminStats(locale: string) {
+async function getAdminStats() {
   try {
     const { getVehicles } = await import('@/lib/db/vehicles');
     const { getActiveBookingsCount, getRecentBookings, getMonthlyRevenue, getWeeklyBookingCounts } =
@@ -52,7 +52,7 @@ export default async function AdminDashboard({
 }) {
   const { locale } = await params;
   const t = await getTranslations('admin');
-  const stats = await getAdminStats(locale);
+  const stats = await getAdminStats();
 
   return (
     <div className="p-8">

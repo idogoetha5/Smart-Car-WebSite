@@ -19,7 +19,6 @@ export async function generateMetadata({
   };
 }
 
-import { createClient } from '@/lib/supabase/server';
 import { Car, Phone } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';

@@ -31,7 +31,7 @@ function waLink(phone: string) {
   return `https://wa.me/${intl}`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export default function AdminLeasingPage() {
   const params = useParams();
   const locale = (params?.locale as string) || 'he';

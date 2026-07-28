@@ -1,7 +1,6 @@
 import { localeAlternates } from '@/lib/seo';
 export const revalidate = 60;
 
-import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { getVehicleById } from '@/lib/db/vehicles';
 import BookingForm from '@/components/booking/BookingForm';

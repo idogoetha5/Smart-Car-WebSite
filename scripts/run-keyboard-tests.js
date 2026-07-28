@@ -158,7 +158,7 @@ async function tabThrough(page, steps) {
     if (!opened) throw new Error('no visible date picker trigger');
     // Scope to the picker's own popup — the cookie banner also carries
     // role="dialog", so a global query would never report it as closed.
-    const pickerDialog = () =>
+    const _pickerDialog = () =>
       [...document.querySelectorAll('[role="dialog"]')].filter((d) =>
         d.querySelector('[class*="rdp"], table, [class*="calendar"]') ||
         d.className.includes('rounded-2xl')

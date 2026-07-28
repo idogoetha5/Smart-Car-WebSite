@@ -26,7 +26,7 @@ function waLink(phone: string): string | null {
   return `https://wa.me/${normalized}`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export default function AdminBookingsPage() {
   const params = useParams();
   const locale = (params?.locale as string) || 'he';

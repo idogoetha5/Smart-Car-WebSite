@@ -73,7 +73,7 @@ let successCount = 0;
 let failCount = 0;
 
 for (const { make, model, images } of updates) {
-  const { error, count } = await sb
+  const { error, count: _count } = await sb
     .from('vehicles')
     .update({ image_urls: images })
     .eq('make', make)

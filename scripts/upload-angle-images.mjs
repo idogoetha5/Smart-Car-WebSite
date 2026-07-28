@@ -131,7 +131,7 @@ if (dbError) {
 }
 
 // Normalize make/model for matching
-function normalize(s) {
+function _normalize(s) {
   return s.toLowerCase()
     .replace(/\s+/g, '_')
     .replace(/[^a-z0-9_]/g, '');

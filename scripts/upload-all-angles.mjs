@@ -98,7 +98,7 @@ for (const v of needsUpdate) {
   // If no match, try fuzzy (year ±1, or model contains)
   if (!angles) {
     const possibleKey = Object.keys(vehicleMap).find(k => {
-      const [km, kmo, ky] = k.split('|');
+      const [km, kmo, _ky] = k.split('|');
       return km === vMake && (kmo.includes(vModel) || vModel.includes(kmo));
     });
     if (possibleKey) angles = vehicleMap[possibleKey];

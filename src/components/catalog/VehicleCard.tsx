@@ -47,14 +47,6 @@ const categoryColors: Record<string, string> = {
   ELECTRIC:   'bg-teal-100 text-teal-700',
 };
 
-const colorSwatchStyle: Record<string, React.CSSProperties> = {
-  White: { backgroundColor: '#f5f5f5', border: '1px solid #d1d5db' },
-  Black: { backgroundColor: '#1a1a1a' },
-  Gray:  { backgroundColor: '#9ca3af' },
-  לבן:   { backgroundColor: '#f5f5f5', border: '1px solid #d1d5db' },
-  שחור:  { backgroundColor: '#1a1a1a' },
-  אפור:  { backgroundColor: '#9ca3af' },
-};
 
 function CarPlaceholder() {
   return (
@@ -88,13 +80,12 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
   const isHe = locale === 'he';
 
   const allVariants = variants.length > 0 ? variants : [initialVehicle];
-  const [selected, setSelected] = useState(0);
+  const [selected] = useState(0);
   const vehicle = allVariants[selected];
 
   const images = (vehicle.imageUrls ?? []).filter(Boolean);
   const [imgIdx, setImgIdx] = useState(0);
   const currentImg = images[imgIdx] ?? null;
-  const altText = `${vehicle.make} ${vehicle.model}`;
 
   const prevImg = (e: React.MouseEvent) => {
     e.preventDefault();

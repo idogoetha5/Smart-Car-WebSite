@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Calendar } from 'lucide-react';
 import { useLocale } from 'next-intl';
 

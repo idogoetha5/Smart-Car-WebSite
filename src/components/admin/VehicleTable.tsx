@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';

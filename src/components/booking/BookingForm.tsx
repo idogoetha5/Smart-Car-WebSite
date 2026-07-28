@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useId } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations, useLocale } from 'next-intl';
@@ -96,6 +96,9 @@ function IsraelAddressInput({
   const [isValid, setIsValid] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  // Stable id so the input's aria-controls can reference the listbox even
+  // when several address inputs are on the page (pickup and drop-off).
+  const listboxId = useId();
 
   const searchAddress = async (query: string) => {
     if (query.length < 3) { setSuggestions([]); return; }
@@ -141,7 +144,13 @@ function IsraelAddressInput({
         placeholder={isHe ? 'הקלד רחוב ועיר...' : 'Type street and city...'}
         autoComplete="off"
         aria-label={isHe ? 'כתובת' : 'Address'}
+        // aria-expanded / aria-autocomplete are only valid on a combobox;
+        // on a plain textbox assistive tech ignores them, so the suggestion
+        // list was announced to nobody. role + aria-controls tie the input
+        // to the listbox below it (WAI-ARIA APG combobox pattern).
+        role="combobox"
         aria-autocomplete="list"
+        aria-controls={listboxId}
         aria-expanded={showDropdown}
         className={`w-full h-10 rounded-lg border-2 px-3 pe-9 text-sm outline-none transition-colors ${
           isValid ? 'border-green-500 bg-green-50' : 'border-[#B64916] focus:border-[#2D5F5F]'
@@ -153,6 +162,7 @@ function IsraelAddressInput({
 
       {showDropdown && suggestions.length > 0 && (
         <ul
+          id={listboxId}
           role="listbox"
           className="absolute z-50 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-56 overflow-y-auto"
         >
