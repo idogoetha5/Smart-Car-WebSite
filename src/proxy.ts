@@ -9,6 +9,38 @@ const intlMiddleware = createMiddleware({
   localePrefix: 'always',
 });
 
+/**
+ * Which locale a first-time visitor should land on.
+ *
+ * Plain Accept-Language negotiation sent most Israeli visitors to /en:
+ * Chrome in Israel commonly reports en-US first, so someone who searched in
+ * Hebrew and clicked through from Google got the English site. Hebrew is the
+ * primary market, so it wins unless the browser asks for English and does
+ * not mention Hebrew at all.
+ *
+ *   he anywhere in the header        -> he
+ *   en present and he absent         -> en
+ *   neither, or no header at all     -> he
+ *
+ * An explicit choice always beats this: next-intl reads the NEXT_LOCALE
+ * cookie before Accept-Language, so once a visitor uses the language
+ * toggle their choice sticks.
+ */
+export function preferredLocale(acceptLanguage: string | null): string {
+  if (!acceptLanguage) return 'he';
+  // Match language subtags only, so "he" doesn't match inside a token like
+  // "the" and en-GB / he-IL are both recognised. `iw` is the legacy code
+  // for Hebrew and is still emitted by some clients.
+  const tags = acceptLanguage
+    .toLowerCase()
+    .split(',')
+    .map((part) => part.split(';')[0].trim().split('-')[0]);
+
+  if (tags.includes('he') || tags.includes('iw')) return 'he';
+  if (tags.includes('en')) return 'en';
+  return 'he';
+}
+
 // Old site (pre smartcar.co.il migration) used root-level Hebrew slugs with
 // no locale prefix. Google still has ~27 of these indexed. next-intl's
 // proxy runs before next.config.ts `redirects`, and it was blindly
@@ -86,6 +118,16 @@ export async function proxy(request: NextRequest) {
       const locale = pathname.split('/')[1] || defaultLocale;
       return NextResponse.redirect(new URL(`/${locale}/admin/login`, request.url));
     }
+  }
+
+  // Normalise Accept-Language to the locale we want next-intl to pick, so
+  // its own negotiation lands on Hebrew for anyone who reads Hebrew. Only
+  // done when the visitor has not already chosen a language — next-intl
+  // checks NEXT_LOCALE first, and that choice must not be overridden.
+  if (!request.cookies.get('NEXT_LOCALE')) {
+    const headers = new Headers(request.headers);
+    headers.set('accept-language', preferredLocale(headers.get('accept-language')));
+    return intlMiddleware(new NextRequest(request.nextUrl, { headers }));
   }
 
   return intlMiddleware(request);
