@@ -802,7 +802,9 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
                 if (couponState.status !== 'idle') setCouponState({ status: 'idle' });
               }}
               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), validateCoupon())}
-              placeholder={isHe ? 'הכנס קוד בלעדי...' : 'Enter members-only code...'}
+              // "קוד בלעדי" / "members-only" implied a club scheme that does
+              // not exist. Coupon logic and discount values are unchanged.
+              placeholder={isHe ? 'הזינו קוד קופון' : 'Enter a coupon code'}
               className={`flex-1 h-10 rounded-lg border-2 px-3 text-sm uppercase tracking-widest outline-none transition-colors ${
                 couponState.status === 'valid'   ? 'border-green-500 bg-green-50 text-green-700' :
                 couponState.status === 'invalid' ? 'border-red-400 bg-red-50'                    :

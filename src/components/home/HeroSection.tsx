@@ -455,7 +455,11 @@ export default function HeroSection({ locale }: { locale: string }) {
                 objectPosition: 'bottom right',
                 display: 'block',
               }}
-              onError={(e) => { e.currentTarget.src = '/images/car-placeholder.svg'; }}
+              // The previous fallback pointed at /images/car-placeholder.svg,
+              // which has never existed in this repo — so a failed hero image
+              // swapped one 404 for another and left a broken-image icon.
+              // Hiding it leaves the hero clean instead.
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
           </motion.div>
         </motion.div>

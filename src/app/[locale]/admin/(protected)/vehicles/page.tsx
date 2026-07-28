@@ -220,7 +220,7 @@ export default function AdminVehiclesPage() {
                 <label className="text-xs text-gray-600 block mb-1">קישור לתמונה</label>
                 <input
                   type="text"
-                  placeholder="/images/vehicles/car.jpg"
+                  placeholder="https://…supabase.co/storage/v1/object/public/vehicles/…"
                   value={imageUrl}
                   onChange={e => setImageUrl(e.target.value)}
                   className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
