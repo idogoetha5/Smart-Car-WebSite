@@ -40,8 +40,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Local accessibility evidence — not deployed to Production
-evidence/
+# Local scan artefacts — bulky, regenerable, not deployed to Production.
+# Excluding the CONTENTS rather than the directory: git will not descend into
+# an excluded directory, so `evidence/` alone makes the negation below dead.
+evidence/**
+# Written-up findings are documentation, not artefacts. Without these a
+# `git add -A` silently skipped them, and a commit message ended up
+# referencing a file that was never actually in the repo.
+!evidence/**/
+!evidence/**/*.md
 
 # Accessibility scan artefacts (evidence lives in evidence/, gitignored)
 a11y-before.json
