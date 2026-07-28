@@ -84,8 +84,12 @@ function RentalPageContent() {
         </h2>
         <div className="flex flex-wrap gap-6 text-sm text-gray-600">
           {(isHe
-            ? ['בחר רכב', 'בחר תאריכים', 'מלא פרטים', 'אשר הזמנה']
-            : ['Choose vehicle', 'Select dates', 'Fill details', 'Confirm booking']
+            // "שלח בקשה", not "אשר הזמנה": the final step submits a request
+            // that a representative confirms in writing. Nothing is reserved
+            // here, and the old label promised otherwise. Label only — the
+            // button behaviour and the price are untouched.
+            ? ['בחר רכב', 'בחר תאריכים', 'מלא פרטים', 'שלח בקשה']
+            : ['Choose vehicle', 'Select dates', 'Fill details', 'Send request']
           ).map((step, i) => (
             <div key={i} className="flex items-center gap-2">
               <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">

@@ -1,6 +1,7 @@
 import { localeAlternates } from '@/lib/seo';
 export const revalidate = 60;
 
+import { notFound } from 'next/navigation';
 import { getVehicleById } from '@/lib/db/vehicles';
 import BookingForm from '@/components/booking/BookingForm';
 import VehicleGallery from '@/components/vehicle/VehicleGallery';
@@ -61,14 +62,12 @@ export default async function RentalDetailPage({
     vehicle = await getVehicleById(id);
   } catch {}
 
+  // A real 404, not a 200 page that says "not found". Returning markup with a
+  // 200 let search engines index every non-existent vehicle URL as a valid
+  // page, inflated ad metrics, and left the visitor at a dead end. notFound()
+  // renders the locale 404, which offers a route back to the fleet.
   if (!vehicle) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <p className="text-gray-600 text-xl">
-          {locale === 'he' ? 'רכב לא נמצא' : 'Vehicle not found'}
-        </p>
-      </div>
-    );
+    notFound();
   }
 
   const description =
