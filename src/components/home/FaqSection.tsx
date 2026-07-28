@@ -12,7 +12,7 @@ type FaqItem = {
 
 const FAQ_HE: FaqItem[] = [
   {
-    q: 'מי יכול לשכור רכב?',
+    q: 'מאיזה גיל ניתן לשכור רכב?',
     a: 'השכרה זמינה מגיל 18, גם לנהגים חדשים וצעירים. נדרש רישיון נהיגה בתוקף, רישום מראש בחוזה ההשכרה וכיסוי ביטוחי מתאים. התנאים, התוספת האפשרית ומגבלות קבוצת הרכב נקבעים לפי גיל הנהג והוותק שלו, והנהיגה כפופה למגבלות הדין החלות עליו.',
   },
   {
@@ -42,7 +42,7 @@ const FAQ_HE: FaqItem[] = [
 
 const FAQ_EN: FaqItem[] = [
   {
-    q: 'Who can rent a vehicle?',
+    q: 'What is the minimum age to rent a vehicle?',
     a: 'Rental is available from age 18, including new and young drivers. A valid driving licence, advance registration in the rental agreement and suitable coverage are required. Terms, possible surcharges and vehicle-group restrictions depend on the driver\'s age and licence history. All legal driving restrictions continue to apply.',
   },
   {
