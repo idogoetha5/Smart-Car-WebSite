@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { normalizeEmail } from '@/lib/email';
+import { sendTemplateEmail } from '@/lib/email-delivery';
 
 const PG_INVALID_ENUM = '22P02';
 
@@ -94,5 +95,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Booking status changed — please refresh' }, { status: 409 });
   }
 
-  return NextResponse.json({ ok: true, status: finalStatus });
+  // The cancellation is committed above and stands regardless of what
+  // follows. Previously nothing was sent at all: the customer had no
+  // confirmation their cancellation registered, and the team could carry on
+  // working a request the customer had already withdrawn.
+  const ref = String(bookingId).slice(0, 8).toUpperCase();
+  const notified = await sendTemplateEmail({
+    event: 'contact_lead',
+    idempotencyKey: `booking_cancelled:${bookingId}`,
+    templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
+    params: {
+      to_email: storedEmail,
+      to_name: storedEmail,
+      bcc_email: 'office@smartcar.co.il',
+      reply_to: 'office@smartcar.co.il',
+      booking_type: 'ביטול בקשה',
+      order_id: ref,
+      vehicle_name: `בקשתך מספר ${ref} בוטלה לבקשתך.\n\nאם הביטול נעשה בטעות, השיבו למייל הזה או התקשרו 09-9509757 ונטפל בכך.`,
+      customer_phone: '-',
+      start_date: '-',
+      end_date: '-',
+      pickup_location: '-',
+      return_location: '-',
+      total_price: '-',
+      logo_url: 'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/logo.png',
+    },
+  });
+
+  if (!notified.ok) {
+    console.error('[cancel][ALERT] cancelled but neither customer nor team notified:', bookingId, notified.status);
+  }
+
+  return NextResponse.json({ ok: true, status: finalStatus, notified: notified.ok });
 }

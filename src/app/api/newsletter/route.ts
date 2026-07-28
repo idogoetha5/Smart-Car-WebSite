@@ -73,14 +73,26 @@ export async function POST(request: Request) {
         { onConflict: 'email' }
       );
     if (dbError) {
-      // Table may not exist yet (scripts/add-consent-ledger-columns.sql not
-      // run) — log loudly but don't block the signup itself.
-      console.error('[newsletter] subscriber ledger insert failed:', dbError.message);
+      // The consent ledger IS the subscription. Carrying on here meant the
+      // API could report a successful signup, and a welcome email could go
+      // out, with no record that the person ever agreed — which is precisely
+      // the evidence the ledger exists to hold. Better to ask them to try
+      // again than to mail someone we cannot prove consented.
+      console.error('[newsletter] consent ledger write failed:', dbError.message);
+      return NextResponse.json(
+        { error: 'ההרשמה נכשלה, נסו שוב מאוחר יותר' },
+        { status: 503 }
+      );
     } else if (existing?.unsubscribed_at) {
       console.info('[newsletter] previously unsubscribed address re-subscribed with fresh consent');
     }
   } catch (err) {
-    console.error('[newsletter] subscriber ledger error:', err);
+    // Same reasoning as above: no ledger row, no subscription.
+    console.error('[newsletter] consent ledger error:', err);
+    return NextResponse.json(
+      { error: 'ההרשמה נכשלה, נסו שוב מאוחר יותר' },
+      { status: 503 }
+    );
   }
 
   const serviceId  = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
