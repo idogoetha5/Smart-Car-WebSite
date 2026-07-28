@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
 import {
@@ -10,27 +10,57 @@ import {
   type ConsentValue,
 } from '@/lib/cookie-consent';
 
+/**
+ * Consent as an external store. writeConsent already dispatches a `storage`
+ * event in the current tab as well as others, so one listener covers both.
+ */
+function subscribeConsent(onChange: () => void) {
+  window.addEventListener('storage', onChange);
+  window.addEventListener(REOPEN_EVENT, onChange);
+  return () => {
+    window.removeEventListener('storage', onChange);
+    window.removeEventListener(REOPEN_EVENT, onChange);
+  };
+}
+
+// getSnapshot must be referentially stable for primitives; readConsent
+// returns a string or null, so it already is.
+function readConsentSnapshot(): ConsentValue | null {
+  return readConsent();
+}
+
 export default function CookieBanner() {
   const locale = useLocale();
   const isHe = locale === 'he';
-  const [visible, setVisible] = useState(false);
-  const [current, setCurrent] = useState<ConsentValue | null>(null);
+  // Reopened deliberately from the footer control. Set only from an event
+  // handler, never from an effect body.
+  const [reopened, setReopened] = useState(false);
+  // Dismissed with Escape without choosing. Deriving visibility purely from
+  // the stored value would otherwise trap a first-time visitor behind a
+  // banner they cannot close until they pick something.
+  const [dismissed, setDismissed] = useState(false);
+  // Consent is genuinely external state — it lives in localStorage and other
+  // tabs can change it — so useSyncExternalStore reads it rather than an
+  // effect copying it into React state on mount. The server snapshot is null,
+  // which is also the correct pre-hydration answer: nothing is known yet.
+  const current = useSyncExternalStore(subscribeConsent, readConsentSnapshot, () => null);
   const dialogRef = useRef<HTMLDivElement>(null);
   // Where focus came from, so it can be handed back when the banner is
   // dismissed after being re-opened from the footer control.
   const opener = useRef<HTMLElement | null>(null);
 
-  useEffect(() => {
-    setCurrent(readConsent());
-    if (!readConsent()) setVisible(true);
-  }, []);
+  // Derived, not copied. The banner is shown when no choice has been stored,
+  // or when the footer control asked for it. Previously a mount effect copied
+  // the stored value into state, which is the setState-in-effect cascade the
+  // React Compiler warns about — and it also meant two sources of truth for
+  // the same fact.
+  const visible = (current === null && !dismissed) || reopened;
 
   // Footer "Cookie Preferences" re-opens the banner for an existing choice.
   useEffect(() => {
     const reopen = () => {
       opener.current = document.activeElement as HTMLElement | null;
-      setCurrent(readConsent());
-      setVisible(true);
+      setReopened(true);
     };
     window.addEventListener(REOPEN_EVENT, reopen);
     return () => window.removeEventListener(REOPEN_EVENT, reopen);
@@ -43,14 +73,16 @@ export default function CookieBanner() {
   }, [visible]);
 
   const close = () => {
-    setVisible(false);
+    setReopened(false);
+    setDismissed(true);
     opener.current?.focus();
     opener.current = null;
   };
 
   const choose = (value: ConsentValue) => {
+    // writeConsent dispatches `storage`, which the store above is subscribed
+    // to, so the new value propagates without a second source of truth.
     writeConsent(value);
-    setCurrent(value);
     close();
   };
 
