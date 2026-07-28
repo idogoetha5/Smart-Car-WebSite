@@ -189,7 +189,7 @@ export default function ReviewsSection({ locale }: { locale: string }) {
                 aria-label={isHe ? 'ביקורת קודמת' : 'Previous'}
                 className="w-10 h-10 rounded-full border-2 border-[#2D5F5F] text-[#2D5F5F] flex items-center justify-center hover:bg-[#2D5F5F] hover:text-white transition-colors"
               >
-                {isHe ? '›' : '‹'}
+                {'‹'}
               </button>
 
               <div className="flex gap-2">
@@ -208,7 +208,7 @@ export default function ReviewsSection({ locale }: { locale: string }) {
                 aria-label={isHe ? 'ביקורת הבאה' : 'Next'}
                 className="w-10 h-10 rounded-full border-2 border-[#2D5F5F] text-[#2D5F5F] flex items-center justify-center hover:bg-[#2D5F5F] hover:text-white transition-colors"
               >
-                {isHe ? '‹' : '›'}
+                {'›'}
               </button>
             </div>
           </div>
