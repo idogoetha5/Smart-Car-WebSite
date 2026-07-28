@@ -13,54 +13,58 @@ type FaqItem = {
 const FAQ_HE: FaqItem[] = [
   {
     q: 'מי יכול לשכור רכב?',
-    a: 'השירות זמין מגיל 18 לבעלי רישיון נהיגה בתוקף, גם במהלך השנתיים הראשונות לקבלת הרישיון. כל נהג חייב להירשם מראש בחוזה ולהיות מכוסה בכיסוי הביטוחי המתאים. נהג חדש או צעיר נדרש לפעול לפי המגבלות החלות עליו.',
+    a: 'השכרה זמינה מגיל 18, גם לנהגים חדשים וצעירים. נדרש רישיון נהיגה בתוקף, רישום מראש בחוזה ההשכרה וכיסוי ביטוחי מתאים. התנאים, התוספת האפשרית ומגבלות קבוצת הרכב נקבעים לפי גיל הנהג והוותק שלו, והנהיגה כפופה למגבלות הדין החלות עליו.',
   },
   {
-    q: 'האם ביטוח כלול במחיר ההשכרה?',
-    a: 'מחיר ההשכרה כולל את הכיסוי הביטוחי הבסיסי המפורט בהצעה ובחוזה. ניתן להוסיף ביטול השתתפות עצמית בתשלום, בכפוף לתנאים ולחריגים המפורטים בחוזה. לנהג חדש או צעיר עשויה לחול תוספת מחיר בהתאם לכיסוי הביטוחי הנדרש.',
+    q: 'האם כיסוי ביטוחי כלול במחיר ההשכרה?',
+    a: 'כל השכרה כוללת את הביטוח או הכיסוי הביטוחי הבסיסי המפורט בהצעה ובחוזה ההשכרה. ניתן להוסיף הפחתה או ביטול של דמי השתתפות בנזק, בכפוף לתנאים ולחריגים. לנהג חדש או צעיר עשויה לחול תוספת.',
     learnMoreHref: '/insurance',
     learnMoreLabel: 'לפרטים מלאים על הביטוח',
   },
   {
     q: 'אילו מסמכים צריך להציג בעת איסוף הרכב?',
-    a: 'בעת איסוף הרכב יש להציג תעודת זהות או דרכון, רישיון נהיגה מקורי ובתוקף וכרטיס אשראי בתוקף על שם השוכר. גם נהג נוסף נדרש להציג רישיון נהיגה ולהירשם בחוזה לפני הנהיגה.',
+    a: 'תעודת זהות או דרכון, רישיון נהיגה מקורי בתוקף וכרטיס אשראי על שם השוכר לצורך הפיקדון. כל נהג נוסף צריך להציג רישיון ולהירשם בחוזה לפני הנהיגה. לנהג עם רישיון זר עשוי להידרש גם רישיון בינלאומי או תרגום רשמי, בהתאם לסוג הרישיון.',
     learnMoreHref: '/insurance',
     learnMoreLabel: 'ראה רשימת מסמכים מלאה',
   },
   {
     q: 'אפשר לקבל ולהחזיר את הרכב במקומות שונים?',
-    a: 'כן. ניתן לתאם מסירה והחזרה בסניפים או בכתובת אחרת בכל הארץ. השירות כפוף לתיאום מראש, והמחיר נקבע מול הנציג לפי הכתובות והזמנים.',
+    a: 'כן. ניתן למסור ולהחזיר רכב בסניפים או בכתובות שונות בארץ, בתיאום מראש ובכפוף לזמינות. המחיר נקבע לפי הכתובות והשעות ויאושר על ידי נציג.',
   },
   {
+    // Interim wording only. A final cancellation policy needs the site,
+    // the booking confirmation, company policy and the law aligned, and a
+    // lawyer's approval — so no specific charge percentages are published.
     q: 'מהי מדיניות הביטול?',
-    a: 'ביטול יותר מ־72 שעות לפני מועד האיסוף אינו כרוך בחיוב ומזכה בהחזר מלא. ביטול 72–48 שעות לפני האיסוף כרוך בחיוב של 25% מדמי השכירות הבסיסיים, וביטול 48–24 שעות לפני האיסוף כרוך בחיוב של 50%. ביטול פחות מ־24 שעות לפני האיסוף או אי־הגעה אינו מזכה בהחזר.',
+    a: 'תנאי הביטול והשינוי נמסרים לפני אישור ההזמנה ומופיעים באישור הכתוב. הזכויות הקבועות בדין נשמרות. לביטול או לשינוי אפשר לפנות אלינו בטלפון, בדוא״ל או באמצעות טופס יצירת הקשר.',
   },
 ];
 
 const FAQ_EN: FaqItem[] = [
   {
     q: 'Who can rent a vehicle?',
-    a: 'The service is available from age 18 to holders of a valid driving licence, including during the first two years after the licence was issued. Every driver must be registered in the agreement in advance and be covered by the applicable insurance. A new or young driver must comply with the restrictions that apply to them.',
+    a: 'Rental is available from age 18, including new and young drivers. A valid driving licence, advance registration in the rental agreement and suitable coverage are required. Terms, possible surcharges and vehicle-group restrictions depend on the driver\'s age and licence history. All legal driving restrictions continue to apply.',
   },
   {
-    q: 'Is insurance included in the rental price?',
-    a: 'The rental price includes the basic insurance cover detailed in the quote and in the agreement. A collision damage waiver can be added for a fee, subject to the terms and exclusions set out in the agreement. A new or young driver may be subject to an additional charge according to the insurance cover required.',
+    q: 'Is insurance cover included in the rental price?',
+    a: 'Each rental includes the basic protection described in the quote and rental agreement. An option to reduce or waive damage participation may be available, subject to conditions and exclusions. A new or young driver surcharge may apply.',
     learnMoreHref: '/insurance',
     learnMoreLabel: 'Full insurance details →',
   },
   {
     q: 'Which documents must be presented when collecting the vehicle?',
-    a: 'When collecting the vehicle you must present an ID card or passport, an original valid driving licence, and a valid credit card in the renter\'s name. An additional driver must also present a driving licence and be registered in the agreement before driving.',
+    a: 'Please present an ID card or passport, an original valid driving licence and a credit card in the renter\'s name for the deposit. Every additional driver must present a licence and be added to the agreement before driving. Drivers with a foreign licence may also need an International Driving Permit or official translation, depending on the licence.',
     learnMoreHref: '/insurance',
     learnMoreLabel: 'See full document checklist →',
   },
   {
     q: 'Can the vehicle be collected and returned at different locations?',
-    a: 'Yes. Delivery and return can be arranged at our branches or at another address anywhere in Israel. The service is subject to prior coordination, and the price is agreed with the representative according to the addresses and times.',
+    a: 'Yes. Delivery and return may be arranged at branches or different addresses in Israel, subject to advance coordination and availability. The price is based on the locations and times and will be confirmed by a representative.',
   },
   {
+    // Interim wording only — see the Hebrew entry above.
     q: 'What is the cancellation policy?',
-    a: 'Cancellation more than 72 hours before the collection time is free of charge and entitles you to a full refund. Cancellation 72–48 hours before collection is charged at 25% of the basic rental fee, and cancellation 48–24 hours before collection is charged at 50%. Cancellation less than 24 hours before collection, or failure to appear, does not entitle you to a refund.',
+    a: 'Cancellation and change terms are provided before confirmation and appear in the written confirmation. Statutory consumer rights remain unaffected. To cancel or change a request, contact us by phone, email or the contact form.',
   },
 ];
 

@@ -104,6 +104,14 @@ export default async function RentalDetailPage({
             alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
           />
 
+          {/* The confirmation applies to the vehicle group or the model
+              named in writing, not necessarily the car photographed. */}
+          <p className="text-xs text-gray-500 mt-2 mb-4">
+            {locale === 'he'
+              ? 'התמונה להמחשה. האישור הסופי הוא לקבוצת הרכב או לדגם שיצוין בכתב.'
+              : 'Image for illustration. Final confirmation applies to the vehicle group or model confirmed in writing.'}
+          </p>
+
           <h1 className="text-3xl font-black text-gray-900 mb-2">
             {vehicle.make} {vehicle.model}
           </h1>

@@ -37,8 +37,8 @@ export default function Footer() {
             </Link>
             <p className="text-sm text-[#7fb09f] mb-4">
               {locale === 'he'
-                ? 'השכרת רכב חכמה – מגוון רכבים איכותיים לכל צורך'
-                : 'Premium car rental, delivered — quality vehicles for every journey'}
+                ? 'השכרת רכב, ליסינג ושירות אישי בכל הארץ.'
+                : 'Car rental, leasing and personal service across Israel.'}
             </p>
             <button
               onClick={toggleLanguage}

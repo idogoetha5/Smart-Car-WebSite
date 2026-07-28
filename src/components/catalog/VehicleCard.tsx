@@ -177,21 +177,16 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
           )}
         </div>
 
-        {/* Availability */}
+        {/* Availability. The catalogue is only part of the fleet, so a
+            listing never asserts that a vehicle is free or taken — both
+            states invite a real availability check instead. The former
+            red "תפוס" overlay told customers no vehicle existed, which
+            the online catalogue cannot know. */}
         <div className="absolute top-3 end-3">
-          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${vehicle.isAvailable ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
-            {vehicle.isAvailable ? t('available') : t('unavailable')}
+          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#2D5F5F] text-white">
+            {t('available')}
           </span>
         </div>
-
-        {/* Unavailable overlay */}
-        {!vehicle.isAvailable && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-            <span className="bg-red-600 text-white font-black text-xl px-6 py-2 rounded-xl rotate-[-10deg] shadow-lg">
-              {isHe ? 'תפוס' : 'Unavailable'}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Content */}
@@ -251,27 +246,23 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          {vehicle.isAvailable ? (
-            <Link
-              href={(() => {
-                const p = new URLSearchParams();
-                if (pickupDate) p.set('pickup', pickupDate);
-                if (returnDate) p.set('return', returnDate);
-                if (location) p.set('location', location);
-                if (pickupLocation) p.set('pickupLocation', pickupLocation);
-                if (returnLocation) p.set('returnLocation', returnLocation);
-                const qs = p.toString();
-                return `/${locale}/rental/${vehicle.id}${qs ? '?' + qs : ''}`;
-              })()}
-              className="py-2.5 px-4 bg-[#2D5F5F] text-white text-sm font-bold rounded-xl hover:bg-[#1A3A3A] transition-colors text-center"
-            >
-              {t('book_now')}
-            </Link>
-          ) : (
-            <span className="py-2.5 px-4 bg-red-100 text-red-600 text-sm font-bold rounded-xl text-center cursor-not-allowed">
-              {isHe ? 'תפוס' : 'Unavailable'}
-            </span>
-          )}
+          {/* Always available: the request path must never be blocked by
+              the online catalogue, which holds only part of the fleet. */}
+          <Link
+            href={(() => {
+              const p = new URLSearchParams();
+              if (pickupDate) p.set('pickup', pickupDate);
+              if (returnDate) p.set('return', returnDate);
+              if (location) p.set('location', location);
+              if (pickupLocation) p.set('pickupLocation', pickupLocation);
+              if (returnLocation) p.set('returnLocation', returnLocation);
+              const qs = p.toString();
+              return `/${locale}/rental/${vehicle.id}${qs ? '?' + qs : ''}`;
+            })()}
+            className="py-2.5 px-4 bg-[#2D5F5F] text-white text-sm font-bold rounded-xl hover:bg-[#1A3A3A] transition-colors text-center"
+          >
+            {t('book_now')}
+          </Link>
           <Link
             href={`/${locale}/leasing?vehicle=${vehicle.id}&make=${encodeURIComponent(vehicle.make)}&model=${encodeURIComponent(vehicle.model)}#calculator`}
             className="py-2.5 px-4 border-2 border-[#B64916] text-[#B64916] text-sm font-bold rounded-xl hover:bg-[#C24E17]/5 transition-colors text-center"

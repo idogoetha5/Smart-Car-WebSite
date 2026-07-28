@@ -11,10 +11,12 @@ export async function generateMetadata({
   const { locale } = await params;
   const isHe = locale === 'he';
   return {
-    title: isHe ? 'רכבים למכירה' : 'Cars for Sale',
+    title: {
+      absolute: isHe ? 'רכבים מהצי למכירה | SmartCar' : 'Fleet Vehicles for Sale | SmartCar',
+    },
     description: isHe
-      ? 'רכבים יד שנייה למכירה ב-SmartCar – מגוון דגמים במצב מעולה, מחירים הוגנים ושקיפות מלאה. מצאו את הרכב הבא שלכם ופנו אלינו עוד היום.'
-      : 'Used cars for sale at SmartCar – a variety of models in excellent condition, fair prices and full transparency. Find your next car and contact us today.',
+      ? 'רכבים נבחרים מצי SmartCar מוצעים למכירה מעת לעת. קבלו מידע ומסמכים לגבי הרכב הספציפי לפני קבלת החלטה.'
+      : 'Selected SmartCar fleet vehicles are offered for sale from time to time. Receive information and available documents for the specific vehicle before making a decision.',
     alternates: localeAlternates(locale, 'cars-for-sale'),
   };
 }
@@ -74,12 +76,14 @@ export default async function CarsForSalePage({
           </span>
         </div>
         <h1 className="text-4xl font-black text-gray-900 mb-3">
-          {isHe ? 'רכבים למכירה' : 'Cars for Sale'}
+          {isHe ? 'רכבים נבחרים מהצי למכירה' : 'Selected fleet vehicles for sale'}
         </h1>
+        {/* No claims about inspection, service history, warranty or
+            condition until an operational process backs them (report §11). */}
         <p className="text-gray-600 text-lg">
           {isHe
-            ? 'רכבים איכותיים במחירים הוגנים – ישירות מהצי שלנו'
-            : 'Quality vehicles at fair prices – directly from our fleet'}
+            ? 'מעת לעת אנו מציעים למכירה רכבים מהצי. לכל רכב נציג את הפרטים והמסמכים הזמינים לגביו, ונאפשר לקבל מידע נוסף לפני קבלת החלטה.'
+            : 'From time to time we offer fleet vehicles for sale. For each vehicle we present the details and documents available for it, and you can request further information before making a decision.'}
         </p>
       </div>
 
@@ -92,12 +96,12 @@ export default async function CarsForSalePage({
             <circle cx="60" cy="38" r="6" fill="currentColor"/>
           </svg>
           <p className="text-gray-700 text-2xl font-bold mb-2">
-            {isHe ? 'אין רכבים למכירה כרגע' : 'No cars for sale at the moment'}
+            {isHe ? 'אין כרגע רכבים שמוצגים למכירה' : 'No vehicles are currently listed for sale'}
           </p>
           <p className="text-gray-600 mb-8 text-lg">
             {isHe
-              ? 'השאירו פרטים ונעדכן אתכם ברגע שיתפנה רכב'
-              : 'Leave your details and we\'ll notify you as soon as a car becomes available'}
+              ? 'אפשר להשאיר הודעה בוואטסאפ, ונעדכן כשיעלו רכבים נוספים.'
+              : 'You can leave us a message on WhatsApp and we will let you know when more vehicles are listed.'}
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <a
@@ -183,9 +187,17 @@ export default async function CarsForSalePage({
                     className="flex items-center gap-2 px-4 py-2 bg-[#2D5F5F] text-white text-sm font-bold rounded-xl hover:bg-[#1A3A3A] transition-colors"
                   >
                     <Phone className="w-4 h-4" />
-                    {isHe ? 'התקשר' : 'Call'}
+                    {isHe ? 'קבלת פרטים' : 'Request details'}
                   </a>
                 </div>
+
+                {/* Statutory disclosure is per-vehicle and happens before
+                    the sale, not through the listing (report §11). */}
+                <p className="text-xs text-gray-500 mt-3 leading-relaxed">
+                  {isHe
+                    ? 'הפרטים מתייחסים לרכב הספציפי שמוצג. מידע נוסף ומסמכי גילוי יימסרו לפני העסקה.'
+                    : 'The details refer to the specific vehicle shown. Further information and disclosure documents are provided before the sale.'}
+                </p>
               </div>
             </Tilt3D>
           ))}
@@ -194,12 +206,12 @@ export default async function CarsForSalePage({
 
       <div className="mt-16 p-8 bg-[#0D2B2B] rounded-2xl text-center text-white">
         <h2 className="text-2xl font-bold mb-2">
-          {isHe ? 'מעוניין לקנות?' : 'Interested in buying?'}
+          {isHe ? 'מחפשים רכב מסוים?' : 'Looking for a particular vehicle?'}
         </h2>
         <p className="text-[#B8D8D8] mb-6">
           {isHe
-            ? 'צרו איתנו קשר ונשמח לעזור לכם למצוא את הרכב המתאים'
-            : 'Contact us and we\'ll help you find the right car'}
+            ? 'ספרו לנו איזה רכב אתם מחפשים, ונבדוק אם יש רכב מתאים שמיועד למכירה.'
+            : 'Tell us which vehicle you are looking for, and we will check whether a suitable vehicle is available for sale.'}
         </p>
         <div className="flex flex-wrap justify-center gap-4">
           <a

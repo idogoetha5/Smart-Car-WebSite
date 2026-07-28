@@ -32,19 +32,19 @@ function ConfirmationContent() {
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">📋</div>
           <h1 className="text-3xl font-bold text-[#0D2B2B]">
-            {isHe ? 'בקשתך התקבלה לבדיקה' : 'Your request is under review'}
+            {isHe ? 'בקשת ההשכרה התקבלה' : 'Your rental request has been received'}
           </h1>
           <p className="text-gray-600 mt-2">
             {isHe
-              ? 'ההזמנה תאושר רק לאחר שנציג יצור אתך קשר ויאשר את הזמינות והתשלום'
-              : 'Booking is confirmed only after an agent contacts you to confirm availability and payment'}
+              ? 'שלחנו אליכם אישור על קבלת הבקשה. נציג SmartCar יבדוק את הזמינות בצי המלא ויחזור אליכם עם אישור ופרטים סופיים.'
+              : 'We sent you a receipt confirming that the request reached us. A SmartCar representative will check the full fleet and contact you with final confirmation and details.'}
           </p>
         </div>
 
         <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 mb-5 text-sm text-amber-800 text-center">
           {isHe
-            ? '⚠️ זוהי בקשה בלבד — לא הסכם מחייב. ההזמנה תיכנס לתוקף לאחר אישור בכתב מנציג SmartCar.'
-            : '⚠️ This is a request only — not a binding agreement. The booking takes effect only upon written confirmation from a SmartCar agent.'}
+            ? 'עד לקבלת אישור בכתב, הרכב והמחיר עדיין אינם מאושרים.'
+            : 'The vehicle and price are not confirmed until you receive written confirmation.'}
         </div>
 
         <div className="bg-[#f0f7f7] border-s-4 border-[#2D5F5F] rounded-xl p-5 mb-6">

@@ -1,7 +1,6 @@
 import { localeAlternates } from '@/lib/seo';
 export const revalidate = 60;
 
-import { getTranslations } from 'next-intl/server';
 
 const CATEGORY_ORDER: Record<string, number> = {
   MINI: 0, ECONOMY: 1, COMPACT: 2, SEDAN: 3,
@@ -18,13 +17,16 @@ import Tilt3D from '@/components/ui/Tilt3D';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'leasing' });
   const isHe = locale === 'he';
   return {
-    title: t('title'),
+    title: {
+      absolute: isHe
+        ? 'ליסינג פרטי ועסקי | SmartCar'
+        : 'Private and Business Leasing | SmartCar',
+    },
     description: isHe
-      ? 'ליסינג פרטי ועסקי עם SmartCar – רכבים חדשים, תנאים גמישים, ביטוח ותחזוקה כלולים. מגוון חבילות לכל תקציב. קבלו הצעת מחיר תוך 24 שעות.'
-      : 'Private and business car leasing with SmartCar – new vehicles, flexible terms, insurance and maintenance included. Get a quote within 24 hours.',
+      ? 'מסלולי ליסינג ללקוחות פרטיים ולעסקים, בהתאמה לתקופה, למספר הקילומטרים ולשירותים הנדרשים. קבלו הצעה ברורה בכתב מנציג SmartCar.'
+      : 'Leasing plans for private and business customers, matched to the term, mileage and services required. Receive a clear written quote from SmartCar.',
     alternates: localeAlternates(locale, 'leasing'),
   };
 }
@@ -128,18 +130,21 @@ export default async function LeasingPage({
   const vehicles = Array.from(seen.values())
     .sort((a, b) => (CATEGORY_ORDER[a.category] ?? 99) - (CATEGORY_ORDER[b.category] ?? 99));
 
+  // What a plan actually contains varies and is fixed in the written
+  // quote, so these must not state that maintenance or comprehensive
+  // insurance is included in every plan (report §9).
   const benefits = isHe
     ? [
-        'תנאי ליסינג גמישים לכל צורך',
-        'תחזוקה שוטפת כלולה בחבילה',
-        'ביטוח מקיף ללא עלות נוספת',
-        'שירות דרך ותמיכה 24/7',
+        'מסלול מותאם לתקופה ולמספר הקילומטרים',
+        'אפשרות לשלב שירותי תחזוקה לפי המסלול',
+        'אפשרויות ביטוח ושירות לפי ההצעה',
+        'מענה ושירות 24/7',
       ]
     : [
-        'Flexible leasing terms for any need',
-        'Routine maintenance included',
-        'Full insurance at no extra cost',
-        '24/7 roadside service and support',
+        'A plan matched to the term and mileage',
+        'Maintenance services can be included depending on the plan',
+        'Insurance and service options according to the quote',
+        '24/7 support and service',
       ];
 
   return (
@@ -157,18 +162,18 @@ export default async function LeasingPage({
               </p>
               <h1 className="text-4xl sm:text-5xl font-black leading-tight mb-4">
                 {isHe ? (
-                  <>ליסינג עסקי<br /><span className="text-[#E8743B]">חכם יותר</span></>
+                  <>ליסינג שמתאים<br /><span className="text-[#E8743B]">לאופן שבו אתם נוסעים</span></>
                 ) : (
-                  <>Business leasing<br /><span className="text-[#E8743B]">made smarter</span></>
+                  <>Leasing matched<br /><span className="text-[#E8743B]">to the way you drive</span></>
                 )}
               </h1>
               <p className="text-[#B8D8D8] text-lg mb-3">
                 {isHe
-                  ? 'תוכניות ליסינג מותאמות אישית לעסקים וללקוחות פרטיים, עם מגוון רכבים וגמישות מלאה'
-                  : 'Tailored leasing plans for businesses and private customers, with a wide range of vehicles and full flexibility'}
+                  ? 'מסלולים ללקוחות פרטיים, לעסקים ולציי רכב, עם התאמה לתקופה, למספר הקילומטרים ולשירותים שאתם צריכים.'
+                  : 'Plans for private customers, businesses and fleets, tailored to the term, mileage and services you need.'}
               </p>
               <p className="text-[#E8743B] text-base font-semibold mb-8">
-                {isHe ? 'קבל הצעת מחיר עוד היום!' : 'Get a quote today!'}
+                {isHe ? 'קבלת הצעת ליסינג' : 'Request a leasing quote'}
               </p>
               <div className={`flex gap-4 ${isHe ? 'justify-end flex-row-reverse' : ''}`}>
                 <a
@@ -252,14 +257,14 @@ export default async function LeasingPage({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {(isHe
               ? [
-                  { title: 'ליסינג פרטי', desc: 'תוכנית ליסינג לרכב פרטי עם תנאים גמישים ומחיר תחרותי', icon: '🚗' },
-                  { title: 'ליסינג עסקי', desc: 'פתרונות ליסינג לעסקים עם אפשרות לניהול צי כלי רכב', icon: '🏢' },
-                  { title: 'ליסינג מנהלים', desc: 'רכבי יוקרה עם תנאי ליסינג בלעדיים למנהלי חברות', icon: '⭐' },
+                  { title: 'ליסינג פרטי', desc: 'מסלול לרכב פרטי שבו התקופה, מספר הקילומטרים והשירותים נקבעים מראש בהצעה.', icon: '🚗' },
+                  { title: 'ליסינג עסקי', desc: 'פתרון לעסקים קטנים, חברות וציי רכב, עם התאמה להיקף הפעילות ולצורכי הנהגים.', icon: '🏢' },
+                  { title: 'ליסינג מנהלים', desc: 'מבחר רכבים ברמת אבזור גבוהה ומסלול המותאם למדיניות הרכב של העסק.', icon: '⭐' },
                 ]
               : [
-                  { title: 'Private Leasing', desc: 'Personal leasing plan with flexible terms and competitive pricing', icon: '🚗' },
-                  { title: 'Business Leasing', desc: 'Fleet leasing solutions for businesses of all sizes', icon: '🏢' },
-                  { title: 'Executive Leasing', desc: 'Luxury vehicles with exclusive leasing terms for executives', icon: '⭐' },
+                  { title: 'Private leasing', desc: 'A plan for a private vehicle where the term, mileage and services are set out in advance in the quote.', icon: '🚗' },
+                  { title: 'Business leasing', desc: 'A solution for small businesses, companies and fleets, matched to the scale of activity and the needs of the drivers.', icon: '🏢' },
+                  { title: 'Executive leasing', desc: 'A selection of highly equipped vehicles and a plan matched to the vehicle policy of the business.', icon: '⭐' },
                 ]
             ).map((item) => (
               <div

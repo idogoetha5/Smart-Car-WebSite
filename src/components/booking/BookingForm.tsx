@@ -37,10 +37,10 @@ const BRANCHES_EN = ALL_BRANCHES.map((b) => ({
 const EXTRAS = [
   {
     id: 'insurance',
-    name: 'ביטול השתתפות עצמית',
-    nameEn: 'Damage Waiver',
-    description: 'נסע בשקט — ללא תשלום במקרה נזק',
-    descriptionEn: 'Drive worry-free — no payment in case of damage',
+    name: 'הפחתה או ביטול השתתפות בנזק',
+    nameEn: 'Damage participation reduction or waiver',
+    description: 'אפשרות לצמצום החיוב במקרה של נזק מכוסה, בכפוף לתנאי ההצעה, החוזה והחריגים.',
+    descriptionEn: 'May reduce the amount payable for covered damage, subject to the quote, agreement and exclusions.',
     price: 45,
     priceLabel: '₪45/יום',
     icon: '🛡️',
@@ -48,10 +48,13 @@ const EXTRAS = [
   },
   {
     id: 'highway6',
-    name: 'חבילת כביש 6',
-    nameEn: 'Highway 6 Package',
-    description: 'נסיעות ללא הגבלה בכביש 6 ובמנהרות',
-    descriptionEn: 'Unlimited Highway 6 & tunnel crossings',
+    name: 'חבילת כביש 6 ומנהרות',
+    nameEn: 'Highway 6 and tunnels package',
+    // Interim wording only. "נסיעות ללא הגבלה" must not be used until an
+    // operational document confirms exactly which roads, tunnels, lanes,
+    // tolls and handling fees the package covers.
+    description: 'שירות לטיפול בחיובי כביש 6 ומנהרות, בהתאם לתנאי החבילה.',
+    descriptionEn: 'A service for handling Highway 6 and tunnel charges, subject to the package terms.',
     price: 35,
     priceLabel: '₪35/יום',
     icon: '🛣️',
@@ -59,10 +62,10 @@ const EXTRAS = [
   },
   {
     id: 'baby_seat',
-    name: 'כיסא בטיחות לתינוק',
-    nameEn: 'Baby / Child Seat',
-    description: 'כיסא בטיחות מאושר לילדים',
-    descriptionEn: 'Approved safety seat for children',
+    name: 'כיסא בטיחות לילד',
+    nameEn: 'Child safety seat',
+    description: 'כיסא בטיחות בהתאם לגיל ולמשקל שנמסרו, בכפוף לזמינות ולהתאמת הכיסא לרכב.',
+    descriptionEn: 'A child seat based on the age and weight provided, subject to availability and vehicle compatibility.',
     price: 20,
     priceLabel: '₪20/יום',
     icon: '👶',
@@ -71,9 +74,9 @@ const EXTRAS = [
   {
     id: 'driver',
     name: 'נהג נוסף',
-    nameEn: 'Additional Driver',
-    description: 'הוסף נהג נוסף לחוזה',
-    descriptionEn: 'Add another driver to the contract',
+    nameEn: 'Additional driver',
+    description: 'הוספת נהג מורשה לחוזה. הנהג צריך לעמוד בתנאים, להציג רישיון ולהירשם לפני הנהיגה.',
+    descriptionEn: 'Adds an authorised driver to the agreement. The driver must meet the requirements, present a valid licence and be registered before driving.',
     price: 25,
     priceLabel: '₪25/יום',
     icon: '👤',
@@ -187,7 +190,7 @@ function IsraelAddressInput({
       )}
       {!isValid && inputValue.length > 2 && (
         <p className="text-gray-600 text-xs mt-1">
-          {isHe ? 'בחר כתובת מהרשימה' : 'Select an address from the list'}
+          {isHe ? 'יש לבחור כתובת מתוך הרשימה.' : 'Please select an address from the list.'}
         </p>
       )}
       <p className="text-gray-300 text-xs mt-0.5">
@@ -262,7 +265,7 @@ function LocationSelector({
         />
       )}
       {showCustom && !customValid && value === '' && (
-        <p className="text-xs text-amber-600">{isHe ? 'יש לבחור כתובת מהרשימה' : 'Please select an address from suggestions'}</p>
+        <p className="text-xs text-amber-600">{isHe ? 'יש לבחור כתובת מתוך הרשימה.' : 'Please select an address from the list.'}</p>
       )}
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
@@ -501,7 +504,9 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
       setToast({
         message: msg.includes('not available')
           ? t('unavailable_message')
-          : (isHe ? 'אירעה שגיאה, נסה שוב' : 'Something went wrong, please try again'),
+          : (isHe
+              ? 'לא הצלחנו לשלוח את הבקשה. נסו שוב או התקשרו אלינו בטלפון 09-9509757.'
+              : 'We could not send the request. Please try again or call us on 09-9509757.'),
         type: 'error',
       });
     } finally {
@@ -857,17 +862,17 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           )}
           <div className="flex justify-between font-bold text-lg border-t border-[#B8D8D8] pt-2">
             <span className="text-[#B64916]">₪{grandTotal.toLocaleString()}</span>
-            <span>{isHe ? 'סה"כ לתשלום' : 'Total'}</span>
+            <span>{isHe ? 'מחיר משוער' : 'Estimated price'}</span>
           </div>
           <p className="text-xs text-gray-600 text-center pt-1">
             {isHe
               ? `כולל מע"מ 18% • עד ${getRentalMileageAllowance(totalDays).toLocaleString()} ק"מ • דלק מלא`
               : `Incl. 18% VAT • Up to ${getRentalMileageAllowance(totalDays).toLocaleString()} km • Full tank`}
           </p>
-          <p className="text-xs text-gray-300 text-center">
+          <p className="text-xs text-gray-600 text-center leading-relaxed">
             {isHe
-              ? 'המחיר אינדיקטיבי — מאושר סופית על ידי נציג לאחר אישור ההזמנה'
-              : 'Indicative price — confirmed by a SmartCar agent after booking approval'}
+              ? 'המחיר מבוסס על הפרטים שנבחרו ויאושר סופית בכתב לאחר בדיקת הזמינות והתנאים. תוספות או שינויים עשויים להשפיע על המחיר.'
+              : 'The price is based on the selected details and will be confirmed in writing after availability and terms are checked. Add-ons or changes may affect the final price.'}
           </p>
         </div>
       )}
@@ -901,7 +906,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
             ) : (
               <>
                 I have read and agree to SmartCar&apos;s{' '}
-                <a href={`/${locale}/terms`} target="_blank" rel="noopener noreferrer" className="text-[#2D5F5F] underline font-medium">Terms of Service</a>
+                <a href={`/${locale}/terms`} target="_blank" rel="noopener noreferrer" className="text-[#2D5F5F] underline font-medium">Terms of Use</a>
                 {' '}and{' '}
                 <a href={`/${locale}/privacy`} target="_blank" rel="noopener noreferrer" className="text-[#2D5F5F] underline font-medium">Privacy Policy</a>.{' '}
                 <span className="text-red-500">*</span>
@@ -921,8 +926,8 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           />
           <span className="text-xs text-gray-600 leading-relaxed">
             {isHe
-              ? 'אני מעוניין/ת לקבל עדכונים ומבצעים מ-SmartCar בדוא"ל (ניתן לביטול בכל עת)'
-              : 'I would like to receive updates and deals from SmartCar by email (unsubscribe anytime)'}
+              ? 'אני מאשר/ת לקבל מ־SmartCar עדכונים והצעות בדוא״ל. אפשר לבטל את ההרשמה בכל עת.'
+              : 'I agree to receive updates and offers from SmartCar by email. I can unsubscribe at any time.'}
           </span>
         </label>
       </div>
@@ -932,8 +937,8 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
       <div className="rounded-xl bg-gray-50 border border-gray-200 p-3 text-xs text-gray-600 leading-relaxed space-y-2">
         <p>
           {isHe
-            ? 'שליחת הטופס היא בקשת הזמנה בלבד — היא אינה מבטיחה זמינות ואינה יוצרת חוזה. נציג SmartCar יבדוק את הצי המלא ויאשר בכתב את הרכב או הקבוצה, המחיר והתנאים המהותיים.'
-            : 'Submitting this form is a booking request only — it does not guarantee availability and does not create a contract. A SmartCar representative will check the full fleet and confirm the vehicle or group, price and material terms in writing.'}
+            ? 'שליחת הטופס היא בקשת השכרה בלבד. היא אינה מבטיחה זמינות ואינה יוצרת חוזה. נציג SmartCar יבדוק את הצי המלא ויאשר בכתב את הרכב או הקבוצה, המחיר והתנאים המהותיים.'
+            : 'Submitting this form sends a rental request only. It does not guarantee availability or create a rental agreement. A SmartCar representative will check the full fleet and confirm the vehicle or group, price and material terms in writing.'}
         </p>
         <PrivacyNotice locale={locale} />
       </div>

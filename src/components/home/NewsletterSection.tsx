@@ -6,10 +6,14 @@ import TurnstileWidget from '@/components/ui/Turnstile';
 // Exact consent wording shown to the user. Stored alongside the
 // subscription so we can prove later what was agreed to, and versioned so
 // a future change to the wording is distinguishable.
-const MARKETING_CONSENT_VERSION = '1.0';
+// Bumped when MARKETING_CONSENT_TEXT changes, so a ledger row always
+// identifies which wording was actually shown.
+const MARKETING_CONSENT_VERSION = '1.1';
+// Stored verbatim in the consent ledger, so this is the exact sentence the
+// subscriber saw. Changing it here changes what the ledger proves.
 const MARKETING_CONSENT_TEXT = {
-  he: 'אני מאשר/ת קבלת דיוור פרסומי מ-SmartCar לכתובת הדוא"ל שמסרתי, וידוע לי שאוכל להסיר את עצמי בכל עת.',
-  en: 'I agree to receive marketing email from SmartCar at the address I provided, and I understand I can unsubscribe at any time.',
+  he: 'אני מאשר/ת לקבל מ־SmartCar עדכונים והצעות בדוא״ל. אפשר לבטל את ההרשמה בכל עת.',
+  en: 'I agree to receive updates and offers from SmartCar by email. I can unsubscribe at any time.',
 } as const;
 
 export default function NewsletterSection({ locale }: { locale: string }) {
@@ -53,26 +57,26 @@ export default function NewsletterSection({ locale }: { locale: string }) {
           <>
             <div className="text-5xl mb-4">🎉</div>
             <h2 className="text-2xl font-bold text-white mb-2">
-              {isHe ? 'נרשמת בהצלחה!' : "You're in!"}
+              {isHe ? 'ההרשמה הושלמה' : 'You are subscribed'}
             </h2>
             <p className="text-[#a0d4d4] text-sm">
               {isHe
-                ? 'תהיה הראשון לדעת על מבצעים ועדכונים מ-SmartCar'
-                : "You'll be the first to hear about deals and updates from SmartCar"}
+                ? 'ההרשמה הושלמה. שלחנו הודעת אישור לכתובת שהזנת.'
+                : 'Your subscription is complete. We have sent a confirmation message to the address you entered.'}
             </p>
           </>
         ) : (
           <>
             <div className="inline-block bg-[#C24E17]/20 text-white text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-wide">
-              {isHe ? 'מבצעים בלעדיים' : 'Exclusive Offers'}
+              {isHe ? 'עדכונים והצעות' : 'Updates and offers'}
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
-              {isHe ? 'קבל מבצעים ישירות למייל' : 'Exclusive deals, straight to your inbox'}
+              {isHe ? 'עדכונים והצעות מ־SmartCar' : 'Updates and offers from SmartCar'}
             </h2>
             <p className="text-[#a0d4d4] text-sm mb-8">
               {isHe
-                ? 'הנחות עונתיות, רכבים חדשים בצי ועדכונים — בלי ספאם'
-                : 'Seasonal rates, new fleet arrivals, and member-only promotions — zero spam, unsubscribe anytime'}
+                ? 'קבלו עדכונים על רכבים שנוספו לצי והצעות תקופתיות.'
+                : 'Receive updates about vehicles added to the fleet and periodic offers.'}
             </p>
 
             <div className="flex justify-center mb-4">
@@ -100,7 +104,7 @@ export default function NewsletterSection({ locale }: { locale: string }) {
               >
                 {status === 'loading'
                   ? (isHe ? 'שולח...' : 'Sending...')
-                  : (isHe ? 'הרשם למבצעים' : 'Get Deals')}
+                  : (isHe ? 'הרשמה לעדכונים' : 'Subscribe to updates')}
               </button>
             </form>
 
@@ -123,7 +127,7 @@ export default function NewsletterSection({ locale }: { locale: string }) {
             )}
 
             <p className="mt-4 text-white/70 text-xs">
-              {isHe ? 'ללא ספאם. ' : 'No spam. '}
+              {''}
               <a
                 href={`/${isHe ? 'he' : 'en'}/unsubscribe`}
                 className="underline hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#0D2B2B] rounded"

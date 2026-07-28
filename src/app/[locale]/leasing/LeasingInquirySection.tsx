@@ -117,7 +117,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className={`mb-8 ${isHe ? 'text-right' : 'text-left'}`}>
           <p className="text-[#B64916] text-sm font-semibold uppercase tracking-widest mb-2">
-            {isHe ? 'קבל הצעת מחיר מיידית' : 'Get an Instant Quote'}
+            {isHe ? 'קבלת הצעת ליסינג' : 'Request a leasing quote'}
           </p>
           <h2 className="text-3xl font-black text-[#0D2B2B]">
             {isHe ? 'מחשבון ליסינג' : 'Leasing Calculator'}

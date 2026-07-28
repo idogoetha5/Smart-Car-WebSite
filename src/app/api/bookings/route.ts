@@ -18,14 +18,25 @@ const EXTRAS_PRICE: Record<string, number> = {
   driver: 25,
 };
 
+/** Labels for the add-ons listed in the customer emails. */
+const EXTRAS_LABELS_HE: Record<string, string> = {
+  insurance: 'הפחתה או ביטול השתתפות בנזק',
+  highway6:  'חבילת כביש 6 ומנהרות',
+  baby_seat: 'כיסא בטיחות לילד',
+  driver:    'נהג נוסף',
+};
+
 // Wording pinned into the consent ledger. TERMS_VERSION must match the
 // version displayed on /terms; the hashes identify the exact text the
 // customer was shown at the moment of acceptance.
 const TERMS_VERSION = '2.0';
+// These MUST match the checkbox labels rendered in BookingForm verbatim —
+// the stored hash is evidence of the exact wording the customer saw, so a
+// drift between the two would make the ledger prove the wrong sentence.
 const TERMS_CONSENT_TEXT =
-  'אני מאשר/ת שקראתי והסכמתי לתנאי השימוש ולמדיניות הפרטיות';
+  'קראתי ואני מסכים/ה לתנאי השימוש ולמדיניות הפרטיות של SmartCar.';
 const MARKETING_CONSENT_TEXT =
-  'אני מעוניין/ת לקבל עדכונים ומבצעים מ-SmartCar בדוא"ל (ניתן לביטול בכל עת)';
+  'אני מאשר/ת לקבל מ־SmartCar עדכונים והצעות בדוא״ל. אפשר לבטל את ההרשמה בכל עת.';
 const sha256 = (v: string) => createHash('sha256').update(v, 'utf8').digest('hex');
 const TERMS_TEXT_HASH = sha256(`${TERMS_VERSION}|${TERMS_CONSENT_TEXT}`);
 const MARKETING_TEXT_HASH = sha256(MARKETING_CONSENT_TEXT);
@@ -241,23 +252,24 @@ async function sendRequestReceivedEmail({
           // The EmailJS "request received" template (template_ngg6hyf)
           // wraps this in its own subject line:
           //   בקשת {{booking_type}} התקבלה - {{vehicle_name}} | SmartCar
-          // so this must be a short noun, not a sentence. It previously
-          // held the whole explanatory sentence, which rendered as
-          // "בקשת בקשת הזמנה התקבלה — ממתינה... התקבלה".
-          // As a bare noun it renders exactly the approved status wording:
-          //   בקשת הזמנה התקבלה
-          // The full explanation stays in `message` below.
-          booking_type:    'הזמנה',
+          // so this must be a short noun, not a sentence. As a bare noun it
+          // renders exactly the approved status wording: בקשת השכרה התקבלה.
+          booking_type:    'השכרה',
           vehicle_name:    `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
           // Never implies "no car available" — the online catalogue is only
           // part of the fleet and staff check the full fleet before replying.
-          message:         'בקשת ההזמנה שלך התקבלה ונמצאת בבדיקה. נציג יבדוק עבורך את הצי המלא, כולל רכב מאותה קבוצה או דומה, ויחזור אליך לאישור הרכב, המחיר והתנאים. זו אינה הזמנה מאושרת.',
+          message:         'קיבלנו את בקשת ההשכרה שלך. נציג SmartCar יבדוק את הזמינות בצי המלא ויחזור אליך עם אישור ופרטים סופיים.\n\nחשוב: זהו אישור על קבלת הבקשה בלבד. הרכב, המחיר וההזמנה אינם מאושרים עד לקבלת אישור נפרד בכתב.\n\nלשאלות אפשר להשיב להודעה הזאת או להתקשר ל־09-9509757.',
           start_date:      formatDateHe(booking.pickup_date),
           end_date:        formatDateHe(booking.dropoff_date),
           pickup_location: booking.pickup_location,
           return_location: booking.dropoff_location || booking.pickup_location,
           customer_phone:  booking.customer_phone,
-          total_price:     booking.total_price ? `₪${Number(booking.total_price).toLocaleString()}` : 'יצור קשר לפרטים',
+          // Labelled as an estimate everywhere: nothing is confirmed until
+          // the separate written confirmation goes out.
+          total_price:     booking.total_price ? `₪${Number(booking.total_price).toLocaleString()} (מחיר משוער)` : 'יימסר על ידי נציג',
+          extras:          Array.isArray(booking.extras) && booking.extras.length > 0
+                              ? booking.extras.map((e: string) => EXTRAS_LABELS_HE[e] ?? e).join(', ')
+                              : 'ללא',
           bcc_email:       'office@smartcar.co.il',
           pickup_time:     booking.pickup_time || '09:00',
           return_time:     booking.return_time || '09:00',

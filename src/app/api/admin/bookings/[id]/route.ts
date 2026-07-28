@@ -16,9 +16,9 @@ const LOGO_URL = 'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/pub
 // at the final smartcar.co.il domain (not this Vercel one) once the
 // domain migration lands — see smartcar_icloud_git_corruption.md memory.
 const EXTRAS_LABELS_HE: Record<string, string> = {
-  insurance: '🛡️ ביטול השתתפות עצמית',
-  highway6:  '🛣️ כביש 6',
-  baby_seat: '👶 כיסא בטיחות',
+  insurance: '🛡️ הפחתה או ביטול השתתפות בנזק',
+  highway6:  '🛣️ חבילת כביש 6 ומנהרות',
+  baby_seat: '👶 כיסא בטיחות לילד',
   driver:    '👤 נהג נוסף',
 };
 
@@ -54,6 +54,10 @@ async function sendConfirmationEmail(booking: any) {
           vehicle_name:      `${booking.vehicle?.make ?? ''} ${booking.vehicle?.model ?? ''}`.trim(),
           start_date:        formatDate(booking.pickup_date),
           end_date:          formatDate(booking.dropoff_date),
+          // The confirmation template was missing collection and return
+          // times, so a customer could not tell when to be there.
+          pickup_time:       booking.pickup_time || '09:00',
+          return_time:       booking.return_time || '09:00',
           pickup_location:   booking.pickup_location,
           return_location:   booking.dropoff_location,
           customer_phone:    booking.customer_phone,

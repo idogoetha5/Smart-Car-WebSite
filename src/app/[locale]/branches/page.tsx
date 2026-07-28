@@ -11,9 +11,9 @@ export async function generateMetadata({
   const { locale } = await params;
   const isHe = locale === 'he';
   return {
-    title: isHe ? 'סניפים' : 'Branches',
+    title: { absolute: isHe ? 'סניפי SmartCar' : 'SmartCar Branches' },
     description: isHe
-      ? 'ל-SmartCar 4 סניפים ברחבי ישראל: הרצליה, תל אביב, ירושלים ונמל התעופה בן גוריון. הגיעו אלינו או הזמינו רכב שיגיע עד אליכם בכל מקום.'
+      ? 'סניפים בהרצליה, תל אביב, ירושלים ונתב"ג, ומסירה בתיאום מראש בכל הארץ.'
       : 'SmartCar has 4 branches across Israel: Herzliya, Tel Aviv, Jerusalem and Ben Gurion Airport. Visit us or book a car delivered straight to you.',
     alternates: localeAlternates(locale, 'branches'),
   };
@@ -77,7 +77,9 @@ export default async function BranchesPage({
           {isHe ? 'הסניפים שלנו' : 'Our Locations'}
         </h1>
         <p className="text-[#B8D8D8]">
-          {isHe ? '4 סניפים ברחבי הארץ לשירותכם' : 'Four convenient locations across Israel — ready to serve you'}
+          {isHe
+            ? 'אפשר לאסוף ולהחזיר בסניפים או לתאם מסירה והחזרה בכתובות אחרות בארץ. השירות והמחיר נקבעים לפי הכתובת, השעה והזמינות.'
+            : 'You can collect and return at our branches, or arrange delivery and return at other addresses in Israel. The service and price depend on the address, the time and availability.'}
         </p>
       </div>
 

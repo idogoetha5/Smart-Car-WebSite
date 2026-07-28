@@ -73,8 +73,8 @@ function RentalPageContent() {
         <h1 className="text-4xl font-black text-gray-900 mb-3">{t('title')}</h1>
         <p className="text-gray-600 text-lg">
           {isHe
-            ? 'בחר רכב מהמלאי ובצע הזמנה מהירה'
-            : 'Choose a vehicle from our fleet and make a quick booking'}
+            ? 'באתר מוצג מבחר מהצי. לאחר שליחת הבקשה נבדוק את הצי המלא ונאשר את הרכב או קבוצת הרכב המתאימה.'
+            : 'The website shows a selection from our fleet. After you send the request, we will check the full fleet and confirm the available vehicle or vehicle group.'}
         </p>
       </div>
 

@@ -69,7 +69,7 @@ export default async function AboutPage({
               <p className="text-[#B64916] font-medium mb-2 tracking-wide text-sm">
                 {isHe ? 'המייסדת' : 'The Founder'}
               </p>
-              <h2 className="text-3xl font-bold text-[#0D2B2B] mb-6">
+              <h2 className="text-[28px] font-bold text-[#0D2B2B] mb-6">
                 {isHe ? 'ליליאנה נרדאה' : 'Liliana Nardea'}
               </h2>
               <p className="text-gray-600 leading-relaxed text-lg mb-4">

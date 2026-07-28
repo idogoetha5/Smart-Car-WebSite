@@ -39,7 +39,13 @@ export default function CatalogPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10" dir={locale === 'he' ? 'rtl' : 'ltr'}>
       <div className="mb-8">
         <h1 className="text-4xl font-black text-gray-900 mb-2">{t('title')}</h1>
-        <p className="text-gray-600">{filtered.length} {locale === 'he' ? 'דגמים' : 'models'}</p>
+        {/* The catalogue lists only part of the fleet, so the count is
+            never presented as the whole of what is available. */}
+        <p className="text-gray-600 max-w-3xl">
+          {locale === 'he'
+            ? 'באתר מוצג מבחר מהצי. לאחר שליחת הבקשה נבדוק את הצי המלא ונאשר את הרכב או קבוצת הרכב המתאימה.'
+            : 'The website shows a selection from our fleet. After you send the request, we will check the full fleet and confirm the available vehicle or vehicle group.'}
+        </p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">

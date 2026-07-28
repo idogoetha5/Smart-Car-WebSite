@@ -114,7 +114,7 @@ export default function HeroSection({ locale }: { locale: string }) {
 
   const handleSearch = () => {
     if (!pickupDate || !returnDate) {
-      alert(isHe ? 'נא לבחור תאריכי איסוף והחזרה' : 'Please select pickup and return dates');
+      alert(isHe ? 'יש לבחור תאריכי איסוף והחזרה.' : 'Please select pick-up and return dates.');
       return;
     }
     const params = new URLSearchParams();

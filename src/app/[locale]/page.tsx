@@ -15,9 +15,17 @@ export async function generateMetadata({
   setRequestLocale(locale);
   const isHe = locale === 'he';
   return {
+    // `absolute` bypasses the layout's "%s | SmartCar" template, which
+    // would otherwise append a second "| SmartCar" to a title that already
+    // carries the brand.
+    title: {
+      absolute: isHe
+        ? 'SmartCar | השכרת רכב עד הבית, בכל הארץ'
+        : 'SmartCar | Car Rental Delivered Across Israel',
+    },
     description: isHe
-      ? 'SmartCar – השכרת רכב עם שירות עד בית הלקוח בכל ישראל. בחרו ממגוון רכבים: מיני, קומפקט, SUV וחשמלי. מחירים שקופים, הזמנה מהירה ותמיכה מלאה.'
-      : 'SmartCar – car rental with home delivery across Israel. Choose from mini, compact, SUV and electric. Transparent pricing, fast booking, full support.',
+      ? 'יותר מ־400 רכבים, ארבעה סניפים, מסירה והחזרה בתיאום מראש ומענה אנושי 24/7. שלחו בקשת השכרה ונציג SmartCar יתאים לכם רכב מהצי המלא.'
+      : 'More than 400 vehicles, four branches, coordinated delivery and return, and 24/7 human support. Send a rental request and our team will match you with a vehicle from the full fleet.',
     alternates: localeAlternates(locale),
   };
 }
@@ -82,10 +90,10 @@ export default async function HomePage({
         { title: 'שירות אישי', desc: 'צוות מקצועי שמלווה אתכם מבחירת הרכב ועד ההחזרה.' },
       ]
     : [
-        { title: 'Full Insurance', desc: 'Comprehensive insurance included with every booking — drive protected, every time' },
-        { title: 'Proven Reliability', desc: 'Every vehicle in our fleet is regularly serviced and road-tested — always ready when you need it' },
-        { title: 'Complete Accessories', desc: 'Child seats, GPS, roof carriers and more — every comfort for every journey' },
-        { title: 'Personal Service', desc: 'Our team is available around the clock — because your journey matters to us' },
+        { title: 'A broad and varied fleet', desc: 'More than 400 private, family, commercial and luxury vehicles.' },
+        { title: 'Door-to-door service', desc: 'Coordinated delivery and return at addresses across Israel.' },
+        { title: 'Available 24/7', desc: 'Human support for requests, questions and assistance along the way.' },
+        { title: 'Personal service', desc: 'A professional team that supports you from vehicle selection to return.' },
       ];
 
   const BRANCHES_DATA = BRANCHES.map((b) => ({
@@ -158,9 +166,14 @@ export default async function HomePage({
       {/* ══ הסניפים שלנו ════════════════════════════════════════ */}
       <section className="py-10 bg-gray-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <h2 className="text-2xl font-bold text-[#0D2B2B] text-center mb-8">
+          <h2 className="text-2xl font-bold text-[#0D2B2B] text-center mb-3">
             {isHe ? 'הסניפים שלנו' : 'Our Locations'}
           </h2>
+          <p className="text-sm text-gray-600 text-center mb-8 max-w-2xl mx-auto">
+            {isHe
+              ? 'ארבעה סניפים ומסירה בתיאום מראש בכל הארץ. בחרו סניף או כתובת, ונציג יתאם את הפרטים.'
+              : 'Four branches and coordinated delivery across Israel. Choose a branch or address, and our team will arrange the details.'}
+          </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {BRANCHES_DATA.map(b => (
               <div key={b.name} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow flex flex-col">
@@ -243,12 +256,12 @@ export default async function HomePage({
       <section className="py-14 bg-[#D6EFF7]">
         <div className="max-w-xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-[#0D2B2B] mb-3">
-            {isHe ? 'דברו איתנו' : 'Get in Touch'}
+            {isHe ? 'צריכים עזרה בבחירת רכב?' : 'Need help choosing a vehicle?'}
           </h2>
           <p className="text-gray-600 mb-8 text-sm">
             {isHe
-              ? 'צרו קשר ונחזור אליכם בהקדם האפשרי'
-              : 'Our team is ready to assist — reach out and we will respond promptly'}
+              ? 'ספרו לנו מה אתם צריכים, ונחזור אליכם בהקדם האפשרי.'
+              : 'Tell us what you need, and we will get back to you as soon as possible.'}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
             <a

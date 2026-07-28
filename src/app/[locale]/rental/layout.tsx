@@ -9,10 +9,10 @@ export async function generateMetadata({
   const { locale } = await params;
   const isHe = locale === 'he';
   return {
-    title: isHe ? 'השכרת רכב' : 'Car Rental',
+    title: { absolute: isHe ? 'רכבים להשכרה | SmartCar' : 'Vehicles for Rent | SmartCar' },
     description: isHe
-      ? 'השכירו רכב בקלות דרך SmartCar – בחרו ממגוון רכבים קטנים, סדאנים, SUV ויוקרה. קבלת הרכב עד הבית בכל ישראל. בדקו זמינות והזמינו עכשיו.'
-      : 'Rent a car easily through SmartCar – choose from small cars, sedans, SUVs and luxury. Home delivery across Israel. Check availability and book now.',
+      ? 'מבחר רכבים מהצי של SmartCar. שלחו בקשה ונבדוק זמינות בצי המלא לפי תאריכים ומיקום.'
+      : 'A selection of vehicles from the SmartCar fleet. Send a request and we will check availability in the full fleet by dates and location.',
     alternates: localeAlternates(locale, 'rental'),
   };
 }

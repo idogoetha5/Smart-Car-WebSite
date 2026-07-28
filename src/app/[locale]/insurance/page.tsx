@@ -5,7 +5,12 @@ import Link from 'next/link';
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
   return {
-    title: locale === 'he' ? 'מידע על ביטוח' : 'Insurance Information',
+    title: {
+      absolute:
+        locale === 'he'
+          ? 'מידע על ביטוח והשתתפות בנזק | SmartCar'
+          : 'Insurance and Damage Participation | SmartCar',
+    },
     description:
       locale === 'he'
         ? 'כל מה שצריך לדעת על הביטוח הכלול בהשכרת הרכב שלך ב-SmartCar'
@@ -337,12 +342,15 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {(isHe ? [
               { icon: '🪪', title: 'תעודת זהות / דרכון', detail: 'ישראלי: ת"ז. תייר: דרכון תקף.' },
-              { icon: '🚗', title: 'רישיון נהיגה מקורי בתוקף', detail: 'חייב להיות תקף לכל תקופת ההשכרה. ותק 24 חודשים לפחות.' },
+              // The blanket "24 months of seniority" requirement contradicted
+              // the approved policy that rental is available from age 18,
+              // including drivers within their first two years.
+              { icon: '🚗', title: 'רישיון נהיגה מקורי בתוקף', detail: 'חייב להיות תקף לכל תקופת ההשכרה ולכל נהג שיירשם בחוזה.' },
               { icon: '💳', title: 'כרטיס אשראי על שמך', detail: 'לחיוב הפיקדון. כרטיסי דביט אינם מתקבלים. ויזה, מאסטרקארד מתקבלים.' },
               { icon: '🌍', title: 'רישיון נהיגה בינלאומי (תייר בלבד)', detail: 'נדרש בנוסף לרישיון הלאומי לנהגים מחו"ל. ניתן להפיק בארץ המוצא.' },
             ] : [
               { icon: '🪪', title: 'ID / Passport', detail: 'Israeli residents: ID card. Tourists: valid passport.' },
-              { icon: '🚗', title: 'Original valid driving licence', detail: 'Must remain valid throughout the rental. Minimum 24 months of experience required.' },
+              { icon: '🚗', title: 'Original valid driving licence', detail: 'Must remain valid throughout the rental, for every driver registered in the agreement.' },
               { icon: '💳', title: 'Credit card in your name', detail: 'Required for the deposit hold. Debit cards are not accepted. Visa and Mastercard are accepted.' },
               { icon: '🌍', title: 'International Driving Permit (tourists only)', detail: 'Required in addition to your national licence for non-Israeli licence holders. Obtainable from your home country.' },
             ]).map((item, i) => (
