@@ -511,9 +511,29 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
       const emailSent = result.emailSent !== false;
 
       localStorage.removeItem(DRAFT_KEY(vehicle.id, locale));
-      router.push(
-        `/${locale}/booking-confirmation?id=${bookingId}&vehicle=${encodeURIComponent(vehicle.make + ' ' + vehicle.model)}&start=${pickupDate}&end=${dropoffDate}&emailSent=${emailSent}`
-      );
+
+      // The details go through sessionStorage, not the query string. The URL
+      // used to carry the full booking id, the vehicle and both dates, which
+      // then sat in browser history, referrer headers and anything that logs
+      // URLs. A short confirmation number is all the page needs to show, and
+      // sessionStorage dies with the tab.
+      try {
+        sessionStorage.setItem(
+          'smartcar:last-request',
+          JSON.stringify({
+            ref: String(bookingId).slice(0, 8).toUpperCase(),
+            vehicle: `${vehicle.make} ${vehicle.model}`,
+            start: pickupDate,
+            end: dropoffDate,
+            emailSent,
+          }),
+        );
+      } catch {
+        // Private mode or a full quota — the page falls back to a generic
+        // confirmation rather than failing the submission.
+      }
+
+      router.push(`/${locale}/booking-confirmation`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
       setToast({

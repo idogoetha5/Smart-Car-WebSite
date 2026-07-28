@@ -62,5 +62,7 @@ export async function POST(request: NextRequest) {
 
   if (error) { console.error(error.message); return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 }); }
 
-  return NextResponse.json({ data }, { status: 201 });
+  // Minimal DTO — the row holds the lead's name, phone, email and notes, and
+  // the UI only needs to know it was recorded.
+  return NextResponse.json({ data: { id: data.id, status: data.status } }, { status: 201 });
 }

@@ -221,7 +221,15 @@ export async function POST(request: NextRequest) {
     vehicle: { make: vehicle.make, model: vehicle.model, year: vehicle.year },
   });
 
-  return NextResponse.json({ data, emailSent }, { status: 201 });
+  // A minimal DTO, not the inserted row. The row carries the customer's name,
+  // email, phone, ID/passport number, notes and the whole consent ledger, and
+  // returning it put all of that into browser network logs, monitoring tools
+  // and any extension watching XHR. The confirmation screen needs an id and a
+  // status; it never needed the rest.
+  return NextResponse.json(
+    { data: { id: data.id, status: data.status, matchStatus: data.match_status }, emailSent },
+    { status: 201 },
+  );
 }
 
 function formatDateHe(dateStr: string): string {

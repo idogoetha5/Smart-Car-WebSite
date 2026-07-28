@@ -1,8 +1,36 @@
 'use client';
 
 import { useSearchParams, useParams } from 'next/navigation';
-import { Suspense } from 'react';
+import { Suspense, useSyncExternalStore } from 'react';
 import Link from 'next/link';
+
+interface StoredRequest {
+  ref?: string;
+  vehicle?: string;
+  start?: string;
+  end?: string;
+  emailSent?: boolean;
+}
+
+/** The value never changes after mount, so there is nothing to subscribe to. */
+const subscribeNoop = () => () => {};
+
+// getSnapshot must be referentially stable or React loops, so the parsed
+// object is cached after the first read.
+let cachedRequest: StoredRequest | null = null;
+let hasRead = false;
+
+function readStoredRequest(): StoredRequest | null {
+  if (hasRead) return cachedRequest;
+  hasRead = true;
+  try {
+    const raw = sessionStorage.getItem('smartcar:last-request');
+    cachedRequest = raw ? (JSON.parse(raw) as StoredRequest) : null;
+  } catch {
+    cachedRequest = null;
+  }
+  return cachedRequest;
+}
 
 function ConfirmationContent() {
   const searchParams = useSearchParams();
@@ -10,13 +38,20 @@ function ConfirmationContent() {
   const locale = (params?.locale as string) || 'he';
   const isHe = locale === 'he';
 
-  const bookingId = searchParams.get('id');
-  const vehicleName = searchParams.get('vehicle');
-  const startDate = searchParams.get('start');
-  const endDate = searchParams.get('end');
-  const emailSent = searchParams.get('emailSent') !== 'false';
+  // Read from sessionStorage rather than the query string, so no booking id,
+  // vehicle or dates end up in the URL. Falls back to a generic confirmation
+  // when the entry is missing — a refresh in a new tab, or private mode.
+  //
+  // useSyncExternalStore rather than an effect: the server snapshot is null,
+  // the client snapshot is the stored value, and hydration is correct without
+  // a setState-in-effect cascade.
+  const details = useSyncExternalStore(subscribeNoop, readStoredRequest, () => null);
 
-  const confirmationNumber = bookingId?.slice(0, 8).toUpperCase() ?? 'PENDING';
+  const vehicleName = details?.vehicle ?? null;
+  const startDate = details?.start ?? null;
+  const endDate = details?.end ?? null;
+  const emailSent = details?.emailSent !== false;
+  const confirmationNumber = details?.ref ?? (searchParams.get('id')?.slice(0, 8).toUpperCase() ?? 'PENDING');
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '—';

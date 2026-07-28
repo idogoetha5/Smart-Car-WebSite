@@ -32,7 +32,10 @@ export async function POST(request: NextRequest) {
   const text = String(body.text ?? '').trim();
   const rating = Number(body.rating);
 
-  if (!name || !text || rating < 1 || rating > 5) {
+  // Number.isInteger first: Number('abc') is NaN, and both NaN < 1 and
+  // NaN > 5 evaluate false, so the old range check accepted it and a NaN
+  // rating reached the database.
+  if (!name || !text || !Number.isInteger(rating) || rating < 1 || rating > 5) {
     return NextResponse.json({ error: 'שם, טקסט ודירוג הם שדות חובה' }, { status: 400 });
   }
 
