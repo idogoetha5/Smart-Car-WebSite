@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { signAdminToken } from '@/lib/admin-auth';
 import { checkRateLimit } from '@/lib/ratelimit';
 import bcrypt from 'bcryptjs';
+import { verifyTotp } from '@/lib/totp';
 
 function getClientIp(req: Request): string {
   const fwd = req.headers.get('x-forwarded-for');
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { password } = await request.json();
+  const { password, totp } = await request.json();
 
   const passwordHash = process.env.ADMIN_PASSWORD_HASH;
   const plaintextPassword = process.env.ADMIN_PASSWORD;
@@ -41,6 +42,30 @@ export async function POST(request: Request) {
 
   if (!passwordValid) {
     return NextResponse.json({ success: false }, { status: 401 });
+  }
+
+  // Second factor. The password is shared, so on its own a leak is the whole
+  // story — the code proves the person also holds the enrolled phone.
+  //
+  // Enabled only when ADMIN_TOTP_SECRET is set, so enrolling is a deliberate
+  // step and nobody is locked out by a deploy. Once it IS set, it is required:
+  // there is no "skip if the code is missing" path, which would make the
+  // factor optional for exactly the person who did not want to provide it.
+  const totpSecret = process.env.ADMIN_TOTP_SECRET;
+  if (totpSecret) {
+    const code = String(totp ?? '').trim();
+    if (!code) {
+      // Distinguishable from a wrong code on purpose: the client needs to know
+      // to show the field. It reveals nothing — whether TOTP is on is not a
+      // secret, and this is only reachable after the password already matched.
+      return NextResponse.json(
+        { success: false, error: 'totp_required' },
+        { status: 401 },
+      );
+    }
+    if (!(await verifyTotp(totpSecret, code))) {
+      return NextResponse.json({ success: false, error: 'totp_invalid' }, { status: 401 });
+    }
   }
 
   let token: string;
