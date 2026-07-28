@@ -20,8 +20,10 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self' data:",
       "img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com",
-      // GA4 reporting + Sentry error ingestion
-      "connect-src 'self' https://*.supabase.co https://api.emailjs.com https://nominatim.openstreetmap.org https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://*.ingest.sentry.io",
+      // GA4 reporting + Sentry error ingestion. The Sentry org is on the EU
+      // region, so its host is *.ingest.de.sentry.io — that is NOT a suffix
+      // match for *.ingest.sentry.io, and every event was being blocked here.
+      "connect-src 'self' https://*.supabase.co https://api.emailjs.com https://nominatim.openstreetmap.org https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io",
       "frame-src https://challenges.cloudflare.com",
       "worker-src blob:",
       // Defence-in-depth against injected <base>/<object> and form
