@@ -14,20 +14,48 @@ export default function NotFound() {
         </div>
         <p className="text-[#B64916] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
         <h1 className="text-7xl font-black text-[#0D2B2B] mb-3">404</h1>
-        <p className="text-xl text-gray-600 mb-2">הדף לא נמצא</p>
-        <p className="text-gray-600 text-sm mb-8">Page not found</p>
+        <p className="text-xl text-gray-900 mb-2">הדף לא נמצא</p>
+        <p className="text-gray-600 text-sm mb-1">Page not found</p>
+        {/* Bilingual on purpose: this handles paths that never entered a
+            /[locale] segment, so there is no locale to read. The localised
+            version under [locale] covers routes that call notFound(). */}
+        <p className="text-gray-600 text-sm mb-8">
+          ייתכן שהקישור ישן. אפשר להמשיך מכאן:
+          <br />
+          <span className="text-gray-500">The link may be out of date. Continue from here:</span>
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
+          <Link
+            href="/he/rental"
+            className="px-6 py-3 bg-[#2D5F5F] text-white font-bold rounded-xl hover:bg-[#1A3A3A] transition-colors"
+          >
+            לצי הרכבים
+          </Link>
+          <Link
+            href="/en/rental"
+            className="px-6 py-3 bg-[#2D5F5F] text-white font-bold rounded-xl hover:bg-[#1A3A3A] transition-colors"
+          >
+            Browse the fleet
+          </Link>
+        </div>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/he"
-            className="px-6 py-3 bg-[#2D5F5F] text-white font-bold rounded-xl hover:bg-[#1A3A3A] transition-colors"
+            className="px-6 py-3 border-2 border-[#2D5F5F] text-[#2D5F5F] font-bold rounded-xl hover:bg-[#2D5F5F]/5 transition-colors"
           >
-            חזרה לדף הבית
+            דף הבית
+          </Link>
+          <Link
+            href="/he/contact"
+            className="px-6 py-3 border-2 border-[#2D5F5F] text-[#2D5F5F] font-bold rounded-xl hover:bg-[#2D5F5F]/5 transition-colors"
+          >
+            צרו קשר
           </Link>
           <Link
             href="/en"
             className="px-6 py-3 border-2 border-[#2D5F5F] text-[#2D5F5F] font-bold rounded-xl hover:bg-[#2D5F5F]/5 transition-colors"
           >
-            Back to Home
+            Home
           </Link>
         </div>
       </div>
