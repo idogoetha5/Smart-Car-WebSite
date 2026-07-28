@@ -13,7 +13,7 @@ type FaqItem = {
 const FAQ_HE: FaqItem[] = [
   {
     q: 'מה גיל מינימלי להשכרת רכב?',
-    a: 'הגיל המינימלי הוא 21, ו-23 לקטגוריות LUXURY, SUV ו-VAN. בכל המקרים נדרש רישיון נהיגה בתוקף של 24 חודשים רצופים לפחות ממועד הוצאתו.',
+    a: 'אפשר להשכיר אצלנו מגיל 18, גם אם עדיין לא צברתם שנתיים ותק. צריך רישיון נהיגה בתוקף, ולהירשם מראש בחוזה ההשכרה כדי שהכיסוי הביטוחי יחול עליכם. הזכאות והתנאים המדויקים תלויים בקבוצת הרכב ובכיסוי, ונמסרים לפני אישור ההזמנה.',
   },
   {
     q: 'האם הביטוח כלול במחיר?',
@@ -40,7 +40,7 @@ const FAQ_HE: FaqItem[] = [
 const FAQ_EN: FaqItem[] = [
   {
     q: 'What is the minimum age to rent a vehicle?',
-    a: 'The minimum rental age is 21 (23 for LUXURY, SUV, and VAN categories). A valid driving licence held for at least 24 consecutive months is required.',
+    a: 'You can rent from age 18, including if you have not yet completed two years of licence seniority. A valid driving licence is required, and every driver must be registered in the rental agreement in advance so the insurance cover applies. Exact eligibility and terms depend on the vehicle category and the cover, and are provided before the booking is approved.',
   },
   {
     q: 'Is insurance included in the price?',

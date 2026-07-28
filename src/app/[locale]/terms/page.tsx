@@ -45,8 +45,9 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
             <section>
               <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">2. כשירות לשכירות — תנאים מחייבים</h2>
               <ul className="list-disc list-inside space-y-2 mr-4">
-                <li><strong>גיל מינימלי:</strong> 21 שנים. לרכבים מסוגים LUXURY, SUV, VAN — 23 שנים.</li>
-                <li><strong>ותק רישיון:</strong> לפחות 24 חודשים רציפים ממועד הוצאת הרישיון.</li>
+                <li><strong>גיל מינימלי:</strong> 18 שנים.</li>
+                <li><strong>ותק רישיון:</strong> השכרה אפשרית גם לנהגים שטרם צברו שנתיים ותק. הזכאות והתנאים בפועל נקבעים לפי הכיסוי הביטוחי החל על הנהג ולפי קבוצת הרכב, ויימסרו לפני אישור ההזמנה.</li>
+                <li><strong>רישום הנהג:</strong> כל נהג, לרבות נהג נוסף, חייב להירשם מראש בחוזה ההשכרה ולהיות מכוסה בכיסוי הביטוחי המתאים. הנהיגה כפופה למגבלות החלות על הנהג לפי גילו והוותק שלו.</li>
                 <li><strong>רישיון בתוקף:</strong> חייב להיות תקף לאורך כל תקופת השכירות.</li>
                 <li><strong>תייר/תושב חוץ:</strong> נדרש רישיון נהיגה בינלאומי בנוסף לרישיון הלאומי, או רישיון נהיגה מארץ מוצא שהוכר על ידי ישראל.</li>
                 <li><strong>בטחון כספי:</strong> כרטיס אשראי בתוקף על שם השוכר לחיוב פיקדון. כרטיס דביט אינו מתקבל.</li>
@@ -216,8 +217,9 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
             <section>
               <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">2. Rental Eligibility — Mandatory Requirements</h2>
               <ul className="list-disc list-inside space-y-2 ml-4">
-                <li><strong>Minimum age:</strong> 21 years. For LUXURY, SUV, VAN categories — 23 years.</li>
-                <li><strong>Licence experience:</strong> At least 24 continuous months from licence issue date.</li>
+                <li><strong>Minimum age:</strong> 18 years.</li>
+                <li><strong>Licence experience:</strong> Rental is also available to drivers who have not yet completed two years of licence seniority. Actual eligibility and terms are determined by the insurance cover applying to the driver and by the vehicle category, and are provided before the booking is approved.</li>
+                <li><strong>Driver registration:</strong> Every driver, including an additional driver, must be registered in the rental agreement in advance and covered by the applicable insurance. Driving is subject to the restrictions applying to the driver by age and seniority.</li>
                 <li><strong>Valid licence:</strong> Must remain valid throughout the entire rental period.</li>
                 <li><strong>Non-Israeli residents:</strong> Must present an International Driving Permit alongside a valid national licence, or a licence from a country recognised by Israel.</li>
                 <li><strong>Security deposit:</strong> Valid credit card in the renter's name required. Debit cards are not accepted.</li>
