@@ -18,13 +18,13 @@ type ServiceData = {
 
 const SERVICE_ICONS: Record<string, JSX.Element> = {
   business: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-16 h-16 mx-auto mb-4">
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-16 h-16 mx-auto mb-4">
       <rect x="2" y="7" width="20" height="14" rx="2"/>
       <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
     </svg>
   ),
   'new-driver': (
-    <svg viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-16 h-16 mx-auto mb-4">
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-16 h-16 mx-auto mb-4">
       <rect x="4" y="3" width="16" height="18" rx="2"/>
       <path d="M8 7h8M8 11h8M8 15h5"/>
       <circle cx="17" cy="17" r="3"/>
@@ -32,18 +32,18 @@ const SERVICE_ICONS: Record<string, JSX.Element> = {
     </svg>
   ),
   leasing: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-16 h-16 mx-auto mb-4">
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-16 h-16 mx-auto mb-4">
       <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/>
     </svg>
   ),
   hourly: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-16 h-16 mx-auto mb-4">
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-16 h-16 mx-auto mb-4">
       <circle cx="12" cy="12" r="10"/>
       <path d="M12 6v6l4 2"/>
     </svg>
   ),
   commercial: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-16 h-16 mx-auto mb-4">
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-16 h-16 mx-auto mb-4">
       <rect x="1" y="3" width="15" height="13" rx="1"/>
       <path d="M16 8h4l3 3v5h-7V8z"/>
       <circle cx="5.5" cy="18.5" r="2.5"/>
@@ -51,21 +51,21 @@ const SERVICE_ICONS: Record<string, JSX.Element> = {
     </svg>
   ),
   daily: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-16 h-16 mx-auto mb-4">
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-16 h-16 mx-auto mb-4">
       <rect x="3" y="4" width="18" height="18" rx="2"/>
       <path d="M16 2v4M8 2v4M3 10h18"/>
       <path d="M8 14h.01M12 14h.01M16 14h.01"/>
     </svg>
   ),
   monthly: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-16 h-16 mx-auto mb-4">
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-16 h-16 mx-auto mb-4">
       <rect x="3" y="4" width="18" height="18" rx="2"/>
       <path d="M16 2v4M8 2v4M3 10h18"/>
       <text x="12" y="19" textAnchor="middle" fontSize="7" fill="#E8743B" stroke="none" fontWeight="bold">31</text>
     </svg>
   ),
   sale: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-16 h-16 mx-auto mb-4">
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-16 h-16 mx-auto mb-4">
       <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
       <line x1="7" y1="7" x2="7.01" y2="7"/>
     </svg>
@@ -252,7 +252,7 @@ export default async function ServicePage({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {features.map((feature) => (
               <div key={feature} className="flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#2D5F5F" strokeWidth="2.5" className="w-5 h-5 flex-shrink-0">
+                <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="#2D5F5F" strokeWidth="2.5" className="w-5 h-5 flex-shrink-0">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
                 <span className="text-gray-700 font-medium">{feature}</span>

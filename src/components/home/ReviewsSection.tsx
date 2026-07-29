@@ -19,12 +19,19 @@ const FALLBACK_REVIEWS: Review[] = [
   { id: '5', name: 'אורי גולן', rating: 4, text: 'שירות אישי ברמה גבוהה. הצי גדול, בחרתי SUV נוחה לטיול משפחתי. המחיר הוגן ביחס לאיכות.', date: new Date('2026-02-10').toISOString() },
 ];
 
-function Stars({ n, size = 'sm' }: { n: number; size?: 'sm' | 'lg' }) {
+function Stars({ n, size = 'sm', isHe = true }: { n: number; size?: 'sm' | 'lg'; isHe?: boolean }) {
   const cls = size === 'lg' ? 'w-6 h-6' : 'w-4 h-4';
   return (
-    <div className="flex gap-0.5">
+    // The rating was conveyed by five drawings and nothing else, so a screen
+    // reader got no rating at all. The group carries the value; the stars
+    // themselves are the picture of it and are hidden.
+    <div
+      className="flex gap-0.5"
+      role="img"
+      aria-label={isHe ? `דירוג ${n} מתוך 5` : `Rated ${n} out of 5`}
+    >
       {[1, 2, 3, 4, 5].map((i) => (
-        <svg key={i} className={`${cls} ${i <= n ? 'text-amber-400' : 'text-gray-200'}`} fill="currentColor" viewBox="0 0 20 20">
+        <svg key={i} aria-hidden="true" focusable="false" className={`${cls} ${i <= n ? 'text-amber-400' : 'text-gray-200'}`} fill="currentColor" viewBox="0 0 20 20">
           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
         </svg>
       ))}
@@ -47,7 +54,7 @@ function StarPicker({ value, onChange, isHe }: { value: number; onChange: (n: nu
           aria-label={isHe ? `דירוג ${i} מתוך 5` : `Rate ${i} out of 5`}
           aria-pressed={i === value}
         >
-          <svg className={`w-8 h-8 transition-colors ${i <= (hover || value) ? 'text-amber-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
+          <svg aria-hidden="true" focusable="false" className={`w-8 h-8 transition-colors ${i <= (hover || value) ? 'text-amber-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
           </svg>
         </button>
@@ -137,7 +144,7 @@ export default function ReviewsSection({ locale }: { locale: string }) {
             {isHe ? 'ביקורות לקוחות' : 'Customer Reviews'}
           </h2>
           <div className="flex items-center justify-center gap-2 mt-3">
-            <Stars n={5} />
+            <Stars n={5} isHe={isHe} />
             <span className="text-sm text-gray-600 font-bold">{avgRating}</span>
             <span className="text-sm text-gray-600">/ 5</span>
             {total > 0 && (
@@ -151,7 +158,7 @@ export default function ReviewsSection({ locale }: { locale: string }) {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 mt-3 text-xs text-[#2D5F5F] hover:text-[#B64916] underline transition-colors"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
@@ -167,7 +174,7 @@ export default function ReviewsSection({ locale }: { locale: string }) {
         ) : (
           <div className="relative">
             <div className="bg-white rounded-3xl shadow-md p-8 md:p-10 min-h-[200px]">
-              <Stars n={reviews[active].rating} />
+              <Stars n={reviews[active].rating} isHe={isHe} />
               <blockquote className="text-gray-700 text-base md:text-lg leading-relaxed mt-4 mb-6">
                 &ldquo;{reviews[active].text}&rdquo;
               </blockquote>

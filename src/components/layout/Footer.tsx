@@ -36,7 +36,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="md:col-span-1">
             <Link href={`/${locale}`} className="flex items-center mb-4">
-              <svg width="120" height="36" viewBox="0 0 140 40" xmlns="http://www.w3.org/2000/svg" aria-label="SmartCar">
+              <svg aria-hidden="true" focusable="false" width="120" height="36" viewBox="0 0 140 40" xmlns="http://www.w3.org/2000/svg" aria-label="SmartCar">
                 <text x="0" y="24" fontFamily="'Nunito', 'Heebo', sans-serif" fontWeight="800" fontSize="20" fill="#B8D8D8" letterSpacing="1.5">SMART</text>
                 <text x="0" y="40" fontFamily="'Nunito', 'Heebo', sans-serif" fontWeight="800" fontSize="20" fill="#B8D8D8" letterSpacing="1.5">C<tspan fill="#E8743B">A</tspan>R</text>
               </svg>

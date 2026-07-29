@@ -1,4 +1,5 @@
 import { BRANCHES, branchAddress, branchName, getBranch, mapsUrl, wazeUrl } from '@/lib/branches';
+import NewTabHint from '@/components/ui/NewTabHint';
 import { localeAlternates } from '@/lib/seo';
 import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
@@ -150,7 +151,7 @@ export default async function HomePage({
               <div key={item.title} className="text-start">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="w-7 h-7 rounded-full bg-[#C24E17] flex items-center justify-center flex-shrink-0">
-                    <svg width="14" height="14" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" focusable="false" width="14" height="14" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
                       <path d="M20 6 9 17l-5-5"/>
                     </svg>
                   </span>
@@ -194,7 +195,7 @@ export default async function HomePage({
                     rel="noopener noreferrer"
                     className="mt-auto inline-flex items-center gap-1 text-xs bg-[#2D5F5F] text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-[#1a3f3f] transition-colors"
                   >
-                    🗺 Waze
+                    🗺 Waze<NewTabHint isHe={isHe} />
                   </a>
                 </div>
               </div>
@@ -276,7 +277,7 @@ export default async function HomePage({
               rel="noopener noreferrer"
               className="px-6 py-3 bg-[#2D5F5F] hover:bg-[#1a3f3f] text-white font-bold rounded-full transition-colors"
             >
-              {isHe ? 'שלח הודעה' : 'Send a Message'}
+              {isHe ? 'שלח הודעה' : 'Send a Message'}<NewTabHint isHe={isHe} />
             </a>
           </div>
         </div>

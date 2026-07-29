@@ -480,7 +480,11 @@ export default function HeroSection({ locale }: { locale: string }) {
 
         {/* Tagline — LEFT, wraps on mobile, single line on desktop */}
         <div className="absolute left-4 md:left-16 top-2 translate-y-0 md:top-1/2 md:-translate-y-1/2 z-10 max-w-[48%] md:max-w-none">
-          <p className="text-[#B64916] text-3xl md:text-6xl font-bold italic leading-tight md:whitespace-nowrap">
+          {/* English on a Hebrew page. Without lang, a Hebrew screen-reader
+              voice reads "Join us for a ride" with Hebrew letter-to-sound
+              rules and it comes out as noise — SC 3.1.2. The wording is
+              unchanged. */}
+          <p lang="en" className="text-[#B64916] text-3xl md:text-6xl font-bold italic leading-tight md:whitespace-nowrap">
             {'Join us'}<br className="md:hidden" /><span className="hidden md:inline">{' '}</span>{'for a ride'}
           </p>
         </div>

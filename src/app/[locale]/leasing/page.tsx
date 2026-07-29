@@ -47,7 +47,7 @@ function VehicleLeaseCard({ vehicle, locale }: { vehicle: Vehicle; locale: strin
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <svg viewBox="0 0 80 48" fill="none" className="w-24 h-16 text-[#2D5F5F]">
+            <svg aria-hidden="true" focusable="false" viewBox="0 0 80 48" fill="none" className="w-24 h-16 text-[#2D5F5F]">
               <rect x="4" y="16" width="72" height="22" rx="4" fill="currentColor" opacity="0.15"/>
               <path d="M10 16 L20 4 L60 4 L70 16" stroke="currentColor" strokeWidth="3" fill="none" strokeLinejoin="round"/>
               <circle cx="20" cy="38" r="6" fill="currentColor"/>

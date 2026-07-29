@@ -128,8 +128,15 @@ export default function Navbar() {
         </div>
 
         {/* Mobile menu */}
-        {isMenuOpen && (
-          <div id="mobile-menu" className="md:hidden border-t border-gray-100 py-4" dir={isRTL ? 'rtl' : 'ltr'}>
+        {/* Mounted always, hidden when closed: the trigger's aria-controls
+            names this element, so it has to exist for the reference to
+            resolve. */}
+        <div
+          id="mobile-menu"
+          hidden={!isMenuOpen}
+          className="md:hidden border-t border-gray-100 py-4"
+          dir={isRTL ? 'rtl' : 'ltr'}
+        >
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -154,8 +161,7 @@ export default function Navbar() {
                 {t('rental')}
               </Link>
             </div>
-          </div>
-        )}
+        </div>
       </div>
     </nav>
   );

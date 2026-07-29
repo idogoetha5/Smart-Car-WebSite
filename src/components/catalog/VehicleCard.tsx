@@ -135,7 +135,7 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
               className="absolute start-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/85 hover:bg-white shadow flex items-center justify-center z-10 transition-opacity duration-200 opacity-80 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F] focus-visible:ring-offset-1"
               aria-label={isHe ? 'התמונה הקודמת' : 'Previous image'}
             >
-              <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <svg aria-hidden="true" focusable="false" className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 {isHe ? <path d="M9 18l6-6-6-6"/> : <path d="M15 18l-6-6 6-6"/>}
               </svg>
             </button>
@@ -145,7 +145,7 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
               className="absolute end-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/85 hover:bg-white shadow flex items-center justify-center z-10 transition-opacity duration-200 opacity-80 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F] focus-visible:ring-offset-1"
               aria-label={isHe ? 'התמונה הבאה' : 'Next image'}
             >
-              <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <svg aria-hidden="true" focusable="false" className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 {isHe ? <path d="M15 18l-6-6 6-6"/> : <path d="M9 18l6-6-6-6"/>}
               </svg>
             </button>

@@ -90,8 +90,18 @@ export default function FaqSection({ locale }: { locale: string }) {
               {openIndex === i ? '▲' : '▼'}
             </span>
           </button>
-          {openIndex === i && (
-            <div id={`faq-panel-${i}`} role="region" aria-labelledby={`faq-button-${i}`} className="px-5 pb-5 text-start">
+          {/* Kept in the DOM and hidden, rather than unmounted: the button's
+              aria-controls names this panel, and an id that does not exist
+              while the panel is collapsed is a dangling reference. `hidden`
+              also keeps it out of the accessibility tree and out of the
+              tab order, which unmounting was the long way round to. */}
+          <div
+            id={`faq-panel-${i}`}
+            role="region"
+            aria-labelledby={`faq-button-${i}`}
+            hidden={openIndex !== i}
+            className="px-5 pb-5 text-start"
+          >
               <p className="text-gray-600 text-sm leading-relaxed">{item.a}</p>
               {item.learnMoreHref && (
                 <Link
@@ -101,8 +111,7 @@ export default function FaqSection({ locale }: { locale: string }) {
                   {item.learnMoreLabel}
                 </Link>
               )}
-            </div>
-          )}
+          </div>
         </div>
       ))}
     </div>
