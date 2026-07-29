@@ -49,6 +49,18 @@ export default function Navbar() {
   const isActive = (href: string) =>
     pathname === href || (href !== `/${locale}` && pathname.startsWith(href));
 
+  // Two places do not want the site nav. A single vehicle page is one task —
+  // fill in the booking form — and the nav only offers ways to leave it;
+  // BackToVehicles already gives the one exit that page needs. The admin
+  // area has its own sidebar, so the public nav is a second, unrelated set
+  // of links stacked on top of it.
+  //
+  // Note this is only the single-vehicle page: /rental itself is the search
+  // and listing screen and keeps the nav.
+  const isVehiclePage = pathname.startsWith(`/${locale}/rental/`);
+  const isAdminPage = pathname.startsWith(`/${locale}/admin`);
+  if (isVehiclePage || isAdminPage) return null;
+
   return (
     <nav dir={isRTL ? 'rtl' : 'ltr'} className="sticky top-0 z-50 bg-white/97 backdrop-blur-md border-b border-gray-100 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
