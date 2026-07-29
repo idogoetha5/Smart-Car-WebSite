@@ -101,6 +101,11 @@ export default function CookieBanner() {
 
   if (!visible) return null;
 
+  const linkClass =
+    'underline underline-offset-2 text-white hover:text-[#F5F0E8] rounded ' +
+    'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8D8D8] ' +
+    'focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D2B2B]';
+
   return (
     <div
       ref={dialogRef}
@@ -115,18 +120,24 @@ export default function CookieBanner() {
           isHe ? 'sm:flex-row-reverse' : ''
         }`}
       >
+        {/* The route to the policy is the link inside the sentence. The
+            separate button that used to sit beside Decline/Accept is gone:
+            two controls to the same page is one more thing to tab past and
+            one more thing to read out. */}
         <p className={`text-sm flex-1 leading-relaxed ${isHe ? 'text-right' : 'text-left'}`}>
-          {isHe
-            ? 'אנחנו משתמשים בעוגיות ובטכנולוגיות דומות להפעלת האתר, לשיפור השירות, לניתוח השימוש ולמטרות שיווק. עוגיות שאינן הכרחיות יופעלו רק בהסכמתך.'
-            : 'We use cookies and similar technologies to operate the website, improve our service, analyse usage and for marketing purposes. Non-essential cookies will only be enabled with your consent.'}
+          {isHe ? (
+            <>
+              באתר זה נעשה שימוש בעוגיות (Cookies) לצורך הפעלתו התקינה, שיפור חוויית הגלישה והתאמת תכנים ושירותים עבורך. למידע נוסף ולניהול העדפות השימוש בעוגיות, ניתן לעיין ב
+              <Link href={`/${locale}/cookies`} className={linkClass}>מדיניות העוגיות</Link>.
+            </>
+          ) : (
+            <>
+              This website uses cookies to support its proper operation, improve your browsing experience, and tailor content and services to you. For more information and to manage your cookie preferences, please see our{' '}
+              <Link href={`/${locale}/cookies`} className={linkClass}>Cookie Policy</Link>.
+            </>
+          )}
         </p>
         <div className={`flex gap-3 shrink-0 ${isHe ? 'flex-row-reverse' : ''}`}>
-          <Link
-            href={`/${locale}/cookies`}
-            className="px-4 py-2 text-sm rounded-lg border border-[#2D5F5F] hover:border-[#B8D8D8] transition-colors whitespace-nowrap"
-          >
-            {isHe ? 'מדיניות עוגיות' : 'Cookie Policy'}
-          </Link>
           <button
             onClick={decline}
             aria-pressed={current === 'declined'}

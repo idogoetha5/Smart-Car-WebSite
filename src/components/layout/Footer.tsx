@@ -153,13 +153,16 @@ export default function Footer() {
             >
               {locale === 'he' ? 'נגישות' : 'Accessibility'}
             </Link>
-            <Link href={`/${locale}/cookies`} className="hover:text-[#B8D8D8] transition-colors">
-              {locale === 'he' ? 'עוגיות' : 'Cookies'}
-            </Link>
-            {/* The cookies policy states, in both locales, that preferences
-                can be changed at any time from a control at the bottom of
-                every page. This is that control — the label matches the
-                wording already published on that page. */}
+            {/* The standalone link to the cookie policy is deliberately not
+                here: the banner sentence links to it, and the privacy policy
+                links to it. Three routes to one page is duplication, not
+                availability.
+
+                This control stays, and has to. The policy says preferences
+                can be changed at any time, and the banner disappears once a
+                choice is made — without this there would be no way back to
+                withdraw consent. Kept small and quiet so it does not compete
+                with the real actions. */}
             <button
               type="button"
               onClick={openCookiePreferences}
