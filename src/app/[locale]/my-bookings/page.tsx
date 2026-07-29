@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
+import { HttpError, dataFetcher } from '@/lib/swr';
 import { useParams } from 'next/navigation';
 import { CalendarDays, Car, MapPin, AlertCircle, LogOut } from 'lucide-react';
 import Image from 'next/image';
@@ -62,9 +64,6 @@ export default function MyBookingsPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
 
-  const [bookings, setBookings] = useState<Booking[] | null>(null);
-  const [bookingsLoading, setBookingsLoading] = useState(false);
-  const [bookingsError, setBookingsError] = useState('');
 
   const [cancelState, setCancelState] = useState<Record<string, 'confirm' | 'loading'>>({});
 
@@ -75,29 +74,32 @@ export default function MyBookingsPage() {
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchBookings = useCallback(async () => {
-    setBookingsLoading(true);
-    setBookingsError('');
-    setBookings(null);
-    try {
-      const res = await fetch('/api/my-bookings');
-      if (res.status === 401) {
-        setUserEmail(null);
-        return;
-      }
-      if (!res.ok) throw new Error('server');
-      const { data } = await res.json();
-      setBookings(data);
-    } catch {
-      setBookingsError(isHe ? 'שגיאה בטעינת ההזמנות, נסה שנית' : 'Failed to load bookings, please try again');
-    } finally {
-      setBookingsLoading(false);
-    }
-  }, [isHe]);
+  // A null key means "do not fetch": the list is only ever read once the
+  // visitor is signed in, and signing out puts it straight back to null
+  // without anything having to clear the data by hand.
+  const {
+    data: bookings = null,
+    error: bookingsFailure,
+    isLoading: bookingsLoading,
+    mutate: mutateBookings,
+  } = useSWR<Booking[] | null>(
+    userEmail ? '/api/my-bookings' : null,
+    dataFetcher,
+    {
+      onError: (err) => {
+        // The session expired server-side — fall back to the sign-in form.
+        if (err instanceof HttpError && err.status === 401) setUserEmail(null);
+      },
+    },
+  );
 
-  useEffect(() => {
-    if (userEmail) fetchBookings();
-  }, [userEmail, fetchBookings]);
+  // A 401 is not shown as a load failure: it has already been turned into a
+  // sign-out above, and telling someone their bookings failed to load while
+  // showing them a login form would just be confusing.
+  const bookingsError =
+    bookingsFailure && !(bookingsFailure instanceof HttpError && bookingsFailure.status === 401)
+      ? (isHe ? 'שגיאה בטעינת ההזמנות, נסה שנית' : 'Failed to load bookings, please try again')
+      : '';
 
   const startCooldown = () => {
     setResendCooldown(60);
@@ -155,7 +157,6 @@ export default function MyBookingsPage() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUserEmail(null);
-    setBookings(null);
     setAuthEmail('');
     setOtpCode('');
     setOtpSent(false);
@@ -182,7 +183,7 @@ export default function MyBookingsPage() {
         throw new Error(json?.detail || json?.error || 'failed');
       }
       const newStatus = json?.status ?? 'CANCELLED_BY_CUSTOMER';
-      setBookings(prev => prev?.map(b => b.id === bookingId ? { ...b, status: newStatus } : b) ?? null);
+      mutateBookings(curr => curr?.map(b => b.id === bookingId ? { ...b, status: newStatus } : b) ?? null, { revalidate: false });
       setCancelState(prev => { const n = { ...prev }; delete n[bookingId]; return n; });
     } catch (err) {
       console.error('[cancel] caught:', err);

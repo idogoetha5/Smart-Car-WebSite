@@ -2,19 +2,21 @@
 /**
  * Lint regression gate.
  *
- * The repo carries a known, documented lint debt: 12 errors from the React
- * Compiler ruleset (react-hooks/set-state-in-effect and one
- * react-hooks/purity) across the components that fetch data in an effect.
- * The code is correct today; clearing them means restructuring every
- * data-loading component, which is its own piece of work.
+ * The errors this gate was built to hold the line on are gone: the React
+ * Compiler ruleset (react-hooks/set-state-in-effect) fired on every
+ * component that fetched data in an effect, and those all read through SWR
+ * now. The budget is down to 0 errors.
  *
- * Failing CI on those forever would train everyone to ignore a red build.
- * Disabling the rules would hide real regressions — and lint had already
- * silently regressed from 115 problems to 127 before anyone noticed.
+ * One warning remains and is expected to: react-hooks/incompatible-library
+ * on React Hook Form's `watch()` in BookingForm, which React Compiler
+ * cannot memoize safely. Clearing it means dropping React Hook Form from
+ * the booking form, which is not worth it for a warning.
  *
- * So the gate is a budget: the current count is committed, and the build
- * fails the moment the count goes UP. Fixing problems and lowering the
- * budget is encouraged; the script tells you when you can.
+ * The gate still earns its place as a ratchet. Plain `eslint` exits 0 on
+ * warnings, so a slow drift back would go unnoticed — lint had already
+ * silently regressed from 115 problems to 127 before anyone spotted it.
+ * The committed count is the ceiling and the build fails the moment either
+ * number goes UP. Lowering it further is encouraged; the script says when.
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';

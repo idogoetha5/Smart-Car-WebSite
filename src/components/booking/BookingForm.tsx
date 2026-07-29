@@ -222,24 +222,28 @@ function LocationSelector({
 }) {
   const isHe = locale === 'he';
   const branches = isHe ? BRANCHES : BRANCHES_EN;
-  const isCustom = value !== '' && !branches.some(b => b.value === value);
-  const [showCustom, setShowCustom] = useState(isCustom);
-  const [customValid, setCustomValid] = useState(isCustom);
+  const isBranch = branches.some(b => b.value === value);
+  const isCustom = value !== '' && !isBranch;
 
-  useEffect(() => {
-    const isCust = value !== '' && !branches.some(b => b.value === value);
-    setShowCustom(isCust);
-    setCustomValid(isCust);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  // Whether the free-text address panel is open is derived from `value`,
+  // except for the one thing `value` cannot express: the customer having
+  // just picked "other address" but not typed anything yet, which looks
+  // exactly like nothing selected. That single choice is the only state
+  // kept, and a real branch value always overrides it.
+  //
+  // This replaces an effect that recomputed the flag from `value` on every
+  // change and, in doing so, closed the panel the moment it opened: picking
+  // a branch and then "other address" cleared the value, the effect saw an
+  // empty value, and hid the input again.
+  const [customChosen, setCustomChosen] = useState(isCustom);
+  const showCustom = !isBranch && (value !== '' || customChosen);
 
   const handleSelect = (val: string) => {
     if (val === 'custom') {
-      setShowCustom(true);
-      setCustomValid(false);
+      setCustomChosen(true);
       onChange('');
     } else {
-      setShowCustom(false);
+      setCustomChosen(false);
       onChange(val);
     }
   };
@@ -266,13 +270,14 @@ function LocationSelector({
         <IsraelAddressInput
           value={isCustom ? value : ''}
           locale={locale}
-          onChange={(addr, valid) => {
-            setCustomValid(valid);
-            onChange(valid ? addr : '');
-          }}
+          onChange={(addr, valid) => onChange(valid ? addr : '')}
         />
       )}
-      {showCustom && !customValid && value === '' && (
+      {/* A valid address is written straight back into `value`, so an empty
+          value is already the complete "nothing usable picked yet" signal —
+          the separate validity flag this used to also check could never be
+          true here. */}
+      {showCustom && value === '' && (
         <p className="text-xs text-amber-600">{isHe ? 'יש לבחור כתובת מתוך הרשימה.' : 'Please select an address from the list.'}</p>
       )}
       {/* id matches aria-describedby above, so the message is read out with

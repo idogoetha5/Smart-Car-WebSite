@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useApiList } from '@/lib/swr';
 import { useLocale } from 'next-intl';
 import Image from 'next/image';
 import { Plus, Trash2, Car } from 'lucide-react';
@@ -33,32 +34,27 @@ export default function AdminCarsForSalePage() {
   const locale = useLocale();
   const isHe = locale === 'he';
 
-  const [cars, setCars] = useState<CarForSale[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [error, setError] = useState('');
+  const [actionError, setActionError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const fetchCars = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/admin/cars-for-sale');
-      const json = await res.json();
-      setCars(json.data ?? []);
-    } catch {
-      setError(isHe ? 'שגיאה בטעינה' : 'Load error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    items: cars,
+    error: loadError,
+    isLoading: loading,
+    mutate: mutateCars,
+  } = useApiList<CarForSale>('/api/admin/cars-for-sale');
 
-  useEffect(() => { fetchCars(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // One banner, two sources: a failed save or delete, and a failed load. The
+  // load half is derived from SWR's error rather than copied into state, and
+  // an action the admin just took takes precedence over a stale load failure.
+  const error = actionError || (loadError ? (isHe ? 'שגיאה בטעינה' : 'Load error') : '');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setActionError('');
     setSaving(true);
     try {
       const res = await fetch('/api/admin/cars-for-sale', {
@@ -73,10 +69,10 @@ export default function AdminCarsForSalePage() {
       setSuccess(isHe ? 'רכב נוסף בהצלחה!' : 'Car added!');
       setForm(EMPTY_FORM);
       setShowForm(false);
-      await fetchCars();
+      await mutateCars();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error');
+      setActionError(err instanceof Error ? err.message : 'Error');
     } finally {
       setSaving(false);
     }
@@ -87,9 +83,9 @@ export default function AdminCarsForSalePage() {
     try {
       const res = await fetch(`/api/admin/cars-for-sale/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Delete failed');
-      setCars(prev => prev.filter(c => c.id !== id));
+      mutateCars(curr => (curr ?? []).filter(c => c.id !== id), { revalidate: false });
     } catch {
-      setError(isHe ? 'שגיאה במחיקה' : 'Delete error');
+      setActionError(isHe ? 'שגיאה במחיקה' : 'Delete error');
     }
   };
 
@@ -116,7 +112,7 @@ export default function AdminCarsForSalePage() {
           </p>
         </div>
         <button
-          onClick={() => { setShowForm(!showForm); setError(''); }}
+          onClick={() => { setShowForm(!showForm); setActionError(''); }}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#E8743B] text-white font-bold rounded-xl hover:bg-[#d4622a] transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -178,7 +174,7 @@ export default function AdminCarsForSalePage() {
               </button>
               <button
                 type="button"
-                onClick={() => { setShowForm(false); setForm(EMPTY_FORM); setError(''); }}
+                onClick={() => { setShowForm(false); setForm(EMPTY_FORM); setActionError(''); }}
                 className="px-6 py-2.5 border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors"
               >
                 {isHe ? 'ביטול' : 'Cancel'}

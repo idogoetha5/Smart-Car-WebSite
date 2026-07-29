@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
+import { fetcher } from '@/lib/swr';
 
 /** Varied but fixed skeleton bar heights, so the placeholder does not jitter. */
 const SKELETON_HEIGHTS = [46, 72, 28, 61, 39, 80, 34, 55, 68, 24, 50, 76, 31, 64];
@@ -13,24 +15,18 @@ const DAY_LABELS_EN = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 export default function DashboardChart({ locale }: { locale: string }) {
   const isHe = locale === 'he';
   const [days, setDays] = useState<7 | 30>(7);
-  const [data, setData] = useState<ChartPoint[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  const fetchData = useCallback(async (d: number) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/admin/stats/chart?days=${d}`);
-      if (res.ok) setData(await res.json());
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // The range is part of the key, so switching it refetches on its own. The
+  // previous version both set state and called the fetcher by hand, which
+  // fired the request twice for every click; and the range already visited
+  // now comes straight from cache.
+  const { data, isLoading: loading } = useSWR<ChartPoint[]>(
+    `/api/admin/stats/chart?days=${days}`,
+    fetcher,
+  );
+  const points = data ?? [];
 
-  useEffect(() => { fetchData(days); }, [fetchData, days]);
-
-  const maxCount = Math.max(...data.map(d => d.count), 1);
-
-  const switchDays = (d: 7 | 30) => { setDays(d); fetchData(d); };
+  const maxCount = Math.max(...points.map(d => d.count), 1);
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
@@ -40,13 +36,13 @@ export default function DashboardChart({ locale }: { locale: string }) {
         </h2>
         <div className="flex rounded-xl overflow-hidden border border-gray-200">
           <button
-            onClick={() => switchDays(7)}
+            onClick={() => setDays(7)}
             className={`px-4 py-1.5 text-sm font-medium transition-colors ${days === 7 ? 'bg-[#2D5F5F] text-white' : 'text-gray-600 hover:bg-gray-50'}`}
           >
             {isHe ? '7 ימים' : '7 Days'}
           </button>
           <button
-            onClick={() => switchDays(30)}
+            onClick={() => setDays(30)}
             className={`px-4 py-1.5 text-sm font-medium transition-colors ${days === 30 ? 'bg-[#2D5F5F] text-white' : 'text-gray-600 hover:bg-gray-50'}`}
           >
             {isHe ? '30 ימים' : '30 Days'}
@@ -70,7 +66,7 @@ export default function DashboardChart({ locale }: { locale: string }) {
         </div>
       ) : (
         <div className="flex items-end gap-1 h-40 overflow-x-auto">
-          {data.map(({ date, count }) => {
+          {points.map(({ date, count }) => {
             const d = new Date(date);
             const barH = Math.max(8, Math.round((count / maxCount) * 128));
             const label = isHe ? DAY_LABELS_HE[d.getDay()] : DAY_LABELS_EN[d.getDay()];

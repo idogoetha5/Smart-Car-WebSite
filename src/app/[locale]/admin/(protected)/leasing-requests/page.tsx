@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useApiList } from '@/lib/swr';
 import { useParams } from 'next/navigation';
 import { RefreshCw, Phone, MessageCircle, Trash2 } from 'lucide-react';
 
@@ -35,25 +35,12 @@ function waLink(phone: string) {
 export default function AdminLeasingPage() {
   const params = useParams();
   const locale = (params?.locale as string) || 'he';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [requests, setRequests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchRequests = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/leasing');
-      if (!res.ok) return;
-      const json = await res.json();
-      setRequests(json.data ?? []);
-    } catch {
-      // silent
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchRequests(); }, [fetchRequests]);
+  const {
+    items: requests,
+    isLoading: loading,
+    mutate: mutateRequests,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } = useApiList<any>('/api/leasing');
 
   const handleStatusChange = async (id: string, status: LeasingStatus) => {
     const res = await fetch(`/api/admin/leasing-requests/${id}`, {
@@ -62,15 +49,17 @@ export default function AdminLeasingPage() {
       body: JSON.stringify({ status }),
     });
     if (!res.ok) { alert('שגיאה בעדכון הסטטוס'); return; }
+    // The PATCH already returned the new status, so this is applied locally
+    // rather than paid for with another read of the whole list.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setRequests(prev => prev.map((r: any) => r.id === id ? { ...r, status } : r));
+    mutateRequests(curr => (curr ?? []).map((r: any) => r.id === id ? { ...r, status } : r), { revalidate: false });
   };
 
   const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`למחוק את הפנייה של ${name}?`)) return;
     const res = await fetch(`/api/admin/leasing-requests/${id}`, { method: 'DELETE' });
     if (!res.ok) { alert('שגיאה במחיקה'); return; }
-    setRequests(prev => prev.filter(r => r.id !== id));
+    mutateRequests(curr => (curr ?? []).filter(r => r.id !== id), { revalidate: false });
   };
 
   if (loading) {
@@ -95,7 +84,7 @@ export default function AdminLeasingPage() {
           </p>
         </div>
         <button
-          onClick={fetchRequests}
+          onClick={() => mutateRequests()}
           className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />

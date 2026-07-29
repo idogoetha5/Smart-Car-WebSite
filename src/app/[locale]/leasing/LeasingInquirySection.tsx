@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState, useRef, Suspense } from 'react';
+import { useEffect, useMemo, useState, useRef, Suspense } from 'react';
 import Image from 'next/image';
 import { Phone, Mail, Users, Settings, Fuel, Send, CheckCircle } from 'lucide-react';
 import type { Vehicle } from '@/types';
@@ -21,8 +21,31 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
   const isHe = locale === 'he';
   const sectionRef = useRef<HTMLDivElement>(null);
 
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [vehicleLockedFromUrl, setVehicleLockedFromUrl] = useState(false);
+  // The vehicle arriving in the query string is resolved during render rather
+  // than copied into state by an effect. The URL is already the source of
+  // truth, so mirroring it meant the first paint showed no vehicle and the
+  // effect immediately re-rendered with one.
+  const vehicleFromUrl = useMemo(() => {
+    const vehicleId = searchParams.get('vehicle');
+    if (!vehicleId || vehicles.length === 0) return null;
+    const byId = vehicles.find(v => v.id === vehicleId);
+    if (byId) return byId;
+    // ID from catalog may differ from deduplicated leasing list — fall back to make/model
+    const make = searchParams.get('make');
+    const model = searchParams.get('model');
+    if (make && model) {
+      return vehicles.find(v => v.make === make && v.model === model) ?? null;
+    }
+    return null;
+  }, [searchParams, vehicles]);
+
+  // Two things here genuinely cannot be derived: the customer releasing the
+  // URL-pinned vehicle via "Change", and whatever they pick afterwards.
+  // Everything else follows from those plus the query string.
+  const [unlocked, setUnlocked] = useState(false);
+  const [pickedVehicle, setPickedVehicle] = useState<Vehicle | null>(null);
+  const vehicleLockedFromUrl = vehicleFromUrl !== null && !unlocked;
+  const selectedVehicle = vehicleLockedFromUrl ? vehicleFromUrl : pickedVehicle;
   const [duration, setDuration] = useState(36);
   const [mileage, setMileage] = useState('15000');
 
@@ -36,27 +59,18 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
   const [formError, setFormError] = useState('');
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
+  // Scrolling the section into view stays in an effect: it drives the DOM
+  // rather than React state. Deliberately not conditioned on the vehicle
+  // resolving — arriving with a `vehicle` in the URL means the customer came
+  // from a car, so the section is scrolled to either way, as before.
+  const arrivedWithVehicle = searchParams.get('vehicle') !== null && vehicles.length > 0;
   useEffect(() => {
-    const vehicleId = searchParams.get('vehicle');
-    if (vehicleId && vehicles.length > 0) {
-      let found = vehicles.find(v => v.id === vehicleId);
-      if (!found) {
-        // ID from catalog may differ from deduplicated leasing list — fall back to make/model
-        const make = searchParams.get('make');
-        const model = searchParams.get('model');
-        if (make && model) {
-          found = vehicles.find(v => v.make === make && v.model === model);
-        }
-      }
-      if (found) {
-        setSelectedVehicle(found);
-        setVehicleLockedFromUrl(true);
-      }
-      setTimeout(() => {
-        sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 200);
-    }
-  }, [searchParams, vehicles]);
+    if (!arrivedWithVehicle) return;
+    const timer = setTimeout(() => {
+      sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [arrivedWithVehicle]);
 
   const monthlyPrice = selectedVehicle
     ? Math.round(
@@ -137,7 +151,10 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
                   <span>{selectedVehicle.make} {selectedVehicle.model}</span>
                   <button
                     type="button"
-                    onClick={() => setVehicleLockedFromUrl(false)}
+                    // Seeds the picker with the vehicle that was pinned, so
+                    // releasing the lock reveals a select already showing it
+                    // rather than an empty one.
+                    onClick={() => { setPickedVehicle(vehicleFromUrl); setUnlocked(true); }}
                     className="text-xs text-gray-600 hover:text-gray-600 underline ms-2 shrink-0"
                   >
                     {isHe ? 'שנה' : 'Change'}
@@ -149,7 +166,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
                   aria-label={isHe ? 'בחר רכב' : 'Select Vehicle'}
                   onChange={(e) => {
                     const found = vehicles.find(v => v.id === e.target.value) ?? null;
-                    setSelectedVehicle(found);
+                    setPickedVehicle(found);
                   }}
                   className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-[#2D5F5F] outline-none bg-white text-gray-900"
                   dir={isHe ? 'rtl' : 'ltr'}

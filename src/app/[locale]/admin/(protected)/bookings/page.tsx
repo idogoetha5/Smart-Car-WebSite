@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { useApiList } from '@/lib/swr';
 import { useParams } from 'next/navigation';
 import { Search, Trash2, RefreshCw } from 'lucide-react';
 import BookingStatusBadge from '@/components/ui/BookingStatusBadge';
@@ -30,29 +31,16 @@ function waLink(phone: string): string | null {
 export default function AdminBookingsPage() {
   const params = useParams();
   const locale = (params?.locale as string) || 'he';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [searchCustomer, setSearchCustomer] = useState('');
   const [searchCar, setSearchCar] = useState('');
 
-  const fetchBookings = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    try {
-      const res = await fetch('/api/bookings');
-      if (!res.ok) return;
-      const json = await res.json();
-      setBookings(json.data ?? []);
-    } catch {
-      // silent
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchBookings(); }, [fetchBookings]);
+  const {
+    items: bookings,
+    isLoading: loading,
+    isValidating: refreshing,
+    mutate: mutateBookings,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } = useApiList<any>('/api/bookings');
 
   const filtered = useMemo(() => {
     const cust = searchCustomer.toLowerCase();
@@ -93,8 +81,10 @@ export default function AdminBookingsPage() {
       return;
     }
 
+    // Applied locally without a refetch: the PATCH already returned the new
+    // status, so re-reading the whole list would only cost a round trip.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setBookings(prev => prev.map((b: any) => b.id === bookingId ? { ...b, status } : b));
+    mutateBookings(curr => (curr ?? []).map((b: any) => b.id === bookingId ? { ...b, status } : b), { revalidate: false });
 
     // Confirmation email is sent server-side by the PATCH route above
     // (sendConfirmationEmail in api/admin/bookings/[id]/route.ts) — do not
@@ -108,7 +98,7 @@ export default function AdminBookingsPage() {
     if (!window.confirm(`למחוק לצמיתות את ההזמנה של ${customerName}?\nפעולה זו אינה ניתנת לביטול.`)) return;
     const res = await fetch(`/api/admin/bookings/${id}`, { method: 'DELETE' });
     if (!res.ok) { alert('שגיאה במחיקה'); return; }
-    setBookings(prev => prev.filter(b => b.id !== id));
+    mutateBookings(curr => (curr ?? []).filter(b => b.id !== id), { revalidate: false });
   };
 
   const isDecided = (status: string) =>
@@ -134,7 +124,7 @@ export default function AdminBookingsPage() {
           <p className="text-gray-500 mt-1">{filtered.length} / {bookings.length} הזמנות</p>
         </div>
         <button
-          onClick={() => fetchBookings(true)}
+          onClick={() => mutateBookings()}
           disabled={refreshing}
           className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >

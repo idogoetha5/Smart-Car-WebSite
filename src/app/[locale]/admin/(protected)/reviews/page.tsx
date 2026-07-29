@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import { HttpError, useApiList } from '@/lib/swr';
 import { useParams } from 'next/navigation';
 import { RefreshCw, Check, X, Trash2, Star } from 'lucide-react';
 
@@ -33,28 +34,23 @@ function formatDate(iso: string) {
 export default function AdminReviewsPage() {
   const params = useParams();
   const locale = (params?.locale as string) || 'he';
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState('');
   const [tab, setTab] = useState<'pending' | 'approved' | 'all'>('pending');
 
-  const fetchReviews = useCallback(async () => {
-    setLoading(true);
-    setFetchError('');
-    try {
-      const res = await fetch('/api/admin/reviews');
-      if (res.status === 401) { setFetchError('פג תוקף הסשן — נסה להתחבר מחדש'); return; }
-      if (!res.ok) { setFetchError(`שגיאה בשרת (${res.status})`); return; }
-      const json = await res.json();
-      setReviews(json.data ?? []);
-    } catch {
-      setFetchError('שגיאת רשת — נסה לרענן');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const {
+    items: reviews,
+    error,
+    isLoading: loading,
+    mutate: mutateReviews,
+  } = useApiList<Review>('/api/admin/reviews');
 
-  useEffect(() => { fetchReviews(); }, [fetchReviews]);
+  // Derived from whatever the request failed with, rather than mirrored into
+  // its own state. A non-2xx arrives as HttpError carrying the status; a
+  // network failure arrives as something else entirely.
+  const fetchError = !error
+    ? ''
+    : error instanceof HttpError
+      ? (error.status === 401 ? 'פג תוקף הסשן — נסה להתחבר מחדש' : `שגיאה בשרת (${error.status})`)
+      : 'שגיאת רשת — נסה לרענן';
 
   const approve = async (id: string) => {
     const res = await fetch(`/api/admin/reviews/${id}`, {
@@ -63,7 +59,7 @@ export default function AdminReviewsPage() {
       body: JSON.stringify({ approved: true }),
     });
     if (!res.ok) { alert('שגיאה'); return; }
-    setReviews(prev => prev.map(r => r.id === id ? { ...r, approved: true } : r));
+    mutateReviews(curr => (curr ?? []).map(r => r.id === id ? { ...r, approved: true } : r), { revalidate: false });
   };
 
   const reject = async (id: string) => {
@@ -73,14 +69,14 @@ export default function AdminReviewsPage() {
       body: JSON.stringify({ approved: false }),
     });
     if (!res.ok) { alert('שגיאה'); return; }
-    setReviews(prev => prev.map(r => r.id === id ? { ...r, approved: false } : r));
+    mutateReviews(curr => (curr ?? []).map(r => r.id === id ? { ...r, approved: false } : r), { revalidate: false });
   };
 
   const deleteReview = async (id: string) => {
     if (!window.confirm('למחוק ביקורת זו?')) return;
     const res = await fetch(`/api/admin/reviews/${id}`, { method: 'DELETE' });
     if (!res.ok) { alert('שגיאה במחיקה'); return; }
-    setReviews(prev => prev.filter(r => r.id !== id));
+    mutateReviews(curr => (curr ?? []).filter(r => r.id !== id), { revalidate: false });
   };
 
   const filtered = reviews.filter(r => {
@@ -116,7 +112,7 @@ export default function AdminReviewsPage() {
           </p>
         </div>
         <button
-          onClick={fetchReviews}
+          onClick={() => mutateReviews()}
           className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />

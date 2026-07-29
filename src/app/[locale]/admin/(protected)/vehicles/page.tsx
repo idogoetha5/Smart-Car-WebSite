@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useMemo, useState } from 'react';
+import useSWR from 'swr';
+import { HttpError, fetcher } from '@/lib/swr';
 import { useRouter } from 'next/navigation';
 import { Pencil, Trash2, X } from 'lucide-react';
 
@@ -28,8 +30,6 @@ interface FieldDef { label: string; key: keyof VehicleForm; type: string; placeh
 interface SelectDef { label: string; key: keyof VehicleForm; options: string[] }
 
 export default function AdminVehiclesPage() {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editVehicle, setEditVehicle] = useState<Vehicle | null>(null);
   const [form, setForm] = useState<VehicleForm>({ ...EMPTY_VEHICLE });
@@ -38,20 +38,20 @@ export default function AdminVehiclesPage() {
   const [search, setSearch] = useState('');
   const router = useRouter();
 
-  const fetchVehicles = useCallback(async () => {
-    try {
-      const res = await fetch('/api/admin/vehicles');
-      if (res.status === 401) { router.push('/he/admin/login'); return; }
-      const data = await res.json();
-      setVehicles(Array.isArray(data) ? data : []);
-    } catch {
-      setVehicles([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
-
-  useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
+  // This route answers with a bare array rather than the `{ data }` envelope
+  // the rest of the admin API uses, so it takes the plain fetcher.
+  const { data, isLoading: loading, mutate: refetchVehicles } = useSWR<Vehicle[]>(
+    '/api/admin/vehicles',
+    fetcher,
+    {
+      // Bouncing an expired session to the login screen is SWR's own failure
+      // callback, not an effect watching an error flag.
+      onError: (err) => {
+        if (err instanceof HttpError && err.status === 401) router.push('/he/admin/login');
+      },
+    },
+  );
+  const vehicles = useMemo(() => (Array.isArray(data) ? data : []), [data]);
 
   const openEdit = (v: Vehicle) => {
     setEditVehicle(v);
@@ -92,7 +92,7 @@ export default function AdminVehiclesPage() {
   const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`למחוק את ${name}?`)) return;
     await fetch(`/api/admin/vehicles/${id}`, { method: 'DELETE' });
-    fetchVehicles();
+    refetchVehicles();
   };
 
   const handleToggle = async (id: string, current: boolean) => {
@@ -101,7 +101,7 @@ export default function AdminVehiclesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_available: !current }),
     });
-    fetchVehicles();
+    refetchVehicles();
   };
 
   const handleSave = async () => {
@@ -122,7 +122,7 @@ export default function AdminVehiclesPage() {
     }
     setSaving(false);
     closeModal();
-    fetchVehicles();
+    refetchVehicles();
   };
 
   const set = (key: keyof VehicleForm, value: string | number | boolean) =>
