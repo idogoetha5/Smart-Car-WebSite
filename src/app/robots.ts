@@ -14,8 +14,14 @@ export default function robots(): MetadataRoute.Robots {
         // Private / transactional routes must stay out of the index:
         // my-bookings and booking-confirmation expose a customer's own
         // booking view, and the condition report is an operational form.
+        //
+        // The admin area is deliberately NOT listed. robots.txt is public,
+        // so a Disallow line is a signpost to the path it names — it told
+        // anyone who asked that /<locale>/admin/ exists. Those routes are
+        // behind authentication and now carry robots: noindex from their own
+        // layout, which keeps them out of the index without publishing where
+        // they are.
         disallow: [
-          '/*/admin/',
           '/api/',
           '/*/my-bookings',
           '/*/booking-confirmation',

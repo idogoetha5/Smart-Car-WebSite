@@ -99,15 +99,15 @@ function ServiceIcon({ fit, children }: { fit: string; children: React.ReactNode
   return (
     <svg
       viewBox="0 0 24 24"
-      className="w-10 h-10 mx-auto mb-3"
+      className="service-icon w-10 h-10 mx-auto mb-3"
       fill="none"
       stroke="#E8743B"
-      strokeWidth="1.5"
+      strokeWidth="1.4348"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <g transform={fit} vectorEffect="non-scaling-stroke">{children}</g>
+      <g transform={fit}>{children}</g>
     </svg>
   );
 }

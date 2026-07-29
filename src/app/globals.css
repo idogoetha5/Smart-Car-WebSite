@@ -107,3 +107,17 @@ input[type="date"] {
     scroll-behavior: auto !important;
   }
 }
+
+/* The eight rental-category icons share a stroke width, but each drawing is
+   scaled by its own transform to bring them to a common size — and a scale
+   multiplies the stroke along with the geometry. Identical `stroke-width` in
+   the markup therefore painted anything but identical lines: the clock came
+   out at 3.06px against the van's 2.39px, 28% heavier, and the calendar 15%.
+
+   `vector-effect` is not an inherited property, so setting it on the wrapping
+   <g> does nothing at all — it has to reach every drawn element, which is
+   what the descendant selector is for. With it, the stroke is measured before
+   the per-icon transform, so all eight paint the same line. */
+.service-icon * {
+  vector-effect: non-scaling-stroke;
+}

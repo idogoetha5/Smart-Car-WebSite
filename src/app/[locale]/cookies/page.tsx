@@ -54,13 +54,6 @@ export default async function CookiesPage({ params }: { params: Promise<{ locale
                       <td className="border border-gray-200 p-3">שנה</td>
                       <td className="border border-gray-200 p-3">לא</td>
                     </tr>
-                    <tr className="bg-gray-50">
-                      <td className="border border-gray-200 p-3 font-mono text-xs">admin_auth</td>
-                      <td className="border border-gray-200 p-3"><span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs">חיונית</span></td>
-                      <td className="border border-gray-200 p-3">אימות מנהל מערכת (httpOnly, Secure)</td>
-                      <td className="border border-gray-200 p-3">סשן</td>
-                      <td className="border border-gray-200 p-3">לא</td>
-                    </tr>
                     <tr>
                       <td className="border border-gray-200 p-3 font-mono text-xs">booking_draft_*</td>
                       <td className="border border-gray-200 p-3"><span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs">חיונית</span></td>
@@ -153,13 +146,6 @@ export default async function CookiesPage({ params }: { params: Promise<{ locale
                       <td className="border border-gray-200 p-3"><span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs">Essential</span></td>
                       <td className="border border-gray-200 p-3">Stores selected language (Hebrew/English)</td>
                       <td className="border border-gray-200 p-3">1 year</td>
-                      <td className="border border-gray-200 p-3">No</td>
-                    </tr>
-                    <tr className="bg-gray-50">
-                      <td className="border border-gray-200 p-3 font-mono text-xs">admin_auth</td>
-                      <td className="border border-gray-200 p-3"><span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs">Essential</span></td>
-                      <td className="border border-gray-200 p-3">Admin authentication (httpOnly, Secure)</td>
-                      <td className="border border-gray-200 p-3">Session</td>
                       <td className="border border-gray-200 p-3">No</td>
                     </tr>
                     <tr>
