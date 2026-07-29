@@ -2,6 +2,11 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { verifyAdminToken } from '@/lib/admin-auth';
 import {
+  createRentalQuoteLinkToken,
+  rentalQuotePdfPath,
+  rentalQuoteShortLink,
+} from '@/lib/quote-link';
+import {
   normalizeWhatsAppPhone,
   type RentalQuoteData,
 } from '@/lib/rental-quote';
@@ -12,10 +17,51 @@ import { createAdminClient } from '@/lib/supabase/server';
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
-const LINK_LIFETIME_SECONDS = 60 * 60 * 24 * 7;
+/** The customer sees this host, so prefer the configured public domain. */
+function publicOrigin(request: Request): string {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (configured) return configured;
+  return new URL(request.url).origin;
+}
 
-function safePathPart(value: string): string {
-  return value.replace(/[^\p{L}\p{N}._-]+/gu, '_').slice(0, 100) || 'quote';
+function whatsappMessage(
+  data: RentalQuoteData,
+  link: string
+): string {
+  const isConfirmation = data.documentMode === 'confirmation';
+
+  if (data.locale === 'he') {
+    const documentName = isConfirmation
+      ? 'אישור ההזמנה וסיכום העסקה'
+      : 'הצעת המחיר';
+    const action = isConfirmation
+      ? 'לצפייה ולהורדת אישור ההזמנה:'
+      : 'לצפייה ולהורדת הצעת המחיר:';
+    return [
+      `שלום ${data.customerName},`,
+      '',
+      `הכנו עבורך את ${documentName} מספר ${data.quoteNumber} להשכרת רכב מ־SmartCar.`,
+      '',
+      action,
+      link,
+      '',
+      'הקישור זמין למשך 7 ימים. נשמח לעמוד לרשותך לכל שאלה.',
+    ].join('\n');
+  }
+
+  const documentName = isConfirmation
+    ? 'booking confirmation and deal summary'
+    : 'quotation';
+  return [
+    `Hello ${data.customerName},`,
+    '',
+    `We have prepared your car rental ${documentName} number ${data.quoteNumber} from SmartCar.`,
+    '',
+    `To view and download the ${isConfirmation ? 'booking confirmation' : 'quotation'}:`,
+    link,
+    '',
+    'The link is available for 7 days. We will be happy to help with any questions.',
+  ].join('\n');
 }
 
 export async function POST(request: Request) {
@@ -40,37 +86,30 @@ export async function POST(request: Request) {
   try {
     const pdf = await renderRentalQuotePdf(data);
     const supabase = createAdminClient();
-    const path = `rental/${safePathPart(data.quoteNumber)}.pdf`;
     const { error: uploadError } = await supabase.storage
       .from('quote-pdfs')
-      .upload(path, pdf, {
+      .upload(rentalQuotePdfPath(data.quoteNumber), pdf, {
         contentType: 'application/pdf',
         upsert: true,
         cacheControl: '3600',
       });
     if (uploadError) throw uploadError;
 
-    const isConfirmation = data.documentMode === 'confirmation';
-    const { data: signed, error: signedError } = await supabase.storage
-      .from('quote-pdfs')
-      .createSignedUrl(path, LINK_LIFETIME_SECONDS, {
-        download: `${isConfirmation ? 'SmartCar_Booking_Confirmation' : 'SmartCar_Rental_Quote'}_${safePathPart(data.customerName)}.pdf`,
-      });
-    if (signedError || !signed?.signedUrl) throw signedError ?? new Error('Missing signed URL');
-
-    // The message names the document the customer is about to open — sending a
-    // settled booking confirmation under the words "price quotation" reads as
-    // if nothing was agreed yet.
-    const message = data.locale === 'he'
-      ? isConfirmation
-        ? `שלום ${data.customerName}, מצורף אישור ההזמנה וסיכום העסקה מספר ${data.quoteNumber} מ-SmartCar.\n\nלצפייה ולהורדת ה-PDF:\n${signed.signedUrl}\n\nהקישור מאובטח וזמין למשך 7 ימים. נשמח לעמוד לרשותך לכל שאלה.`
-        : `שלום ${data.customerName}, הכנו עבורך הצעת מחיר להשכרת רכב מספר ${data.quoteNumber} מ-SmartCar.\n\nלצפייה ולהורדת ה-PDF:\n${signed.signedUrl}\n\nהקישור מאובטח וזמין למשך 7 ימים. נשמח לעמוד לרשותך לכל שאלה.`
-      : isConfirmation
-        ? `Hello ${data.customerName}, your SmartCar booking confirmation and deal summary ${data.quoteNumber} is attached.\n\nView and download the PDF:\n${signed.signedUrl}\n\nThis secure link is available for 7 days. We will be happy to help with any questions.`
-        : `Hello ${data.customerName}, your SmartCar rental quotation ${data.quoteNumber} is ready.\n\nView and download the PDF:\n${signed.signedUrl}\n\nThis secure link is available for 7 days. We will be happy to help with any questions.`;
+    // A branded /q/<token> link rather than a Supabase signed URL: the bucket
+    // stays private, and what the customer receives reads as SmartCar instead
+    // of a storage hostname with an access token attached.
+    const token = createRentalQuoteLinkToken(
+      data.quoteNumber,
+      data.documentMode
+    );
+    const link = rentalQuoteShortLink(publicOrigin(request), token);
 
     return NextResponse.json(
-      { ok: true, whatsappUrl: `https://wa.me/${phone}?text=${encodeURIComponent(message)}` },
+      {
+        ok: true,
+        documentUrl: link,
+        whatsappUrl: `https://wa.me/${phone}?text=${encodeURIComponent(whatsappMessage(data, link))}`,
+      },
       { headers: { 'Cache-Control': 'private, no-store' } }
     );
   } catch (error) {

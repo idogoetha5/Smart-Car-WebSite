@@ -136,6 +136,8 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     '/api/admin/(.*)',
-    '/((?!api|_next/static|_next/image|favicon.ico|icon.png|icons|images|robots.txt|sitemap.xml).*)',
+    // `q/` is the customer-facing document link. It is not a localized page,
+    // so next-intl must not rewrite it to /he/q/... (which is a 404).
+    '/((?!api|q/|_next/static|_next/image|favicon.ico|icon.png|icons|images|robots.txt|sitemap.xml).*)',
   ],
 };
