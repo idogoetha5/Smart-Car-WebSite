@@ -159,15 +159,13 @@ export default function HeroSection({ locale }: { locale: string }) {
     {
       label: ts('car_sale'),
       href: `/${locale}/services/sale`,
-      // car side-view + transfer/ownership arrow below
+      // Car with a price tag — Material Symbols, a filled glyph rather than
+      // the stroked drawings around it. Its colour comes from `fill` on the
+      // path: adding `stroke`/`strokeWidth` here would outline every curve
+      // and thicken the whole shape, so this one carries neither.
       icon: (
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-3">
-          <rect x="1" y="9" width="18" height="6" rx="2"/>
-          <path d="M3 9 l2.5-4 h9 l2.5 4"/>
-          <circle cx="5.5" cy="15" r="2"/>
-          <circle cx="14.5" cy="15" r="2"/>
-          <path d="M4 20 q8 4 16 0"/>
-          <path d="M17 18.5 l3 1.5 -3 1.5"/>
+        <svg viewBox="0 0 24 24" className="w-10 h-10 mx-auto mb-3" strokeLinecap="round" aria-hidden="true">
+          <path fill="#E8743B" d="M6.5 16q.625 0 1.063-.437T8 14.5t-.437-1.062T6.5 13t-1.062.438T5 14.5t.438 1.063T6.5 16m9 0q.5 0 .9-.3t.525-.775q-.5-.1-.95-.338t-.825-.612l-.625-.625q-.25.2-.387.5T14 14.5q0 .625.438 1.063T15.5 16M4 17v-5zm1 2v1q0 .425-.288.713T4 21H3q-.425 0-.712-.288T2 20v-8l2.1-6q.15-.45.538-.725T5.5 5H9v1.375q0 .15.013.313T9.05 7h-3.2L4.8 10h6.375l2 2H4v5h14v-2.025q.55-.05 1.063-.275t.937-.625V20q0 .425-.288.713T19 21h-1q-.425 0-.712-.288T17 20v-1zM15.713 5.712Q16 5.425 16 5t-.288-.712T15 4t-.712.288T14 5t.288.713T15 6t.713-.288m.837 6.838l-5.1-5.1q-.2-.2-.325-.488T11 6.376V2.5q0-.625.438-1.062T12.5 1h3.875q.3 0 .588.125t.487.325l5.1 5.1q.425.425.425 1.063t-.425 1.062l-3.875 3.875q-.425.425-1.062.425t-1.063-.425m1.075-1.75L20.8 7.625L16.175 3H13v3.175z"/>
         </svg>
       ),
     },
