@@ -67,6 +67,7 @@ export default function ContactForm({ isHe }: { isHe: boolean }) {
           <input
             id="contact-name"
             type="text"
+            autoComplete="name"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -80,6 +81,7 @@ export default function ContactForm({ isHe }: { isHe: boolean }) {
           <input
             id="contact-phone"
             type="tel"
+            autoComplete="tel"
             required
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
@@ -94,6 +96,7 @@ export default function ContactForm({ isHe }: { isHe: boolean }) {
         <input
           id="contact-email"
           type="email"
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"

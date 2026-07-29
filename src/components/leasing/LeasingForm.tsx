@@ -75,12 +75,14 @@ export default function LeasingForm({
         <Input
           label="Email"
           type="email"
+          autoComplete="email"
           error={errors.customerEmail?.message}
           {...register('customerEmail')}
         />
         <Input
           label="Phone"
           type="tel"
+          autoComplete="tel"
           error={errors.customerPhone?.message}
           {...register('customerPhone')}
         />

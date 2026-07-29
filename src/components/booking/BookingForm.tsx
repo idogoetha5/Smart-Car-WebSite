@@ -704,6 +704,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
         <div className="space-y-3">
           <Input
             label={t('customer_name')}
+            autoComplete="name"
             placeholder="John Doe"
             error={errors.customerName?.message}
             {...register('customerName')}
@@ -712,6 +713,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
             <Input
               label={t('customer_email')}
               type="email"
+              autoComplete="email"
               placeholder="john@example.com"
               error={errors.customerEmail?.message}
               {...register('customerEmail')}
@@ -719,6 +721,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
             <Input
               label={t('customer_phone')}
               type="tel"
+              autoComplete="tel"
               placeholder={isHe ? '+972-50-0000000' : '+1-555-0000'}
               error={errors.customerPhone?.message}
               {...register('customerPhone')}
