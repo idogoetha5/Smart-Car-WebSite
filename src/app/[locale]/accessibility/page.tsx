@@ -48,7 +48,7 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
         {isHe ? 'דוא״ל: ' : 'Email: '}
         <a href={`mailto:${OFFICE_EMAIL}`} className="text-[#2D5F5F] underline">{OFFICE_EMAIL}</a>
         <br />
-        {isHe ? 'כתובת: רמת ים 122, הרצליה' : 'Address: Ramat Yam 122, Herzliya, Israel'}
+        {isHe ? 'כתובת: רמת ים 122, הרצליה' : 'Address: 122 Ramat Yam Street, Herzliya'}
       </p>
     </>
   );
@@ -61,7 +61,7 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
           {isHe ? 'הצהרת נגישות' : 'Accessibility Statement'}
         </h1>
         <p className="text-gray-600 text-sm">
-          {isHe ? 'עדכון אחרון: יולי 2026' : 'Last updated: July 2026'}
+          {isHe ? 'עדכון אחרון: 29 ביולי 2026' : 'Statement last updated: July 29, 2026'}
         </p>
       </div>
 
@@ -126,60 +126,60 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
           </>
         ) : (
           <>
-            <Section title="Our Commitment to Accessibility">
-              <p>SmartCar attaches great importance to providing an equal, respectful and accessible service to all of its customers, including people with disabilities. We work on an ongoing basis so that every person can obtain information, get in touch and use the services offered on this site conveniently, clearly and as independently as possible.</p>
+            <Section title="Commitment to Accessibility">
+              <p>SmartCar places great importance on providing equal, respectful, and accessible service to all its customers, including people with disabilities. We continuously work to enable every person to obtain information, contact us, and use the services offered on the website as conveniently, clearly, and independently as possible.</p>
             </Section>
 
-            <Section title="Accessibility of This Website">
-              <p>The SmartCar website has been made accessible in accordance with the Equal Rights for Persons with Disabilities Law and the Equal Rights for Persons with Disabilities Regulations (Service Accessibility Adjustments), 5773–2013.</p>
-              <p className="mt-2">The website meets the requirements of Israeli Standard IS 5568 for web content accessibility at level AA. In addition, the website has been tested against the WCAG 2.1 guidelines at level AA.</p>
-              <p className="mt-2">These adjustments apply to the public pages of the site, in both Hebrew and English.</p>
+            <Section title="Website Accessibility">
+              <p>The SmartCar website has been made accessible in accordance with the Israeli Equal Rights for Persons with Disabilities Law and the Equal Rights for Persons with Disabilities Regulations (Accessibility Adjustments to Service), 2013.</p>
+              <p className="mt-2">The website complies with the requirements of Israeli Standard SI 5568 for Web Content Accessibility at Level AA. In addition, the website has been tested against the WCAG 2.1 Level AA guidelines.</p>
+              <p className="mt-2">The accessibility adjustments apply to the website’s public pages in Hebrew and English.</p>
             </Section>
 
-            <Section title="Accessibility Adjustments Made">
-              <p>The adjustments made to the site include, among others:</p>
+            <Section title="Accessibility Adjustments Implemented on the Website">
+              <p>The accessibility adjustments implemented on the website include:</p>
               <List items={[
-                'Navigation and operation of components using the keyboard.',
-                'A link to skip directly to the main content.',
-                'A clear focus indicator when navigating by keyboard.',
-                'A semantic structure of headings, content regions and navigation components.',
-                'Accessible names for buttons, links, form fields and interactive components.',
-                'Text descriptions for images that carry meaning.',
-                'Forms, instructions, error messages and status messages adapted for assistive technologies.',
-                'Support for magnifying the display and adapting content to screens of different sizes.',
-                'Suitability for use on a computer, a mobile phone and touch screens.',
-                'Adaptation for right-to-left display in Hebrew and for display in English.',
-                'Contrast, text size and colours chosen to allow clear reading.',
-                'Support for the user preference for reduced motion and animation.',
-                'Menus, frequently asked questions, the date picker and the enquiry and booking forms adapted for accessible use.',
+                'The ability to navigate and operate components using the keyboard.',
+                'A link for skipping directly to the main content.',
+                'A clear focus indicator when navigating with the keyboard.',
+                'A semantic structure that includes headings, content regions, and navigation components.',
+                'Accessible names for buttons, links, form fields, and interactive components.',
+                'Text descriptions for meaningful images.',
+                'Forms, instructions, error messages, and status messages adapted for assistive technologies.',
+                'Support for display enlargement and content adaptation to different screen sizes.',
+                'Compatibility with computers, mobile devices, and touchscreens.',
+                'Right-to-left display support in Hebrew and English-language display support.',
+                'The use of contrast, text sizes, and colors intended to support clear reading.',
+                'Support for the user\u2019s preference to reduce motion and animations.',
+                'Menus, frequently asked questions, the date picker, and contact and booking forms adapted for accessible use.',
               ]} />
             </Section>
 
-            <Section title="Accessibility Testing Carried Out">
-              <p>The accessibility of the site was tested using a combination of automated and manual testing. The testing covered, among other things, keyboard navigation, the order in which components are reached, focus visibility, accessible names, forms and interactive components, magnification of the display, adaptation of content to different screens, and testing of pages and dynamic states on the site.</p>
-              <p className="mt-2">Testing was also carried out with the following assistive technologies:</p>
+            <Section title="Accessibility Testing Performed">
+              <p>The website’s accessibility was tested using a combination of automated and manual testing. The tests included, among other things, keyboard navigation, the order of focus between components, focus visibility, accessible names, forms and interactive components, display enlargement, content adaptation to different screen sizes, and the testing of pages and dynamic states on the website.</p>
+              <p className="mt-2">Testing was also performed using the following assistive technologies:</p>
               <List items={[
-                'The NVDA screen reader on Windows with the Microsoft Edge browser.',
-                'The VoiceOver screen reader on macOS with the Safari browser.',
+                'The NVDA screen reader in a Windows environment with the Microsoft Edge browser.',
+                'The VoiceOver screen reader in a macOS environment with the Safari browser.',
               ]} />
-              <p className="mt-2">Testing was carried out on the public pages and the main user journeys of the site, in both Hebrew and English.</p>
+              <p className="mt-2">The tests were conducted on the website’s public pages and principal user journeys in Hebrew and English.</p>
             </Section>
 
-            <Section title="Browser and Assistive Technology Compatibility">
-              <p>The site is intended for use with modern, up-to-date browsers, including Google Chrome, Microsoft Edge, Mozilla Firefox and Safari. The site is built on standard web technologies, including HTML, CSS, JavaScript, SVG and WAI-ARIA.</p>
-              <p className="mt-2">For the best experience, we recommend using an up-to-date version of your browser and of your assistive technology.</p>
+            <Section title="Compatibility with Browsers and Assistive Technologies">
+              <p>The website is intended for use with modern and up-to-date browsers, including Google Chrome, Microsoft Edge, Mozilla Firefox, and Safari. The website is based on commonly used web technologies, including HTML, CSS, JavaScript, SVG, and WAI-ARIA.</p>
+              <p className="mt-2">For the best possible user experience, we recommend using an up-to-date version of the browser and assistive technology.</p>
             </Section>
 
-            <Section title="Accessibility at Our Branches">
-              <p>The SmartCar branches in Herzliya, Tel Aviv and Jerusalem are accessible to visitors.</p>
-              <p className="mt-2">For detailed information about the accessibility arrangements at a particular branch, accessible routes for getting there, or an adjustment you need ahead of your visit, please contact the company office before you arrive.</p>
+            <Section title="Accessibility Arrangements at Our Branches">
+              <p>SmartCar branches in Herzliya, Tel Aviv and Jerusalem are accessible to the public.</p>
+              <p className="mt-2">For detailed information about the accessibility arrangements at a particular branch, accessible arrival options, or an adjustment required ahead of your visit, please contact the company’s office before arriving.</p>
             </Section>
 
-            <Section title="Accessibility Contact">
-              <p>If you have encountered a difficulty using the site, or if you need a particular adjustment in order to receive the service, we would be glad to receive your enquiry and to deal with it promptly.</p>
+            <Section title="Accessibility Inquiries">
+              <p>If you encounter difficulty using the website or require a particular adjustment in order to receive service, we would be pleased to receive your inquiry and address it as soon as possible.</p>
               {contact}
-              <p className="mt-3">So that we can look into your enquiry efficiently, we recommend noting the page on which you encountered the difficulty, describing the action you were trying to carry out, and stating the browser and assistive technology you were using, where relevant.</p>
-              <p className="mt-3">SmartCar continues to maintain and improve the accessibility of the site as part of its commitment to providing an equal and accessible service to the public.</p>
+              <p className="mt-3">To help us review your inquiry efficiently, we recommend identifying the page on which you encountered the difficulty, describing the action you attempted to perform, and specifying the browser and assistive technology you used, where relevant.</p>
+              <p className="mt-3">SmartCar continues to maintain and improve the accessibility of the website as part of its commitment to providing equal and accessible service to the entire public.</p>
             </Section>
           </>
         )}
