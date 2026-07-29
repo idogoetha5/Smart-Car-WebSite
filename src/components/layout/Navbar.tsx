@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { Menu, X } from 'lucide-react';
+import { hidesSiteHeader } from '@/lib/site-chrome';
 
 export default function Navbar() {
   const t = useTranslations('nav');
@@ -57,9 +58,7 @@ export default function Navbar() {
   //
   // Note this is only the single-vehicle page: /rental itself is the search
   // and listing screen and keeps the nav.
-  const isVehiclePage = pathname.startsWith(`/${locale}/rental/`);
-  const isAdminPage = pathname.startsWith(`/${locale}/admin`);
-  if (isVehiclePage || isAdminPage) return null;
+  if (hidesSiteHeader(pathname, locale)) return null;
 
   return (
     <nav dir={isRTL ? 'rtl' : 'ltr'} className="sticky top-0 z-50 bg-white/97 backdrop-blur-md border-b border-gray-100 shadow-sm">

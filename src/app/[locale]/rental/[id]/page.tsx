@@ -92,7 +92,13 @@ export default async function RentalDetailPage({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 overflow-x-hidden" dir={locale === 'he' ? 'rtl' : 'ltr'}>
+    // Extra top padding, not the usual py-10: this page hides the site header,
+    // so the floating accessibility button sits at the very top left. Between
+    // md and lg the container has no side gutter to speak of, and in English
+    // the back link starts at that same left edge — at py-10 the two landed on
+    // each other. Starting the content at 5rem clears the button in both
+    // directions, and looks better on a page with no header above it.
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-10 overflow-x-hidden" dir={locale === 'he' ? 'rtl' : 'ltr'}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(vehicleJsonLd) }} />
 
       {/* First thing on the page — no hero here, the customer is mid-flow

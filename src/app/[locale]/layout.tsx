@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { locales } from '../../../i18n';
 import { localeAlternates, ogImage } from '@/lib/seo';
 import Navbar from '@/components/layout/Navbar';
+import AccessibilityButton from '@/components/ui/AccessibilityButton';
 import Footer from '@/components/layout/Footer';
 import WhatsAppFloat from '@/components/ui/WhatsAppFloat';
 import CookieBanner from '@/components/ui/CookieBanner';
@@ -101,15 +102,7 @@ export default async function LocaleLayout({
           >
             {isRTL ? 'דלג לתוכן הראשי' : 'Skip to main content'}
           </a>
-          <a
-            href={`/${locale}/accessibility`}
-            className="fixed top-4 left-4 z-50 bg-[#2D5F5F] text-white p-3 rounded-full shadow-lg hover:bg-[#1A3A3A] transition-colors"
-            aria-label={isRTL ? 'הצהרת נגישות' : 'Accessibility Statement'}
-            title={isRTL ? 'נגישות' : 'Accessibility'}
-          >
-            <span aria-hidden="true">♿</span>
-            <span className="sr-only">{isRTL ? 'נגישות' : 'Accessibility'}</span>
-          </a>
+          <AccessibilityButton />
           <Navbar />
           <main id="main-content" className="flex-1">{children}</main>
           <Footer />
