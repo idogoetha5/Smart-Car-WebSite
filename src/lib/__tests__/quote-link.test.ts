@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createRentalQuoteLink,
@@ -190,14 +191,18 @@ describe('rental quote link tokens', () => {
   });
 
   it('still resolves a link issued before storage slots existed', () => {
-    // A slotless signature with the empty middle segment dropped is exactly the
-    // three-part token the earlier deploy handed out.
-    const legacy = createRentalQuoteLink(
-      '482913',
-      'quote',
-      MONTH_AHEAD,
-      ''
-    ).token.replace('--', '-');
+    // Rebuilt exactly as the earlier deploy signed it: three parts, and a
+    // signature over the payload without a slot field. A customer holding a
+    // working link must not lose it because the format grew.
+    const expiresAtMinutes = Math.floor(MONTH_AHEAD / 60_000);
+    const digest = createHmac('sha256', 'test-secret-for-quote-link-tests')
+      .update(`rental-quote-link.482913.q.${expiresAtMinutes}`, 'utf8')
+      .digest('hex');
+    const signature = BigInt(`0x${digest}`)
+      .toString(36)
+      .padStart(16, '0')
+      .slice(0, 16);
+    const legacy = `482913-q${expiresAtMinutes.toString(36)}-${signature}`;
 
     const result = verifyRentalQuoteLinkToken(legacy);
     expect(legacy.split('-')).toHaveLength(3);

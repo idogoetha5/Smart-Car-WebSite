@@ -101,6 +101,27 @@ function sign(
     .slice(0, SIGNATURE_LENGTH);
 }
 
+/**
+ * The signature form used before storage slots existed.
+ *
+ * Links handed to customers earlier today were signed over this exact string.
+ * They stay valid until their own expiry — a customer holding a working link
+ * must not lose it because the format grew a field.
+ */
+function signWithoutSlot(
+  reference: string,
+  modeChar: string,
+  expiresAtMinutes: number
+): string {
+  const digest = createHmac('sha256', secret())
+    .update(`${PURPOSE}.${reference}.${modeChar}.${expiresAtMinutes}`, 'utf8')
+    .digest('hex');
+  return BigInt(`0x${digest}`)
+    .toString(36)
+    .padStart(SIGNATURE_LENGTH, '0')
+    .slice(0, SIGNATURE_LENGTH);
+}
+
 /** Constant-time compare that tolerates differing lengths. */
 function safeEqual(a: string, b: string): boolean {
   const bufA = Buffer.from(a, 'utf8');
@@ -237,7 +258,10 @@ export function verifyRentalQuoteLinkToken(
 
   // Signature before expiry, so the response cannot be used to tell a forged
   // token apart from one that merely aged out.
-  const expected = sign(reference, MODE_TO_CHAR[mode], expiresAtMinutes, slot);
+  const expected =
+    parts.length === 4
+      ? sign(reference, MODE_TO_CHAR[mode], expiresAtMinutes, slot)
+      : signWithoutSlot(reference, MODE_TO_CHAR[mode], expiresAtMinutes);
   if (!safeEqual(signature, expected)) {
     return { valid: false, reason: 'bad-signature' };
   }
