@@ -15,7 +15,7 @@ const fs = require('fs');
 const BASE = 'http://localhost:3000';
 const OUT = process.argv[2] || 'evidence/a11y/axe-dynamic-after.json';
 
-const analyze = (_page) =>
+const analyze = (page) =>
   new AxePuppeteer(page).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
 
 const slim = (r) =>
@@ -36,7 +36,7 @@ const scenarios = [
     name: 'mobile-menu-open (he)',
     url: `${BASE}/he`,
     viewport: { width: 390, height: 844, isMobile: true },
-    async setup(_page) {
+    async setup(page) {
       await page.click('button[aria-controls="mobile-menu"]');
       await page.waitForSelector('#mobile-menu', { timeout: 5000 });
     },
@@ -45,7 +45,7 @@ const scenarios = [
     name: 'mobile-menu-open (en)',
     url: `${BASE}/en`,
     viewport: { width: 390, height: 844, isMobile: true },
-    async setup(_page) {
+    async setup(page) {
       await page.click('button[aria-controls="mobile-menu"]');
       await page.waitForSelector('#mobile-menu', { timeout: 5000 });
     },
@@ -53,7 +53,7 @@ const scenarios = [
   {
     name: 'faq-accordion-expanded (he)',
     url: `${BASE}/he`,
-    async setup(_page) {
+    async setup(page) {
       await page.waitForSelector('#faq-button-0', { timeout: 10000 });
       await page.click('#faq-button-0');
       await page.waitForSelector('#faq-panel-0', { timeout: 5000 });
@@ -62,7 +62,7 @@ const scenarios = [
   {
     name: 'faq-accordion-expanded (en)',
     url: `${BASE}/en`,
-    async setup(_page) {
+    async setup(page) {
       await page.waitForSelector('#faq-button-0', { timeout: 10000 });
       await page.click('#faq-button-0');
       await page.waitForSelector('#faq-panel-0', { timeout: 5000 });
@@ -71,7 +71,7 @@ const scenarios = [
   {
     name: 'hero-datepicker-open (he)',
     url: `${BASE}/he`,
-    async setup(_page) {
+    async setup(page) {
       // There are mobile and desktop copies; only one is visible.
       const clicked = await page.evaluate(() => {
         const btns = [...document.querySelectorAll('button[aria-haspopup="dialog"]')];
@@ -90,7 +90,7 @@ const scenarios = [
   {
     name: 'cookie-banner-visible (he)',
     url: `${BASE}/he`,
-    async setup(_page) {
+    async setup(page) {
       // Banner shows only without a prior consent cookie; fresh context has none.
       await new Promise((r) => setTimeout(r, 1500));
     },
@@ -98,7 +98,7 @@ const scenarios = [
   {
     name: 'review-form-open (he)',
     url: `${BASE}/he`,
-    async setup(_page) {
+    async setup(page) {
       const clicked = await page.evaluate(() => {
         const b = [...document.querySelectorAll('button')].find((x) =>
           x.textContent.includes('כתוב ביקורת')
@@ -113,7 +113,7 @@ const scenarios = [
   {
     name: 'leasing-inquiry-form-open (he)',
     url: `${BASE}/he/leasing`,
-    async setup(_page) {
+    async setup(page) {
       await new Promise((r) => setTimeout(r, 1500));
       await page.evaluate(() => {
         const b = [...document.querySelectorAll('button')].find((x) =>
@@ -127,7 +127,7 @@ const scenarios = [
   {
     name: 'booking-form-validation-errors (he)',
     url: null, // resolved at runtime to the first vehicle
-    async setup(_page) {
+    async setup(page) {
       await new Promise((r) => setTimeout(r, 1500));
       // Submit empty to force the error state
       await page.evaluate(() => {
@@ -140,14 +140,14 @@ const scenarios = [
   {
     name: 'contact-form (he)',
     url: `${BASE}/he/contact`,
-    async setup(_page) {
+    async setup(page) {
       await new Promise((r) => setTimeout(r, 1200));
     },
   },
   {
     name: 'condition-report-form (he)',
     url: `${BASE}/he/condition-report`,
-    async setup(_page) {
+    async setup(page) {
       await new Promise((r) => setTimeout(r, 1200));
     },
   },

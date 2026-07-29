@@ -284,7 +284,7 @@ function LocationSelector({
           the field rather than being colour-only. role="alert" announces it
           when validation fails after a submit attempt. */}
       {error && (
-        <p id={`${id}-error`} role="alert" className="text-xs text-red-500">
+        <p id={`${id}-error`} role="alert" className="text-xs text-red-700">
           {error}
         </p>
       )}
@@ -586,7 +586,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
 
       {(!pickupDate || !dropoffDate) ? (
         <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 text-center animate-pulse">
-          <p className="text-red-500 font-bold">
+          <p className="text-red-700 font-bold">
             {isHe ? '⚠️ יש לבחור תאריכים לצפייה במחיר הסופי' : '⚠️ Select dates to see final price'}
           </p>
         </div>
@@ -619,7 +619,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
               className="w-full"
             />
           </div>
-          {errors.pickupDate && <p className="text-xs text-red-500 mt-1">{errors.pickupDate.message}</p>}
+          {errors.pickupDate && <p className="text-xs text-red-700 mt-1">{errors.pickupDate.message}</p>}
         </div>
         {/* Return date */}
         <div>
@@ -636,7 +636,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
               className="w-full"
             />
           </div>
-          {errors.dropoffDate && <p className="text-xs text-red-500 mt-1">{errors.dropoffDate.message}</p>}
+          {errors.dropoffDate && <p className="text-xs text-red-700 mt-1">{errors.dropoffDate.message}</p>}
         </div>
       </div>
 
@@ -743,7 +743,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
               className={`w-full h-10 rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] ${errors.customerIdNumber ? 'border-red-400' : 'border-gray-200'}`}
               {...register('customerIdNumber')}
             />
-            {errors.customerIdNumber && <p className="text-xs text-red-500 mt-1">{errors.customerIdNumber.message}</p>}
+            {errors.customerIdNumber && <p className="text-xs text-red-700 mt-1">{errors.customerIdNumber.message}</p>}
           </div>
         </div>
       </div>
@@ -873,7 +873,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
             </p>
           )}
           {couponState.status === 'invalid' && (
-            <p className="text-red-500 text-xs mt-1">{isHe ? 'קוד קופון לא תקין' : 'Invalid coupon code'}</p>
+            <p className="text-red-700 text-xs mt-1">{isHe ? 'קוד קופון לא תקין' : 'Invalid coupon code'}</p>
           )}
         </div>
       )}
@@ -950,7 +950,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
                 <a href={`/${locale}/terms`} target="_blank" rel="noopener noreferrer" className="text-[#2D5F5F] underline font-medium">תנאי השימוש</a>
                 {' '}ול
                 <a href={`/${locale}/privacy`} target="_blank" rel="noopener noreferrer" className="text-[#2D5F5F] underline font-medium">מדיניות הפרטיות</a>
-                {' '}של SmartCar. <span className="text-red-500">*</span>
+                {' '}של SmartCar. <span className="text-red-700">*</span>
               </>
             ) : (
               <>
@@ -958,13 +958,13 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
                 <a href={`/${locale}/terms`} target="_blank" rel="noopener noreferrer" className="text-[#2D5F5F] underline font-medium">Terms of Use</a>
                 {' '}and{' '}
                 <a href={`/${locale}/privacy`} target="_blank" rel="noopener noreferrer" className="text-[#2D5F5F] underline font-medium">Privacy Policy</a>.{' '}
-                <span className="text-red-500">*</span>
+                <span className="text-red-700">*</span>
               </>
             )}
           </span>
         </label>
         {errors.agreeTerms && (
-          <p className="text-xs text-red-500 me-7">{errors.agreeTerms.message}</p>
+          <p className="text-xs text-red-700 me-7">{errors.agreeTerms.message}</p>
         )}
 
         <label className="flex items-start gap-3 cursor-pointer group">

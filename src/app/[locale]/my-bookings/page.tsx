@@ -267,7 +267,7 @@ export default function MyBookingsPage() {
                   />
                 </div>
                 {authError && (
-                  <p role="alert" className="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-lg">{authError}</p>
+                  <p role="alert" className="text-red-700 text-xs bg-red-50 px-3 py-2 rounded-lg">{authError}</p>
                 )}
                 <button
                   type="submit"
@@ -323,7 +323,7 @@ export default function MyBookingsPage() {
                   />
                 </div>
                 {authError && (
-                  <p id="otp-error" role="alert" className="text-red-500 text-xs bg-red-50 px-3 py-2 rounded-lg">{authError}</p>
+                  <p id="otp-error" role="alert" className="text-red-700 text-xs bg-red-50 px-3 py-2 rounded-lg">{authError}</p>
                 )}
                 <button
                   type="submit"
@@ -365,7 +365,7 @@ export default function MyBookingsPage() {
           {bookingsError && (
             <div className="text-center py-16">
               <AlertCircle className="w-10 h-10 text-red-300 mx-auto mb-3" />
-              <p className="text-red-500">{bookingsError}</p>
+              <p className="text-red-700">{bookingsError}</p>
             </div>
           )}
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState, useRef, Suspense } from 'react';
+import { useEffect, useId, useMemo, useState, useRef, Suspense } from 'react';
 import Image from 'next/image';
 import { Phone, Mail, Users, Settings, Fuel, Send, CheckCircle } from 'lucide-react';
 import type { Vehicle } from '@/types';
@@ -42,6 +42,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
   // Two things here genuinely cannot be derived: the customer releasing the
   // URL-pinned vehicle via "Change", and whatever they pick afterwards.
   // Everything else follows from those plus the query string.
+  const fieldId = useId();
   const [unlocked, setUnlocked] = useState(false);
   const [pickedVehicle, setPickedVehicle] = useState<Vehicle | null>(null);
   const vehicleLockedFromUrl = vehicleFromUrl !== null && !unlocked;
@@ -330,26 +331,26 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
             </p>
             <form onSubmit={handleSubmitInquiry} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                <label htmlFor={`${fieldId}-name`} className="block text-sm font-semibold text-gray-700 mb-1">
                   {isHe ? 'שם מלא *' : 'Full Name *'}
                 </label>
-                <input type="text" required value={formName} onChange={e => setFormName(e.target.value)}
+                <input id={`${fieldId}-name`} autoComplete="name" type="text" required value={formName} onChange={e => setFormName(e.target.value)}
                   placeholder={isHe ? 'ישראל ישראלי' : 'John Doe'}
                   className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] bg-white" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                <label htmlFor={`${fieldId}-phone`} className="block text-sm font-semibold text-gray-700 mb-1">
                   {isHe ? 'טלפון *' : 'Phone *'}
                 </label>
-                <input type="tel" required value={formPhone} onChange={e => setFormPhone(e.target.value)}
+                <input id={`${fieldId}-phone`} autoComplete="tel" type="tel" required value={formPhone} onChange={e => setFormPhone(e.target.value)}
                   placeholder="050-0000000"
                   className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] bg-white" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                <label htmlFor={`${fieldId}-email`} className="block text-sm font-semibold text-gray-700 mb-1">
                   {isHe ? 'אימייל' : 'Email'}
                 </label>
-                <input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)}
+                <input id={`${fieldId}-email`} autoComplete="email" type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)}
                   placeholder="email@example.com"
                   className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] bg-white" />
               </div>

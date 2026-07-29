@@ -152,13 +152,6 @@ export default function Footer() {
             >
               {locale === 'he' ? 'העדפות עוגיות' : 'Cookie Preferences'}
             </button>
-            <a
-              href={`/${locale}/admin/login`}
-              className="text-gray-600 hover:text-gray-600 transition-colors text-xs"
-              title="ניהול"
-            >
-              ⚙️
-            </a>
           </div>
         </div>
       </div>

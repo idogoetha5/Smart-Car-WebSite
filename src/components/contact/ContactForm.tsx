@@ -124,13 +124,13 @@ export default function ContactForm({ isHe }: { isHe: boolean }) {
         />
       </div>
       {turnstileError && (
-        <p className="text-xs text-red-500 text-center">
+        <p className="text-xs text-red-700 text-center">
           {isHe ? 'יש להשלים את אימות האנטי-בוט' : 'Please complete the anti-bot verification'}
         </p>
       )}
 
       {submitError && (
-        <p className="text-sm text-red-500 text-center">
+        <p role="alert" className="text-sm text-red-700 text-center">
           {isHe ? 'שגיאה בשליחה, נסה שנית או התקשר אלינו' : 'Error sending message — please try again or call us'}
         </p>
       )}
