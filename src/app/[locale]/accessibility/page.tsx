@@ -1,4 +1,5 @@
 import { localeAlternates } from '@/lib/seo';
+import LegalContact from '@/components/legal/LegalContact';
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const isHe = locale === 'he';
@@ -61,14 +62,7 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
               <p>נתקלת בבעיית נגישות? נשמח לשמוע ולתקן. ניתן לפנות אלינו בכל אחת מהדרכים הבאות:</p>
             </section>
 
-            <section>
-              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">פרטי יצירת קשר בנושא נגישות</h2>
-              <ul className="list-none space-y-2">
-                <li>📧 <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a></li>
-                <li>📞 <a href="tel:09-9509757" className="text-[#2D5F5F] underline">09-9509757</a></li>
-                <li>📍 רמת ים 122, הרצליה</li>
-              </ul>
-            </section>
+            <LegalContact topic="accessibility" locale={locale} />
 
             <div className="bg-[#eef6f6] rounded-2xl p-6 border border-[#B8D8D8]">
               <p className="text-sm text-gray-600">
@@ -101,10 +95,7 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
               <p className="mt-2">Accessibility is an ongoing process. We continuously work to identify and fix additional issues and improve conformance with Israeli Standard 5568 and WCAG 2.1 AA.</p>
             </section>
 
-            <section>
-              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">Accessibility Contact</h2>
-              <p>📧 <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a> | 📞 09-9509757</p>
-            </section>
+            <LegalContact topic="accessibility" locale={locale} />
           </>
         )}
       </div>

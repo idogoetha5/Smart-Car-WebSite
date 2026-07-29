@@ -1,4 +1,5 @@
 import { localeAlternates } from '@/lib/seo';
+import LegalContact from '@/components/legal/LegalContact';
 import type { Metadata } from 'next';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
@@ -34,7 +35,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
           <>
             <section>
               <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">1. מי אנחנו</h2>
-              <p>SmartCar (להלן: "החברה") היא מפעילת שירותי השכרת רכב וליסינג הפועלת בישראל. החברה היא "בעל מאגר מידע" כהגדרת חוק הגנת הפרטיות, תשמ"א-1981.</p>
+              <p>SmartCar (להלן: "החברה") היא מפעילת שירותי השכרת רכב וליסינג הפועלת בישראל.</p>
               <p className="mt-2">לשאלות בנושא פרטיות ולמימוש זכויות לפי חוק הגנת הפרטיות ניתן לפנות אלינו: <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a></p>
             </section>
 
@@ -194,20 +195,13 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
               <p>אם אינך מרוצה מטיפולנו בפנייתך, תוכל להגיש תלונה לרשות להגנת הפרטיות בישראל: <a href="https://www.gov.il/he/departments/the_privacy_protection_authority" className="text-[#2D5F5F] underline" target="_blank" rel="noopener noreferrer">gov.il/departments/privacy</a></p>
             </section>
 
-            <section>
-              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">11. יצירת קשר בנושא פרטיות</h2>
-              <ul className="list-none space-y-1 text-sm">
-                <li>📧 <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a></li>
-                <li>📞 <a href="tel:09-9509757" className="text-[#2D5F5F] underline">09-9509757</a></li>
-                <li>📍 רמת ים 122, הרצליה 46851</li>
-              </ul>
-            </section>
+            <LegalContact topic="privacy" locale={locale} />
           </>
         ) : (
           <>
             <section>
               <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">1. Who We Are</h2>
-              <p>SmartCar ("the Company") operates car rental and leasing services in Israel. We are a "database holder" under the Israeli Privacy Protection Law, 5741-1981. For privacy questions or to exercise your rights, contact us at <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a>.</p>
+              <p>SmartCar ("the Company") operates car rental and leasing services in Israel. For privacy questions or to exercise your rights, contact us at <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a>.</p>
             </section>
 
             <section>
@@ -280,14 +274,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
               </ul>
             </section>
 
-            <section>
-              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">6. Privacy Contact</h2>
-              <ul className="list-none space-y-1 text-sm">
-                <li>📧 <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a></li>
-                <li>📞 <a href="tel:09-9509757" className="text-[#2D5F5F] underline">09-9509757</a></li>
-                <li>📍 Ramat Yam 122, Herzliya 46851, Israel</li>
-              </ul>
-            </section>
+            <LegalContact topic="privacy" locale={locale} />
           </>
         )}
       </div>
