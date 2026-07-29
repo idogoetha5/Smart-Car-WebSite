@@ -90,7 +90,7 @@ const scenarios = [
   {
     name: 'cookie-banner-visible (he)',
     url: `${BASE}/he`,
-    async setup(page) {
+    async setup(_page) {
       // Banner shows only without a prior consent cookie; fresh context has none.
       await new Promise((r) => setTimeout(r, 1500));
     },
@@ -140,14 +140,14 @@ const scenarios = [
   {
     name: 'contact-form (he)',
     url: `${BASE}/he/contact`,
-    async setup(page) {
+    async setup(_page) {
       await new Promise((r) => setTimeout(r, 1200));
     },
   },
   {
     name: 'condition-report-form (he)',
     url: `${BASE}/he/condition-report`,
-    async setup(page) {
+    async setup(_page) {
       await new Promise((r) => setTimeout(r, 1200));
     },
   },
