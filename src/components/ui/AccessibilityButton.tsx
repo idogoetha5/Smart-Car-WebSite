@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
+import { Accessibility } from 'lucide-react';
 import { hidesSiteHeader } from '@/lib/site-chrome';
 
 /**
@@ -58,7 +59,11 @@ export default function AccessibilityButton() {
         'transition-[opacity,background-color] motion-reduce:transition-none'
       }
     >
-      <span aria-hidden="true" className="text-lg leading-none">♿</span>
+      {/* A drawn icon rather than the ♿ emoji, which renders as a different
+          glyph on every platform and at whatever weight the system font
+          feels like. The link's aria-label is the accessible name, so the
+          icon is hidden from assistive technology. */}
+      <Accessibility className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
     </Link>
   );
 }
