@@ -117,8 +117,8 @@ export default function CookieBanner() {
       >
         <p className={`text-sm flex-1 leading-relaxed ${isHe ? 'text-right' : 'text-left'}`}>
           {isHe
-            ? 'אתר זה משתמש בעוגיות לשיפור חוויית הגלישה. ניתן לאשר שימוש בעוגיות לא חיוניות, או לדחות ולהשתמש רק בעוגיות הכרחיות.'
-            : 'This site uses cookies to improve your experience. You may accept non-essential cookies, or decline to use only strictly necessary cookies.'}
+            ? 'אנחנו משתמשים בעוגיות ובטכנולוגיות דומות להפעלת האתר, לשיפור השירות, לניתוח השימוש ולמטרות שיווק. עוגיות שאינן הכרחיות יופעלו רק בהסכמתך.'
+            : 'We use cookies and similar technologies to operate the website, improve our service, analyse usage and for marketing purposes. Non-essential cookies will only be enabled with your consent.'}
         </p>
         <div className={`flex gap-3 shrink-0 ${isHe ? 'flex-row-reverse' : ''}`}>
           <Link
