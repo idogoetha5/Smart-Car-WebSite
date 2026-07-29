@@ -78,7 +78,6 @@ export async function POST(request: Request) {
       {
         from: `SmartCar <${OFFICE_EMAIL}>`,
         to: data.customerEmail.trim(),
-        bcc: OFFICE_EMAIL,
         replyTo: OFFICE_EMAIL,
         subject: content.subject,
         html: content.html,
