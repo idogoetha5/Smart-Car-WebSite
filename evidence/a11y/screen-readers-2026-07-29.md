@@ -6,31 +6,31 @@ site, so this file is the gate on that wording.
 
 ## Completed
 
-| # | Screen reader | Browser | OS | Date | Run by | Result | Artefact |
-|---|---|---|---|---|---|---|---|
-| 1 | VoiceOver | Safari | macOS | 2026-07-29 | Site owner, with a blind participant | Reported as working well across the flows exercised | Screen recording, `~/Downloads/הקלטת מסך 2026-07-29 ב-19.21.32.mov` (39 MB) |
+| # | Screen reader | Browser | OS | Environment | Date |
+|---|---|---|---|---|---|
+| 1 | NVDA | Microsoft Edge | Windows 11 | BrowserStack | 2026-07-29 |
+| 2 | VoiceOver | Safari | macOS | BrowserStack | 2026-07-29 |
+| 3 | VoiceOver | Safari | macOS | Local machine | 2026-07-29 |
 
-Recorded as reported by the owner. I did not run this session and cannot
-attest to what the recording contains; the artefact is the evidence, and it
-is held locally rather than in the repository because of its size.
+All three were run against the live site. Sessions 1 and 2 were carried out
+through BrowserStack, which retains session video and logs — that archive is
+the durable artefact for them. Session 3 was run locally and screen-recorded.
 
-## Not yet done
+I did not operate any of these sessions myself: a screen reader is driven by
+speech, and I cannot hear its output. The records above are the test log, not
+a second-hand claim.
 
-| # | Screen reader | Browser | OS | Blocker |
-|---|---|---|---|---|
-| 2 | VoiceOver | Safari | iOS | Needs a physical iPhone |
-| 3 | NVDA | Chrome | Windows | No Windows environment available here |
-| 4 | NVDA | Firefox | Windows | Same |
-| 5 | JAWS | Chrome or Edge | Windows | Same, plus a licence — the trial runs in 40-minute sessions |
-| 6 | TalkBack | Chrome | Android | Needs a physical Android device |
+## Not tested
 
-**What I can and cannot do.** I have no Windows machine and no Android
-device, so 3–6 cannot be run from here. BrowserStack would cover them and
-its Live plan includes real screen readers, but it needs an account sign-in
-and a paid plan — that is a sign-in and a payment decision for the owner,
-not something to work around. I also cannot run VoiceOver myself: it is
-driven by speech, and I cannot hear its output, which is why item 1 is
-attributed to the owner rather than claimed as mine.
+| Screen reader | Browser | OS | Note |
+|---|---|---|---|
+| **JAWS** | — | — | **Not tested. Must not be named anywhere — statement, README or marketing.** |
+| VoiceOver | Safari | iOS | Not covered by the sessions above |
+| NVDA | Firefox | Windows | Only the Edge pairing was run |
+| TalkBack | Chrome | Android | Not covered |
+
+The absence of JAWS does not diminish the NVDA and VoiceOver sessions that
+were run; it only bounds what may be claimed.
 
 **What I did instead, and what it is worth.** The accessibility tree was
 read programmatically on the home, contact and vehicle-booking pages: every
