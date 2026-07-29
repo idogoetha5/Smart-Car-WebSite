@@ -101,6 +101,9 @@ NEXT_PUBLIC_EMAILJS_TEMPLATE_ID=template_xxxxxxx   # מייל "הזמנה התק
 NEXT_PUBLIC_EMAILJS_PUBLIC_KEY=your_public_key
 EMAILJS_PRIVATE_KEY=your_private_key               # לשליחה server-side (צור קשר)
 
+# Resend — שליחת הצעות מחיר עם PDF מצורף
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
 # Upstash Redis (rate limiting)
 UPSTASH_REDIS_REST_URL=https://your-url.upstash.io
 UPSTASH_REDIS_REST_TOKEN=your_token

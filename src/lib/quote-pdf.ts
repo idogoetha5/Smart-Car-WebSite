@@ -43,6 +43,10 @@ function addDays(dateStr: string, days: number): string {
   return dt.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+export function quoteValidUntil(data: Pick<QuoteData, 'date' | 'validUntil'>): string {
+  return data.validUntil ?? (data.date ? addDays(data.date, 30) : '—');
+}
+
 const FONT_FACES = `
 @font-face{font-family:'Heebo';font-weight:400;font-style:normal;src:url(data:font/ttf;base64,${heebo400}) format('truetype');}
 @font-face{font-family:'Heebo';font-weight:700;font-style:normal;src:url(data:font/ttf;base64,${heebo700}) format('truetype');}
@@ -158,7 +162,7 @@ export function generateQuoteHTML(data: QuoteData): string {
 
 export function quoteBodyHTML(data: QuoteData): string {
   const logoUrl = `data:image/png;base64,${logo_png}`;
-  const validUntil = data.validUntil ?? (data.date ? addDays(data.date, 30) : '—');
+  const validUntil = quoteValidUntil(data);
   const activeVehicles = data.vehicles.filter((v) => v.name);
   const isSingle = activeVehicles.length <= 1;
 

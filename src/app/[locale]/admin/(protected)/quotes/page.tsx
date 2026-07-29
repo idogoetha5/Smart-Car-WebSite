@@ -29,6 +29,7 @@ export default function AdminQuotesPage() {
   const [inventory, setInventory] = useState<InventoryVehicle[]>([]);
   const [busy, setBusy] = useState<'pdf' | 'send' | null>(null);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const previewWrapRef = useRef<HTMLDivElement>(null);
   const [previewScale, setPreviewScale] = useState(0.5);
 
@@ -110,6 +111,7 @@ export default function AdminQuotesPage() {
 
   async function fetchPdf(): Promise<Blob | null> {
     setError('');
+    setSuccess('');
     const res = await fetch('/api/admin/quote-pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -150,23 +152,39 @@ export default function AdminQuotesPage() {
   const handleSend = async () => {
     if (!customerEmail) {
       setError('יש להזין כתובת מייל של הלקוח כדי לשלוח');
+      setSuccess('');
       return;
     }
+
     setBusy('send');
-    const blob = await fetchPdf();
-    if (blob) {
-      downloadBlob(blob);
-      const subject = encodeURIComponent('SmartCar - הצעת מחיר');
-      const body = encodeURIComponent(
-        `שלום ${customerName},\n\n` +
-        `מצורפת הצעת המחיר שביקשת מסמארטקאר (קובץ ה-PDF שהורד כרגע — יש לצרף אותו כאן).\n` +
-        `לכל שאלה אנחנו זמינים.\n\n` +
-        `סמארטקאר — השכרת רכב עד בית הלקוח\n` +
-        `www.smartcar.co.il | 09-9509757`
-      );
-      window.open(`mailto:${customerEmail}?subject=${subject}&body=${body}`, '_self');
+    setError('');
+    setSuccess('');
+
+    try {
+      const res = await fetch('/api/admin/quote-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(quoteData),
+      });
+
+      if (res.status === 401) {
+        setError('ההתחברות שלך פגה — מעביר אותך לדף ההתחברות...');
+        setTimeout(() => { window.location.href = '/he/admin/login'; }, 1200);
+        return;
+      }
+
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(body.error || 'שליחת הצעת המחיר נכשלה, נסה שוב');
+        return;
+      }
+
+      setSuccess(`הצעת המחיר נשלחה בהצלחה ל־${customerEmail}`);
+    } catch {
+      setError('לא ניתן היה לשלוח את הצעת המחיר כרגע, נסה שוב');
+    } finally {
+      setBusy(null);
     }
-    setBusy(null);
   };
 
   return (
@@ -194,7 +212,13 @@ export default function AdminQuotesPage() {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>
+        <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>
+      )}
+
+      {success && (
+        <div role="status" aria-live="polite" className="mb-4 p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg text-sm">
+          {success}
+        </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
