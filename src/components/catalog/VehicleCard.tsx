@@ -104,7 +104,9 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
           <Image
             key={currentImg}
             src={currentImg}
-            alt={`${vehicle.year} ${vehicle.make} ${vehicle.model} — תמונה ${imgIdx + 1} מתוך ${images.length}`}
+            alt={isHe
+              ? `${vehicle.year} ${vehicle.make} ${vehicle.model} — תמונה ${imgIdx + 1} מתוך ${images.length}`
+              : `${vehicle.year} ${vehicle.make} ${vehicle.model} — image ${imgIdx + 1} of ${images.length}`}
             fill
             priority={priority && imgIdx === 0}
             loading={priority ? undefined : 'lazy'}
@@ -129,19 +131,21 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
           <>
             <button
               onClick={prevImg}
-              className="absolute start-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/80 hover:bg-white shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
-              aria-label="Previous image"
+              type="button"
+              className="absolute start-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/85 hover:bg-white shadow flex items-center justify-center z-10 transition-opacity duration-200 opacity-80 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F] focus-visible:ring-offset-1"
+              aria-label={isHe ? 'התמונה הקודמת' : 'Previous image'}
             >
-              <svg className="w-3.5 h-3.5 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 {isHe ? <path d="M9 18l6-6-6-6"/> : <path d="M15 18l-6-6 6-6"/>}
               </svg>
             </button>
             <button
               onClick={nextImg}
-              className="absolute end-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/80 hover:bg-white shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
-              aria-label="Next image"
+              type="button"
+              className="absolute end-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/85 hover:bg-white shadow flex items-center justify-center z-10 transition-opacity duration-200 opacity-80 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F] focus-visible:ring-offset-1"
+              aria-label={isHe ? 'התמונה הבאה' : 'Next image'}
             >
-              <svg className="w-3.5 h-3.5 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 {isHe ? <path d="M15 18l-6-6 6-6"/> : <path d="M9 18l6-6-6-6"/>}
               </svg>
             </button>
@@ -153,10 +157,20 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
                 {images.map((_, i) => (
                   <button
                     key={i}
+                    type="button"
                     onClick={(e) => { e.preventDefault(); setImgIdx(i); }}
-                    className={`rounded-full transition-all duration-200 ${i === imgIdx ? 'w-4 h-1.5 bg-[#2D5F5F]' : 'w-1.5 h-1.5 bg-white/60 hover:bg-white/90'}`}
-                    aria-label={`Image ${i + 1}`}
-                  />
+                    // The dot itself stays 6px; the button around it is 24px,
+                    // which is the smallest target WCAG accepts. It used to be
+                    // the dot — a 6px tap target.
+                    className="w-6 h-6 flex items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F]"
+                    aria-label={isHe ? `תמונה ${i + 1} מתוך ${images.length}` : `Image ${i + 1} of ${images.length}`}
+                    aria-current={i === imgIdx ? 'true' : undefined}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`rounded-full transition-all duration-200 ${i === imgIdx ? 'w-4 h-1.5 bg-[#2D5F5F]' : 'w-1.5 h-1.5 bg-white/60 hover:bg-white/90'}`}
+                    />
+                  </button>
                 ))}
               </div>
             </div>

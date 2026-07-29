@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useLocale } from 'next-intl';
 import Image from 'next/image';
 
 interface Props {
@@ -20,6 +21,9 @@ function CarPlaceholder({ className = '' }: { className?: string }) {
 }
 
 export default function VehicleGallery({ images, alt }: Props) {
+  // Every string a screen reader reads out here used to be Hebrew, on the
+  // English page too — the alt text, the group name and each thumbnail.
+  const isHe = useLocale() === 'he';
   const [active, setActive] = useState(0);
   // Tracked per URL rather than per index, so switching thumbnails cannot
   // carry a previous image's failure over to a working one.
@@ -47,17 +51,22 @@ export default function VehicleGallery({ images, alt }: Props) {
         this gallery rendered blank on every vehicle while the thumbnails
         still worked.
       */}
-      <div className="aspect-video bg-[#eef6f6] rounded-2xl overflow-hidden mb-3 relative">
+      <div
+        className="aspect-video bg-[#eef6f6] rounded-2xl overflow-hidden mb-3 relative"
+        aria-live="polite"
+      >
         {currentFailed ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[#2D5F5F]">
             <CarPlaceholder className="w-28 h-16" />
-            <p className="text-xs text-gray-600">תמונה לא זמינה / Image unavailable</p>
+            <p className="text-xs text-gray-600">{isHe ? 'תמונה לא זמינה' : 'Image unavailable'}</p>
           </div>
         ) : (
           <Image
             key={current}
             src={current}
-            alt={`${alt} — תמונה ${active + 1} מתוך ${images.length}`}
+            alt={isHe
+              ? `${alt} — תמונה ${active + 1} מתוך ${images.length}`
+              : `${alt} — image ${active + 1} of ${images.length}`}
             fill
             priority={active === 0}
             // object-contain keeps the whole vehicle visible; the modest
@@ -72,14 +81,18 @@ export default function VehicleGallery({ images, alt }: Props) {
 
       {/* Thumbnails */}
       {images.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="תמונות הרכב">
+        <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label={isHe ? 'תמונות הרכב' : 'Vehicle images'}>
           {images.map((src, i) => (
             <button
               key={src}
               type="button"
               onClick={() => setActive(i)}
-              aria-label={`הצגת תמונה ${i + 1} מתוך ${images.length}`}
-              aria-current={i === active ? 'true' : undefined}
+              aria-label={isHe
+                ? `הצגת תמונה ${i + 1} מתוך ${images.length}`
+                : `Show image ${i + 1} of ${images.length}`}
+              // A button that selects one of a set reports its state with
+              // aria-pressed; aria-current is for navigation.
+              aria-pressed={i === active}
               className={`flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-all relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F] focus-visible:ring-offset-2 ${
                 i === active ? 'border-[#B64916]' : 'border-transparent opacity-60 hover:opacity-100'
               }`}
