@@ -1,4 +1,5 @@
 import emailjs from '@emailjs/browser';
+import { numericOrderReference } from '@/lib/order-reference';
 
 const SERVICE_ID  = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID  ?? '';
 const TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID ?? '';
@@ -54,7 +55,7 @@ export async function sendBookingEmail({
   const templateParams = {
     to_email:        customerEmail,
     to_name:         customerName,
-    order_id:        bookingId.slice(0, 8).toUpperCase(),
+    order_id:        numericOrderReference(bookingId),
     booking_type:    bookingType,
     vehicle_name:    vehicleName,
     start_date:      formatDate(startDate),

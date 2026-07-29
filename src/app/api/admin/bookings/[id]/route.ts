@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { verifyAdminToken } from '@/lib/admin-auth';
 import { alreadyDelivered, sendTemplateEmail } from '@/lib/email-delivery';
 import { formatLocationForCustomer } from '@/lib/location-display';
+import { numericOrderReference } from '@/lib/order-reference';
 
 const LOGO_URL = 'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/logo.png';
 
@@ -69,7 +70,7 @@ async function sendConfirmationEmail(booking: ConfirmableBooking): Promise<boole
     params: {
           to_email:          booking.customer_email,
           to_name:           booking.customer_name,
-          order_id:          String(booking.id).slice(0, 8).toUpperCase(),
+          order_id:          numericOrderReference(String(booking.id)),
           booking_type:      'השכרה',
           vehicle_name:      `${booking.vehicle?.make ?? ''} ${booking.vehicle?.model ?? ''}`.trim(),
           start_date:        formatDate(booking.pickup_date),
@@ -86,8 +87,8 @@ async function sendConfirmationEmail(booking: ConfirmableBooking): Promise<boole
                                 ? booking.extras.map((e: string) => EXTRAS_LABELS_HE[e] ?? e).join(', ')
                                 : 'ללא',
           down_payment:      booking.total_price ? `₪${Math.round(Number(booking.total_price) * 0.05).toLocaleString()}` : '-',
-          payment_link:      whatsappDepositLink(String(booking.id).slice(0, 8).toUpperCase()),
-          payment_link_text: whatsappDepositLink(String(booking.id).slice(0, 8).toUpperCase()),
+          payment_link:      whatsappDepositLink(numericOrderReference(String(booking.id))),
+          payment_link_text: whatsappDepositLink(numericOrderReference(String(booking.id))),
       bcc_email:         'office@smartcar.co.il',
       logo_url:          LOGO_URL,
     },

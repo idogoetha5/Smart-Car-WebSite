@@ -28,6 +28,7 @@ export function validRentalQuoteData(value: unknown): value is RentalQuoteData {
       data.returnLocation?.trim() &&
       data.returnLocation.length <= 240 &&
       (data.locale === 'he' || data.locale === 'en') &&
+      (data.documentMode === 'quote' || data.documentMode === 'confirmation') &&
       (data.vatMode === 'included' ||
         data.vatMode === 'excluded' ||
         data.vatMode === 'not_applicable') &&
@@ -36,6 +37,8 @@ export function validRentalQuoteData(value: unknown): value is RentalQuoteData {
       data.vehicles.length <= 4 &&
       data.vehicles.some((vehicle) => vehicle?.name?.trim()) &&
       Array.isArray(data.extras) &&
-      data.extras.length <= 12
+      data.extras.length <= 12 &&
+      data.insuranceCoverage?.trim() &&
+      data.insuranceCoverage.length <= 240
   );
 }

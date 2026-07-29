@@ -4,6 +4,7 @@ import { verifyTurnstile } from '@/lib/turnstile';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { isValidInternationalPhone } from '@/lib/validations';
 import { sendTemplateEmail } from '@/lib/email-delivery';
+import { numericOrderReference } from '@/lib/order-reference';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
       bcc_email: 'office@smartcar.co.il',
       reply_to: email || 'office@smartcar.co.il',
       booking_type: 'פניית ליסינג',
-      order_id: String(data.id).slice(0, 8).toUpperCase(),
+      order_id: numericOrderReference(String(data.id)),
       vehicle_name: `פניית ליסינג חדשה\n\nשם: ${name}\nטלפון: ${phone}${email ? `\nדוא"ל: ${email}` : ''}\nתקופה: ${body.duration_months ?? 36} חודשים\nחבילת ק"מ: ${body.mileage_package ?? 15000}${body.notes ? `\n\nהערות: ${String(body.notes).slice(0, 500)}` : ''}`,
       customer_phone: phone,
       start_date: '-',

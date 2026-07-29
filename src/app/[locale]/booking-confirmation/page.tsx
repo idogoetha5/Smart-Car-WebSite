@@ -3,6 +3,7 @@
 import { useSearchParams, useParams } from 'next/navigation';
 import { Suspense, useSyncExternalStore } from 'react';
 import Link from 'next/link';
+import { numericOrderReference } from '@/lib/order-reference';
 
 interface StoredRequest {
   ref?: string;
@@ -51,7 +52,11 @@ function ConfirmationContent() {
   const startDate = details?.start ?? null;
   const endDate = details?.end ?? null;
   const emailSent = details?.emailSent !== false;
-  const confirmationNumber = details?.ref ?? (searchParams.get('id')?.slice(0, 8).toUpperCase() ?? 'PENDING');
+  // The same numeric reference the customer receives by email, so the number
+  // on screen and the number in the inbox always match.
+  const idFromQuery = searchParams.get('id');
+  const confirmationNumber =
+    details?.ref ?? (idFromQuery ? numericOrderReference(idFromQuery) : 'PENDING');
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '—';

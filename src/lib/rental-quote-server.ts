@@ -1,4 +1,8 @@
-import { generateRentalQuoteHTML, type RentalQuoteData } from '@/lib/rental-quote';
+import {
+  fitRentalQuoteToPage,
+  generateRentalQuoteHTML,
+  type RentalQuoteData,
+} from '@/lib/rental-quote';
 
 export async function renderRentalQuotePdf(data: RentalQuoteData): Promise<Buffer> {
   const [{ default: puppeteer }, { default: chromium }] = await Promise.all([
@@ -29,6 +33,10 @@ export async function renderRentalQuotePdf(data: RentalQuoteData): Promise<Buffe
       );
       if (document.fonts?.ready) await document.fonts.ready;
     });
+
+    // Only after images and fonts settle: the measurement has to be taken on
+    // the final layout, or a late-loading font changes the height afterwards.
+    await page.evaluate(fitRentalQuoteToPage);
 
     return Buffer.from(
       await page.pdf({

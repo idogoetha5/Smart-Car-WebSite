@@ -11,6 +11,7 @@ import {
 } from '@/lib/quote-assets';
 
 export type RentalQuoteLocale = 'he' | 'en';
+export type RentalDocumentMode = 'quote' | 'confirmation';
 export type VatMode = 'included' | 'excluded' | 'not_applicable';
 export type ExtraBilling = 'day' | 'flat';
 
@@ -38,6 +39,7 @@ export interface RentalQuoteData {
   date: string;
   validUntil: string;
   locale: RentalQuoteLocale;
+  documentMode: RentalDocumentMode;
   customerName: string;
   customerPhone: string;
   customerEmail: string;
@@ -53,6 +55,7 @@ export interface RentalQuoteData {
   discount: number;
   vatMode: VatMode;
   mileageAllowance: string;
+  insuranceCoverage: string;
   deposit: string;
   deductible: string;
   fuelPolicy: string;
@@ -228,7 +231,7 @@ body{font-family:'Assistant','Heebo',system-ui,sans-serif;color:var(--ink)}
 .journey{margin:14px 42px 0;background:#eaf4f3;border-radius:14px;padding:14px 18px;display:grid;grid-template-columns:1fr 42px 1fr;align-items:center;gap:8px}
 .stop{min-width:0}.stop .where{font-family:'Heebo';font-weight:800;font-size:15px}.stop .when{font-size:11px;color:var(--muted);margin-top:3px}
 .arrow{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff;color:var(--orange);font-size:21px;font-weight:800}
-.section{margin:16px 42px 0}
+.section{margin:14px 42px 0}
 .section-title{display:flex;align-items:center;gap:9px;margin-bottom:9px}
 .section-title span{width:6px;height:21px;border-radius:6px;background:var(--orange)}
 .section-title h2{font-family:'Heebo';font-size:17px;font-weight:800}
@@ -243,7 +246,7 @@ body{font-family:'Assistant','Heebo',system-ui,sans-serif;color:var(--ink)}
 .vehicle .price small{font-family:'Assistant';font-size:10px;color:var(--muted);font-weight:600}
 .details{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .box{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px 14px}
-.list{display:grid;gap:7px}
+.list{display:grid;gap:6px}
 .line{display:flex;justify-content:space-between;gap:12px;font-size:11.5px;padding-bottom:6px;border-bottom:1px solid #edf1ef}
 .line:last-child{border-bottom:0;padding-bottom:0}
 .line b{font-family:'Heebo';font-weight:700;text-align:end}
@@ -257,8 +260,8 @@ body{font-family:'Assistant','Heebo',system-ui,sans-serif;color:var(--ink)}
 .total .grand{border-top:1px solid rgba(255,255,255,.2);margin-top:8px;padding-top:9px;display:flex;justify-content:space-between;align-items:baseline}
 .total .grand span{font-size:12px}.total .grand b{font-family:'Heebo';font-size:27px;color:#f3a466}
 .vat-note{text-align:end;font-size:9.5px;color:#b7cbc7;margin-top:4px}
-.legal{margin:13px 42px 0;padding:10px 13px;border-inline-start:4px solid var(--orange);background:#fff4ed;border-radius:9px;font-size:10px;line-height:1.5;color:#5f5650}
-.thanks{margin:14px 42px 10px;text-align:center;font-family:'Heebo';font-size:16px;font-weight:800;color:var(--green)}
+.legal{margin:11px 42px 0;padding:9px 13px;border-inline-start:4px solid var(--orange);background:#fff4ed;border-radius:9px;font-size:10px;line-height:1.5;color:#5f5650}
+.thanks{margin:11px 42px 9px;text-align:center;font-family:'Heebo';font-size:15px;font-weight:800;color:var(--green)}
 .footer{margin-top:auto;background:#0d2b2b;color:#fff;padding:13px 42px}
 .footer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;font-size:9.5px;color:#b7cbc7}
 .footer-grid b{display:block;color:#fff;font-size:11px;margin-bottom:2px}
@@ -268,14 +271,18 @@ body{font-family:'Assistant','Heebo',system-ui,sans-serif;color:var(--ink)}
 
 const COPY = {
   he: {
-    title: 'הצעת מחיר להשכרת רכב',
+    quoteTitle: 'הצעת מחיר להשכרת רכב',
+    confirmationTitle: 'אישור הזמנה וסיכום עסקה',
     quote: 'מספר הצעה',
+    confirmationNumber: 'מספר אישור',
     customer: 'לכבוד',
     date: 'תאריך',
     valid: 'בתוקף עד',
+    confirmationValid: 'התנאים בתוקף עד',
     pickup: 'איסוף',
     return: 'החזרה',
     vehicles: 'הרכבים בהצעה',
+    confirmationVehicles: 'הרכבים בהזמנה',
     perDay: 'ליום',
     quantity: 'כמות',
     extras: 'תוספות שנבחרו',
@@ -283,6 +290,7 @@ const COPY = {
     days: 'תקופת השכרה',
     daysValue: (days: number) => `${days} ימים`,
     mileage: 'מגבלת קילומטרים',
+    insurance: 'כיסוי ביטוחי',
     deposit: 'פיקדון',
     deductible: 'השתתפות עצמית',
     fuel: 'מדיניות דלק',
@@ -292,24 +300,31 @@ const COPY = {
     discount: 'הנחה',
     vat: 'מע״מ 18%',
     total: 'סה״כ להצעה',
+    confirmationTotal: 'סה״כ לעסקה',
     includedVat: 'המחיר כולל מע״מ',
     excludedVat: 'המחיר לפני מע״מ; המע״מ נוסף בסיכום',
     noVat: 'לא חל מע״מ על הצעה זו',
     notes: 'הערות',
     noNotes: 'הפרטים הסופיים יתואמו מול נציג SmartCar.',
-    legal: 'הצעה זו אינה מהווה אישור הזמנה או התחייבות לזמינות רכב מסוים. ההזמנה, המחיר והתנאים יאושרו סופית בכתב על ידי נציג SmartCar ובכפוף להסכם ההשכרה.',
+    confirmationNoNotes: 'לכל שאלה נוספת נציגי SmartCar זמינים עבורכם.',
+    quoteLegal: 'הצעה זו אינה מהווה אישור הזמנה או התחייבות לזמינות רכב מסוים. ההזמנה, המחיר והתנאים יאושרו סופית בכתב על ידי נציג SmartCar ובכפוף להסכם ההשכרה.',
+    confirmationLegal: 'מסמך זה מסכם את פרטי ההזמנה שאושרו מול נציג SmartCar. ההשכרה כפופה לתנאי הסכם ההשכרה, להצגת מסמכים תקפים ולתנאים שנקבעו במסמך זה.',
     thanks: 'תודה שבחרתם SmartCar. אנחנו כאן כדי להפוך כל נסיעה לפשוטה ונעימה יותר.',
     flat: 'חד-פעמי',
   },
   en: {
-    title: 'Car Rental Quotation',
+    quoteTitle: 'Car Rental Quotation',
+    confirmationTitle: 'Booking Confirmation and Deal Summary',
     quote: 'Quote number',
+    confirmationNumber: 'Confirmation number',
     customer: 'Prepared for',
     date: 'Date',
     valid: 'Valid until',
+    confirmationValid: 'Terms valid until',
     pickup: 'Pick-up',
     return: 'Return',
     vehicles: 'Vehicles in this quote',
+    confirmationVehicles: 'Vehicles in this booking',
     perDay: 'per day',
     quantity: 'Quantity',
     extras: 'Selected extras',
@@ -317,6 +332,7 @@ const COPY = {
     days: 'Rental period',
     daysValue: (days: number) => `${days} days`,
     mileage: 'Mileage allowance',
+    insurance: 'Insurance coverage',
     deposit: 'Deposit',
     deductible: 'Deductible',
     fuel: 'Fuel policy',
@@ -326,16 +342,54 @@ const COPY = {
     discount: 'Discount',
     vat: '18% VAT',
     total: 'Quote total',
+    confirmationTotal: 'Deal total',
     includedVat: 'The price includes VAT',
     excludedVat: 'The price excludes VAT; VAT is added in the summary',
     noVat: 'VAT does not apply to this quotation',
     notes: 'Notes',
     noNotes: 'Final details will be coordinated with a SmartCar representative.',
-    legal: 'This quotation is not a booking confirmation or a commitment that a specific vehicle is available. The booking, price and terms are confirmed in writing by a SmartCar representative and remain subject to the rental agreement.',
+    confirmationNoNotes: 'Your SmartCar representative is available for any further questions.',
+    quoteLegal: 'This quotation is not a booking confirmation or a commitment that a specific vehicle is available. The booking, price and terms are confirmed in writing by a SmartCar representative and remain subject to the rental agreement.',
+    confirmationLegal: 'This document summarizes the booking details approved with a SmartCar representative. The rental remains subject to the rental agreement, valid documents and the terms stated in this document.',
     thanks: 'Thank you for choosing SmartCar. We are here to make every journey simpler and more enjoyable.',
     flat: 'one-time',
   },
 } as const;
+
+/**
+ * Shrinks the rendered page just enough to stay on a single A4 sheet.
+ *
+ * Four vehicles, long free-text terms or English wording that wraps to an
+ * extra line all push the document past 1123px, which used to produce a second
+ * page holding nothing but a sliver of the footer. Compensating the width keeps
+ * the design full-bleed — only the effective type size comes down, by a few
+ * percent, and only when the content genuinely does not fit.
+ *
+ * Runs both in the browser preview and inside the PDF renderer, so what the
+ * representative sees is what the customer receives. Written self-contained on
+ * purpose: it is serialized into the Puppeteer page.
+ */
+export function fitRentalQuoteToPage(target?: Document): void {
+  const doc = target ?? document;
+  const page = doc.querySelector('.page');
+  if (!(page instanceof HTMLElement)) return;
+
+  const width = 794;
+  const height = 1123;
+  page.style.zoom = '';
+  page.style.width = '';
+  page.style.minHeight = '';
+
+  let zoom = 1;
+  for (let pass = 0; pass < 5; pass += 1) {
+    const rendered = page.getBoundingClientRect().height;
+    if (rendered <= height + 0.5) break;
+    zoom *= height / rendered;
+    page.style.zoom = String(zoom);
+    page.style.width = `${width / zoom}px`;
+    page.style.minHeight = `${height / zoom}px`;
+  }
+}
 
 export function rentalQuoteHeadHTML(): string {
   return `<style>${FONT_FACES}${RENTAL_QUOTE_CSS}</style>`;
@@ -348,6 +402,17 @@ export function generateRentalQuoteHTML(data: RentalQuoteData): string {
 
 export function rentalQuoteBodyHTML(data: RentalQuoteData): string {
   const t = COPY[data.locale];
+  // A confirmation is the same document with settled wording: it states the
+  // deal was agreed instead of warning that nothing is agreed yet, so every
+  // label that says "quotation" has to move with the title.
+  const isConfirmation = data.documentMode === 'confirmation';
+  const documentTitle = isConfirmation ? t.confirmationTitle : t.quoteTitle;
+  const legalText = isConfirmation ? t.confirmationLegal : t.quoteLegal;
+  const referenceLabel = isConfirmation ? t.confirmationNumber : t.quote;
+  const validLabel = isConfirmation ? t.confirmationValid : t.valid;
+  const vehiclesLabel = isConfirmation ? t.confirmationVehicles : t.vehicles;
+  const totalLabel = isConfirmation ? t.confirmationTotal : t.total;
+  const noNotesText = isConfirmation ? t.confirmationNoNotes : t.noNotes;
   const totals = calculateRentalQuoteTotals(data);
   const activeVehicles = data.vehicles.filter((vehicle) => vehicle.name.trim());
   const selectedExtras = data.extras.filter((extra) => extra.selected);
@@ -387,6 +452,7 @@ export function rentalQuoteBodyHTML(data: RentalQuoteData): string {
   const detailRows = [
     [t.days, t.daysValue(totals.days)],
     [t.mileage, data.mileageAllowance || '—'],
+    [t.insurance, data.insuranceCoverage || '—'],
     [t.deposit, data.deposit || '—'],
     [t.deductible, data.deductible || '—'],
     [t.fuel, data.fuelPolicy || '—'],
@@ -399,15 +465,15 @@ export function rentalQuoteBodyHTML(data: RentalQuoteData): string {
         <div class="kicker">${data.locale === 'he' ? 'שירות אישי · בכל הארץ' : 'Personal service · Nationwide'}</div>
       </div>
       <div class="title">
-        <h1>${t.title}</h1>
-        <div class="quote-no">${t.quote}<b>${escapeHtml(data.quoteNumber)}</b></div>
+        <h1>${documentTitle}</h1>
+        <div class="quote-no">${referenceLabel}<b>${escapeHtml(data.quoteNumber)}</b></div>
       </div>
     </header>
 
     <section class="meta">
       <div><div class="label">${t.customer}</div><div class="value">${escapeHtml(data.customerName || '—')}</div></div>
       <div><div class="label">${t.date}</div><div class="value">${displayDate(data.date, data.locale)}</div></div>
-      <div><div class="label">${t.valid}</div><div class="value">${displayDate(data.validUntil, data.locale)}</div></div>
+      <div><div class="label">${validLabel}</div><div class="value">${displayDate(data.validUntil, data.locale)}</div></div>
     </section>
 
     <section class="journey">
@@ -417,7 +483,7 @@ export function rentalQuoteBodyHTML(data: RentalQuoteData): string {
     </section>
 
     <section class="section">
-      <div class="section-title"><span></span><h2>${t.vehicles}</h2></div>
+      <div class="section-title"><span></span><h2>${vehiclesLabel}</h2></div>
       <div class="vehicles">${vehicleCards || `<div class="notes">${data.locale === 'he' ? 'יש להוסיף לפחות רכב אחד להצעה.' : 'Add at least one vehicle to the quotation.'}</div>`}</div>
     </section>
 
@@ -433,19 +499,19 @@ export function rentalQuoteBodyHTML(data: RentalQuoteData): string {
     </section>
 
     <section class="section summary">
-      <div class="notes"><b>${t.notes}</b><br>${escapeHtml(data.notes || t.noNotes)}</div>
+      <div class="notes"><b>${t.notes}</b><br>${escapeHtml(data.notes || noNotesText)}</div>
       <div class="total">
         <div class="row"><span>${t.vehicleCost}</span><b>₪${money(totals.vehicles, data.locale)}</b></div>
         <div class="row"><span>${t.extrasCost}</span><b>₪${money(totals.extras, data.locale)}</b></div>
         ${data.deliveryFee ? `<div class="row"><span>${t.deliveryFee}</span><b>₪${money(data.deliveryFee, data.locale)}</b></div>` : ''}
         ${data.discount ? `<div class="row"><span>${t.discount}</span><b>−₪${money(data.discount, data.locale)}</b></div>` : ''}
         ${totals.vat ? `<div class="row"><span>${t.vat}</span><b>₪${money(totals.vat, data.locale)}</b></div>` : ''}
-        <div class="grand"><span>${t.total}</span><b>₪${money(totals.total, data.locale)}</b></div>
+        <div class="grand"><span>${totalLabel}</span><b>₪${money(totals.total, data.locale)}</b></div>
         <div class="vat-note">${vatNote}</div>
       </div>
     </section>
 
-    <div class="legal">${t.legal}</div>
+    <div class="legal">${legalText}</div>
     <div class="thanks">${t.thanks}</div>
 
     <footer class="footer">

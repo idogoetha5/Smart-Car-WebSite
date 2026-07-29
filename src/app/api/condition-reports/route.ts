@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { verifyTurnstile } from '@/lib/turnstile';
 import { verifyConditionReportToken } from '@/lib/signed-link';
+import { numericOrderReference } from '@/lib/order-reference';
 
 function escapeHtml(str: string): string {
   return str.replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c] ?? c));
@@ -42,7 +43,7 @@ async function notifyOffice(report: {
           to_name:         'צוות SmartCar',
           booking_type:    'דוח מצב רכב חדש',
           vehicle_name:    `דוח #${report.id}`,
-          order_id:        report.bookingId || report.id.slice(0, 8),
+          order_id:        numericOrderReference(report.bookingId || report.id),
           start_date:      '-',
           end_date:        '-',
           pickup_location: '-',

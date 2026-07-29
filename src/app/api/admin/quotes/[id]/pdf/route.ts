@@ -32,11 +32,12 @@ export async function GET(
     const url = new URL(request.url);
     const disposition = url.searchParams.get('download') === '1' ? 'attachment' : 'inline';
     const filename = `SmartCar_Quote_${safeQuotePart(quote.customer_name)}_${safeQuotePart(quote.quote_number)}.pdf`;
+    const encodedFilename = encodeURIComponent(filename);
 
     return new NextResponse(new Uint8Array(pdf), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `${disposition}; filename="${filename}"`,
+        'Content-Disposition': `${disposition}; filename="SmartCar_Quote.pdf"; filename*=UTF-8''${encodedFilename}`,
         'Cache-Control': 'private, no-store',
       },
     });

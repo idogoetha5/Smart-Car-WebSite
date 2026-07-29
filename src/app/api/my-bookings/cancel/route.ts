@@ -3,6 +3,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { normalizeEmail } from '@/lib/email';
 import { sendTemplateEmail } from '@/lib/email-delivery';
+import { numericOrderReference } from '@/lib/order-reference';
 
 const PG_INVALID_ENUM = '22P02';
 
@@ -99,7 +100,10 @@ export async function POST(request: NextRequest) {
   // follows. Previously nothing was sent at all: the customer had no
   // confirmation their cancellation registered, and the team could carry on
   // working a request the customer had already withdrawn.
-  const ref = String(bookingId).slice(0, 8).toUpperCase();
+  // Same numeric reference the customer already saw in the request and
+  // confirmation emails — a cancellation quoting a different code reads as if
+  // the wrong booking was cancelled.
+  const ref = numericOrderReference(String(bookingId));
   const notified = await sendTemplateEmail({
     event: 'contact_lead',
     idempotencyKey: `booking_cancelled:${bookingId}`,

@@ -7,12 +7,14 @@ import {
   normalizeWhatsAppPhone,
   type RentalQuoteData,
 } from '@/lib/rental-quote';
+import { validRentalQuoteData } from '@/lib/rental-quote-validation';
 
 const quote: RentalQuoteData = {
   quoteNumber: 'R123456',
   date: '2026-07-29',
   validUntil: '2026-08-05',
   locale: 'he',
+  documentMode: 'quote',
   customerName: 'עידו גויטע',
   customerPhone: '050-123-4567',
   customerEmail: '',
@@ -56,8 +58,9 @@ const quote: RentalQuoteData = {
   discount: 25,
   vatMode: 'excluded',
   mileageAllowance: '250 ק״מ ליום',
+  insuranceCoverage: 'כיסוי ביטוחי מורחב',
   deposit: '₪2,000',
-  deductible: 'לפי הכיסוי הביטוחי שנבחר',
+  deductible: '₪1,500',
   fuelPolicy: 'מלא־מלא',
   notes: 'נשמח לעמוד לרשותכם.',
 };
@@ -119,5 +122,119 @@ describe('rental quotation customer delivery', () => {
     expect(html).toContain('Car Rental Quotation');
     expect(html).toContain('Pick-up');
     expect(html).toContain('Thank you for choosing SmartCar');
+  });
+});
+
+describe('rental quotation insurance coverage', () => {
+  it('prints the exact coverage the representative chose, in both languages', () => {
+    const hebrew = generateRentalQuoteHTML({
+      ...quote,
+      insuranceCoverage: 'ביטול השתתפות עצמית',
+    });
+    expect(hebrew).toContain('כיסוי ביטוחי');
+    expect(hebrew).toContain('ביטול השתתפות עצמית');
+
+    const english = generateRentalQuoteHTML({
+      ...quote,
+      locale: 'en',
+      insuranceCoverage: 'Deductible waiver',
+    });
+    expect(english).toContain('Insurance coverage');
+    expect(english).toContain('Deductible waiver');
+  });
+
+  it('keeps free-form coverage text and escapes it', () => {
+    const html = generateRentalQuoteHTML({
+      ...quote,
+      insuranceCoverage: 'מורחב + <נהג צעיר>',
+    });
+    expect(html).toContain('מורחב + &lt;נהג צעיר&gt;');
+  });
+
+  it('shows a dash rather than a vague default when the deductible is empty', () => {
+    const html = generateRentalQuoteHTML({ ...quote, deductible: '' });
+    expect(html).toContain('השתתפות עצמית');
+    expect(html).not.toContain('לפי הכיסוי הביטוחי שנבחר');
+  });
+});
+
+describe('rental quotation request validation', () => {
+  it('accepts a complete quotation and a complete confirmation', () => {
+    expect(validRentalQuoteData(quote)).toBe(true);
+    expect(
+      validRentalQuoteData({ ...quote, documentMode: 'confirmation' })
+    ).toBe(true);
+  });
+
+  it('rejects a request with no insurance coverage', () => {
+    expect(validRentalQuoteData({ ...quote, insuranceCoverage: '' })).toBe(false);
+    expect(validRentalQuoteData({ ...quote, insuranceCoverage: '   ' })).toBe(false);
+    expect(
+      validRentalQuoteData({ ...quote, insuranceCoverage: 'x'.repeat(241) })
+    ).toBe(false);
+  });
+
+  it('rejects an unknown document mode', () => {
+    expect(validRentalQuoteData({ ...quote, documentMode: 'invoice' })).toBe(false);
+    const withoutMode: Record<string, unknown> = { ...quote };
+    delete withoutMode.documentMode;
+    expect(validRentalQuoteData(withoutMode)).toBe(false);
+  });
+});
+
+describe('rental document mode', () => {
+  it('renders a quotation with the not-a-booking disclaimer', () => {
+    const hebrew = generateRentalQuoteHTML({ ...quote, documentMode: 'quote' });
+    expect(hebrew).toContain('הצעת מחיר להשכרת רכב');
+    expect(hebrew).toContain('אינה מהווה אישור הזמנה');
+    expect(hebrew).not.toContain('אישור הזמנה וסיכום עסקה');
+
+    const english = generateRentalQuoteHTML({
+      ...quote,
+      locale: 'en',
+      documentMode: 'quote',
+    });
+    expect(english).toContain('Car Rental Quotation');
+    expect(english).toContain('not a booking confirmation');
+  });
+
+  it('renders a booking confirmation without any quotation disclaimer', () => {
+    const hebrew = generateRentalQuoteHTML({
+      ...quote,
+      documentMode: 'confirmation',
+    });
+    expect(hebrew).toContain('אישור הזמנה וסיכום עסקה');
+    expect(hebrew).toContain(
+      'מסמך זה מסכם את פרטי ההזמנה שאושרו מול נציג SmartCar.'
+    );
+    expect(hebrew).not.toContain('אינה מהווה אישור הזמנה');
+    expect(hebrew).not.toContain('הצעת מחיר להשכרת רכב');
+
+    const english = generateRentalQuoteHTML({
+      ...quote,
+      locale: 'en',
+      documentMode: 'confirmation',
+    });
+    expect(english).toContain('Booking Confirmation and Deal Summary');
+    expect(english).toContain(
+      'This document summarizes the booking details approved with a SmartCar representative.'
+    );
+    expect(english).not.toContain('not a booking confirmation');
+    expect(english).not.toContain('Car Rental Quotation');
+  });
+
+  it('keeps the same prices and vehicles in both modes', () => {
+    const asQuote = calculateRentalQuoteTotals({
+      ...quote,
+      documentMode: 'quote',
+    });
+    const asConfirmation = calculateRentalQuoteTotals({
+      ...quote,
+      documentMode: 'confirmation',
+    });
+    expect(asConfirmation).toEqual(asQuote);
+    expect(
+      generateRentalQuoteHTML({ ...quote, documentMode: 'confirmation' })
+    ).toContain('Toyota Aygo X');
   });
 });

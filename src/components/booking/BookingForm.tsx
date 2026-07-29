@@ -17,6 +17,7 @@ import { AvailabilityChecker } from './AvailabilityChecker';
 import TurnstileWidget from '@/components/ui/Turnstile';
 import PrivacyNotice from '@/components/ui/PrivacyNotice';
 import { BRANCHES as ALL_BRANCHES } from '@/lib/branches';
+import { numericOrderReference } from '@/lib/order-reference';
 
 const BRANCHES = ALL_BRANCHES.map((b) => ({
   value: b.id,
@@ -526,7 +527,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
         sessionStorage.setItem(
           'smartcar:last-request',
           JSON.stringify({
-            ref: String(bookingId).slice(0, 8).toUpperCase(),
+            ref: numericOrderReference(String(bookingId)),
             vehicle: `${vehicle.make} ${vehicle.model}`,
             start: pickupDate,
             end: dropoffDate,

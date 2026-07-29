@@ -12,6 +12,7 @@ import { readJsonBody } from '@/lib/request-body';
 import { normalizeEmail } from '@/lib/email';
 import { sendTemplateEmail } from '@/lib/email-delivery';
 import { formatLocationForCustomer } from '@/lib/location-display';
+import { numericOrderReference } from '@/lib/order-reference';
 import type { Vehicle } from '@/types';
 
 const EXTRAS_PRICE: Record<string, number> = {
@@ -269,7 +270,7 @@ async function sendRequestReceivedEmail({
     params: {
           to_email:        booking.customer_email,
           to_name:         booking.customer_name,
-          order_id:        String(booking.id).slice(0, 8).toUpperCase(),
+          order_id:        numericOrderReference(String(booking.id)),
           // The EmailJS "request received" template (template_ngg6hyf)
           // wraps this in its own subject line:
           //   בקשת {{booking_type}} התקבלה - {{vehicle_name}} | SmartCar

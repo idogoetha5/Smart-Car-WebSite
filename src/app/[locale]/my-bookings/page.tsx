@@ -8,6 +8,7 @@ import { CalendarDays, Car, MapPin, AlertCircle, LogOut } from 'lucide-react';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import BookingStatusBadge from '@/components/ui/BookingStatusBadge';
+import { numericOrderReference } from '@/lib/order-reference';
 
 type Booking = {
   id: string;
@@ -432,7 +433,7 @@ export default function MyBookingsPage() {
 
                         <div className="text-end shrink-0">
                           <p className="text-xl font-black text-[#2D5F5F]">₪{booking.total_price.toLocaleString()}</p>
-                          <p className="text-xs text-gray-600">#{booking.id.slice(0, 8).toUpperCase()}</p>
+                          <p className="text-xs text-gray-600">#{numericOrderReference(booking.id)}</p>
                         </div>
                       </div>
 

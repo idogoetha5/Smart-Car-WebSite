@@ -24,11 +24,15 @@ export async function POST(request: Request) {
 
   try {
     const pdf = await renderRentalQuotePdf(data);
-    const utf8Name = encodeURIComponent(`SmartCar_Rental_Quote_${data.customerName}.pdf`);
+    const kind =
+      data.documentMode === 'confirmation'
+        ? 'SmartCar_Booking_Confirmation'
+        : 'SmartCar_Rental_Quote';
+    const utf8Name = encodeURIComponent(`${kind}_${data.customerName}.pdf`);
     return new NextResponse(new Uint8Array(pdf), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="SmartCar_Rental_Quote.pdf"; filename*=UTF-8''${utf8Name}`,
+        'Content-Disposition': `attachment; filename="${kind}.pdf"; filename*=UTF-8''${utf8Name}`,
         'Cache-Control': 'private, no-store',
       },
     });
