@@ -16,6 +16,8 @@ describe('buildQuoteEmailContent', () => {
     expect(content.text).toContain('28.08.2026');
     expect(content.html).toContain('ישראל ישראלי');
     expect(content.html).toContain('28.08.2026');
+    expect(content.html).toContain('src="cid:smartcar-logo"');
+    expect(content.html).toContain('alt="SmartCar"');
   });
 
   it('escapes user-controlled values in the HTML version', () => {

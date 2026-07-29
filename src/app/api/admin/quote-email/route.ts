@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { createHash } from 'node:crypto';
-import { Resend } from 'resend';
 import { verifyAdminToken } from '@/lib/admin-auth';
-import { OFFICE_EMAIL, OFFICE_PHONE } from '@/lib/constants';
-import { buildQuoteEmailContent } from '@/lib/quote-email';
-import { quoteValidUntil, type QuoteData } from '@/lib/quote-pdf';
+import { sendQuoteEmail } from '@/lib/quote-email-server';
+import { archiveQuotePdf, markQuoteSent } from '@/lib/quote-history';
+import type { QuoteData } from '@/lib/quote-pdf';
 import { renderQuotePdf } from '@/lib/quote-pdf-server';
 
 export const runtime = 'nodejs';
@@ -27,14 +25,6 @@ function validQuoteData(value: unknown): value is QuoteData {
   );
 }
 
-function safeFilenamePart(value: string): string {
-  return value
-    .trim()
-    .replace(/[^\p{L}\p{N}\-_.]+/gu, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 80) || 'Client';
-}
-
 export async function POST(request: Request) {
   const cookieStore = await cookies();
   if (!await verifyAdminToken(cookieStore.get('admin_auth')?.value ?? '')) {
@@ -49,8 +39,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
+  if (!process.env.RESEND_API_KEY) {
     console.error('[quote-email] Resend is not configured');
     return NextResponse.json(
       { error: 'שירות שליחת הצעות המחיר עדיין לא הוגדר' },
@@ -60,61 +49,23 @@ export async function POST(request: Request) {
 
   try {
     const pdf = await renderQuotePdf(data);
-    const filename = `SmartCar_Quote_${safeFilenamePart(data.customerName)}_${safeFilenamePart(data.quoteNumber)}.pdf`;
-    const validUntil = quoteValidUntil(data);
-    const content = buildQuoteEmailContent({
-      customerName: data.customerName,
-      quoteNumber: data.quoteNumber,
-      validUntil,
-      officePhone: OFFICE_PHONE,
-      officeEmail: OFFICE_EMAIL,
-    });
-    const payloadDigest = createHash('sha256')
-      .update(JSON.stringify(data))
-      .digest('hex')
-      .slice(0, 32);
-    const resend = new Resend(apiKey);
-    const { data: sent, error } = await resend.emails.send(
-      {
-        from: `SmartCar <${OFFICE_EMAIL}>`,
-        to: data.customerEmail.trim(),
-        replyTo: OFFICE_EMAIL,
-        subject: content.subject,
-        html: content.html,
-        text: content.text,
-        attachments: [
-          {
-            content: pdf,
-            filename,
-            contentType: 'application/pdf',
-          },
-        ],
-        tags: [
-          { name: 'category', value: 'quote' },
-        ],
-      },
-      {
-        idempotencyKey: `quote-${safeFilenamePart(data.quoteNumber)}-${payloadDigest}`,
-      }
-    );
+    await archiveQuotePdf(data, pdf);
+    const sent = await sendQuoteEmail(data, pdf);
 
-    if (error || !sent?.id) {
-      console.error(
-        '[quote-email] provider rejected send:',
-        error?.name ?? 'missing_message_id',
-        error?.message ?? ''
-      );
-      return NextResponse.json(
-        { error: 'המייל לא נשלח. הצעת המחיר נשמרה ולא אבדה — אפשר לנסות שוב' },
-        { status: 502 }
-      );
+    try {
+      await markQuoteSent(data.quoteNumber, sent.id);
+    } catch (statusError) {
+      // The PDF and quote data were already archived before sending.
+      // A status-write failure must not tell the admin that a delivered
+      // customer email failed and invite an accidental duplicate.
+      console.error('[quote-email] sent status was not saved:', (statusError as Error)?.message);
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, quoteNumber: data.quoteNumber });
   } catch (error) {
     console.error('[quote-email] send failed:', (error as Error)?.message);
     return NextResponse.json(
-      { error: 'יצירת הקובץ או שליחת המייל נכשלה. אפשר לנסות שוב' },
+      { error: 'שמירת ההצעה, יצירת הקובץ או שליחת המייל נכשלה. אפשר לנסות שוב' },
       { status: 500 }
     );
   }

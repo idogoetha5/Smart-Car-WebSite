@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyAdminToken } from '@/lib/admin-auth';
 import type { QuoteData } from '@/lib/quote-pdf';
+import { archiveQuotePdf } from '@/lib/quote-history';
 import { renderQuotePdf } from '@/lib/quote-pdf-server';
 
 export const runtime = 'nodejs';
@@ -22,6 +23,7 @@ export async function POST(request: Request) {
 
   try {
     const pdf = await renderQuotePdf(data);
+    await archiveQuotePdf(data, pdf);
 
     // Content-Disposition header values must be ASCII (ByteString) — a
     // Hebrew customer name would otherwise throw at the header-set call.
@@ -39,6 +41,6 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error('[quote-pdf] render error:', err);
-    return NextResponse.json({ error: 'PDF generation failed' }, { status: 500 });
+    return NextResponse.json({ error: 'PDF generation or archive failed' }, { status: 500 });
   }
 }

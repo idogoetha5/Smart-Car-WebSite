@@ -60,7 +60,7 @@ export function buildQuoteEmailContent(input: QuoteEmailContentInput) {
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border:1px solid #dde7e5;border-radius:16px;overflow:hidden;">
             <tr>
               <td style="background:#2d5f5f;padding:24px 30px;color:#ffffff;">
-                <div style="font-size:24px;font-weight:700;letter-spacing:.5px;">SMART CAR</div>
+                <img src="cid:smartcar-logo" alt="SmartCar" width="132" style="display:block;width:132px;height:auto;border:0;">
                 <div style="margin-top:7px;font-size:14px;color:#dcebea;">הצעת מחיר מס׳ ${safeQuoteNumber}</div>
               </td>
             </tr>
