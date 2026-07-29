@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
-import { mapRow } from '@/lib/db/vehicles';
+import { mapRow, VEHICLE_COLUMNS } from '@/lib/db/vehicles';
 
 export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('vehicles')
-    .select('*')
+    .select(VEHICLE_COLUMNS)
     .order('created_at', { ascending: false });
 
   const category = searchParams.get('category');

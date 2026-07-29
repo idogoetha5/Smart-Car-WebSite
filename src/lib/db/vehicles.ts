@@ -1,6 +1,28 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import type { Vehicle, VehicleFilters } from '@/types';
 
+/**
+ * Exactly the columns mapRow reads — nothing is fetched that is not returned.
+ *
+ * These reads all run through the service-role client, which RLS does not
+ * constrain, so `select('*')` pulled every column of the row into the
+ * response object and left `mapRow` as the only thing standing between the
+ * table and the public JSON. `license_plate` is the one that matters today,
+ * but the real problem is the default: a column added to `vehicles` later
+ * would be fetched automatically, and any future code that returns a raw row
+ * rather than a mapped one would leak it without anyone editing this file.
+ *
+ * Keep this list and mapRow in step. Adding a field to the API means adding
+ * it in both places, deliberately.
+ */
+export const VEHICLE_COLUMNS = [
+  'id', 'make', 'model', 'year', 'category', 'transmission', 'fuel_type',
+  'seats', 'doors', 'price_per_day', 'price_per_month', 'deposit_amount',
+  'mileage_limit', 'image_urls', 'features', 'is_available', 'is_featured',
+  'color_he', 'color_en', 'description_he', 'description_en', 'total_units',
+  'created_at', 'updated_at',
+].join(', ');
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function mapRow(row: any): Vehicle {
   return {
@@ -36,7 +58,7 @@ export async function getVehicles(filters?: VehicleFilters): Promise<Vehicle[]> 
 
   let query = supabase
     .from('vehicles')
-    .select('*')
+    .select(VEHICLE_COLUMNS)
     .order('created_at', { ascending: false });
 
   if (filters?.category && filters.category !== 'ALL') {
@@ -64,7 +86,7 @@ export async function getFeaturedVehicles(): Promise<Vehicle[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('vehicles')
-    .select('*')
+    .select(VEHICLE_COLUMNS)
     .eq('is_featured', true)
     .eq('is_available', true)
     .order('make', { ascending: true })
@@ -79,7 +101,7 @@ export async function getVehicleById(id: string): Promise<Vehicle | null> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('vehicles')
-    .select('*')
+    .select(VEHICLE_COLUMNS)
     .eq('id', id)
     .single();
 
