@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  createRentalQuoteLinkToken,
+  createRentalQuoteLink,
   rentalQuoteLinkExpiry,
   rentalQuotePdfPath,
   rentalQuoteShortLink,
@@ -14,8 +14,9 @@ const MONTH_AHEAD = Date.now() + 30 * 24 * 60 * 60 * 1000;
 const mint = (
   quoteNumber: string,
   mode: 'quote' | 'confirmation',
-  expiresAt: number = MONTH_AHEAD
-) => createRentalQuoteLinkToken(quoteNumber, mode, expiresAt);
+  expiresAt: number = MONTH_AHEAD,
+  slot = 'slot0001'
+) => createRentalQuoteLink(quoteNumber, mode, expiresAt, slot).token;
 
 beforeAll(() => {
   process.env.QUOTE_LINK_SECRET = 'test-secret-for-quote-link-tests';
@@ -35,24 +36,24 @@ vi.mock('@/lib/ratelimit', () => ({
 
 describe('rental quote link tokens', () => {
   it('round-trips a quote number and document mode', () => {
-    const token = mint('R912214', 'quote');
+    const token = mint('482913', 'quote');
     const result = verifyRentalQuoteLinkToken(token);
 
     expect(result.valid).toBe(true);
-    expect(result.quoteNumber).toBe('R912214');
+    expect(result.quoteNumber).toBe('482913');
     expect(result.mode).toBe('quote');
 
     const confirmation = verifyRentalQuoteLinkToken(
-      mint('R912214', 'confirmation')
+      mint('482913', 'confirmation')
     );
     expect(confirmation.valid).toBe(true);
     expect(confirmation.mode).toBe('confirmation');
   });
 
   it('stays short, URL-safe and branded', () => {
-    const token = mint('R912214', 'quote');
-    expect(token).toMatch(/^R912214-q[0-9a-z]+-[0-9a-z]{16}$/);
-    expect(token.length).toBeLessThan(40);
+    const token = mint('482913', 'quote');
+    expect(token).toMatch(/^482913-q[0-9a-z]+-[0-9a-z]{8}-[0-9a-z]{16}$/);
+    expect(token.length).toBeLessThan(48);
     expect(rentalQuoteShortLink('https://smartcar.co.il', token)).toBe(
       `https://smartcar.co.il/q/${token}`
     );
@@ -62,9 +63,9 @@ describe('rental quote link tokens', () => {
   });
 
   it('rejects a tampered quote number', () => {
-    const token = mint('R912214', 'quote');
-    const [, modeAndExpiry, signature] = token.split('-');
-    const forged = `R000001-${modeAndExpiry}-${signature}`;
+    const token = mint('482913', 'quote');
+    const [, modeAndExpiry, slot, signature] = token.split('-');
+    const forged = `100001-${modeAndExpiry}-${slot}-${signature}`;
 
     const result = verifyRentalQuoteLinkToken(forged);
     expect(result.valid).toBe(false);
@@ -72,12 +73,12 @@ describe('rental quote link tokens', () => {
   });
 
   it('rejects a tampered document mode and a stretched expiry', () => {
-    const token = mint('R912214', 'quote');
-    const [reference, modeAndExpiry, signature] = token.split('-');
+    const token = mint('482913', 'quote');
+    const [reference, modeAndExpiry, slot, signature] = token.split('-');
 
     expect(
       verifyRentalQuoteLinkToken(
-        `${reference}-c${modeAndExpiry.slice(1)}-${signature}`
+        `${reference}-c${modeAndExpiry.slice(1)}-${slot}-${signature}`
       ).reason
     ).toBe('bad-signature');
 
@@ -85,26 +86,26 @@ describe('rental quote link tokens', () => {
       Number.parseInt(modeAndExpiry.slice(1), 36) + 60 * 24 * 30
     ).toString(36);
     expect(
-      verifyRentalQuoteLinkToken(`${reference}-q${later}-${signature}`).reason
+      verifyRentalQuoteLinkToken(`${reference}-q${later}-${slot}-${signature}`).reason
     ).toBe('bad-signature');
   });
 
   it('rejects a forged signature', () => {
-    const token = mint('R912214', 'quote');
-    const [reference, modeAndExpiry] = token.split('-');
+    const token = mint('482913', 'quote');
+    const [reference, modeAndExpiry, slot] = token.split('-');
     expect(
       verifyRentalQuoteLinkToken(
-        `${reference}-${modeAndExpiry}-aaaaaaaaaaaaaaaa`
+        `${reference}-${modeAndExpiry}-${slot}-aaaaaaaaaaaaaaaa`
       ).reason
     ).toBe('bad-signature');
     // A truncated signature must not pass either.
     expect(
-      verifyRentalQuoteLinkToken(`${reference}-${modeAndExpiry}-a`).reason
+      verifyRentalQuoteLinkToken(`${reference}-${modeAndExpiry}-${slot}-a`).reason
     ).toBe('bad-signature');
   });
 
   it('rejects an expired link even though the signature is intact', () => {
-    const expired = mint('R912214', 'quote', Date.now() - 60_000);
+    const expired = mint('482913', 'quote', Date.now() - 60_000);
     const result = verifyRentalQuoteLinkToken(expired);
     expect(result.valid).toBe(false);
     expect(result.reason).toBe('expired');
@@ -115,12 +116,13 @@ describe('rental quote link tokens', () => {
       undefined,
       null,
       '',
-      'R912214',
-      'R912214-q1abc',
-      'R912214-x1abc-aaaaaaaaaaaaaaaa',
+      '482913',
+      '482913-q1abc',
+      '482913-x1abc-slot0001-aaaaaaaaaaaaaaaa',
       '../../secret',
-      'R912214-q1abc-aaaa/bbbb',
-      'R912214-q1abc-aaaaaaaaaaaaaaaa-extra',
+      '482913-q1abc-slot0001-aaaa/bbbb',
+      '482913-q1abc-slot0001-aaaaaaaaaaaaaaaa-extra',
+      '482913-q1abc--aaaaaaaaaaaaaaaa',
     ]) {
       expect(verifyRentalQuoteLinkToken(token).valid).toBe(false);
     }
@@ -144,7 +146,7 @@ describe('rental quote link tokens', () => {
     const days = (expiry - now) / (24 * 60 * 60 * 1000);
     expect(days).toBeGreaterThan(29);
 
-    const linkToken = mint('R912214', 'quote', expiry);
+    const linkToken = mint('482913', 'quote', expiry);
     expect(verifyRentalQuoteLinkToken(linkToken).valid).toBe(true);
   });
 
@@ -173,8 +175,44 @@ describe('rental quote link tokens', () => {
     expect(rentalQuoteValidityIsExpired('', now)).toBe(false);
   });
 
+  it('gives two sends of one six-digit number separate stored documents', () => {
+    const first = createRentalQuoteLink('482913', 'quote', MONTH_AHEAD);
+    const second = createRentalQuoteLink('482913', 'quote', MONTH_AHEAD);
+
+    expect(first.storagePath).not.toBe(second.storagePath);
+    expect(first.storagePath.startsWith('rental/482913-')).toBe(true);
+    // Each token resolves to its own object, so a repeated quote number can
+    // never serve an earlier customer's document.
+    expect(verifyRentalQuoteLinkToken(first.token).slot).not.toBe(
+      verifyRentalQuoteLinkToken(second.token).slot
+    );
+    expect(verifyRentalQuoteLinkToken(first.token).valid).toBe(true);
+  });
+
+  it('still resolves a link issued before storage slots existed', () => {
+    // A slotless signature with the empty middle segment dropped is exactly the
+    // three-part token the earlier deploy handed out.
+    const legacy = createRentalQuoteLink(
+      '482913',
+      'quote',
+      MONTH_AHEAD,
+      ''
+    ).token.replace('--', '-');
+
+    const result = verifyRentalQuoteLinkToken(legacy);
+    expect(legacy.split('-')).toHaveLength(3);
+    expect(result.valid).toBe(true);
+    expect(result.slot).toBe('');
+    expect(rentalQuotePdfPath(result.quoteNumber!, result.slot)).toBe(
+      'rental/482913.pdf'
+    );
+  });
+
   it('derives a storage path that cannot escape the rental folder', () => {
-    expect(rentalQuotePdfPath('R912214')).toBe('rental/R912214.pdf');
+    expect(rentalQuotePdfPath('482913')).toBe('rental/482913.pdf');
+    expect(rentalQuotePdfPath('482913', 'slot0001')).toBe(
+      'rental/482913-slot0001.pdf'
+    );
     expect(safeQuoteReference('../../etc/passwd')).toBe('etcpasswd');
     expect(rentalQuotePdfPath('../../etc/passwd')).toBe('rental/etcpasswd.pdf');
     expect(rentalQuotePdfPath('')).toBe('rental/quote.pdf');
@@ -199,35 +237,35 @@ describe('GET /q/[token]', () => {
       error: null,
     });
 
-    const response = await call(mint('R912214', 'quote'));
+    const response = await call(mint('482913', 'quote'));
 
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('application/pdf');
     const disposition = response.headers.get('content-disposition') ?? '';
     expect(disposition.startsWith('inline;')).toBe(true);
-    expect(disposition).toContain('filename="SmartCar_Rental_Quote_R912214.pdf"');
+    expect(disposition).toContain('filename="SmartCar_Rental_Quote_482913.pdf"');
     expect(disposition).toContain("filename*=UTF-8''");
     expect(response.headers.get('cache-control')).toBe('private, no-store');
-    expect(download).toHaveBeenCalledWith('rental/R912214.pdf');
+    expect(download).toHaveBeenCalledWith('rental/482913-slot0001.pdf');
     expect(new Uint8Array(await response.arrayBuffer())[0]).toBe(0x25);
   });
 
   it('names a confirmation document as such', async () => {
     download.mockResolvedValue({ data: new Blob([new Uint8Array([1])]), error: null });
     const response = await call(
-      mint('R912214', 'confirmation')
+      mint('482913', 'confirmation')
     );
     expect(response.headers.get('content-disposition')).toContain(
-      'SmartCar_Booking_Confirmation_R912214.pdf'
+      'SmartCar_Booking_Confirmation_482913.pdf'
     );
   });
 
   it('does not read storage for a forged link', async () => {
-    const token = mint('R912214', 'quote');
-    const [reference, modeAndExpiry] = token.split('-');
+    const token = mint('482913', 'quote');
+    const [reference, modeAndExpiry, slot] = token.split('-');
 
     const response = await call(
-      `${reference}-${modeAndExpiry}-bbbbbbbbbbbbbbbb`
+      `${reference}-${modeAndExpiry}-${slot}-bbbbbbbbbbbbbbbb`
     );
     expect(response.status).toBe(404);
     expect(download).not.toHaveBeenCalled();
@@ -235,7 +273,7 @@ describe('GET /q/[token]', () => {
 
   it('tells the customer an expired link expired', async () => {
     const response = await call(
-      mint('R912214', 'quote', Date.now() - 60_000)
+      mint('482913', 'quote', Date.now() - 60_000)
     );
     expect(response.status).toBe(410);
     expect(await response.text()).toContain('פג תוקף');
@@ -245,7 +283,7 @@ describe('GET /q/[token]', () => {
   it('handles a document that is no longer in the bucket', async () => {
     download.mockResolvedValue({ data: null, error: { message: 'Not found' } });
 
-    const response = await call(mint('R912214', 'quote'));
+    const response = await call(mint('482913', 'quote'));
     expect(response.status).toBe(404);
     const body = await response.text();
     expect(body).not.toContain('supabase');

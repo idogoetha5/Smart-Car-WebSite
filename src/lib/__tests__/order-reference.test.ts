@@ -4,10 +4,10 @@ import { numericOrderReference } from '@/lib/order-reference';
 const BOOKING_ID = 'c6dba9b9-79b1-4552-96fd-65989f69c0f5';
 
 describe('numericOrderReference', () => {
-  it('returns a stable eight-digit reference for UUID-style IDs', () => {
+  it('returns a stable six-digit reference for UUID-style IDs', () => {
     const reference = numericOrderReference(BOOKING_ID);
 
-    expect(reference).toMatch(/^\d{8}$/);
+    expect(reference).toMatch(/^\d{6}$/);
     expect(numericOrderReference(BOOKING_ID)).toBe(reference);
   });
 
@@ -22,7 +22,7 @@ describe('numericOrderReference', () => {
     ];
 
     for (const id of ids) {
-      expect(numericOrderReference(id)).toMatch(/^\d{8}$/);
+      expect(numericOrderReference(id)).toMatch(/^\d{6}$/);
     }
   });
 

@@ -205,32 +205,26 @@ describe('rental quotation vehicle year and manual entry', () => {
 });
 
 describe('rental quotation number', () => {
-  it('contains digits only — no letters, spaces or dashes', () => {
-    for (let attempt = 0; attempt < 200; attempt += 1) {
-      expect(rentalQuoteNumber()).toMatch(/^\d{12}$/);
+  it('is six digits, no letters, spaces or dashes', () => {
+    for (let attempt = 0; attempt < 500; attempt += 1) {
+      expect(rentalQuoteNumber()).toMatch(/^\d{6}$/);
     }
   });
 
-  it('starts with today, so numbers stay ordered and readable', () => {
-    const now = new Date();
-    const expectedPrefix = [
-      now.getFullYear() % 100,
-      now.getMonth() + 1,
-      now.getDate(),
-    ]
-      .map((part) => String(part).padStart(2, '0'))
-      .join('');
-    expect(rentalQuoteNumber().startsWith(expectedPrefix)).toBe(true);
+  it('never starts with a zero, so it reads as six digits everywhere', () => {
+    for (let attempt = 0; attempt < 500; attempt += 1) {
+      expect(rentalQuoteNumber().startsWith('0')).toBe(false);
+    }
   });
 
-  it('does not hand two quotations the same number in practice', () => {
+  it('spreads across the range rather than following the clock', () => {
     const seen = new Set<string>();
-    for (let attempt = 0; attempt < 500; attempt += 1) {
+    for (let attempt = 0; attempt < 200; attempt += 1) {
       seen.add(rentalQuoteNumber());
     }
-    // 500 draws from a million per day: a repeat here would mean the random
-    // suffix is not doing its job.
-    expect(seen.size).toBeGreaterThan(495);
+    // The old clock-derived form returned the same value for every call in a
+    // tight loop; a random six-digit number does not.
+    expect(seen.size).toBeGreaterThan(180);
   });
 
   it('renders a digits-only number in the document and its filename path', () => {

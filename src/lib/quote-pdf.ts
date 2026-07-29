@@ -288,8 +288,15 @@ export function quoteBodyHTML(data: QuoteData): string {
 </div>`;
 }
 
+/**
+ * Six digits, random rather than clock-derived.
+ *
+ * The old form reused a number every hundred seconds, and the number keys both
+ * the archived PDF and its history row — two quotations that collided would
+ * have overwritten each other.
+ */
 export function generateQuoteNumber(): string {
-  return Date.now().toString().slice(-5);
+  return String(100_000 + Math.floor(Math.random() * 900_000));
 }
 
 export function todayIL(): string {

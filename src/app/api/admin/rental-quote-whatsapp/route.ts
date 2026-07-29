@@ -2,9 +2,8 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { verifyAdminToken } from '@/lib/admin-auth';
 import {
-  createRentalQuoteLinkToken,
+  createRentalQuoteLink,
   rentalQuoteLinkExpiry,
-  rentalQuotePdfPath,
   rentalQuoteShortLink,
   rentalQuoteValidityIsExpired,
 } from '@/lib/quote-link';
@@ -61,26 +60,30 @@ export async function POST(request: Request) {
 
   try {
     const pdf = await renderRentalQuotePdf(data);
+
+    // A branded /q/<token> link rather than a Supabase signed URL: the bucket
+    // stays private, and what the customer receives reads as SmartCar instead
+    // of a storage hostname with an access token attached. The link lives
+    // exactly as long as the quotation it carries, and its slot decides where
+    // this send's PDF is stored — so a six-digit number that comes round again
+    // never overwrites an earlier customer's document.
+    const expiresAt = rentalQuoteLinkExpiry(data.validUntil);
+    const { token, storagePath } = createRentalQuoteLink(
+      data.quoteNumber,
+      data.documentMode,
+      expiresAt
+    );
+
     const supabase = createAdminClient();
     const { error: uploadError } = await supabase.storage
       .from('quote-pdfs')
-      .upload(rentalQuotePdfPath(data.quoteNumber), pdf, {
+      .upload(storagePath, pdf, {
         contentType: 'application/pdf',
         upsert: true,
         cacheControl: '3600',
       });
     if (uploadError) throw uploadError;
 
-    // A branded /q/<token> link rather than a Supabase signed URL: the bucket
-    // stays private, and what the customer receives reads as SmartCar instead
-    // of a storage hostname with an access token attached.
-    // The link lives exactly as long as the quotation it carries.
-    const expiresAt = rentalQuoteLinkExpiry(data.validUntil);
-    const token = createRentalQuoteLinkToken(
-      data.quoteNumber,
-      data.documentMode,
-      expiresAt
-    );
     const link = rentalQuoteShortLink(publicOrigin(request), token);
 
     return NextResponse.json(

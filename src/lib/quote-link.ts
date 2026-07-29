@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 
 /**
  * Short branded links for the rental documents sent to customers.
@@ -23,6 +23,8 @@ const FALLBACK_VALIDITY_DAYS = 30;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 /** 16 base36 characters — ~82 bits, far past guessing a live link. */
 const SIGNATURE_LENGTH = 16;
+/** 8 base36 characters of storage slot — keeps repeated quote numbers apart. */
+const SLOT_LENGTH = 8;
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]+$/;
 
 export type QuoteLinkMode = 'quote' | 'confirmation';
@@ -58,14 +60,38 @@ export function safeQuoteReference(quoteNumber: string): string {
   return quoteNumber.replace(/[^A-Za-z0-9]/g, '').slice(0, 40) || 'quote';
 }
 
-/** Where the rental PDF for a quote number lives in the private bucket. */
-export function rentalQuotePdfPath(quoteNumber: string): string {
-  return `rental/${safeQuoteReference(quoteNumber)}.pdf`;
+/**
+ * Where a document lives in the private bucket.
+ *
+ * The quote number a customer reads is only six digits, so it repeats over
+ * time. The slot — random per send, carried inside the signed token — is what
+ * keeps two quotations that share a number from overwriting each other's PDF.
+ * Links issued before slots existed carry none and keep their old path.
+ */
+export function rentalQuotePdfPath(quoteNumber: string, slot = ''): string {
+  const reference = safeQuoteReference(quoteNumber);
+  const suffix = slot ? `-${safeQuoteReference(slot)}` : '';
+  return `rental/${reference}${suffix}.pdf`;
 }
 
-function sign(reference: string, modeChar: string, expiresAtMinutes: number): string {
+function randomSlot(): string {
+  return BigInt(`0x${randomBytes(6).toString('hex')}`)
+    .toString(36)
+    .padStart(SLOT_LENGTH, '0')
+    .slice(0, SLOT_LENGTH);
+}
+
+function sign(
+  reference: string,
+  modeChar: string,
+  expiresAtMinutes: number,
+  slot: string
+): string {
   const digest = createHmac('sha256', secret())
-    .update(`${PURPOSE}.${reference}.${modeChar}.${expiresAtMinutes}`, 'utf8')
+    .update(
+      `${PURPOSE}.${reference}.${modeChar}.${expiresAtMinutes}.${slot}`,
+      'utf8'
+    )
     .digest('hex');
   // base36 rather than base64url: `-` separates the token's own parts, and
   // base64url can contain `-`, which would make the token ambiguous to parse.
@@ -145,24 +171,42 @@ export function rentalQuoteValidityIsExpired(
   return rentalQuoteLinkExpiry(validUntil, now) <= now;
 }
 
-export function createRentalQuoteLinkToken(
+export interface RentalQuoteLink {
+  token: string;
+  /** Where this send's PDF must be uploaded for the token to resolve it. */
+  storagePath: string;
+}
+
+/**
+ * Mints a document link and the storage path that belongs to it.
+ *
+ * Both come from one call on purpose: the slot ties the token to a single
+ * uploaded object, and generating them apart is how they would drift.
+ */
+export function createRentalQuoteLink(
   quoteNumber: string,
   mode: QuoteLinkMode,
-  expiresAt: number
-): string {
+  expiresAt: number,
+  slot: string = randomSlot()
+): RentalQuoteLink {
   const reference = safeQuoteReference(quoteNumber);
   const modeChar = MODE_TO_CHAR[mode];
   // Minute resolution keeps the token short; the signature covers it, so it
   // cannot be nudged forward.
   const expiresAtMinutes = Math.floor(expiresAt / 60_000);
-  const signature = sign(reference, modeChar, expiresAtMinutes);
-  return `${reference}-${modeChar}${expiresAtMinutes.toString(36)}-${signature}`;
+  const signature = sign(reference, modeChar, expiresAtMinutes, slot);
+  return {
+    token: `${reference}-${modeChar}${expiresAtMinutes.toString(36)}-${slot}-${signature}`,
+    storagePath: rentalQuotePdfPath(reference, slot),
+  };
 }
 
 export interface QuoteLinkResult {
   valid: boolean;
   quoteNumber?: string;
   mode?: QuoteLinkMode;
+  /** Empty for links issued before slots existed. */
+  slot?: string;
   reason?: 'malformed' | 'bad-signature' | 'expired';
 }
 
@@ -174,18 +218,26 @@ export function verifyRentalQuoteLinkToken(
   }
 
   const parts = token.split('-');
-  if (parts.length !== 3) return { valid: false, reason: 'malformed' };
+  // Four parts today; three is a link issued before storage slots existed.
+  if (parts.length !== 4 && parts.length !== 3) {
+    return { valid: false, reason: 'malformed' };
+  }
 
-  const [reference, modeAndExpiry, signature] = parts;
+  const [reference, modeAndExpiry] = parts;
+  const slot = parts.length === 4 ? parts[2] : '';
+  const signature = parts[parts.length - 1];
   const mode = CHAR_TO_MODE[modeAndExpiry.slice(0, 1)];
   const expiresAtMinutes = Number.parseInt(modeAndExpiry.slice(1), 36);
   if (!reference || !mode || !Number.isFinite(expiresAtMinutes)) {
     return { valid: false, reason: 'malformed' };
   }
+  if (parts.length === 4 && !slot) {
+    return { valid: false, reason: 'malformed' };
+  }
 
   // Signature before expiry, so the response cannot be used to tell a forged
   // token apart from one that merely aged out.
-  const expected = sign(reference, MODE_TO_CHAR[mode], expiresAtMinutes);
+  const expected = sign(reference, MODE_TO_CHAR[mode], expiresAtMinutes, slot);
   if (!safeEqual(signature, expected)) {
     return { valid: false, reason: 'bad-signature' };
   }
@@ -194,7 +246,7 @@ export function verifyRentalQuoteLinkToken(
     return { valid: false, reason: 'expired' };
   }
 
-  return { valid: true, quoteNumber: reference, mode };
+  return { valid: true, quoteNumber: reference, mode, slot };
 }
 
 /** The customer-facing link: `<origin>/q/<token>`. */

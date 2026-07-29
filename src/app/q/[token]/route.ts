@@ -79,7 +79,7 @@ export async function GET(
     const supabase = createAdminClient();
     const { data, error } = await supabase.storage
       .from('quote-pdfs')
-      .download(rentalQuotePdfPath(link.quoteNumber!));
+      .download(rentalQuotePdfPath(link.quoteNumber!, link.slot));
 
     if (error || !data) {
       console.error(

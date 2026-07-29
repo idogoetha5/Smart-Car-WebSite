@@ -122,23 +122,15 @@ export function emptyRentalVehicle(): RentalQuoteVehicle {
 }
 
 /**
- * A digits-only quotation number, e.g. `260730481902` — date then six random
- * digits.
+ * A six-digit quotation number, e.g. `482913`.
  *
- * Customers read this number back over the phone, so it carries no letters.
- * It also names the stored PDF, and two quotations that collide would mean one
- * customer's link serving another customer's document — the previous scheme
- * reused a number every seventeen minutes, this one repeats at odds of a
- * million to one within the same day. Numbers already issued (including the
- * older `R…` form) keep working everywhere they are accepted.
+ * Short enough to read back over the phone, and no letters. Two quotations can
+ * repeat a number over time; the stored PDF is kept distinct by a random slot
+ * carried in the document link rather than by making this number longer.
+ * Numbers already issued (including the older `R…` form) keep working.
  */
 export function rentalQuoteNumber(): string {
-  const now = new Date();
-  const day = [now.getFullYear() % 100, now.getMonth() + 1, now.getDate()]
-    .map((part) => String(part).padStart(2, '0'))
-    .join('');
-  const random = String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0');
-  return `${day}${random}`;
+  return String(100_000 + Math.floor(Math.random() * 900_000));
 }
 
 export function isoToday(): string {
