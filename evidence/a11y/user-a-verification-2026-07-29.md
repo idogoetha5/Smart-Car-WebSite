@@ -94,3 +94,22 @@ Checked: the counts above come from the rendered document, and the SVG count
 includes icons inside components that are present but visually hidden. That
 is why 52 SVGs are in the DOM where the scan reported 21 findings — the
 discrepancy is scan scope, not a disagreement about the page.
+
+## Re-scan after deploying the fixes
+
+| Run | Pages | Failed to load | Violations |
+|---|---|---|---|
+| Before | 34 | 0 | 0 (axe) — the User-A findings are ones axe does not report |
+| After the SVG/ARIA work | 34 | 0 | **34 × link-name — a regression I introduced** |
+| After fixing that | 34 | 0 | **0** |
+
+The middle row is the important one. Marking decorative SVGs
+`aria-hidden` caught the footer logo, which already carried
+`aria-label="SmartCar"` and is the only content of the link home — my filter
+skipped `aria-hidden` and `role="img"` but not `aria-label`, so the link lost
+its accessible name on all 34 pages. Fixed with `role="img"` plus the label.
+
+That is the argument for re-scanning after every deploy rather than trusting
+the edit: a blanket ARIA change broke something in a way no amount of care
+during the edit would have surfaced. Raw output in
+`axe-2026-07-29-after-fixes.json`.
