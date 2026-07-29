@@ -7,7 +7,8 @@ import { verifyTurnstile } from '@/lib/turnstile';
 import { verifyAdminToken } from '@/lib/admin-auth';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { getSeasonalPriceRange } from '@/lib/seasonal';
-import { bookingSchema } from '@/lib/validations';
+import { bookingRequestSchema } from '@/lib/validations';
+import { readJsonBody } from '@/lib/request-body';
 import { normalizeEmail } from '@/lib/email';
 import { sendTemplateEmail } from '@/lib/email-delivery';
 import type { Vehicle } from '@/types';
@@ -72,10 +73,17 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
-  const body = await request.json();
+
+  // Bounded and parsed defensively: an unparseable body used to throw out of
+  // request.json() and reach the caller as a 500.
+  const raw = await readJsonBody(request);
+  if (!raw.ok) {
+    return NextResponse.json({ error: raw.error }, { status: raw.status });
+  }
+  const body = raw.value;
 
   // Turnstile bot check
-  if (!await verifyTurnstile(body.turnstileToken)) {
+  if (!await verifyTurnstile(typeof body.turnstileToken === 'string' ? body.turnstileToken : undefined)) {
     return NextResponse.json({ error: 'אימות אנטי-בוט נכשל. נסה שנית.' }, { status: 400 });
   }
 
@@ -84,7 +92,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ data: { id: 'bot' } }, { status: 201 }); // silent reject
   }
 
-  const parsed = bookingSchema.safeParse(body);
+  const parsed = bookingRequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? 'Invalid booking data' },
@@ -92,9 +100,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const vehicleId    = body.vehicleId;
-  const pickupDate   = body.pickupDate;
-  const dropoffDate  = body.dropoffDate;
+  // Everything below reads `input`, never `body`. The raw body is not
+  // touched again past this point — that is the whole guarantee.
+  const input = parsed.data;
+
+  const vehicleId    = input.vehicleId;
+  const pickupDate   = input.pickupDate;
+  const dropoffDate  = input.dropoffDate;
 
   // Validate dates server-side
   if (!pickupDate || !dropoffDate) {
@@ -135,7 +147,7 @@ export async function POST(request: NextRequest) {
   // exists — and the note above says as much. Returning 409 here contradicted
   // that and turned a serious customer into a dead end. The request is saved
   // and flagged instead, and staff match it against the full fleet.
-  const manualMatch = matchStatusFor(vehicle.is_available, body.manualMatchRequired === true);
+  const manualMatch = matchStatusFor(vehicle.is_available, input.manualMatchRequired === true);
 
   if (!vehicle.price_per_day || vehicle.price_per_day <= 0) {
     return NextResponse.json({ error: 'Vehicle pricing is not configured' }, { status: 422 });
@@ -153,30 +165,30 @@ export async function POST(request: NextRequest) {
   const discountPct = totalDays >= 60 ? 15 : totalDays >= 30 ? 10 : totalDays >= 14 ? 7 : 0;
   const serverDiscount = Math.round(subtotal * discountPct / 100);
   const vehicleTotal = subtotal - serverDiscount;
-  const selectedExtras: string[] = Array.isArray(body.extras) ? body.extras : [];
+  const selectedExtras: string[] = input.extras ?? [];
   const extrasTotal = selectedExtras.reduce((sum, id) => sum + (EXTRAS_PRICE[id] ?? 0) * totalDays, 0);
   const serverTotalPrice = vehicleTotal + extrasTotal;
 
   // Consent wording is derived here, never taken from the request body.
-  const terms = termsConsent(body.locale);
-  const marketing = marketingConsent(body.locale);
+  const terms = termsConsent(input.locale);
+  const marketing = marketingConsent(input.locale);
 
   // Map camelCase → snake_case for Supabase insert
   const { data, error } = await supabase
     .from('bookings')
     .insert([{
       vehicle_id:          vehicleId,
-      customer_name:       body.customerName,
-      customer_email:      normalizeEmail(body.customerEmail),
-      customer_phone:      body.customerPhone,
-      customer_id_number:  body.customerIdNumber ?? null,
+      customer_name:       input.customerName,
+      customer_email:      normalizeEmail(input.customerEmail),
+      customer_phone:      input.customerPhone,
+      customer_id_number:  input.customerIdNumber ?? null,
       pickup_date:         pickupDate,
       dropoff_date:        dropoffDate,
-      pickup_location:     body.pickupLocation,
-      dropoff_location:    body.dropoffLocation,
-      notes:               body.notes ?? null,
+      pickup_location:     input.pickupLocation,
+      dropoff_location:    input.dropoffLocation,
+      notes:               input.notes ?? null,
       extras:              selectedExtras,
-      additional_driver_name: body.additionalDriverName ?? null,
+      additional_driver_name: input.additionalDriverName ?? null,
       // Consent ledger — evidence of exactly what the customer agreed to,
       // when, in which language and from where. The text hashes pin the
       // wording that was on screen, so a later edit to the terms or the
@@ -184,14 +196,14 @@ export async function POST(request: NextRequest) {
       // Wording chosen server-side from the verified locale. It used to hash
       // the Hebrew sentence unconditionally, so an English customer got a
       // ledger entry proving text they were never shown.
-      terms_version:       body.agreeTerms === true ? terms.version : null,
-      terms_text_hash:     body.agreeTerms === true ? terms.hash : null,
-      terms_accepted_at:   body.agreeTerms === true ? new Date().toISOString() : null,
-      marketing_consent:   body.marketingConsent === true,
-      marketing_text_hash: body.marketingConsent === true ? marketing.hash : null,
+      terms_version:       input.agreeTerms === true ? terms.version : null,
+      terms_text_hash:     input.agreeTerms === true ? terms.hash : null,
+      terms_accepted_at:   input.agreeTerms === true ? new Date().toISOString() : null,
+      marketing_consent:   input.marketingConsent === true,
+      marketing_text_hash: input.marketingConsent === true ? marketing.hash : null,
       consent_locale:      terms.locale,
       consent_source:      'booking_form',
-      attribution:         sanitizeAttribution(body.attribution),
+      attribution:         sanitizeAttribution(input.attribution),
       // Set when the customer asked for a vehicle the online catalogue
       // could not match — staff check the full fleet for an equivalent.
       // Derived on the server from is_available, not taken on trust from the
@@ -201,8 +213,8 @@ export async function POST(request: NextRequest) {
       total_days:          totalDays,
       total_price:         serverTotalPrice,
       price_per_day:       serverPricePerDay,
-      pickup_time:         body.pickup_time ?? '09:00',
-      return_time:         body.return_time ?? '09:00',
+      pickup_time:         input.pickup_time ?? '09:00',
+      return_time:         input.return_time ?? '09:00',
       status:              'PENDING',
     }])
     .select()

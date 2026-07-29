@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { verifyTurnstile } from '@/lib/turnstile';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { createAdminClient } from '@/lib/supabase/server';
+import { contactSchema } from '@/lib/validations';
+import { readJsonBody } from '@/lib/request-body';
 
 function escapeHtml(str: string): string {
   return str.replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c] ?? c));
@@ -17,19 +19,33 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = await request.json();
-  const name    = String(body.name ?? '').trim().slice(0, 100);
-  const phone   = String(body.phone ?? '').trim().slice(0, 30);
-  const email   = String(body.email ?? '').trim().slice(0, 200);
-  const message = String(body.message ?? '').trim().slice(0, 4000);
-
-  if (!name || !phone || !message) {
-    return NextResponse.json({ error: 'שם, טלפון והודעה הם שדות חובה' }, { status: 400 });
+  const raw = await readJsonBody(request);
+  if (!raw.ok) {
+    return NextResponse.json({ error: raw.error }, { status: raw.status });
   }
 
-  if (!await verifyTurnstile(body.turnstileToken)) {
+  // Turnstile first, so a bot never reaches the validator or the database.
+  const rawBody = raw.value as Record<string, unknown>;
+  if (!await verifyTurnstile(typeof rawBody.turnstileToken === 'string' ? rawBody.turnstileToken : undefined)) {
     return NextResponse.json({ error: 'אימות אנטי-בוט נכשל. נסה שנית.' }, { status: 400 });
   }
+
+  // Hidden field — a real person never fills it in.
+  if (rawBody._website) {
+    return NextResponse.json({ success: true, notified: false });
+  }
+
+  const parsed = contactSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? 'פרטי הפנייה אינם תקינים' },
+      { status: 400 }
+    );
+  }
+
+  // Only validated values from here on — the raw body is not read again.
+  const { name, phone, message } = parsed.data;
+  const email = parsed.data.email ?? '';
 
   // Save the lead BEFORE attempting the notification email — an email
   // provider outage must never lose a customer inquiry. If the table
