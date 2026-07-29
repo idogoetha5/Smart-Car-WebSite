@@ -95,7 +95,11 @@ jobs:
         run: npm audit --omit=dev || true
 
       - name: Fail on new critical advisories
-        run: npm audit --omit=dev --audit-level=critical
+        # Not `npm audit --audit-level=critical`: that exits non-zero both for
+        # a real advisory and for npm's audit endpoint being down, and the
+        # second one has already turned this gate red on a green commit.
+        # The script tells the two apart.
+        run: node scripts/audit-critical.mjs
 
       - name: Secret scan
         uses: gitleaks/gitleaks-action@v2
