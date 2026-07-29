@@ -36,11 +36,16 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
-      - name: Lint (regression gate)
-        # Not a bare `eslint .`: the repo carries 12 known React Compiler
-        # errors that are their own piece of work to clear. This fails only
-        # when the count goes UP, so the gate stays meaningful instead of
-        # being permanently red and ignored. See scripts/lint-budget.mjs.
+      - name: Lint
+        # The 12 React Compiler errors this used to have to tolerate are
+        # gone — the components that fetched data in an effect read through
+        # SWR now — so plain ESLint is the gate again, at zero errors.
+        run: npm run lint
+
+      - name: Lint ratchet
+        # Secondary only, and deliberately not a substitute for the step
+        # above. ESLint exits 0 on warnings, so without this a slow drift
+        # back would go unnoticed; this fails the moment either count rises.
         run: npm run lint:budget
 
       - name: Unit tests
@@ -66,6 +71,13 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          # gitleaks scans a commit range, so it needs the parent of the
+          # oldest pushed commit to exist locally. checkout's default
+          # shallow clone does not have it, and gitleaks then fails on
+          # "unknown revision" — a red audit that says nothing about
+          # secrets. Full history is what the action documents as required.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
