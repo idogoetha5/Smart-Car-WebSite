@@ -97,6 +97,7 @@ const TEXT = {
     returnTime: 'שעת החזרה',
     pickupLocation: 'מקום איסוף',
     returnLocation: 'מקום החזרה',
+    locationPlaceholder: 'בחר סניף או הקלד כתובת מלאה',
     vehicles: 'רכבים בהצעה',
     addVehicle: 'הוספת רכב',
     vehicle: 'רכב',
@@ -182,6 +183,7 @@ const TEXT = {
     returnTime: 'Return time',
     pickupLocation: 'Pick-up location',
     returnLocation: 'Return location',
+    locationPlaceholder: 'Choose a branch or type a full address',
     vehicles: 'Vehicles in this quotation',
     addVehicle: 'Add vehicle',
     vehicle: 'Vehicle',
@@ -830,11 +832,14 @@ export default function RentalQuotesPage() {
                   type="time"
                   required
                 />
+                {/* A datalist suggests the branches without restricting the
+                    value: any address in Israel can be typed in full. */}
                 <Field
                   label={t.pickupLocation}
                   value={pickupLocation}
                   onChange={setPickupLocation}
                   list="smartcar-branches"
+                  placeholder={t.locationPlaceholder}
                   required
                 />
                 <Field
@@ -842,6 +847,7 @@ export default function RentalQuotesPage() {
                   value={returnLocation}
                   onChange={setReturnLocation}
                   list="smartcar-branches"
+                  placeholder={t.locationPlaceholder}
                   required
                 />
               </div>
@@ -1245,7 +1251,10 @@ function Field({
         inputMode={inputMode}
         min={min}
         list={list}
-        dir={dir}
+        // A time input inherits the form's RTL direction and renders 09:00 as
+        // 00:09. The field's own direction is LTR; the label and the rest of the
+        // form stay as they are.
+        dir={dir ?? (type === 'time' ? 'ltr' : undefined)}
         placeholder={placeholder}
         className={`min-h-11 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2 focus:ring-[#2D5F5F] ${
           readOnly

@@ -5,6 +5,7 @@ import {
   calculateRentalQuoteTotals,
   generateRentalQuoteHTML,
   normalizeWhatsAppPhone,
+  rentalQuoteNumber,
   rentalQuoteWhatsAppMessage,
   type RentalQuoteData,
 } from '@/lib/rental-quote';
@@ -156,6 +157,43 @@ describe('rental quotation insurance coverage', () => {
     const html = generateRentalQuoteHTML({ ...quote, deductible: '' });
     expect(html).toContain('השתתפות עצמית');
     expect(html).not.toContain('לפי הכיסוי הביטוחי שנבחר');
+  });
+});
+
+describe('rental quotation number', () => {
+  it('contains digits only — no letters, spaces or dashes', () => {
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      expect(rentalQuoteNumber()).toMatch(/^\d{12}$/);
+    }
+  });
+
+  it('starts with today, so numbers stay ordered and readable', () => {
+    const now = new Date();
+    const expectedPrefix = [
+      now.getFullYear() % 100,
+      now.getMonth() + 1,
+      now.getDate(),
+    ]
+      .map((part) => String(part).padStart(2, '0'))
+      .join('');
+    expect(rentalQuoteNumber().startsWith(expectedPrefix)).toBe(true);
+  });
+
+  it('does not hand two quotations the same number in practice', () => {
+    const seen = new Set<string>();
+    for (let attempt = 0; attempt < 500; attempt += 1) {
+      seen.add(rentalQuoteNumber());
+    }
+    // 500 draws from a million per day: a repeat here would mean the random
+    // suffix is not doing its job.
+    expect(seen.size).toBeGreaterThan(495);
+  });
+
+  it('renders a digits-only number in the document and its filename path', () => {
+    const number = rentalQuoteNumber();
+    const html = generateRentalQuoteHTML({ ...quote, quoteNumber: number });
+    expect(html).toContain(number);
+    expect(html).not.toContain(`R${number}`);
   });
 });
 
