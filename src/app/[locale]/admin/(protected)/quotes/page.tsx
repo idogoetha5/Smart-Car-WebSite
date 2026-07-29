@@ -190,7 +190,7 @@ export default function AdminQuotesPage() {
   return (
     <div className="p-4 sm:p-8 max-w-[1400px] mx-auto" dir="rtl">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">בניית הצעת מחיר</h1>
+        <h1 className="text-2xl font-bold text-gray-900">הצעת מחיר ליסינג</h1>
         <div className="flex gap-2">
           <button
             onClick={handleDownload}

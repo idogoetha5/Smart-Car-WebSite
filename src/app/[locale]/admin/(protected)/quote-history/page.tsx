@@ -111,7 +111,7 @@ export default function QuoteHistoryPage() {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-black text-gray-900">
-            {isHe ? 'היסטוריית הצעות מחיר' : 'Quote history'}
+            {isHe ? 'היסטוריית הצעות מחיר ליסינג' : 'Leasing quote history'}
           </h1>
           <p className="mt-1 text-gray-500">
             {isHe

@@ -11,6 +11,7 @@ import { bookingRequestSchema } from '@/lib/validations';
 import { readJsonBody } from '@/lib/request-body';
 import { normalizeEmail } from '@/lib/email';
 import { sendTemplateEmail } from '@/lib/email-delivery';
+import { formatLocationForCustomer } from '@/lib/location-display';
 import type { Vehicle } from '@/types';
 
 const EXTRAS_PRICE: Record<string, number> = {
@@ -281,8 +282,8 @@ async function sendRequestReceivedEmail({
           message:         'קיבלנו את בקשת ההשכרה שלך. נציג SmartCar יבדוק את הזמינות בצי המלא ויחזור אליך עם אישור ופרטים סופיים.\n\nחשוב: זהו אישור על קבלת הבקשה בלבד. הרכב, המחיר וההזמנה אינם מאושרים עד לקבלת אישור נפרד בכתב.\n\nלשאלות אפשר להשיב להודעה הזאת או להתקשר ל־09-9509757.',
           start_date:      formatDateHe(booking.pickup_date),
           end_date:        formatDateHe(booking.dropoff_date),
-          pickup_location: booking.pickup_location,
-          return_location: booking.dropoff_location || booking.pickup_location,
+          pickup_location: formatLocationForCustomer(booking.pickup_location),
+          return_location: formatLocationForCustomer(booking.dropoff_location || booking.pickup_location),
           customer_phone:  booking.customer_phone,
           // Labelled as an estimate everywhere: nothing is confirmed until
           // the separate written confirmation goes out.

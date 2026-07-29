@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/server';
 import { verifyAdminToken } from '@/lib/admin-auth';
 import { alreadyDelivered, sendTemplateEmail } from '@/lib/email-delivery';
+import { formatLocationForCustomer } from '@/lib/location-display';
 
 const LOGO_URL = 'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/logo.png';
 
@@ -77,8 +78,8 @@ async function sendConfirmationEmail(booking: ConfirmableBooking): Promise<boole
           // times, so a customer could not tell when to be there.
           pickup_time:       booking.pickup_time || '09:00',
           return_time:       booking.return_time || '09:00',
-          pickup_location:   booking.pickup_location,
-          return_location:   booking.dropoff_location,
+          pickup_location:   formatLocationForCustomer(booking.pickup_location),
+          return_location:   formatLocationForCustomer(booking.dropoff_location),
           customer_phone:    booking.customer_phone,
           total_price:       booking.total_price ? `₪${Number(booking.total_price).toLocaleString()}` : '-',
           extras:            Array.isArray(booking.extras) && booking.extras.length > 0

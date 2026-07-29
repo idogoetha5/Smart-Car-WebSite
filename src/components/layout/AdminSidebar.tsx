@@ -15,6 +15,7 @@ import {
   Tag,
   Star,
   Send,
+  MessageCircle,
   X,
 } from 'lucide-react';
 
@@ -68,8 +69,21 @@ export default function AdminSidebar() {
     { href: `/${locale}/admin/leasing-requests`, label: t('manage_leasing'), icon: FileText },
     { href: `/${locale}/admin/cars-for-sale`, label: isHe ? 'ניהול רכבים למכירה' : 'Cars for sale', icon: Tag },
     { href: `/${locale}/admin/reviews`, label: isHe ? 'ביקורות' : 'Reviews', icon: Star },
-    { href: `/${locale}/admin/quotes`, label: isHe ? 'הצעות מחיר' : 'Quotes', icon: Send },
-    { href: `/${locale}/admin/quote-history`, label: isHe ? 'היסטוריית הצעות' : 'Quote history', icon: History },
+    {
+      href: `/${locale}/admin/quotes`,
+      label: isHe ? 'הצעת מחיר ליסינג' : 'Leasing quotation',
+      icon: Send,
+    },
+    {
+      href: `/${locale}/admin/rental-quotes`,
+      label: isHe ? 'הצעת מחיר להשכרה' : 'Rental quotation',
+      icon: MessageCircle,
+    },
+    {
+      href: `/${locale}/admin/quote-history`,
+      label: isHe ? 'היסטוריית הצעות מחיר ליסינג' : 'Leasing quote history',
+      icon: History,
+    },
   ];
 
   const nav = (
