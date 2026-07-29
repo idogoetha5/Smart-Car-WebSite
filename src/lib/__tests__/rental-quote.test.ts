@@ -160,6 +160,50 @@ describe('rental quotation insurance coverage', () => {
   });
 });
 
+describe('rental quotation vehicle year and manual entry', () => {
+  it('drops the model year from the document once it is removed', () => {
+    const withYear = generateRentalQuoteHTML(quote);
+    expect(withYear).toContain('2026 · Mini');
+
+    const withoutYear = generateRentalQuoteHTML({
+      ...quote,
+      vehicles: [{ ...quote.vehicles[0], year: '' }],
+    });
+    expect(withoutYear).toContain('Toyota Aygo X');
+    expect(withoutYear).toContain('Mini');
+    expect(withoutYear).not.toContain('2026 · Mini');
+    expect(withoutYear).not.toContain('>2026<');
+  });
+
+  it('keeps a year that differs from the inventory', () => {
+    const html = generateRentalQuoteHTML({
+      ...quote,
+      vehicles: [{ ...quote.vehicles[0], year: '2019' }],
+    });
+    expect(html).toContain('2019 · Mini');
+  });
+
+  it('renders a vehicle typed by hand, with no year, category or photo', () => {
+    const html = generateRentalQuoteHTML({
+      ...quote,
+      vehicles: [
+        {
+          name: 'Mercedes V-Class',
+          year: '',
+          category: '',
+          imageUrl: '',
+          dailyPrice: 900,
+          quantity: 1,
+        },
+      ],
+    });
+    expect(html).toContain('Mercedes V-Class');
+    // Falls back to the brand line and the placeholder car, never a blank card.
+    expect(html).toContain('car-fallback');
+    expect(html).toContain('SmartCar');
+  });
+});
+
 describe('rental quotation number', () => {
   it('contains digits only — no letters, spaces or dashes', () => {
     for (let attempt = 0; attempt < 200; attempt += 1) {

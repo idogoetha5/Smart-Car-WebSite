@@ -38,6 +38,7 @@ const A4_WIDTH = 794;
 const A4_HEIGHT = 1123;
 const MAX_VEHICLES = 4;
 const MAX_EXTRAS = 12;
+const MANUAL_VEHICLE = '__manual__';
 
 // The coverage the representative agreed with the customer is printed word for
 // word, so these are suggestions in the document's own language — never a
@@ -104,9 +105,14 @@ const TEXT = {
     removeVehicle: 'הסרת רכב',
     removeExtra: 'הסרת תוספת',
     inventory: 'בחירה ממאגר הרכבים (אופציונלי)',
-    manual: '— מילוי ידני —',
+    manual: '— רכב שאינו כלול בצי (הזנה ידנית) —',
     vehicleName: 'שם הרכב',
     year: 'שנת דגם',
+    editYear: 'שנה',
+    removeYear: 'הסר',
+    addYear: 'הוספת שנה',
+    yearHint: 'אפשר להזין שנה שונה מזו שבמאגר',
+    yearRemoved: 'השנה לא תופיע במסמך',
     category: 'קטגוריה',
     dailyPrice: 'מחיר ליום (₪)',
     quantity: 'כמות',
@@ -190,9 +196,14 @@ const TEXT = {
     removeVehicle: 'Remove vehicle',
     removeExtra: 'Remove extra',
     inventory: 'Choose from vehicle inventory (optional)',
-    manual: '— Manual entry —',
+    manual: '— Vehicle not in the fleet (manual entry) —',
     vehicleName: 'Vehicle name',
     year: 'Model year',
+    editYear: 'Change',
+    removeYear: 'Remove',
+    addYear: 'Add year',
+    yearHint: 'You can enter a year other than the inventory one',
+    yearRemoved: 'The year will not appear in the document',
     category: 'Category',
     dailyPrice: 'Daily price (₪)',
     quantity: 'Quantity',
@@ -427,6 +438,23 @@ export default function RentalQuotesPage() {
   };
 
   const fillVehicleFromInventory = (index: number, vehicleId: string) => {
+    // "Not in the fleet" clears the row so the representative types the vehicle
+    // and its year by hand — a car SmartCar sources for a specific customer is
+    // not in the inventory at all.
+    if (vehicleId === MANUAL_VEHICLE) {
+      updateVehicle(index, {
+        name: '',
+        year: '',
+        category: '',
+        imageUrl: '',
+        dailyPrice: 0,
+      });
+      window.requestAnimationFrame(() => {
+        document.getElementById(`rental-vehicle-name-${index}`)?.focus();
+      });
+      return;
+    }
+
     const inventoryVehicle = inventory.find(
       (vehicle) => vehicle.id === vehicleId
     );
@@ -910,13 +938,13 @@ export default function RentalQuotesPage() {
                         {t.inventory}
                       </span>
                       <select
-                        defaultValue=""
+                        defaultValue={MANUAL_VEHICLE}
                         onChange={(event) =>
                           fillVehicleFromInventory(index, event.target.value)
                         }
                         className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-[#2D5F5F]"
                       >
-                        <option value="">{t.manual}</option>
+                        <option value={MANUAL_VEHICLE}>{t.manual}</option>
                         {inventory.map((item) => (
                           <option key={item.id} value={item.id}>
                             {item.make} {item.model} {item.year}
@@ -927,6 +955,7 @@ export default function RentalQuotesPage() {
 
                     <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                       <Field
+                        id={`rental-vehicle-name-${index}`}
                         label={t.vehicleName}
                         value={vehicle.name}
                         onChange={(value) =>
@@ -941,13 +970,79 @@ export default function RentalQuotesPage() {
                           updateVehicle(index, { category: value })
                         }
                       />
-                      <Field
-                        label={t.year}
-                        value={vehicle.year}
-                        onChange={(value) =>
-                          updateVehicle(index, { year: value })
-                        }
-                      />
+                      {/* The model year can be overridden or dropped: a
+                          quotation sometimes names a year the inventory does
+                          not carry, and sometimes should name none at all. */}
+                      <div>
+                        <span className="mb-1 block text-xs font-medium text-gray-600">
+                          {t.year}
+                        </span>
+                        {vehicle.year ? (
+                          <>
+                            <div className="flex gap-2">
+                              <input
+                                id={`rental-vehicle-year-${index}`}
+                                value={vehicle.year}
+                                onChange={(event) =>
+                                  updateVehicle(index, {
+                                    year: event.target.value,
+                                  })
+                                }
+                                inputMode="numeric"
+                                dir="ltr"
+                                className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-[#2D5F5F]"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const input = document.getElementById(
+                                    `rental-vehicle-year-${index}`
+                                  ) as HTMLInputElement | null;
+                                  input?.focus();
+                                  input?.select();
+                                }}
+                                className="min-h-11 shrink-0 rounded-lg border border-gray-300 px-3 text-xs font-bold text-[#2D5F5F] hover:bg-[#edf5f4]"
+                              >
+                                {t.editYear}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateVehicle(index, { year: '' })}
+                                className="min-h-11 shrink-0 rounded-lg border border-gray-300 px-3 text-xs font-bold text-red-600 hover:bg-red-50"
+                              >
+                                {t.removeYear}
+                              </button>
+                            </div>
+                            <span className="mt-1 block text-[11px] text-gray-500">
+                              {t.yearHint}
+                            </span>
+                          </>
+                        ) : (
+                          <div className="flex min-h-11 items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateVehicle(index, {
+                                  year: String(new Date().getFullYear()),
+                                });
+                                window.requestAnimationFrame(() => {
+                                  const input = document.getElementById(
+                                    `rental-vehicle-year-${index}`
+                                  ) as HTMLInputElement | null;
+                                  input?.focus();
+                                  input?.select();
+                                });
+                              }}
+                              className="min-h-11 rounded-lg border border-gray-300 px-3 text-xs font-bold text-[#2D5F5F] hover:bg-[#edf5f4]"
+                            >
+                              {t.addYear}
+                            </button>
+                            <span className="text-[11px] text-gray-500">
+                              {t.yearRemoved}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                       <Field
                         label={t.dailyPrice}
                         value={String(vehicle.dailyPrice)}
@@ -1210,6 +1305,7 @@ function Section({
 }
 
 function Field({
+  id,
   label,
   value,
   onChange,
@@ -1223,6 +1319,7 @@ function Field({
   placeholder,
   hint,
 }: {
+  id?: string;
   label: string;
   value: string;
   onChange?: (value: string) => void;
@@ -1243,6 +1340,7 @@ function Field({
         {required ? <span aria-hidden="true"> *</span> : null}
       </span>
       <input
+        id={id}
         type={type}
         value={value}
         onChange={(event) => onChange?.(event.target.value)}
