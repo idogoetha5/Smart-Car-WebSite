@@ -36,7 +36,10 @@ export default function Footer() {
           {/* Brand */}
           <div className="md:col-span-1">
             <Link href={`/${locale}`} className="flex items-center mb-4">
-              <svg aria-hidden="true" focusable="false" width="120" height="36" viewBox="0 0 140 40" xmlns="http://www.w3.org/2000/svg" aria-label="SmartCar">
+              {/* Not decorative: this is the sole content of the link home, so it
+                  carries the link's accessible name. role="img" is required
+                  for aria-label to be exposed reliably on an <svg>. */}
+              <svg role="img" aria-label="SmartCar" width="120" height="36" viewBox="0 0 140 40" xmlns="http://www.w3.org/2000/svg">
                 <text x="0" y="24" fontFamily="'Nunito', 'Heebo', sans-serif" fontWeight="800" fontSize="20" fill="#B8D8D8" letterSpacing="1.5">SMART</text>
                 <text x="0" y="40" fontFamily="'Nunito', 'Heebo', sans-serif" fontWeight="800" fontSize="20" fill="#B8D8D8" letterSpacing="1.5">C<tspan fill="#E8743B">A</tspan>R</text>
               </svg>
