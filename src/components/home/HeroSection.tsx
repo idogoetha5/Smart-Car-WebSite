@@ -146,7 +146,7 @@ export default function HeroSection({ locale }: { locale: string }) {
       href: `/${locale}/services/new-driver`,
       // driver's license card
       icon: (
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-3">
           <rect x="2" y="5" width="20" height="14" rx="2"/>
           <circle cx="7.5" cy="10" r="2"/>
           <path d="M4 19a3.5 3.5 0 017 0"/>
@@ -161,13 +161,13 @@ export default function HeroSection({ locale }: { locale: string }) {
       href: `/${locale}/services/sale`,
       // car side-view + transfer/ownership arrow below
       icon: (
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-3">
           <rect x="1" y="9" width="18" height="6" rx="2"/>
           <path d="M3 9 l2.5-4 h9 l2.5 4"/>
           <circle cx="5.5" cy="15" r="2"/>
           <circle cx="14.5" cy="15" r="2"/>
-          <path d="M4 20 q8 4 16 0" strokeLinecap="round"/>
-          <path d="M17 18.5 l3 1.5 -3 1.5" strokeLinejoin="round" strokeLinecap="round"/>
+          <path d="M4 20 q8 4 16 0"/>
+          <path d="M17 18.5 l3 1.5 -3 1.5"/>
         </svg>
       ),
     },
@@ -176,7 +176,7 @@ export default function HeroSection({ locale }: { locale: string }) {
       href: `/${locale}/services/leasing`,
       // contract document: folded corner, text lines, signature + pen nib
       icon: (
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-3">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
           <polyline points="14 2 14 8 20 8"/>
           <line x1="8" y1="12" x2="16" y2="12"/>
@@ -191,7 +191,7 @@ export default function HeroSection({ locale }: { locale: string }) {
       href: `/${locale}/services/hourly`,
       // history / clock-with-back-arrow
       icon: (
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-3">
           <path d="M3 12a9 9 0 1 0 9-9 9.1 9.1 0 0 0-6.36 2.64"/>
           <polyline points="3 3 3 9 9 9"/>
           <polyline points="12 7 12 12 15 14"/>
@@ -203,7 +203,7 @@ export default function HeroSection({ locale }: { locale: string }) {
       href: `/${locale}/services/commercial`,
       // delivery truck with speed lines
       icon: (
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-3">
           <rect x="2" y="3" width="14" height="13" rx="1"/>
           <path d="M16 8h4l3 3v5h-7V8z"/>
           <circle cx="6" cy="18.5" r="2.5"/>
@@ -227,8 +227,11 @@ export default function HeroSection({ locale }: { locale: string }) {
           <line x1="4.4" y1="9.2" x2="6.4" y2="9.2"/>
           <line x1="17.6" y1="9.2" x2="19.6" y2="9.2"/>
           <path d="M2.4 18.6v-3.1a1 1 0 0 1 .7-1l1.6-.5 2-2.6a1.4 1.4 0 0 1 1.1-.6h8.4a1.4 1.4 0 0 1 1.1.6l2 2.6 1.6.5a1 1 0 0 1 .7 1v3.1"/>
-          <path d="M4.7 14h14.6"/>
-          <path d="M11.8 11.2v2.8"/>
+          {/* The beltline and the B-pillar used to sit inside the body here.
+              With the sun and its five rays already above it, this icon
+              carried twelve strokes against three in the clock beside it and
+              read as a dark blot at 40px. The silhouette and the wheels
+              still say "car", so only the interior detail came out. */}
           <path d="M2.4 18.6h2.2M9 18.6h6M19.4 18.6h2.2"/>
           <circle cx="6.6" cy="18.6" r="1.7"/>
           <circle cx="17.4" cy="18.6" r="1.7"/>
@@ -240,7 +243,7 @@ export default function HeroSection({ locale }: { locale: string }) {
       href: `/${locale}/services/monthly`,
       // calendar with "31" and two ring-binders
       icon: (
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" className="w-10 h-10 mx-auto mb-3">
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-3">
           <rect x="3" y="4" width="18" height="18" rx="2"/>
           <line x1="8" y1="2" x2="8" y2="6"/>
           <line x1="16" y1="2" x2="16" y2="6"/>
