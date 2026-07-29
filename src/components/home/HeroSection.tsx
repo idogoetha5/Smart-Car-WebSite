@@ -78,6 +78,40 @@ function LocationField({
   );
 }
 
+
+/**
+ * The single frame every rental-category icon is drawn in.
+ *
+ * The eight used to carry their own copies of these attributes and had
+ * drifted — six were missing the rounded caps, one was a filled glyph with
+ * no stroke at all, and the van's speed lines ran past the left edge of the
+ * viewBox and were clipped. Passing the shapes in and the frame from here
+ * makes "identical in everything but the drawing" structural rather than
+ * something to keep re-checking.
+ *
+ * `fit` re-centres and scales each drawing onto a common optical box so they
+ * look the same size, which sharing a viewBox alone does not achieve: the
+ * drawings inside ranged from 16 to 24 units wide. `vector-effect` keeps the
+ * stroke at 1.5 on screen regardless of that scale, so nothing thickens or
+ * thins.
+ */
+function ServiceIcon({ fit, children }: { fit: string; children: React.ReactNode }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="w-10 h-10 mx-auto mb-3"
+      fill="none"
+      stroke="#E8743B"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <g transform={fit} vectorEffect="non-scaling-stroke">{children}</g>
+    </svg>
+  );
+}
+
 export default function HeroSection({ locale }: { locale: string }) {
   const t  = useTranslations('hero');
   const ts = useTranslations('services');
@@ -131,123 +165,136 @@ export default function HeroSection({ locale }: { locale: string }) {
     {
       label: ts('business'),
       href: `/${locale}/services/business`,
-      // briefcase with handle and a softly curved front seam
-      icon: (
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-3">
+      // briefcase
+      fit: "translate(-1.20 -1.20) scale(1.1)",
+      shapes: (
+        <>
           <rect x="2" y="7" width="20" height="14" rx="2"/>
           <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
           <path d="M22 12.5a18.2 18.2 0 0 1-20 0"/>
           <path d="M11.4 13.6h1.2"/>
-        </svg>
+        </>
       ),
     },
     {
       label: ts('new_driver'),
       href: `/${locale}/services/new-driver`,
-      // driver's license card
-      icon: (
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-3">
-          <rect x="2" y="5" width="20" height="14" rx="2"/>
-          <circle cx="7.5" cy="10" r="2"/>
-          <path d="M4 19a3.5 3.5 0 017 0"/>
-          <line x1="13" y1="9" x2="20" y2="9"/>
-          <line x1="13" y1="12.5" x2="18" y2="12.5"/>
-          <line x1="13" y1="16" x2="16" y2="16"/>
-        </svg>
+      // licence card with a spark — shape approved as-is, only scaled and centred
+      fit: "translate(-1.12 0.89) scale(1.0577)",
+      shapes: (
+        <>
+          <rect x="2" y="7.5" width="17" height="12" rx="2"/>
+          <circle cx="7.5" cy="12.5" r="1.8"/>
+          <path d="M4.6 16.9a3.2 3.2 0 0 1 5.8 0"/>
+          <path d="M12.8 11.5h4"/>
+          <path d="M12.8 14.5h4"/>
+          <path d="M20.3 1.5c.2 1.2 1.3 2.3 2.5 2.5-1.2.2-2.3 1.3-2.5 2.5-.2-1.2-1.3-2.3-2.5-2.5 1.2-.2 2.3-1.3 2.5-2.5Z"/>
+        </>
       ),
     },
     {
       label: ts('car_sale'),
       href: `/${locale}/services/sale`,
-      // Car with a price tag — Material Symbols, a filled glyph rather than
-      // the stroked drawings around it. Its colour comes from `fill` on the
-      // path: adding `stroke`/`strokeWidth` here would outline every curve
-      // and thicken the whole shape, so this one carries neither.
-      icon: (
-        <svg viewBox="0 0 24 24" className="w-10 h-10 mx-auto mb-3" strokeLinecap="round" aria-hidden="true">
-          <path fill="#E8743B" d="M6.5 16q.625 0 1.063-.437T8 14.5t-.437-1.062T6.5 13t-1.062.438T5 14.5t.438 1.063T6.5 16m9 0q.5 0 .9-.3t.525-.775q-.5-.1-.95-.338t-.825-.612l-.625-.625q-.25.2-.387.5T14 14.5q0 .625.438 1.063T15.5 16M4 17v-5zm1 2v1q0 .425-.288.713T4 21H3q-.425 0-.712-.288T2 20v-8l2.1-6q.15-.45.538-.725T5.5 5H9v1.375q0 .15.013.313T9.05 7h-3.2L4.8 10h6.375l2 2H4v5h14v-2.025q.55-.05 1.063-.275t.937-.625V20q0 .425-.288.713T19 21h-1q-.425 0-.712-.288T17 20v-1zM15.713 5.712Q16 5.425 16 5t-.288-.712T15 4t-.712.288T14 5t.288.713T15 6t.713-.288m.837 6.838l-5.1-5.1q-.2-.2-.325-.488T11 6.376V2.5q0-.625.438-1.062T12.5 1h3.875q.3 0 .588.125t.487.325l5.1 5.1q.425.425.425 1.063t-.425 1.062l-3.875 3.875q-.425.425-1.062.425t-1.063-.425m1.075-1.75L20.8 7.625L16.175 3H13v3.175z"/>
-        </svg>
+      // car with a price tag — drawn as strokes so it belongs to the same
+      // family as the other seven. The Material Symbols glyph it replaces was
+      // fill-based and could never match their weight.
+      fit: "translate(-1.26 0.94) scale(1.1282)",
+      shapes: (
+        <>
+          <path d="M2 15.6v-2.2a.9.9 0 0 1 .63-.86l1.3-.42 1.7-2.1a1.2 1.2 0 0 1 .95-.45h5.4a1.2 1.2 0 0 1 .95.45l1.7 2.1 1.3.42a.9.9 0 0 1 .63.86v2.2"/>
+          <path d="M2 15.6h1.5M6.4 15.6h4.8M14.1 15.6h1.5"/>
+          <circle cx="4.9" cy="15.6" r="1.4"/>
+          <circle cx="12.6" cy="15.6" r="1.4"/>
+          <path d="M16.6 2.6h3.6a1.3 1.3 0 0 1 1.3 1.3v3.6a1.3 1.3 0 0 1-.38.92l-3.3 3.3a1.3 1.3 0 0 1-1.84 0l-3.6-3.6a1.3 1.3 0 0 1 0-1.84l3.3-3.3a1.3 1.3 0 0 1 .92-.38Z"/>
+          <circle cx="18.7" cy="5.3" r="0.9"/>
+        </>
       ),
     },
     {
       label: ts('leasing'),
       href: `/${locale}/services/leasing`,
-      // contract document: folded corner, text lines, signature + pen nib
-      icon: (
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-3">
+      // contract with a signature
+      fit: "translate(-1.20 -1.20) scale(1.1)",
+      shapes: (
+        <>
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
           <polyline points="14 2 14 8 20 8"/>
-          <line x1="8" y1="12" x2="16" y2="12"/>
-          <line x1="8" y1="15" x2="16" y2="15"/>
-          <path d="M7 19 q4 -2 8 0"/>
-          <path d="M15 19 l2 -2 1 1 -2 2 -1 -1 z"/>
-        </svg>
+          <path d="M8 12h8"/>
+          <path d="M8 15h8"/>
+          <path d="M7 19q4-2 8 0"/>
+          <path d="M15 19l2-2 1 1-2 2-1-1z"/>
+        </>
       ),
     },
     {
       label: ts('hourly'),
       href: `/${locale}/services/hourly`,
-      // history / clock-with-back-arrow
-      icon: (
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-3">
+      // clock with a rewind arrow
+      fit: "translate(-2.67 -2.67) scale(1.2222)",
+      shapes: (
+        <>
           <path d="M3 12a9 9 0 1 0 9-9 9.1 9.1 0 0 0-6.36 2.64"/>
           <polyline points="3 3 3 9 9 9"/>
           <polyline points="12 7 12 12 15 14"/>
-        </svg>
+        </>
       ),
     },
     {
       label: ts('commercial'),
       href: `/${locale}/services/commercial`,
-      // delivery truck with speed lines
-      icon: (
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-3">
+      // delivery van — the size reference for the whole set. Its speed lines
+      // used to run to x=-1, outside the viewBox, so part of it was clipped;
+      // they stop at the edge now.
+      fit: "translate(1.00 0.52) scale(0.9565)",
+      shapes: (
+        <>
           <rect x="2" y="3" width="14" height="13" rx="1"/>
           <path d="M16 8h4l3 3v5h-7V8z"/>
           <circle cx="6" cy="18.5" r="2.5"/>
           <circle cx="19" cy="18.5" r="2.5"/>
-          <line x1="2" y1="7" x2="0" y2="7"/>
-          <line x1="2" y1="10" x2="-1" y2="10"/>
-          <line x1="2" y1="13" x2="0" y2="13"/>
-        </svg>
+          <path d="M2 7H0.5"/>
+          <path d="M2 10H0"/>
+          <path d="M2 13H0.5"/>
+        </>
       ),
     },
     {
       label: ts('daily'),
       href: `/${locale}/services/daily`,
-      // sunrise over a car — single day rental
-      icon: (
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-3">
+      // sun over a car — one day
+      fit: "translate(-1.75 -0.32) scale(1.1457)",
+      shapes: (
+        <>
           <path d="M8.8 9.2a3.2 3.2 0 0 1 6.4 0"/>
-          <line x1="12" y1="1.2" x2="12" y2="2.8"/>
-          <line x1="6.9" y1="4.1" x2="8" y2="5.2"/>
-          <line x1="17.1" y1="4.1" x2="16" y2="5.2"/>
-          <line x1="4.4" y1="9.2" x2="6.4" y2="9.2"/>
-          <line x1="17.6" y1="9.2" x2="19.6" y2="9.2"/>
+          <path d="M12 1.2v1.6"/>
+          <path d="M6.9 4.1 8 5.2"/>
+          <path d="M17.1 4.1 16 5.2"/>
+          <path d="M4.4 9.2h2"/>
+          <path d="M17.6 9.2h2"/>
           <path d="M2.4 18.6v-3.1a1 1 0 0 1 .7-1l1.6-.5 2-2.6a1.4 1.4 0 0 1 1.1-.6h8.4a1.4 1.4 0 0 1 1.1.6l2 2.6 1.6.5a1 1 0 0 1 .7 1v3.1"/>
-          {/* The beltline and the B-pillar used to sit inside the body here.
-              With the sun and its five rays already above it, this icon
-              carried twelve strokes against three in the clock beside it and
-              read as a dark blot at 40px. The silhouette and the wheels
-              still say "car", so only the interior detail came out. */}
           <path d="M2.4 18.6h2.2M9 18.6h6M19.4 18.6h2.2"/>
           <circle cx="6.6" cy="18.6" r="1.7"/>
           <circle cx="17.4" cy="18.6" r="1.7"/>
-        </svg>
+        </>
       ),
     },
     {
       label: ts('monthly'),
       href: `/${locale}/services/monthly`,
-      // calendar with "31" and two ring-binders
-      icon: (
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#E8743B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 mx-auto mb-3">
+      // calendar
+      fit: "translate(-1.20 -1.20) scale(1.1)",
+      shapes: (
+        <>
           <rect x="3" y="4" width="18" height="18" rx="2"/>
-          <line x1="8" y1="2" x2="8" y2="6"/>
-          <line x1="16" y1="2" x2="16" y2="6"/>
-          <line x1="3" y1="10" x2="21" y2="10"/>
-          <text x="12" y="19" textAnchor="middle" fontSize="7" fill="#E8743B" stroke="none" fontWeight="bold">31</text>
-        </svg>
+          <path d="M8 2v4"/>
+          <path d="M16 2v4"/>
+          <path d="M3 10h18"/>
+          {/* "31" — drawn rather than set as <text>, so it takes the same
+              stroke as everything else instead of needing its own fill. The
+              3 sits left of the 1: laid out the other way it reads "13". */}
+          <path d="M9.5 13.8h2.6l-1.5 1.8a1.4 1.4 0 1 1-1 2.4"/>
+          <path d="M14.5 18.2v-4.4l-1.4.9"/>
+        </>
       ),
     },
   ];
@@ -477,7 +524,7 @@ export default function HeroSection({ locale }: { locale: string }) {
               href={item.href}
               className="bg-white rounded-3xl p-5 text-center hover:shadow-xl transition-shadow group flex flex-col items-center"
             >
-              {item.icon}
+              <ServiceIcon fit={item.fit}>{item.shapes}</ServiceIcon>
               <p className="text-sm font-semibold text-[#0D2B2B] group-hover:text-[#B64916] transition-colors leading-tight">
                 {item.label}
               </p>
