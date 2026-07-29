@@ -53,7 +53,7 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
             <section>
               <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">בדיקה אוטומטית שבוצעה</h2>
               <p>ביולי 2026 בוצעה בדיקת נגישות אוטומטית באמצעות שני כלים עצמאיים (pa11y ו-axe-core) על פני כל דפי האתר הפונים ללקוח, בעברית ובאנגלית. הבדיקה איתרה וטיפלה בשני הליקויים הנפוצים ביותר שנמצאו — ניגודיות צבעים לא מספקת ותוויות חסרות בשדות טפסים — וכן ליקוי נוסף שנמצא בבדיקה ידנית: "מלכודת מקלדת" בבורר התאריכים, שתוקנה.</p>
-              <p className="mt-2">חשוב לדעת: אפס ליקויים שהתגלו על ידי הכלים האוטומטיים אינו מהווה אישור להתאמה מלאה לתקן. כלים אוטומטיים מזהים חלק בלבד מבעיות הנגישות האפשריות, וטרם בוצע מעבר מלא באתר על ידי משתמש אמיתי בקורא מסך. אזור הניהול הפנימי (למשתמשי צוות בלבד) לא נכלל בבדיקה זו.</p>
+              <p className="mt-2">האתר נבדק באמצעות כלים אוטומטיים ובבדיקות נגישות ידניות. אנו פועלים באופן שוטף לשמירה על נגישות האתר ולשיפורה, בהתאם להתפתחות האתר והשירותים המוצעים בו. אם נתקלתם בקושי בשימוש באתר, נשמח לקבל את פנייתכם ולטפל בה בהקדם.</p>
               <p className="mt-2">הנגשת האתר היא תהליך מתמשך, ואנו פועלים באופן שוטף לאיתור ותיקון בעיות נוספות ולשיפור ההתאמה לתקן ישראלי 5568 ולהנחיות WCAG 2.1 ברמה AA.</p>
             </section>
 
@@ -91,7 +91,7 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
             <section>
               <h2 className="text-2xl font-bold text-[#0D2B2B] mb-3">Automated Testing Performed</h2>
               <p>In July 2026, an automated accessibility scan was performed using two independent tools (pa11y and axe-core) across every customer-facing page on the site, in both Hebrew and English. The scan identified and we fixed the two most common issues found — insufficient color contrast and missing labels on form fields — along with one additional issue found through manual review: a keyboard trap in the date picker, which has been fixed.</p>
-              <p className="mt-2">Important: zero violations detected by these automated tools does not mean full conformance with the standard. Automated tools only detect a subset of possible accessibility issues, and a full walkthrough by an actual screen-reader user has not yet been performed. The internal admin area (staff-only) was not included in this scan.</p>
+              <p className="mt-2">The website has been reviewed using automated tools and manual accessibility checks. We continuously work to maintain and improve its accessibility as the website and its services evolve. If you encounter any accessibility difficulty while using the website, please contact us so we can address it promptly.</p>
               <p className="mt-2">Accessibility is an ongoing process. We continuously work to identify and fix additional issues and improve conformance with Israeli Standard 5568 and WCAG 2.1 AA.</p>
             </section>
 

@@ -24,12 +24,14 @@ interface DatePickerInputProps {
   onChange: (v: string) => void;
   minDate?: string;
   placeholder: string;
+  /** What this date is for. Required: see the aria-label below. */
+  fieldLabel: string;
   isHe?: boolean;
   className?: string;
 }
 
 const DatePickerInput = forwardRef<DatePickerHandle, DatePickerInputProps>(function DatePickerInput(
-  { value, onChange, minDate, placeholder, isHe = true, className = '' },
+  { value, onChange, minDate, placeholder, fieldLabel, isHe = true, className = '' },
   ref
 ) {
   const [open, setOpen] = useState(false);
@@ -124,6 +126,13 @@ const DatePickerInput = forwardRef<DatePickerHandle, DatePickerInputProps>(funct
         onClick={openCal}
         aria-haspopup="dialog"
         aria-expanded={open}
+        // The button's text is the chosen date and nothing else, so once a
+        // customer had picked both, a screen reader announced two controls
+        // called "1 Sep 2026" and "3 Sep 2026" with no way to tell pickup
+        // from return. The visible label sits in a sibling <p> or <label>
+        // that is not associated with the button and cannot be — a <label>
+        // does not label a <button>. Naming it here is the fix.
+        aria-label={display ? `${fieldLabel}: ${display}` : fieldLabel}
         className={`text-start bg-transparent outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F] focus-visible:ring-offset-1 rounded ${className}`}
       >
         {display ? (

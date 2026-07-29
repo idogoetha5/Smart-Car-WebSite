@@ -604,6 +604,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           <label className="block text-sm font-medium text-gray-700 mb-1">{t('pickup_date')}</label>
           <div className={`h-10 rounded-lg border-2 px-3 flex items-center ${errors.pickupDate ? 'border-red-400' : 'border-gray-200'}`}>
             <DatePickerInput
+              fieldLabel={t('pickup_date')}
               value={pickupDate}
               onChange={(date) => {
                 setValue('pickupDate', date, { shouldValidate: true });
@@ -625,6 +626,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           <label className="block text-sm font-medium text-gray-700 mb-1">{t('dropoff_date')}</label>
           <div className={`h-10 rounded-lg border-2 px-3 flex items-center ${errors.dropoffDate ? 'border-red-400' : 'border-gray-200'}`}>
             <DatePickerInput
+              fieldLabel={t('dropoff_date')}
               ref={returnPickerRef}
               value={dropoffDate}
               onChange={(date) => setValue('dropoffDate', date, { shouldValidate: true })}

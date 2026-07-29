@@ -349,6 +349,7 @@ export default function HeroSection({ locale }: { locale: string }) {
               <div className="flex-1 px-4 py-3 border-e border-gray-100">
                 <p className="text-xs text-gray-600 mb-1">{t('pickup_date_label')}</p>
                 <DatePickerInput
+                  fieldLabel={t('pickup_date_label')}
                   value={pickupDate}
                   onChange={(date) => {
                     setPickupDate(date);
@@ -364,6 +365,7 @@ export default function HeroSection({ locale }: { locale: string }) {
               <div className="flex-1 px-4 py-3">
                 <p className="text-xs text-gray-600 mb-1">{t('return_date_label')}</p>
                 <DatePickerInput
+                  fieldLabel={t('return_date_label')}
                   ref={returnRefMobile}
                   value={returnDate}
                   onChange={setReturnDate}
@@ -426,6 +428,7 @@ export default function HeroSection({ locale }: { locale: string }) {
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-gray-600 whitespace-nowrap">{t('pickup_date_label')}</p>
                 <DatePickerInput
+                  fieldLabel={t('pickup_date_label')}
                   value={pickupDate}
                   onChange={(date) => {
                     setPickupDate(date);
@@ -445,6 +448,7 @@ export default function HeroSection({ locale }: { locale: string }) {
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-gray-600 whitespace-nowrap">{t('return_date_label')}</p>
                 <DatePickerInput
+                  fieldLabel={t('return_date_label')}
                   ref={returnRefDesktop}
                   value={returnDate}
                   onChange={setReturnDate}
