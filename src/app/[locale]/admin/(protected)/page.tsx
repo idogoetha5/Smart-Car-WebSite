@@ -55,7 +55,7 @@ export default async function AdminDashboard({
   const stats = await getAdminStats();
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-black text-gray-900">{t('title')}</h1>
         <p className="text-gray-500 mt-1">

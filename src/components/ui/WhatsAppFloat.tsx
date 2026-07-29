@@ -1,10 +1,18 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { usePathname } from 'next/navigation';
+import { isAdminArea } from '@/lib/site-chrome';
 import { WHATSAPP_NUMBER } from '@/lib/constants';
 
 export default function WhatsAppFloat() {
   const t = useTranslations('whatsapp');
+  const locale = useLocale();
+  const pathname = usePathname();
+
+  // A customer-facing shortcut. In the admin area it is one more thing
+  // covering the bottom-right corner of a phone screen.
+  if (isAdminArea(pathname, locale)) return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-50">

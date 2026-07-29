@@ -170,7 +170,7 @@ export default function AdminQuotesPage() {
   };
 
   return (
-    <div className="p-8 max-w-[1400px] mx-auto" dir="rtl">
+    <div className="p-4 sm:p-8 max-w-[1400px] mx-auto" dir="rtl">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">בניית הצעת מחיר</h1>
         <div className="flex gap-2">
@@ -231,7 +231,7 @@ export default function AdminQuotesPage() {
         <div className="space-y-5 overflow-y-auto pr-1" style={{ maxHeight: '80vh' }}>
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <h2 className="font-bold text-gray-900 mb-3">פרטי הצעה</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="תאריך" value={date} readOnly />
               <Field label="מספר הצעה" value={quoteNumber} readOnly />
             </div>
@@ -239,7 +239,7 @@ export default function AdminQuotesPage() {
 
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <h2 className="font-bold text-gray-900 mb-3">פרטי לקוח</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="שם לקוח" value={customerName} onChange={setCustomerName} />
               <Field label="מייל לקוח" value={customerEmail} onChange={setCustomerEmail} type="email" highlight />
               <Field label="ת.פ / ע.מ" value={companyId} onChange={setCompanyId} />
@@ -278,7 +278,7 @@ export default function AdminQuotesPage() {
                   ))}
                 </select>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="שם רכב" value={v.name} onChange={(val) => updateVehicle(i, { name: val })} />
                   <Field label="תת-כותרת" value={v.subtitle} onChange={(val) => updateVehicle(i, { subtitle: val })} />
                   <Field label="רמת גימור" value={v.trim} onChange={(val) => updateVehicle(i, { trim: val })} />

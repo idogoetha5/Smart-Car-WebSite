@@ -100,7 +100,7 @@ export default function AdminCarsForSalePage() {
   ];
 
   return (
-    <div className="p-8" dir={isHe ? 'rtl' : 'ltr'}>
+    <div className="p-4 sm:p-8" dir={isHe ? 'rtl' : 'ltr'}>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-black text-gray-900 flex items-center gap-3">

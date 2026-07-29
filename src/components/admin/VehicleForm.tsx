@@ -52,7 +52,7 @@ export default function VehicleForm({
       onSubmit={handleSubmit((data) => onSubmit(data as VehicleInput))}
       className="space-y-4"
     >
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <Input label="Make" error={errors.make?.message as string} {...register('make')} />
         <Input label="Model" error={errors.model?.message as string} {...register('model')} />
         <Input
@@ -63,7 +63,7 @@ export default function VehicleForm({
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-gray-700">Category</label>
           <select
@@ -113,7 +113,7 @@ export default function VehicleForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Input
           label="Seats"
           type="number"
@@ -142,7 +142,7 @@ export default function VehicleForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input
           label="Deposit (₪)"
           type="number"

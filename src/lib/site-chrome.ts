@@ -18,3 +18,15 @@ export function hidesSiteHeader(pathname: string, locale: string): boolean {
     pathname.startsWith(`/${locale}/admin`)
   );
 }
+
+/**
+ * The admin area, which renders none of the public furniture: no site header
+ * or footer, no WhatsApp button, no floating accessibility link. Those are
+ * for customers, and on a phone they simply covered the controls.
+ *
+ * This does not license an inaccessible admin: it still has to work from the
+ * keyboard and report itself properly to a screen reader.
+ */
+export function isAdminArea(pathname: string, locale: string): boolean {
+  return pathname.startsWith(`/${locale}/admin`);
+}

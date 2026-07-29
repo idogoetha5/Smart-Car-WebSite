@@ -151,7 +151,7 @@ export default function AdminVehiclesPage() {
   ];
 
   if (loading) return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       <div className="animate-pulse space-y-4">
         {[1,2,3].map(i => <div key={i} className="h-12 bg-gray-200 rounded-xl" />)}
       </div>
@@ -159,7 +159,7 @@ export default function AdminVehiclesPage() {
   );
 
   return (
-    <div className="p-8" dir="rtl">
+    <div className="p-4 sm:p-8" dir="rtl">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-black text-gray-900">ניהול רכבים</h1>
@@ -186,7 +186,7 @@ export default function AdminVehiclesPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Text / number fields */}
               {textFields.map(f => (
                 <div key={f.key}>

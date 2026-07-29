@@ -44,8 +44,8 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0D2B2B] flex items-center justify-center" dir={locale === 'he' ? 'rtl' : 'ltr'}>
-      <div className="bg-white rounded-2xl p-10 w-full max-w-md shadow-2xl">
+    <div className="min-h-screen bg-[#0D2B2B] flex items-center justify-center p-4" dir={locale === 'he' ? 'rtl' : 'ltr'}>
+      <div className="bg-white rounded-2xl p-6 sm:p-10 w-full max-w-md shadow-2xl">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
             <Image src="/images/logo.png" alt="SmartCar" width={160} height={60} className="object-contain" />

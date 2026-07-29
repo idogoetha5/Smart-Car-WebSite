@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Phone, Mail, MapPin } from 'lucide-react';
 import { branchAddress, getBranch, wazeUrl } from '@/lib/branches';
 import { openCookiePreferences } from '@/lib/cookie-consent';
+import { isAdminArea } from '@/lib/site-chrome';
 
 const HERZLIYA = getBranch('herzliya');
 const TELAVIV = getBranch('telaviv');
@@ -21,6 +22,11 @@ export default function Footer() {
     const newLocale = locale === 'he' ? 'en' : 'he';
     router.push(pathname.replace(`/${locale}`, `/${newLocale}`));
   };
+
+  // The public footer — marketing links, branches, legal pages — has no place
+  // in the staff admin area, where on a phone it was simply a long block of
+  // customer navigation under every screen.
+  if (isAdminArea(pathname, locale)) return null;
 
   return (
     <footer className="bg-[#0D2B2B] text-[#B8D8D8]">
@@ -135,7 +141,13 @@ export default function Footer() {
             </Link>
             <Link href={`/${locale}/privacy`} className="hover:text-[#B8D8D8] transition-colors">{t('privacy')}</Link>
             <Link href={`/${locale}/terms`} className="hover:text-[#B8D8D8] transition-colors">{t('terms')}</Link>
-            <Link href={`/${locale}/accessibility`} className="hover:text-[#B8D8D8] transition-colors">
+            {/* The site-wide route to the accessibility statement now that
+                the floating button is homepage-only, so it has to show focus
+                like any other control. */}
+            <Link
+              href={`/${locale}/accessibility`}
+              className="rounded hover:text-[#B8D8D8] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8D8D8] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D2B2B]"
+            >
               {locale === 'he' ? 'נגישות' : 'Accessibility'}
             </Link>
             <Link href={`/${locale}/cookies`} className="hover:text-[#B8D8D8] transition-colors">

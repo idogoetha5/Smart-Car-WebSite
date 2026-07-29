@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { Accessibility } from 'lucide-react';
-import { hidesSiteHeader } from '@/lib/site-chrome';
+import { hidesSiteHeader, isAdminArea } from '@/lib/site-chrome';
 
 /**
  * Standing link to the accessibility statement, required to be reachable
@@ -32,6 +32,15 @@ export default function AccessibilityButton() {
   // lands directly on it, which is the one thing this button must not do.
   // The bottom-left corner is free: WhatsApp floats bottom-right, and the
   // cookie bar is z-50 so it correctly covers this while it is up.
+  // Homepage only. A statutory accessibility statement has to be reachable
+  // from every page, but it does not have to float over every page — the
+  // footer carries a permanent "נגישות" / "Accessibility" text link
+  // site-wide, which is reachable by keyboard and reads properly to a screen
+  // reader. Repeating it as an overlay everywhere just covered content, and
+  // in the staff-only admin area it sat on top of the controls.
+  const isHome = pathname === `/${locale}` || pathname === `/${locale}/`;
+  if (!isHome || isAdminArea(pathname, locale)) return null;
+
   const desktopTop = hidesSiteHeader(pathname, locale) ? 'md:top-4' : 'md:top-20';
 
   return (

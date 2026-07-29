@@ -89,7 +89,7 @@ export default function AdminReviewsPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-8">
         <div className="animate-pulse space-y-4">
           {[1, 2, 3].map(i => <div key={i} className="h-20 bg-gray-200 rounded-xl" />)}
         </div>
@@ -98,7 +98,7 @@ export default function AdminReviewsPage() {
   }
 
   return (
-    <div className="p-8" dir="rtl">
+    <div className="p-4 sm:p-8" dir="rtl">
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-black text-gray-900">
