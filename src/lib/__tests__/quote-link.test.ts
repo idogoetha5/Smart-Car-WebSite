@@ -1,11 +1,21 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createRentalQuoteLinkToken,
+  rentalQuoteLinkExpiry,
   rentalQuotePdfPath,
   rentalQuoteShortLink,
+  rentalQuoteValidityIsExpired,
   safeQuoteReference,
   verifyRentalQuoteLinkToken,
 } from '@/lib/quote-link';
+
+/** A month out, which is how long a rental quotation holds. */
+const MONTH_AHEAD = Date.now() + 30 * 24 * 60 * 60 * 1000;
+const mint = (
+  quoteNumber: string,
+  mode: 'quote' | 'confirmation',
+  expiresAt: number = MONTH_AHEAD
+) => createRentalQuoteLinkToken(quoteNumber, mode, expiresAt);
 
 beforeAll(() => {
   process.env.QUOTE_LINK_SECRET = 'test-secret-for-quote-link-tests';
@@ -25,7 +35,7 @@ vi.mock('@/lib/ratelimit', () => ({
 
 describe('rental quote link tokens', () => {
   it('round-trips a quote number and document mode', () => {
-    const token = createRentalQuoteLinkToken('R912214', 'quote');
+    const token = mint('R912214', 'quote');
     const result = verifyRentalQuoteLinkToken(token);
 
     expect(result.valid).toBe(true);
@@ -33,14 +43,14 @@ describe('rental quote link tokens', () => {
     expect(result.mode).toBe('quote');
 
     const confirmation = verifyRentalQuoteLinkToken(
-      createRentalQuoteLinkToken('R912214', 'confirmation')
+      mint('R912214', 'confirmation')
     );
     expect(confirmation.valid).toBe(true);
     expect(confirmation.mode).toBe('confirmation');
   });
 
   it('stays short, URL-safe and branded', () => {
-    const token = createRentalQuoteLinkToken('R912214', 'quote');
+    const token = mint('R912214', 'quote');
     expect(token).toMatch(/^R912214-q[0-9a-z]+-[0-9a-z]{16}$/);
     expect(token.length).toBeLessThan(40);
     expect(rentalQuoteShortLink('https://smartcar.co.il', token)).toBe(
@@ -52,7 +62,7 @@ describe('rental quote link tokens', () => {
   });
 
   it('rejects a tampered quote number', () => {
-    const token = createRentalQuoteLinkToken('R912214', 'quote');
+    const token = mint('R912214', 'quote');
     const [, modeAndExpiry, signature] = token.split('-');
     const forged = `R000001-${modeAndExpiry}-${signature}`;
 
@@ -62,7 +72,7 @@ describe('rental quote link tokens', () => {
   });
 
   it('rejects a tampered document mode and a stretched expiry', () => {
-    const token = createRentalQuoteLinkToken('R912214', 'quote');
+    const token = mint('R912214', 'quote');
     const [reference, modeAndExpiry, signature] = token.split('-');
 
     expect(
@@ -80,7 +90,7 @@ describe('rental quote link tokens', () => {
   });
 
   it('rejects a forged signature', () => {
-    const token = createRentalQuoteLinkToken('R912214', 'quote');
+    const token = mint('R912214', 'quote');
     const [reference, modeAndExpiry] = token.split('-');
     expect(
       verifyRentalQuoteLinkToken(
@@ -94,7 +104,7 @@ describe('rental quote link tokens', () => {
   });
 
   it('rejects an expired link even though the signature is intact', () => {
-    const expired = createRentalQuoteLinkToken('R912214', 'quote', -1);
+    const expired = mint('R912214', 'quote', Date.now() - 60_000);
     const result = verifyRentalQuoteLinkToken(expired);
     expect(result.valid).toBe(false);
     expect(result.reason).toBe('expired');
@@ -114,6 +124,53 @@ describe('rental quote link tokens', () => {
     ]) {
       expect(verifyRentalQuoteLinkToken(token).valid).toBe(false);
     }
+  });
+
+  it('expires with the quotation, at the end of that day Israel time', () => {
+    // 2026-08-29 is inside IDT (UTC+3), so the end of that day locally is
+    // 20:59:59.999Z — a link opened on the 29th in Israel still works.
+    const expiry = rentalQuoteLinkExpiry('2026-08-29');
+    expect(new Date(expiry).toISOString()).toBe('2026-08-29T20:59:59.999Z');
+
+    // And in winter (IST, UTC+2).
+    expect(new Date(rentalQuoteLinkExpiry('2026-12-31')).toISOString()).toBe(
+      '2026-12-31T21:59:59.999Z'
+    );
+  });
+
+  it('keeps a link alive for the whole month a quotation holds', () => {
+    const now = Date.parse('2026-07-30T09:00:00.000Z');
+    const expiry = rentalQuoteLinkExpiry('2026-08-29', now);
+    const days = (expiry - now) / (24 * 60 * 60 * 1000);
+    expect(days).toBeGreaterThan(29);
+
+    const linkToken = mint('R912214', 'quote', expiry);
+    expect(verifyRentalQuoteLinkToken(linkToken).valid).toBe(true);
+  });
+
+  it('falls back to 30 days when no validity date is given', () => {
+    const now = Date.parse('2026-07-30T09:00:00.000Z');
+    for (const missing of [undefined, null, '', 'not-a-date']) {
+      const expiry = rentalQuoteLinkExpiry(missing, now);
+      const days = (expiry - now) / (24 * 60 * 60 * 1000);
+      expect(days).toBeGreaterThan(29);
+      expect(days).toBeLessThan(31);
+    }
+  });
+
+  it('does not quietly extend a validity date that has passed', () => {
+    const now = Date.parse('2026-07-30T09:00:00.000Z');
+    // Reported as expired instead of stretched to today: the send path refuses
+    // it, so the date printed on the PDF stays true.
+    expect(new Date(rentalQuoteLinkExpiry('2026-01-01', now)).toISOString()).toBe(
+      '2026-01-01T21:59:59.999Z'
+    );
+    expect(rentalQuoteValidityIsExpired('2026-01-01', now)).toBe(true);
+    expect(rentalQuoteValidityIsExpired('2026-08-29', now)).toBe(false);
+    // Still valid for the whole of the current day in Israel.
+    expect(rentalQuoteValidityIsExpired('2026-07-30', now)).toBe(false);
+    // A missing date falls back to 30 days, which is never expired.
+    expect(rentalQuoteValidityIsExpired('', now)).toBe(false);
   });
 
   it('derives a storage path that cannot escape the rental folder', () => {
@@ -142,7 +199,7 @@ describe('GET /q/[token]', () => {
       error: null,
     });
 
-    const response = await call(createRentalQuoteLinkToken('R912214', 'quote'));
+    const response = await call(mint('R912214', 'quote'));
 
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('application/pdf');
@@ -158,7 +215,7 @@ describe('GET /q/[token]', () => {
   it('names a confirmation document as such', async () => {
     download.mockResolvedValue({ data: new Blob([new Uint8Array([1])]), error: null });
     const response = await call(
-      createRentalQuoteLinkToken('R912214', 'confirmation')
+      mint('R912214', 'confirmation')
     );
     expect(response.headers.get('content-disposition')).toContain(
       'SmartCar_Booking_Confirmation_R912214.pdf'
@@ -166,7 +223,7 @@ describe('GET /q/[token]', () => {
   });
 
   it('does not read storage for a forged link', async () => {
-    const token = createRentalQuoteLinkToken('R912214', 'quote');
+    const token = mint('R912214', 'quote');
     const [reference, modeAndExpiry] = token.split('-');
 
     const response = await call(
@@ -178,7 +235,7 @@ describe('GET /q/[token]', () => {
 
   it('tells the customer an expired link expired', async () => {
     const response = await call(
-      createRentalQuoteLinkToken('R912214', 'quote', -1)
+      mint('R912214', 'quote', Date.now() - 60_000)
     );
     expect(response.status).toBe(410);
     expect(await response.text()).toContain('פג תוקף');
@@ -188,7 +245,7 @@ describe('GET /q/[token]', () => {
   it('handles a document that is no longer in the bucket', async () => {
     download.mockResolvedValue({ data: null, error: { message: 'Not found' } });
 
-    const response = await call(createRentalQuoteLinkToken('R912214', 'quote'));
+    const response = await call(mint('R912214', 'quote'));
     expect(response.status).toBe(404);
     const body = await response.text();
     expect(body).not.toContain('supabase');

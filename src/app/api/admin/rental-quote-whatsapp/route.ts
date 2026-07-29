@@ -3,11 +3,14 @@ import { NextResponse } from 'next/server';
 import { verifyAdminToken } from '@/lib/admin-auth';
 import {
   createRentalQuoteLinkToken,
+  rentalQuoteLinkExpiry,
   rentalQuotePdfPath,
   rentalQuoteShortLink,
+  rentalQuoteValidityIsExpired,
 } from '@/lib/quote-link';
 import {
   normalizeWhatsAppPhone,
+  rentalQuoteWhatsAppMessage,
   type RentalQuoteData,
 } from '@/lib/rental-quote';
 import { renderRentalQuotePdf } from '@/lib/rental-quote-server';
@@ -22,46 +25,6 @@ function publicOrigin(request: Request): string {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (configured) return configured;
   return new URL(request.url).origin;
-}
-
-function whatsappMessage(
-  data: RentalQuoteData,
-  link: string
-): string {
-  const isConfirmation = data.documentMode === 'confirmation';
-
-  if (data.locale === 'he') {
-    const documentName = isConfirmation
-      ? 'אישור ההזמנה וסיכום העסקה'
-      : 'הצעת המחיר';
-    const action = isConfirmation
-      ? 'לצפייה ולהורדת אישור ההזמנה:'
-      : 'לצפייה ולהורדת הצעת המחיר:';
-    return [
-      `שלום ${data.customerName},`,
-      '',
-      `הכנו עבורך את ${documentName} מספר ${data.quoteNumber} להשכרת רכב מ־SmartCar.`,
-      '',
-      action,
-      link,
-      '',
-      'הקישור זמין למשך 7 ימים. נשמח לעמוד לרשותך לכל שאלה.',
-    ].join('\n');
-  }
-
-  const documentName = isConfirmation
-    ? 'booking confirmation and deal summary'
-    : 'quotation';
-  return [
-    `Hello ${data.customerName},`,
-    '',
-    `We have prepared your car rental ${documentName} number ${data.quoteNumber} from SmartCar.`,
-    '',
-    `To view and download the ${isConfirmation ? 'booking confirmation' : 'quotation'}:`,
-    link,
-    '',
-    'The link is available for 7 days. We will be happy to help with any questions.',
-  ].join('\n');
 }
 
 export async function POST(request: Request) {
@@ -83,6 +46,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'מספר הטלפון אינו תקין ל-WhatsApp' }, { status: 400 });
   }
 
+  // The link expires with the quotation, so a validity date that has already
+  // passed would send the customer a document they cannot open. Refuse rather
+  // than silently extend it — the date printed on the PDF has to be true.
+  if (rentalQuoteValidityIsExpired(data.validUntil)) {
+    return NextResponse.json(
+      {
+        error:
+          'תאריך התוקף של ההצעה כבר עבר. יש לבחור תאריך תוקף עתידי לפני השליחה ללקוח.',
+      },
+      { status: 400 }
+    );
+  }
+
   try {
     const pdf = await renderRentalQuotePdf(data);
     const supabase = createAdminClient();
@@ -98,9 +74,12 @@ export async function POST(request: Request) {
     // A branded /q/<token> link rather than a Supabase signed URL: the bucket
     // stays private, and what the customer receives reads as SmartCar instead
     // of a storage hostname with an access token attached.
+    // The link lives exactly as long as the quotation it carries.
+    const expiresAt = rentalQuoteLinkExpiry(data.validUntil);
     const token = createRentalQuoteLinkToken(
       data.quoteNumber,
-      data.documentMode
+      data.documentMode,
+      expiresAt
     );
     const link = rentalQuoteShortLink(publicOrigin(request), token);
 
@@ -108,7 +87,8 @@ export async function POST(request: Request) {
       {
         ok: true,
         documentUrl: link,
-        whatsappUrl: `https://wa.me/${phone}?text=${encodeURIComponent(whatsappMessage(data, link))}`,
+        expiresAt: new Date(expiresAt).toISOString(),
+        whatsappUrl: `https://wa.me/${phone}?text=${encodeURIComponent(rentalQuoteWhatsAppMessage(data, link))}`,
       },
       { headers: { 'Cache-Control': 'private, no-store' } }
     );

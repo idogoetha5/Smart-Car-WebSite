@@ -309,8 +309,22 @@ const COPY = {
     confirmationNoNotes: 'לכל שאלה נוספת נציגי SmartCar זמינים עבורכם.',
     quoteLegal: 'הצעה זו אינה מהווה אישור הזמנה או התחייבות לזמינות רכב מסוים. ההזמנה, המחיר והתנאים יאושרו סופית בכתב על ידי נציג SmartCar ובכפוף להסכם ההשכרה.',
     confirmationLegal: 'מסמך זה מסכם את פרטי ההזמנה שאושרו מול נציג SmartCar. ההשכרה כפופה לתנאי הסכם ההשכרה, להצגת מסמכים תקפים ולתנאים שנקבעו במסמך זה.',
+    quoteValidity: (date: string) => `הצעה זו בתוקף עד ${date}.`,
+    confirmationValidity: (date: string) =>
+      `התנאים במסמך זה בתוקף עד ${date}.`,
     thanks: 'תודה שבחרתם SmartCar. אנחנו כאן כדי להפוך כל נסיעה לפשוטה ונעימה יותר.',
     flat: 'חד-פעמי',
+    messageGreeting: (name: string) => `שלום ${name},`,
+    messageIntro: (documentName: string, quoteNumber: string) =>
+      `הכנו עבורך את ${documentName} מספר ${quoteNumber} להשכרת רכב מ־SmartCar.`,
+    messageDocumentQuote: 'הצעת המחיר',
+    messageDocumentConfirmation: 'אישור ההזמנה וסיכום העסקה',
+    messageActionQuote: 'לצפייה ולהורדת הצעת המחיר:',
+    messageActionConfirmation: 'לצפייה ולהורדת אישור ההזמנה:',
+    messageValidityQuote: (date: string) =>
+      `ההצעה והקישור תקפים עד לתאריך ${date}. נשמח לעמוד לרשותך לכל שאלה.`,
+    messageValidityConfirmation: (date: string) =>
+      `המסמך והקישור תקפים עד לתאריך ${date}. נשמח לעמוד לרשותך לכל שאלה.`,
   },
   en: {
     quoteTitle: 'Car Rental Quotation',
@@ -351,8 +365,22 @@ const COPY = {
     confirmationNoNotes: 'Your SmartCar representative is available for any further questions.',
     quoteLegal: 'This quotation is not a booking confirmation or a commitment that a specific vehicle is available. The booking, price and terms are confirmed in writing by a SmartCar representative and remain subject to the rental agreement.',
     confirmationLegal: 'This document summarizes the booking details approved with a SmartCar representative. The rental remains subject to the rental agreement, valid documents and the terms stated in this document.',
+    quoteValidity: (date: string) => `This quotation is valid until ${date}.`,
+    confirmationValidity: (date: string) =>
+      `The terms in this document are valid until ${date}.`,
     thanks: 'Thank you for choosing SmartCar. We are here to make every journey simpler and more enjoyable.',
     flat: 'one-time',
+    messageGreeting: (name: string) => `Hello ${name},`,
+    messageIntro: (documentName: string, quoteNumber: string) =>
+      `We have prepared your car rental ${documentName} number ${quoteNumber} from SmartCar.`,
+    messageDocumentQuote: 'quotation',
+    messageDocumentConfirmation: 'booking confirmation and deal summary',
+    messageActionQuote: 'To view and download the quotation:',
+    messageActionConfirmation: 'To view and download the booking confirmation:',
+    messageValidityQuote: (date: string) =>
+      `The quotation and the link are valid until ${date}. We will be happy to help with any questions.`,
+    messageValidityConfirmation: (date: string) =>
+      `This document and the link are valid until ${date}. We will be happy to help with any questions.`,
   },
 } as const;
 
@@ -391,6 +419,43 @@ export function fitRentalQuoteToPage(target?: Document): void {
   }
 }
 
+/** The document's validity date as the customer reads it (e.g. 29.08.2026). */
+export function rentalQuoteValidUntilText(data: RentalQuoteData): string {
+  return displayDate(data.validUntil, data.locale);
+}
+
+/**
+ * The WhatsApp message the representative sends with the document link.
+ *
+ * States the real validity date rather than a fixed number of days: a quotation
+ * holds for a month, and the link now expires with it, so one date has to be
+ * true for both.
+ */
+export function rentalQuoteWhatsAppMessage(
+  data: RentalQuoteData,
+  link: string
+): string {
+  const t = COPY[data.locale];
+  const isConfirmation = data.documentMode === 'confirmation';
+  const validUntil = rentalQuoteValidUntilText(data);
+
+  return [
+    t.messageGreeting(data.customerName),
+    '',
+    t.messageIntro(
+      isConfirmation ? t.messageDocumentConfirmation : t.messageDocumentQuote,
+      data.quoteNumber
+    ),
+    '',
+    isConfirmation ? t.messageActionConfirmation : t.messageActionQuote,
+    link,
+    '',
+    isConfirmation
+      ? t.messageValidityConfirmation(validUntil)
+      : t.messageValidityQuote(validUntil),
+  ].join('\n');
+}
+
 export function rentalQuoteHeadHTML(): string {
   return `<style>${FONT_FACES}${RENTAL_QUOTE_CSS}</style>`;
 }
@@ -407,7 +472,15 @@ export function rentalQuoteBodyHTML(data: RentalQuoteData): string {
   // label that says "quotation" has to move with the title.
   const isConfirmation = data.documentMode === 'confirmation';
   const documentTitle = isConfirmation ? t.confirmationTitle : t.quoteTitle;
-  const legalText = isConfirmation ? t.confirmationLegal : t.quoteLegal;
+  // The exact validity date is stated in the legal note as well as the header
+  // strip: it is what the price holds until, and it is when the customer's
+  // link stops opening.
+  const validityNote = isConfirmation
+    ? t.confirmationValidity(displayDate(data.validUntil, data.locale))
+    : t.quoteValidity(displayDate(data.validUntil, data.locale));
+  const legalText = `${validityNote} ${
+    isConfirmation ? t.confirmationLegal : t.quoteLegal
+  }`;
   const referenceLabel = isConfirmation ? t.confirmationNumber : t.quote;
   const validLabel = isConfirmation ? t.confirmationValid : t.valid;
   const vehiclesLabel = isConfirmation ? t.confirmationVehicles : t.vehicles;

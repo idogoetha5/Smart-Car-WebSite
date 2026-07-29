@@ -5,6 +5,7 @@ import {
   calculateRentalQuoteTotals,
   generateRentalQuoteHTML,
   normalizeWhatsAppPhone,
+  rentalQuoteWhatsAppMessage,
   type RentalQuoteData,
 } from '@/lib/rental-quote';
 import { validRentalQuoteData } from '@/lib/rental-quote-validation';
@@ -155,6 +156,127 @@ describe('rental quotation insurance coverage', () => {
     const html = generateRentalQuoteHTML({ ...quote, deductible: '' });
     expect(html).toContain('השתתפות עצמית');
     expect(html).not.toContain('לפי הכיסוי הביטוחי שנבחר');
+  });
+});
+
+describe('rental document validity date', () => {
+  it('states the exact validity date in the PDF, in both languages', () => {
+    const hebrew = generateRentalQuoteHTML({
+      ...quote,
+      validUntil: '2026-08-29',
+    });
+    // Once in the header strip, once in the legal note.
+    expect(hebrew.match(/29\.08\.2026/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(hebrew).toContain('הצעה זו בתוקף עד 29.08.2026.');
+
+    const english = generateRentalQuoteHTML({
+      ...quote,
+      locale: 'en',
+      validUntil: '2026-08-29',
+    });
+    expect(english).toContain('This quotation is valid until 29/08/2026.');
+  });
+
+  it('states it as the terms validity on a booking confirmation', () => {
+    const hebrew = generateRentalQuoteHTML({
+      ...quote,
+      documentMode: 'confirmation',
+      validUntil: '2026-08-29',
+    });
+    expect(hebrew).toContain('התנאים במסמך זה בתוקף עד 29.08.2026.');
+    expect(hebrew).not.toContain('הצעה זו בתוקף עד');
+
+    expect(
+      generateRentalQuoteHTML({
+        ...quote,
+        locale: 'en',
+        documentMode: 'confirmation',
+        validUntil: '2026-08-29',
+      })
+    ).toContain('The terms in this document are valid until 29/08/2026.');
+  });
+});
+
+describe('rental quotation WhatsApp message', () => {
+  const link = 'https://smartcar.co.il/q/R912214-q1kx7zab-3f9k2m1x8q7wz0ab';
+
+  it('uses the approved Hebrew wording with the real validity date', () => {
+    const message = rentalQuoteWhatsAppMessage(
+      { ...quote, validUntil: '2026-08-29' },
+      link
+    );
+
+    expect(message).toBe(
+      [
+        'שלום עידו גויטע,',
+        '',
+        'הכנו עבורך את הצעת המחיר מספר R123456 להשכרת רכב מ־SmartCar.',
+        '',
+        'לצפייה ולהורדת הצעת המחיר:',
+        link,
+        '',
+        'ההצעה והקישור תקפים עד לתאריך 29.08.2026. נשמח לעמוד לרשותך לכל שאלה.',
+      ].join('\n')
+    );
+    // The customer never sees storage internals, and never a fixed week.
+    expect(message).not.toContain('supabase');
+    expect(message).not.toContain('token');
+    expect(message).not.toContain('7 ימים');
+  });
+
+  it('uses the matching English wording', () => {
+    const message = rentalQuoteWhatsAppMessage(
+      { ...quote, locale: 'en', validUntil: '2026-08-29' },
+      link
+    );
+
+    expect(message).toBe(
+      [
+        'Hello עידו גויטע,',
+        '',
+        'We have prepared your car rental quotation number R123456 from SmartCar.',
+        '',
+        'To view and download the quotation:',
+        link,
+        '',
+        'The quotation and the link are valid until 29/08/2026. We will be happy to help with any questions.',
+      ].join('\n')
+    );
+    expect(message).not.toContain('7 days');
+  });
+
+  it('names a booking confirmation as such in both languages', () => {
+    const hebrew = rentalQuoteWhatsAppMessage(
+      { ...quote, documentMode: 'confirmation', validUntil: '2026-08-29' },
+      link
+    );
+    expect(hebrew).toContain(
+      'הכנו עבורך את אישור ההזמנה וסיכום העסקה מספר R123456 להשכרת רכב מ־SmartCar.'
+    );
+    expect(hebrew).toContain('לצפייה ולהורדת אישור ההזמנה:');
+    expect(hebrew).toContain('המסמך והקישור תקפים עד לתאריך 29.08.2026.');
+
+    const english = rentalQuoteWhatsAppMessage(
+      {
+        ...quote,
+        locale: 'en',
+        documentMode: 'confirmation',
+        validUntil: '2026-08-29',
+      },
+      link
+    );
+    expect(english).toContain(
+      'We have prepared your car rental booking confirmation and deal summary number R123456 from SmartCar.'
+    );
+    expect(english).toContain(
+      'This document and the link are valid until 29/08/2026.'
+    );
+  });
+
+  it('carries the branded link and nothing else clickable', () => {
+    const message = rentalQuoteWhatsAppMessage(quote, link);
+    const urls = message.match(/https?:\/\/\S+/g) ?? [];
+    expect(urls).toEqual([link]);
   });
 });
 

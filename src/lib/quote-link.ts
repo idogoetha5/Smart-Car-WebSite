@@ -8,17 +8,19 @@ import { createHmac, timingSafeEqual } from 'crypto';
  * nor survives being forwarded or read aloud. These links carry the quote
  * number and a short HMAC instead: `https://smartcar.co.il/q/R912214-q1kx7-…`.
  *
- * The token is the whole authorisation. It names the document, expires seven
- * days out, and cannot be edited — changing the quote number or pushing the
- * expiry out invalidates the signature — so the storage bucket stays private
- * and no database table is needed to resolve a link.
+ * The token is the whole authorisation. It names the document, expires when the
+ * quotation itself does, and cannot be edited — changing the quote number or
+ * pushing the expiry out invalidates the signature — so the storage bucket
+ * stays private and no database table is needed to resolve a link.
  *
  * QUOTE_LINK_SECRET is deliberately its own secret: a link a customer holds
  * for a week must never be derived from the admin session key.
  */
 
 const PURPOSE = 'rental-quote-link';
-const DEFAULT_TTL_DAYS = 7;
+/** Used only when a quotation carries no validity date of its own. */
+const FALLBACK_VALIDITY_DAYS = 30;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 /** 16 base36 characters — ~82 bits, far past guessing a live link. */
 const SIGNATURE_LENGTH = 16;
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]+$/;
@@ -81,18 +83,78 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(bufA, bufB);
 }
 
+/** Israel's UTC offset in minutes at a given instant (handles IDT and IST). */
+function israelOffsetMinutes(atMs: number): number {
+  const label = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Jerusalem',
+    timeZoneName: 'longOffset',
+  }).format(new Date(atMs));
+  const match = /GMT([+-])(\d{2}):(\d{2})/.exec(label);
+  if (!match) return 180;
+  const sign = match[1] === '-' ? -1 : 1;
+  return sign * (Number(match[2]) * 60 + Number(match[3]));
+}
+
+/** The end of a calendar date in Israel, as an epoch timestamp. */
+function israelEndOfDay(isoDate: string): number {
+  const asUtc = Date.parse(`${isoDate}T23:59:59.999Z`);
+  if (Number.isNaN(asUtc)) return Number.NaN;
+  return asUtc - israelOffsetMinutes(asUtc) * 60_000;
+}
+
+/** The calendar date it currently is in Israel. */
+function israelToday(now: number): string {
+  return new Date(now + israelOffsetMinutes(now) * 60_000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+/**
+ * When a document's link stops working: the end of its validity date, Israel
+ * time, so a quotation valid to the 29th opens all day on the 29th.
+ *
+ * A quotation holds for a month, not a week — the link must not die first. With
+ * no usable date to go on it falls back to 30 days out.
+ *
+ * A date already in the past is returned as-is rather than quietly extended:
+ * the representative has to pick a real future date, and
+ * `rentalQuoteValidityIsExpired` is what the send path checks before it builds
+ * a link nobody could open.
+ */
+export function rentalQuoteLinkExpiry(
+  validUntil?: string | null,
+  now: number = Date.now()
+): number {
+  const requested = validUntil?.trim();
+  if (requested && ISO_DATE.test(requested)) {
+    const expiry = israelEndOfDay(requested);
+    if (!Number.isNaN(expiry)) return expiry;
+  }
+
+  const fallbackDate = israelToday(
+    now + FALLBACK_VALIDITY_DAYS * 24 * 60 * 60 * 1000
+  );
+  return israelEndOfDay(fallbackDate);
+}
+
+/** True when a quotation's validity date has already passed in Israel. */
+export function rentalQuoteValidityIsExpired(
+  validUntil?: string | null,
+  now: number = Date.now()
+): boolean {
+  return rentalQuoteLinkExpiry(validUntil, now) <= now;
+}
+
 export function createRentalQuoteLinkToken(
   quoteNumber: string,
   mode: QuoteLinkMode,
-  ttlDays: number = DEFAULT_TTL_DAYS
+  expiresAt: number
 ): string {
   const reference = safeQuoteReference(quoteNumber);
   const modeChar = MODE_TO_CHAR[mode];
   // Minute resolution keeps the token short; the signature covers it, so it
   // cannot be nudged forward.
-  const expiresAtMinutes = Math.floor(
-    (Date.now() + ttlDays * 24 * 60 * 60 * 1000) / 60_000
-  );
+  const expiresAtMinutes = Math.floor(expiresAt / 60_000);
   const signature = sign(reference, modeChar, expiresAtMinutes);
   return `${reference}-${modeChar}${expiresAtMinutes.toString(36)}-${signature}`;
 }

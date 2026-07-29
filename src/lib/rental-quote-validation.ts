@@ -14,6 +14,10 @@ export function validRentalQuoteData(value: unknown): value is RentalQuoteData {
       data.customerName.length <= 160 &&
       data.customerPhone?.trim() &&
       data.customerPhone.length <= 30 &&
+      // The validity date is what the price holds until and when the
+      // customer's document link stops opening, so it has to be a real date.
+      data.validUntil &&
+      DATE_PATTERN.test(data.validUntil) &&
       data.pickupDate &&
       DATE_PATTERN.test(data.pickupDate) &&
       data.returnDate &&

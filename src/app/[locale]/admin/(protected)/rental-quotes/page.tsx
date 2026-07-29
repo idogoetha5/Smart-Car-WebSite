@@ -144,6 +144,8 @@ const TEXT = {
     preview: 'תצוגה מקדימה של הצעת המחיר',
     requiredError: 'יש למלא שם לקוח, טלפון, תאריכים, מיקומים ולפחות רכב אחד.',
     insuranceRequired: 'יש לבחור או להזין כיסוי ביטוחי לפני יצירת המסמך.',
+    validUntilPast:
+      'תאריך התוקף של ההצעה כבר עבר. יש לבחור תאריך תוקף עתידי — הקישור ללקוח תקף עד אותו תאריך.',
     pdfError: 'לא ניתן היה ליצור את ה־PDF. נסה שוב.',
     whatsappError: 'לא ניתן היה להכין את ההודעה ל־WhatsApp. נסה שוב.',
     expired: 'ההתחברות פגה. מעביר אותך לדף ההתחברות...',
@@ -227,6 +229,8 @@ const TEXT = {
     preview: 'Rental quotation preview',
     requiredError: 'Enter a customer name, phone, dates, locations and at least one vehicle.',
     insuranceRequired: 'Choose or type the insurance coverage before creating the document.',
+    validUntilPast:
+      'The validity date has already passed. Choose a future date — the customer link is valid until that date.',
     pdfError: 'The PDF could not be created. Please try again.',
     whatsappError: 'The WhatsApp message could not be prepared. Please try again.',
     expired: 'Your session expired. Redirecting to login...',
@@ -256,7 +260,9 @@ export default function RentalQuotesPage() {
   );
   const [documentMode, setDocumentMode] =
     useState<RentalDocumentMode>('quote');
-  const [validUntil, setValidUntil] = useState(() => addIsoDays(today, 7));
+  // A rental quotation holds for a month, and the customer's document link
+  // expires with this date — so it is the default, not a week.
+  const [validUntil, setValidUntil] = useState(() => addIsoDays(today, 30));
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -553,6 +559,13 @@ export default function RentalQuotesPage() {
   const handleWhatsApp = async () => {
     setError('');
     if (!validateForm()) return;
+    // The customer's link expires with the quotation, so an expired quotation
+    // cannot be sent at all. Caught here as well as on the server so nothing
+    // is rendered or uploaded first.
+    if (validUntil < today) {
+      setError(t.validUntilPast);
+      return;
+    }
 
     const whatsappWindow = window.open('', '_blank');
     setBusy('whatsapp');
@@ -703,6 +716,7 @@ export default function RentalQuotesPage() {
                   label={t.validUntil}
                   value={validUntil}
                   type="date"
+                  min={today}
                   onChange={setValidUntil}
                 />
                 <label className="block">
