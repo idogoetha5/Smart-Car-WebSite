@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { formatLocationForCustomer } from '@/lib/location-display';
 import {
   calculateRentalDays,
   calculateRentalQuoteTotals,
   generateRentalQuoteHTML,
+  isoToday,
   normalizeWhatsAppPhone,
   rentalQuoteNumber,
   rentalQuoteWhatsAppMessage,
@@ -66,6 +67,45 @@ const quote: RentalQuoteData = {
   fuelPolicy: 'מלא־מלא',
   notes: 'נשמח לעמוד לרשותכם.',
 };
+
+describe('rental document vehicle image', () => {
+  it('drops an image URL from a host other than the trusted Supabase bucket', () => {
+    const html = generateRentalQuoteHTML(quote);
+    expect(html).not.toContain('example.com');
+    expect(html).toContain('car-fallback');
+  });
+
+  it('keeps an image from the trusted Supabase storage host', () => {
+    const html = generateRentalQuoteHTML({
+      ...quote,
+      vehicles: [
+        {
+          ...quote.vehicles[0],
+          imageUrl: 'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/car.png',
+        },
+      ],
+    });
+    expect(html).toContain('src="https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/car.png"');
+  });
+
+  it('drops a non-image data URI and other unsafe schemes', () => {
+    const html = generateRentalQuoteHTML({
+      ...quote,
+      vehicles: [{ ...quote.vehicles[0], imageUrl: 'javascript:alert(1)' }],
+    });
+    expect(html).not.toContain('javascript:');
+    expect(html).toContain('car-fallback');
+  });
+
+  it('keeps a data:image URI as-is', () => {
+    const dataUri = 'data:image/png;base64,iVBORw0KGgo=';
+    const html = generateRentalQuoteHTML({
+      ...quote,
+      vehicles: [{ ...quote.vehicles[0], imageUrl: dataUri }],
+    });
+    expect(html).toContain(`src="${dataUri}"`);
+  });
+});
 
 describe('rental quotation calculations', () => {
   it('counts rental days and never returns less than one day', () => {
@@ -232,6 +272,22 @@ describe('rental quotation number', () => {
     const html = generateRentalQuoteHTML({ ...quote, quoteNumber: number });
     expect(html).toContain(number);
     expect(html).not.toContain(`R${number}`);
+  });
+});
+
+describe('isoToday', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('stays on the Israel calendar date after UTC midnight but before Israel midnight', () => {
+    // 22:30 UTC = 01:30 IDT (UTC+3) the next day.
+    vi.setSystemTime(new Date('2026-07-30T22:30:00Z'));
+    expect(isoToday()).toBe('2026-07-31');
+  });
+
+  it('matches plain UTC once both calendars agree', () => {
+    vi.setSystemTime(new Date('2026-07-30T10:00:00Z'));
+    expect(isoToday()).toBe('2026-07-30');
   });
 });
 

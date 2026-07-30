@@ -133,8 +133,14 @@ export function rentalQuoteNumber(): string {
   return String(100_000 + Math.floor(Math.random() * 900_000));
 }
 
+/**
+ * Today's date in Israel, as YYYY-MM-DD. `toISOString()` always reports the
+ * UTC calendar date, which is still "yesterday" for the first two or three
+ * hours after midnight Israel time — en-CA formats as ISO order, so this is
+ * the shortest reliable way to get Asia/Jerusalem's date instead.
+ */
 export function isoToday(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date());
 }
 
 export function addIsoDays(date: string, days: number): string {
@@ -187,9 +193,26 @@ function escapeHtml(value: string | number): string {
     .replaceAll("'", '&#039;');
 }
 
+/**
+ * The PDF is rendered by a headless browser that actually fetches this URL
+ * server-side — an arbitrary admin-typed `http(s)://` address would let the
+ * render process be pointed at an internal host. Restrict network fetches to
+ * the same Supabase storage host next.config.ts's image remotePatterns
+ * already trusts; a `data:` URI never leaves the process, so it's unrestricted.
+ */
 function safeImageUrl(value: string): string {
   const url = value.trim();
-  return /^(https?:\/\/|data:image\/)/i.test(url) ? escapeHtml(url) : '';
+  if (/^data:image\//i.test(url)) return escapeHtml(url);
+
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === 'https:' && parsed.hostname === 'iovpoxmdsgsstaduggvb.supabase.co') {
+      return escapeHtml(url);
+    }
+  } catch {
+    // Not a valid absolute URL — falls through to the empty-string default.
+  }
+  return '';
 }
 
 function money(value: number, locale: RentalQuoteLocale): string {

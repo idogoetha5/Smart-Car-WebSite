@@ -300,7 +300,12 @@ export function generateQuoteNumber(): string {
 }
 
 export function todayIL(): string {
-  return new Date().toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return new Date().toLocaleDateString('he-IL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'Asia/Jerusalem',
+  });
 }
 
 export function emptyVehicle(): QuoteVehicle {
