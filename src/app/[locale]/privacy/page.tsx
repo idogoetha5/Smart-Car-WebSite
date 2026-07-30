@@ -127,6 +127,30 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
                       <td className="border border-gray-200 p-3">DPA</td>
                     </tr>
                     <tr className="bg-gray-50">
+                      <td className="border border-gray-200 p-3">Resend</td>
+                      <td className="border border-gray-200 p-3">שליחת מיילי הצעות מחיר</td>
+                      <td className="border border-gray-200 p-3">ארה"ב</td>
+                      <td className="border border-gray-200 p-3">DPA</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-200 p-3">Google Analytics</td>
+                      <td className="border border-gray-200 p-3">ניתוח שימוש באתר (רק בהסכמה)</td>
+                      <td className="border border-gray-200 p-3">ארה"ב / גלובלי</td>
+                      <td className="border border-gray-200 p-3">DPA + SCCs</td>
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="border border-gray-200 p-3">Cloudflare (Turnstile)</td>
+                      <td className="border border-gray-200 p-3">הגנה מפני בוטים בטפסים</td>
+                      <td className="border border-gray-200 p-3">גלובלי</td>
+                      <td className="border border-gray-200 p-3">DPA</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-200 p-3">Upstash</td>
+                      <td className="border border-gray-200 p-3">הגבלת קצב בקשות, תשתית תור</td>
+                      <td className="border border-gray-200 p-3">ארה"ב</td>
+                      <td className="border border-gray-200 p-3">DPA</td>
+                    </tr>
+                    <tr className="bg-gray-50">
                       <td className="border border-gray-200 p-3">חברות ביטוח</td>
                       <td className="border border-gray-200 p-3">כיסוי ביטוחי לתאונות</td>
                       <td className="border border-gray-200 p-3">ישראל</td>
@@ -171,13 +195,13 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
               <ul className="list-disc list-inside space-y-2 mr-4">
                 <li>כל תקשורת מוצפנת באמצעות TLS 1.3.</li>
                 <li>גישה למידע מוגבלת לעובדים המורשים בלבד, לפי עיקרון "הצורך לדעת".</li>
-                <li>במקרה של פרצת אבטחה מהותית — נודיע לנפגעים ולרשות להגנת הפרטיות תוך 72 שעות מגילוי הפרצה.</li>
+                <li>במקרה של אירוע אבטחה חמור — נדווח על כך לרשות להגנת הפרטיות באופן מיידי מרגע גילוי האירוע, בהתאם לתקנות הגנת הפרטיות (אבטחת מידע), התשע"ז-2017, ונודיע לנפגעים ככל שנדרש בדין.</li>
               </ul>
             </section>
 
             <section>
               <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">7. העברות מידע בינלאומיות</h2>
-              <p>חלק מספקי השירות שלנו (Supabase, Vercel, EmailJS) מאחסנים מידע מחוץ לישראל. הבטחנו שכל ספק חתם על הסכם עיבוד נתונים (DPA) עם הגנות מספקות, בהתאם לסטנדרטים המקבילים לחקיקה האירופית (GDPR Adequacy / SCCs).</p>
+              <p>חלק מספקי השירות שלנו (Supabase, Vercel, EmailJS, Resend, Google Analytics, Cloudflare, Upstash) מאחסנים מידע מחוץ לישראל. הבטחנו שכל ספק חתם על הסכם עיבוד נתונים (DPA) עם הגנות מספקות, בהתאם לסטנדרטים המקבילים לחקיקה האירופית (GDPR Adequacy / SCCs).</p>
             </section>
 
             <section>
@@ -245,6 +269,10 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
                     <tr><td className="border border-gray-200 p-3">Supabase Inc.</td><td className="border border-gray-200 p-3">Database hosting</td><td className="border border-gray-200 p-3">USA / AWS</td><td className="border border-gray-200 p-3">DPA + SOC 2 Type II</td></tr>
                     <tr className="bg-gray-50"><td className="border border-gray-200 p-3">Vercel Inc.</td><td className="border border-gray-200 p-3">Website hosting, CDN, analytics</td><td className="border border-gray-200 p-3">USA / Global</td><td className="border border-gray-200 p-3">DPA + SOC 2</td></tr>
                     <tr><td className="border border-gray-200 p-3">EmailJS</td><td className="border border-gray-200 p-3">Confirmation emails</td><td className="border border-gray-200 p-3">USA</td><td className="border border-gray-200 p-3">DPA</td></tr>
+                    <tr className="bg-gray-50"><td className="border border-gray-200 p-3">Resend</td><td className="border border-gray-200 p-3">Quotation emails</td><td className="border border-gray-200 p-3">USA</td><td className="border border-gray-200 p-3">DPA</td></tr>
+                    <tr><td className="border border-gray-200 p-3">Google Analytics</td><td className="border border-gray-200 p-3">Site usage analytics (consent-gated)</td><td className="border border-gray-200 p-3">USA / Global</td><td className="border border-gray-200 p-3">DPA + SCCs</td></tr>
+                    <tr className="bg-gray-50"><td className="border border-gray-200 p-3">Cloudflare (Turnstile)</td><td className="border border-gray-200 p-3">Bot protection on forms</td><td className="border border-gray-200 p-3">Global</td><td className="border border-gray-200 p-3">DPA</td></tr>
+                    <tr><td className="border border-gray-200 p-3">Upstash</td><td className="border border-gray-200 p-3">Request rate limiting, queue infrastructure</td><td className="border border-gray-200 p-3">USA</td><td className="border border-gray-200 p-3">DPA</td></tr>
                     <tr className="bg-gray-50"><td className="border border-gray-200 p-3">Insurance companies</td><td className="border border-gray-200 p-3">Accident insurance coverage</td><td className="border border-gray-200 p-3">Israel</td><td className="border border-gray-200 p-3">Israeli law</td></tr>
                     <tr><td className="border border-gray-200 p-3">Government authorities</td><td className="border border-gray-200 p-3">Legal obligation only</td><td className="border border-gray-200 p-3">Israel</td><td className="border border-gray-200 p-3">Court order / statutory</td></tr>
                   </tbody>
@@ -253,7 +281,17 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">4. Your Rights</h2>
+              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">4. Direct Marketing — Consent & Opt-Out</h2>
+              <ul className="list-disc list-inside space-y-2 ml-4">
+                <li>We send marketing communications (offers, updates) <strong>only after obtaining explicit consent</strong> through a separate sign-up form.</li>
+                <li>Withdraw consent at any time via the &quot;unsubscribe&quot; link at the bottom of every email, or by contacting <a href="mailto:office@smartcar.co.il" className="text-[#2D5F5F] underline">office@smartcar.co.il</a>.</li>
+                <li>Withdrawing marketing consent does not affect processing needed to perform an existing rental contract.</li>
+                <li>Booking and transaction confirmation emails are <strong>not</strong> marketing and do not require consent.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">5. Your Rights</h2>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li><strong>Right of access:</strong> Receive a copy of data held about you within 30 days.</li>
                 <li><strong>Right of rectification:</strong> Have inaccurate, incomplete or misleading data corrected.</li>
@@ -266,12 +304,32 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">5. Security</h2>
+              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">6. Security</h2>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>All communications are encrypted using TLS 1.3.</li>
                 <li>Data access is limited to authorised personnel on a need-to-know basis.</li>
-                <li>In case of a material security breach, we will notify affected individuals and the Israeli Privacy Protection Authority within 72 hours of discovery.</li>
+                <li>In the event of a severe security incident, we will notify the Israeli Privacy Protection Authority immediately upon discovery, in accordance with the Protection of Privacy Regulations (Data Security), 5777-2017, and will notify affected individuals as required by law.</li>
               </ul>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">7. International Data Transfers</h2>
+              <p>Some of our service providers (Supabase, Vercel, EmailJS, Resend, Google Analytics, Cloudflare, Upstash) store data outside Israel. We have ensured each provider has signed a Data Processing Agreement (DPA) with protections equivalent to European standards (GDPR Adequacy / SCCs).</p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">8. Cookies</h2>
+              <p>See our full <a href="./cookies" className="text-[#2D5F5F] underline">Cookie Policy</a> for details on the types of cookies we use, their purposes and how to manage them.</p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">9. Changes to This Policy</h2>
+              <p>Material changes will be published on the site 14 days before taking effect. Changes required by law may take effect immediately. The &quot;Version&quot; date at the top of this document reflects the date of the last change.</p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">10. Complaints to the Authority</h2>
+              <p>If you are not satisfied with how we have handled your request, you may file a complaint with the Israeli Privacy Protection Authority: <a href="https://www.gov.il/he/departments/the_privacy_protection_authority" className="text-[#2D5F5F] underline" target="_blank" rel="noopener noreferrer">gov.il/departments/privacy</a></p>
             </section>
 
             <LegalContact topic="privacy" locale={locale} />
