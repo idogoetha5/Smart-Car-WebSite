@@ -39,7 +39,11 @@ export default function Footer() {
               {/* Not decorative: this is the sole content of the link home, so it
                   carries the link's accessible name. role="img" is required
                   for aria-label to be exposed reliably on an <svg>. */}
-              <svg role="img" aria-label="SmartCar" width="120" height="36" viewBox="0 0 140 40" xmlns="http://www.w3.org/2000/svg">
+              {/* direction="ltr" is load-bearing: without it, the ambient
+                  RTL page direction flips text-anchor's "start" default,
+                  so the text renders leftward off the viewBox and is
+                  clipped to nothing in the Hebrew locale. */}
+              <svg role="img" aria-label="SmartCar" direction="ltr" width="120" height="36" viewBox="0 0 140 40" xmlns="http://www.w3.org/2000/svg">
                 <text x="0" y="24" fontFamily="'Nunito', 'Heebo', sans-serif" fontWeight="800" fontSize="20" fill="#B8D8D8" letterSpacing="1.5">SMART</text>
                 <text x="0" y="40" fontFamily="'Nunito', 'Heebo', sans-serif" fontWeight="800" fontSize="20" fill="#B8D8D8" letterSpacing="1.5">C<tspan fill="#E8743B">A</tspan>R</text>
               </svg>
