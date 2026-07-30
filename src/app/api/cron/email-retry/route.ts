@@ -6,7 +6,9 @@ import { sendTemplateEmail, OUTBOX_BACKOFF_MS, type EmailEvent } from '@/lib/ema
  * Sweeps the email outbox (see scripts/add-email-outbox-table.sql) for
  * sends that exhausted their in-request retries and are now due for
  * another attempt. Triggered by Vercel Cron (see the `crons` entry in
- * vercel.json) roughly every 10 minutes.
+ * vercel.json) once daily at 03:00 — the Hobby plan caps cron frequency
+ * at once a day, so the finer OUTBOX_BACKOFF_MS steps mostly collapse
+ * into "whatever is due gets swept at the next 03:00 run."
  *
  * Vercel signs cron-triggered requests with `Authorization: Bearer
  * $CRON_SECRET` when that env var is set — this route refuses everything
