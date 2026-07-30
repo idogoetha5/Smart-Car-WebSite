@@ -68,6 +68,13 @@ export default function QuoteHistoryPage() {
   }, [date, locale, quotes, search, status]);
 
   const resendQuote = async (quote: QuoteHistoryRow) => {
+    const confirmed = window.confirm(
+      isHe
+        ? `לשלוח שוב את הצעה מס׳ ${quote.quote_number} ל־${quote.customer_email}?`
+        : `Send quote ${quote.quote_number} again to ${quote.customer_email}?`
+    );
+    if (!confirmed) return;
+
     setSendingId(quote.id);
     setNotice('');
     setErrorMessage('');
