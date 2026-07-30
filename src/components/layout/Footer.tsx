@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Phone, Mail, MapPin } from 'lucide-react';
 import { branchAddress, getBranch, wazeUrl } from '@/lib/branches';
 import { openCookiePreferences } from '@/lib/cookie-consent';
@@ -36,17 +37,17 @@ export default function Footer() {
           {/* Brand */}
           <div className="md:col-span-1">
             <Link href={`/${locale}`} className="flex items-center mb-4">
-              {/* Not decorative: this is the sole content of the link home, so it
-                  carries the link's accessible name. role="img" is required
-                  for aria-label to be exposed reliably on an <svg>. */}
-              {/* direction="ltr" is load-bearing: without it, the ambient
-                  RTL page direction flips text-anchor's "start" default,
-                  so the text renders leftward off the viewBox and is
-                  clipped to nothing in the Hebrew locale. */}
-              <svg role="img" aria-label="SmartCar" direction="ltr" width="120" height="36" viewBox="0 0 140 40" xmlns="http://www.w3.org/2000/svg">
-                <text x="0" y="24" fontFamily="'Nunito', 'Heebo', sans-serif" fontWeight="800" fontSize="20" fill="#B8D8D8" letterSpacing="1.5">SMART</text>
-                <text x="0" y="40" fontFamily="'Nunito', 'Heebo', sans-serif" fontWeight="800" fontSize="20" fill="#B8D8D8" letterSpacing="1.5">C<tspan fill="#E8743B">A</tspan>R</text>
-              </svg>
+              {/* Same asset as the header logo. It's dark-teal-on-transparent
+                  (there is no separate light/white variant), so brightness-0
+                  + invert recolors it to a white silhouette that reads
+                  against this dark footer background. */}
+              <Image
+                src="/images/logo.png"
+                alt="SmartCar"
+                width={120}
+                height={40}
+                className="h-9 w-auto object-contain brightness-0 invert"
+              />
             </Link>
             <p className="text-sm text-[#7fb09f] mb-4">
               {locale === 'he'
