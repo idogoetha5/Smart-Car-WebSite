@@ -10,7 +10,13 @@ const securityHeaders = [
   { key: 'X-XSS-Protection', value: '1; mode=block' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+  // Matches what Vercel's own domain-level HSTS setting actually serves
+  // (one year, no preload) — not the value that gets sent. Vercel's
+  // domain setting wins over this header regardless, so keep this in sync
+  // with the dashboard rather than silently drifting. `preload` is a
+  // one-way submission to browsers' built-in HSTS list; do not add it here
+  // without also changing the Vercel setting and meaning it.
+  { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
   {
     key: 'Content-Security-Policy',
     value: [
