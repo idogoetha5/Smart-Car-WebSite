@@ -12,6 +12,7 @@ export default function ContactForm({ isHe }: { isHe: boolean }) {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [website, setWebsite] = useState('');
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileError, setTurnstileError] = useState(false);
 
@@ -25,7 +26,7 @@ export default function ContactForm({ isHe }: { isHe: boolean }) {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, email, message, turnstileToken }),
+        body: JSON.stringify({ name, phone, email, message, turnstileToken, _website: website }),
       });
       if (!res.ok) throw new Error('api');
       setSubmitted(true);
@@ -59,6 +60,18 @@ export default function ContactForm({ isHe }: { isHe: boolean }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" dir={isHe ? 'rtl' : 'ltr'}>
+      {/* Honeypot — hidden from real users, bots fill it */}
+      <input
+        type="text"
+        name="_website"
+        value={website}
+        onChange={e => setWebsite(e.target.value)}
+        className="hidden"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+      />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-1.5">

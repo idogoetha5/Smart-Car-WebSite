@@ -315,6 +315,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
   const [returnTime, setReturnTime] = useState('09:00');
   const returnPickerRef = useRef<DatePickerHandle>(null);
   const submittingRef = useRef(false);
+  const honeypotRef = useRef<HTMLInputElement>(null);
   const today = new Date().toISOString().split('T')[0];
   const [draftSaved, setDraftSaved] = useState(false);
   // true when the online catalogue reported no match for these dates —
@@ -498,6 +499,12 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           manualMatchRequired: availabilityUnmatched,
           additionalDriverName: selectedExtras.includes('driver') ? additionalDriverName : undefined,
           turnstileToken,
+          // Read straight off the DOM rather than through react-hook-form:
+          // the field is deliberately unregistered so it never becomes a
+          // controlled value, but that also meant handleSubmit's data never
+          // carried whatever a bot filled in here, and the server-side
+          // honeypot check never had anything to see.
+          _website: honeypotRef.current?.value || undefined,
         }),
       });
 
@@ -565,7 +572,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <input type="hidden" {...register('vehicleId')} />
       {/* Honeypot — hidden from real users, bots fill it */}
-      <input type="text" name="_website" tabIndex={-1} autoComplete="off" style={{ display: 'none' }} aria-hidden="true" />
+      <input ref={honeypotRef} type="text" name="_website" tabIndex={-1} autoComplete="off" style={{ display: 'none' }} aria-hidden="true" />
 
       {/* Draft indicator */}
       <div className="flex items-center justify-between text-xs text-gray-600 h-4">
