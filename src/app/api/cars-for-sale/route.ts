@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
+import { resolveVehicleImageUrl } from '@/lib/car-images';
 
 export async function GET() {
   const supabase = createAdminClient();
@@ -12,5 +13,9 @@ export async function GET() {
     .order('created_at', { ascending: false });
 
   if (error) { console.error(error.message); return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 }); }
-  return NextResponse.json({ data: data ?? [] });
+  const cars = (data ?? []).map((car) => ({
+    ...car,
+    image_url: resolveVehicleImageUrl(car.image_url),
+  }));
+  return NextResponse.json({ data: cars });
 }

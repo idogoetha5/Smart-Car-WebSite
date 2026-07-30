@@ -24,6 +24,7 @@ export async function generateMetadata({
 import { Car, Phone } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { resolveVehicleImageUrl } from '@/lib/car-images';
 
 interface CarForSale {
   id: string;
@@ -50,7 +51,10 @@ async function getCarsForSale(): Promise<CarForSale[]> {
       .from('cars_for_sale')
       .select('*')
       .order('created_at', { ascending: false });
-    return data ?? [];
+    return (data ?? []).map((car) => ({
+      ...car,
+      image_url: resolveVehicleImageUrl(car.image_url),
+    }));
   } catch {
     return [];
   }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/server';
 import { verifyAdminToken } from '@/lib/admin-auth';
+import { resolveVehicleImageUrl } from '@/lib/car-images';
 
 const getAdminClient = () => createAdminClient();
 
@@ -19,7 +20,11 @@ export async function GET() {
     .order('created_at', { ascending: false });
 
   if (error) { console.error(error.message); return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 }); }
-  return NextResponse.json({ data: data ?? [] });
+  const cars = (data ?? []).map((car) => ({
+    ...car,
+    image_url: resolveVehicleImageUrl(car.image_url),
+  }));
+  return NextResponse.json({ data: cars });
 }
 
 export async function POST(request: Request) {
@@ -37,7 +42,7 @@ export async function POST(request: Request) {
       km:        body.km ? Number(body.km) : null,
       color:     body.color || null,
       extras:    body.extras || null,
-      image_url: body.image_url || null,
+      image_url: resolveVehicleImageUrl(body.image_url),
     }])
     .select()
     .single();
