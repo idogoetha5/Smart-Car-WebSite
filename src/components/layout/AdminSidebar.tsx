@@ -38,13 +38,33 @@ export default function AdminSidebar() {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
 
   // Escape closes and hands focus back to the control that opened it, so a
-  // keyboard user is never stranded behind the overlay.
+  // keyboard user is never stranded behind the overlay. role="dialog" alone
+  // doesn't stop Tab from leaving the drawer into the page behind it — the
+  // page is still in the DOM, just visually covered — so Tab/Shift+Tab past
+  // either end has to be caught and wrapped back inside by hand.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setOpen(false); triggerRef.current?.focus(); }
+      if (e.key === 'Escape') { setOpen(false); triggerRef.current?.focus(); return; }
+      if (e.key !== 'Tab') return;
+
+      const focusable = drawerRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener('keydown', onKey);
     // The page behind an overlay must not scroll with it.
@@ -170,6 +190,7 @@ export default function AdminSidebar() {
             aria-hidden="true"
           />
           <div
+            ref={drawerRef}
             id="admin-drawer"
             role="dialog"
             aria-modal="true"
