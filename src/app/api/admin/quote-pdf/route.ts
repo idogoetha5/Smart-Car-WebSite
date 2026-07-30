@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyAdminToken } from '@/lib/admin-auth';
 import type { QuoteData } from '@/lib/quote-pdf';
-import { archiveQuotePdf } from '@/lib/quote-history';
+import { archiveQuotePdf, resolveUniqueQuoteNumber } from '@/lib/quote-history';
 import { renderQuotePdf } from '@/lib/quote-pdf-server';
 
 export const runtime = 'nodejs';
@@ -22,6 +22,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    data.quoteNumber = await resolveUniqueQuoteNumber(data.quoteNumber, data.customerEmail);
     const pdf = await renderQuotePdf(data);
     await archiveQuotePdf(data, pdf);
 

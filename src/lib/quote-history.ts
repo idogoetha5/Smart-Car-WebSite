@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/server';
-import { quoteValidUntil, type QuoteData } from '@/lib/quote-pdf';
+import { generateQuoteNumber, quoteValidUntil, type QuoteData } from '@/lib/quote-pdf';
 
 export type QuoteHistoryStatus = 'saved' | 'sent';
 
@@ -34,6 +34,40 @@ export function quotePdfFilename(
   data: Pick<QuoteData, 'customerName' | 'quoteNumber'>
 ): string {
   return `SmartCar_Quote_${safeQuotePart(data.customerName)}_${safeQuotePart(data.quoteNumber)}.pdf`;
+}
+
+/**
+ * `quote_number` is UNIQUE in the database and `archiveQuotePdf` upserts on
+ * it, so two unrelated quotations that randomly draw the same six digits
+ * would otherwise have the second one silently overwrite the first
+ * customer's saved row and archived PDF. Re-saving the *same* quotation
+ * (matched by customer email) is meant to update its own row in place, so
+ * that case returns the candidate unchanged; a genuine collision with a
+ * different customer draws a fresh number and checks again.
+ */
+export async function resolveUniqueQuoteNumber(
+  candidate: string,
+  customerEmail: string
+): Promise<string> {
+  const supabase = createAdminClient();
+  const normalizedEmail = customerEmail.trim().toLowerCase();
+  let attempt = candidate;
+
+  for (let tries = 0; tries < 20; tries++) {
+    const { data: existing } = await supabase
+      .from('quotes')
+      .select('customer_email')
+      .eq('quote_number', attempt)
+      .maybeSingle();
+
+    if (!existing || existing.customer_email.trim().toLowerCase() === normalizedEmail) {
+      return attempt;
+    }
+
+    attempt = generateQuoteNumber();
+  }
+
+  throw new Error('quote number collision: no free number found after 20 attempts');
 }
 
 export async function archiveQuotePdf(
