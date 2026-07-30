@@ -493,7 +493,7 @@ export default function HeroSection({ locale }: { locale: string }) {
         <motion.div
           className="absolute right-0 bottom-0"
           style={{ width: '55%', maxWidth: '600px', perspective: 1000 }}
-          initial={{ x: '110%', opacity: 0 }}
+          initial={{ x: '25%', opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.1 }}
           onPointerMove={handleCarPointerMove}
