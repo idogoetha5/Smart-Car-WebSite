@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { HttpError, fetcher, useApiList } from '@/lib/swr';
 import { useRouter } from 'next/navigation';
@@ -16,10 +16,8 @@ const EMPTY_SEASON = {
 };
 type SeasonForm = typeof EMPTY_SEASON;
 
-const EMPTY_OVERRIDE = {
-  vehicle_id: '', season_id: '', override_type: 'fixed' as 'fixed' | 'percent', value: '',
-};
-type OverrideForm = typeof EMPTY_OVERRIDE;
+type SeasonEditType = 'default' | 'fixed' | 'percent';
+type SeasonEdit = { type: SeasonEditType; value: string };
 
 export default function AdminPricingPage() {
   const router = useRouter();
@@ -84,14 +82,14 @@ export default function AdminPricingPage() {
   const setSeason = (key: keyof SeasonForm, value: string | number | boolean) =>
     setSeasonForm(prev => ({ ...prev, [key]: value }));
 
-  // ---------------- Overrides ----------------
-  const [showAddOverride, setShowAddOverride] = useState(false);
-  const [editOverride, setEditOverride] = useState<VehiclePriceOverride | null>(null);
-  const [overrideForm, setOverrideForm] = useState<OverrideForm>({ ...EMPTY_OVERRIDE });
-  const [savingOverride, setSavingOverride] = useState(false);
-  const [overrideError, setOverrideError] = useState('');
+  // ---------------- Overrides — search a vehicle, edit every season for it in one place ----------------
+  const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [vehicleQuery, setVehicleQuery] = useState('');
   const [vehiclePickerOpen, setVehiclePickerOpen] = useState(false);
+  const [seasonEdits, setSeasonEdits] = useState<Record<string, SeasonEdit>>({});
+  const [savingSeasonId, setSavingSeasonId] = useState<string | null>(null);
+  const [seasonEditError, setSeasonEditError] = useState('');
+  const vehiclePanelRef = useRef<HTMLDivElement>(null);
 
   const filteredVehicles = useMemo(() => {
     const q = vehicleQuery.trim().toLowerCase();
@@ -99,60 +97,72 @@ export default function AdminPricingPage() {
     return vehicles.filter(v => `${v.make} ${v.model} ${v.year} ${v.license_plate ?? ''}`.toLowerCase().includes(q));
   }, [vehicles, vehicleQuery]);
 
-  const openAddOverride = () => {
-    setEditOverride(null);
-    setOverrideForm({ ...EMPTY_OVERRIDE, vehicle_id: '', season_id: seasons[0]?.id ?? '' });
-    setOverrideError('');
-    setVehicleQuery('');
-    setVehiclePickerOpen(false);
-    setShowAddOverride(true);
+  const buildSeasonEdits = (vehicleId: string): Record<string, SeasonEdit> => {
+    const map: Record<string, SeasonEdit> = {};
+    for (const s of seasons) {
+      const o = overrides.find(o => o.vehicleId === vehicleId && o.seasonId === s.id);
+      if (o?.fixedPrice != null) map[s.id] = { type: 'fixed', value: String(o.fixedPrice) };
+      else if (o?.adjustmentPercent != null) map[s.id] = { type: 'percent', value: String(o.adjustmentPercent) };
+      else map[s.id] = { type: 'default', value: '' };
+    }
+    return map;
   };
-  const openEditOverride = (o: VehiclePriceOverride) => {
-    setEditOverride(o);
-    setOverrideForm({
-      vehicle_id: o.vehicleId, season_id: o.seasonId,
-      override_type: o.fixedPrice != null ? 'fixed' : 'percent',
-      value: String(o.fixedPrice != null ? o.fixedPrice : o.adjustmentPercent),
-    });
-    setOverrideError('');
-    setVehicleQuery('');
-    setVehiclePickerOpen(false);
-    setShowAddOverride(false);
-  };
-  const closeOverrideModal = () => { setShowAddOverride(false); setEditOverride(null); setVehiclePickerOpen(false); };
 
-  const handleSaveOverride = async () => {
-    setOverrideError('');
-    setSavingOverride(true);
-    const payload = {
-      vehicle_id: overrideForm.vehicle_id,
-      season_id: overrideForm.season_id,
-      fixed_price: overrideForm.override_type === 'fixed' ? Number(overrideForm.value) : null,
-      adjustment_percent: overrideForm.override_type === 'percent' ? Number(overrideForm.value) : null,
-    };
-    const res = editOverride
-      ? await fetch(`/api/admin/pricing-overrides/${editOverride.id}`, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-        })
-      : await fetch('/api/admin/pricing-overrides', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-        });
-    setSavingOverride(false);
+  const selectVehicle = (vehicleId: string) => {
+    setSelectedVehicleId(vehicleId);
+    setSeasonEdits(buildSeasonEdits(vehicleId));
+    setVehicleQuery('');
+    setVehiclePickerOpen(false);
+    setSeasonEditError('');
+  };
+
+  const clearVehicleSelection = () => {
+    setSelectedVehicleId('');
+    setSeasonEdits({});
+    setSeasonEditError('');
+  };
+
+  const handleSaveSeasonOverride = async (seasonId: string) => {
+    const edit = seasonEdits[seasonId];
+    const existing = overrides.find(o => o.vehicleId === selectedVehicleId && o.seasonId === seasonId);
+    if (edit.type === 'default' && !existing) return; // already at the season default, nothing to save
+
+    setSeasonEditError('');
+    setSavingSeasonId(seasonId);
+    const res = edit.type === 'default'
+      ? await fetch(`/api/admin/pricing-overrides/${existing!.id}`, { method: 'DELETE' })
+      : existing
+        ? await fetch(`/api/admin/pricing-overrides/${existing.id}`, {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fixed_price: edit.type === 'fixed' ? Number(edit.value) : null,
+              adjustment_percent: edit.type === 'percent' ? Number(edit.value) : null,
+            }),
+          })
+        : await fetch('/api/admin/pricing-overrides', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              vehicle_id: selectedVehicleId, season_id: seasonId,
+              fixed_price: edit.type === 'fixed' ? Number(edit.value) : null,
+              adjustment_percent: edit.type === 'percent' ? Number(edit.value) : null,
+            }),
+          });
+    setSavingSeasonId(null);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setOverrideError(body.error === 'duplicate key value violates unique constraint "vehicle_price_overrides_vehicle_id_season_id_key"'
-        ? 'כבר קיימת התאמה אישית לרכב ולעונה הזו — ערוך אותה במקום'
-        : (body.error || 'שגיאת שרת, נסה שוב'));
+      setSeasonEditError(body.error || 'שגיאת שרת, נסה שוב');
       return;
     }
-    closeOverrideModal();
     refetchOverrides();
   };
 
-  const handleDeleteOverride = async (id: string) => {
+  const handleDeleteOverride = async (o: VehiclePriceOverride) => {
     if (!window.confirm('למחוק את ההתאמה האישית? הרכב יחזור למחיר ברירת המחדל של העונה.')) return;
-    await fetch(`/api/admin/pricing-overrides/${id}`, { method: 'DELETE' });
+    await fetch(`/api/admin/pricing-overrides/${o.id}`, { method: 'DELETE' });
     refetchOverrides();
+    if (selectedVehicleId === o.vehicleId) {
+      setSeasonEdits(prev => ({ ...prev, [o.seasonId]: { type: 'default', value: '' } }));
+    }
   };
 
   const loading = seasonsLoading || overridesLoading;
@@ -298,109 +308,104 @@ export default function AdminPricingPage() {
       </div>
 
       {/* ============ Vehicle overrides ============ */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-900">מחירים מותאמים לרכב</h2>
-        <button
-          onClick={openAddOverride}
-          disabled={vehicles.length === 0 || seasons.length === 0}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#E8743B] disabled:opacity-50 text-white font-semibold rounded-xl hover:bg-orange-600 transition-colors"
-        >
-          + הוסף התאמה אישית
-        </button>
+      <div className="mb-4" ref={vehiclePanelRef}>
+        <h2 className="text-xl font-bold text-gray-900 mb-3">מחירים מותאמים לרכב</h2>
+        <div className="relative max-w-md">
+          <input
+            type="text"
+            placeholder="חפש רכב לפי יצרן, דגם או מספר רכב..."
+            value={vehicleQuery}
+            onFocus={() => setVehiclePickerOpen(true)}
+            onChange={e => { setVehicleQuery(e.target.value); setVehiclePickerOpen(true); }}
+            onBlur={() => setTimeout(() => setVehiclePickerOpen(false), 150)}
+            className="w-full p-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
+          />
+          {vehiclePickerOpen && (
+            <div className="absolute z-10 mt-1 w-full max-h-64 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-lg">
+              {filteredVehicles.length === 0 ? (
+                <p className="text-center text-gray-400 text-sm py-3">לא נמצאו רכבים</p>
+              ) : filteredVehicles.map(v => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => selectVehicle(v.id)}
+                  className="w-full text-right px-3 py-2 text-sm hover:bg-gray-50 border-b border-gray-50 last:border-0"
+                >
+                  {v.make} {v.model} ({v.year})
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {(showAddOverride || editOverride !== null) && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto text-right shadow-2xl">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-bold">{editOverride ? 'ערוך התאמה אישית' : 'הוסף התאמה אישית'}</h2>
-              <button onClick={closeOverrideModal} className="p-1 text-gray-400 hover:text-gray-700"><X className="w-5 h-5" /></button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3">
-              <div className="relative">
-                <label className="text-xs text-gray-600 block mb-1">רכב</label>
-                {editOverride ? (
-                  <div className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-gray-100 text-gray-700">
-                    {vehicleLabel(overrideForm.vehicle_id)}
-                  </div>
-                ) : (
-                  <>
-                    <input
-                      type="text"
-                      placeholder="חפש לפי יצרן, דגם או מספר רכב..."
-                      value={overrideForm.vehicle_id ? vehicleLabel(overrideForm.vehicle_id) : vehicleQuery}
-                      onFocus={() => { setVehicleQuery(''); setVehiclePickerOpen(true); }}
-                      onChange={e => { setVehicleQuery(e.target.value); setOverrideForm(prev => ({ ...prev, vehicle_id: '' })); setVehiclePickerOpen(true); }}
-                      onBlur={() => setTimeout(() => setVehiclePickerOpen(false), 150)}
-                      className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
-                    />
-                    {vehiclePickerOpen && (
-                      <div className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
-                        {filteredVehicles.length === 0 ? (
-                          <p className="text-center text-gray-400 text-sm py-3">לא נמצאו רכבים</p>
-                        ) : filteredVehicles.map(v => (
-                          <button
-                            key={v.id}
-                            type="button"
-                            onMouseDown={e => e.preventDefault()}
-                            onClick={() => {
-                              setOverrideForm(prev => ({ ...prev, vehicle_id: v.id }));
-                              setVehicleQuery('');
-                              setVehiclePickerOpen(false);
-                            }}
-                            className="w-full text-right px-3 py-2 text-sm hover:bg-gray-50 border-b border-gray-50 last:border-0"
-                          >
-                            {v.make} {v.model} ({v.year})
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-              <div>
-                <label className="text-xs text-gray-600 block mb-1">עונה</label>
-                <select
-                  value={overrideForm.season_id}
-                  disabled={!!editOverride}
-                  onChange={e => setOverrideForm(prev => ({ ...prev, season_id: e.target.value }))}
-                  className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] bg-white disabled:bg-gray-100"
-                >
-                  {seasons.map(s => <option key={s.id} value={s.id}>{s.nameHe}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-gray-600 block mb-1">סוג ההתאמה</label>
-                <select
-                  value={overrideForm.override_type}
-                  onChange={e => setOverrideForm(prev => ({ ...prev, override_type: e.target.value as 'fixed' | 'percent' }))}
-                  className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] bg-white"
-                >
-                  <option value="fixed">מחיר קבוע (₪ ליום)</option>
-                  <option value="percent">אחוז שינוי מהמחיר הרגיל (%)</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-gray-600 block mb-1">{overrideForm.override_type === 'fixed' ? 'מחיר ליום (₪)' : 'אחוז (%)'}</label>
-                <input type="number" value={overrideForm.value} onChange={e => setOverrideForm(prev => ({ ...prev, value: e.target.value }))}
-                  className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]" />
-              </div>
-            </div>
-
-            {overrideError && <p className="text-sm text-red-600 mt-3">{overrideError}</p>}
-
-            <div className="flex gap-3 mt-5">
-              <button
-                onClick={handleSaveOverride}
-                disabled={savingOverride || !overrideForm.vehicle_id || !overrideForm.season_id || overrideForm.value === ''}
-                className="flex-1 bg-[#E8743B] disabled:opacity-50 text-white py-2.5 rounded-xl font-bold text-sm"
-              >
-                {savingOverride ? 'שומר...' : (editOverride ? 'עדכן התאמה' : 'שמור התאמה')}
-              </button>
-              <button onClick={closeOverrideModal} className="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50">ביטול</button>
-            </div>
+      {selectedVehicleId && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-gray-900">{vehicleLabel(selectedVehicleId)}</h3>
+            <button onClick={clearVehicleSelection} className="text-sm text-gray-400 hover:text-gray-700">נקה בחירה ✕</button>
           </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-right">
+              <thead className="bg-gray-50 border-b border-gray-100">
+                <tr>
+                  <th className="p-3 font-semibold text-gray-500">עונה</th>
+                  <th className="p-3 font-semibold text-gray-500">סוג</th>
+                  <th className="p-3 font-semibold text-gray-500">ערך</th>
+                  <th className="p-3 font-semibold text-gray-500">פעולות</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {seasons.map(s => {
+                  const edit = seasonEdits[s.id] ?? { type: 'default' as const, value: '' };
+                  return (
+                    <tr key={s.id}>
+                      <td className="p-3 font-medium text-gray-900">
+                        {s.nameHe}
+                        <span className="text-xs text-gray-400 block font-normal">ברירת מחדל: {s.adjustmentPercent > 0 ? '+' : ''}{s.adjustmentPercent}%</span>
+                      </td>
+                      <td className="p-3">
+                        <select
+                          value={edit.type}
+                          onChange={e => {
+                            const type = e.target.value as SeasonEditType;
+                            setSeasonEdits(prev => ({ ...prev, [s.id]: { type, value: type === 'default' ? '' : prev[s.id]?.value ?? '' } }));
+                          }}
+                          className="p-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
+                        >
+                          <option value="default">ברירת מחדל</option>
+                          <option value="fixed">מחיר קבוע</option>
+                          <option value="percent">אחוז מותאם</option>
+                        </select>
+                      </td>
+                      <td className="p-3">
+                        {edit.type !== 'default' && (
+                          <input
+                            type="number"
+                            value={edit.value}
+                            onChange={e => setSeasonEdits(prev => ({ ...prev, [s.id]: { ...edit, value: e.target.value } }))}
+                            placeholder={edit.type === 'fixed' ? '₪ ליום' : '%'}
+                            className="w-24 p-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
+                          />
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <button
+                          onClick={() => handleSaveSeasonOverride(s.id)}
+                          disabled={savingSeasonId === s.id || (edit.type !== 'default' && edit.value === '')}
+                          className="bg-[#E8743B] disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-orange-600 transition-colors"
+                        >
+                          {savingSeasonId === s.id ? 'שומר...' : 'שמור'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {seasonEditError && <p className="text-sm text-red-600 mt-3">{seasonEditError}</p>}
         </div>
       )}
 
@@ -428,10 +433,14 @@ export default function AdminPricingPage() {
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => openEditOverride(o)} title="ערוך" className="flex items-center gap-1 bg-[#2D5F5F] hover:bg-[#1a3f3f] text-white px-3 py-1.5 rounded-lg text-xs transition-colors">
+                        <button
+                          onClick={() => { selectVehicle(o.vehicleId); vehiclePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
+                          title="ערוך"
+                          className="flex items-center gap-1 bg-[#2D5F5F] hover:bg-[#1a3f3f] text-white px-3 py-1.5 rounded-lg text-xs transition-colors"
+                        >
                           <Pencil className="w-3 h-3" />ערוך
                         </button>
-                        <button onClick={() => handleDeleteOverride(o.id)} title="מחק" className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <button onClick={() => handleDeleteOverride(o)} title="מחק" className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
