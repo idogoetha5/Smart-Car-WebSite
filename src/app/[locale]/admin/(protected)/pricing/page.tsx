@@ -90,11 +90,21 @@ export default function AdminPricingPage() {
   const [overrideForm, setOverrideForm] = useState<OverrideForm>({ ...EMPTY_OVERRIDE });
   const [savingOverride, setSavingOverride] = useState(false);
   const [overrideError, setOverrideError] = useState('');
+  const [vehicleQuery, setVehicleQuery] = useState('');
+  const [vehiclePickerOpen, setVehiclePickerOpen] = useState(false);
+
+  const filteredVehicles = useMemo(() => {
+    const q = vehicleQuery.trim().toLowerCase();
+    if (!q) return vehicles;
+    return vehicles.filter(v => `${v.make} ${v.model} ${v.year} ${v.license_plate ?? ''}`.toLowerCase().includes(q));
+  }, [vehicles, vehicleQuery]);
 
   const openAddOverride = () => {
     setEditOverride(null);
-    setOverrideForm({ ...EMPTY_OVERRIDE, vehicle_id: vehicles[0]?.id ?? '', season_id: seasons[0]?.id ?? '' });
+    setOverrideForm({ ...EMPTY_OVERRIDE, vehicle_id: '', season_id: seasons[0]?.id ?? '' });
     setOverrideError('');
+    setVehicleQuery('');
+    setVehiclePickerOpen(false);
     setShowAddOverride(true);
   };
   const openEditOverride = (o: VehiclePriceOverride) => {
@@ -105,9 +115,11 @@ export default function AdminPricingPage() {
       value: String(o.fixedPrice != null ? o.fixedPrice : o.adjustmentPercent),
     });
     setOverrideError('');
+    setVehicleQuery('');
+    setVehiclePickerOpen(false);
     setShowAddOverride(false);
   };
-  const closeOverrideModal = () => { setShowAddOverride(false); setEditOverride(null); };
+  const closeOverrideModal = () => { setShowAddOverride(false); setEditOverride(null); setVehiclePickerOpen(false); };
 
   const handleSaveOverride = async () => {
     setOverrideError('');
@@ -306,16 +318,46 @@ export default function AdminPricingPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-3">
-              <div>
+              <div className="relative">
                 <label className="text-xs text-gray-600 block mb-1">רכב</label>
-                <select
-                  value={overrideForm.vehicle_id}
-                  disabled={!!editOverride}
-                  onChange={e => setOverrideForm(prev => ({ ...prev, vehicle_id: e.target.value }))}
-                  className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] bg-white disabled:bg-gray-100"
-                >
-                  {vehicles.map(v => <option key={v.id} value={v.id}>{v.make} {v.model} ({v.year})</option>)}
-                </select>
+                {editOverride ? (
+                  <div className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-gray-100 text-gray-700">
+                    {vehicleLabel(overrideForm.vehicle_id)}
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      placeholder="חפש לפי יצרן, דגם או מספר רכב..."
+                      value={overrideForm.vehicle_id ? vehicleLabel(overrideForm.vehicle_id) : vehicleQuery}
+                      onFocus={() => { setVehicleQuery(''); setVehiclePickerOpen(true); }}
+                      onChange={e => { setVehicleQuery(e.target.value); setOverrideForm(prev => ({ ...prev, vehicle_id: '' })); setVehiclePickerOpen(true); }}
+                      onBlur={() => setTimeout(() => setVehiclePickerOpen(false), 150)}
+                      className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
+                    />
+                    {vehiclePickerOpen && (
+                      <div className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+                        {filteredVehicles.length === 0 ? (
+                          <p className="text-center text-gray-400 text-sm py-3">לא נמצאו רכבים</p>
+                        ) : filteredVehicles.map(v => (
+                          <button
+                            key={v.id}
+                            type="button"
+                            onMouseDown={e => e.preventDefault()}
+                            onClick={() => {
+                              setOverrideForm(prev => ({ ...prev, vehicle_id: v.id }));
+                              setVehicleQuery('');
+                              setVehiclePickerOpen(false);
+                            }}
+                            className="w-full text-right px-3 py-2 text-sm hover:bg-gray-50 border-b border-gray-50 last:border-0"
+                          >
+                            {v.make} {v.model} ({v.year})
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
               <div>
                 <label className="text-xs text-gray-600 block mb-1">עונה</label>
