@@ -1,71 +1,87 @@
 import type { Vehicle } from '@/types';
 
-export type Season = 'winter' | 'summer' | 'regular';
+export interface PricingSeason {
+  id: string;
+  nameHe: string;
+  nameEn: string;
+  /** ISO 'YYYY-MM-DD'. When recursAnnually, only the month/day portion is read — the year is a placeholder. */
+  startDate: string;
+  endDate: string;
+  recursAnnually: boolean;
+  /** Default % applied fleet-wide in this season, e.g. 13 or -10. */
+  adjustmentPercent: number;
+  /** Highest wins when two seasons' ranges overlap on the same date. */
+  priority: number;
+  isActive: boolean;
+}
 
-// Jewish holiday peak periods (summer pricing applies)
-const PEAK_PERIODS: { start: string; end: string }[] = [
-  { start: '2025-09-22', end: '2025-10-13' }, // Rosh Hashana → Sukkot
-  { start: '2026-04-01', end: '2026-04-09' }, // Passover
-  { start: '2026-05-21', end: '2026-05-23' }, // Shavuot
-  { start: '2026-09-11', end: '2026-10-02' }, // Rosh Hashana → Sukkot
-  { start: '2027-03-21', end: '2027-03-29' }, // Passover
-  { start: '2027-05-09', end: '2027-05-11' }, // Shavuot
-];
+export interface VehiclePriceOverride {
+  id: string;
+  vehicleId: string;
+  seasonId: string;
+  /** Exactly one of fixedPrice/adjustmentPercent is set. */
+  fixedPrice: number | null;
+  adjustmentPercent: number | null;
+}
 
-export function getSeason(date: Date = new Date()): Season {
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
+export interface PricingConfig {
+  seasons: PricingSeason[];
+  overrides: VehiclePriceOverride[];
+}
+
+function monthDay(dateStr: string): number {
+  // 'YYYY-MM-DD' -> MMDD as a number, so wraparound compares cleanly.
+  const [, m, d] = dateStr.split('-');
+  return Number(m) * 100 + Number(d);
+}
+
+function matchesDate(season: PricingSeason, dateStr: string): boolean {
+  if (season.recursAnnually) {
+    const md = monthDay(dateStr);
+    const start = monthDay(season.startDate);
+    const end = monthDay(season.endDate);
+    // Wraps New Year's, e.g. Dec 15 -> Feb 28 (start > end).
+    if (start > end) return md >= start || md <= end;
+    return md >= start && md <= end;
+  }
+  return dateStr >= season.startDate && dateStr <= season.endDate;
+}
+
+/**
+ * On overlap, the highest priority wins; ties prefer the more specific
+ * (non-recurring, e.g. a one-off holiday) season over a recurring one.
+ */
+export function resolveSeason(date: Date, seasons: PricingSeason[]): PricingSeason | null {
   const dateStr = date.toISOString().split('T')[0];
-
-  if (month === 7 || month === 8) return 'summer';
-
-  if (PEAK_PERIODS.some(p => dateStr >= p.start && dateStr <= p.end)) return 'summer';
-
-  if ((month === 12 && day >= 15) || month === 1 || month === 2) return 'winter';
-
-  return 'regular';
+  const candidates = seasons.filter(s => s.isActive && matchesDate(s, dateStr));
+  if (candidates.length === 0) return null;
+  candidates.sort((a, b) => {
+    if (b.priority !== a.priority) return b.priority - a.priority;
+    return Number(a.recursAnnually) - Number(b.recursAnnually);
+  });
+  return candidates[0];
 }
 
-// Explicit summer prices for listed vehicles. All others use the fallback: base × 1.13 rounded to ₪10.
-const SUMMER_PRICES: Record<string, Record<string, number>> = {
-  Kia:        { Picanto: 250, Stonic: 330, Seltos: 390, Sportage: 550, Sorento: 650, Carnival: 780 },
-  Mazda:      { '2': 290, '3': 390 },
-  Toyota:     { Yaris: 290, 'Yaris Cross': 390 },
-  Mitsubishi: { 'Eclipse Cross': 550 },
-  Nissan:     { Sentra: 390, Juke: 380 },
-  Chery:      { FX: 360, 'Tiggo 4 Pro': 390, 'Tiggo 7': 490, 'Tiggo 8': 650 },
-  BMW:        { X1: 850 },
-  Mercedes:   { C180: 1150 },
-  Chevrolet:  { Traverse: 750 },
-  // Commercial & Electric (unchanged)
-  Renault:    { Kangoo: 490 },
-  Citroen:    { Berlingo: 390 },
-  Fiat:       { Doblo: 490 },
-  Ford:       { Transit: 570 },
-  Hyundai:    { Ioniq: 360 },
-  Seres:      { '3': 330 },
-};
-
-export function getSummerPrice(vehicle: Vehicle): number {
-  const explicit = SUMMER_PRICES[vehicle.make]?.[vehicle.model];
-  if (explicit) return explicit;
-  // Fallback: 13% above regular, rounded to nearest 10
-  return Math.round(vehicle.pricePerDay * 1.13 / 10) * 10;
+/** Percent-based adjustments round to the nearest ₪10 — a clean sticker price, matching how explicit fixed prices are always chosen. */
+function roundToTen(n: number): number {
+  return Math.round(n / 10) * 10;
 }
 
-export function getWinterPrice(vehicle: Vehicle): number {
-  return Math.round(vehicle.pricePerDay * 0.9);
-}
+export function getSeasonalPrice(
+  vehicle: Pick<Vehicle, 'id' | 'pricePerDay'>,
+  config: PricingConfig,
+  date?: Date
+): number {
+  const season = resolveSeason(date ?? new Date(), config.seasons);
+  if (!season) return vehicle.pricePerDay;
 
-export function getSeasonalPrice(vehicle: Vehicle, date?: Date): number {
-  const season = getSeason(date ?? new Date());
-  if (season === 'summer') return getSummerPrice(vehicle);
-  if (season === 'winter') return getWinterPrice(vehicle);
-  return vehicle.pricePerDay;
-}
+  const override = config.overrides.find(
+    o => o.vehicleId === vehicle.id && o.seasonId === season.id
+  );
+  if (override?.fixedPrice != null) return override.fixedPrice;
 
-export function getCurrentSeason(): Season {
-  return getSeason(new Date());
+  const pct = override?.adjustmentPercent ?? season.adjustmentPercent;
+  return roundToTen(vehicle.pricePerDay * (1 + pct / 100));
 }
 
 /**
@@ -75,7 +91,8 @@ export function getCurrentSeason(): Season {
  * for the July days, not the regular rate for the whole stay.
  */
 export function getSeasonalPriceRange(
-  vehicle: Vehicle,
+  vehicle: Pick<Vehicle, 'id' | 'pricePerDay'>,
+  config: PricingConfig,
   pickupDate: Date,
   dropoffDate: Date
 ): { subtotal: number; days: number; avgPricePerDay: number; sameSeasonThroughout: boolean } {
@@ -85,16 +102,16 @@ export function getSeasonalPriceRange(
   );
 
   let subtotal = 0;
-  let firstSeason: Season | null = null;
+  let firstSeasonKey: string | null = null;
   let sameSeasonThroughout = true;
 
   for (let i = 0; i < days; i++) {
     const day = new Date(pickupDate);
     day.setDate(day.getDate() + i);
-    const season = getSeason(day);
-    if (firstSeason === null) firstSeason = season;
-    else if (season !== firstSeason) sameSeasonThroughout = false;
-    subtotal += getSeasonalPrice(vehicle, day);
+    const seasonKey = resolveSeason(day, config.seasons)?.id ?? 'regular';
+    if (firstSeasonKey === null) firstSeasonKey = seasonKey;
+    else if (seasonKey !== firstSeasonKey) sameSeasonThroughout = false;
+    subtotal += getSeasonalPrice(vehicle, config, day);
   }
 
   return { subtotal, days, avgPricePerDay: Math.round(subtotal / days), sameSeasonThroughout };

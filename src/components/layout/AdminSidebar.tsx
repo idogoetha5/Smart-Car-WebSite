@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu,
   Tag,
+  Percent,
   Star,
   Send,
   MessageCircle,
@@ -85,6 +86,7 @@ export default function AdminSidebar() {
   const links = [
     { href: `/${locale}/admin`, label: 'Dashboard', icon: LayoutDashboard },
     { href: `/${locale}/admin/vehicles`, label: t('manage_vehicles'), icon: Car },
+    { href: `/${locale}/admin/pricing`, label: isHe ? 'מחירי רכבים' : 'Vehicle pricing', icon: Percent },
     { href: `/${locale}/admin/bookings`, label: t('manage_bookings'), icon: CalendarCheck },
     { href: `/${locale}/admin/leasing-requests`, label: t('manage_leasing'), icon: FileText },
     { href: `/${locale}/admin/cars-for-sale`, label: isHe ? 'ניהול רכבים למכירה' : 'Cars for sale', icon: Tag },

@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { Users, DoorOpen, Fuel, Settings, Star } from 'lucide-react';
 import type { Vehicle } from '@/types';
 import { getSeasonalPrice } from '@/lib/seasonal';
+import { usePricingConfig } from '@/hooks/usePricingConfig';
 
 const categoryLabelHe: Record<string, string> = {
   MINI:       'מיני',
@@ -77,6 +78,7 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
   const t = useTranslations('catalog');
   const locale = useLocale();
   const isHe = locale === 'he';
+  const { config: pricingConfig } = usePricingConfig();
 
   const allVariants = variants.length > 0 ? variants : [initialVehicle];
   const [selected] = useState(0);
@@ -241,7 +243,7 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
         <div className="mb-4 pt-3 border-t border-gray-100">
           {pickupDate && returnDate ? (() => {
             const days = Math.max(1, Math.ceil((new Date(returnDate).getTime() - new Date(pickupDate).getTime()) / 86400000));
-            const ppd = getSeasonalPrice(vehicle, new Date(pickupDate));
+            const ppd = getSeasonalPrice(vehicle, pricingConfig, new Date(pickupDate));
             const total = days * ppd;
             return (
               <div className="text-center">

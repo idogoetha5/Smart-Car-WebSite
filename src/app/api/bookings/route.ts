@@ -7,6 +7,7 @@ import { verifyTurnstile } from '@/lib/turnstile';
 import { verifyAdminToken } from '@/lib/admin-auth';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { getSeasonalPriceRange } from '@/lib/seasonal';
+import { getActiveSeasons, getOverridesForVehicle } from '@/lib/db/pricing';
 import { bookingRequestSchema } from '@/lib/validations';
 import { readJsonBody } from '@/lib/request-body';
 import { normalizeEmail } from '@/lib/email';
@@ -158,9 +159,14 @@ export async function POST(request: NextRequest) {
   // Calculate authoritative price server-side (mirrors BookingForm logic).
   // Priced per-day across the full range so a rental crossing a season
   // boundary (e.g. June → July) is charged the correct rate for each day.
-  const vehicleForPricing = { make: vehicle.make, model: vehicle.model, pricePerDay: vehicle.price_per_day } as Pick<Vehicle, 'make' | 'model' | 'pricePerDay'>;
+  const vehicleForPricing: Pick<Vehicle, 'id' | 'pricePerDay'> = { id: vehicleId, pricePerDay: vehicle.price_per_day };
+  const [seasons, overrides] = await Promise.all([
+    getActiveSeasons(),
+    getOverridesForVehicle(vehicleId),
+  ]);
   const { subtotal, avgPricePerDay: serverPricePerDay } = getSeasonalPriceRange(
-    vehicleForPricing as Vehicle,
+    vehicleForPricing,
+    { seasons, overrides },
     new Date(pickupDate),
     new Date(dropoffDate)
   );
