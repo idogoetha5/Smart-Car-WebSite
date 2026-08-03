@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/server';
 import { verifyAdminToken } from '@/lib/admin-auth';
 import { OVERRIDE_COLUMNS, mapOverrideRow } from '@/lib/db/pricing';
+import { invalidatePricingConfigCache } from '@/lib/pricing-config-cache';
 
 async function checkAuth() {
   const cookieStore = await cookies();
@@ -37,6 +38,7 @@ export async function PATCH(
     .select(OVERRIDE_COLUMNS)
     .single();
   if (error) { console.error(error.message); return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 }); }
+  invalidatePricingConfigCache();
   return NextResponse.json({ data: mapOverrideRow(data) });
 }
 
@@ -49,5 +51,6 @@ export async function DELETE(
   const supabase = createAdminClient();
   const { error } = await supabase.from('vehicle_price_overrides').delete().eq('id', id);
   if (error) { console.error(error.message); return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 }); }
+  invalidatePricingConfigCache();
   return NextResponse.json({ success: true });
 }

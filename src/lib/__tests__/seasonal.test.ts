@@ -10,19 +10,19 @@ import {
 const summer: PricingSeason = {
   id: 'season-summer', nameHe: 'קיץ', nameEn: 'Summer',
   startDate: '2000-07-01', endDate: '2000-08-31',
-  recursAnnually: true, adjustmentPercent: 13, priority: 0, isActive: true,
+  recursAnnually: true, adjustmentPercent: 13, fixedPrice: null, priority: 0, isActive: true,
 };
 
 const winter: PricingSeason = {
   id: 'season-winter', nameHe: 'חורף', nameEn: 'Winter',
   startDate: '2000-12-15', endDate: '2000-02-28',
-  recursAnnually: true, adjustmentPercent: -10, priority: 0, isActive: true,
+  recursAnnually: true, adjustmentPercent: -10, fixedPrice: null, priority: 0, isActive: true,
 };
 
 const passover2026: PricingSeason = {
   id: 'season-passover-2026', nameHe: 'פסח 2026', nameEn: 'Passover 2026',
   startDate: '2026-04-01', endDate: '2026-04-09',
-  recursAnnually: false, adjustmentPercent: 13, priority: 0, isActive: true,
+  recursAnnually: false, adjustmentPercent: 13, fixedPrice: null, priority: 0, isActive: true,
 };
 
 const inactiveSeason: PricingSeason = {
@@ -74,7 +74,7 @@ describe('resolveSeason', () => {
     const oneOff: PricingSeason = {
       id: 'one-off', nameHe: 'מבצע קיץ', nameEn: 'Summer special',
       startDate: '2026-07-10', endDate: '2026-07-20',
-      recursAnnually: false, adjustmentPercent: 25, priority: 0, isActive: true,
+      recursAnnually: false, adjustmentPercent: 25, fixedPrice: null, priority: 0, isActive: true,
     };
     expect(resolveSeason(new Date('2026-07-15'), [recurring, oneOff])?.id).toBe('one-off');
   });
@@ -117,6 +117,46 @@ describe('getSeasonalPrice', () => {
       overrides: [{ id: 'o1', vehicleId: 'other-vehicle', seasonId: 'season-summer', fixedPrice: 777, adjustmentPercent: null }],
     };
     expect(getSeasonalPrice(vehicle, config, new Date('2026-07-15'))).toBe(230);
+  });
+
+  describe('season-level fleet-wide fixed price (Task 1)', () => {
+    const fixedSummer: PricingSeason = { ...summer, fixedPrice: 350 };
+
+    it('a season fixed price applies fleet-wide when no per-vehicle override exists', () => {
+      const config: PricingConfig = { seasons: [fixedSummer], overrides: [] };
+      expect(getSeasonalPrice(vehicle, config, new Date('2026-07-15'))).toBe(350);
+    });
+
+    it('a per-vehicle fixed-price override still wins over the season fixed price', () => {
+      const config: PricingConfig = {
+        seasons: [fixedSummer],
+        overrides: [{ id: 'o1', vehicleId: 'v1', seasonId: 'season-summer', fixedPrice: 999, adjustmentPercent: null }],
+      };
+      expect(getSeasonalPrice(vehicle, config, new Date('2026-07-15'))).toBe(999);
+    });
+
+    it('a per-vehicle percent override still wins over the season fixed price', () => {
+      const config: PricingConfig = {
+        seasons: [fixedSummer],
+        overrides: [{ id: 'o1', vehicleId: 'v1', seasonId: 'season-summer', fixedPrice: null, adjustmentPercent: 20 }],
+      };
+      // 200 * 1.2 = 240, not the season's 350 fixed price
+      expect(getSeasonalPrice(vehicle, config, new Date('2026-07-15'))).toBe(240);
+    });
+
+    it('a season with fixedPrice null (every season created before this field existed) falls back to adjustmentPercent exactly as before', () => {
+      expect(getSeasonalPrice(vehicle, baseConfig, new Date('2026-07-15'))).toBe(230);
+    });
+
+    it('reverting a per-vehicle override (removing it) falls back to the season fixed price, not the regular price', () => {
+      const withOverride: PricingConfig = {
+        seasons: [fixedSummer],
+        overrides: [{ id: 'o1', vehicleId: 'v1', seasonId: 'season-summer', fixedPrice: 999, adjustmentPercent: null }],
+      };
+      const reverted: PricingConfig = { seasons: [fixedSummer], overrides: [] };
+      expect(getSeasonalPrice(vehicle, withOverride, new Date('2026-07-15'))).toBe(999);
+      expect(getSeasonalPrice(vehicle, reverted, new Date('2026-07-15'))).toBe(350);
+    });
   });
 });
 

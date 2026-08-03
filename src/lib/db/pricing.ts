@@ -4,7 +4,7 @@ import type { PricingSeason, VehiclePriceOverride } from '@/lib/seasonal';
 /** Keep this list and mapSeasonRow in step — same discipline as VEHICLE_COLUMNS in lib/db/vehicles.ts. */
 export const SEASON_COLUMNS = [
   'id', 'name_he', 'name_en', 'start_date', 'end_date',
-  'recurs_annually', 'adjustment_percent', 'priority', 'is_active',
+  'recurs_annually', 'adjustment_percent', 'fixed_price', 'priority', 'is_active',
 ].join(', ');
 
 export const OVERRIDE_COLUMNS = [
@@ -21,6 +21,7 @@ export function mapSeasonRow(row: any): PricingSeason {
     endDate: row.end_date,
     recursAnnually: row.recurs_annually,
     adjustmentPercent: Number(row.adjustment_percent),
+    fixedPrice: row.fixed_price != null ? Number(row.fixed_price) : null,
     priority: row.priority,
     isActive: row.is_active,
   };

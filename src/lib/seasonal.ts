@@ -10,6 +10,14 @@ export interface PricingSeason {
   recursAnnually: boolean;
   /** Default % applied fleet-wide in this season, e.g. 13 or -10. */
   adjustmentPercent: number;
+  /**
+   * Optional fleet-wide fixed price/day, an alternative to adjustmentPercent.
+   * When set, it wins over adjustmentPercent for any vehicle with no
+   * per-vehicle override in this season — see priceForSeason(). Null on
+   * every season created before this field existed, so old seasons keep
+   * using adjustmentPercent exactly as before.
+   */
+  fixedPrice: number | null;
   /** Highest wins when two seasons' ranges overlap on the same date. */
   priority: number;
   isActive: boolean;
@@ -67,6 +75,33 @@ function roundToTen(n: number): number {
   return Math.round(n / 10) * 10;
 }
 
+/**
+ * Resolution order once a season is known: (1) a per-vehicle override for
+ * that season, fixed price or percent — either form fully replaces the
+ * season default; (2) the season's own fleet-wide fixed price, if set;
+ * (3) the season's fleet-wide percent; a season with neither an override
+ * nor a fixed price behaves exactly as before this field existed.
+ *
+ * Exported (not just used inside getSeasonalPrice) so the admin pricing UI
+ * can show "what would this vehicle cost in season X" for a season that
+ * isn't necessarily active today, without re-deriving it through a date.
+ */
+export function priceForSeason(
+  vehicle: Pick<Vehicle, 'id' | 'pricePerDay'>,
+  season: PricingSeason,
+  overrides: VehiclePriceOverride[]
+): number {
+  const override = overrides.find(
+    o => o.vehicleId === vehicle.id && o.seasonId === season.id
+  );
+  if (override?.fixedPrice != null) return override.fixedPrice;
+  if (override?.adjustmentPercent != null) {
+    return roundToTen(vehicle.pricePerDay * (1 + override.adjustmentPercent / 100));
+  }
+  if (season.fixedPrice != null) return season.fixedPrice;
+  return roundToTen(vehicle.pricePerDay * (1 + season.adjustmentPercent / 100));
+}
+
 export function getSeasonalPrice(
   vehicle: Pick<Vehicle, 'id' | 'pricePerDay'>,
   config: PricingConfig,
@@ -74,14 +109,7 @@ export function getSeasonalPrice(
 ): number {
   const season = resolveSeason(date ?? new Date(), config.seasons);
   if (!season) return vehicle.pricePerDay;
-
-  const override = config.overrides.find(
-    o => o.vehicleId === vehicle.id && o.seasonId === season.id
-  );
-  if (override?.fixedPrice != null) return override.fixedPrice;
-
-  const pct = override?.adjustmentPercent ?? season.adjustmentPercent;
-  return roundToTen(vehicle.pricePerDay * (1 + pct / 100));
+  return priceForSeason(vehicle, season, config.overrides);
 }
 
 /**
