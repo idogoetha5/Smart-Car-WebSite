@@ -15,6 +15,7 @@ function validQuoteData(value: unknown): value is QuoteData {
   if (!value || typeof value !== 'object') return false;
   const data = value as Partial<QuoteData>;
   return Boolean(
+    data.id &&
     data.quoteNumber &&
     data.date &&
     data.customerName?.trim() &&
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
     const sent = await sendQuoteEmail(data, pdf);
 
     try {
-      await markQuoteSent(data.quoteNumber, sent.id);
+      await markQuoteSent(data.id, sent.id);
     } catch (statusError) {
       // The PDF and quote data were already archived before sending.
       // A status-write failure must not tell the admin that a delivered

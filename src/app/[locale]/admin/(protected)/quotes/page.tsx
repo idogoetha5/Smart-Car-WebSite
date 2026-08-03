@@ -19,6 +19,13 @@ import {
 type InventoryVehicle = any;
 
 export default function AdminQuotesPage() {
+  // Stable for the whole builder session — every save/PDF/send while editing
+  // this one draft reuses it, so they update the same row. A fresh page load
+  // (a genuinely new quotation) always gets a fresh id, even if the display
+  // number below happens to repeat or the customer email is identical to an
+  // earlier quote. See src/lib/quote-history.ts for why this must never be
+  // the display number or the customer's email.
+  const [quoteId] = useState(() => crypto.randomUUID());
   const [quoteNumber] = useState(generateQuoteNumber());
   const [date] = useState(todayIL());
   const [customerName, setCustomerName] = useState('');
@@ -51,6 +58,7 @@ export default function AdminQuotesPage() {
   }, []);
 
   const quoteData: QuoteData = useMemo(() => ({
+    id: quoteId,
     quoteNumber,
     date,
     customerName,
@@ -58,7 +66,7 @@ export default function AdminQuotesPage() {
     companyName,
     companyId,
     vehicles,
-  }), [quoteNumber, date, customerName, customerEmail, companyName, companyId, vehicles]);
+  }), [quoteId, quoteNumber, date, customerName, customerEmail, companyName, companyId, vehicles]);
 
   // Stable shell (fonts + styles) rendered once so the iframe never reloads;
   // the body is written live on every edit for an instant, flicker-free preview.

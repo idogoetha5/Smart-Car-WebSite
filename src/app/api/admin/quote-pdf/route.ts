@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyAdminToken } from '@/lib/admin-auth';
+import { randomUUID } from 'crypto';
 import type { QuoteData } from '@/lib/quote-pdf';
-import { archiveQuotePdf, resolveUniqueQuoteNumber } from '@/lib/quote-history';
+import { archiveQuotePdf } from '@/lib/quote-history';
 import { renderQuotePdf } from '@/lib/quote-pdf-server';
 
 export const runtime = 'nodejs';
@@ -22,7 +23,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    data.quoteNumber = await resolveUniqueQuoteNumber(data.quoteNumber, data.customerEmail);
+    // The client always sends a stable per-session id; a fallback here only
+    // covers a caller that predates it — never derived from email/number.
+    if (!data.id) data.id = randomUUID();
     const pdf = await renderQuotePdf(data);
     await archiveQuotePdf(data, pdf);
 

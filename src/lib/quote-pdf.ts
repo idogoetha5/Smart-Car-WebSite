@@ -18,6 +18,14 @@ export interface QuoteVehicle {
 }
 
 export interface QuoteData {
+  /**
+   * The real identity of this quotation record — a client-generated UUID,
+   * stable for the whole life of one quote-builder session (including every
+   * "regenerate PDF" click while the admin keeps editing). Every DB write,
+   * PDF storage path and lookup keys off this, never off quoteNumber or
+   * customerEmail — see src/lib/quote-history.ts.
+   */
+  id: string;
   quoteNumber: string;
   date: string;
   validUntil?: string;

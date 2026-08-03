@@ -1,5 +1,6 @@
+import { randomUUID } from 'crypto';
 import { createAdminClient } from '@/lib/supabase/server';
-import { generateQuoteNumber, quoteValidUntil, type QuoteData } from '@/lib/quote-pdf';
+import { quoteValidUntil, type QuoteData } from '@/lib/quote-pdf';
 
 export type QuoteHistoryStatus = 'saved' | 'sent';
 
@@ -37,37 +38,96 @@ export function quotePdfFilename(
 }
 
 /**
- * `quote_number` is UNIQUE in the database and `archiveQuotePdf` upserts on
- * it, so two unrelated quotations that randomly draw the same six digits
- * would otherwise have the second one silently overwrite the first
- * customer's saved row and archived PDF. Re-saving the *same* quotation
- * (matched by customer email) is meant to update its own row in place, so
- * that case returns the candidate unchanged; a genuine collision with a
- * different customer draws a fresh number and checks again.
+ * The six-digit `quote_number` is a customer-facing display value only — it
+ * is expected to repeat over time and across customers (900,000 possible
+ * values, no dedup). The real identity of a saved quotation is `data.id`, a
+ * client-generated UUID stable for one quote-builder session: every
+ * "regenerate PDF" click while the admin keeps editing the same draft
+ * reuses it, so those saves correctly update one row in place, while two
+ * genuinely different quotations — even for the same customer, same email,
+ * created at the same moment, or landing on the same random six-digit
+ * number — always get distinct ids and therefore distinct rows and PDFs.
+ * Email equality is never used as evidence of "same quote".
+ *
+ * The upsert is keyed on the DB's own PRIMARY KEY (id), so there is no
+ * unique constraint left for two different quotations to conflict on — the
+ * insert-or-update either creates a fresh row or updates the exact row this
+ * session already owns. The retry loop below exists only for the
+ * astronomically unlikely case of a client (or a caller with a bug) supplying
+ * an id that collides with an unrelated existing quote — it never fires in
+ * normal operation.
  */
-export async function resolveUniqueQuoteNumber(
-  candidate: string,
-  customerEmail: string
-): Promise<string> {
-  const supabase = createAdminClient();
-  const normalizedEmail = customerEmail.trim().toLowerCase();
-  let attempt = candidate;
+async function insertOrUpdateQuote(
+  supabase: ReturnType<typeof createAdminClient>,
+  data: QuoteData,
+  pdfPath: string,
+  pdf: Buffer
+): Promise<QuoteHistoryRow> {
+  const vehicleSummary = data.vehicles
+    .filter((vehicle) => vehicle.name?.trim())
+    .map((vehicle) => vehicle.name.trim())
+    .join(', ');
 
-  for (let tries = 0; tries < 20; tries++) {
+  let id = data.id;
+
+  for (let tries = 0; tries < 5; tries++) {
     const { data: existing } = await supabase
       .from('quotes')
-      .select('customer_email')
-      .eq('quote_number', attempt)
+      .select('status, sent_at, provider_message_id, customer_email')
+      .eq('id', id)
       .maybeSingle();
 
-    if (!existing || existing.customer_email.trim().toLowerCase() === normalizedEmail) {
-      return attempt;
+    // Defends against an id that already belongs to a *different* customer's
+    // quote — should never happen with a real UUID, but if it did, silently
+    // overwriting their row would be exactly the bug this exists to prevent.
+    if (existing && existing.customer_email.trim().toLowerCase() !== data.customerEmail.trim().toLowerCase()) {
+      id = randomUUID();
+      continue;
     }
 
-    attempt = generateQuoteNumber();
+    const { data: saved, error: saveError } = await supabase
+      .from('quotes')
+      .upsert(
+        {
+          id,
+          quote_number: data.quoteNumber,
+          quote_date: data.date,
+          valid_until: quoteValidUntil(data),
+          customer_name: data.customerName.trim(),
+          customer_email: data.customerEmail.trim(),
+          company_name: data.companyName?.trim() || null,
+          company_id: data.companyId?.trim() || null,
+          vehicle_summary: vehicleSummary,
+          quote_data: { ...data, id },
+          pdf_path: pdfPath,
+          pdf_size: pdf.byteLength,
+          status: existing?.status === 'sent' ? 'sent' : 'saved',
+          sent_at: existing?.sent_at ?? null,
+          provider_message_id: existing?.provider_message_id ?? null,
+        },
+        { onConflict: 'id' }
+      )
+      .select(
+        'id, quote_number, quote_date, valid_until, customer_name, customer_email, company_name, company_id, vehicle_summary, pdf_path, pdf_size, status, provider_message_id, sent_at, created_at, updated_at'
+      )
+      .single();
+
+    if (saveError) {
+      // 23505 = unique_violation. The only remaining unique constraint is
+      // the id primary key itself; retrying with a fresh id is the atomic,
+      // race-safe response to a genuine conflict there.
+      if ((saveError as { code?: string }).code === '23505') {
+        id = randomUUID();
+        continue;
+      }
+      throw new Error(`quote history save failed: ${saveError.message}`);
+    }
+    if (!saved) throw new Error('quote history save failed: missing row');
+
+    return saved as QuoteHistoryRow;
   }
 
-  throw new Error('quote number collision: no free number found after 20 attempts');
+  throw new Error('quote history save failed: id collision, exhausted retries');
 }
 
 export async function archiveQuotePdf(
@@ -75,7 +135,10 @@ export async function archiveQuotePdf(
   pdf: Buffer
 ): Promise<QuoteHistoryRow> {
   const supabase = createAdminClient();
-  const pdfPath = `${safeQuotePart(data.quoteNumber)}.pdf`;
+  // Keyed by id, never by the display quote_number: two different customers
+  // can legitimately share a six-digit number, and their PDFs must never
+  // land on the same storage object.
+  const pdfPath = `${safeQuotePart(data.id)}.pdf`;
 
   const { error: uploadError } = await supabase.storage
     .from('quote-pdfs')
@@ -89,52 +152,11 @@ export async function archiveQuotePdf(
     throw new Error(`quote PDF archive failed: ${uploadError.message}`);
   }
 
-  const { data: existing } = await supabase
-    .from('quotes')
-    .select('status, sent_at, provider_message_id')
-    .eq('quote_number', data.quoteNumber)
-    .maybeSingle();
-
-  const vehicleSummary = data.vehicles
-    .filter((vehicle) => vehicle.name?.trim())
-    .map((vehicle) => vehicle.name.trim())
-    .join(', ');
-
-  const { data: saved, error: saveError } = await supabase
-    .from('quotes')
-    .upsert(
-      {
-        quote_number: data.quoteNumber,
-        quote_date: data.date,
-        valid_until: quoteValidUntil(data),
-        customer_name: data.customerName.trim(),
-        customer_email: data.customerEmail.trim(),
-        company_name: data.companyName?.trim() || null,
-        company_id: data.companyId?.trim() || null,
-        vehicle_summary: vehicleSummary,
-        quote_data: data,
-        pdf_path: pdfPath,
-        pdf_size: pdf.byteLength,
-        status: existing?.status === 'sent' ? 'sent' : 'saved',
-        sent_at: existing?.sent_at ?? null,
-        provider_message_id: existing?.provider_message_id ?? null,
-      },
-      { onConflict: 'quote_number' }
-    )
-    .select(
-      'id, quote_number, quote_date, valid_until, customer_name, customer_email, company_name, company_id, vehicle_summary, pdf_path, pdf_size, status, provider_message_id, sent_at, created_at, updated_at'
-    )
-    .single();
-
-  if (saveError || !saved) {
-    throw new Error(`quote history save failed: ${saveError?.message ?? 'missing row'}`);
-  }
-
-  return saved as QuoteHistoryRow;
+  return insertOrUpdateQuote(supabase, data, pdfPath, pdf);
 }
 
 export async function markQuoteSent(
-  quoteNumber: string,
+  id: string,
   providerMessageId: string
 ): Promise<void> {
   const supabase = createAdminClient();
@@ -145,7 +167,7 @@ export async function markQuoteSent(
       provider_message_id: providerMessageId,
       sent_at: new Date().toISOString(),
     })
-    .eq('quote_number', quoteNumber);
+    .eq('id', id);
 
   if (error) {
     throw new Error(`quote sent status update failed: ${error.message}`);

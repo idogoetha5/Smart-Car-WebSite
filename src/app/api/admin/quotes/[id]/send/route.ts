@@ -38,7 +38,7 @@ export async function POST(
       `resend-${Date.now()}`
     );
     try {
-      await markQuoteSent(quote.quote_number, sent.id);
+      await markQuoteSent(id, sent.id);
     } catch (statusError) {
       // The email has already been accepted by the provider. Returning an
       // error here would encourage an accidental duplicate send.
