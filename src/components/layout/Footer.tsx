@@ -8,6 +8,7 @@ import { Phone, Mail, MapPin } from 'lucide-react';
 import { branchAddress, getBranch, wazeUrl } from '@/lib/branches';
 import { openCookiePreferences } from '@/lib/cookie-consent';
 import { isAdminArea } from '@/lib/site-chrome';
+import { FACEBOOK_PAGE_URL } from '@/lib/constants';
 
 const HERZLIYA = getBranch('herzliya');
 const TELAVIV = getBranch('telaviv');
@@ -61,6 +62,26 @@ export default function Footer() {
                 ? 'השכרת רכב, ליסינג ושירות אישי בכל הארץ.'
                 : 'Car rental, leasing and personal service across Israel.'}
             </p>
+            <a
+              href={FACEBOOK_PAGE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={locale === 'he' ? 'עמוד SmartCar בפייסבוק, נפתח בחלון חדש' : 'SmartCar on Facebook, opens in a new tab'}
+              className="mb-4 inline-flex min-h-10 items-center gap-2 rounded-full border border-[#2D5F5F] px-3 py-2 text-sm text-[#B8D8D8] transition-colors hover:border-[#B8D8D8] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8D8D8] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D2B2B]"
+            >
+              <svg
+                aria-hidden="true"
+                focusable="false"
+                viewBox="0 0 24 24"
+                className="h-5 w-5 shrink-0"
+              >
+                <path
+                  fill="currentColor"
+                  d="M13.6 21v-8.2h2.8l.4-3.2h-3.2V7.5c0-.9.3-1.6 1.6-1.6h1.7V3a22 22 0 0 0-2.5-.1c-2.5 0-4.2 1.5-4.2 4.3v2.4H7.4v3.2h2.8V21h3.4Z"
+                />
+              </svg>
+              <span>Facebook</span>
+            </a>
             <button
               onClick={toggleLanguage}
               className="text-xs px-3 py-1.5 rounded-full border border-[#2D5F5F] hover:border-[#B8D8D8] transition-colors text-[#B8D8D8]"

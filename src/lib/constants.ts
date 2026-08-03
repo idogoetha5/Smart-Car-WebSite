@@ -1,6 +1,7 @@
 export const OFFICE_EMAIL = 'office@smartcar.co.il';
 export const OFFICE_PHONE = '09-9509757';
 export const WHATSAPP_NUMBER = '97299509757';
+export const FACEBOOK_PAGE_URL = 'https://www.facebook.com/profile.php?id=100067652286739';
 
 export const LOCATIONS = [
   'תל אביב – מרכז',

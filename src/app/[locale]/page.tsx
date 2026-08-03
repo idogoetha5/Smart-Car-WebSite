@@ -4,6 +4,7 @@ import { localeAlternates } from '@/lib/seo';
 import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
+import { FACEBOOK_PAGE_URL } from '@/lib/constants';
 
 export const revalidate = 60;
 
@@ -127,14 +128,14 @@ export default async function HomePage({
       addressCountry: 'IL',
     },
     hasMap: mapsUrl(herzliya),
-    sameAs: ['https://wa.me/97299509757'],
+    sameAs: ['https://wa.me/97299509757', FACEBOOK_PAGE_URL],
   };
 
   return (
     <div dir={isHe ? 'rtl' : 'ltr'}>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
 
       {/* ══ HERO + CATEGORIES ════════════════════════════════════ */}

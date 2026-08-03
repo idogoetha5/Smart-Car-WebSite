@@ -87,6 +87,8 @@ export default async function LocaleLayout({
       className={`${nunito.variable} ${heebo.variable}`}
     >
       <head>
+        <meta name="facebook-domain-verification" content="oftqxooijalphukk8wbbo0ps16ekvt" />
+        <meta property="fb:pages" content="174590449225975" />
         <link rel="preconnect" href="https://iovpoxmdsgsstaduggvb.supabase.co" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://iovpoxmdsgsstaduggvb.supabase.co" />
       </head>
