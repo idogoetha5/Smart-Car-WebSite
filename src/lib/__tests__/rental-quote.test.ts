@@ -289,6 +289,24 @@ describe('isoToday', () => {
     vi.setSystemTime(new Date('2026-07-30T10:00:00Z'));
     expect(isoToday()).toBe('2026-07-30');
   });
+
+  // src/app/api/bookings/route.ts rejects a pickup date with
+  // `pickupDate < isoToday()` — this is the exact comparison, reproduced
+  // here rather than standing up a full mocked POST test for one line of
+  // logic that already delegates entirely to the helper above.
+  it("a booking for Israel's current calendar date is never rejected as 'in the past', even right after UTC midnight", () => {
+    // 22:30 UTC = 01:30 IDT the next day — the exact window that used to
+    // read as "yesterday" before isoToday() went Asia/Jerusalem-aware.
+    vi.setSystemTime(new Date('2026-07-30T22:30:00Z'));
+    const pickupDate = '2026-07-31'; // the customer picks today, Israel time
+    expect(pickupDate < isoToday()).toBe(false);
+  });
+
+  it('a genuinely past pickup date is still rejected at the same moment', () => {
+    vi.setSystemTime(new Date('2026-07-30T22:30:00Z'));
+    const pickupDate = '2026-07-30'; // yesterday in Israel, even though UTC clock says the 30th
+    expect(pickupDate < isoToday()).toBe(true);
+  });
 });
 
 describe('rental document validity date', () => {

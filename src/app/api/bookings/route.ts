@@ -14,6 +14,7 @@ import { normalizeEmail } from '@/lib/email';
 import { sendTemplateEmail } from '@/lib/email-delivery';
 import { formatLocationForCustomer } from '@/lib/location-display';
 import { numericOrderReference } from '@/lib/order-reference';
+import { isoToday } from '@/lib/rental-quote';
 import type { Vehicle } from '@/types';
 
 const EXTRAS_PRICE: Record<string, number> = {
@@ -118,7 +119,11 @@ export async function POST(request: NextRequest) {
   if (dropoffDate <= pickupDate) {
     return NextResponse.json({ error: 'Drop-off date must be after pickup date' }, { status: 400 });
   }
-  if (new Date(pickupDate) < new Date(new Date().toISOString().split('T')[0])) {
+  // Both sides are YYYY-MM-DD, so a plain string compare avoids Date-object
+  // timezone parsing entirely; isoToday() itself is already Asia/Jerusalem —
+  // see its docstring for why toISOString() alone rolls back a day right
+  // after UTC midnight.
+  if (pickupDate < isoToday()) {
     return NextResponse.json({ error: 'Pickup date cannot be in the past' }, { status: 400 });
   }
 
