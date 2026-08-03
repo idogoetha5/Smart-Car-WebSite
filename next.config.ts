@@ -51,6 +51,17 @@ const noIndexHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // The root layout (app/layout.tsx) renders no <html>/<body> of its own —
+  // those only exist inside app/[locale]/layout.tsx, since locale is a
+  // top-level dynamic segment. That leaves genuinely unmatched URLs (no
+  // route at all, not just a page-level notFound()) with no layout to
+  // supply a document shell, and Next's classic root not-found.js only
+  // returns a real 404 status for non-streamed responses. global-not-found
+  // is exactly Next's documented answer for a top-level dynamic segment
+  // like this — see app/global-not-found.tsx.
+  experimental: {
+    globalNotFound: true,
+  },
   // @sparticuz/chromium ships binary assets (a .br archive) that must be
   // copied as-is into the serverless function, not bundled/relocated —
   // without this the quote-PDF route fails at runtime with "input
