@@ -10,6 +10,8 @@ let outboxRows: Array<{
 }>;
 let updates: Array<{ key: string; fields: Record<string, unknown> }>;
 let sendResults: Record<string, boolean>;
+/** When set, the next update()...eq() call resolves with this error instead of succeeding. */
+let nextUpdateError: { message: string } | null;
 
 vi.mock('@/lib/supabase/server', () => ({
   createAdminClient: () => ({
@@ -28,6 +30,11 @@ vi.mock('@/lib/supabase/server', () => ({
         update: (fields: Record<string, unknown>) => ({
           eq: async (_col: string, key: string) => {
             updates.push({ key, fields });
+            if (nextUpdateError) {
+              const err = nextUpdateError;
+              nextUpdateError = null;
+              return { data: null, error: err };
+            }
             return { data: null, error: null };
           },
         }),
@@ -51,6 +58,7 @@ beforeEach(() => {
   outboxRows = [];
   updates = [];
   sendResults = {};
+  nextUpdateError = null;
   process.env.CRON_SECRET = 'test-secret';
 });
 
@@ -124,7 +132,7 @@ describe('GET /api/cron/email-retry', () => {
     expect(updates[0].fields).toMatchObject({ status: 'dead', attempts: 5 });
   });
 
-  it('marks a row dead once it is older than 24h, regardless of attempt count', async () => {
+  it('does NOT mark a row dead after only 24h — Hobby cron is daily, one miss must not be fatal', async () => {
     outboxRows = [
       {
         idempotency_key: 'contact_lead:3',
@@ -141,7 +149,116 @@ describe('GET /api/cron/email-retry', () => {
     const res = await GET(authedRequest());
     const body = await res.json();
 
+    expect(body).toMatchObject({ success: true, dead: 0, stillPending: 1 });
+  });
+
+  it('marks a row dead once it is older than 7 days, regardless of attempt count', async () => {
+    outboxRows = [
+      {
+        idempotency_key: 'contact_lead:3',
+        event: 'contact_lead',
+        template_id: 'tmpl_1',
+        payload: {},
+        attempts: 0,
+        created_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    ];
+    sendResults = { 'contact_lead:3': false };
+
+    const { GET } = await import('./route');
+    const res = await GET(authedRequest());
+    const body = await res.json();
+
     expect(body).toMatchObject({ success: true, dead: 1 });
+  });
+
+  it('simulates a message failing across a full week of once-daily sweeps: stays pending for 5 days, then dies on attempt 5 (still within 7 days)', async () => {
+    const createdAt = new Date().toISOString();
+    let lastBody: { dead: number; stillPending: number } | null = null;
+
+    for (let day = 1; day <= 5; day++) {
+      outboxRows = [
+        {
+          idempotency_key: 'booking_confirmed:week-sim',
+          event: 'booking_confirmed',
+          template_id: 'tmpl_1',
+          payload: {},
+          attempts: day - 1,
+          created_at: createdAt,
+        },
+      ];
+      sendResults = { 'booking_confirmed:week-sim': false };
+      updates = [];
+
+      const { GET } = await import('./route');
+      vi.resetModules();
+      const res = await GET(authedRequest());
+      lastBody = await res.json();
+
+      if (day < 5) {
+        expect(lastBody).toMatchObject({ dead: 0, stillPending: 1 });
+        expect(updates[0].fields.attempts).toBe(day);
+        expect(updates[0].fields.status).toBeUndefined();
+      }
+    }
+
+    // 5th sweep attempt (attempts becomes 5) hits MAX_SWEEP_ATTEMPTS and gives up.
+    expect(lastBody).toMatchObject({ dead: 1, stillPending: 0 });
+    expect(updates[0].fields).toMatchObject({ status: 'dead', attempts: 5 });
+  });
+
+  it('logs an alert and does not throw when the DB update marking a row dead itself fails', async () => {
+    outboxRows = [
+      {
+        idempotency_key: 'contact_lead:update-fail',
+        event: 'contact_lead',
+        template_id: 'tmpl_1',
+        payload: {},
+        attempts: 4,
+        created_at: new Date().toISOString(),
+      },
+    ];
+    sendResults = { 'contact_lead:update-fail': false };
+    nextUpdateError = { message: 'connection reset' };
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { GET } = await import('./route');
+    const res = await GET(authedRequest());
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body).toMatchObject({ success: true, dead: 1 });
+    expect(errorSpy.mock.calls.some(call =>
+      String(call[0]).includes('outbox update failed while marking')
+    )).toBe(true);
+    errorSpy.mockRestore();
+  });
+
+  it('logs an alert and does not throw when the DB reschedule update itself fails', async () => {
+    outboxRows = [
+      {
+        idempotency_key: 'contact_lead:reschedule-fail',
+        event: 'contact_lead',
+        template_id: 'tmpl_1',
+        payload: {},
+        attempts: 0,
+        created_at: new Date().toISOString(),
+      },
+    ];
+    sendResults = { 'contact_lead:reschedule-fail': false };
+    nextUpdateError = { message: 'connection reset' };
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { GET } = await import('./route');
+    const res = await GET(authedRequest());
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body).toMatchObject({ success: true, stillPending: 1 });
+    expect(errorSpy.mock.calls.some(call =>
+      String(call[0]).includes('outbox reschedule failed')
+    )).toBe(true);
+    errorSpy.mockRestore();
   });
 
   it('does not touch the outbox row when the retry succeeds', async () => {

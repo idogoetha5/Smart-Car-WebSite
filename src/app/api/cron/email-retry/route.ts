@@ -16,8 +16,13 @@ import { sendTemplateEmail, OUTBOX_BACKOFF_MS, type EmailEvent } from '@/lib/ema
  */
 
 const BATCH_SIZE = 20;
+// Cron fires once daily (Hobby plan cap), so each sweep attempt is roughly a
+// day apart — 5 attempts spans about a working week before giving up.
 const MAX_SWEEP_ATTEMPTS = 5;
-const MAX_AGE_MS = 24 * 60 * 60 * 1000;
+// A hard backstop independent of attempt count: a row must not be declared
+// dead just because it happened to age past one cron cycle (it used to be
+// 24h, which killed a message after its very first daily sweep).
+const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface OutboxRow {
   idempotency_key: string;
@@ -77,16 +82,25 @@ export async function GET(request: Request) {
       console.error(
         `[email][ALERT] ${row.event} permanently undelivered after ${attempts} sweep attempt(s) (ref ${row.idempotency_key})`
       );
-      await supabase
+      const { error: deadUpdateError } = await supabase
         .from('email_outbox')
         .update({ status: 'dead', attempts, updated_at: new Date().toISOString() })
         .eq('idempotency_key', row.idempotency_key);
+      // A failed write here is worse than the send failure itself: the row
+      // silently stays 'pending' forever instead of surfacing as 'dead' for
+      // manual follow-up. Must not be swallowed.
+      if (deadUpdateError) {
+        console.error(
+          `[email][ALERT] outbox update failed while marking ${row.event} dead (ref ${row.idempotency_key}):`,
+          deadUpdateError.message
+        );
+      }
       continue;
     }
 
     stillPending++;
     const backoff = OUTBOX_BACKOFF_MS[Math.min(attempts, OUTBOX_BACKOFF_MS.length - 1)];
-    await supabase
+    const { error: rescheduleError } = await supabase
       .from('email_outbox')
       .update({
         attempts,
@@ -94,6 +108,15 @@ export async function GET(request: Request) {
         updated_at: new Date().toISOString(),
       })
       .eq('idempotency_key', row.idempotency_key);
+    // Same reasoning: an un-logged failure here means the row keeps its old
+    // next_attempt_at (already due), so it just gets retried next sweep —
+    // harmless, but must be visible rather than silent.
+    if (rescheduleError) {
+      console.error(
+        `[email][ALERT] outbox reschedule failed for ${row.event} (ref ${row.idempotency_key}):`,
+        rescheduleError.message
+      );
+    }
   }
 
   return NextResponse.json({
