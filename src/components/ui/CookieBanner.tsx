@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
+import { usePathname } from 'next/navigation';
+import { isAdminArea } from '@/lib/site-chrome';
 import {
   REOPEN_EVENT,
   readConsent,
@@ -31,6 +33,7 @@ function readConsentSnapshot(): ConsentValue | null {
 
 export default function CookieBanner() {
   const locale = useLocale();
+  const pathname = usePathname();
   const isHe = locale === 'he';
   // Reopened deliberately from the footer control. Set only from an event
   // handler, never from an effect body.
@@ -99,6 +102,9 @@ export default function CookieBanner() {
   const accept = () => choose('accepted');
   const decline = () => choose('declined');
 
+  // Admin has no cookie-consenting "visitor" to ask — never shown there,
+  // regardless of stored consent. Public-site behavior is otherwise unchanged.
+  if (isAdminArea(pathname, locale)) return null;
   if (!visible) return null;
 
   const linkClass =

@@ -16,7 +16,10 @@
 
 import Script from 'next/script';
 import { useState, useEffect } from 'react';
+import { useLocale } from 'next-intl';
+import { usePathname } from 'next/navigation';
 import { CONSENT_KEY, readConsent } from '@/lib/cookie-consent';
+import { isAdminArea } from '@/lib/site-chrome';
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
@@ -31,6 +34,8 @@ declare global {
 }
 
 export default function GoogleAnalytics() {
+  const locale = useLocale();
+  const pathname = usePathname();
   const [consented, setConsented] = useState(false);
   // Once the tag is on the page it cannot be taken back off, so track whether
   // it was ever loaded separately from the current answer.
@@ -55,9 +60,11 @@ export default function GoogleAnalytics() {
   }, []);
 
   // Push every change to the tag. After a withdrawal this is what actually
-  // stops collection — unmounting the element would not.
+  // stops collection — unmounting the element would not. Also skipped in the
+  // admin area: a tag already loaded from an earlier public-site visit in the
+  // same tab must not keep receiving updates once the admin navigates in.
   useEffect(() => {
-    if (!GA_ID || !everAccepted) return;
+    if (!GA_ID || !everAccepted || isAdminArea(pathname, locale)) return;
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push([
       'consent',
@@ -69,8 +76,12 @@ export default function GoogleAnalytics() {
         ad_personalization: 'denied',
       },
     ]);
-  }, [consented, everAccepted]);
+  }, [consented, everAccepted, pathname, locale]);
 
+  // The admin team's own navigation must never count as customer traffic —
+  // never mounted there, regardless of consent. Public-site behavior is
+  // otherwise unchanged.
+  if (isAdminArea(pathname, locale)) return null;
   // Nothing is injected until the visitor accepts at least once.
   if (!GA_ID || !everAccepted) return null;
 

@@ -19,10 +19,15 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useLocale } from 'next-intl';
+import { usePathname } from 'next/navigation';
 import { Analytics } from '@vercel/analytics/react';
 import { readConsent } from '@/lib/cookie-consent';
+import { isAdminArea } from '@/lib/site-chrome';
 
 export default function ConsentedAnalytics() {
+  const locale = useLocale();
+  const pathname = usePathname();
   // Whether the script has been injected at all. Consent is re-read inside
   // beforeSend on every event, so this only controls first injection.
   const [everAccepted, setEverAccepted] = useState(false);
@@ -37,6 +42,10 @@ export default function ConsentedAnalytics() {
     return () => window.removeEventListener('storage', check);
   }, []);
 
+  // The admin team's own navigation must never count as customer traffic —
+  // never mounted there, regardless of consent. Public-site behavior above
+  // and below this line is unchanged.
+  if (isAdminArea(pathname, locale)) return null;
   if (!everAccepted) return null;
 
   return (

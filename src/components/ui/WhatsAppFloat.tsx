@@ -2,7 +2,7 @@
 
 import { useLocale, useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
-import { isAdminArea } from '@/lib/site-chrome';
+import { isAdminArea, hidesFloatingWhatsApp } from '@/lib/site-chrome';
 import { WHATSAPP_NUMBER } from '@/lib/constants';
 
 export default function WhatsAppFloat() {
@@ -13,6 +13,10 @@ export default function WhatsAppFloat() {
   // A customer-facing shortcut. In the admin area it is one more thing
   // covering the bottom-right corner of a phone screen.
   if (isAdminArea(pathname, locale)) return null;
+  // On a single vehicle page the booking form is long enough that this
+  // fixed button ends up over a field, a time picker or the submit button
+  // itself depending on scroll — see hidesFloatingWhatsApp's docstring.
+  if (hidesFloatingWhatsApp(pathname, locale)) return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-50">

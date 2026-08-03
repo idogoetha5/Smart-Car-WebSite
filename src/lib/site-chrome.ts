@@ -30,3 +30,16 @@ export function hidesSiteHeader(pathname: string, locale: string): boolean {
 export function isAdminArea(pathname: string, locale: string): boolean {
   return pathname.startsWith(`/${locale}/admin`);
 }
+
+/**
+ * Where the floating WhatsApp button must be hidden entirely rather than
+ * just repositioned: a single vehicle page's booking form is tall enough
+ * that the fixed-position button ends up sitting on top of an in-flow
+ * field (the pickup/return time selects), or directly over the submit
+ * button itself, depending on scroll position — confirmed at 320/390/430px.
+ * Contact by WhatsApp stays reachable from the footer and contact page on
+ * this route; only the floating duplicate goes away here.
+ */
+export function hidesFloatingWhatsApp(pathname: string, locale: string): boolean {
+  return pathname.startsWith(`/${locale}/rental/`);
+}
