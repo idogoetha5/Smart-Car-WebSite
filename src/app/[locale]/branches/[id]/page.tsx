@@ -43,12 +43,12 @@ const CONTENT: Record<BranchId, { metaHe: string; metaEn: string; bodyHe: string
       'Tel Aviv isn\'t always easy to drive in if you don\'t know it: blue-and-white parking zones are divided by district, and traffic builds up fast at peak hours. Our branch in the city center, near the beach promenade and major hotels, serves Tel Aviv residents who need a car short-term, business travelers heading to the office towers downtown, and tourists exploring the beach and beyond. From here it\'s a quick run onto the Ayalon and out in any direction, with a fleet ranging from compact to family to luxury.',
   },
   jerusalem: {
-    metaHe: 'השכרת רכב בירושלים ברחוב המלך דוד — לתושבים, אנשי עסקים, תיירים וסטודנטים.',
-    metaEn: 'Car rental in Jerusalem on King David Street — for residents, business visitors, tourists and students.',
+    metaHe: 'השכרת רכב בירושלים ברחוב המלך דוד, סמוך לממילא — לתושבים, אנשי עסקים, תיירים וסטודנטים.',
+    metaEn: 'Car rental in Jerusalem on King David Street, near Mamilla — for residents, business visitors, tourists and students.',
     bodyHe:
-      'נהיגה בעיר העתיקה ובסמטאות מרכז ירושלים לא פשוטה, ולכן הסניף שלנו ברחוב המלך דוד יושב במיקום שממנו קל לצאת לכביש 1 ולכבישים הראשיים בלי להיכנס לפקקים של מרכז העיר. השכרת רכב בירושלים מתאימה לתושבי העיר, לאנשי עסקים שמגיעים למרכז ולמוסדות הממשל, לתיירים ולעולי-רגל שרוצים לצאת ממנה לים המלח, לצפון או לכל מקום אחר בארץ, ולסטודנטים שצריכים רכב לתקופה קצרה. גם כאן תמצאו את הצי הרחב והשירות האישי שמאפיינים כל סניף של SmartCar.',
+      'נהיגה בעיר העתיקה ובסמטאות מרכז ירושלים לא פשוטה, ולכן הסניף שלנו ברחוב המלך דוד, סמוך למתחם ממילא, יושב במיקום שממנו קל לצאת לכביש 1 ולכבישים הראשיים בלי להיכנס לפקקים של מרכז העיר. השכרת רכב בירושלים מתאימה לתושבי העיר, לאנשי עסקים שמגיעים למרכז ולמוסדות הממשל, לתיירים ולעולי-רגל שרוצים לצאת ממנה לים המלח, לצפון או לכל מקום אחר בארץ, ולסטודנטים שצריכים רכב לתקופה קצרה. גם כאן תמצאו את הצי הרחב והשירות האישי שמאפיינים כל סניף של SmartCar.',
     bodyEn:
-      'Driving through the Old City and downtown Jerusalem\'s narrow streets isn\'t simple, which is why our branch on King David Street sits somewhere you can reach Route 1 and the main highways without fighting the city-center traffic. Car rental in Jerusalem works for city residents, business visitors heading to the government and institutional district, tourists and pilgrims continuing on to the Dead Sea or the north, and students who need a car for a short stretch. The same wide fleet and personal service you\'ll find at every SmartCar branch is here too.',
+      'Driving through the Old City and downtown Jerusalem\'s narrow streets isn\'t simple, which is why our branch on King David Street, near the Mamilla complex, sits somewhere you can reach Route 1 and the main highways without fighting the city-center traffic. Car rental in Jerusalem works for city residents, business visitors heading to the government and institutional district, tourists and pilgrims continuing on to the Dead Sea or the north, and students who need a car for a short stretch. The same wide fleet and personal service you\'ll find at every SmartCar branch is here too.',
   },
   airport: {
     metaHe: 'השכרת רכב בנתב"ג עם משלוח לטרמינל 24/7 — לתיירים, ישראלים חוזרים מחו"ל ואנשי עסקים.',
