@@ -50,7 +50,7 @@ export default function BranchesSection({ locale }: { locale: string }) {
           {branches.map((branch) => (
             <div
               key={branch.nameEn}
-              className="group rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl hover:border-[#B8D8D8] transition-all duration-300 flex flex-col bg-white"
+              className="group rounded-2xl overflow-hidden border border-gray-100 shadow-md hover:shadow-xl hover:border-[#B8D8D8] transition-all duration-300 flex flex-col bg-white"
             >
               <div className="relative h-40 overflow-hidden bg-[#eef6f6]">
                 <Image

@@ -101,20 +101,30 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
     <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden border border-gray-100 flex flex-col">
 
       {/* Image carousel */}
-      <div className="relative overflow-hidden bg-gray-50" style={{ height: '200px' }}>
+      <div className="relative overflow-hidden bg-gradient-to-b from-white to-gray-100" style={{ height: '200px' }}>
         {currentImg ? (
-          <Image
-            key={currentImg}
-            src={currentImg}
-            alt={isHe
-              ? `${vehicle.year} ${vehicle.make} ${vehicle.model} — תמונה ${imgIdx + 1} מתוך ${images.length}`
-              : `${vehicle.year} ${vehicle.make} ${vehicle.model} — image ${imgIdx + 1} of ${images.length}`}
-            fill
-            priority={priority && imgIdx === 0}
-            loading={priority ? undefined : 'lazy'}
-            className="object-contain p-2"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          />
+          <>
+            {/* Soft ground shadow — gives the car a sense of sitting on a
+                surface without a literal 3D render. A fixed ellipse near
+                the bottom works across different photos since the car is
+                always roughly centered in its source image. */}
+            <div
+              aria-hidden="true"
+              className="absolute left-1/2 bottom-[18%] -translate-x-1/2 w-[62%] h-6 rounded-full bg-black/20 blur-md"
+            />
+            <Image
+              key={currentImg}
+              src={currentImg}
+              alt={isHe
+                ? `${vehicle.year} ${vehicle.make} ${vehicle.model} — תמונה ${imgIdx + 1} מתוך ${images.length}`
+                : `${vehicle.year} ${vehicle.make} ${vehicle.model} — image ${imgIdx + 1} of ${images.length}`}
+              fill
+              priority={priority && imgIdx === 0}
+              loading={priority ? undefined : 'lazy'}
+              className="object-contain relative"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            />
+          </>
         ) : (
           <CarPlaceholder />
         )}
