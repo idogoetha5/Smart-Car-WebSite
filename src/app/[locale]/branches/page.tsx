@@ -23,11 +23,15 @@ export async function generateMetadata({
 // Address, phone and map links come from @/lib/branches (single source of
 // truth). Only the page-specific presentation data — opening hours and the
 // descriptive blurb — is defined here.
-// Owner-confirmed 2026-07-28: every branch is 08:00–18:00. The site previously
-// carried three different answers — 08:00–20:00 here and in contact, 08:00–18:00
-// in the terms, and a fourth shape in the JSON-LD — so a customer could be told
-// a different closing time depending on which page they landed on.
-const WEEKDAY_HOURS: BranchHours = { weekdaysHe: 'א׳–ה׳', weekdaysEn: 'Sun–Thu', time: '08:00–18:00', fridayTime: null, saturday: false };
+// Owner-confirmed 2026-07-28: every branch is 08:00–18:00 Sun–Thu. The site
+// previously carried three different answers — 08:00–20:00 here and in
+// contact, 08:00–18:00 in the terms, and a fourth shape in the JSON-LD — so a
+// customer could be told a different closing time depending on which page
+// they landed on.
+// Owner-confirmed 2026-08-04: Fridays and holiday eves run shorter hours,
+// 08:30–14:00 — this had no entry at all (fridayTime was null), so the site
+// simply showed nothing for Friday instead of the real short day.
+const WEEKDAY_HOURS: BranchHours = { weekdaysHe: 'א׳–ה׳', weekdaysEn: 'Sun–Thu', time: '08:00–18:00', fridayTime: '08:30–14:00', saturday: false };
 
 interface BranchHours {
   weekdaysHe: string;
@@ -163,7 +167,7 @@ export default async function BranchesPage({
                       {branch.hours.fridayTime && (
                         <div className="flex justify-between">
                           <span>{branch.hours.fridayTime}</span>
-                          <span>{isHe ? 'שישי' : 'Fri'}</span>
+                          <span>{isHe ? 'שישי וערבי חג' : 'Fri & holiday eves'}</span>
                         </div>
                       )}
                       {!branch.hours.saturday && (

@@ -9,6 +9,18 @@ export function generateStaticParams() {
   return BRANCHES.map((b) => ({ id: b.id }));
 }
 
+// What people actually search for is not always the branch's municipal
+// address — Ben Gurion Airport's postal address is technically in Lod, but
+// nobody searches "car rental in Lod" for it. This is the SEO-facing name
+// used in the title, H1 and alt text; the real municipal city still goes
+// into the JSON-LD postal address below.
+const DISPLAY_CITY: Record<BranchId, { he: string; en: string }> = {
+  herzliya: { he: 'הרצליה', en: 'Herzliya' },
+  telaviv: { he: 'תל אביב', en: 'Tel Aviv' },
+  jerusalem: { he: 'ירושלים', en: 'Jerusalem' },
+  airport: { he: 'נתב"ג', en: 'Ben Gurion Airport' },
+};
+
 // Longer, city-specific SEO copy for each branch's own page. Deliberately
 // separate from the one-line descHe/descEn on the /branches grid (kept
 // unchanged there) — this is the dedicated landing-page content Google can
@@ -42,9 +54,9 @@ const CONTENT: Record<BranchId, { metaHe: string; metaEn: string; bodyHe: string
     metaHe: 'השכרת רכב בנתב"ג עם משלוח לטרמינל 24/7 — לתיירים, ישראלים חוזרים מחו"ל ואנשי עסקים.',
     metaEn: 'Car rental at Ben Gurion Airport with 24/7 terminal delivery — for tourists, returning residents and business travelers.',
     bodyHe:
-      'נוחתים בנתב"ג ורוצים להתחיל לנסוע בלי לעמוד בתור למונית או לאוטובוס? שירות המשלוח שלנו לנמל התעופה עובד 24/7 — הרכב מגיע אליכם לטרמינל, ומהרגע הזה יש גישה מהירה לכבישים הראשיים לכל הארץ. השכרת רכב בנתב"ג מתאימה לתיירים שמגיעים לישראל בפעם הראשונה, לישראלים שחוזרים מחו"ל בלי רכב בבית, ולנוסעי עסקים שצריכים לזוז מהר — עם צי רכבים רחב מקומפקטי ועד יוקרה, ושירות אישי שמלווה את SmartCar כבר משנת 2003.',
+      'נוחתים בנתב"ג ורוצים להתחיל לנסוע בלי לעמוד בתור למונית או לאוטובוס? שירות המשלוח שלנו לנמל התעופה עובד 24/7 — הרכב מגיע אליכם לטרמינל, ומהרגע הזה יש גישה מהירה לכבישים הראשיים לכל הארץ. השכרת רכב בנתב"ג מתאימה לתיירים שמגיעים לישראל בפעם הראשונה, לישראלים שחוזרים מחו"ל בלי רכב בבית, ולנוסעי עסקים שצריכים לזוז מהר — עם צי רכבים רחב מקומפקטי ועד יוקרה, ושירות אישי שמלווה את SmartCar כבר משנת 2003. אפשר גם לאסוף רכב בנתב"ג ולהחזיר אותו בנתב"ג בסוף הטיול, בלי קשר לאיפה הוזמן הרכב במקור — נוח מאוד אם אתם צריכים רכב גדול כבר מהנחיתה ולכל אורך החופשה.',
     bodyEn:
-      'Landing at Ben Gurion Airport and want to get moving without waiting in the taxi or bus line? Our airport delivery service runs 24/7 — your car is brought straight to the terminal, and from there it\'s a quick run onto the main highways to anywhere in the country. Car rental at Ben Gurion works for first-time visitors to Israel, returning residents without a car at home, and business travelers who need to move fast — with a fleet from compact to luxury and the personal service SmartCar has offered since 2003.',
+      'Landing at Ben Gurion Airport and want to get moving without waiting in the taxi or bus line? Our airport delivery service runs 24/7 — your car is brought straight to the terminal, and from there it\'s a quick run onto the main highways to anywhere in the country. Car rental at Ben Gurion works for first-time visitors to Israel, returning residents without a car at home, and business travelers who need to move fast — with a fleet from compact to luxury and the personal service SmartCar has offered since 2003. You can also pick up and return the car right here at the airport, regardless of where it was booked from — ideal if you need a larger vehicle from the moment you land and want to keep it for the whole trip.',
   },
 };
 
@@ -57,7 +69,7 @@ export async function generateMetadata({
   const branch = BRANCHES.find((b) => b.id === id);
   if (!branch) return {};
   const isHe = locale === 'he';
-  const city = isHe ? branch.cityHe : branch.cityEn;
+  const city = isHe ? DISPLAY_CITY[branch.id].he : DISPLAY_CITY[branch.id].en;
   const content = CONTENT[branch.id];
   return {
     title: isHe ? `השכרת רכב ב${city} | SmartCar` : `Car Rental in ${city} | SmartCar`,
@@ -75,7 +87,7 @@ export default async function BranchDetailPage({
   const branch = BRANCHES.find((b) => b.id === id);
   if (!branch) notFound();
   const isHe = locale === 'he';
-  const city = isHe ? branch.cityHe : branch.cityEn;
+  const city = isHe ? DISPLAY_CITY[branch.id].he : DISPLAY_CITY[branch.id].en;
   const content = CONTENT[branch.id];
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
 
@@ -107,7 +119,7 @@ export default async function BranchDetailPage({
       <div className="relative h-64 sm:h-80 md:h-96 overflow-hidden">
         <Image
           src={branch.image}
-          alt={isHe ? `סניף SmartCar ${branch.cityHe}` : `SmartCar ${branch.cityEn} branch`}
+          alt={isHe ? `סניף SmartCar ${city}` : `SmartCar ${city} branch`}
           fill
           priority
           className="object-cover"
