@@ -104,14 +104,6 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
       <div className="relative overflow-hidden bg-gradient-to-b from-white to-gray-100" style={{ height: '200px' }}>
         {currentImg ? (
           <>
-            {/* Soft ground shadow — gives the car a sense of sitting on a
-                surface without a literal 3D render. A fixed ellipse near
-                the bottom works across different photos since the car is
-                always roughly centered in its source image. */}
-            <div
-              aria-hidden="true"
-              className="absolute left-1/2 bottom-[18%] -translate-x-1/2 w-[62%] h-6 rounded-full bg-black/20 blur-md"
-            />
             <Image
               key={currentImg}
               src={currentImg}
@@ -121,8 +113,20 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
               fill
               priority={priority && imgIdx === 0}
               loading={priority ? undefined : 'lazy'}
-              className="object-contain relative"
+              className="object-contain"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            />
+            {/* Soft ground shadow — gives the car a sense of sitting on a
+                surface without a literal 3D render. The source photos are
+                opaque (their own white background baked in), so this has
+                to sit ON TOP of the image and darken it with a blend mode
+                rather than behind it, where an opaque photo would just
+                hide it entirely. A fixed ellipse near the bottom works
+                across different photos since the car is always roughly
+                centered in its source image. */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute left-1/2 bottom-[14%] -translate-x-1/2 w-[58%] h-5 rounded-full bg-black/40 blur-md mix-blend-multiply"
             />
           </>
         ) : (
