@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { createAdminClient } from '@/lib/supabase/server';
+import { BRANCHES } from '@/lib/branches';
 
 const baseUrl =
   process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
@@ -10,6 +11,7 @@ const baseUrl =
 // the static content was last meaningfully edited; bump it when a static
 // page's content actually changes.
 const STATIC_CONTENT_LAST_MODIFIED = new Date('2026-07-28T00:00:00Z');
+const BRANCH_PAGE_LAST_MODIFIED = new Date('2026-08-04T00:00:00Z');
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -35,6 +37,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/en/cars-for-sale`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'daily', priority: 0.8 },
     { url: `${baseUrl}/he/branches`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/en/branches`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.5 },
+    // Dedicated per-branch landing pages, added 2026-08-04 for city-specific
+    // organic search ("השכרת רכב <city>") — higher priority than the /branches
+    // index since these are the pages meant to actually rank.
+    ...BRANCHES.flatMap((b) => [
+      { url: `${baseUrl}/he/branches/${b.id}`, lastModified: BRANCH_PAGE_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.7 },
+      { url: `${baseUrl}/en/branches/${b.id}`, lastModified: BRANCH_PAGE_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.7 },
+    ]),
     { url: `${baseUrl}/he/about`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/en/about`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/he/privacy`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'yearly', priority: 0.3 },

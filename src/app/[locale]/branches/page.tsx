@@ -2,6 +2,7 @@ import { BRANCHES as ALL_BRANCHES, mapsUrl, wazeUrl, type BranchId } from '@/lib
 import { localeAlternates } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export async function generateMetadata({
   params,
@@ -118,7 +119,9 @@ export default async function BranchesPage({
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <h2 className="absolute bottom-4 end-4 text-white text-xl font-bold drop-shadow">
-                  {isHe ? branch.nameHe : branch.nameEn}
+                  <Link href={`/${locale}/branches/${branch.id}`} className="hover:underline">
+                    {isHe ? branch.nameHe : branch.nameEn}
+                  </Link>
                 </h2>
               </div>
 
