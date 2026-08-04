@@ -126,7 +126,7 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
                 centered in its source image. */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute left-1/2 bottom-[14%] -translate-x-1/2 w-[58%] h-5 rounded-full bg-black/40 blur-md mix-blend-multiply"
+              className="pointer-events-none absolute left-1/2 bottom-[15%] -translate-x-1/2 w-[65%] h-4 rounded-full bg-black/70 blur-sm mix-blend-multiply"
             />
           </>
         ) : (
