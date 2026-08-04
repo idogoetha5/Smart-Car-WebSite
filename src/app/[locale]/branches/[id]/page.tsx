@@ -72,7 +72,7 @@ export async function generateMetadata({
   const city = isHe ? DISPLAY_CITY[branch.id].he : DISPLAY_CITY[branch.id].en;
   const content = CONTENT[branch.id];
   return {
-    title: isHe ? `השכרת רכב ב${city} | SmartCar` : `Car Rental in ${city} | SmartCar`,
+    title: { absolute: isHe ? `השכרת רכב ב${city} | SmartCar` : `Car Rental in ${city} | SmartCar` },
     description: isHe ? content.metaHe : content.metaEn,
     alternates: localeAlternates(locale, `branches/${branch.id}`),
   };
