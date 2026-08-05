@@ -1,9 +1,9 @@
-# SmartCar — handover, 29 July 2026 (updated 30 July 2026, 3 August 2026)
+# SmartCar — handover, 29 July 2026 (updated 30 July, 3 August, 4 August 2026)
 
 State as of 29 July: `clean-main` @ `9c39667`, local = origin = Production.
-Sections 1, 3 and 4 below are unchanged and still accurate. **As of 3 August,
-local is ahead of origin/Production — see section 6 for why the push and
-deploy are deliberately on hold.**
+Sections 1, 3 and 4 below are unchanged and still accurate. **As of 4 August,
+local = origin = Production again at `c2178fe`** — the 3 August deploy hold
+(section 6) has since cleared; see section 7 for everything shipped today.
 
 ---
 
@@ -335,3 +335,114 @@ DB password rotation, DKIM/DMARC) is unchanged. New from this session: the
 two migrations above need to be run in the Supabase SQL Editor before this
 branch can be pushed and deployed; after that, this section's "Deploy is
 blocked" note is stale and can be removed.
+
+## 7. Addendum, 4 August 2026 — per-branch SEO pages, content fixes, indexing, vehicle-card shadow
+
+Driven by Ido noticing the site wasn't showing up for generic searches like
+"השכרת רכב בהרצליה". Everything below is pushed, deployed, and confirmed live
+on `www.smartcar.co.il` (the canonical host — apex `smartcar.co.il` 308s to
+it, expected). `clean-main` @ `c2178fe`.
+
+### New: dedicated per-branch landing pages
+
+`src/app/[locale]/branches/[id]/page.tsx` — one URL per branch
+(`/branches/herzliya|telaviv|jerusalem|airport`), each with its own
+`generateMetadata` (unique title/description), a large hero image, a
+city-specific paragraph, address/phone/Waze/Maps/booking CTA, and its own
+`AutoRental` JSON-LD. Reachable only via the branch name link on
+`/branches` (the one change made to that existing page — no other wording
+there was touched). Added to `src/app/sitemap.ts`.
+
+**Why this exists**: Google can rank one focused page per "car rental
+<city>" query instead of a single generic branches listing competing for
+all of them at once.
+
+**Content is grounded in two sources, not invented**: the "heart of the
+company" from `/about` (SmartCar since 2003, founder Liliana Nardea, 20+
+years, personal service, full fleet compact→luxury) crossed with a
+competitor-content research pass (Eldan, Shlomo Sixt, Hertz, Avis, Suncar,
+freesbe) for what actually works in this market — Herzliya leans on the
+Dan Accadia hotel + Herzliya Pituach hi-tech crowd (broadened past "hotel
+tourists only" per Ido's correction), Tel Aviv leans on the blue-white
+parking-zone pain point, Jerusalem leans on Old City/downtown traffic
+avoidance, the airport leans on the existing 24/7 delivery claim.
+
+**Owner-confirmed facts now in the copy — treat as settled, not guesses**:
+- Jerusalem branch (מלך דוד 8) is near the Mamilla complex and three
+  central hotels: מלון המלך דוד (write it with "מלון" — "מלך דוד" bare reads
+  as the biblical king, not the hotel), מצודת דוד, ימק"א.
+- Airport: pickup/return is not limited to the airport or to the other
+  three branches — a car can be picked up anywhere in Israel (delivery is
+  coordinated to any address) and returned at the airport, or picked up
+  and returned at the airport for the whole trip.
+- All branches except the airport (24/7, unchanged) have Friday/holiday-eve
+  hours **08:30–14:00** — this had no entry at all before today
+  (`fridayTime` was `null` in `src/app/[locale]/branches/page.tsx`), so the
+  site simply showed nothing for Friday instead of the real short day.
+
+### Bugs found and fixed while building this
+
+- **Airport page showed "לוד" instead of "נתב"ג"** in the title/H1/alt —
+  the code was pulling the branch's real municipal address city (Ben
+  Gurion Airport's postal address is technically Lod) instead of the name
+  people search for. Fixed with a `DISPLAY_CITY` map in
+  `branches/[id]/page.tsx`; the JSON-LD postal address still correctly
+  says Lod (that part is meant to be the real municipal address).
+- **Duplicated "| SmartCar" in every branch page's `<title>`** — the
+  locale layout's title template (`%s | SmartCar`) was being applied on
+  top of a title string that already ended in "| SmartCar". Fixed by
+  switching to `title: { absolute: ... }`, matching the convention the
+  pre-existing `/branches` index page already uses. Confirmed live on all
+  four branch pages (a network blip mid-session delayed checking three of
+  them, but a retry after connectivity recovered showed all clean).
+- **Vehicle-card "floating car" look** (`src/components/catalog/VehicleCard.tsx`,
+  shared by home, `/catalog`, and `/rental` — NOT by `/leasing`, which has
+  its own separate `VehicleLeaseCard` using `object-cover`, offered to Ido
+  but not done). Took two wrong tries before landing: first attempt put
+  the shadow div *behind* the `<Image>`, which did nothing because the
+  source photos are opaque (their own white background baked in, not
+  transparent) — an opaque image fully hides anything behind it. Second
+  attempt moved it in front with `mix-blend-multiply` but was too
+  subtle (`black/40`, `blur-md`) to see without zooming — Ido caught this
+  ("אני לא רואה שום הבדל") at actual viewing size. Final version:
+  `bg-black/70 blur-sm`, wider ellipse, confirmed visible at normal size
+  via a real (non-zoomed) screenshot. Branch cards on `/contact` got a
+  smaller matching polish (`shadow-sm` → `shadow-md` at rest).
+
+### Google Search Console
+
+- The domain's registered sitemap (`http://www.smartcar.co.il/sitemap.xml`,
+  submitted **2009**, 0 pages discovered) was for a completely different,
+  dead version of the site — nobody had ever registered the real one.
+  Submitted `https://www.smartcar.co.il/sitemap.xml`: **success, 296 pages
+  discovered** same day.
+- Indexing explicitly requested (URL Inspection → request indexing) for:
+  all 4 new branch pages, and the homepage (`/he`) — the homepage request
+  was needed because the apex non-www version showed "not indexed" in a
+  stale (pre-domain-fix, 28 July) crawl record; the real canonical
+  `https://www.smartcar.co.il/he` was independently confirmed **already
+  indexed and healthy** (green checkmark, eligible for search) when
+  inspected directly, as was `/he/rental`. That stale apex record will
+  clear on Google's own recrawl — not a live bug, verified by re-fetching
+  the actual current canonical tag.
+- Reality check for next session: organic clicks in Search Console are
+  almost entirely branded ("סמארט קאר", "smartcar") — essentially none yet
+  for generic "car rental <city>" terms. For a query like "השכרת רכב
+  בהרצליה", Google shows a **local 3-pack map** (Shlomo Sixt 171 reviews/
+  3.9★, Albar 61/3.7★, Hertz 46/3.8★) **above** all organic results, and
+  SmartCar's own Google Business Profile (real, verified, confirms the Dan
+  Accadia hotel claim) only has **8 reviews / 3.5★** — nowhere near
+  competitive for that slot. **This is the actual highest-leverage next
+  step, not more on-page content**: asking real customers for Google
+  reviews per branch will move the needle on local-pack visibility faster
+  than anything in this file. New pages take days–weeks to be crawled,
+  indexed, and ranked regardless — normal, not a sign anything is broken.
+
+### Still open
+
+- Leasing page's vehicle cards were not given the same shadow treatment —
+  offered, Ido hadn't answered before the session ended.
+- Google review count/rating is the real lever for local-pack visibility;
+  nothing in this codebase can move that number.
+- Everything carried from the 3 August session (ח.פ., off-site R2 backup,
+  DB password rotation, DKIM/DMARC) is unchanged.
