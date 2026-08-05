@@ -455,6 +455,17 @@ avoidance, the airport leans on the existing 24/7 delivery claim.
   source but haven't been recrawled with it yet either. Google is
   gradually working through all 296 sitemap URLs, not instantly — nothing
   to fix, just something that resolves over the next few days on its own.
+- **Manual "request indexing" hit Google's daily quota mid-session**
+  ("חריגת מהמכסה" — resets after ~24h). Requested, in this order, before
+  hitting it: `/he` (×2), `/en`, `/he/rental`, `/en/rental`,
+  `/he/branches/{herzliya,telaviv,jerusalem,airport}`,
+  `/en/branches/herzliya`. **Still need manual requests once the quota
+  resets**: `/he/catalog`, `/en/catalog`,
+  `/en/branches/{telaviv,jerusalem,airport}`, `/he/leasing`,
+  `/en/leasing`. None of this blocks organic discovery — everything is
+  already in the submitted sitemap and Google will crawl it on its own
+  schedule regardless; manual requests only prioritize/expedite a
+  specific URL.
 - Leasing page's vehicle cards were not given the same shadow treatment —
   offered, Ido hadn't answered before the session ended.
 - Google review count/rating is the real lever for local-pack visibility;
