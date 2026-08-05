@@ -417,14 +417,18 @@ avoidance, the airport leans on the existing 24/7 delivery claim.
   Submitted `https://www.smartcar.co.il/sitemap.xml`: **success, 296 pages
   discovered** same day.
 - Indexing explicitly requested (URL Inspection → request indexing) for:
-  all 4 new branch pages, and the homepage (`/he`) — the homepage request
-  was needed because the apex non-www version showed "not indexed" in a
-  stale (pre-domain-fix, 28 July) crawl record; the real canonical
-  `https://www.smartcar.co.il/he` was independently confirmed **already
-  indexed and healthy** (green checkmark, eligible for search) when
-  inspected directly, as was `/he/rental`. That stale apex record will
-  clear on Google's own recrawl — not a live bug, verified by re-fetching
-  the actual current canonical tag.
+  all 4 new branch pages, and the homepage (`/he`) — twice. The apex
+  non-www version showed "not indexed" in a stale (pre-domain-fix, 28
+  July) crawl record; not a live bug (the real current canonical tag was
+  independently re-fetched and is correct), that record just needs a
+  recrawl. **`/he/rental` was verified genuinely fresh** — last crawled
+  4 August, discovered via the correct new sitemap. **`/he` (homepage)
+  was verified genuinely stale** — indexed and healthy, but Google's own
+  cached crawl was still from **31 July**, predating this whole week's
+  work, and its sitemap-discovery still showed "temporary processing
+  error" rather than picking up the new sitemap. Re-requested indexing
+  for `/he` a second time for this reason; check next session whether the
+  last-crawled date has moved past 31 July.
 - Reality check for next session: organic clicks in Search Console are
   almost entirely branded ("סמארט קאר", "smartcar") — essentially none yet
   for generic "car rental <city>" terms. For a query like "השכרת רכב
@@ -440,6 +444,9 @@ avoidance, the airport leans on the existing 24/7 delivery claim.
 
 ### Still open
 
+- Homepage's Google-indexed snapshot was still dated 31 July as of session
+  end despite indexing being requested twice — check next session whether
+  it's recrawled since (URL Inspection → `/he` → last-crawled date).
 - Leasing page's vehicle cards were not given the same shadow treatment —
   offered, Ido hadn't answered before the session ended.
 - Google review count/rating is the real lever for local-pack visibility;
