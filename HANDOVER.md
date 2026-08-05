@@ -444,9 +444,17 @@ avoidance, the airport leans on the existing 24/7 delivery claim.
 
 ### Still open
 
-- Homepage's Google-indexed snapshot was still dated 31 July as of session
-  end despite indexing being requested twice — check next session whether
-  it's recrawled since (URL Inspection → `/he` → last-crawled date).
+- Homepage's Google-indexed snapshot was still dated 31 July (`/he`) / 30
+  July (`/en`) as of session end despite indexing being requested twice —
+  check next session whether it's recrawled since (URL Inspection →
+  `/he` or `/en` → last-crawled date). This is one instance of a broader,
+  expected pattern: with the correct sitemap only submitted today, several
+  already-indexed pages (checked: `/he`, `/en`) still show "שגיאה זמנית
+  בעיבוד" next to Sitemaps in URL Inspection, while others (`/he/rental`,
+  `/en/rental`) have already picked up the new sitemap as their discovery
+  source but haven't been recrawled with it yet either. Google is
+  gradually working through all 296 sitemap URLs, not instantly — nothing
+  to fix, just something that resolves over the next few days on its own.
 - Leasing page's vehicle cards were not given the same shadow treatment —
   offered, Ido hadn't answered before the session ended.
 - Google review count/rating is the real lever for local-pack visibility;
