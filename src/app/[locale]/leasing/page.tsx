@@ -37,14 +37,22 @@ function VehicleLeaseCard({ vehicle, locale }: { vehicle: Vehicle; locale: strin
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-[#B8D8D8] transition-all duration-300 flex flex-col">
       {/* Image */}
-      <div className="relative h-44 bg-[#eef6f6] overflow-hidden">
+      <div className="relative h-44 overflow-hidden bg-gradient-to-b from-white to-gray-100">
         {img ? (
-          <Image
-            src={img}
-            alt={`${vehicle.make} ${vehicle.model}`}
-            fill
-            className="object-cover"
-          />
+          <>
+            <Image
+              src={img}
+              alt={`${vehicle.make} ${vehicle.model}`}
+              fill
+              className="object-contain"
+            />
+            {/* Same ground-shadow recipe as VehicleCard (src/components/catalog/VehicleCard.tsx):
+                on top of the opaque photo with mix-blend-multiply, not behind it. */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute left-1/2 bottom-[15%] -translate-x-1/2 w-[65%] h-4 rounded-full bg-black/70 blur-sm mix-blend-multiply"
+            />
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <svg aria-hidden="true" focusable="false" viewBox="0 0 80 48" fill="none" className="w-24 h-16 text-[#2D5F5F]">
