@@ -61,11 +61,10 @@ export default async function CookiesPage({ params }: { params: Promise<{ locale
               <p>השימוש באתר כולל את הסוגים הבאים:</p>
               <ul className="list-disc list-inside space-y-3 mt-3">
                 <li><strong>טכנולוגיות הכרחיות:</strong> נדרשות להפעלת האתר, לשמירת בחירת השפה והעדפות העוגיות, לאבטחת טפסים ולשמירת טיוטת הזמנה כדי למנוע אובדן נתונים.</li>
-                {/* Google Analytics is integrated and gated on consent. It is
-                    named here because it sets cookies once consent is given —
-                    a cookie policy that lists only the cookieless provider
-                    would be the one material omission in the document. */}
-                <li><strong>מדידה וניתוח:</strong> בהסכמתך, אנו עשויים לאסוף נתונים מצטברים על השימוש באתר, כגון עמודים שנצפו, מקור ההגעה, סוג המכשיר והדפדפן. האתר משתמש ב־Vercel Web Analytics, שירות מדידה שאינו משתמש בעוגיות צד שלישי ואינו מיועד לזהות אותך באופן אישי, וכן ב־Google Analytics, המופעל רק לאחר קבלת הסכמתך ומציב עוגיות מדידה במכשירך.</li>
+                {/* Vercel Web Analytics is cookieless and collects nothing this
+                    policy covers, so per counsel it isn't named here — only
+                    Google Analytics is, since it's the one that sets cookies. */}
+                <li><strong>מדידה וניתוח:</strong> בהסכמתך, אנו עשויים לאסוף נתונים מצטברים על השימוש באתר, כגון עמודים שנצפו, מקור ההגעה, סוג המכשיר והדפדפן, באמצעות Google Analytics, המופעל רק לאחר קבלת הסכמתך ומציב עוגיות מדידה במכשירך.</li>
                 <li><strong>שיווק:</strong> בכפוף להסכמתך, אנו עשויים להשתמש בטכנולוגיות מדידה ושיווק לצורך בחינת יעילותם של קמפיינים והצגת תוכן והצעות רלוונטיים. כלים אלה יופעלו רק אם וכאשר ישולבו באתר ולאחר קבלת הסכמה מתאימה.</li>
               </ul>
               <p className="mt-3">האתר משתמש גם ב־Cloudflare Turnstile לצורך הגנה על טפסים, מניעת ספאם ואבטחת השירות.</p>
@@ -78,7 +77,7 @@ export default async function CookiesPage({ params }: { params: Promise<{ locale
             </Section>
 
             <Section title="ספקי שירות חיצוניים">
-              <p>חלק מהטכנולוגיות באתר מופעלות באמצעות ספקי שירות חיצוניים, ובהם Vercel, Cloudflare ו־Google. השימוש של ספקים אלה במידע כפוף למדיניות הפרטיות ולתנאים שלהם.</p>
+              <p>חלק מהטכנולוגיות באתר מופעלות באמצעות ספקי שירות חיצוניים, ובהם Cloudflare ו־Google. השימוש של ספקים אלה במידע כפוף למדיניות הפרטיות ולתנאים שלהם.</p>
             </Section>
 
             <Section title="יצירת קשר">
@@ -98,7 +97,7 @@ export default async function CookiesPage({ params }: { params: Promise<{ locale
               <p>Use of the site involves the following categories:</p>
               <ul className="list-disc list-inside space-y-3 mt-3">
                 <li><strong>Strictly necessary technologies:</strong> required to operate the site, to store your language choice and cookie preferences, to secure forms, and to save a booking draft so that data is not lost.</li>
-                <li><strong>Measurement and analytics:</strong> with your consent, we may collect aggregated data about use of the site, such as pages viewed, referral source, device type and browser. The site uses Vercel Web Analytics, a measurement service that does not use third-party cookies and is not intended to identify you personally, and Google Analytics, which runs only after you have given consent and places measurement cookies on your device.</li>
+                <li><strong>Measurement and analytics:</strong> with your consent, we may collect aggregated data about use of the site, such as pages viewed, referral source, device type and browser, via Google Analytics, which runs only after you have given consent and places measurement cookies on your device.</li>
                 <li><strong>Marketing:</strong> subject to your consent, we may use measurement and marketing technologies to assess the effectiveness of campaigns and to present relevant content and offers. These tools will be enabled only if and when they are integrated into the site, and after appropriate consent has been obtained.</li>
               </ul>
               <p className="mt-3">The site also uses Cloudflare Turnstile to protect forms, prevent spam and secure the service.</p>
@@ -111,7 +110,7 @@ export default async function CookiesPage({ params }: { params: Promise<{ locale
             </Section>
 
             <Section title="External service providers">
-              <p>Some of the technologies on the site are operated through external service providers, including Vercel, Cloudflare and Google. Their use of information is subject to their own privacy policies and terms.</p>
+              <p>Some of the technologies on the site are operated through external service providers, including Cloudflare and Google. Their use of information is subject to their own privacy policies and terms.</p>
             </Section>
 
             <Section title="Contact us">
