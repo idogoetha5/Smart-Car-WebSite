@@ -73,10 +73,16 @@ A clean automated scan is evidence, not a conformance statement. axe evaluated
 ח.פ. / legal entity name (blocked on Daniel, who holds it) · Microsoft 365
 DKIM for office@smartcar.co.il (blocked on Daniel, who holds the M365 admin
 account — selector1/selector2 CNAME targets must come from the admin centre,
-never guessed) · Cloudflare Application Security/Turnstile settings (blocked
-on Eliran, who owns that Cloudflare account — DNS itself is *not* blocked,
-only that one section) · per-event EmailJS templates · the TEST booking
-`c5dd856c…` still CONFIRMED in Production.
+never guessed) · per-event EmailJS templates · the TEST booking `c5dd856c…`
+still CONFIRMED in Production.
+
+~~Cloudflare Turnstile settings~~ — **not actually blocked, corrected 6
+August**: Eliran's account only holds DNS; the real, active Turnstile widget
+(site key `0x4AAAAAAD5qjkkjO1fLc-un`) lives in **Ido's own** Cloudflare
+account and is fully editable there. Confirmed healthy: hostnames
+`smartcar.co.il` / `www.smartcar.co.il` / `smartcar-psi.vercel.app` all
+configured, 103 real challenges issued in the last 24h. Don't re-flag this
+as blocked on Eliran again.
 
 ~~Off-site R2 backups and scheduling · DB password rotation~~ — **done, see
 6 August addendum below.** (Not actually R2 — Cloudflare R2 needed a paid-plan
@@ -623,13 +629,61 @@ don't be confused by the R2-flavored naming, there is no R2 involved.
 
 ### Still open
 
-- Microsoft 365 DKIM and Cloudflare Application Security/Turnstile settings
-  — both need Daniel / Eliran respectively, not code or DNS-access problems.
-- ח.פ. — still needs Daniel.
+- Microsoft 365 DKIM — needs Daniel, the M365 admin. Not code or DNS-access.
+- ח.פ. — still needs Daniel. Note a 4th related field in
+  `LEGAL-IDENTITY-TODO.md` that keeps getting dropped from later summaries:
+  the car-rental **operator license number** — separate question of whether
+  display is legally mandatory, needs a lawyer's call, not just the number.
 - Cron scheduling installed but not yet verified to actually fire
   unattended (Full Disk Access + Mac-awake caveat above).
+- ~~Cloudflare Turnstile settings~~ — corrected above, not actually blocked.
 - Admin TOTP live click-through — Ido confirmed this works.
 - Google review count/rating per branch — still the real lever for
   local-pack visibility, outside what code changes can fix.
+
+### Full-history audit, 6 August — older items that never got closed
+
+A sweep back through every session since late July turned up items that
+were mentioned once and then silently dropped from later summaries without
+ever being marked done. None touched this session; listing them here so
+they stop falling through the cracks.
+
+**Ido-actionable, no one else blocking it:**
+- EmailJS templates were only checked in the editor preview, never actually
+  sent via "Test It" — a real live send has never been confirmed.
+- The email-retry cron (`0 3 * * *`, set up 30 July) has never been
+  confirmed to have actually fired cleanly even once.
+- Daniel still needs to be given admin-panel access by manually adding the
+  shared TOTP base32 secret to his own authenticator app — explained to Ido
+  30 July, never actually done.
+- Meta's Facebook short username `SmartCarIsrael` fails to save (button
+  stays disabled) — low priority, open since 3 August.
+- A user's site-slowness complaint (27/30 July) got one inconclusive data
+  point; Web Analytics was turned on specifically to revisit "in a few
+  days" and never was.
+- `@vercel/speed-insights` was suggested 30 July, never added (only
+  `@vercel/analytics` is installed).
+- Homepage reviews carousel: RTL arrow direction was reported reversed 27
+  July; the check was interrupted mid-investigation and never resolved
+  either way.
+- The 3D tilt hover effect has only been confirmed via code review / no
+  console errors — never actually tested with a real mouse drag.
+- A separate, apparently-abandoned Cloudflare **Pages** project named
+  `smartcarwebsite` exists in Ido's own account (not the real Vercel site) —
+  broken build, 0 domains, flagged as likely-dead 20 July, never cleaned up
+  or investigated further.
+- Full site-copy tone pass beyond the FAQ (hero/about/insurance marketing
+  copy) — requested 27 July, never revisited.
+
+**Blocked on Daniel, not on Ido:**
+- Meta Business domain verification — Daniel has "Full access", Ido only
+  "Basic/partial".
+
+**Worth a status check, not necessarily broken:**
+- The Hyp payment gateway credentials (`HYP_TERMINAL`/`HYP_PASSP`/
+  `HYP_REFERER`) have sat unused in Vercel since 20 July, deliberately
+  deferred pending sandbox verification and a possibly-missing `HYP_KEY`.
+  A WhatsApp deep-link is the standing substitute and nothing since has
+  revisited whether that's still the intended state or was just forgotten.
 - Per-event EmailJS templates, the TEST booking `c5dd856c…` in Production —
   carried forward unchanged, not touched this session.
