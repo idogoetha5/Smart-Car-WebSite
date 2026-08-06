@@ -70,9 +70,17 @@ A clean automated scan is evidence, not a conformance statement. axe evaluated
 
 ## 3. Owner's, not code
 
-ח.פ. / legal entity name · off-site R2 backups and scheduling · DB password
-rotation · per-event EmailJS templates · the TEST booking `c5dd856c…` still
-CONFIRMED in Production.
+ח.פ. / legal entity name (blocked on Daniel, who holds it) · Microsoft 365
+DKIM for office@smartcar.co.il (blocked on Daniel, who holds the M365 admin
+account — selector1/selector2 CNAME targets must come from the admin centre,
+never guessed) · Cloudflare Application Security/Turnstile settings (blocked
+on Eliran, who owns that Cloudflare account — DNS itself is *not* blocked,
+only that one section) · per-event EmailJS templates · the TEST booking
+`c5dd856c…` still CONFIRMED in Production.
+
+~~Off-site R2 backups and scheduling · DB password rotation~~ — **done, see
+6 August addendum below.** (Not actually R2 — Cloudflare R2 needed a paid-plan
+opt-in nobody had done; used Google Drive instead, which needed nothing new.)
 
 ## 4. Settled — do not re-open
 
@@ -470,5 +478,158 @@ avoidance, the airport leans on the existing 24/7 delivery claim.
   offered, Ido hadn't answered before the session ended.
 - Google review count/rating is the real lever for local-pack visibility;
   nothing in this codebase can move that number.
-- Everything carried from the 3 August session (ח.פ., off-site R2 backup,
-  DB password rotation, DKIM/DMARC) is unchanged.
+- ~~Everything carried from the 3 August session (ח.פ., off-site R2 backup,
+  DB password rotation, DKIM/DMARC)~~ — **see 6 August addendum: most of
+  this list is now resolved.**
+
+---
+
+## 8. Addendum, 6 August 2026 — legal-page vendor names, domain audit, backups finally off-site
+
+### Privacy / cookie policy: vendor names genericized (lawyer-approved)
+
+Ido's lawyer confirmed the rule: only third parties that actually set
+cookies / collect data directly in the browser need to be named by company
+name in a privacy or cookie policy (Google Analytics, Cloudflare Turnstile).
+Backend-only processors — hosting, database, email delivery, rate limiting —
+can be described by role instead ("ספק אחסון בסיס נתונים", "ספק דיוור
+אלקטרוני"). Verified against a real competitor's (Good Cars) cookie policy
+before applying: it names GA/Ads/Facebook Pixel but never its own hosting/DB
+vendors, confirming this is standard practice, not a shortcut.
+
+Applied to `privacy/page.tsx` (both locales, the third-party table and the
+international-transfers paragraph): Supabase/Vercel/EmailJS/Resend/Upstash
+genericized, Google Analytics and Cloudflare (Turnstile) stayed named.
+`cookies/page.tsx` went one step further per the same rule — Vercel Web
+Analytics was removed entirely (it's cookieless, so per counsel it doesn't
+even need a generic mention), leaving only GA and Cloudflare. Both deployed
+and confirmed live.
+
+### Real bugs found while auditing the domain (unrelated to the above, found by checking)
+
+- **`NEXT_PUBLIC_GA_ID` was set in Vercel Production with an empty string
+  value** — the GA tag never loaded. Fixed with the real ID (`G-YNZJ23H8G4`),
+  redeployed, confirmed live via `document.scripts` showing
+  `gtag/js?id=G-YNZJ23H8G4` actually loading.
+- **Supabase Auth's Redirect URLs allow-list was missing `www`** — only had
+  `https://smartcar.co.il/` (bare) even though `next.config.ts` force-
+  redirects everything to **www**.smartcar.co.il, so any
+  `emailRedirectTo: window.location.origin + ...` flow (e.g. `/my-bookings`
+  magic-link) would build a URL that didn't match and get rejected. Added
+  `https://www.smartcar.co.il/**` to the allow-list.
+- **Preview deployments were completely broken** — `vercel deploy` (non-prod)
+  always failed at build: first on a missing `TURNSTILE_SECRET_KEY` (the
+  build-time guard in `src/lib/turnstile.ts` throws if unset in any
+  `NODE_ENV=production` build, which includes Preview, not just Production),
+  then on missing Supabase config entirely (`NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY` — needed to prerender `/my-bookings`).
+  Fixed by adding to **Preview only**: Cloudflare's official public test
+  secret (`1x0000000000000000000000000000000AA`, not the real Production
+  secret) for Turnstile, and the two public-by-design Supabase values.
+  Confirmed a Preview build now reaches `READY`.
+- **`vercel env pull` shows an empty value for existing Production vars too,
+  not just ones added via the CLI.** Don't trust a pulled-empty value as
+  proof something is actually unset — confirmed `TURNSTILE_SECRET_KEY` was
+  fine in Production the whole time (pull showed empty, but Production
+  builds had been succeeding under that exact throw-guard, which is only
+  possible with a real value present).
+
+### DKIM/DMARC, finally — with a correction
+
+Checked DNS access in Eliran's Cloudflare account expecting it to be blocked
+like Application Security/Turnstile is — **it isn't.** DNS records
+(read+write) are accessible; only Application Security specifically returns
+"No Access". Found DKIM already configured for Resend (`resend._domainkey`)
+with correct SPF for both senders. **Added the missing DMARC record**:
+`_dmarc.smartcar.co.il TXT "v=DMARC1; p=none; rua=mailto:office@smartcar.co.il"`
+(monitor-only, Ido's explicit choice) — Cloudflare's own dashboard had been
+flagging this as a recommendation.
+
+**Correction to section 3 above and to OPS-FINDINGS.md item 1**: that Resend
+DKIM record is not the whole story. OPS-FINDINGS.md (28 July) separately
+flagged that **Microsoft 365's own DKIM** (`selector1._domainkey` /
+`selector2._domainkey`, for mail actually sent from office@smartcar.co.il
+via Outlook/M365) was never configured — checked DNS again today, still
+absent. This needs the M365 admin centre to issue the CNAME targets (never
+guess them), and **the M365 tenant admin is Daniel**, not Ido — same
+dependency as ח.פ. and Cloudflare Application Security. Genuinely blocked,
+not a DNS-access problem.
+
+HSTS (OPS-FINDINGS.md item 2, config drift) — re-checked, already resolved:
+`next.config.ts` and the live header both read
+`max-age=31536000; includeSubDomains` now. No longer open.
+
+### Off-site backups: actually running now, not just documented
+
+The 28/29 July restore drill (`evidence/backup/restore-drill-2026-07-28.md`)
+proved the backup mechanism worked but left three things open: no off-site
+copy, storage/images never backed up, no scheduling, and a DB password that
+needed rotating after being exposed in plaintext during that session.
+
+Cloudflare R2 (what the scripts' comments assume) needed a paid-plan opt-in
+nobody had done, on either Cloudflare account — blocked on entering payment
+details, which Claude does not do. **Used Google Drive instead** (Ido's own
+account, already active, free tier, no new billing): `rclone` remote
+`gdrive`, folder `smartcar-backups`. The scripts' `RCLONE_REMOTE`/`R2_BUCKET`
+variable names are now generic in practice (rclone abstracts the backend) —
+don't be confused by the R2-flavored naming, there is no R2 involved.
+
+- **DB password rotated** via Supabase dashboard (Reset password). Nothing
+  in the deployed app depends on it directly (Supabase client SDK only, not
+  a raw Postgres connection) — only the manual/scheduled backup scripts do,
+  and they take it fresh from `~/.smartcar-db-url` (mode 600, machine-local,
+  never in the repo) each run.
+- **`scripts/backup-storage.sh` fixed a real off-by-one bug**: in `db` mode
+  (reading `image_urls` off the `vehicles` table rather than listing the
+  bucket via service-role key — the latter is blocked by the same "Sensitive
+  env vars export empty" issue noted elsewhere), the final remote-object-
+  count check didn't account for the `.urls` manifest file that gets
+  uploaded alongside the images, so it always failed with "remote holds N+1
+  objects, expected N" even though the backup itself was already complete
+  and correct. Fixed (`total=$((got + 1))`).
+- **First real off-site backups now exist**: DB (51 tables, 128K, GPG-
+  encrypted) and Storage (229 distinct vehicle images actually referenced by
+  live vehicle rows) both uploaded to Google Drive and confirmed present.
+- **Scheduling installed** via `crontab` (not launchd — simpler, matches
+  what was already there): DB nightly at 03:00, Storage weekly Sunday 04:00,
+  both through the new `scripts/run-backups.sh [db|storage|all]` wrapper,
+  logging to `~/.smartcar-backups/cron.log`. **Caveat, not yet verified**:
+  macOS `cron` needs Full Disk Access granted in System Settings → Privacy &
+  Security for it to actually fire, and the Mac must be awake at the
+  scheduled hour — neither was checked this session. Next session: confirm
+  `~/.smartcar-backups/cron.log` actually has entries from an unattended run.
+- **rclone's shared Google Drive client_id is being retired during 2026**
+  (warning printed on every `gdrive` operation). Not urgent yet, but this
+  remote will stop working at some point this year — see
+  https://rclone.org/drive/#making-your-own-client-id when it does.
+
+### Also this session
+
+- Leasing page's vehicle cards (`VehicleLeaseCard`) given the same ground-
+  shadow treatment as the shared `VehicleCard` — switched from `object-cover`
+  cropping to the same `object-contain` + gradient-background layout so the
+  shadow has a predictable spot, per the trap already documented for
+  `VehicleCard`. Deployed, confirmed live at normal viewing size (not
+  zoomed — see the trap note in the 4 August addendum about that mistake).
+- GSC: homepage's last-crawl date, stuck at 31 July as of the 4/5 August
+  sessions, has moved — now 5 August, healthy. The open item from those
+  sessions is resolved.
+- Git identity on this Mac was silently broken (auto-derived from OS
+  username + hostname, and the hostname changed) — worked around per-commit
+  with `GIT_AUTHOR_*` env vars for one commit, then Ido explicitly set
+  `git config --global user.name/email` himself (Claude does not run
+  `git config`, even on request) — now `Ido Goetha <ido.goetha5@gmail.com>`,
+  matching his GitHub account so commits attribute correctly.
+
+### Still open
+
+- Microsoft 365 DKIM and Cloudflare Application Security/Turnstile settings
+  — both need Daniel / Eliran respectively, not code or DNS-access problems.
+- ח.פ. — still needs Daniel.
+- Cron scheduling installed but not yet verified to actually fire
+  unattended (Full Disk Access + Mac-awake caveat above).
+- Admin TOTP live click-through — Ido confirmed this works.
+- Google review count/rating per branch — still the real lever for
+  local-pack visibility, outside what code changes can fix.
+- Per-event EmailJS templates, the TEST booking `c5dd856c…` in Production —
+  carried forward unchanged, not touched this session.

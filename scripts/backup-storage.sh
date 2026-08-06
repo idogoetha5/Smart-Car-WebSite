@@ -101,7 +101,10 @@ if [ "$MODE" = "db" ]; then
 
   got="$(find "${WORK}/${bucket}" -type f | wc -l | tr -d ' ')"
   [ "$got" -eq "$n" ] || fail "expected ${n} files, got ${got}"
-  total="$got"
+  # +1: the "${bucket}.urls" manifest sibling file lives in $WORK too and
+  # gets uploaded along with it, so the remote object count is one higher
+  # than the image count alone.
+  total=$((got + 1))
   echo "  ${got} file(s) downloaded and non-empty"
   BUCKETS=""
 fi
