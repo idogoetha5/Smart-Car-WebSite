@@ -109,25 +109,25 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="border border-gray-200 p-3">Supabase Inc.</td>
+                      <td className="border border-gray-200 p-3">ספק אחסון בסיס נתונים</td>
                       <td className="border border-gray-200 p-3">אחסון מסד נתונים</td>
                       <td className="border border-gray-200 p-3">ארה"ב / AWS</td>
                       <td className="border border-gray-200 p-3">DPA + SOC 2 Type II</td>
                     </tr>
                     <tr className="bg-gray-50">
-                      <td className="border border-gray-200 p-3">Vercel Inc.</td>
+                      <td className="border border-gray-200 p-3">ספק אירוח אתר</td>
                       <td className="border border-gray-200 p-3">אחסון אתר, CDN, אנליטיקס</td>
                       <td className="border border-gray-200 p-3">ארה"ב / גלובלי</td>
                       <td className="border border-gray-200 p-3">DPA + SOC 2</td>
                     </tr>
                     <tr>
-                      <td className="border border-gray-200 p-3">EmailJS</td>
+                      <td className="border border-gray-200 p-3">ספק דיוור אלקטרוני</td>
                       <td className="border border-gray-200 p-3">שליחת מיילי אישור</td>
                       <td className="border border-gray-200 p-3">ארה"ב</td>
                       <td className="border border-gray-200 p-3">DPA</td>
                     </tr>
                     <tr className="bg-gray-50">
-                      <td className="border border-gray-200 p-3">Resend</td>
+                      <td className="border border-gray-200 p-3">ספק דיוור אלקטרוני</td>
                       <td className="border border-gray-200 p-3">שליחת מיילי הצעות מחיר</td>
                       <td className="border border-gray-200 p-3">ארה"ב</td>
                       <td className="border border-gray-200 p-3">DPA</td>
@@ -145,7 +145,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
                       <td className="border border-gray-200 p-3">DPA</td>
                     </tr>
                     <tr>
-                      <td className="border border-gray-200 p-3">Upstash</td>
+                      <td className="border border-gray-200 p-3">ספק תשתית ענן</td>
                       <td className="border border-gray-200 p-3">הגבלת קצב בקשות, תשתית תור</td>
                       <td className="border border-gray-200 p-3">ארה"ב</td>
                       <td className="border border-gray-200 p-3">DPA</td>
@@ -201,7 +201,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
 
             <section>
               <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">7. העברות מידע בינלאומיות</h2>
-              <p>חלק מספקי השירות שלנו (Supabase, Vercel, EmailJS, Resend, Google Analytics, Cloudflare, Upstash) מאחסנים מידע מחוץ לישראל. הבטחנו שכל ספק חתם על הסכם עיבוד נתונים (DPA) עם הגנות מספקות, בהתאם לסטנדרטים המקבילים לחקיקה האירופית (GDPR Adequacy / SCCs).</p>
+              <p>חלק מספקי השירות שלנו המפורטים בסעיף 3 לעיל מאחסנים מידע מחוץ לישראל. הבטחנו שכל ספק חתם על הסכם עיבוד נתונים (DPA) עם הגנות מספקות, בהתאם לסטנדרטים המקבילים לחקיקה האירופית (GDPR Adequacy / SCCs).</p>
             </section>
 
             <section>
@@ -266,13 +266,13 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
                     </tr>
                   </thead>
                   <tbody>
-                    <tr><td className="border border-gray-200 p-3">Supabase Inc.</td><td className="border border-gray-200 p-3">Database hosting</td><td className="border border-gray-200 p-3">USA / AWS</td><td className="border border-gray-200 p-3">DPA + SOC 2 Type II</td></tr>
-                    <tr className="bg-gray-50"><td className="border border-gray-200 p-3">Vercel Inc.</td><td className="border border-gray-200 p-3">Website hosting, CDN, analytics</td><td className="border border-gray-200 p-3">USA / Global</td><td className="border border-gray-200 p-3">DPA + SOC 2</td></tr>
-                    <tr><td className="border border-gray-200 p-3">EmailJS</td><td className="border border-gray-200 p-3">Confirmation emails</td><td className="border border-gray-200 p-3">USA</td><td className="border border-gray-200 p-3">DPA</td></tr>
-                    <tr className="bg-gray-50"><td className="border border-gray-200 p-3">Resend</td><td className="border border-gray-200 p-3">Quotation emails</td><td className="border border-gray-200 p-3">USA</td><td className="border border-gray-200 p-3">DPA</td></tr>
+                    <tr><td className="border border-gray-200 p-3">Database hosting provider</td><td className="border border-gray-200 p-3">Database hosting</td><td className="border border-gray-200 p-3">USA / AWS</td><td className="border border-gray-200 p-3">DPA + SOC 2 Type II</td></tr>
+                    <tr className="bg-gray-50"><td className="border border-gray-200 p-3">Website hosting provider</td><td className="border border-gray-200 p-3">Website hosting, CDN, analytics</td><td className="border border-gray-200 p-3">USA / Global</td><td className="border border-gray-200 p-3">DPA + SOC 2</td></tr>
+                    <tr><td className="border border-gray-200 p-3">Email delivery provider</td><td className="border border-gray-200 p-3">Confirmation emails</td><td className="border border-gray-200 p-3">USA</td><td className="border border-gray-200 p-3">DPA</td></tr>
+                    <tr className="bg-gray-50"><td className="border border-gray-200 p-3">Email delivery provider</td><td className="border border-gray-200 p-3">Quotation emails</td><td className="border border-gray-200 p-3">USA</td><td className="border border-gray-200 p-3">DPA</td></tr>
                     <tr><td className="border border-gray-200 p-3">Google Analytics</td><td className="border border-gray-200 p-3">Site usage analytics (consent-gated)</td><td className="border border-gray-200 p-3">USA / Global</td><td className="border border-gray-200 p-3">DPA + SCCs</td></tr>
                     <tr className="bg-gray-50"><td className="border border-gray-200 p-3">Cloudflare (Turnstile)</td><td className="border border-gray-200 p-3">Bot protection on forms</td><td className="border border-gray-200 p-3">Global</td><td className="border border-gray-200 p-3">DPA</td></tr>
-                    <tr><td className="border border-gray-200 p-3">Upstash</td><td className="border border-gray-200 p-3">Request rate limiting, queue infrastructure</td><td className="border border-gray-200 p-3">USA</td><td className="border border-gray-200 p-3">DPA</td></tr>
+                    <tr><td className="border border-gray-200 p-3">Cloud infrastructure provider</td><td className="border border-gray-200 p-3">Request rate limiting, queue infrastructure</td><td className="border border-gray-200 p-3">USA</td><td className="border border-gray-200 p-3">DPA</td></tr>
                     <tr className="bg-gray-50"><td className="border border-gray-200 p-3">Insurance companies</td><td className="border border-gray-200 p-3">Accident insurance coverage</td><td className="border border-gray-200 p-3">Israel</td><td className="border border-gray-200 p-3">Israeli law</td></tr>
                     <tr><td className="border border-gray-200 p-3">Government authorities</td><td className="border border-gray-200 p-3">Legal obligation only</td><td className="border border-gray-200 p-3">Israel</td><td className="border border-gray-200 p-3">Court order / statutory</td></tr>
                   </tbody>
@@ -314,7 +314,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
 
             <section>
               <h2 className="text-2xl font-bold text-[#0D2B2B] mb-4">7. International Data Transfers</h2>
-              <p>Some of our service providers (Supabase, Vercel, EmailJS, Resend, Google Analytics, Cloudflare, Upstash) store data outside Israel. We have ensured each provider has signed a Data Processing Agreement (DPA) with protections equivalent to European standards (GDPR Adequacy / SCCs).</p>
+              <p>Some of our service providers listed in Section 3 above store data outside Israel. We have ensured each provider has signed a Data Processing Agreement (DPA) with protections equivalent to European standards (GDPR Adequacy / SCCs).</p>
             </section>
 
             <section>
