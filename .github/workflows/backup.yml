@@ -42,6 +42,10 @@ jobs:
           sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo $VERSION_CODENAME)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
           sudo apt-get update
           sudo apt-get install -y postgresql-client-17
+          # ubuntu-latest ships pg_dump 16 preinstalled and on PATH ahead of
+          # anything apt just added; pg_dump refuses to run against a newer
+          # server regardless, so the versioned binary has to come first.
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
           curl https://rclone.org/install.sh | sudo bash
 
       - name: Configure rclone (Google Drive remote)
