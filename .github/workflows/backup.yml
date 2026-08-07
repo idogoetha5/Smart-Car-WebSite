@@ -41,20 +41,17 @@ jobs:
           printf '%s' "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
           chmod 600 ~/.config/rclone/rclone.conf
 
-      - name: Write GPG passphrase file
-        run: |
-          printf '%s' "${{ secrets.BACKUP_PASSPHRASE }}" > /tmp/backup-pass
-          chmod 600 /tmp/backup-pass
-
-      - name: Write DB URL file
-        # run-backups.sh insists on reading this from disk itself (matching
-        # the local-cron convention) rather than trusting a pre-set env var —
-        # it overwrites SUPABASE_DB_URL from this file regardless, so setting
-        # the env var alone (as below) is not enough on a runner that has no
-        # such file.
+      - name: Write local-cron-convention dotfiles
+        # run-backups.sh hardcodes both of these paths itself (matching the
+        # local-cron convention) and exports SUPABASE_DB_URL /
+        # BACKUP_PASSPHRASE_FILE / BACKUP_DIR / SUPABASE_URL / RCLONE_REMOTE /
+        # R2_BUCKET from them unconditionally — any of those set directly as
+        # step env below is silently clobbered. Matching the two files it
+        # actually reads is the only thing that works on a runner.
         run: |
           printf '%s' "${{ secrets.SUPABASE_DB_URL }}" > ~/.smartcar-db-url
-          chmod 600 ~/.smartcar-db-url
+          printf '%s' "${{ secrets.BACKUP_PASSPHRASE }}" > ~/.smartcar-backup-pass
+          chmod 600 ~/.smartcar-db-url ~/.smartcar-backup-pass
 
       - name: Pick mode for this trigger
         id: mode
@@ -68,12 +65,9 @@ jobs:
           fi
 
       - name: Run backup
+        # Only SUPABASE_SERVICE_ROLE_KEY needs to be set here — everything
+        # else, run-backups.sh exports itself once the two dotfiles above
+        # exist (see the comment on that step).
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-          SUPABASE_URL: https://iovpoxmdsgsstaduggvb.supabase.co
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          BACKUP_PASSPHRASE_FILE: /tmp/backup-pass
-          RCLONE_REMOTE: gdrive
-          R2_BUCKET: smartcar-backups
-          BACKUP_DIR: /tmp/smartcar-backups
         run: bash scripts/run-backups.sh ${{ steps.mode.outputs.mode }}
