@@ -30,9 +30,18 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install pg_dump, gnupg, rclone
+        # Ubuntu's default postgresql-client is v16; the Supabase project is
+        # on Postgres 17, and pg_dump refuses to dump a newer server than
+        # itself. The PGDG apt repo carries a matching v17 client.
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client gnupg
+          sudo apt-get install -y gnupg curl ca-certificates
+          sudo install -d /usr/share/postgresql-common/pgdg
+          curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo $VERSION_CODENAME)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
           curl https://rclone.org/install.sh | sudo bash
 
       - name: Configure rclone (Google Drive remote)
