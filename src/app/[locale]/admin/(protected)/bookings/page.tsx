@@ -13,6 +13,13 @@ function formatDate(val: string) {
   return d.toLocaleDateString('he-IL');
 }
 
+function formatDateTime(val: string) {
+  if (!val) return null;
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return null;
+  return `${d.toLocaleDateString('he-IL')} ${d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`;
+}
+
 function formatPrice(price: number) {
   if (!price || isNaN(price)) return '—';
   return `₪${price.toLocaleString()}`;
@@ -233,7 +240,14 @@ export default function AdminBookingsPage() {
                       )}
                     </td>
                     <td className="p-4 font-semibold text-gray-700">{formatPrice(b.total_price)}</td>
-                    <td className="p-4"><BookingStatusBadge status={b.status} locale={locale} size="md" variant="admin" /></td>
+                    <td className="p-4">
+                      <BookingStatusBadge status={b.status} locale={locale} size="md" variant="admin" />
+                      {formatDateTime(b.created_at) && (
+                        <div className="text-gray-400 text-xs mt-1 whitespace-nowrap">
+                          בוצעה: {formatDateTime(b.created_at)}
+                        </div>
+                      )}
+                    </td>
                     <td className="p-4">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {(b.status === 'pending' || b.status === 'PENDING') && (
