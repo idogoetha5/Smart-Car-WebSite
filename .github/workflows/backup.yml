@@ -46,6 +46,16 @@ jobs:
           printf '%s' "${{ secrets.BACKUP_PASSPHRASE }}" > /tmp/backup-pass
           chmod 600 /tmp/backup-pass
 
+      - name: Write DB URL file
+        # run-backups.sh insists on reading this from disk itself (matching
+        # the local-cron convention) rather than trusting a pre-set env var —
+        # it overwrites SUPABASE_DB_URL from this file regardless, so setting
+        # the env var alone (as below) is not enough on a runner that has no
+        # such file.
+        run: |
+          printf '%s' "${{ secrets.SUPABASE_DB_URL }}" > ~/.smartcar-db-url
+          chmod 600 ~/.smartcar-db-url
+
       - name: Pick mode for this trigger
         id: mode
         run: |
