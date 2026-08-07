@@ -1,0 +1,69 @@
+name: Scheduled backups
+
+# Runs the DB + Storage backups (scripts/run-backups.sh) on GitHub's
+# infrastructure instead of Ido's personal Mac. A laptop that gets closed
+# at night is not a reliable place to run an unattended 03:00 job — cron
+# there only fires if the machine happens to be awake. GitHub Actions runs
+# regardless of anyone's laptop.
+#
+# Schedule times are UTC. Israel is UTC+2 (winter) / UTC+3 (summer/IDT), so
+# these land at 03:00/04:00 Israel time in summer and 04:00/05:00 in winter
+# — a one-hour drift twice a year that a nightly backup can tolerate.
+on:
+  schedule:
+    - cron: '0 0 * * *'   # daily — DB backup
+    - cron: '0 1 * * 0'   # Sunday only — Storage (vehicle images) backup
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'db | storage | all'
+        default: 'all'
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pg_dump, gnupg, rclone
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client gnupg
+          curl https://rclone.org/install.sh | sudo bash
+
+      - name: Configure rclone (Google Drive remote)
+        run: |
+          mkdir -p ~/.config/rclone
+          printf '%s' "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
+          chmod 600 ~/.config/rclone/rclone.conf
+
+      - name: Write GPG passphrase file
+        run: |
+          printf '%s' "${{ secrets.BACKUP_PASSPHRASE }}" > /tmp/backup-pass
+          chmod 600 /tmp/backup-pass
+
+      - name: Pick mode for this trigger
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=${{ github.event.inputs.mode }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "0 1 * * 0" ]; then
+            echo "mode=storage" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=db" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run backup
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_URL: https://iovpoxmdsgsstaduggvb.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BACKUP_PASSPHRASE_FILE: /tmp/backup-pass
+          RCLONE_REMOTE: gdrive
+          R2_BUCKET: smartcar-backups
+          BACKUP_DIR: /tmp/smartcar-backups
+        run: bash scripts/run-backups.sh ${{ steps.mode.outputs.mode }}
