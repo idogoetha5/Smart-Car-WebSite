@@ -36,7 +36,8 @@ import { Suspense } from 'react';
 import { getFeaturedVehicles } from '@/lib/db/vehicles';
 import VehicleCard from '@/components/catalog/VehicleCard';
 import HeroSection from '@/components/home/HeroSection';
-import FaqSection, { FAQ_HE, FAQ_EN } from '@/components/home/FaqSection';
+import FaqSection from '@/components/home/FaqSection';
+import { FAQ_HE, FAQ_EN } from '@/lib/faq-data';
 import NewsletterSection from '@/components/home/NewsletterSection';
 import ReviewsSection from '@/components/home/ReviewsSection';
 
