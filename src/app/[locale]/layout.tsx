@@ -12,6 +12,7 @@ import WhatsAppFloat from '@/components/ui/WhatsAppFloat';
 import CookieBanner from '@/components/ui/CookieBanner';
 import ConsentedAnalytics from '@/components/analytics/ConsentedAnalytics';
 import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import '../globals.css';
 
 const nunito = Nunito({
@@ -112,6 +113,9 @@ export default async function LocaleLayout({
           <CookieBanner />
           <ConsentedAnalytics />
           <GoogleAnalytics />
+          {/* Web Vitals only — no cookies, no personal data, so unlike
+              ConsentedAnalytics this doesn't need consent gating. */}
+          <SpeedInsights />
         </NextIntlClientProvider>
       </body>
     </html>
