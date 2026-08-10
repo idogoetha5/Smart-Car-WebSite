@@ -46,17 +46,17 @@ const BRANCH_DETAILS: Record<BranchId, { hours: BranchHours; descHe: string; des
   herzliya: {
     hours: WEEKDAY_HOURS,
     descHe: 'הסניף הראשי שלנו בהרצליה, ממוקם במלון דן אכדיה על קו החוף.',
-    descEn: 'Our flagship location in Herzliya, situated at the iconic Dan Accadia Hotel directly on the seafront — easily accessible and open six days a week.',
+    descEn: 'Our main branch in Herzliya is located at the Dan Accadia Hotel, on the seafront.',
   },
   telaviv: {
     hours: WEEKDAY_HOURS,
     descHe: 'סניף תל אביב במרכז העיר, קרוב לטיילת ולמלונות.',
-    descEn: 'Centrally located in Tel Aviv, steps from the beachfront promenade and major hotels — the ideal starting point for exploring the city or heading out on the road.',
+    descEn: 'Our Tel Aviv branch is in the city center, close to the promenade and hotels.',
   },
   jerusalem: {
     hours: WEEKDAY_HOURS,
     descHe: 'סניף ירושלים ברחוב המלך דוד, לב ליבה של העיר.',
-    descEn: 'Located on the prestigious King David Street in the heart of Jerusalem — perfectly positioned for business travellers and tourists alike.',
+    descEn: 'Our Jerusalem branch is on King David Street, in the heart of the city.',
   },
   airport: {
     // Deliberately NOT changed to 08:00–18:00 with the other three. This entry
@@ -67,7 +67,7 @@ const BRANCH_DETAILS: Record<BranchId, { hours: BranchHours; descHe: string; des
     // about in the first place. Raised for the owner to confirm.
     hours: { weekdaysHe: '24/7', weekdaysEn: '24/7', time: '24/7', fridayTime: '24/7', saturday: true },
     descHe: 'שירות משלוח לנמל התעופה בן גוריון – זמין 24/7.',
-    descEn: 'Arriving or departing from Ben Gurion Airport? We deliver your vehicle directly to the terminal — a seamless, 24/7 service so you can move the moment you land.',
+    descEn: 'Delivery service to Ben Gurion Airport, available 24/7.',
   },
 };
 

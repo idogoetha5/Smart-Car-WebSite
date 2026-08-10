@@ -45,8 +45,8 @@ export default async function ContactPage({
         </h1>
         <p className="text-gray-600 text-lg max-w-xl mx-auto">
           {isHe
-            ? 'אנחנו כאן לכל שאלה, פנייה או בקשה. צרו קשר ונחזור אליכם בהקדם'
-            : 'Have a question, a special request, or need assistance? Our team is ready — reach out and we will get back to you promptly.'}
+            ? 'צרו קשר ונחזור אליכם בהקדם האפשרי'
+            : "Contact us and we'll get back to you as soon as possible."}
         </p>
       </div>
 
