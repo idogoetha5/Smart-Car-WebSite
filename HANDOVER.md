@@ -663,9 +663,6 @@ they stop falling through the cracks.
   days" and never was.
 - `@vercel/speed-insights` was suggested 30 July, never added (only
   `@vercel/analytics` is installed).
-- Homepage reviews carousel: RTL arrow direction was reported reversed 27
-  July; the check was interrupted mid-investigation and never resolved
-  either way.
 - The 3D tilt hover effect has only been confirmed via code review / no
   console errors — never actually tested with a real mouse drag.
 - A separate, apparently-abandoned Cloudflare **Pages** project named
