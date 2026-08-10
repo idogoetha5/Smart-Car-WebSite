@@ -79,6 +79,14 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'iovpoxmdsgsstaduggvb.supabase.co' },
     ],
     formats: ['image/avif', 'image/webp'],
+    // TEMPORARY (2026-08-10): Vercel's Image Optimization is returning 402
+    // OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED account-wide — every vehicle
+    // image on the live site is broken. This bypasses Vercel's optimizer
+    // entirely so <Image> falls back to serving the original file directly,
+    // unresized/unconverted, which does not depend on that quota/billing at
+    // all. Revert once the Vercel plan/usage issue is actually resolved —
+    // this trades image weight and format conversion for the site working.
+    unoptimized: true,
   },
   async headers() {
     return [
