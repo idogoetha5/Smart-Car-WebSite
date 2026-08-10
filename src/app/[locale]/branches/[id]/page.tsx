@@ -30,9 +30,9 @@ const CONTENT: Record<BranchId, { metaHe: string; metaEn: string; bodyHe: string
     metaHe: 'השכרת רכב בהרצליה ליד מלון דן אכדיה, על קו החוף — לתושבים, אנשי עסקים מהרצליה פיתוח ותיירים כאחד.',
     metaEn: 'Car rental in Herzliya by the Dan Accadia Hotel on the seafront — for residents, Herzliya Pituach business visitors and tourists alike.',
     bodyHe:
-      'השכרת רכב בהרצליה מתאימה לכל מי שנמצא באזור — לא רק לאורחי המלון. תושבי הרצליה והשרון שצריכים רכב לכמה ימים, עובדי הייטק שמגיעים לפגישות בהרצליה פיתוח, משפחות שיוצאות לחוף, ותיירים שמתארחים בסביבה — כולם מוזמנים. הסניף הראשי שלנו יושב במלון דן אכדיה, על קו החוף, קרוב לכביש החוף (2) ולכביש 6, כך שיציאה לכל כיוון בארץ פשוטה. אצלנו תמצאו את כל הצי: מקומפקטי ועד יוקרה, עם השירות האישי שמלווה את SmartCar כבר משנת 2003.',
+      'הסניף הראשי שלנו יושב במלון דן אכדיה בהרצליה, על קו החוף, קרוב לכביש החוף (2) ולכביש 6 — כך שיציאה לכל כיוון בארץ פשוטה. השכרת רכב בהרצליה מתאימה לכל מי שנמצא באזור, לא רק לאורחי המלון: תושבי הרצליה והשרון שצריכים רכב לכמה ימים, עובדי הייטק שמגיעים לפגישות בהרצליה פיתוח, משפחות שיוצאות לחוף, ותיירים שמתארחים בסביבה — כולם מוזמנים. אצלנו תמצאו את כל הצי: מקומפקטי ועד יוקרה, עם השירות האישי שמלווה את SmartCar כבר משנת 2003.',
     bodyEn:
-      'Car rental in Herzliya isn\'t just for hotel guests. Local residents who need a car for a few days, hi-tech professionals visiting Herzliya Pituach for meetings, families heading to the beach, and tourists staying in the area are all welcome. Our flagship branch sits at the Dan Accadia Hotel on the seafront, close to the coastal highway (Route 2) and Route 6 — an easy launch point to anywhere in the country. Our fleet spans compact to luxury, backed by the personal service SmartCar has offered since 2003.',
+      'Our flagship branch sits at the Dan Accadia Hotel on the seafront in Herzliya, close to the coastal highway (Route 2) and Route 6 — an easy launch point to anywhere in the country. Car rental in Herzliya isn\'t just for hotel guests: local residents who need a car for a few days, hi-tech professionals visiting Herzliya Pituach for meetings, families heading to the beach, and tourists staying in the area are all welcome. Our fleet spans compact to luxury, backed by the personal service SmartCar has offered since 2003.',
   },
   telaviv: {
     metaHe: 'השכרת רכב בתל אביב במרכז העיר, קרוב לטיילת — לתושבים, אנשי עסקים ותיירים.',
@@ -108,11 +108,25 @@ export default async function BranchDetailPage({
     hasMap: mapsUrl(branch),
   };
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: isHe ? 'ראשי' : 'Home', item: `${baseUrl}/${locale}` },
+      { '@type': 'ListItem', position: 2, name: isHe ? 'סניפים' : 'Branches', item: `${baseUrl}/${locale}/branches` },
+      { '@type': 'ListItem', position: 3, name: `SmartCar ${isHe ? branch.nameHe : branch.nameEn}`, item: `${baseUrl}/${locale}/branches/${branch.id}` },
+    ],
+  };
+
   return (
     <div dir={isHe ? 'rtl' : 'ltr'} className="min-h-screen bg-gray-50">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }}
       />
 
       {/* Hero image */}

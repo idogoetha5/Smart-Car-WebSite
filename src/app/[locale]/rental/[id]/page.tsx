@@ -92,6 +92,16 @@ export default async function RentalDetailPage({
     },
   };
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: locale === 'he' ? 'ראשי' : 'Home', item: `${baseUrl}/${locale}` },
+      { '@type': 'ListItem', position: 2, name: locale === 'he' ? 'צי הרכבים' : 'Vehicle Catalog', item: `${baseUrl}/${locale}/catalog` },
+      { '@type': 'ListItem', position: 3, name: `${vehicle.year} ${vehicle.make} ${vehicle.model}`, item: `${baseUrl}/${locale}/rental/${vehicle.id}` },
+    ],
+  };
+
   return (
     // Extra top padding, not the usual py-10: this page hides the site header,
     // so the floating accessibility button sits at the very top left. Between
@@ -101,6 +111,7 @@ export default async function RentalDetailPage({
     // directions, and looks better on a page with no header above it.
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-10 overflow-x-hidden" dir={locale === 'he' ? 'rtl' : 'ltr'}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(vehicleJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }} />
 
       {/* First thing on the page — no hero here, the customer is mid-flow
           and needs the way back to the listing they came from. */}

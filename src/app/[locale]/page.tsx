@@ -36,7 +36,7 @@ import { Suspense } from 'react';
 import { getFeaturedVehicles } from '@/lib/db/vehicles';
 import VehicleCard from '@/components/catalog/VehicleCard';
 import HeroSection from '@/components/home/HeroSection';
-import FaqSection from '@/components/home/FaqSection';
+import FaqSection, { FAQ_HE, FAQ_EN } from '@/components/home/FaqSection';
 import NewsletterSection from '@/components/home/NewsletterSection';
 import ReviewsSection from '@/components/home/ReviewsSection';
 
@@ -131,11 +131,27 @@ export default async function HomePage({
     sameAs: ['https://wa.me/97299509757', FACEBOOK_PAGE_URL],
   };
 
+  // Sourced from the exact Q&A pairs FaqSection renders below — this must
+  // never drift from what a visitor actually sees on the page.
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: (isHe ? FAQ_HE : FAQ_EN).map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: { '@type': 'Answer', text: item.a },
+    })),
+  };
+
   return (
     <div dir={isHe ? 'rtl' : 'ltr'}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }}
       />
 
       {/* ══ HERO + CATEGORIES ════════════════════════════════════ */}

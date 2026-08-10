@@ -203,6 +203,9 @@ export async function generateMetadata({
   if (!service) return {};
   return {
     title: locale === 'he' ? service.titleHe : service.titleEn,
+    // Reuses the same descHe/descEn copy rendered in the page body — never
+    // a separately-invented summary.
+    description: locale === 'he' ? service.descHe : service.descEn,
     alternates: localeAlternates(locale, `services/${type}`),
   };
 }
@@ -223,8 +226,22 @@ export default async function ServicePage({
   const desc     = isHe ? service.descHe     : service.descEn;
   const features = isHe ? service.featuresHe : service.featuresEn;
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: isHe ? 'ראשי' : 'Home', item: `${baseUrl}/${locale}` },
+      { '@type': 'ListItem', position: 2, name: title, item: `${baseUrl}/${locale}/services/${type}` },
+    ],
+  };
+
   return (
     <div dir={isHe ? 'rtl' : 'ltr'} className="min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }}
+      />
 
       {/* Hero */}
       <div className="bg-[#0D2B2B] py-20 px-6 text-center">
