@@ -28,6 +28,11 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          # scheduled/workflow_dispatch runs check out the default branch
+          # (`main`, stale since 9 Jul) unless told otherwise — the real
+          # code, including this script, lives on `clean-main`.
+          ref: clean-main
 
       - name: Install pg_dump, gnupg, rclone
         # Ubuntu's default postgresql-client is v16; the Supabase project is
