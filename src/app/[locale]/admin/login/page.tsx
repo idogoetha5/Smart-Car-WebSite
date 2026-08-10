@@ -28,6 +28,9 @@ export default function AdminLogin() {
 
     const data = await res.json();
     if (res.ok && data.success) {
+      // Full-page navigation is intentional after an authentication state change,
+      // so the server re-reads the updated session cookie.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = `/${locale}/admin`;
     } else if (data.error === 'totp_required') {
       // Password was right; the account has a second factor enrolled.

@@ -537,6 +537,9 @@ export default function RentalQuotesPage() {
   const handleExpiredSession = () => {
     setError(t.expired);
     window.setTimeout(() => {
+      // Full-page navigation is intentional after an authentication state change,
+      // so the server re-reads the updated session cookie.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = `/${adminLocale}/admin/login`;
     }, 1_200);
   };

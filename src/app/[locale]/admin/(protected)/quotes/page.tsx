@@ -127,6 +127,9 @@ export default function AdminQuotesPage() {
     });
     if (res.status === 401) {
       setError('ההתחברות שלך פגה — מעביר אותך לדף ההתחברות...');
+      // Full-page navigation is intentional after an authentication state change,
+      // so the server re-reads the updated session cookie.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       setTimeout(() => { window.location.href = '/he/admin/login'; }, 1200);
       return null;
     }
@@ -177,6 +180,9 @@ export default function AdminQuotesPage() {
 
       if (res.status === 401) {
         setError('ההתחברות שלך פגה — מעביר אותך לדף ההתחברות...');
+        // Full-page navigation is intentional after an authentication state change,
+        // so the server re-reads the updated session cookie.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         setTimeout(() => { window.location.href = '/he/admin/login'; }, 1200);
         return;
       }
