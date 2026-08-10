@@ -148,7 +148,10 @@ for bucket in $BUCKETS; do
 
   got="$(find "${WORK}/${bucket}" -type f | wc -l | tr -d ' ')"
   [ "$got" -eq "$n" ] || fail "expected ${n} files, got ${got} for ${bucket}"
-  total=$((total + got))
+  # +1: "${bucket}.names" (the listing manifest built above) lives in $WORK
+  # right alongside "${bucket}/", so it rides along in the rclone copy too —
+  # same class of off-by-one the db-mode path already accounts for.
+  total=$((total + got + 1))
   echo "  ${got} file(s) downloaded and non-empty"
 done
 
