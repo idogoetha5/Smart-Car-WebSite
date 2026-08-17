@@ -12,6 +12,7 @@
     "lint:budget": "node scripts/lint-budget.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.117.1",
     "@emailjs/browser": "^4.4.1",
     "@hookform/resolvers": "^5.4.0",
     "@marsidev/react-turnstile": "^1.5.2",
