@@ -1,52 +1,80 @@
-# WhatsApp Bot — Credentials Needed (Phase 0)
+# WhatsApp Bot — Credentials Needed
 
-Ido is running 360dialog and Twilio signup himself (identity/payment on both, plus the QR step needs Daniel's phone). This is what each env var is, exactly where to get it, and what to report back once it's set.
+**Status: onboarding path undecided.** Both the 360dialog/Coexistence path and the direct-Meta path are implemented and kept live in the code (`WHATSAPP_TRANSPORT` env var picks which one runs). Ido is running a cheap 2-3 day test first — Daniel working real conversations through a minimal web inbox (`/admin/inbox`, no PWA, no push yet) — before committing to either path for real. **Do not touch 09-9509757 or run either onboarding path against it until that test decides something.**
 
-**Don't paste raw secret values into chat.** Set them directly in `.env.local` for local dev and in the Vercel project's environment variables for deploy. What to report back is called out per item below — it's confirmations and non-secret identifiers, not the secrets themselves.
+For the cheap test itself, connect *either* path to a throwaway/test number, not the business number:
+- **Fastest for a quick test**: Meta gives you a free test phone number automatically when you create a WhatsApp app in the developer console — no real number, no migration, works immediately for phone numbers you add as verified test recipients. That's probably the path of least effort just to see the inbox UI working end to end.
+- Or point 360dialog's sandbox/trial at a spare number if that's easier for you.
 
-## 1. 360dialog (WhatsApp sending/receiving)
+Once Daniel's test settles which path SmartCar actually commits to, only that section below matters — the other stays as reference in case the decision reverses.
 
-Do this first — it's the real go/no-go check for the +972 number, per the plan.
+**Don't paste raw secret values into chat.** Set them in `.env.local` for local dev and in the Vercel project's environment variables for deploy.
 
-1. Go to the [360dialog Hub](https://hub.360dialog.com), sign up, add a payment method.
-2. "Add number" → enter 09-9509757 → confirm "Yes, Business App" → this is where Daniel scans a QR code from the WhatsApp Business App on his own phone.
-3. Once onboarding completes, the channel's API key is under that number's settings in the Hub.
+---
 
-| Var | Where to get it | What it is |
-|---|---|---|
-| `WHATSAPP_D360_API_KEY` | 360dialog Hub → the channel (09-9509757) → API key | Authenticates every send/receive call for this number |
-| `WHATSAPP_VERIFY_TOKEN` | You make this up — any random string | Only used if 360dialog's webhook setup does a `hub.challenge`-style handshake against our endpoint (unconfirmed — see below). Harmless to set either way. |
-| `WHATSAPP_WEBHOOK_SECRET` | Check the Hub's webhook configuration screen for a "signing secret" option once you're onboarding | 360dialog's exact webhook-auth mechanism isn't confirmed yet (see the note in the Phase 1 commit). If the Hub offers a secret/signature option, set it here and tell me what kind (shared secret header vs. HMAC signature) so I can wire the check correctly — this is exactly the "verify at implementation time" item from the plan. If there's no such option, leave this blank. |
+## Path A: 360dialog (Coexistence — reversible, €49/month)
 
-**Also from this step**, configure the webhook URL in the Hub to point at `https://<your-production-domain>/api/whatsapp/webhook` once the code is deployed, and subscribe to `messages`, `history`, `smb_app_state_sync`, and `smb_message_echoes`.
+Keeps 09-9509757 live in the WhatsApp Business App on Daniel's phone *and* on the API simultaneously. Reversible — if it doesn't work out, deregister and nothing was lost.
 
-**Report back:** whether the number was accepted (the actual +972 eligibility answer), whether the webhook config screen has a signing-secret option (and which kind), and confirm the env vars are set — not the key value itself.
+1. [360dialog Hub](https://hub.360dialog.com), sign up, add payment.
+2. "Add number" → the real go/no-go check for +972 happens here → confirm "Yes, Business App" → Daniel scans a QR code from the WhatsApp Business App.
+3. Channel's API key is under that number's settings once onboarding completes.
 
-## 2. Twilio (escalation SMS to Daniel)
+| Var | Where to get it |
+|---|---|
+| `WHATSAPP_TRANSPORT` | Set to `360dialog` |
+| `WHATSAPP_D360_API_KEY` | 360dialog Hub → the channel → API key |
+| `WHATSAPP_VERIFY_TOKEN` | You make this up — any random string |
+| `WHATSAPP_WEBHOOK_SECRET` | Check the Hub's webhook config screen for a signing-secret option — their exact scheme isn't confirmed; if there's an option, tell me what kind so I can wire the check correctly. If none, leave blank (the webhook still runs, just unverified — flagged loudly in the logs). |
 
-The second go/no-go check — send Daniel a real test SMS as part of this setup, don't wait for the first live escalation to find out delivery doesn't work.
+Webhook URL: `https://<domain>/api/whatsapp/webhook`, subscribe to `messages`, `history`, `smb_app_state_sync`, `smb_message_echoes`.
 
-1. Sign up at [twilio.com](https://www.twilio.com), add a payment method.
-2. Console dashboard home page has an "Account Info" panel with your Account SID and Auth Token (click "reveal" for the token).
-3. Phone Numbers → Buy a Number → pick any number with SMS capability (a standard numeric long code — don't buy anything alphanumeric, that needs ~1 week of Israeli pre-registration we're deliberately avoiding).
+## Path B: Direct Meta Cloud API (irreversible, free)
 
-| Var | Where to get it | What it is |
-|---|---|---|
-| `TWILIO_ACCOUNT_SID` | Console dashboard → Account Info panel | Identifies your Twilio account |
-| `TWILIO_AUTH_TOKEN` | Same panel, click to reveal | Authenticates API calls — treat like a password |
-| `TWILIO_FROM_NUMBER` | The number you buy, in `+1XXXXXXXXXX` (or whatever country) E.164 format | The "from" for every escalation SMS |
-| `DANIEL_ALERT_PHONE` | Daniel's personal mobile, E.164 format e.g. `+9725XXXXXXXX` | Where escalation alerts land. Can be the same physical phone as the WhatsApp Business App — SMS is a separate channel, this doesn't conflict with anything on the WhatsApp side. |
+No middleman, no monthly fee — but migrating 09-9509757 here permanently deletes that number's WhatsApp Business App chat history, groups, and status (confirmed via Meta's migration docs). **This is the one-way door — only run this against the real business number once Daniel's inbox test has actually succeeded, not before.**
 
-**Report back:** confirm the test SMS actually arrived on Daniel's phone (that's the real check, not just that Twilio's API returned success), and confirm the env vars are set.
+**Before migrating the real number** (not needed for the test-number version): back up Daniel's chat history — [Android](https://faq.whatsapp.com/744445782709185/?helpref=faq_content) / [iOS](https://faq.whatsapp.com/180225246548988/).
 
-## 3. Anthropic (the AI replies)
+1. [business.facebook.com](https://business.facebook.com) → Business Manager account, start business verification in parallel (not blocking — 250 msgs/24h unverified limit covers real volume — but slow, days to weeks).
+2. [developers.facebook.com](https://developers.facebook.com) → Create App → add the WhatsApp product → connect/create the WABA.
+3. Business Settings → System Users → create one, assign the app + WABA, generate a permanent token (`whatsapp_business_messaging`, `whatsapp_business_management`).
+4. For a **test number**: Meta auto-provisions one in API Setup — add your own number as a verified test recipient, done, no phone-side steps.
+   For the **real number** later: on Daniel's phone, WhatsApp Business App → Settings → Account → Delete my account → wait ~3 min → register 09-9509757 in API Setup.
+5. Webhook: point at `https://<domain>/api/whatsapp/webhook`, set a Verify Token, subscribe to `messages`. Note the App Secret (App Dashboard → Settings → Basic).
 
-| Var | Where to get it | What it is |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) → API Keys → Create Key | Authenticates the Claude calls that generate replies |
+| Var | Where to get it |
+|---|---|
+| `WHATSAPP_TRANSPORT` | Set to `meta_direct` |
+| `WHATSAPP_ACCESS_TOKEN` | Step 3 — system user token |
+| `WHATSAPP_PHONE_NUMBER_ID` | Step 4 — the number's entry in API Setup |
+| `WHATSAPP_APP_SECRET` | App Dashboard → Settings → Basic |
+| `WHATSAPP_VERIFY_TOKEN` | You make this up — any random string |
 
-**Report back:** confirm it's set. Nothing else needed here — no signup complexity like the other two.
+---
 
-## Once everything above is set
+## Twilio (escalation SMS to Daniel) — needed regardless of path
 
-Tell me the env vars are in place (in `.env.local` and in Vercel) and I'll run the live verification list from the plan: a real inbound message, a booking-matched reply, idempotency on a replayed webhook, the silence rule after Daniel replies from his phone, a triggered escalation with a confirmed-delivered SMS, and the kill switch.
+1. [twilio.com](https://www.twilio.com), sign up, add payment.
+2. Console dashboard → "Account Info" panel → Account SID + Auth Token (reveal).
+3. Phone Numbers → Buy a Number → any SMS-capable numeric long code (not alphanumeric — that needs ~1 week of Israeli pre-registration).
+
+| Var | Where to get it |
+|---|---|
+| `TWILIO_ACCOUNT_SID` | Console dashboard |
+| `TWILIO_AUTH_TOKEN` | Console dashboard, reveal |
+| `TWILIO_FROM_NUMBER` | The number you buy, E.164 |
+| `DANIEL_ALERT_PHONE` | Daniel's personal mobile, E.164 |
+
+**Report back:** confirm a real test SMS arrived on Daniel's phone.
+
+## Anthropic (the AI replies) — needed regardless of path
+
+| Var | Where to get it |
+|---|---|
+| `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) → API Keys |
+
+---
+
+## Once you have a test connection running (either path, test number)
+
+Tell me it's set up and I'll walk through the live verification list with you: a real inbound message getting an AI reply, a booking-matched reply, and — the actual point of this phase — Daniel using `/admin/inbox` for a couple of days on real conversations.

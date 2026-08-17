@@ -17,6 +17,7 @@ import {
   Star,
   Send,
   MessageCircle,
+  MessagesSquare,
   X,
 } from 'lucide-react';
 
@@ -88,6 +89,7 @@ export default function AdminSidebar() {
     { href: `/${locale}/admin/vehicles`, label: t('manage_vehicles'), icon: Car },
     { href: `/${locale}/admin/pricing`, label: isHe ? 'מחירי רכבים' : 'Vehicle pricing', icon: Percent },
     { href: `/${locale}/admin/bookings`, label: t('manage_bookings'), icon: CalendarCheck },
+    { href: `/${locale}/admin/inbox`, label: isHe ? 'וואטסאפ' : 'WhatsApp inbox', icon: MessagesSquare },
     { href: `/${locale}/admin/leasing-requests`, label: t('manage_leasing'), icon: FileText },
     { href: `/${locale}/admin/cars-for-sale`, label: isHe ? 'ניהול רכבים למכירה' : 'Cars for sale', icon: Tag },
     { href: `/${locale}/admin/reviews`, label: isHe ? 'ביקורות' : 'Reviews', icon: Star },

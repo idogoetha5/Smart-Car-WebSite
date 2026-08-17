@@ -74,7 +74,7 @@ async function recentHistory(phone: string, limit = 12): Promise<Anthropic.Messa
     .from('whatsapp_messages')
     .select('source, body, created_at')
     .eq('phone', phone)
-    .neq('source', 'human_echo')
+    .neq('source', 'human_reply')
     .order('created_at', { ascending: false })
     .limit(limit);
 

@@ -1,20 +1,22 @@
 import { normalizeWhatsAppPhone } from '@/lib/rental-quote';
 
 /**
- * Thin client for 360dialog's WhatsApp Cloud API proxy — chosen over
- * talking to Meta's Graph API directly because Coexistence onboarding (the
- * business number stays live in the WhatsApp Business App on Daniel's
- * phone, see the plan) can only be run through an approved BSP/Tech
- * Provider. Endpoint shape follows docs.360dialog.com; re-check against
- * their current API reference if this ever needs to change versions.
+ * Two send transports, kept side by side on purpose: the onboarding path
+ * (Coexistence via 360dialog, keeping the number in Daniel's phone app —
+ * reversible, €49/month — vs. direct Meta Cloud API, migrating the number
+ * off the app permanently — free, irreversible) is not decided yet. Ido is
+ * running a two/three-day cheap test of the agent-inbox concept on a
+ * non-production number before committing either way. `WHATSAPP_TRANSPORT`
+ * picks which one is active; do not delete either branch until that
+ * decision is made — see the plan.
  */
 
-const D360_BASE_URL = 'https://waba.360dialog.io/v1';
+export type WhatsAppTransport = '360dialog' | 'meta_direct';
 
-function apiKey(): string {
-  const key = process.env.WHATSAPP_D360_API_KEY;
-  if (!key) throw new Error('[whatsapp] WHATSAPP_D360_API_KEY is not configured');
-  return key;
+function transport(): WhatsAppTransport {
+  const t = process.env.WHATSAPP_TRANSPORT;
+  if (t === '360dialog' || t === 'meta_direct') return t;
+  throw new Error('[whatsapp] WHATSAPP_TRANSPORT must be set to "360dialog" or "meta_direct"');
 }
 
 export { normalizeWhatsAppPhone as normalizeWhatsAppSender };
@@ -23,6 +25,46 @@ export interface SendWhatsAppResult {
   ok: boolean;
   waMessageId: string | null;
   status: number | null;
+}
+
+async function send360dialog(recipient: string, body: string): Promise<SendWhatsAppResult> {
+  const apiKey = process.env.WHATSAPP_D360_API_KEY;
+  if (!apiKey) throw new Error('[whatsapp] WHATSAPP_D360_API_KEY is not configured');
+
+  const res = await fetch('https://waba.360dialog.io/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'D360-API-KEY': apiKey },
+    body: JSON.stringify({ to: recipient, type: 'text', text: { body } }),
+  });
+
+  const status = res.status;
+  if (!res.ok) {
+    console.error(`[whatsapp][ALERT] 360dialog send failed with ${status}`);
+    return { ok: false, waMessageId: null, status };
+  }
+  const data = (await res.json().catch(() => null)) as { messages?: { id?: string }[] } | null;
+  return { ok: true, waMessageId: data?.messages?.[0]?.id ?? null, status };
+}
+
+async function sendMetaDirect(recipient: string, body: string): Promise<SendWhatsAppResult> {
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  if (!phoneNumberId) throw new Error('[whatsapp] WHATSAPP_PHONE_NUMBER_ID is not configured');
+  if (!token) throw new Error('[whatsapp] WHATSAPP_ACCESS_TOKEN is not configured');
+
+  const res = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ messaging_product: 'whatsapp', to: recipient, type: 'text', text: { body } }),
+  });
+
+  const status = res.status;
+  if (!res.ok) {
+    console.error(`[whatsapp][ALERT] Meta direct send failed with ${status}`);
+    return { ok: false, waMessageId: null, status };
+  }
+  const data = (await res.json().catch(() => null)) as { messages?: { id?: string }[] } | null;
+  return { ok: true, waMessageId: data?.messages?.[0]?.id ?? null, status };
 }
 
 /**
@@ -39,27 +81,7 @@ export async function sendWhatsAppMessage(to: string, body: string): Promise<Sen
   }
 
   try {
-    const res = await fetch(`${D360_BASE_URL}/messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'D360-API-KEY': apiKey(),
-      },
-      body: JSON.stringify({
-        to: recipient,
-        type: 'text',
-        text: { body },
-      }),
-    });
-
-    const status = res.status;
-    if (!res.ok) {
-      console.error(`[whatsapp][ALERT] send failed with ${status}`);
-      return { ok: false, waMessageId: null, status };
-    }
-
-    const data = (await res.json().catch(() => null)) as { messages?: { id?: string }[] } | null;
-    return { ok: true, waMessageId: data?.messages?.[0]?.id ?? null, status };
+    return transport() === '360dialog' ? await send360dialog(recipient, body) : await sendMetaDirect(recipient, body);
   } catch (err) {
     console.error('[whatsapp][ALERT] send errored:', (err as Error)?.message);
     return { ok: false, waMessageId: null, status: null };
