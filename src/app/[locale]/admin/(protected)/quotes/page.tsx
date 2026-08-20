@@ -32,6 +32,7 @@ export default function AdminQuotesPage() {
   const [customerEmail, setCustomerEmail] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [companyId, setCompanyId] = useState('');
+  const [language, setLanguage] = useState<'he' | 'en'>('he');
   const [vehicles, setVehicles] = useState<QuoteVehicle[]>([emptyVehicle()]);
   const [inventory, setInventory] = useState<InventoryVehicle[]>([]);
   const [busy, setBusy] = useState<'pdf' | 'send' | null>(null);
@@ -66,12 +67,13 @@ export default function AdminQuotesPage() {
     companyName,
     companyId,
     vehicles,
-  }), [quoteId, quoteNumber, date, customerName, customerEmail, companyName, companyId, vehicles]);
+    language,
+  }), [quoteId, quoteNumber, date, customerName, customerEmail, companyName, companyId, vehicles, language]);
 
   // Stable shell (fonts + styles) rendered once so the iframe never reloads;
   // the body is written live on every edit for an instant, flicker-free preview.
   const previewShell = useMemo(
-    () => `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="UTF-8">${quoteHeadHTML()}</head><body></body></html>`,
+    () => `<!DOCTYPE html><html><head><meta charset="UTF-8">${quoteHeadHTML()}</head><body></body></html>`,
     []
   );
   const bodyHTML = useMemo(() => quoteBodyHTML(quoteData), [quoteData]);
@@ -87,6 +89,8 @@ export default function AdminQuotesPage() {
       if (cancelled) return;
       const doc = iframeRef.current?.contentDocument;
       if (doc?.body && doc.head?.querySelector('style')) {
+        doc.documentElement.lang = language === 'en' ? 'en' : 'he';
+        doc.documentElement.dir = language === 'en' ? 'ltr' : 'rtl';
         doc.body.innerHTML = bodyHTML;
       } else {
         raf = requestAnimationFrame(write);
@@ -94,7 +98,7 @@ export default function AdminQuotesPage() {
     };
     write();
     return () => { cancelled = true; cancelAnimationFrame(raf); };
-  }, [bodyHTML]);
+  }, [bodyHTML, language]);
 
   const updateVehicle = (i: number, patch: Partial<QuoteVehicle>) => {
     setVehicles((prev) => prev.map((v, idx) => (idx === i ? { ...v, ...patch } : v)));
@@ -206,6 +210,14 @@ export default function AdminQuotesPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">הצעת מחיר ליסינג</h1>
         <div className="flex gap-2">
+          <select 
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as 'he' | 'en')}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white font-medium"
+          >
+            <option value="he">עברית</option>
+            <option value="en">English</option>
+          </select>
           <button
             onClick={handleDownload}
             disabled={busy !== null}

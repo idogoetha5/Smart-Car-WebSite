@@ -34,6 +34,7 @@ export interface QuoteData {
   companyName: string;
   companyId: string;
   vehicles: QuoteVehicle[];
+  language?: 'he' | 'en';
 }
 
 const VAT = 1.18;
@@ -87,7 +88,7 @@ const QUOTE_CSS = `
   .tag{font-size:10px;color:#a8bcb2;letter-spacing:5px;font-weight:600;}
   .meta{position:relative;z-index:1;margin-top:13px;display:flex;border:1px solid var(--line-d);border-radius:11px;overflow:hidden;background:rgba(255,255,255,.02);}
   .meta>div{flex:1;padding:8px 16px;}
-  .meta>div+div{border-right:1px solid var(--line-d);}
+  .meta>div+div{border-inline-start:1px solid var(--line-d);}
   .meta .k{font-size:9.5px;color:#93a89e;font-weight:600;letter-spacing:1px;margin-bottom:3px;}
   .meta .v{font-size:14px;color:#fff;font-weight:600;font-family:'Heebo';}
 
@@ -108,8 +109,8 @@ const QUOTE_CSS = `
   .photo{position:relative;height:106px;background:linear-gradient(180deg,#f4f1ea 0%,#e8e2d5 100%);display:flex;align-items:center;justify-content:center;}
   .photo img{max-width:80%;max-height:96px;object-fit:contain;filter:drop-shadow(0 8px 12px rgba(0,0,0,.14));}
   .photo .ph{width:62%;height:auto;opacity:.55;}
-  .badge{position:absolute;top:12px;right:12px;background:rgba(15,38,32,.94);color:#fff;font-size:8.5px;font-weight:700;letter-spacing:2.5px;padding:4px 11px;border-radius:6px;font-family:'Heebo';}
-  .year{position:absolute;bottom:10px;left:14px;color:#8fa197;font-weight:800;font-size:13px;font-family:'Heebo';}
+  .badge{position:absolute;top:12px;inset-inline-end:12px;background:rgba(15,38,32,.94);color:#fff;font-size:8.5px;font-weight:700;letter-spacing:2.5px;padding:4px 11px;border-radius:6px;font-family:'Heebo';}
+  .year{position:absolute;bottom:10px;inset-inline-start:14px;color:#8fa197;font-weight:800;font-size:13px;font-family:'Heebo';}
   .cbody{padding:13px 17px 14px;}
   .cname{font-family:'Heebo';font-weight:800;font-size:18px;color:var(--ink);}
   .csub{font-size:11.5px;color:var(--muted);margin-top:2px;}
@@ -139,7 +140,7 @@ const QUOTE_CSS = `
   .item .c svg{width:11px;height:11px;}
   .item.d .c{background:rgba(15,38,32,.07);color:var(--ink);font-size:15px;line-height:0;font-weight:700;}
 
-  .note{margin:9px 44px 0;border-radius:11px;background:#f1ede4;border:1px solid var(--line);border-right:4px solid var(--amber);padding:10px 16px;font-size:11.5px;color:#5a675f;line-height:1.55;}
+  .note{margin:9px 44px 0;border-radius:11px;background:#f1ede4;border:1px solid var(--line);border-inline-start:4px solid var(--amber);padding:10px 16px;font-size:11.5px;color:#5a675f;line-height:1.55;}
 
   .sign{padding:7px 44px 4px;}
   .sign .by{font-size:12px;color:var(--muted);}
@@ -148,12 +149,13 @@ const QUOTE_CSS = `
   .foot{background:linear-gradient(140deg,var(--ink-2) 0%,var(--panel) 100%);color:#fff;padding:13px 44px 10px;margin-top:auto;}
   .branches{display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center;}
   .branches>div{padding:0 16px;}
-  .branches>div+div{border-right:1px solid var(--line-d);}
+  .branches>div+div{border-inline-start:1px solid var(--line-d);}
   .branches h3{font-family:'Heebo';font-weight:700;font-size:12.5px;color:#fff;margin-bottom:5px;}
   .branches p{font-size:11px;color:#9db2a8;line-height:1.55;}
   .branches .tel{color:var(--amber-soft);font-weight:700;direction:ltr;unicode-bidi:isolate;display:inline-block;margin-top:2px;}
   .fbase{margin-top:12px;padding-top:10px;border-top:1px solid var(--line-d);text-align:center;font-size:11px;color:#8ea49b;direction:ltr;letter-spacing:.3px;}
   @page{size:794px 1123px;margin:0;}
+
 `;
 
 export function quoteHeadHTML(): string {
@@ -161,18 +163,44 @@ export function quoteHeadHTML(): string {
 }
 
 export function generateQuoteHTML(data: QuoteData): string {
+  const isEn = data.language === 'en';
   return `<!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="${isEn ? 'en' : 'he'}" dir="${isEn ? 'ltr' : 'rtl'}">
 <head><meta charset="UTF-8">${quoteHeadHTML()}</head>
 <body>${quoteBodyHTML(data)}</body>
 </html>`;
 }
 
 export function quoteBodyHTML(data: QuoteData): string {
+  const isEn = data.language === 'en';
   const logoUrl = `data:image/png;base64,${logo_png}`;
   const validUntil = quoteValidUntil(data);
   const activeVehicles = data.vehicles.filter((v) => v.name);
   const isSingle = activeVehicles.length <= 1;
+
+  const t = {
+    tag: isEn ? 'VEHICLE LEASING & RENTAL' : 'השכרת רכב עד בית הלקוח',
+    to: isEn ? 'To' : 'לכבוד',
+    date: isEn ? 'Date' : 'תאריך',
+    validUntil: isEn ? 'Valid Until' : 'בתוקף עד',
+    quote: isEn ? 'PRICE QUOTE' : 'הצעת מחיר',
+    no: isEn ? 'No.' : 'מס׳',
+    companyIdLabel: isEn ? 'Company ID' : 'ח.פ',
+    monthlyPayment: isEn ? 'MONTHLY PAYMENT' : 'תשלום חודשי',
+    beforeVat: isEn ? 'Before VAT' : 'לפני מע&quot;מ',
+    inclVatText: isEn ? 'Incl. VAT 18% &middot;' : 'כולל מע&quot;מ 18% &middot;',
+    listPrice: isEn ? 'Official Retail Price' : 'מחירון יבואן',
+    downPayment: isEn ? 'Down Payment <em>(Incl. VAT)</em>' : 'מקדמה <em>(כולל מע&quot;מ)</em>',
+    months: isEn ? 'Months' : 'חודשים',
+    kmPerYear: isEn ? 'km / year' : 'ק&quot;מ/שנה',
+    includesHeading: isEn ? 'Quote Includes' : 'ההצעה כוללת',
+    termsHeading: isEn ? 'Additional Terms' : 'תנאים נוספים',
+    note: isEn 
+      ? 'This quote does not constitute a binding contract. The final agreement will be signed in writing by both parties. Valid until'
+      : 'הצעה זו אינה מהווה חוזה מחייב. ההסכם הסופי ייחתם בכתב על ידי שני הצדדים בלבד. ההצעה בתוקף עד',
+    sincerely: isEn ? 'Sincerely,' : 'בברכה,',
+    companyName: isEn ? 'Smart Car 2008 Ltd.' : 'סמארט קאר 2008 בע&quot;מ',
+  };
 
   const SVG_CAR = `<svg class="ph" viewBox="0 0 220 86" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#8ea79c" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
     <path d="M14 58h192"/>
@@ -198,28 +226,36 @@ export function quoteBodyHTML(data: QuoteData): string {
         <div class="cname">${v.name}</div>
         ${v.subtitle ? `<div class="csub">${v.subtitle}</div>` : '<div class="csub">&nbsp;</div>'}
         <div class="price">
-          <div class="plbl">תשלום חודשי</div>
-          <div class="pbig"><span class="num">&#8362;${fmt(v.monthlyPrice)}</span><span class="pvat">לפני מע&quot;מ</span></div>
-          <div class="pincl">כולל מע&quot;מ 18% &middot; <b><span class="num">&#8362;${fmt(inclVat)}</span></b></div>
+          <div class="plbl">${t.monthlyPayment}</div>
+          <div class="pbig"><span class="num">&#8362;${fmt(v.monthlyPrice)}</span><span class="pvat">${t.beforeVat}</span></div>
+          <div class="pincl">${t.inclVatText} <b><span class="num">&#8362;${fmt(inclVat)}</span></b></div>
         </div>
         <div class="specs">
-          <div class="spec"><span>מחירון יבואן</span><span class="sv"><span class="num">&#8362;${fmt(v.listPrice)}</span></span></div>
-          <div class="spec"><span>מקדמה <em>(כולל מע&quot;מ)</em></span><span class="sv"><span class="num">&#8362;${fmt(v.downPayment)}</span></span></div>
+          <div class="spec"><span>${t.listPrice}</span><span class="sv"><span class="num">&#8362;${fmt(v.listPrice)}</span></span></div>
+          <div class="spec"><span>${t.downPayment}</span><span class="sv"><span class="num">&#8362;${fmt(v.downPayment)}</span></span></div>
         </div>
         <div class="pills">
-          <div class="pill"><span class="num">${v.months || 36}</span> חודשים</div>
-          <div class="pill"><span class="num">${fmt(v.annualKm)}</span> ק&quot;מ/שנה</div>
+          <div class="pill"><span class="num">${v.months || 36}</span> ${t.months}</div>
+          <div class="pill"><span class="num">${fmt(v.annualKm)}</span> ${t.kmPerYear}</div>
         </div>
       </div>
     </div>`;
   }).join('');
 
-  const subParts = ['סמארט קאר 2008 בע&quot;מ'];
+  const subParts = [t.companyName];
   if (data.companyName) subParts.push(data.companyName);
   const subStr = subParts.join(' &middot; ');
-  const companyIdStr = data.companyId ? ` &middot; ח.פ <span class="num">${data.companyId}</span>` : '';
+  const companyIdStr = data.companyId ? ` &middot; ${t.companyIdLabel} <span class="num">${data.companyId}</span>` : '';
 
-  const included = [
+  const included = isEn ? [
+    'Immediate vehicle availability — in stock',
+    'Replacement of 4 tires due to wear, battery, and wiper blades',
+    'Routine maintenance per manufacturer guidelines at authorized service centers',
+    'Annual vehicle registration fee',
+    'Replacement vehicle in case of breakdown or accident',
+    'Purchase option: 16% discount from list price',
+    'Comprehensive insurance coverage as per agreement terms',
+  ] : [
     'זמינות מיידית של הרכב — במלאי',
     'החלפת 4 צמיגים בגין בלאי, מצבר וסט מגבים',
     'טיפולים שוטפים לפי הוראות יצרן במוסכים מורשים',
@@ -228,7 +264,13 @@ export function quoteBodyHTML(data: QuoteData): string {
     'אופציית רכישה: 16% הנחה ממחירון יבואן',
     'כיסוי ביטוחי מורחב לפי תנאי ההסכם',
   ];
-  const terms = [
+
+  const terms = isEn ? [
+    'Monthly payment is linked to the Consumer Price Index (CPI)',
+    'Monthly payment via direct debit',
+    'Deductible of <span class="num">2,500 &#8362;</span> + VAT',
+    'Mileage overage: <span class="num">0.5 &#8362;</span> + VAT per km',
+  ] : [
     'המחיר החודשי צמוד למדד המחירים לצרכן',
     'תשלום חודשי בהוראת קבע',
     'השתתפות עצמית <span class="num">2,500 &#8362;</span> + מע&quot;מ',
@@ -239,18 +281,18 @@ export function quoteBodyHTML(data: QuoteData): string {
   <header class="top">
     <div class="brand">
       <img class="logo" src="${logoUrl}" alt="SMART CAR">
-      <div class="tag">השכרת רכב עד בית הלקוח</div>
+      <div class="tag">${t.tag}</div>
     </div>
     <div class="meta">
-      <div><div class="k">לכבוד</div><div class="v">${data.customerName || '—'}</div></div>
-      <div><div class="k">תאריך</div><div class="v"><span class="num">${data.date || '—'}</span></div></div>
-      <div><div class="k">בתוקף עד</div><div class="v"><span class="num">${validUntil}</span></div></div>
+      <div><div class="k">${t.to}</div><div class="v">${data.customerName || '—'}</div></div>
+      <div><div class="k">${t.date}</div><div class="v"><span class="num">${data.date || '—'}</span></div></div>
+      <div><div class="k">${t.validUntil}</div><div class="v"><span class="num">${validUntil}</span></div></div>
     </div>
   </header>
 
   <div class="title">
-    <div class="eyebrow">הצעת מחיר</div>
-    <h1>מס׳ <span class="num">${data.quoteNumber}</span></h1>
+    <div class="eyebrow">${t.quote}</div>
+    <h1>${t.no} <span class="num">${data.quoteNumber}</span></h1>
     <div class="sub">${subStr}${companyIdStr}</div>
     <div class="rule"><span class="l"></span><span class="d"></span><span class="l"></span></div>
   </div>
@@ -260,26 +302,26 @@ export function quoteBodyHTML(data: QuoteData): string {
   </div>
 
   <div class="sec">
-    <div class="shead"><span class="dot"></span><h2>ההצעה כוללת</h2><span class="ln"></span></div>
+    <div class="shead"><span class="dot"></span><h2>${t.includesHeading}</h2><span class="ln"></span></div>
     <div class="g2">
-      ${included.map((t) => `<div class="item"><span class="c">${CHECK}</span><span>${t}</span></div>`).join('')}
+      ${included.map((item) => `<div class="item"><span class="c">${CHECK}</span><span>${item}</span></div>`).join('')}
     </div>
   </div>
 
   <div class="sec">
-    <div class="shead"><span class="dot"></span><h2>תנאים נוספים</h2><span class="ln"></span></div>
+    <div class="shead"><span class="dot"></span><h2>${t.termsHeading}</h2><span class="ln"></span></div>
     <div class="g2">
-      ${terms.map((t) => `<div class="item d"><span class="c">&middot;</span><span>${t}</span></div>`).join('')}
+      ${terms.map((item) => `<div class="item d"><span class="c">&middot;</span><span>${item}</span></div>`).join('')}
     </div>
   </div>
 
   <div class="note">
-    הצעה זו אינה מהווה חוזה מחייב. ההסכם הסופי ייחתם בכתב על ידי שני הצדדים בלבד. ההצעה בתוקף עד <b><span class="num">${validUntil}</span></b>.
+    ${t.note} <b><span class="num">${validUntil}</span></b>.
   </div>
 
   <div class="sign">
-    <div class="by">בברכה,</div>
-    <div class="co">סמארט קאר 2008 בע&quot;מ</div>
+    <div class="by">${t.sincerely}</div>
+    <div class="co">${t.companyName}</div>
   </div>
 
   <footer class="foot">
@@ -287,7 +329,7 @@ export function quoteBodyHTML(data: QuoteData): string {
       ${BRANCHES.filter((b) => b.id !== 'airport')
         .map(
           (b) =>
-            `<div><h3>${b.cityHe}</h3><p>${b.streetHe}<br>&nbsp;<br><span class="tel">${b.phone}</span></p></div>`
+            `<div><h3>${isEn ? (b.cityEn || b.cityHe) : b.cityHe}</h3><p>${isEn ? (b.streetEn || b.streetHe) : b.streetHe}<br>&nbsp;<br><span class="tel">${b.phone}</span></p></div>`
         )
         .join('\n      ')}
     </div>
