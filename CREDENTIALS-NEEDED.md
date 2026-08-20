@@ -1,33 +1,45 @@
 # WhatsApp Bot — Credentials Needed
 
-**Status: onboarding path undecided.** Both the 360dialog/Coexistence path and the direct-Meta path are implemented and kept live in the code (`WHATSAPP_TRANSPORT` env var picks which one runs). Ido is running a cheap 2-3 day test first — Daniel working real conversations through a minimal web inbox (`/admin/inbox`, no PWA, no push yet) — before committing to either path for real. **Do not touch 09-9509757 or run either onboarding path against it until that test decides something.**
+**Status: YCloud Coexistence is the selected onboarding path.** It keeps the business number in the WhatsApp Business App on the owner's phone while the SmartCar bot works through the official API. The bot is prepared for YCloud locally, but **do not create a WhatsApp channel or touch 09-9509757 until the final local checks are complete.**
 
-For the cheap test itself, connect *either* path to a throwaway/test number, not the business number:
-- **Fastest for a quick test**: Meta gives you a free test phone number automatically when you create a WhatsApp app in the developer console — no real number, no migration, works immediately for phone numbers you add as verified test recipients. That's probably the path of least effort just to see the inbox UI working end to end.
-- Or point 360dialog's sandbox/trial at a spare number if that's easier for you.
+The YCloud account is ready. We will first perform the complete local test suite. Then, if a spare WhatsApp Business number is available, use it for the live connection rehearsal before connecting the business number.
 
-Once Daniel's test settles which path SmartCar actually commits to, only that section below matters — the other stays as reference in case the decision reverses.
+The existing number should be connected only through the **WhatsApp Business App Coexistence** option—never the ordinary API-number migration option.
 
 **Don't paste raw secret values into chat.** Set them in `.env.local` for local dev and in the Vercel project's environment variables for deploy.
 
 ---
 
-## Path A: 360dialog (Coexistence — reversible, €49/month)
+## Chosen path: YCloud Coexistence (free plan, owner keeps the phone app)
 
-Keeps 09-9509757 live in the WhatsApp Business App on Daniel's phone *and* on the API simultaneously. Reversible — if it doesn't work out, deregister and nothing was lost.
+YCloud is an official Meta WhatsApp Business Solution Provider. Its free plan supports the API and webhooks; standard replies during a customer-initiated service window are free. Meta may charge for approved proactive template messages later—this bot does not send those in Phase 1.
 
-1. [360dialog Hub](https://hub.360dialog.com), sign up, add payment.
-2. "Add number" → the real go/no-go check for +972 happens here → confirm "Yes, Business App" → Daniel scans a QR code from the WhatsApp Business App.
-3. Channel's API key is under that number's settings once onboarding completes.
+When the local test checklist is complete:
+
+1. In YCloud, select **Create Channel**.
+2. Select **WhatsApp Business App Coexistence** (not a new API number).
+3. The owner opens the existing WhatsApp Business App on the primary phone and scans the QR code shown by YCloud.
+4. Choose chat sharing so both customer replies and the owner's replies are synchronized. The owner keeps using the app normally.
+5. In YCloud Developers → Webhooks, create an endpoint at `https://<domain>/api/whatsapp/webhook` and subscribe only to:
+   - `whatsapp.inbound_message.received`
+   - `whatsapp.smb.message.echoes`
+   - `whatsapp.message.updated`
+6. Save the YCloud API key and the webhook endpoint secret directly in the deployment settings—never in chat.
 
 | Var | Where to get it |
 |---|---|
-| `WHATSAPP_TRANSPORT` | Set to `360dialog` |
-| `WHATSAPP_D360_API_KEY` | 360dialog Hub → the channel → API key |
-| `WHATSAPP_VERIFY_TOKEN` | You make this up — any random string |
-| `WHATSAPP_WEBHOOK_SECRET` | Check the Hub's webhook config screen for a signing-secret option — their exact scheme isn't confirmed; if there's an option, tell me what kind so I can wire the check correctly. If none, leave blank (the webhook still runs, just unverified — flagged loudly in the logs). |
+| `WHATSAPP_TRANSPORT` | Set to `ycloud` |
+| `WHATSAPP_YCLOUD_API_KEY` | YCloud Developers → API Keys |
+| `WHATSAPP_BUSINESS_PHONE` | The connected business number, e.g. `+97299509757` |
+| `WHATSAPP_YCLOUD_WEBHOOK_SECRET` | The secret generated for the YCloud webhook endpoint |
 
-Webhook URL: `https://<domain>/api/whatsapp/webhook`, subscribe to `messages`, `history`, `smb_app_state_sync`, `smb_message_echoes`.
+After the scan, keep the WhatsApp Business App installed and open it at least once every two weeks. The owner can respond from the phone at any time; YCloud emits `whatsapp.smb.message.echoes`, and the bot automatically pauses that customer conversation for 24 hours (except a new accident/breakdown safety message).
+
+---
+
+## Fallback A: 360dialog (Coexistence, paid)
+
+Kept in code only as a fallback. Do not select it unless the YCloud route proves unsuitable.
 
 ## Path B: Direct Meta Cloud API (irreversible, free)
 
@@ -67,14 +79,17 @@ No middleman, no monthly fee — but migrating 09-9509757 here permanently delet
 
 **Report back:** confirm a real test SMS arrived on Daniel's phone.
 
-## Anthropic (the AI replies) — needed regardless of path
-
-| Var | Where to get it |
-|---|---|
-| `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) → API Keys |
-
----
-
 ## Once you have a test connection running (either path, test number)
 
-Tell me it's set up and I'll walk through the live verification list with you: a real inbound message getting an AI reply, a booking-matched reply, and — the actual point of this phase — Daniel using `/admin/inbox` for a couple of days on real conversations.
+Tell me it's set up and I'll walk through the live verification list with you: a real inbound message receiving the deterministic service menu, a booking-matched reply, the accident and roadside-help paths, and — the actual point of this phase — Daniel using `/admin/inbox` for a couple of days on real conversations. Claude is deliberately disconnected from the webhook.
+
+## Guided service flow
+
+Before testing the current bot, run `scripts/add-whatsapp-tables.sql` in the
+Supabase SQL Editor. It now also creates `whatsapp_conversation_states`, which
+stores a short-lived (30 minute) rental-intake state. Customers can complete a
+request entirely in WhatsApp in Hebrew or English: dates and times, locations,
+vehicle category, name, email, review and explicit terms acceptance. Completed
+requests are stored in `whatsapp_rental_requests`. They are not confirmed
+bookings, prices or specific vehicles until a representative checks the full
+fleet and confirms the details in writing.

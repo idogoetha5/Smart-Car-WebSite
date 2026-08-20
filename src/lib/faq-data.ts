@@ -35,11 +35,9 @@ export const FAQ_HE: FaqItem[] = [
     a: 'כן. ניתן למסור ולהחזיר רכב בסניפים או בכתובות שונות בארץ, בתיאום מראש ובכפוף לזמינות. המחיר נקבע לפי הכתובות והשעות ויאושר על ידי נציג.',
   },
   {
-    // Interim wording only. A final cancellation policy needs the site,
-    // the booking confirmation, company policy and the law aligned, and a
-    // lawyer's approval — so no specific charge percentages are published.
     q: 'מהי מדיניות הביטול?',
-    a: 'תנאי הביטול והשינוי נמסרים לפני אישור ההזמנה ומופיעים באישור הכתוב. הזכויות הקבועות בדין נשמרות. לביטול או לשינוי אפשר לפנות אלינו בטלפון, בדוא״ל או באמצעות טופס יצירת הקשר.',
+    a: 'מדיניות הביטול הקנונית היא זו שבעמוד תנאי ההשכרה: יותר מ־72 שעות לפני האיסוף — החזר מלא; 72–48 שעות — 25% מדמי השכירות הבסיסיים; 48–24 שעות — 50%; פחות מ־24 שעות או אי־הופעה — 100%. שינוי תאריכים ללא חיוב אפשרי עד 48 שעות לפני האיסוף, בכפוף לזמינות.',
+    learnMoreHref: '/terms', learnMoreLabel: 'למדיניות הביטול המלאה',
   },
 ];
 
@@ -65,8 +63,8 @@ export const FAQ_EN: FaqItem[] = [
     a: 'Yes. Delivery and return may be arranged at branches or different addresses in Israel, subject to advance coordination and availability. The price is based on the locations and times and will be confirmed by a representative.',
   },
   {
-    // Interim wording only — see the Hebrew entry above.
     q: 'What is the cancellation policy?',
-    a: 'Cancellation and change terms are provided before confirmation and appear in the written confirmation. Statutory consumer rights remain unaffected. To cancel or change a request, contact us by phone, email or the contact form.',
+    a: 'The canonical cancellation policy is on the Rental Terms page: more than 72 hours before pickup — full refund; 72–48 hours — 25% of the base rental fee; 48–24 hours — 50%; under 24 hours or a no-show — 100%. Date changes are free up to 48 hours before pickup, subject to availability.',
+    learnMoreHref: '/terms', learnMoreLabel: 'Full cancellation policy →',
   },
 ];

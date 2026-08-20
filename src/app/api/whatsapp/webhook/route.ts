@@ -1,22 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createAdminClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { sendWhatsAppMessage, normalizeWhatsAppSender } from '@/lib/whatsapp';
 import { logWhatsAppMessage, isConversationSilenced } from '@/lib/whatsapp-conversations';
-import { getWhatsAppAiReply } from '@/lib/whatsapp-ai';
+import { classifyWhatsAppInitialRoute, getWhatsAppFlowReply } from '@/lib/whatsapp-flow';
 import { sendEscalationSms } from '@/lib/sms-alert';
 
 /**
- * Inbound WhatsApp webhook. Handles both onboarding paths, kept side by
- * side until the onboarding decision is made (see the plan):
+ * Inbound WhatsApp webhook. Handles the preferred YCloud Coexistence path
+ * plus the previously tested provider fallbacks:
  *
+ * - `ycloud`: YCloud v2 event envelopes, including
+ *   `whatsapp.smb.message.echoes` when the owner replies from the phone app.
+ *   Verified with YCloud's timestamped HMAC-SHA256 signature.
  * - `meta_direct`: raw Meta Cloud API, entry[].changes[].value.messages[],
  *   verified via the real X-Hub-Signature-256 HMAC against WHATSAPP_APP_SECRET.
  * - `360dialog`: same shape (360dialog proxies Meta's), plus Coexistence-only
  *   change fields (`smb_message_echoes`, `history`, `smb_app_state_sync`) —
- *   only possible on this path, since Coexistence is 360dialog-only.
- *   360dialog's own webhook-signing scheme isn't confirmed (see
- *   CREDENTIALS-NEEDED.md); falls back to an optional shared-secret header.
+ *   retained as a fallback Coexistence provider.
+ *   360dialog is configured to forward a private custom header that this
+ *   endpoint verifies before accepting any payload.
  *
  * `smb_message_echoes` (a reply sent from Daniel's phone app, only relevant
  * under Coexistence) and a reply sent from the not-yet-built agent inbox
@@ -37,7 +41,17 @@ interface InboundMessage {
 
 interface WebhookChange {
   field?: string;
-  value?: { messages?: InboundMessage[] };
+  value?: {
+    messages?: InboundMessage[];
+    message_echoes?: InboundMessage[];
+  };
+}
+
+interface YCloudPayload {
+  id?: string;
+  type?: string;
+  whatsappInboundMessage?: InboundMessage & { wamid?: string };
+  whatsappMessage?: InboundMessage & { wamid?: string };
 }
 
 function extractChanges(payload: unknown): WebhookChange[] {
@@ -79,21 +93,50 @@ async function verifyMetaSignature(rawBody: string, signatureHeader: string | nu
 }
 
 /**
- * 360dialog's exact webhook-signing scheme was never confirmed (see
- * CREDENTIALS-NEEDED.md) — this checks an optional shared-secret header if
- * one is configured, and otherwise accepts unverified with a loud warning
- * rather than silently pretending it's secure.
+ * 360dialog supports custom headers on webhook delivery. Fail closed unless
+ * the private header is configured and matches exactly.
  */
 function verify360dialogWebhook(request: NextRequest): boolean {
   const configuredSecret = process.env.WHATSAPP_WEBHOOK_SECRET;
   if (!configuredSecret) {
-    console.warn('[whatsapp] WHATSAPP_WEBHOOK_SECRET not configured — accepting 360dialog webhook unverified');
-    return true;
+    console.error('[whatsapp][ALERT] WHATSAPP_WEBHOOK_SECRET not configured — refusing 360dialog webhook');
+    return false;
   }
-  return request.headers.get('x-webhook-secret') === configuredSecret;
+  const received = request.headers.get('x-webhook-secret') ?? '';
+  const expectedBytes = Buffer.from(configuredSecret);
+  const receivedBytes = Buffer.from(received);
+  return expectedBytes.length === receivedBytes.length && timingSafeEqual(expectedBytes, receivedBytes);
+}
+
+function verifyYCloudWebhook(request: NextRequest, rawBody: string): boolean {
+  const secret = process.env.WHATSAPP_YCLOUD_WEBHOOK_SECRET;
+  const header = request.headers.get('ycloud-signature');
+  if (!secret || !header) {
+    console.error('[whatsapp][ALERT] YCloud webhook secret or signature missing — refusing webhook');
+    return false;
+  }
+
+  const values = Object.fromEntries(header.split(',').map((part) => {
+    const [key, ...rest] = part.trim().split('=');
+    return [key, rest.join('=')];
+  }));
+  const timestamp = values.t;
+  const received = values.s;
+  if (!timestamp || !received || !/^\d+$/.test(timestamp) || !/^[a-f0-9]{64}$/i.test(received)) return false;
+
+  // Reject replayed deliveries outside a short tolerance. YCloud signs each
+  // delivery and retries failed endpoints with a fresh request.
+  const ageSeconds = Math.abs(Math.floor(Date.now() / 1000) - Number(timestamp));
+  if (ageSeconds > 5 * 60) return false;
+
+  const expected = createHmac('sha256', secret).update(`${timestamp}.${rawBody}`).digest('hex');
+  const expectedBytes = Buffer.from(expected);
+  const receivedBytes = Buffer.from(received);
+  return expectedBytes.length === receivedBytes.length && timingSafeEqual(expectedBytes, receivedBytes);
 }
 
 async function verifyWebhook(request: NextRequest, rawBody: string): Promise<boolean> {
+  if (process.env.WHATSAPP_TRANSPORT === 'ycloud') return verifyYCloudWebhook(request, rawBody);
   if (process.env.WHATSAPP_TRANSPORT === '360dialog') return verify360dialogWebhook(request);
   return verifyMetaSignature(rawBody, request.headers.get('x-hub-signature-256'));
 }
@@ -124,40 +167,71 @@ async function handleCustomerMessage(msg: InboundMessage, botEnabled: boolean) {
     return;
   }
 
-  if (await isConversationSilenced(phone)) return;
+  // A recent human reply normally silences the bot, but a new accident or
+  // roadside failure must always produce the fixed safety reply and a fresh
+  // alert even inside that 24-hour handoff window.
+  const route = classifyWhatsAppInitialRoute(body, false);
+  const isEmergency = route === 'accident' || route === 'breakdown';
+  if (!isEmergency && await isConversationSilenced(phone)) return;
 
-  const ai = await getWhatsAppAiReply(phone, body);
-  await sendWhatsAppMessage(phone, ai.reply);
-  await logWhatsAppMessage({
-    phone,
-    source: 'bot_outbound',
-    body: ai.reply,
-    escalatedAt: ai.escalate ? new Date().toISOString() : null,
-  });
-
-  if (ai.escalate) {
-    // TODO(pwa-inbox): also push to Daniel here once the inbox exists —
-    // push becomes primary (opens straight into the conversation), SMS
-    // stays wired as the reliable fallback if push fails or isn't set up.
-    await sendEscalationSms({
-      customerPhone: phone,
-      reason: ai.escalateReason ?? 'לא צוינה סיבה',
-      lastMessage: body,
-    });
+  // Every inbound message stays in the deterministic service flow. The bot
+  // never asks an AI model to select a route, assess an emergency, or make a
+  // booking decision.
+  const flow = await getWhatsAppFlowReply(phone, body);
+  if (flow.handled && flow.reply) {
+    const send = await sendWhatsAppMessage(phone, flow.reply);
+    if (send.ok) {
+      await logWhatsAppMessage({
+        phone,
+        source: 'bot_outbound',
+        body: flow.reply,
+        waMessageId: send.waMessageId,
+        escalatedAt: flow.escalate ? new Date().toISOString() : null,
+      });
+    } else {
+      console.error(`[whatsapp][ALERT] structured reply could not be delivered to ${phone}`);
+    }
+    if (flow.escalate) {
+      await sendEscalationSms({
+        customerPhone: phone,
+        reason: send.ok ? (flow.escalateReason ?? 'לא צוינה סיבה') : `שליחת WhatsApp נכשלה: ${flow.escalateReason ?? 'לא צוינה סיבה'}`,
+        lastMessage: body,
+      });
+    }
+    return;
   }
+
+  // getWhatsAppFlowReply always handles the normal path. This fallback is
+  // intentionally deterministic in case a future flow branch is incomplete.
+  const reply = 'לא הצלחנו להבין את הבקשה. כתבו "תפריט" כדי להתחיל מחדש, או "נציג" כדי לעבור לצוות SmartCar.';
+  const send = await sendWhatsAppMessage(phone, reply);
+  if (send.ok) await logWhatsAppMessage({ phone, source: 'bot_outbound', body: reply, waMessageId: send.waMessageId });
 }
 
 async function handleChange(change: WebhookChange, botEnabled: boolean) {
-  const messages = change.value?.messages ?? [];
   if (change.field === 'smb_message_echoes') {
-    for (const msg of messages) await handleEcho(msg);
+    for (const msg of change.value?.message_echoes ?? []) await handleEcho(msg);
     return;
   }
   if (change.field === 'history' || change.field === 'smb_app_state_sync') {
     return; // Coexistence sync events — nothing to do beyond acking
   }
   if (change.field && change.field !== 'messages') return; // status updates, template events, etc.
+  const messages = change.value?.messages ?? [];
   for (const msg of messages) await handleCustomerMessage(msg, botEnabled);
+}
+
+async function handleYCloudEvent(payload: YCloudPayload, botEnabled: boolean) {
+  if (payload.type === 'whatsapp.inbound_message.received' && payload.whatsappInboundMessage) {
+    const msg = payload.whatsappInboundMessage;
+    await handleCustomerMessage({ ...msg, id: msg.wamid ?? msg.id }, botEnabled);
+    return;
+  }
+  if (payload.type === 'whatsapp.smb.message.echoes' && payload.whatsappMessage) {
+    const msg = payload.whatsappMessage;
+    await handleEcho({ ...msg, id: msg.wamid ?? msg.id });
+  }
+  // History, delivery status and account-sync events are acknowledged only.
 }
 
 export async function GET(request: NextRequest) {
@@ -186,6 +260,11 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient();
   const { data: settings } = await supabase.from('whatsapp_bot_settings').select('enabled').eq('id', true).maybeSingle();
   const botEnabled = settings?.enabled !== false;
+
+  if (process.env.WHATSAPP_TRANSPORT === 'ycloud') {
+    await handleYCloudEvent(payload as YCloudPayload, botEnabled);
+    return NextResponse.json({ ok: true });
+  }
 
   for (const change of extractChanges(payload)) {
     await handleChange(change, botEnabled);

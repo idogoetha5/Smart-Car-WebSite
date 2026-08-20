@@ -1,22 +1,18 @@
 import { normalizeWhatsAppPhone } from '@/lib/rental-quote';
 
 /**
- * Two send transports, kept side by side on purpose: the onboarding path
- * (Coexistence via 360dialog, keeping the number in Daniel's phone app —
- * reversible, €49/month — vs. direct Meta Cloud API, migrating the number
- * off the app permanently — free, irreversible) is not decided yet. Ido is
- * running a two/three-day cheap test of the agent-inbox concept on a
- * non-production number before committing either way. `WHATSAPP_TRANSPORT`
- * picks which one is active; do not delete either branch until that
- * decision is made — see the plan.
+ * Provider transport is selected at deployment time. YCloud Coexistence is
+ * the preferred path because it keeps the existing WhatsApp Business App on
+ * the owner's phone while exposing the official API and webhook events.
+ * The other transports remain as tested fallbacks until live onboarding.
  */
 
-export type WhatsAppTransport = '360dialog' | 'meta_direct';
+export type WhatsAppTransport = 'ycloud' | '360dialog' | 'meta_direct';
 
 function transport(): WhatsAppTransport {
   const t = process.env.WHATSAPP_TRANSPORT;
-  if (t === '360dialog' || t === 'meta_direct') return t;
-  throw new Error('[whatsapp] WHATSAPP_TRANSPORT must be set to "360dialog" or "meta_direct"');
+  if (t === 'ycloud' || t === '360dialog' || t === 'meta_direct') return t;
+  throw new Error('[whatsapp] WHATSAPP_TRANSPORT must be set to "ycloud", "360dialog" or "meta_direct"');
 }
 
 export { normalizeWhatsAppPhone as normalizeWhatsAppSender };
@@ -44,6 +40,32 @@ async function send360dialog(recipient: string, body: string): Promise<SendWhats
   }
   const data = (await res.json().catch(() => null)) as { messages?: { id?: string }[] } | null;
   return { ok: true, waMessageId: data?.messages?.[0]?.id ?? null, status };
+}
+
+async function sendYCloud(recipient: string, body: string): Promise<SendWhatsAppResult> {
+  const apiKey = process.env.WHATSAPP_YCLOUD_API_KEY;
+  const sender = normalizeWhatsAppPhone(process.env.WHATSAPP_BUSINESS_PHONE ?? '');
+  if (!apiKey) throw new Error('[whatsapp] WHATSAPP_YCLOUD_API_KEY is not configured');
+  if (!sender) throw new Error('[whatsapp] WHATSAPP_BUSINESS_PHONE is not configured');
+
+  const res = await fetch('https://api.ycloud.com/v2/whatsapp/messages/sendDirectly', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+    body: JSON.stringify({
+      from: `+${sender}`,
+      to: `+${recipient}`,
+      type: 'text',
+      text: { body },
+    }),
+  });
+
+  const status = res.status;
+  if (!res.ok) {
+    console.error(`[whatsapp][ALERT] YCloud send failed with ${status}`);
+    return { ok: false, waMessageId: null, status };
+  }
+  const data = (await res.json().catch(() => null)) as { id?: string; wamid?: string } | null;
+  return { ok: true, waMessageId: data?.wamid ?? data?.id ?? null, status };
 }
 
 async function sendMetaDirect(recipient: string, body: string): Promise<SendWhatsAppResult> {
@@ -81,7 +103,10 @@ export async function sendWhatsAppMessage(to: string, body: string): Promise<Sen
   }
 
   try {
-    return transport() === '360dialog' ? await send360dialog(recipient, body) : await sendMetaDirect(recipient, body);
+    const selected = transport();
+    if (selected === 'ycloud') return await sendYCloud(recipient, body);
+    if (selected === '360dialog') return await send360dialog(recipient, body);
+    return await sendMetaDirect(recipient, body);
   } catch (err) {
     console.error('[whatsapp][ALERT] send errored:', (err as Error)?.message);
     return { ok: false, waMessageId: null, status: null };

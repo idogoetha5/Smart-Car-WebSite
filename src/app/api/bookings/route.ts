@@ -14,6 +14,7 @@ import { normalizeEmail } from '@/lib/email';
 import { sendTemplateEmail } from '@/lib/email-delivery';
 import { formatLocationForCustomer } from '@/lib/location-display';
 import { numericOrderReference } from '@/lib/order-reference';
+import { normalizeWhatsAppPhone } from '@/lib/rental-quote';
 import { isoToday } from '@/lib/rental-quote';
 import type { Vehicle } from '@/types';
 
@@ -194,6 +195,7 @@ export async function POST(request: NextRequest) {
       customer_name:       input.customerName,
       customer_email:      normalizeEmail(input.customerEmail),
       customer_phone:      input.customerPhone,
+      customer_phone_normalized: normalizeWhatsAppPhone(input.customerPhone),
       customer_id_number:  input.customerIdNumber ?? null,
       pickup_date:         pickupDate,
       dropoff_date:        dropoffDate,
