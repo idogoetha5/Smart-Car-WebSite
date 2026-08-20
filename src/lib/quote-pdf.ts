@@ -35,6 +35,9 @@ export interface QuoteData {
   companyId: string;
   vehicles: QuoteVehicle[];
   language?: 'he' | 'en';
+  includedTerms?: string[];
+  additionalTerms?: string[];
+  footerNote?: string;
 }
 
 const VAT = 1.18;
@@ -247,7 +250,7 @@ export function quoteBodyHTML(data: QuoteData): string {
   const subStr = subParts.join(' &middot; ');
   const companyIdStr = data.companyId ? ` &middot; ${t.companyIdLabel} <span class="num">${data.companyId}</span>` : '';
 
-  const included = isEn ? [
+  const defaultIncluded = isEn ? [
     'Immediate vehicle availability — in stock',
     'Replacement of 4 tires due to wear, battery, and wiper blades',
     'Routine maintenance per manufacturer guidelines at authorized service centers',
@@ -264,8 +267,12 @@ export function quoteBodyHTML(data: QuoteData): string {
     'אופציית רכישה: 16% הנחה ממחירון יבואן',
     'כיסוי ביטוחי מורחב לפי תנאי ההסכם',
   ];
+  
+  const included = data.includedTerms && data.includedTerms.length > 0 
+    ? data.includedTerms 
+    : defaultIncluded;
 
-  const terms = isEn ? [
+  const defaultTerms = isEn ? [
     'Monthly payment is linked to the Consumer Price Index (CPI)',
     'Monthly payment via direct debit',
     'Deductible of <span class="num">2,500 &#8362;</span> + VAT',
@@ -276,6 +283,14 @@ export function quoteBodyHTML(data: QuoteData): string {
     'השתתפות עצמית <span class="num">2,500 &#8362;</span> + מע&quot;מ',
     'חריגת ק&quot;מ: <span class="num">0.5 &#8362;</span> בתוספת מע&quot;מ לק&quot;מ',
   ];
+  
+  const terms = data.additionalTerms && data.additionalTerms.length > 0 
+    ? data.additionalTerms 
+    : defaultTerms;
+
+  const noteHTML = data.footerNote 
+    ? data.footerNote 
+    : `${t.note} <b><span class="num">${validUntil}</span></b>.`;
 
   return `<div class="doc">
   <header class="top">
@@ -316,7 +331,7 @@ export function quoteBodyHTML(data: QuoteData): string {
   </div>
 
   <div class="note">
-    ${t.note} <b><span class="num">${validUntil}</span></b>.
+    ${noteHTML}
   </div>
 
   <div class="sign">

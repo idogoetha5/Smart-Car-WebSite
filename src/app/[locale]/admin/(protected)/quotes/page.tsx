@@ -35,6 +35,12 @@ export default function AdminQuotesPage() {
   const [language, setLanguage] = useState<'he' | 'en'>('he');
   const [vehicles, setVehicles] = useState<QuoteVehicle[]>([emptyVehicle()]);
   const [inventory, setInventory] = useState<InventoryVehicle[]>([]);
+  
+  const [includedTerms, setIncludedTerms] = useState('');
+  const [additionalTerms, setAdditionalTerms] = useState('');
+  const [footerNote, setFooterNote] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
   const [busy, setBusy] = useState<'pdf' | 'send' | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -68,7 +74,10 @@ export default function AdminQuotesPage() {
     companyId,
     vehicles,
     language,
-  }), [quoteId, quoteNumber, date, customerName, customerEmail, companyName, companyId, vehicles, language]);
+    includedTerms: includedTerms.trim() ? includedTerms.split('\\n').map(s => s.trim()).filter(Boolean) : undefined,
+    additionalTerms: additionalTerms.trim() ? additionalTerms.split('\\n').map(s => s.trim()).filter(Boolean) : undefined,
+    footerNote: footerNote.trim() || undefined,
+  }), [quoteId, quoteNumber, date, customerName, customerEmail, companyName, companyId, vehicles, language, includedTerms, additionalTerms, footerNote]);
 
   // Stable shell (fonts + styles) rendered once so the iframe never reloads;
   // the body is written live on every edit for an instant, flicker-free preview.
@@ -341,6 +350,51 @@ export default function AdminQuotesPage() {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <button 
+              onClick={() => setShowAdvanced(!showAdvanced)} 
+              className="w-full flex items-center justify-between text-gray-900 font-bold"
+            >
+              <span>התאמה אישית של טקסטים בהצעה (אופציונלי)</span>
+              <span className="text-gray-400">{showAdvanced ? '▲' : '▼'}</span>
+            </button>
+            {showAdvanced && (
+              <div className="mt-4 space-y-4">
+                <p className="text-xs text-gray-500">
+                  השאר ריק כדי להשתמש בטקסטים המוגדרים כברירת מחדל (כולל תרגום אוטומטי לאנגלית לפי שפת ההצעה). 
+                  אם תזין טקסט, כל שורה תוצג כסעיף. שים לב: ניתן להשתמש גם בתגיות HTML בסיסיות לטקסט (כמו &lt;b&gt; ו-&lt;span class="num"&gt;).
+                </p>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">ההצעה כוללת (כל שורה = סעיף)</label>
+                  <textarea 
+                    value={includedTerms}
+                    onChange={e => setIncludedTerms(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm h-24"
+                    placeholder="השאר ריק לברירת מחדל..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">תנאים נוספים (כל שורה = סעיף)</label>
+                  <textarea 
+                    value={additionalTerms}
+                    onChange={e => setAdditionalTerms(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm h-24"
+                    placeholder="השאר ריק לברירת מחדל..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">הערה בתחתית ההצעה (טקסט חופשי)</label>
+                  <textarea 
+                    value={footerNote}
+                    onChange={e => setFooterNote(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm h-20"
+                    placeholder="השאר ריק לברירת מחדל..."
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
