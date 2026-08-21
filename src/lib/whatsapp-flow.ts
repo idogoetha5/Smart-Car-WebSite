@@ -351,8 +351,8 @@ function datesPrompt(locale: FlowLocale, pickupDate?: string) {
       ]);
 }
 
-function locationsPrompt(locale: FlowLocale, pickupLocation?: string) {
-  if (pickupLocation) {
+function locationsPrompt(locale: FlowLocale, pickupLocation?: string, dropoffLocation?: string) {
+  if (pickupLocation && !dropoffLocation) {
     return locale === 'en'
       ? pickRandom([
           `Got it, pickup from ${pickupLocation}. Where would you like to return it?`,
@@ -362,6 +362,11 @@ function locationsPrompt(locale: FlowLocale, pickupLocation?: string) {
           `מעולה, רשמתי איסוף מ-${pickupLocation}. לאן תרצו להחזיר את הרכב?`,
           `הבנתי, האיסוף מ-${pickupLocation}. היכן תרצו לבצע את ההחזרה?`
         ]);
+  }
+  if (!pickupLocation && dropoffLocation) {
+    return locale === 'en'
+      ? `Got it, return to ${dropoffLocation}. And where would you like to pick it up?`
+      : `מעולה, רשמתי החזרה ב-${dropoffLocation}. ומאיפה תרצו לאסוף את הרכב?`;
   }
   return locale === 'en'
     ? pickRandom([
@@ -376,8 +381,8 @@ function locationsPrompt(locale: FlowLocale, pickupLocation?: string) {
       ]);
 }
 
-function timesPrompt(locale: FlowLocale, pickupTime?: string) {
-  if (pickupTime) {
+function timesPrompt(locale: FlowLocale, pickupTime?: string, returnTime?: string) {
+  if (pickupTime && !returnTime) {
     return locale === 'en'
       ? pickRandom([
           `Got it, pickup at ${pickupTime}. What time would you like to return it?`,
@@ -387,6 +392,11 @@ function timesPrompt(locale: FlowLocale, pickupTime?: string) {
           `מעולה, רשמתי איסוף ב-${pickupTime}. באיזו שעה תרצו להחזיר את הרכב?`,
           `הבנתי, איסוף ב-${pickupTime}. מתי בערך תתבצע ההחזרה?`
         ]);
+  }
+  if (!pickupTime && returnTime) {
+    return locale === 'en'
+      ? `Got it, return at ${returnTime}. And what time would you like to pick it up?`
+      : `מעולה, רשמתי החזרה ב-${returnTime}. ובאיזו שעה תרצו לאסוף את הרכב?`;
   }
   return locale === 'en'
     ? pickRandom([
@@ -1111,8 +1121,8 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
           
           let nextQuestion = '';
           if (nextStep === 'rental_dates') nextQuestion = datesPrompt(locale, merged.pickupDate);
-          else if (nextStep === 'rental_times') nextQuestion = timesPrompt(locale, merged.pickupTime);
-          else if (nextStep === 'rental_locations') nextQuestion = locationsPrompt(locale, merged.pickupLocation);
+          else if (nextStep === 'rental_times') nextQuestion = timesPrompt(locale, merged.pickupTime, merged.returnTime);
+          else if (nextStep === 'rental_locations') nextQuestion = locationsPrompt(locale, merged.pickupLocation, merged.dropoffLocation);
           else if (nextStep === 'rental_vehicle') nextQuestion = vehiclePrompt(locale);
           else if (nextStep === 'rental_name') nextQuestion = namePrompt(locale);
           else if (nextStep === 'rental_email') nextQuestion = emailPrompt(locale);
