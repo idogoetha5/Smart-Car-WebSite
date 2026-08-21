@@ -73,6 +73,7 @@ export default function AdminQuotesPage() {
   const [includedTerms, setIncludedTerms] = useState(DEFAULT_INCLUDED_HE);
   const [additionalTerms, setAdditionalTerms] = useState(DEFAULT_TERMS_HE);
   const [footerNote, setFooterNote] = useState('');
+  const [isBinding, setIsBinding] = useState(false);
 
   useEffect(() => {
     if (language === 'en') {
@@ -122,7 +123,8 @@ export default function AdminQuotesPage() {
     includedTerms: includedTerms.split('\n').map(s => s.trim()).filter(Boolean),
     additionalTerms: additionalTerms.split('\n').map(s => s.trim()).filter(Boolean),
     footerNote: footerNote.trim() || undefined,
-  }), [quoteId, quoteNumber, date, customerName, customerEmail, companyName, companyId, vehicles, language, includedTerms, additionalTerms, footerNote]);
+    isBinding,
+  }), [quoteId, quoteNumber, date, customerName, customerEmail, companyName, companyId, vehicles, language, includedTerms, additionalTerms, footerNote, isBinding]);
 
   // Stable shell (fonts + styles) rendered once so the iframe never reloads;
   // the body is written live on every edit for an instant, flicker-free preview.
@@ -431,7 +433,18 @@ export default function AdminQuotesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">הערה בתחתית ההצעה (טקסט חופשי)</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs text-gray-500">הערה בתחתית ההצעה (טקסט חופשי)</label>
+                    <label className="flex items-center gap-1.5 text-xs text-gray-700 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={isBinding}
+                        onChange={e => setIsBinding(e.target.checked)}
+                        className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                      />
+                      הפוך להסכם מחייב
+                    </label>
+                  </div>
                   <textarea 
                     value={footerNote}
                     onChange={e => setFooterNote(e.target.value)}

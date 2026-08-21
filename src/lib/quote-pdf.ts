@@ -38,6 +38,7 @@ export interface QuoteData {
   includedTerms?: string[];
   additionalTerms?: string[];
   footerNote?: string;
+  isBinding?: boolean;
 }
 
 const VAT = 1.18;
@@ -198,9 +199,13 @@ export function quoteBodyHTML(data: QuoteData): string {
     kmPerYear: isEn ? 'km / year' : 'ק&quot;מ/שנה',
     includesHeading: isEn ? 'Quote Includes' : 'ההצעה כוללת',
     termsHeading: isEn ? 'Additional Terms' : 'תנאים נוספים',
-    note: isEn 
-      ? 'This quote does not constitute a binding contract. The final agreement will be signed in writing by both parties. Valid until'
-      : 'הצעה זו אינה מהווה חוזה מחייב. ההסכם הסופי ייחתם בכתב על ידי שני הצדדים בלבד. ההצעה בתוקף עד',
+    note: data.isBinding 
+      ? (isEn 
+          ? 'This quote constitutes a binding agreement. Valid until'
+          : 'הצעה זו מהווה הסכם מחייב. ההצעה בתוקף עד')
+      : (isEn 
+          ? 'This quote does not constitute a binding contract. The final agreement will be signed in writing by both parties. Valid until'
+          : 'הצעה זו אינה מהווה חוזה מחייב. ההסכם הסופי ייחתם בכתב על ידי שני הצדדים בלבד. ההצעה בתוקף עד'),
     sincerely: isEn ? 'Sincerely,' : 'בברכה,',
     companyName: isEn ? 'Smart Car 2008 Ltd.' : 'סמארט קאר 2008 בע&quot;מ',
   };
