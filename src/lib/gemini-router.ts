@@ -34,7 +34,9 @@ const frontlineSchema: Schema = {
         vehiclePreference: { type: Type.STRING, enum: ['ECONOMY_COMPACT', 'SEDAN', 'SUV', 'VAN', 'LUXURY'], description: 'Vehicle type mentioned', nullable: true },
         passengers: { type: Type.INTEGER, description: 'Number of passengers', nullable: true },
         luggage: { type: Type.INTEGER, description: 'Number of bags', nullable: true },
-        tripNeeds: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Needs like "young driver", "no credit card", "pets", "cross border"', nullable: true }
+        tripNeeds: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Needs like "young driver", "no credit card", "pets", "cross border"', nullable: true },
+        customerName: { type: Type.STRING, description: 'The customer\'s full name, if they provided it.', nullable: true },
+        customerEmail: { type: Type.STRING, description: 'The customer\'s email address, if they provided it.', nullable: true }
       }
     }
   },
@@ -63,7 +65,10 @@ CRITICAL RULES:
 1. Your main goal is selling car rentals. Focus on guiding the user to rent a car.
 2. EVERYTHING you say MUST be based STRICTLY on the Context Info provided below. Do NOT invent policies, branches, opening hours, vehicles, or rules that are not in the context.
 3. If the user asks a question, answer it accurately based ONLY on the Context Info. If the answer is not in the context, do not invent one.
-4. Keep answers relatively concise and conversational.
+4. For leasing inquiries: NEVER give a price quote for leasing. Explain the conditions and benefits, and inform the user that a representative will provide the exact pricing.
+5. Keep answers relatively concise and conversational.
+6. DO NOT ASK ANY QUESTIONS in your response. The system will automatically ask the user for the next missing piece of information. Your ONLY job in \`humanResponse\` is to warmly acknowledge the information they just provided, or answer their policy/general questions. For example, if they provide dates, just say "מעולה, שמרתי את התאריכים" and STOP. Do not ask "איזה רכב תרצה?".
+7. Speak in natural, correct Hebrew. Do not invent words or make spelling mistakes (e.g. use "נסדר" not "נסידר").
 
 Today's date is: ${today}.
 Current Booking State: ${JSON.stringify(currentState)}
@@ -73,15 +78,17 @@ ${systemContext}
 User Message: "${input}"
 
 Your task:
-1. Write the exact conversational response to the user (in ${locale === 'he' ? 'Hebrew' : 'English'}).
-2. Extract any rental fields they mentioned in their message (dates, locations, vehicle type, etc).
+1. Write the exact conversational acknowledgment/response to the user (in ${locale === 'he' ? 'Hebrew' : 'English'}). DO NOT ASK QUESTIONS.
+2. Extract any rental fields they mentioned in their message (dates, locations, passengers, etc).
+   CRUCIAL: If the user mentions passengers or luggage but no specific vehicle, YOU MUST INFER the best vehiclePreference for them (e.g., VAN for 7+ people or heavy luggage, SUV for 5 people or lots of luggage, etc).
+   CRUCIAL: Dates MUST ALWAYS be formatted strictly as ISO YYYY-MM-DD (e.g., 2026-09-01). If the year is omitted, assume the current year (${new Date().getFullYear()}). Never output text like "ראשון לספטמבר".
 3. Classify their intent.`;
 
   let lastErr;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const response = await genai.models.generateContent({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-3.5-flash-lite',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',

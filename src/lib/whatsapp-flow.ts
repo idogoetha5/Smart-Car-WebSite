@@ -1087,17 +1087,17 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
             } catch {}
           }
           
-          if (nextStep === 'rental_confirm') {
-             reply += `\n\n${confirmationPrompt(merged, locale)}`;
-          } else if (nextStep !== 'menu') {
-             // Append the deterministic question so the form continues seamlessly!
-             // E.g. datesPrompt, timesPrompt
-             if (nextStep === 'rental_dates') reply += `\n\n${datesPrompt(locale, merged.pickupDate)}`;
-             if (nextStep === 'rental_times') reply += `\n\n${timesPrompt(locale)}`;
-             if (nextStep === 'rental_locations') reply += `\n\n${locationsPrompt(locale)}`;
-             if (nextStep === 'rental_vehicle') reply += `\n\n${vehiclePrompt(locale)}`;
-             if (nextStep === 'rental_name') reply += `\n\n${namePrompt(locale)}`;
-             if (nextStep === 'rental_email') reply += `\n\n${emailPrompt(locale)}`;
+          let nextQuestion = '';
+          if (nextStep === 'rental_dates') nextQuestion = datesPrompt(locale, merged.pickupDate);
+          else if (nextStep === 'rental_times') nextQuestion = timesPrompt(locale);
+          else if (nextStep === 'rental_locations') nextQuestion = locationsPrompt(locale);
+          else if (nextStep === 'rental_vehicle') nextQuestion = vehiclePrompt(locale);
+          else if (nextStep === 'rental_name') nextQuestion = namePrompt(locale);
+          else if (nextStep === 'rental_email') nextQuestion = emailPrompt(locale);
+          else if (nextStep === 'rental_confirm') nextQuestion = confirmationPrompt(merged, locale);
+          
+          if (nextQuestion) {
+             reply += `\n\n${nextQuestion}`;
           }
           
           return { handled: true, reply };
@@ -1111,49 +1111,6 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
       }
     } catch (err) {
       console.error('[whatsapp-flow] Gemini frontline failed, falling back:', err);
-    }
-  }
-
-  // --- GEMINI AI FALLBACK ROUTER ---
-  if (!isRentalStep(existingState?.step ?? 'menu') && initialRoute !== 'rental' && initialRoute !== 'accident' && initialRoute !== 'breakdown') {
-    const explicitIntent = classifyServiceIntent(body);
-    const knowledge = getSmartCarServiceAnswer(body, locale);
-    const commercial = classifyCommercialIntent(body);
-    
-    // If the deterministic regex failed to catch anything meaningful, and we have an API key, call Gemini.
-    if (explicitIntent === 'unknown' && !knowledge && commercial === 'unknown' && process.env.GEMINI_API_KEY) {
-      try {
-        const { classifyWithGemini } = await import('./gemini-router');
-        const geminiResult = await classifyWithGemini(body);
-        
-        if (geminiResult) {
-          if (geminiResult.intent === 'rental_inquiry') {
-            initialRoute = 'rental';
-          } else if (geminiResult.intent === 'recommendation') {
-            const recommendationText = locale === 'he'
-              ? pickRandom([
-                  `נשמע מעולה! בואו נמצא את הרכב שיתאים לכם בדיוק.`,
-                  `איזה כיף! יש לנו צי רכבים ענק, תגידו לי מה התכנון ונמצא לכם משהו מתאים.`,
-                  `בשמחה! אני כאן כדי להמליץ ולעזור למצוא את הרכב המושלם.`
-                ])
-              : pickRandom([
-                  `Sounds great! Let's find the perfect vehicle for you.`,
-                  `Awesome! We have a huge fleet, tell me what you need and I'll recommend the best fit.`,
-                  `Happy to help! Let me know your plans and I'll find the right car.`
-                ]);
-            initialRoute = 'rental';
-            // We set it to rental, but we can also immediately jump into the first step
-            const newState = { step: 'rental_dates' as FlowState['step'], locale };
-            await store.saveState(phone, newState);
-            return { handled: true, reply: `${recommendationText}\n\n${datesPrompt(locale, undefined)}` };
-          } else if (geminiResult.intent === 'policy' || geminiResult.intent === 'delivery_return' || geminiResult.intent === 'leasing_sale' || geminiResult.intent === 'existing_booking') {
-            const service = serviceReply(geminiResult.intent, locale, booking);
-            if (service) return service;
-          }
-        }
-      } catch (err) {
-        console.error('[whatsapp-flow] Gemini fallback failed:', err);
-      }
     }
   }
 
@@ -1516,11 +1473,22 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     const requestId = await store.createRentalRequest(phone, existingState, locale);
     if (!requestId) return { handled: true, reply: locale === 'en' ? 'We could not save the request due to a temporary issue. Your details are still here. Please try I confirm again or type representative.' : 'לא הצלחנו לשמור את הבקשה עקב תקלה זמנית. הפרטים עדיין שמורים. נסו לכתוב שוב אני מאשר/ת או כתבו נציג.' };
     await store.saveState(phone, null);
+    
+    let pdfLinkStr = '';
+    try {
+      const { generateWhatsAppPdfQuoteLink } = await import('./whatsapp-pdf');
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
+      const link = await generateWhatsAppPdfQuoteLink(existingState, locale, baseUrl);
+      if (link) {
+         pdfLinkStr = locale === 'en' ? `\n\nHere is your requested price quote document:\n${link}` : `\n\nמצורפת הצעת המחיר המבוקשת:\n${link}`;
+      }
+    } catch(err) { console.error('[whatsapp-flow] PDF link generation failed', err); }
+
     return {
       handled: true,
-      reply: locale === 'en'
+      reply: (locale === 'en'
         ? 'Thank you — your rental request has been received by SmartCar. A representative will check the full fleet and contact you with availability, price, and final written confirmation. The request is not yet a confirmed booking.'
-        : 'תודה — בקשת ההשכרה התקבלה ב־SmartCar. נציג יבדוק את הצי המלא ויחזור אליכם עם זמינות, מחיר ואישור סופי בכתב. הבקשה עדיין אינה הזמנה מאושרת.',
+        : 'תודה — בקשת ההשכרה התקבלה ב־SmartCar. נציג יבדוק את הצי המלא ויחזור אליכם עם זמינות, מחיר ואישור סופי בכתב. הבקשה עדיין אינה הזמנה מאושרת.') + pdfLinkStr,
       escalate: true,
       escalateReason: `בקשת השכרה חדשה מ-WhatsApp (${requestId})`,
     };

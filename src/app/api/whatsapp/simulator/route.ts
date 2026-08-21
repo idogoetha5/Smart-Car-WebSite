@@ -16,7 +16,7 @@ function quickReplies(state: FlowState | null | undefined, reply: string): Quick
       ? [{ label: 'I confirm', message: 'I confirm' }, { label: 'Start again', message: 'menu' }]
       : [{ label: 'אני מאשר/ת', message: 'אני מאשר/ת' }, { label: 'התחלה מחדש', message: 'תפריט' }];
   }
-  if (!state || state.step === 'menu') {
+  if ((!state || state.step === 'menu') && (reply.includes('1️⃣') || reply.includes('איך נוכל לעזור') || reply.includes('Welcome to SmartCar'))) {
     const english = state?.locale === 'en' || /Welcome|accident|flat tyre|breakdown|representative/i.test(reply);
     return english
       ? [{ label: 'Rent a car', message: '1' }, { label: 'Existing booking', message: '2' }, { label: 'Leasing / purchase', message: '3' }, { label: 'Accident or breakdown', message: '6' }, { label: 'עברית', message: 'עברית' }]
@@ -34,6 +34,10 @@ function simulationStore(sessionId: string, initialState: FlowState | null) {
       state = nextState;
     },
     createRentalRequest: async () => `SIM-${sessionId.slice(0, 6).toUpperCase()}`,
+    getRentalQuotes: async (st) => {
+      const { getWhatsAppRentalQuotes } = await import('@/lib/whatsapp-rental-quotes');
+      return getWhatsAppRentalQuotes(st.vehiclePreference, st.pickupDate!, st.dropoffDate!);
+    },
     currentState: () => state,
   } satisfies WhatsAppFlowStore & { currentState: () => FlowState | null };
 }

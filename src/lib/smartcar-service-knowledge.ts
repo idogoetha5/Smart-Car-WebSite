@@ -27,7 +27,7 @@ type LocalisedAnswer = Omit<ServiceKnowledgeAnswer, 'reply' | 'linkLabel'> & {
   linkLabelEn: string;
 };
 
-const ANSWERS: Record<ServiceKnowledgeTopic, LocalisedAnswer> = {
+export const ANSWERS: Record<ServiceKnowledgeTopic, LocalisedAnswer> = {
   insurance: {
     topic: 'insurance', href: '/insurance', linkLabelHe: 'לפרטי הביטוח', linkLabelEn: 'Insurance details',
     he: 'שאלה חשובה. בכל השכרה כלול כיסוי בסיסי: ביטוח חובה ונזקי תאונה, אש וגניבה בכפוף להשתתפות עצמית. גובה ההשתתפות והאפשרות להפחית או לבטל אותה נקבעים בהצעה ובחוזה; נהג שלא נרשם אינו מכוסה.',
