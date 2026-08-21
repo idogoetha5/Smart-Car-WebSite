@@ -80,7 +80,8 @@ User Message: "${input}"
 Your task:
 1. Write the exact conversational acknowledgment/response to the user (in ${locale === 'he' ? 'Hebrew' : 'English'}). DO NOT ASK QUESTIONS.
 2. Extract any rental fields they mentioned in their message (dates, locations, passengers, etc).
-   CRUCIAL: If the user provides a time, date, or location, and the corresponding 'pickup' field is already filled in the Current Booking State, YOU MUST map it to the 'return' field (e.g. dropoffDate, returnTime, dropoffLocation). Do not overwrite the pickup field unless they explicitly say they are changing it.
+   CRUCIAL: Only extract fields that are currently missing or null in the Current Booking State, UNLESS the user explicitly says they want to change an existing field.
+   CRUCIAL: If the user provides a time, date, or location, and you need to map it, map it to the MISSING field (e.g. if pickupDate exists, map a new date to dropoffDate).
    CRUCIAL: If the user mentions passengers or luggage but no specific vehicle, YOU MUST INFER the best vehiclePreference for them (e.g., VAN for 7+ people or heavy luggage, SUV for 5 people or lots of luggage, etc).
    CRUCIAL: Dates MUST ALWAYS be formatted strictly as ISO YYYY-MM-DD (e.g., 2026-09-01). If the year is omitted, assume the current year (${new Date().getFullYear()}). Never output text like "ראשון לספטמבר".
 3. Classify their intent.`;

@@ -715,6 +715,25 @@ function extractRentalDetails(body: string, current: FlowState): Partial<FlowSta
     }
   }
 
+  // Parse durations if pickup date is already known
+  if (current.pickupDate && !extracted.dropoffDate) {
+    let days = 0;
+    if (/חודש|month/i.test(body)) days = 30;
+    else if (/שבועיים|two weeks|fortnight/i.test(body)) days = 14;
+    else if (/שבוע|week/i.test(body)) days = 7;
+    else if (/יומיים|two days/i.test(body)) days = 2;
+    else {
+      const dayMatch = body.match(/(\d+)\s*(?:ימים|days)/i);
+      if (dayMatch) days = parseInt(dayMatch[1], 10);
+    }
+    
+    if (days > 0) {
+      const date = new Date(`${current.pickupDate}T00:00:00Z`);
+      date.setUTCDate(date.getUTCDate() + days);
+      extracted.dropoffDate = date.toISOString().slice(0, 10);
+    }
+  }
+
   // Dates contain numbers too. Only attempt a time range when the message
   // actually contains time syntax or a time-of-day word.
   if (/:|\d\s*(?:am|pm)\b|\b(?:morning|evening|afternoon|noon|midnight)\b|בבוקר|בערב|בלילה|בצהריים|בחצות|שעה|hours?/i.test(body)) {
@@ -1097,7 +1116,42 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
       
       const gemini = await processWithGemini(body, existingState, locale, systemContext);
       if (gemini) {
-        let merged = { ...(existingState || {}), ...gemini.extractedFields, locale } as FlowState;
+        let merged = { ...(existingState || {}), locale } as FlowState;
+        const deterministicExtracted = extractRentalDetails(body, existingState || { step: 'menu', locale } as FlowState);
+        
+        for (const [key, value] of Object.entries(gemini.extractedFields)) {
+          if (value) (merged as any)[key] = value;
+        }
+        for (const [key, value] of Object.entries(deterministicExtracted)) {
+          if (value) (merged as any)[key] = value;
+        }
+
+        if (existingState?.pickupDate && merged.pickupDate !== existingState.pickupDate) {
+           if (!merged.dropoffDate) {
+             merged.dropoffDate = merged.pickupDate;
+             merged.pickupDate = existingState.pickupDate;
+           } else if (!deterministicExtracted.pickupDate) {
+             // Gemini overwrote pickupDate but deterministic only found dropoffDate. Revert Gemini's overwrite!
+             merged.pickupDate = existingState.pickupDate;
+           }
+        }
+        if (existingState?.pickupTime && merged.pickupTime !== existingState.pickupTime) {
+           if (!merged.returnTime) {
+             merged.returnTime = merged.pickupTime;
+             merged.pickupTime = existingState.pickupTime;
+           } else if (!deterministicExtracted.pickupTime) {
+             merged.pickupTime = existingState.pickupTime;
+           }
+        }
+        if (existingState?.pickupLocation && merged.pickupLocation !== existingState.pickupLocation) {
+           if (!merged.dropoffLocation) {
+             merged.dropoffLocation = merged.pickupLocation;
+             merged.pickupLocation = existingState.pickupLocation;
+           } else if (!deterministicExtracted.pickupLocation) {
+             merged.pickupLocation = existingState.pickupLocation;
+           }
+        }
+        
         let reply = gemini.humanResponse;
         
         if (gemini.intent === 'handoff') {
