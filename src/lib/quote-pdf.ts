@@ -268,7 +268,7 @@ export function quoteBodyHTML(data: QuoteData): string {
     'כיסוי ביטוחי מורחב לפי תנאי ההסכם',
   ];
   
-  const included = data.includedTerms && data.includedTerms.length > 0 
+  const included = data.includedTerms !== undefined
     ? data.includedTerms 
     : defaultIncluded;
 
@@ -284,7 +284,7 @@ export function quoteBodyHTML(data: QuoteData): string {
     'חריגת ק&quot;מ: <span class="num">0.5 &#8362;</span> בתוספת מע&quot;מ לק&quot;מ',
   ];
   
-  const terms = data.additionalTerms && data.additionalTerms.length > 0 
+  const terms = data.additionalTerms !== undefined
     ? data.additionalTerms 
     : defaultTerms;
 
@@ -316,19 +316,21 @@ export function quoteBodyHTML(data: QuoteData): string {
     ${vehicleCards}
   </div>
 
+  ${included.length > 0 ? `
   <div class="sec">
     <div class="shead"><span class="dot"></span><h2>${t.includesHeading}</h2><span class="ln"></span></div>
     <div class="g2">
       ${included.map((item) => `<div class="item"><span class="c">${CHECK}</span><span>${item}</span></div>`).join('')}
     </div>
-  </div>
+  </div>` : ''}
 
+  ${terms.length > 0 ? `
   <div class="sec">
     <div class="shead"><span class="dot"></span><h2>${t.termsHeading}</h2><span class="ln"></span></div>
     <div class="g2">
       ${terms.map((item) => `<div class="item d"><span class="c">&middot;</span><span>${item}</span></div>`).join('')}
     </div>
-  </div>
+  </div>` : ''}
 
   <div class="note">
     ${noteHTML}

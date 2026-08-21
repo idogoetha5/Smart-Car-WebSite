@@ -18,6 +18,40 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type InventoryVehicle = any;
 
+const DEFAULT_INCLUDED_HE = [
+  'זמינות מיידית של הרכב — במלאי',
+  'החלפת 4 צמיגים בגין בלאי, מצבר וסט מגבים',
+  'טיפולים שוטפים לפי הוראות יצרן במוסכים מורשים',
+  'אגרת רישוי שנתית',
+  'רכב חליפי במקרה של תקלה או תאונה',
+  'אופציית רכישה: 16% הנחה ממחירון יבואן',
+  'כיסוי ביטוחי מורחב לפי תנאי ההסכם',
+].join('\n');
+
+const DEFAULT_INCLUDED_EN = [
+  'Immediate vehicle availability — in stock',
+  'Replacement of 4 tires due to wear, battery, and wiper blades',
+  'Routine maintenance per manufacturer guidelines at authorized service centers',
+  'Annual vehicle registration fee',
+  'Replacement vehicle in case of breakdown or accident',
+  'Purchase option: 16% discount from list price',
+  'Comprehensive insurance coverage as per agreement terms',
+].join('\n');
+
+const DEFAULT_TERMS_HE = [
+  'המחיר החודשי צמוד למדד המחירים לצרכן',
+  'תשלום חודשי בהוראת קבע',
+  'השתתפות עצמית <span class="num">2,500 &#8362;</span> + מע"מ',
+  'חריגת ק"מ: <span class="num">0.5 &#8362;</span> בתוספת מע"מ לק"מ',
+].join('\n');
+
+const DEFAULT_TERMS_EN = [
+  'Monthly payment is linked to the Consumer Price Index (CPI)',
+  'Monthly payment via direct debit',
+  'Deductible of <span class="num">2,500 &#8362;</span> + VAT',
+  'Mileage overage: <span class="num">0.5 &#8362;</span> + VAT per km',
+].join('\n');
+
 export default function AdminQuotesPage() {
   // Stable for the whole builder session — every save/PDF/send while editing
   // this one draft reuses it, so they update the same row. A fresh page load
@@ -36,9 +70,20 @@ export default function AdminQuotesPage() {
   const [vehicles, setVehicles] = useState<QuoteVehicle[]>([emptyVehicle()]);
   const [inventory, setInventory] = useState<InventoryVehicle[]>([]);
   
-  const [includedTerms, setIncludedTerms] = useState('');
-  const [additionalTerms, setAdditionalTerms] = useState('');
+  const [includedTerms, setIncludedTerms] = useState(DEFAULT_INCLUDED_HE);
+  const [additionalTerms, setAdditionalTerms] = useState(DEFAULT_TERMS_HE);
   const [footerNote, setFooterNote] = useState('');
+
+  useEffect(() => {
+    if (language === 'en') {
+      if (includedTerms === DEFAULT_INCLUDED_HE) setIncludedTerms(DEFAULT_INCLUDED_EN);
+      if (additionalTerms === DEFAULT_TERMS_HE) setAdditionalTerms(DEFAULT_TERMS_EN);
+    } else {
+      if (includedTerms === DEFAULT_INCLUDED_EN) setIncludedTerms(DEFAULT_INCLUDED_HE);
+      if (additionalTerms === DEFAULT_TERMS_EN) setAdditionalTerms(DEFAULT_TERMS_HE);
+    }
+  }, [language, includedTerms, additionalTerms]);
+  
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [busy, setBusy] = useState<'pdf' | 'send' | null>(null);
@@ -74,8 +119,8 @@ export default function AdminQuotesPage() {
     companyId,
     vehicles,
     language,
-    includedTerms: includedTerms.trim() ? includedTerms.split('\\n').map(s => s.trim()).filter(Boolean) : undefined,
-    additionalTerms: additionalTerms.trim() ? additionalTerms.split('\\n').map(s => s.trim()).filter(Boolean) : undefined,
+    includedTerms: includedTerms.split('\\n').map(s => s.trim()).filter(Boolean),
+    additionalTerms: additionalTerms.split('\\n').map(s => s.trim()).filter(Boolean),
     footerNote: footerNote.trim() || undefined,
   }), [quoteId, quoteNumber, date, customerName, customerEmail, companyName, companyId, vehicles, language, includedTerms, additionalTerms, footerNote]);
 
@@ -363,25 +408,26 @@ export default function AdminQuotesPage() {
             {showAdvanced && (
               <div className="mt-4 space-y-4">
                 <p className="text-xs text-gray-500">
-                  השאר ריק כדי להשתמש בטקסטים המוגדרים כברירת מחדל (כולל תרגום אוטומטי לאנגלית לפי שפת ההצעה). 
-                  אם תזין טקסט, כל שורה תוצג כסעיף. שים לב: ניתן להשתמש גם בתגיות HTML בסיסיות לטקסט (כמו &lt;b&gt; ו-&lt;span class="num"&gt;).
+                  ערוך את הטקסטים לפי הצורך. כל שורה תוצג כסעיף נפרד במסמך.
+                  אם תמחק את כל התוכן, לא יופיעו סעיפים.
+                  ניתן להשתמש בתגיות HTML בסיסיות (כמו &lt;b&gt; ו-&lt;span class="num"&gt;).
                 </p>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">ההצעה כוללת (כל שורה = סעיף)</label>
+                  <label className="block text-xs text-gray-500 mb-1">ההצעה כוללת (כל שורה = סעיף עם V)</label>
                   <textarea 
                     value={includedTerms}
                     onChange={e => setIncludedTerms(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm h-24"
-                    placeholder="השאר ריק לברירת מחדל..."
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm h-32"
+                    placeholder="הזן סעיפים..."
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">תנאים נוספים (כל שורה = סעיף)</label>
+                  <label className="block text-xs text-gray-500 mb-1">תנאים נוספים (כל שורה = סעיף עם נקודה)</label>
                   <textarea 
                     value={additionalTerms}
                     onChange={e => setAdditionalTerms(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm h-24"
-                    placeholder="השאר ריק לברירת מחדל..."
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm h-32"
+                    placeholder="הזן תנאים..."
                   />
                 </div>
                 <div>
@@ -390,7 +436,7 @@ export default function AdminQuotesPage() {
                     value={footerNote}
                     onChange={e => setFooterNote(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm h-20"
-                    placeholder="השאר ריק לברירת מחדל..."
+                    placeholder="השאר ריק כדי להשתמש בטקסט ברירת המחדל (ההצעה בתוקף עד...)"
                   />
                 </div>
               </div>
