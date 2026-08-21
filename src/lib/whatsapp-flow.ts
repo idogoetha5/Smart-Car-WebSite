@@ -351,7 +351,18 @@ function datesPrompt(locale: FlowLocale, pickupDate?: string) {
       ]);
 }
 
-function locationsPrompt(locale: FlowLocale) {
+function locationsPrompt(locale: FlowLocale, pickupLocation?: string) {
+  if (pickupLocation) {
+    return locale === 'en'
+      ? pickRandom([
+          `Got it, pickup from ${pickupLocation}. Where would you like to return it?`,
+          `Pickup is set for ${pickupLocation}. And where will you be dropping it off?`
+        ])
+      : pickRandom([
+          `מעולה, רשמתי איסוף מ-${pickupLocation}. לאן תרצו להחזיר את הרכב?`,
+          `הבנתי, האיסוף מ-${pickupLocation}. היכן תרצו לבצע את ההחזרה?`
+        ]);
+  }
   return locale === 'en'
     ? pickRandom([
         'Great. Where is most convenient for you to collect the car, and where would you like to return it?\n\nA SmartCar branch or an address in Israel both work.',
@@ -365,7 +376,18 @@ function locationsPrompt(locale: FlowLocale) {
       ]);
 }
 
-function timesPrompt(locale: FlowLocale) {
+function timesPrompt(locale: FlowLocale, pickupTime?: string) {
+  if (pickupTime) {
+    return locale === 'en'
+      ? pickRandom([
+          `Got it, pickup at ${pickupTime}. What time would you like to return it?`,
+          `Pickup is set for ${pickupTime}. And what about the return time?`
+        ])
+      : pickRandom([
+          `מעולה, רשמתי איסוף ב-${pickupTime}. באיזו שעה תרצו להחזיר את הרכב?`,
+          `הבנתי, איסוף ב-${pickupTime}. מתי בערך תתבצע ההחזרה?`
+        ]);
+  }
   return locale === 'en'
     ? pickRandom([
         'What pickup and return times work best for you?',
@@ -1089,8 +1111,8 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
           
           let nextQuestion = '';
           if (nextStep === 'rental_dates') nextQuestion = datesPrompt(locale, merged.pickupDate);
-          else if (nextStep === 'rental_times') nextQuestion = timesPrompt(locale);
-          else if (nextStep === 'rental_locations') nextQuestion = locationsPrompt(locale);
+          else if (nextStep === 'rental_times') nextQuestion = timesPrompt(locale, merged.pickupTime);
+          else if (nextStep === 'rental_locations') nextQuestion = locationsPrompt(locale, merged.pickupLocation);
           else if (nextStep === 'rental_vehicle') nextQuestion = vehiclePrompt(locale);
           else if (nextStep === 'rental_name') nextQuestion = namePrompt(locale);
           else if (nextStep === 'rental_email') nextQuestion = emailPrompt(locale);
