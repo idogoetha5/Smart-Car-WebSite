@@ -119,8 +119,8 @@ export default function AdminQuotesPage() {
     companyId,
     vehicles,
     language,
-    includedTerms: includedTerms.split('\\n').map(s => s.trim()).filter(Boolean),
-    additionalTerms: additionalTerms.split('\\n').map(s => s.trim()).filter(Boolean),
+    includedTerms: includedTerms.split('\n').map(s => s.trim()).filter(Boolean),
+    additionalTerms: additionalTerms.split('\n').map(s => s.trim()).filter(Boolean),
     footerNote: footerNote.trim() || undefined,
   }), [quoteId, quoteNumber, date, customerName, customerEmail, companyName, companyId, vehicles, language, includedTerms, additionalTerms, footerNote]);
 
