@@ -20,7 +20,7 @@ const frontlineSchema: Schema = {
     intent: {
       type: Type.STRING,
       enum: ['rental', 'policy', 'leasing', 'general', 'handoff'],
-      description: "The primary intent of the user's message."
+      description: "The primary intent of the user's message. Use 'handoff' ONLY for a genuine need to speak with a human: accidents, breakdowns, complaints, anger, legal threats, or an explicit request to talk to a representative. A new rental request being collected (dates, locations, vehicle, name, email — even mentioning a delay, a possible date change, or wanting to modify something they just said) is 'rental', never 'handoff'. Defaulting to 'handoff' is the single most damaging mistake you can make here — it throws away a customer who was moments from completing a request."
     },
     extractedFields: {
       type: Type.OBJECT,
@@ -69,6 +69,8 @@ CRITICAL RULES:
 5. Keep answers relatively concise and conversational.
 6. DO NOT ASK ANY QUESTIONS in your response. The system will automatically ask the user for the next missing piece of information. Your ONLY job in \`humanResponse\` is to warmly acknowledge the information they just provided, or answer their policy/general questions. For example, if they provide dates, just say "מעולה, שמרתי את התאריכים" and STOP. Do not ask "איזה רכב תרצה?".
 7. Speak in natural, correct Hebrew. Do not invent words or make spelling mistakes (e.g. use "נסדר" not "נסידר").
+8. \`humanResponse\` is ONE short sentence (max ~15 words) — an acknowledgment, nothing more. Never write the same sentence, phrase, or idea twice, not even reworded, and never restate the booking summary — the system appends the next question and the full summary itself, separately. If you have nothing to acknowledge, return an empty string.
+9. Your default assumption for every message inside an active rental collection is that the customer wants to finish the request, not talk to a human. Treat mentions of being late, wanting to change a detail, or asking what happens next as normal parts of finishing the booking — acknowledge and move on, do not hand off.
 
 Today's date is: ${today}.
 Current Booking State: ${JSON.stringify(currentState)}
@@ -95,7 +97,10 @@ Your task:
         config: {
           responseMimeType: 'application/json',
           responseSchema: frontlineSchema,
-          temperature: 0.7,
+          // Lower than the earlier 0.7 — this call's job is reliably
+          // following the schema and the "one short sentence, no handoff
+          // on ordinary rental chatter" rules above, not creative variety.
+          temperature: 0.3,
         }
       });
 

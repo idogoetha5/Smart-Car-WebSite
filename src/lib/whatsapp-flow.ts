@@ -43,6 +43,7 @@ export interface FlowState {
   locale?: FlowLocale;
   /** Context for a purchase of a car listed in the verified sales catalogue. */
   carSale?: CarSalesContext;
+  lastQuestion?: string;
   /** Leasing has no self-service quote path; retain its verified intent for the representative. */
   leasing?: { kind: LeasingKind };
 }
@@ -170,9 +171,21 @@ function isMenuCommand(input: string) {
   return ['תפריט', 'התחל', 'התחלה', 'שלום', 'היי', 'חזור', 'hi', 'hello', 'menu', 'start', 'back'].includes(normalized(input));
 }
 
-export function requiresHumanHandoff(input: string) {
+/**
+ * `duringActiveRentalCollection` narrows this to unambiguous escalation
+ * signals only. The full keyword list below includes ordinary words a
+ * customer uses mid-flow for a brand-new request — "לשנות את שעת האיסוף",
+ * "אני קצת מאחר", "אפשר לבטל ולהזמין רכב אחר" — none of which are actually
+ * asking for a human. Those ambiguous words matter once there is a real
+ * booking to modify (handled elsewhere via hasActiveBooking), but here they
+ * were derailing new-request collection into a handoff on ordinary phrasing.
+ */
+export function requiresHumanHandoff(input: string, duringActiveRentalCollection = false) {
   const text = input.toLowerCase();
   if (/עו[״"']ד/.test(text)) return true;
+  if (duringActiveRentalCollection) {
+    return /נציג|נציגת|אנושי|בנאדם|בן אדם|לדבר עם|שיחה עם|תאונה|נזק|דפיקה ברכב|שריטה|שפשוף|מכה ברכב|פגיעה|חירום|דחוף|הצילו|תעזרו לי|תביעה|עורך דין|עורכת דין|משפטי|כועס|זועם|מתוסכל|מעצבן|שירות גרוע|תלונה|אכזבה|\b(?:representative|human|agent|legal|lawyer|sue|angry|mad|frustrated|upset|complaint|terrible|awful)\b|speak to|talk to|customer service/.test(normalized(input));
+  }
   return /נציג|נציגת|אנושי|בנאדם|בן אדם|לדבר עם|שיחה עם|תאונה|נזק|דפיקה ברכב|שריטה|שפשוף|מכה ברכב|פגיעה|חירום|דחוף|הצילו|תעזרו לי|החזר כספי|כסף בחזרה|זיכוי|פיצוי|חיוב|תביעה|עורך דין|עורכת דין|משפטי|כועס|זועם|מתוסכל|מעצבן|שירות גרוע|תלונה|אכזבה|ביטול|לבטל|שינוי|לשנות|הארכ|להאריך|איחור|מאחר|אני אאחר|\b(?:representative|human|agent|person|someone|refund|money back|charge|charged|legal|lawyer|sue|angry|mad|frustrated|upset|cancel|cancellation|change|modify|amend|extend|extension|late|delayed|complaint|terrible|awful)\b|speak to|talk to|customer service/.test(normalized(input));
 }
 
@@ -1105,6 +1118,53 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
   const input = normalized(body);
   const [booking, existingState] = await Promise.all([store.activeBooking(phone), store.loadState(phone)]);
   const locale = detectWhatsAppLocale(body, existingState?.locale);
+
+  // The final "send the request" step is a plain yes/no gate and must never
+  // go through Gemini: free-form generation here would happily say "your
+  // request has been confirmed" without ever calling createRentalRequest,
+  // so the customer is told success while nothing was saved and nobody was
+  // notified. Handled deterministically, before any AI routing, so the
+  // already-built matching PDF quote below is reliably reached.
+  if (existingState?.step === 'rental_confirm') {
+    if (!confirmsTerms(body)) {
+      return {
+        handled: true,
+        reply: locale === 'en'
+          ? 'The request has not been submitted yet. Reply I confirm to agree to the terms and submit it, or menu to start again.'
+          : 'הבקשה עדיין לא נשלחה. כתבו אני מאשר/ת כדי להסכים לתנאים ולשלוח אותה, או תפריט להתחלה מחדש.',
+      };
+    }
+    const requestId = await store.createRentalRequest(phone, existingState, locale);
+    if (!requestId) {
+      return {
+        handled: true,
+        reply: locale === 'en'
+          ? 'We could not save the request due to a temporary issue. Your details are still here. Please try I confirm again or type representative.'
+          : 'לא הצלחנו לשמור את הבקשה עקב תקלה זמנית. הפרטים עדיין שמורים. נסו לכתוב שוב אני מאשר/ת או כתבו נציג.',
+      };
+    }
+    await store.saveState(phone, null);
+
+    let pdfLinkStr = '';
+    try {
+      const { generateWhatsAppPdfQuoteLink } = await import('./whatsapp-pdf');
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
+      const link = await generateWhatsAppPdfQuoteLink(existingState, locale, baseUrl);
+      if (link) {
+        pdfLinkStr = locale === 'en' ? `\n\nHere is your requested price quote document:\n${link}` : `\n\nמצורפת הצעת המחיר המבוקשת:\n${link}`;
+      }
+    } catch (err) { console.error('[whatsapp-flow] PDF link generation failed', err); }
+
+    return {
+      handled: true,
+      reply: (locale === 'en'
+        ? 'Thank you — your rental request has been received by SmartCar. A representative will check the full fleet and contact you with availability, price, and final written confirmation. The request is not yet a confirmed booking.'
+        : 'תודה — בקשת ההשכרה התקבלה ב־SmartCar. נציג יבדוק את הצי המלא ויחזור אליכם עם זמינות, מחיר ואישור סופי בכתב. הבקשה עדיין אינה הזמנה מאושרת.') + pdfLinkStr,
+      escalate: true,
+      escalateReason: `בקשת השכרה חדשה מ-WhatsApp (${requestId})`,
+    };
+  }
+
   let initialRoute = classifyWhatsAppInitialRoute(body, Boolean(booking));
 
   // --- GEMINI FRONTLINE ---
@@ -1164,7 +1224,6 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
           const wasAlreadyReady = existingState?.vehiclePreference && existingState?.pickupDate && existingState?.dropoffDate;
           const nextStep = rentalStepFor(merged);
           merged.step = nextStep;
-          await store.saveState(phone, merged);
           
           if (isReadyForQuote && !wasAlreadyReady) {
             try {
@@ -1184,7 +1243,11 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
           
           if (nextQuestion) {
              reply += `\n\n${nextQuestion}`;
+             merged.lastQuestion = nextQuestion;
+          } else {
+             merged.lastQuestion = undefined;
           }
+          await store.saveState(phone, merged);
           
           return { handled: true, reply };
         }
@@ -1374,7 +1437,7 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
   // extension, business terms, or unconfirmed availability). Handle those
   // before the broad escalation keyword check so the handoff preserves the
   // recognised need instead of reducing it to a generic “representative”.
-  if (existingState && isRentalStep(existingState.step) && existingState.step !== 'rental_confirm' && existingState.step !== 'rental_vehicle') {
+  if (existingState && isRentalStep(existingState.step) && existingState.step !== 'rental_vehicle') {
     const sales = consultativeSalesReply(body, locale, existingState);
     if (sales?.play.mustHandoff) {
       const extracted = extractRentalDetails(body, existingState);
@@ -1394,7 +1457,8 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
   }
 
   const validStructuredEmail = existingState?.step === 'rental_email' && Boolean(validEmail(body));
-  if (requiresHumanHandoff(body) && !validStructuredEmail) {
+  const collectingNewRental = Boolean(existingState) && isRentalStep(existingState!.step);
+  if (requiresHumanHandoff(body, collectingNewRental) && !validStructuredEmail) {
     await store.saveState(phone, handoffState(existingState, locale));
     const mood = detectConversationMood(body);
     return {
@@ -1463,7 +1527,7 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     // the same single next missing field.  Vehicle selection itself is kept
     // in the intake parser so “SUV” continues the form rather than becoming
     // a generic sales reply.
-    const sales = existingState.step === 'rental_confirm' || existingState.step === 'rental_vehicle'
+    const sales = existingState.step === 'rental_vehicle'
       ? null
       : consultativeSalesReply(body, locale, existingState);
     if (sales) {
@@ -1554,31 +1618,9 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     return { handled: true, reply: confirmationPrompt(completed, locale) };
   }
 
-  if (existingState.step === 'rental_confirm') {
-    if (!confirmsTerms(body)) return { handled: true, reply: locale === 'en' ? 'The request has not been submitted yet. Reply I confirm to agree to the terms and submit it, or menu to start again.' : 'הבקשה עדיין לא נשלחה. כתבו אני מאשר/ת כדי להסכים לתנאים ולשלוח אותה, או תפריט להתחלה מחדש.' };
-    const requestId = await store.createRentalRequest(phone, existingState, locale);
-    if (!requestId) return { handled: true, reply: locale === 'en' ? 'We could not save the request due to a temporary issue. Your details are still here. Please try I confirm again or type representative.' : 'לא הצלחנו לשמור את הבקשה עקב תקלה זמנית. הפרטים עדיין שמורים. נסו לכתוב שוב אני מאשר/ת או כתבו נציג.' };
-    await store.saveState(phone, null);
-    
-    let pdfLinkStr = '';
-    try {
-      const { generateWhatsAppPdfQuoteLink } = await import('./whatsapp-pdf');
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
-      const link = await generateWhatsAppPdfQuoteLink(existingState, locale, baseUrl);
-      if (link) {
-         pdfLinkStr = locale === 'en' ? `\n\nHere is your requested price quote document:\n${link}` : `\n\nמצורפת הצעת המחיר המבוקשת:\n${link}`;
-      }
-    } catch(err) { console.error('[whatsapp-flow] PDF link generation failed', err); }
-
-    return {
-      handled: true,
-      reply: (locale === 'en'
-        ? 'Thank you — your rental request has been received by SmartCar. A representative will check the full fleet and contact you with availability, price, and final written confirmation. The request is not yet a confirmed booking.'
-        : 'תודה — בקשת ההשכרה התקבלה ב־SmartCar. נציג יבדוק את הצי המלא ויחזור אליכם עם זמינות, מחיר ואישור סופי בכתב. הבקשה עדיין אינה הזמנה מאושרת.') + pdfLinkStr,
-      escalate: true,
-      escalateReason: `בקשת השכרה חדשה מ-WhatsApp (${requestId})`,
-    };
-  }
+  // rental_confirm is handled at the top of getWhatsAppFlowReply, before
+  // Gemini routing — unreachable here since existingState.step can only
+  // still be 'rental_confirm' by returning early above.
 
   // A customer often writes a full sentence after the menu was already shown.
   // Keep recognising service intent instead of forcing them back to a number.
