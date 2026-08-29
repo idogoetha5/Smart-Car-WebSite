@@ -73,6 +73,11 @@ const nextConfig: NextConfig = {
   // explicitly to keep it.
   outputFileTracingIncludes: {
     '/api/admin/quote-pdf/route': ['./node_modules/@sparticuz/chromium/bin/**'],
+    // The WhatsApp flow reaches the same PDF renderer (via a dynamic
+    // import chain into rental-quote-server.ts) to attach a matching
+    // quote once a rental request is confirmed — same binary-tracing gap.
+    '/api/whatsapp/webhook/route': ['./node_modules/@sparticuz/chromium/bin/**'],
+    '/api/whatsapp/simulator/route': ['./node_modules/@sparticuz/chromium/bin/**'],
   },
   images: {
     remotePatterns: [
