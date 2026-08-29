@@ -6,7 +6,7 @@ import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 import { FACEBOOK_PAGE_URL } from '@/lib/constants';
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export async function generateMetadata({
   params,

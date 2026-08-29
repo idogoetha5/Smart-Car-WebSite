@@ -1,5 +1,5 @@
 import { localeAlternates } from '@/lib/seo';
-export const revalidate = 60;
+export const revalidate = 3600;
 
 import { notFound } from 'next/navigation';
 import { getVehicleById } from '@/lib/db/vehicles';
