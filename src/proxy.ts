@@ -1,7 +1,14 @@
 import createMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { locales, defaultLocale } from '../i18n';
-import { verifyAdminToken } from '@/lib/admin-auth';
+import { verifyAdminToken, verifyInboxToken } from '@/lib/admin-auth';
+
+// Daniel's WhatsApp-inbox trial (see src/app/api/admin/whatsapp/inbox-login)
+// uses a separate, narrower cookie instead of the full admin session — both
+// gates below have to recognize it, scoped to only these paths, or a valid
+// inbox_auth cookie would still bounce off the admin-only checks here.
+const INBOX_API_PREFIX = '/api/admin/whatsapp/conversations';
+const INBOX_LOGIN_API = '/api/admin/whatsapp/inbox-login';
 
 const intlMiddleware = createMiddleware({
   locales,
@@ -101,22 +108,32 @@ export async function proxy(request: NextRequest) {
     // Defense-in-depth: every admin API route already verifies the session
     // itself, but enforce it here too (except login, which issues the
     // cookie) so a future route can't be silently exposed by forgetting to.
-    if (!pathname.startsWith('/api/admin/login')) {
-      const token = request.cookies.get('admin_auth')?.value ?? '';
-      if (!await verifyAdminToken(token)) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!pathname.startsWith('/api/admin/login') && pathname !== INBOX_LOGIN_API) {
+      const adminOk = await verifyAdminToken(request.cookies.get('admin_auth')?.value ?? '');
+      if (!adminOk) {
+        const inboxOk = pathname.startsWith(INBOX_API_PREFIX)
+          && await verifyInboxToken(request.cookies.get('inbox_auth')?.value ?? '');
+        if (!inboxOk) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
       }
     }
 
     return NextResponse.next();
   }
 
-  // Protect admin routes — redirect to login if not authenticated
-  if (pathname.match(/\/[a-z]{2}\/admin/) && !pathname.includes('/admin/login')) {
-    const token = request.cookies.get('admin_auth')?.value ?? '';
-    if (!await verifyAdminToken(token)) {
-      const locale = pathname.split('/')[1] || defaultLocale;
-      return NextResponse.redirect(new URL(`/${locale}/admin/login`, request.url));
+  // Protect admin routes — redirect to login if not authenticated. The
+  // PIN-entry page itself is excluded the same way /admin/login is; the
+  // inbox page it leads to accepts the PIN cookie as an alternative below.
+  if (pathname.match(/\/[a-z]{2}\/admin/) && !pathname.includes('/admin/login') && !pathname.includes('/admin/inbox-login')) {
+    const adminOk = await verifyAdminToken(request.cookies.get('admin_auth')?.value ?? '');
+    if (!adminOk) {
+      const inboxOk = pathname.includes('/admin/inbox')
+        && await verifyInboxToken(request.cookies.get('inbox_auth')?.value ?? '');
+      if (!inboxOk) {
+        const locale = pathname.split('/')[1] || defaultLocale;
+        return NextResponse.redirect(new URL(`/${locale}/admin/login`, request.url));
+      }
     }
   }
 
