@@ -1,18 +1,24 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/server';
-import { verifyAdminToken } from '@/lib/admin-auth';
+import { verifyAdminToken, verifyInboxToken } from '@/lib/admin-auth';
 
 /**
  * Cheapest-possible test of the agent-inbox concept (see the plan) — no
  * PWA, no push, just a list + thread inside the existing admin panel so
  * Daniel can try working conversations from a browser for a couple of days
  * before Ido commits to the full PWA + number migration.
+ *
+ * Accepts either the full admin session or Daniel's scoped inbox PIN
+ * (src/app/api/admin/whatsapp/inbox-login) — the PIN session opens only
+ * this surface, never bookings/leasing/pricing.
  */
 
 async function checkAuth() {
   const cookieStore = await cookies();
-  return verifyAdminToken(cookieStore.get('admin_auth')?.value ?? '');
+  const adminOk = await verifyAdminToken(cookieStore.get('admin_auth')?.value ?? '');
+  if (adminOk) return true;
+  return verifyInboxToken(cookieStore.get('inbox_auth')?.value ?? '');
 }
 
 interface MessageRow {

@@ -49,7 +49,7 @@ export async function signAdminToken(): Promise<string> {
   return `${payload}.${b64urlEncode(sig)}`;
 }
 
-export async function verifyAdminToken(token: string): Promise<boolean> {
+async function verifyTokenWithKind(token: string, kind: string): Promise<boolean> {
   try {
     const dot = token.lastIndexOf('.');
     if (dot === -1) return false;
@@ -58,7 +58,7 @@ export async function verifyAdminToken(token: string): Promise<boolean> {
     if (!sigPart) return false;
 
     const parts = payloadPart.split(':');
-    if (parts[0] !== 'admin' || parts[1] !== '1' || !parts[2]) return false;
+    if (parts[0] !== kind || parts[1] !== '1' || !parts[2]) return false;
 
     const ts = parseInt(parts[2], 10);
     if (isNaN(ts) || Math.floor(Date.now() / 1000) - ts > TOKEN_MAX_AGE) return false;
@@ -72,4 +72,27 @@ export async function verifyAdminToken(token: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export async function verifyAdminToken(token: string): Promise<boolean> {
+  return verifyTokenWithKind(token, 'admin');
+}
+
+/**
+ * A narrower credential for Daniel's WhatsApp-inbox trial (see the plan) —
+ * gated by a plain PIN rather than the password+TOTP admin login, and
+ * accepted only by the whatsapp conversation routes, never by
+ * verifyAdminToken. So a leaked inbox cookie exposes WhatsApp threads, not
+ * bookings, leasing requests or pricing.
+ */
+export async function signInboxToken(): Promise<string> {
+  const ts = Math.floor(Date.now() / 1000);
+  const payload = `inbox:1:${ts}`;
+  const key = await getKey();
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  return `${payload}.${b64urlEncode(sig)}`;
+}
+
+export async function verifyInboxToken(token: string): Promise<boolean> {
+  return verifyTokenWithKind(token, 'inbox');
 }

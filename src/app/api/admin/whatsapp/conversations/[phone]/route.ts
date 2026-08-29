@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/server';
-import { verifyAdminToken } from '@/lib/admin-auth';
+import { verifyAdminToken, verifyInboxToken } from '@/lib/admin-auth';
 import { sendWhatsAppMessage } from '@/lib/whatsapp';
 import { logWhatsAppMessage } from '@/lib/whatsapp-conversations';
 
+/** See src/app/api/admin/whatsapp/conversations/route.ts for why two cookies. */
 async function checkAuth() {
   const cookieStore = await cookies();
-  return verifyAdminToken(cookieStore.get('admin_auth')?.value ?? '');
+  const adminOk = await verifyAdminToken(cookieStore.get('admin_auth')?.value ?? '');
+  if (adminOk) return true;
+  return verifyInboxToken(cookieStore.get('inbox_auth')?.value ?? '');
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ phone: string }> }) {
