@@ -34,6 +34,7 @@ export type DeliveryCitySlug =
   | 'modiin'
   | 'haifa'
   | 'beer-sheva'
+  | 'center'
   | 'north'
   | 'south';
 
@@ -146,6 +147,16 @@ export const DELIVERY_CITIES: DeliveryCity[] = [
       'בבאר שבע ובנגב הצפוני ניתן לתאם מסירה של רכב מ-SmartCar עד כתובתכם, בתיאום מול נציג מראש. הרכב יוצא מהסניף בירושלים, כך שכדאי לקבוע זמינות ושעה מדויקת בעת ההזמנה.',
     bodyEn:
       "In Beer Sheva and the northern Negev, a SmartCar delivery to your address can be arranged with a representative in advance. The vehicle comes from the Jerusalem branch, so it's best to confirm exact availability and timing when booking.",
+  },
+  {
+    slug: 'center',
+    nameHe: 'מרכז הארץ',
+    nameEn: 'Central Israel',
+    nearestBranch: 'telaviv',
+    bodyHe:
+      'במרכז הארץ — תל אביב, רמת גן, גבעתיים, בני ברק, לוד ורמלה ועוד — SmartCar מציעה מסירת רכב עד הכתובת שלכם, בתיאום מראש מול נציג. זה האזור הצפוף ביותר בפעילות שלנו, כך שבדרך כלל אפשר לתאם מסירה מהסניף בתל אביב או בהרצליה בזמן קצר יחסית.',
+    bodyEn:
+      "In central Israel — Tel Aviv, Ramat Gan, Givatayim, Bnei Brak, Lod, Ramla and more — SmartCar offers delivery to your address, coordinated with a representative in advance. This is our busiest delivery area, so arranging a pickup from the Tel Aviv or Herzliya branch is usually quick.",
   },
   {
     slug: 'north',
