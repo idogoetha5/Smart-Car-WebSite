@@ -794,16 +794,16 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
                   onChange={() => toggleExtra(extra.id)}
                   className="sr-only"
                 />
-                <span className="font-bold text-[#B64916] shrink-0">{extra.priceLabel}</span>
-                <div className="text-right">
-                  <div className="flex items-center gap-2 justify-end">
+                <div className="flex-1 text-start">
+                  <div className="flex items-center gap-2 justify-start">
+                    <span className="font-semibold">{extra.icon} {isHe ? extra.name : (extra as { nameEn?: string }).nameEn ?? extra.name}</span>
                     {extra.popular && (
                       <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">{isHe ? 'פופולרי' : 'Popular'}</span>
                     )}
-                    <span className="font-semibold">{extra.icon} {isHe ? extra.name : (extra as { nameEn?: string }).nameEn ?? extra.name}</span>
                   </div>
                   <p className="text-xs text-gray-600">{isHe ? extra.description : (extra as { descriptionEn?: string }).descriptionEn ?? extra.description}</p>
                 </div>
+                <span className="font-bold text-[#B64916] shrink-0 text-end">{extra.priceLabel}</span>
               </label>
             ))}
           </div>
@@ -893,13 +893,15 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
       {totalDays > 0 && (
         <div className="bg-[#eef6f6] rounded-xl p-4 border border-[#B8D8D8] space-y-2 text-start">
           <div className="flex justify-between text-sm text-gray-600">
-            <span className="font-medium">₪{pricePerDay} × {totalDays} {isHe ? 'ימים' : 'days'}</span>
             <span>{isHe ? 'מחיר בסיס' : 'Base price'}</span>
+            <span className="font-medium">
+              {isHe ? `${totalDays} ימים × ₪${pricePerDay}` : `₪${pricePerDay} × ${totalDays} days`}
+            </span>
           </div>
           {discountPct > 0 && (
             <div className="flex justify-between text-sm text-green-600">
-              <span className="font-medium">-₪{discount}</span>
               <span>{isHe ? `הנחה ${discountPct}%` : `${discountPct}% discount`}</span>
+              <span className="font-medium">-₪{discount}</span>
             </div>
           )}
           {selectedExtras.map(id => {
@@ -909,20 +911,20 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
             const lineTotal = isFixed ? extra.price : extra.price * totalDays;
             return (
               <div key={id} className="flex justify-between text-sm text-gray-600">
-                <span className="font-medium">₪{lineTotal}</span>
                 <span>{extra.icon} {isHe ? extra.name : (extra as { nameEn?: string }).nameEn ?? extra.name}</span>
+                <span className="font-medium">₪{lineTotal}</span>
               </div>
             );
           })}
           {couponDiscount > 0 && (
             <div className="flex justify-between text-sm text-green-600">
-              <span className="font-medium">-₪{couponDiscount}</span>
               <span>🎟️ {isHe ? couponState.labelHe : couponState.labelEn}</span>
+              <span className="font-medium">-₪{couponDiscount}</span>
             </div>
           )}
           <div className="flex justify-between font-bold text-lg border-t border-[#B8D8D8] pt-2">
-            <span className="text-[#B64916]">₪{grandTotal.toLocaleString()}</span>
             <span>{isHe ? 'מחיר משוער' : 'Estimated price'}</span>
+            <span className="text-[#B64916]">₪{grandTotal.toLocaleString()}</span>
           </div>
           <p className="text-xs text-gray-600 text-center pt-1">
             {isHe
