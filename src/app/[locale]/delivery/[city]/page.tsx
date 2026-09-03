@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { localeAlternates } from '@/lib/seo';
 import { DELIVERY_CITIES, getDeliveryCity, hePrefix } from '@/lib/delivery-cities';
 import { BRANCHES, branchAddress, branchName, mapsUrl, wazeUrl } from '@/lib/branches';
+import { WHATSAPP_NUMBER } from '@/lib/constants';
 
 export function generateStaticParams() {
   return DELIVERY_CITIES.map((c) => ({ city: c.slug }));
@@ -129,6 +130,14 @@ export default async function DeliveryCityPage({
           className="flex-1 text-center border-2 border-[#B64916] text-[#B64916] font-bold rounded-full px-6 py-3 hover:bg-orange-50 transition-colors"
         >
           📞 {branch.phone}
+        </a>
+        <a
+          href={`https://wa.me/${WHATSAPP_NUMBER}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 text-center bg-[#25D366] hover:opacity-90 text-white font-bold rounded-full px-6 py-3 transition-opacity"
+        >
+          {isHe ? 'וואטסאפ' : 'WhatsApp'}
         </a>
       </div>
     </div>
