@@ -12,12 +12,6 @@ export async function generateWhatsAppPdfQuoteLink(state: FlowState, locale: 'en
     if (!quotes.length) return null;
 
     const selectedQuote = quotes[0];
-    
-    // Calculate days based on dates
-    const pickup = new Date(`${state.pickupDate}T00:00:00Z`);
-    const dropoff = new Date(`${state.dropoffDate}T00:00:00Z`);
-    const diffTime = Math.abs(dropoff.getTime() - pickup.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
 
     const data: RentalQuoteData = {
       quoteNumber: `WA-${Math.floor(Math.random() * 100000)}`,

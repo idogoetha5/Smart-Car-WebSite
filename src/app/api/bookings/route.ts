@@ -282,24 +282,16 @@ function formatMileageAllowanceHe(totalDays: number): string {
 
 const LOGO_URL = 'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/logo.png';
 
-/** Escapes a value dropped into the details_block/notice_block HTML fragments below. */
-function escapeHtml(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function detailRow(label: string, value: string): string {
-  return `<p><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</p>`;
-}
-
-/**
- * The EmailJS "request received" template (template_ngg6hyf) renders
- * {{heading}}, {{intro_text}}, {{details_block}} and {{notice_block}} as
- * raw HTML it does not otherwise interpret — so this is the only place
- * controlling what the customer sees vs. what the office sees. The two
- * must stay genuinely separate: the office block below carries fields
- * (ID number, notes, mileage, additional driver) that must never reach
- * the customer's copy.
- */
+// EmailJS substitutes {{var}} as plain text only — it does NOT render HTML
+// embedded inside a variable's value (confirmed the hard way: an earlier
+// version of this function built full <div>/<p> markup as a string and
+// passed it through {{details_block}}, and customers received the literal
+// "<div style=..." markup as visible text). So the template below has every
+// row hard-coded as fixed HTML, and each office-only row carries a
+// {{office_only}} placeholder in its own `style` attribute — that
+// placeholder is still just plain text (either the string "display:none" or
+// an empty string), never a tag. `office_only`/`customer_only` are the only
+// switch between what the two recipients see.
 async function sendRequestReceivedEmail({
   booking,
   vehicle,
@@ -311,7 +303,11 @@ async function sendRequestReceivedEmail({
   totalDays: number;
 }): Promise<boolean> {
   const orderId = numericOrderReference(String(booking.id));
-  const vehicleName = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
+  // The year is deliberately left off the customer's copy — customers found
+  // it confusing next to the model name. Staff still get it, since it's
+  // relevant when matching against the full fleet.
+  const vehicleNameCustomer = `${vehicle.make} ${vehicle.model}`;
+  const vehicleNameOffice = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
   const startDate = formatDateHe(booking.pickup_date);
   const endDate = formatDateHe(booking.dropoff_date);
   const pickupLocation = formatLocationForCustomer(booking.pickup_location);
@@ -323,49 +319,23 @@ async function sendRequestReceivedEmail({
     ? `₪${Number(booking.total_price).toLocaleString()} (מחיר משוער)`
     : 'יימסר על ידי נציג';
 
-  const customerDetailsBlock = `<div style="background: #f0f7f7; padding: 20px; border-radius: 8px; margin: 20px 0; border-right: 4px solid #2D5F5F;">
-${detailRow('מספר בקשה', `#${orderId}`)}
-${detailRow('סוג', 'השכרה')}
-${detailRow('רכב', vehicleName)}
-${detailRow('תאריך איסוף', startDate)}
-${detailRow('תאריך החזרה', endDate)}
-${detailRow('מקום איסוף', pickupLocation)}
-${detailRow('מקום החזרה', returnLocation)}
-${detailRow('טלפון', booking.customer_phone)}
-${detailRow('סה״כ', totalPriceText)}
-</div>`;
-
-  const customerNoticeBlock = `<div style="background: #fff8f5; border: 1px solid #E8743B; padding: 15px; border-radius: 8px;">
-<p style="margin: 0;">חשוב לדעת: הודעה זו מאשרת את קבלת הבקשה בלבד. אישור סופי של ההזמנה ושיריון הרכב יתבצעו רק לאחר שיחת אישור עם נציג מטעמנו.</p>
-</div>`;
-
-  // Office copy — sent separately (not BCC) so it can carry fields the
-  // customer must never see: ID number, additional driver, free-text
-  // notes and the mileage allowance. A BCC would have mirrored the
-  // customer's own email verbatim, which cannot show extra fields.
-  const officeDetailsBlock = `<div style="background: #f0f7f7; padding: 20px; border-radius: 8px; margin: 20px 0; border-right: 4px solid #2D5F5F;">
-${detailRow('מספר בקשה', `#${orderId}`)}
-${detailRow('סוג', 'השכרה')}
-${detailRow('רכב', vehicleName)}
-${detailRow('שם לקוח', booking.customer_name)}
-${detailRow('טלפון', booking.customer_phone)}
-${detailRow('אימייל', booking.customer_email)}
-${detailRow('ת.ז / דרכון', booking.customer_id_number || 'לא נמסר')}
-${detailRow('תאריך איסוף', `${startDate} בשעה ${booking.pickup_time || '09:00'}`)}
-${detailRow('תאריך החזרה', `${endDate} בשעה ${booking.return_time || '09:00'}`)}
-${detailRow('מקום איסוף', pickupLocation)}
-${detailRow('מקום החזרה', returnLocation)}
-${detailRow('ימי השכרה', String(totalDays))}
-${detailRow('מכסת ק"מ', formatMileageAllowanceHe(totalDays))}
-${detailRow('תוספות', extrasText)}
-${detailRow('נהג נוסף', booking.additional_driver_name || 'ללא')}
-${detailRow('הערות לקוח', booking.notes || 'ללא')}
-${detailRow('סה״כ', totalPriceText)}
-</div>`;
-
-  const officeNoticeBlock = `<div style="background: #eef6f6; border: 1px solid #2D5F5F; padding: 15px; border-radius: 8px;">
-<p style="margin: 0;">בקשה חדשה התקבלה באתר וממתינה לאישור. ניתן לצפות בה ולאשר אותה בפאנל הניהול.</p>
-</div>`;
+  const sharedParams = {
+    order_id:         orderId,
+    // The EmailJS "request received" template (template_ngg6hyf) wraps this
+    // in its own subject line:
+    //   קיבלנו את בקשת ה{{booking_type}} שלך – {{vehicle_name}} | SmartCar
+    // so this must be a short noun, not a sentence.
+    booking_type:      'השכרה',
+    pickup_location:   pickupLocation,
+    return_location:   returnLocation,
+    customer_phone:    booking.customer_phone,
+    total_price:       totalPriceText,
+    logo_url:          LOGO_URL,
+  };
+  // Staff need the exact collection/return time to plan handover, so the
+  // office's date lines carry it; the customer's copy keeps the plain date.
+  const pickupTime = booking.pickup_time || '09:00';
+  const returnTime = booking.return_time || '09:00';
 
   // Both recipients are independent — sent concurrently so the customer's
   // response time isn't doubled by a second sequential EmailJS round trip.
@@ -376,20 +346,21 @@ ${detailRow('סה״כ', totalPriceText)}
       idempotencyKey: `booking_request_received:${booking.id}`,
       templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
       params: {
+        ...sharedParams,
         to_email:     booking.customer_email,
         to_name:      booking.customer_name,
-        order_id:     orderId,
-        // The EmailJS "request received" template (template_ngg6hyf)
-        // wraps this in its own subject line:
-        //   קיבלנו את בקשת ה{{booking_type}} שלך – {{vehicle_name}} | SmartCar
-        // so this must be a short noun, not a sentence.
-        booking_type: 'השכרה',
-        vehicle_name: vehicleName,
+        vehicle_name: vehicleNameCustomer,
+        start_date:   startDate,
+        end_date:     endDate,
         heading:      'תודה, הבקשה שלך אצלנו',
-        intro_text:   'תודה שבחרת ב-SmartCar!<br>הבקשה שלך התקבלה אצלנו בהצלחה. נציג מהצוות שלנו כבר עובר על הפרטים וייצור איתך קשר בהקדם כדי להתקדם בתהליך ההשכרה.',
-        details_block: customerDetailsBlock,
-        notice_block:  customerNoticeBlock,
-        logo_url:      LOGO_URL,
+        intro_text:   'תודה שבחרת ב-SmartCar! הבקשה שלך התקבלה אצלנו בהצלחה. נציג מהצוות שלנו כבר עובר על הפרטים וייצור איתך קשר בהקדם כדי להתקדם בתהליך ההשכרה.',
+        // Rows/notice marked office_only are hidden for the customer;
+        // customer_only stays visible. Values still required even when
+        // hidden — the template has no notion of "leave this field blank".
+        office_only:   'display:none',
+        customer_only: '',
+        customer_name: '', customer_email: '', id_number: '', total_days: '',
+        mileage_allowance: '', extras: '', additional_driver: '', notes: '',
       },
     }),
     sendTemplateEmail({
@@ -397,16 +368,24 @@ ${detailRow('סה״כ', totalPriceText)}
       idempotencyKey: `booking_request_received_office:${booking.id}`,
       templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
       params: {
+        ...sharedParams,
         to_email:     'office@smartcar.co.il',
         to_name:      'צוות SmartCar',
-        order_id:     orderId,
-        booking_type: 'השכרה',
-        vehicle_name: vehicleName,
+        vehicle_name: vehicleNameOffice,
+        start_date:   `${startDate} בשעה ${pickupTime}`,
+        end_date:     `${endDate} בשעה ${returnTime}`,
         heading:      'התקבלה בקשת השכרה חדשה',
         intro_text:   'התקבלה בקשת הזמנה חדשה מהאתר. פרטי הבקשה המלאים:',
-        details_block: officeDetailsBlock,
-        notice_block:  officeNoticeBlock,
-        logo_url:      LOGO_URL,
+        office_only:   '',
+        customer_only: 'display:none',
+        customer_name: booking.customer_name,
+        customer_email: booking.customer_email,
+        id_number:     booking.customer_id_number || 'לא נמסר',
+        total_days:    String(totalDays),
+        mileage_allowance: formatMileageAllowanceHe(totalDays),
+        extras:        extrasText,
+        additional_driver: booking.additional_driver_name || 'ללא',
+        notes:         booking.notes || 'ללא',
       },
     }),
   ]);

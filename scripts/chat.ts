@@ -13,13 +13,13 @@ const PHONE_NUMBER = '972501234567';
 // In-memory store so it doesn't crash trying to connect to a real database
 const memoryState = new Map<string, FlowState>();
 const mockStore = {
-  async activeBooking(phone: string) { return null; },
+  async activeBooking(_phone: string) { return null; },
   async loadState(phone: string) { return memoryState.get(phone) ?? null; },
   async saveState(phone: string, state: FlowState | null) {
     if (state) memoryState.set(phone, state);
     else memoryState.delete(phone);
   },
-  async createRentalRequest(phone: string, state: FlowState) { return 'REQ-123'; },
+  async createRentalRequest(_phone: string, _state: FlowState) { return 'REQ-123'; },
   async getRentalQuotes() { return []; },
   async getCarsForSale() { return []; }
 };
