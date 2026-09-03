@@ -1,13 +1,24 @@
 /**
- * Delivery-only landing pages: cities SmartCar reaches through its existing
- * door-to-door delivery service (already advertised site-wide as available
- * "בכל הארץ" / "across Israel"), but where there is no physical branch.
+ * Delivery-only landing pages: cities and regions SmartCar reaches through
+ * its existing door-to-door delivery service (already advertised site-wide
+ * as available "בכל הארץ" / "across Israel"), but where there is no
+ * physical branch.
  *
  * These are not a substitute for the branch pages in @/lib/branches — no
  * new location, address or service is being introduced here, only a
- * dedicated URL per city so each can be found on its own for
- * "השכרת רכב <city>" searches. Nearest-branch data lets each page point to
+ * dedicated URL per city/region so each can be found on its own for
+ * "השכרת רכב <place>" searches. Nearest-branch data lets each page point to
  * a real pickup option instead of implying a branch that doesn't exist.
+ *
+ * Deliberately bounded, not exhaustive: Google's spam policy treats large
+ * numbers of near-identical, keyword-swapped city pages as "doorway pages,"
+ * a pattern that can trigger a manual action against the whole site. This
+ * list stays at a size where every entry gets genuinely distinct body copy
+ * (real distance/logistics detail, not template variables) and two of the
+ * wider-reach searches ("הצפון" / "הדרום") are covered as single regional
+ * pages instead of one entry per town — full country coverage without
+ * mass-producing lookalike pages. Kept off primary navigation on purpose
+ * (see the small link on /branches); indexed via sitemap.ts only.
  */
 
 import { type BranchId } from '@/lib/branches';
@@ -18,7 +29,13 @@ export type DeliveryCitySlug =
   | 'petah-tikva'
   | 'rishon-lezion'
   | 'holon'
-  | 'kfar-saba';
+  | 'kfar-saba'
+  | 'ashdod'
+  | 'modiin'
+  | 'haifa'
+  | 'beer-sheva'
+  | 'north'
+  | 'south';
 
 export interface DeliveryCity {
   slug: DeliveryCitySlug;
@@ -89,6 +106,66 @@ export const DELIVERY_CITIES: DeliveryCity[] = [
       'בכפר סבא אפשר לתאם מסירה עד הבית או המשרד מהסניף בהרצליה, בלי לצאת מהעיר כדי לאסוף רכב. הצי הרחב של SmartCar זמין גם כאן, מקומפקטי ועד יוקרה.',
     bodyEn:
       "In Kfar Saba, delivery can be arranged from the Herzliya branch straight to your home or office, without leaving the city to collect a vehicle. SmartCar's full fleet, from compact to luxury, is available here too.",
+  },
+  {
+    slug: 'ashdod',
+    nameHe: 'אשדוד',
+    nameEn: 'Ashdod',
+    nearestBranch: 'telaviv',
+    bodyHe:
+      'באשדוד ניתן לתאם מסירה והחזרה של רכב מ-SmartCar בכתובת הבית או העבודה, מהסניף בתל אביב. השירות מתאים לתושבי העיר, לעובדים בנמל ובאזורי התעשייה, ולמי שיוצא מכאן לטיול לדרום.',
+    bodyEn:
+      "In Ashdod, delivery and return can be arranged at a home or work address, coordinated from the Tel Aviv branch. It suits city residents, workers at the port and industrial zones, and anyone heading south from here.",
+  },
+  {
+    slug: 'modiin',
+    nameHe: 'מודיעין',
+    nameEn: 'Modiin',
+    nearestBranch: 'telaviv',
+    bodyHe:
+      'במודיעין, בדיוק באמצע הדרך בין תל אביב לירושלים, ניתן לתאם מסירה עד הבית מהסניף בתל אביב. נוח למי שצריך רכב לימים בודדים בלי לנסוע לאסוף אותו.',
+    bodyEn:
+      "In Modiin, roughly halfway between Tel Aviv and Jerusalem, delivery to your door can be arranged from the Tel Aviv branch. Convenient for anyone who needs a car for a few days without a trip to collect it.",
+  },
+  {
+    slug: 'haifa',
+    nameHe: 'חיפה',
+    nameEn: 'Haifa',
+    nearestBranch: 'herzliya',
+    bodyHe:
+      'בחיפה ובקריות ניתן לתאם מסירה והחזרה של רכב מ-SmartCar בכתובת שתבחרו. הנסיעה מהסניף בהרצליה ארוכה יותר מאזור המרכז, ולכן מומלץ לתאם מראש עם נציג את השעה המדויקת והזמינות.',
+    bodyEn:
+      "In Haifa and the Krayot area, a SmartCar delivery and return can be arranged at an address of your choice. The drive from the Herzliya branch is longer than within the center, so it's best to confirm the exact time and availability with a representative in advance.",
+  },
+  {
+    slug: 'beer-sheva',
+    nameHe: 'באר שבע',
+    nameEn: 'Beer Sheva',
+    nearestBranch: 'jerusalem',
+    bodyHe:
+      'בבאר שבע ובנגב הצפוני ניתן לתאם מסירה של רכב מ-SmartCar עד כתובתכם, בתיאום מול נציג מראש. הרכב יוצא מהסניף בירושלים, כך שכדאי לקבוע זמינות ושעה מדויקת בעת ההזמנה.',
+    bodyEn:
+      "In Beer Sheva and the northern Negev, a SmartCar delivery to your address can be arranged with a representative in advance. The vehicle comes from the Jerusalem branch, so it's best to confirm exact availability and timing when booking.",
+  },
+  {
+    slug: 'north',
+    nameHe: 'הצפון',
+    nameEn: 'Northern Israel',
+    nearestBranch: 'herzliya',
+    bodyHe:
+      'לנוסעים לצפון הארץ — חיפה, עכו, נהריה, כרמיאל, טבריה והכנרת — SmartCar מציעה מסירת רכב עד הכתובת שלכם, בתיאום מראש מול נציג. ככל שהיעד רחוק יותר מהסניף בהרצליה, כדאי לתאם את השעה והזמינות מוקדם יותר.',
+    bodyEn:
+      "For trips to northern Israel — Haifa, Acre, Nahariya, Karmiel, Tiberias and the Sea of Galilee — SmartCar offers delivery to your address, coordinated with a representative in advance. The further the destination from the Herzliya branch, the earlier it's worth confirming timing and availability.",
+  },
+  {
+    slug: 'south',
+    nameHe: 'הדרום',
+    nameEn: 'Southern Israel',
+    nearestBranch: 'jerusalem',
+    bodyHe:
+      'לנוסעים לדרום הארץ — באר שבע, אשקלון, אילת והנגב — SmartCar מציעה מסירת רכב עד הכתובת שלכם, בתיאום מראש מול נציג מהסניף בירושלים. מומלץ לתאם זמינות ושעה מדויקת מבעוד מועד, בהתאם למרחק מהיעד.',
+    bodyEn:
+      "For trips to southern Israel — Beer Sheva, Ashkelon, Eilat and the Negev — SmartCar offers delivery to your address, coordinated in advance with a representative from the Jerusalem branch. It's best to confirm exact availability and timing ahead of time, depending on the distance to your destination.",
   },
 ];
 
