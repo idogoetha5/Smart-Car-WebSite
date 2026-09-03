@@ -118,8 +118,14 @@ export default async function RentalDetailPage({
       <BackToVehicles locale={locale} />
 
       <div className="grid lg:grid-cols-2 gap-12">
-        {/* Vehicle Info — shown below form on mobile, beside it on desktop */}
-        <div className="order-2 lg:order-1">
+        {/* Vehicle Info — shown below form on mobile, beside it on desktop.
+            Desktop order is deliberately locale-conditional, not just
+            "order-1": `order` places items along the grid's own reading
+            direction, so a fixed order-1/order-2 pair renders mirrored
+            between rtl and ltr. We want the photo on the physical left and
+            the form on the physical right in both languages, so Hebrew
+            gets the swapped order values needed to land there too. */}
+        <div className={`order-2 ${locale === 'he' ? 'lg:order-2' : 'lg:order-1'}`}>
           <VehicleGallery
             images={vehicle.imageUrls ?? []}
             alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
@@ -187,7 +193,7 @@ export default async function RentalDetailPage({
         </div>
 
         {/* Booking Form — shown first on mobile, beside vehicle info on desktop */}
-        <div className="order-1 lg:order-2">
+        <div className={`order-1 ${locale === 'he' ? 'lg:order-1' : 'lg:order-2'}`}>
           {/* The form is always shown. The online catalogue holds only part
               of the fleet, so it cannot conclude that no vehicle exists —
               the previous "הרכב תפוס" panel replaced the form with a dead
