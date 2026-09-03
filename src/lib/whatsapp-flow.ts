@@ -1165,7 +1165,7 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     };
   }
 
-  let initialRoute = classifyWhatsAppInitialRoute(body, Boolean(booking));
+  const initialRoute = classifyWhatsAppInitialRoute(body, Boolean(booking));
 
   // --- GEMINI FRONTLINE ---
   if (process.env.GEMINI_API_KEY) {
@@ -1176,14 +1176,14 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
       
       const gemini = await processWithGemini(body, existingState, locale, systemContext);
       if (gemini) {
-        let merged = { ...(existingState || {}), locale } as FlowState;
+        const merged = { ...(existingState || {}), locale } as FlowState;
         const deterministicExtracted = extractRentalDetails(body, existingState || { step: 'menu', locale } as FlowState);
-        
+
         for (const [key, value] of Object.entries(gemini.extractedFields)) {
-          if (value) (merged as any)[key] = value;
+          if (value) (merged as unknown as Record<string, unknown>)[key] = value;
         }
         for (const [key, value] of Object.entries(deterministicExtracted)) {
-          if (value) (merged as any)[key] = value;
+          if (value) (merged as unknown as Record<string, unknown>)[key] = value;
         }
 
         if (existingState?.pickupDate && merged.pickupDate !== existingState.pickupDate) {

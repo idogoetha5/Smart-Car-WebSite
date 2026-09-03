@@ -75,16 +75,22 @@ export default function AdminQuotesPage() {
   const [footerNote, setFooterNote] = useState('');
   const [isBinding, setIsBinding] = useState(false);
 
-  useEffect(() => {
-    if (language === 'en') {
+  /**
+   * Swaps the terms text to match the newly chosen language — but only
+   * when it's still the untouched default for the old language, so a
+   * manually edited term is never clobbered by a language switch.
+   */
+  function handleLanguageChange(next: 'he' | 'en') {
+    setLanguage(next);
+    if (next === 'en') {
       if (includedTerms === DEFAULT_INCLUDED_HE) setIncludedTerms(DEFAULT_INCLUDED_EN);
       if (additionalTerms === DEFAULT_TERMS_HE) setAdditionalTerms(DEFAULT_TERMS_EN);
     } else {
       if (includedTerms === DEFAULT_INCLUDED_EN) setIncludedTerms(DEFAULT_INCLUDED_HE);
       if (additionalTerms === DEFAULT_TERMS_EN) setAdditionalTerms(DEFAULT_TERMS_HE);
     }
-  }, [language, includedTerms, additionalTerms]);
-  
+  }
+
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [busy, setBusy] = useState<'pdf' | 'send' | null>(null);
@@ -268,7 +274,7 @@ export default function AdminQuotesPage() {
         <div className="flex gap-2">
           <select 
             value={language}
-            onChange={(e) => setLanguage(e.target.value as 'he' | 'en')}
+            onChange={(e) => handleLanguageChange(e.target.value as 'he' | 'en')}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white font-medium"
           >
             <option value="he">עברית</option>
@@ -412,7 +418,7 @@ export default function AdminQuotesPage() {
                 <p className="text-xs text-gray-500">
                   ערוך את הטקסטים לפי הצורך. כל שורה תוצג כסעיף נפרד במסמך.
                   אם תמחק את כל התוכן, לא יופיעו סעיפים.
-                  ניתן להשתמש בתגיות HTML בסיסיות (כמו &lt;b&gt; ו-&lt;span class="num"&gt;).
+                  ניתן להשתמש בתגיות HTML בסיסיות (כמו &lt;b&gt; ו-&lt;span class=&quot;num&quot;&gt;).
                 </p>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">ההצעה כוללת (כל שורה = סעיף עם V)</label>

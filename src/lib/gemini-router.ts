@@ -108,7 +108,7 @@ Your task:
       if (!text) return null;
       const parsed = JSON.parse(text);
       
-      const cleaned: Record<string, any> = {};
+      const cleaned: Record<string, unknown> = {};
       if (parsed.extractedFields) {
         for (const [k, v] of Object.entries(parsed.extractedFields)) {
           if (v !== null && v !== undefined && v !== '') cleaned[k] = v;
@@ -120,9 +120,11 @@ Your task:
         intent: parsed.intent,
         extractedFields: cleaned
       };
-    } catch (err: any) {
+    } catch (err) {
       lastErr = err;
-      if (err?.status === 503 || err?.message?.includes('503') || err?.message?.includes('high demand')) {
+      const status = (err as { status?: number })?.status;
+      const message = (err as { message?: string })?.message;
+      if (status === 503 || message?.includes('503') || message?.includes('high demand')) {
         console.warn(`[gemini-router] 503 High Demand (attempt ${attempt}/3). Retrying in 1s...`);
         await new Promise(r => setTimeout(r, 1000));
         continue;
