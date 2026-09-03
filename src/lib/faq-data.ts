@@ -39,6 +39,18 @@ export const FAQ_HE: FaqItem[] = [
     a: 'מדיניות הביטול הקנונית היא זו שבעמוד תנאי ההשכרה: יותר מ־72 שעות לפני האיסוף — החזר מלא; 72–48 שעות — 25% מדמי השכירות הבסיסיים; 48–24 שעות — 50%; פחות מ־24 שעות או אי־הופעה — 100%. שינוי תאריכים ללא חיוב אפשרי עד 48 שעות לפני האיסוף, בכפוף לזמינות.',
     learnMoreHref: '/terms', learnMoreLabel: 'למדיניות הביטול המלאה',
   },
+  {
+    q: 'איך עובדת השכרת רכב בנתב"ג?',
+    a: 'שירות המשלוח שלנו לנמל התעופה בן גוריון עובד 24/7 — הרכב מגיע אליכם לטרמינל, ואין צורך לעמוד בתור להסעה לסניף חיצוני. אפשר גם לאסוף רכב בכל מקום בארץ ולהחזיר אותו בנתב"ג בסוף הטיול, ולהיפך.',
+    learnMoreHref: '/branches/airport',
+    learnMoreLabel: 'לפרטים על סניף נתב"ג',
+  },
+  {
+    q: 'מה ההבדל בין השכרת רכב לליסינג?',
+    a: 'השכרת רכב מיועדת לתקופה קצרה — מיום בודד ועד כמה שבועות — עם התחייבות מינימלית וגמישות מלאה בתאריכים. ליסינג הוא מסלול לטווח ארוך, בדרך כלל עם מחיר חודשי קבוע הכולל טיפולים וביטוח, ומתאים למי שצריך רכב לתקופה ממושכת בלי לרכוש אותו — פרטי או עסקי.',
+    learnMoreHref: '/leasing',
+    learnMoreLabel: 'לכל מסלולי הליסינג',
+  },
 ];
 
 export const FAQ_EN: FaqItem[] = [
@@ -66,5 +78,17 @@ export const FAQ_EN: FaqItem[] = [
     q: 'What is the cancellation policy?',
     a: 'The canonical cancellation policy is on the Rental Terms page: more than 72 hours before pickup — full refund; 72–48 hours — 25% of the base rental fee; 48–24 hours — 50%; under 24 hours or a no-show — 100%. Date changes are free up to 48 hours before pickup, subject to availability.',
     learnMoreHref: '/terms', learnMoreLabel: 'Full cancellation policy →',
+  },
+  {
+    q: 'How does car rental at Ben Gurion Airport work?',
+    a: 'Our Ben Gurion Airport delivery service runs 24/7 — your car is brought straight to the terminal, so there is no need to wait for a shuttle to an off-site branch. You can also pick up a vehicle anywhere in Israel and return it at the airport at the end of your trip, or the other way around.',
+    learnMoreHref: '/branches/airport',
+    learnMoreLabel: 'Airport branch details →',
+  },
+  {
+    q: 'What is the difference between renting and leasing?',
+    a: 'Car rental is meant for short periods — from a single day up to a few weeks — with minimal commitment and full date flexibility. Leasing is a long-term arrangement, typically with a fixed monthly price that includes maintenance and insurance, and suits anyone who needs a vehicle for an extended period without buying it — private or business.',
+    learnMoreHref: '/leasing',
+    learnMoreLabel: 'See all leasing plans →',
   },
 ];

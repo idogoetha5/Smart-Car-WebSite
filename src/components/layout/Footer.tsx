@@ -100,6 +100,7 @@ export default function Footer() {
                 { href: `/${locale}/rental`,  label: tNav('rental') },
                 { href: `/${locale}/leasing`, label: tNav('leasing') },
                 { href: `/${locale}/about`,   label: locale === 'he' ? 'אודות' : 'About' },
+                { href: `/${locale}/guide`,   label: locale === 'he' ? 'מדריך השכרת רכב' : 'Rental Guide' },
               ].map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="hover:text-[#B64916] transition-colors">
