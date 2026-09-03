@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
 import { createAdminClient } from '@/lib/supabase/server';
 import { BRANCHES } from '@/lib/branches';
+import { DELIVERY_CITIES } from '@/lib/delivery-cities';
 
 const baseUrl =
   process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
@@ -56,6 +57,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/en/insurance`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/he/guide`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${baseUrl}/en/guide`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.6 },
+    // Delivery-only city pages — no branch at these addresses, only the
+    // existing door-to-door delivery service. Indexed via this sitemap;
+    // linked on-site only as the small "also deliver to" line on /branches.
+    ...DELIVERY_CITIES.flatMap((c) => [
+      { url: `${baseUrl}/he/delivery/${c.slug}`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.5 },
+      { url: `${baseUrl}/en/delivery/${c.slug}`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.5 },
+    ]),
     { url: `${baseUrl}/he/cookies`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${baseUrl}/en/cookies`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'yearly', priority: 0.3 },
     ...[
