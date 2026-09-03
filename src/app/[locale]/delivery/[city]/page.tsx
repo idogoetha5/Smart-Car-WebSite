@@ -21,7 +21,7 @@ export async function generateMetadata({
   const name = isHe ? c.nameHe : c.nameEn;
   return {
     title: {
-      absolute: isHe ? `השכרת רכב עם משלוח ${hePrefix('ל', c.nameHe)} | SmartCar` : `Car Rental Delivered to ${name} | SmartCar`,
+      absolute: isHe ? `השכרת רכב עד לביתך ${hePrefix('ב', c.nameHe)} | SmartCar` : `Car Rental Delivered to ${name} | SmartCar`,
     },
     description: isHe
       ? `השכרת רכב מ-SmartCar עם מסירה והחזרה ${hePrefix('ב', c.nameHe)}, בתיאום מראש. צי רחב, שירות אישי ומענה אנושי.`
@@ -48,7 +48,7 @@ export default async function DeliveryCityPage({
     '@type': 'AutoRental',
     name: 'SmartCar',
     description: isHe
-      ? `השכרת רכב מ-SmartCar עם מסירה והחזרה ב${name}`
+      ? `השכרת רכב מ-SmartCar עם מסירה והחזרה ${hePrefix('ב', c.nameHe)}`
       : `Car rental from SmartCar with delivery and return in ${name}`,
     url: `${baseUrl}/${locale}/delivery/${c.slug}`,
     areaServed: { '@type': 'City', name },
@@ -67,7 +67,7 @@ export default async function DeliveryCityPage({
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: isHe ? 'ראשי' : 'Home', item: `${baseUrl}/${locale}` },
       { '@type': 'ListItem', position: 2, name: isHe ? 'סניפים' : 'Branches', item: `${baseUrl}/${locale}/branches` },
-      { '@type': 'ListItem', position: 3, name: isHe ? `משלוח ל${name}` : `Delivery to ${name}`, item: `${baseUrl}/${locale}/delivery/${c.slug}` },
+      { '@type': 'ListItem', position: 3, name: isHe ? hePrefix('ב', c.nameHe) : `Delivery to ${name}`, item: `${baseUrl}/${locale}/delivery/${c.slug}` },
     ],
   };
 
@@ -84,7 +84,7 @@ export default async function DeliveryCityPage({
 
       <p className="text-[#B64916] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
       <h1 className="text-3xl sm:text-4xl font-black text-[#0D2B2B] mb-6">
-        {isHe ? `השכרת רכב עם משלוח ל${name}` : `Car Rental Delivered to ${name}`}
+        {isHe ? `השכרת רכב עד לביתך ${hePrefix('ב', c.nameHe)}` : `Car Rental Delivered to ${name}`}
       </h1>
 
       <p className="text-gray-700 text-lg leading-relaxed mb-10">
