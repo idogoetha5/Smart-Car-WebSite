@@ -72,7 +72,7 @@ export const DELIVERY_CITIES: DeliveryCity[] = [
     slug: 'petah-tikva',
     nameHe: 'פתח תקווה',
     nameEn: 'Petah Tikva',
-    nearestBranch: 'telaviv',
+    nearestBranch: 'herzliya',
     bodyHe:
       'בפתח תקווה ובאזור התעשייה שלה אפשר לתאם מסירה עד הכתובת, ולא צריך לנסוע לסניף. ההחזרה בסיום ההשכרה מתואמת באותו אופן.',
     bodyEn:
@@ -82,7 +82,7 @@ export const DELIVERY_CITIES: DeliveryCity[] = [
     slug: 'rishon-lezion',
     nameHe: 'ראשון לציון',
     nameEn: 'Rishon LeZion',
-    nearestBranch: 'telaviv',
+    nearestBranch: 'herzliya',
     bodyHe:
       'תושבי ראשון לציון יכולים לקבל רכב עד הבית בתיאום מראש, מבלי להגיע לסניף. זמינות מדויקת נבדקת מול נציג בעת ההזמנה.',
     bodyEn:
@@ -92,7 +92,7 @@ export const DELIVERY_CITIES: DeliveryCity[] = [
     slug: 'holon',
     nameHe: 'חולון',
     nameEn: 'Holon',
-    nearestBranch: 'telaviv',
+    nearestBranch: 'herzliya',
     bodyHe:
       'בחולון ניתן לתאם מסירה והחזרה של רכב מ-SmartCar בכתובת הביתית או העסקית, בתיאום מראש. מתאים במיוחד למי שצריך רכב לכמה ימים בלי להתעסק עם תור בסוכנות.',
     bodyEn:
@@ -112,7 +112,7 @@ export const DELIVERY_CITIES: DeliveryCity[] = [
     slug: 'ashdod',
     nameHe: 'אשדוד',
     nameEn: 'Ashdod',
-    nearestBranch: 'telaviv',
+    nearestBranch: 'herzliya',
     bodyHe:
       'באשדוד ניתן לתאם מסירה והחזרה של רכב מ-SmartCar בכתובת הבית או העבודה, בתיאום מראש. השירות מתאים לתושבי העיר, לעובדים בנמל ובאזורי התעשייה, ולמי שיוצא מכאן לטיול לדרום.',
     bodyEn:
@@ -122,7 +122,7 @@ export const DELIVERY_CITIES: DeliveryCity[] = [
     slug: 'modiin',
     nameHe: 'מודיעין',
     nameEn: 'Modiin',
-    nearestBranch: 'telaviv',
+    nearestBranch: 'herzliya',
     bodyHe:
       'במודיעין, בדיוק באמצע הדרך בין תל אביב לירושלים, ניתן לתאם מסירה עד הבית בתיאום מראש. נוח למי שצריך רכב לימים בודדים בלי לנסוע לאסוף אותו.',
     bodyEn:
@@ -142,7 +142,7 @@ export const DELIVERY_CITIES: DeliveryCity[] = [
     slug: 'beer-sheva',
     nameHe: 'באר שבע',
     nameEn: 'Beer Sheva',
-    nearestBranch: 'jerusalem',
+    nearestBranch: 'herzliya',
     bodyHe:
       'בבאר שבע ובנגב הצפוני ניתן לתאם מסירה של רכב מ-SmartCar עד כתובתכם, בתיאום מול נציג מראש. כדאי לקבוע זמינות ושעה מדויקת בעת ההזמנה.',
     bodyEn:
@@ -152,7 +152,7 @@ export const DELIVERY_CITIES: DeliveryCity[] = [
     slug: 'center',
     nameHe: 'מרכז הארץ',
     nameEn: 'Central Israel',
-    nearestBranch: 'telaviv',
+    nearestBranch: 'herzliya',
     bodyHe:
       'במרכז הארץ — תל אביב, רמת גן, גבעתיים, בני ברק, לוד ורמלה ועוד — SmartCar מציעה מסירת רכב עד הכתובת שלכם, בתיאום מראש מול נציג.',
     bodyEn:
@@ -172,7 +172,7 @@ export const DELIVERY_CITIES: DeliveryCity[] = [
     slug: 'south',
     nameHe: 'הדרום',
     nameEn: 'Southern Israel',
-    nearestBranch: 'jerusalem',
+    nearestBranch: 'herzliya',
     bodyHe:
       'לנוסעים לדרום הארץ — באר שבע, אשקלון, אילת והנגב — SmartCar מציעה מסירת רכב עד הכתובת שלכם, בתיאום מראש מול נציג. מומלץ לתאם זמינות ושעה מדויקת מבעוד מועד, בהתאם למרחק מהיעד.',
     bodyEn:
