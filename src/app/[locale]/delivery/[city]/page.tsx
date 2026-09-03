@@ -22,7 +22,7 @@ export async function generateMetadata({
   const name = isHe ? c.nameHe : c.nameEn;
   return {
     title: {
-      absolute: isHe ? `השכרת רכב עד לביתך ${hePrefix('ב', c.nameHe)} | SmartCar` : `Car Rental Delivered to ${name} | SmartCar`,
+      absolute: isHe ? `השכרת רכב עד לביתך ${hePrefix('ב', c.nameHe)}! | SmartCar` : `Car Rental Delivered to ${name} | SmartCar`,
     },
     description: isHe
       ? `השכרת רכב מ-SmartCar עם מסירה והחזרה ${hePrefix('ב', c.nameHe)}, בתיאום מראש. צי רחב, שירות אישי ומענה אנושי.`
@@ -85,7 +85,7 @@ export default async function DeliveryCityPage({
 
       <p className="text-[#B64916] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>
       <h1 className="text-3xl sm:text-4xl font-black text-[#0D2B2B] mb-6">
-        {isHe ? `השכרת רכב עד לביתך ${hePrefix('ב', c.nameHe)}` : `Car Rental Delivered to ${name}`}
+        {isHe ? `השכרת רכב עד לביתך ${hePrefix('ב', c.nameHe)}!` : `Car Rental Delivered to ${name}`}
       </h1>
 
       <p className="text-gray-700 text-lg leading-relaxed mb-10">
