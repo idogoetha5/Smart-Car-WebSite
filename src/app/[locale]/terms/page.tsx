@@ -116,7 +116,7 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
                 <li>אסורה נסיעה מחוץ לגבולות מדינת ישראל ללא אישור מוקדם בכתב. הפרה תבטל כל כיסוי ביטוחי.</li>
                 <li>עישון בתוך הרכב אסור. זיהום עקב עישון יגרור חיוב ניקוי מינימלי של ₪500.</li>
                 <li>הרכב נמסר עם מיכל דלק מלא ויש להחזירו עם מיכל מלא. אי-החזרת דלק מלא תחויב לפי מחיר שוק.</li>
-                <li><strong>מגבלת ק"מ:</strong> מכסת הנסיעה נקבעת לפי אורך השכירות: 1–7 ימים — 250 ק"מ ליום; 8–30 ימים — 220 ק"מ ליום; מעל 30 ימים — 4,000 ק"מ לכל 30 יום. ק"מ חריגים מעבר למכסה יחויבו לפי התעריף הקבוע בחוזה ההשכרה.</li>
+                <li><strong>מגבלת ק"מ:</strong> מכסת הנסיעה נקבעת לפי אורך השכירות: 1–7 ימים — 200 ק"מ ליום; 8–30 ימים — 220 ק"מ ליום; מעל 30 ימים — 2,500 ק"מ לכל 30 יום. ק"מ חריגים מעבר למכסה יחויבו לפי התעריף הקבוע בחוזה ההשכרה.</li>
                 <li>חל איסור על שימוש ברכב לצרכי שכר — מוניות, Uber, Bolt, או כל שירות תחבורה בתשלום.</li>
                 <li>חל איסור על גרירת כלי רכב, נגרר או ציוד כבד ללא אישור מפורש בכתב.</li>
                 <li>השוכר חייב לנעול את הרכב, לשמור על המפתחות ולדאוג לאבטחה סבירה.</li>
@@ -287,7 +287,7 @@ export default async function TermsPage({ params }: { params: Promise<{ locale: 
                 <li>Driving outside Israel requires prior written authorisation. Violation voids all insurance coverage.</li>
                 <li>Smoking inside the vehicle is prohibited. Smoke contamination incurs a minimum cleaning charge of ₪500.</li>
                 <li>Vehicle is delivered with a full fuel tank and must be returned with a full tank. Missing fuel will be charged at market price.</li>
-                <li><strong>Mileage allowance:</strong> The included mileage is determined by rental duration — 1–7 days: 250 km/day; 8–30 days: 220 km/day; over 30 days: 4,000 km per 30-day period. Excess kilometres are charged at the rate stated in the rental agreement.</li>
+                <li><strong>Mileage allowance:</strong> The included mileage is determined by rental duration — 1–7 days: 200 km/day; 8–30 days: 220 km/day; over 30 days: 2,500 km per 30-day period. Excess kilometres are charged at the rate stated in the rental agreement.</li>
                 <li>Commercial use for ride-hailing (Uber, Bolt, taxi) is prohibited.</li>
                 <li>Towing or hauling trailers without prior written authorisation is prohibited.</li>
               </ul>

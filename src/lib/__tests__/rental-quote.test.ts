@@ -60,7 +60,7 @@ const quote: RentalQuoteData = {
   deliveryFee: 50,
   discount: 25,
   vatMode: 'excluded',
-  mileageAllowance: '250 ק״מ ליום',
+  mileageAllowance: '200 ק״מ ליום',
   insuranceCoverage: 'כיסוי ביטוחי מורחב',
   deposit: '₪2,000',
   deductible: '₪1,500',

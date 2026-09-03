@@ -26,9 +26,9 @@ const BRANCHES = ALL_BRANCHES.map((b) => ({
 }));
 
 function getRentalMileageAllowance(days: number): number {
-  if (days <= 7) return 250 * days;
+  if (days <= 7) return 200 * days;
   if (days <= 30) return 220 * days;
-  return 4000 * Math.ceil(days / 30);
+  return 2500 * Math.ceil(days / 30);
 }
 
 const BRANCHES_EN = ALL_BRANCHES.map((b) => ({

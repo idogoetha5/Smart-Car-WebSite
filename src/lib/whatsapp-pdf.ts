@@ -46,7 +46,7 @@ export async function generateWhatsAppPdfQuoteLink(state: FlowState, locale: 'en
       deliveryFee: 0,
       discount: 0,
       vatMode: 'included',
-      mileageAllowance: '250',
+      mileageAllowance: '200',
       notes: 'הצעת מחיר אוטומטית מוואטסאפ (לא אישור סופי)',
       insuranceCoverage: 'ביטוח מקיף מלא (CDW & TP)',
       deposit: '₪2000 - מסגרת אשראי',

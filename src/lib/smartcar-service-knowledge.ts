@@ -45,8 +45,8 @@ export const ANSWERS: Record<ServiceKnowledgeTopic, LocalisedAnswer> = {
   },
   mileage: {
     topic: 'mileage', href: '/terms', linkLabelHe: 'לתנאי הקילומטראז׳', linkLabelEn: 'Mileage terms',
-    he: 'הקילומטראז׳ כלול לפי משך ההשכרה: 1–7 ימים — 250 ק״מ ליום; 8–30 ימים — 220 ק״מ ליום; ומעל 30 ימים — 4,000 ק״מ לכל 30 יום. חריגה מחויבת לפי התעריף בחוזה ההשכרה.',
-    en: 'Mileage is included by rental length: 1–7 days — 250 km/day; 8–30 days — 220 km/day; over 30 days — 4,000 km per 30-day period. Excess kilometres are charged at the rate in the rental agreement.',
+    he: 'הקילומטראז׳ כלול לפי משך ההשכרה: 1–7 ימים — 200 ק״מ ליום; 8–30 ימים — 220 ק״מ ליום; ומעל 30 ימים — 2,500 ק״מ לכל 30 יום. חריגה מחויבת לפי התעריף בחוזה ההשכרה.',
+    en: 'Mileage is included by rental length: 1–7 days — 200 km/day; 8–30 days — 220 km/day; over 30 days — 2,500 km per 30-day period. Excess kilometres are charged at the rate in the rental agreement.',
   },
   driver_documents: {
     topic: 'driver_documents', href: '/insurance', linkLabelHe: 'לרשימת המסמכים', linkLabelEn: 'Document checklist',
