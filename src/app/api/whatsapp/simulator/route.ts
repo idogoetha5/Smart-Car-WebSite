@@ -6,6 +6,11 @@ export const runtime = 'nodejs';
 type QuickReply = { label: string; message: string };
 
 function quickReplies(state: FlowState | null | undefined, reply: string): QuickReply[] {
+  if (state?.lastQuestion === 'commercial_choice' && !state.handedOff && !state.carSale) {
+    return state.locale === 'en'
+      ? [{ label: 'Private leasing', message: 'private leasing' }, { label: 'Business leasing', message: 'business leasing' }, { label: 'Cars for sale', message: 'cars for sale' }]
+      : [{ label: 'ליסינג פרטי', message: 'ליסינג פרטי' }, { label: 'ליסינג עסקי', message: 'ליסינג עסקי' }, { label: 'רכבים למכירה', message: 'אני רוצה לקנות רכב' }];
+  }
   if (state?.step === 'rental_vehicle') {
     return state.locale === 'en'
       ? [{ label: 'Small & economical', message: '1' }, { label: 'Family car', message: '2' }, { label: 'Crossover / SUV', message: '3' }, { label: '7 seats or more', message: '4' }, { label: 'Luxury car', message: '5' }, { label: 'Help me choose', message: '6' }]
@@ -28,6 +33,7 @@ function quickReplies(state: FlowState | null | undefined, reply: string): Quick
 function simulationStore(sessionId: string, initialState: FlowState | null) {
   let state = initialState;
   return {
+    isSimulation: true,
     activeBooking: async () => null,
     loadState: async () => state,
     saveState: async (_phone, nextState) => {

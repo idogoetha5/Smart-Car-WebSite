@@ -75,22 +75,20 @@ export default function AdminQuotesPage() {
   const [footerNote, setFooterNote] = useState('');
   const [isBinding, setIsBinding] = useState(false);
 
-  /**
-   * Swaps the terms text to match the newly chosen language — but only
-   * when it's still the untouched default for the old language, so a
-   * manually edited term is never clobbered by a language switch.
-   */
-  function handleLanguageChange(next: 'he' | 'en') {
-    setLanguage(next);
-    if (next === 'en') {
-      if (includedTerms === DEFAULT_INCLUDED_HE) setIncludedTerms(DEFAULT_INCLUDED_EN);
-      if (additionalTerms === DEFAULT_TERMS_HE) setAdditionalTerms(DEFAULT_TERMS_EN);
-    } else {
-      if (includedTerms === DEFAULT_INCLUDED_EN) setIncludedTerms(DEFAULT_INCLUDED_HE);
-      if (additionalTerms === DEFAULT_TERMS_EN) setAdditionalTerms(DEFAULT_TERMS_HE);
-    }
-  }
-
+  const changeLanguage = (nextLanguage: 'he' | 'en') => {
+    setLanguage(nextLanguage);
+    setIncludedTerms((current) => nextLanguage === 'en' && current === DEFAULT_INCLUDED_HE
+      ? DEFAULT_INCLUDED_EN
+      : nextLanguage === 'he' && current === DEFAULT_INCLUDED_EN
+        ? DEFAULT_INCLUDED_HE
+        : current);
+    setAdditionalTerms((current) => nextLanguage === 'en' && current === DEFAULT_TERMS_HE
+      ? DEFAULT_TERMS_EN
+      : nextLanguage === 'he' && current === DEFAULT_TERMS_EN
+        ? DEFAULT_TERMS_HE
+        : current);
+  };
+  
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [busy, setBusy] = useState<'pdf' | 'send' | null>(null);
@@ -274,7 +272,7 @@ export default function AdminQuotesPage() {
         <div className="flex gap-2">
           <select 
             value={language}
-            onChange={(e) => handleLanguageChange(e.target.value as 'he' | 'en')}
+            onChange={(e) => changeLanguage(e.target.value as 'he' | 'en')}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white font-medium"
           >
             <option value="he">עברית</option>

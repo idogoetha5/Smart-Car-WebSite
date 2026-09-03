@@ -44,7 +44,7 @@ export function classifyCommercialIntent(input: string): CommercialIntent {
   const text = normal(input);
   if (has(text, /למכור (?:את )?(?:הרכב|האוטו) (?:שלי|שלנו)|מכירת הרכב שלי|sell (?:my|our) (?:car|vehicle)|trade in my car/)) return 'sell_own_car';
   if (has(text, /ליסינג|lease(?: a)? car|private leasing|business leasing/)) return 'leasing';
-  if (has(text, /לקנות|קני(?:ה|ית) רכב|רכב למכירה|מכירת רכב|רכישה|buy (?:a|the) (?:car|vehicle)|purchase (?:a|the)? ?(?:car|vehicle)|cars? for sale|used car/)) return 'car_sale';
+  if (has(text, /לקנות|קני(?:ה|ית) רכ(?:ב|בים)|רכב(?:ים)? למכירה|מכירת רכב|רכישה|buy (?:a|the) (?:car|vehicle)|purchase (?:a|the)? ?(?:car|vehicle)|cars? for sale|used car/)) return 'car_sale';
   if (has(text, /השכר|להשכיר|rent(?:al)?|hire (?:a )?car|book (?:a )?car/)) return 'rental';
   if (has(text, /צריך (?:רכב|אוטו)|מחפש (?:רכב|אוטו)|need (?:a )?(?:car|vehicle)|looking for (?:a )?(?:car|vehicle)/)) return 'rental';
   if (has(text, /(?:^|\s)(?:רכב|אוטו|car|vehicle|auto)(?:\s|$)/)) return 'ambiguous';

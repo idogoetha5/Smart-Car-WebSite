@@ -40,6 +40,8 @@ export interface FlowState {
   tripNeeds?: string;
   customerName?: string;
   customerEmail?: string;
+  /** Booking reference supplied after the customer selects an existing-booking enquiry. */
+  bookingReference?: string;
   locale?: FlowLocale;
   /** Context for a purchase of a car listed in the verified sales catalogue. */
   carSale?: CarSalesContext;
@@ -72,6 +74,8 @@ export interface WhatsAppFlowStore {
   activeBooking(phone: string): Promise<BookingSummary | null>;
   loadState(phone: string): Promise<FlowState | null>;
   saveState(phone: string, state: FlowState | null): Promise<void>;
+  /** The public demo rehearses a journey only; it must never create a record or imply that it did. */
+  isSimulation?: boolean;
   createRentalRequest(phone: string, state: FlowState, locale: FlowLocale): Promise<string | null>;
   getRentalQuotes?(state: FlowState): Promise<WhatsAppRentalQuote[]>;
   getCarsForSale?(): Promise<CarForSale[]>;
@@ -190,7 +194,7 @@ export function requiresHumanHandoff(input: string, duringActiveRentalCollection
 }
 
 /**
- * Safety-sensitive intents are classified before any menu or AI routing.
+ * Safety-sensitive intents are classified before menu or intake routing.
  * `hasActiveBooking` comes only from the sender's matching WhatsApp number.
  */
 export function classifyWhatsAppInitialRoute(input: string, hasActiveBooking: boolean): WhatsAppInitialRoute {
@@ -328,13 +332,44 @@ Reply with a number, type menu at any time, or write עברית for Hebrew.`;
 אפשר לכתוב English בכל שלב כדי לעבור לאנגלית.`;
 }
 
+function bookingLookupPrompt(locale: FlowLocale) {
+  return locale === 'en'
+    ? 'Of course. Please send the booking reference, or the full name on the booking. I will keep this enquiry separate from a new rental.'
+    : 'בשמחה. שלחו את מספר ההזמנה, או את השם המלא שמופיע בהזמנה. אשמור את הבירור הזה נפרד מבקשת השכרה חדשה.';
+}
+
+/**
+ * A booking lookup is allowed to collect a reference or a real full name,
+ * but never turn a reply such as "I don't know" into a fake identifier.
+ */
+function hasBookingLookupDetail(input: string) {
+  const value = input.trim().replace(/[^a-zA-Z0-9\u0590-\u05ff -]/g, '').replace(/\s+/g, ' ');
+  if (value.length < 3) return false;
+  return !/^(?:לא יודע|לא זוכר|אין לי|אין מספר|לא בטוח|לא משנה|idk|dont know|don't know|no idea|no number|not sure)$/i.test(normalized(value));
+}
+
+function bookingLookupClarification(locale: FlowLocale) {
+  return locale === 'en'
+    ? 'No problem. Please send either the booking reference or the full name on the booking. If neither is available, write representative and we will take it from there.'
+    : 'אין בעיה. שלחו מספר הזמנה או את השם המלא שמופיע בהזמנה. אם אין אף אחד מהם, כתבו „נציג” ונמשיך משם.';
+}
+
+function commercialChoicePrompt(locale: FlowLocale) {
+  return locale === 'en'
+    ? 'Glad to help. Is this private leasing, business leasing, or a car from the verified sales catalogue?'
+    : 'בשמחה. מדובר בליסינג פרטי, ליסינג לעסק, או רכב מהקטלוג המאומת למכירה?';
+}
+
 function menuFor(booking: BookingSummary | null, locale: FlowLocale) {
   if (booking) return existingCustomerMenu(booking, locale);
   return locale === 'en' ? NEW_CUSTOMER_MENU_EN : NEW_CUSTOMER_MENU;
 }
 
 function pickRandom(arr: string[]) {
-  return arr[Math.floor(Math.random() * arr.length)];
+  // The bot is a deterministic service flow: different wording for the same
+  // input makes support review and regression testing unreliable. Keep one
+  // reviewed response per branch instead of rotating through variants.
+  return arr[0] ?? '';
 }
 
 function datesPrompt(locale: FlowLocale, pickupDate?: string) {
@@ -346,19 +381,19 @@ function datesPrompt(locale: FlowLocale, pickupDate?: string) {
           `Great, ${formatDate(pickupDate)} it is. And what date works best for the return?`
         ])
       : pickRandom([
-          `מעולה, רשמתי איסוף ב־${formatDate(pickupDate)}. מתי נוח לכם להחזיר את הרכב?`,
+        `מעולה, רשמתי איסוף ב־${formatDate(pickupDate)}. מתי נוח לך להחזיר את הרכב?`,
           `מצוין, התאריך שמור (${formatDate(pickupDate)}). עד מתי תצטרכו את הרכב?`,
           `קיבלתי. האיסוף ב־${formatDate(pickupDate)} — באיזה תאריך תרצו להחזיר?`
         ]);
   }
   return locale === 'en'
     ? pickRandom([
-        'Glad to help you find the right car 🚗\n\nWhen would you like to pick it up?',
+        'I’d be happy to assist with your rental 🚗\n\nWhen would you like to pick it up?',
         'I’d be happy to assist with your rental 🚗\n\nWhat date were you thinking of for pickup?',
         'Let’s get you on the road 🚗\n\nWhat’s your preferred pickup date?'
       ])
     : pickRandom([
-        'בשמחה, אעזור לכם למצוא את הרכב המתאים 🚗\n\nבאיזה תאריך תרצו לאסוף אותו?',
+        'בשמחה, אעזור לכם למצוא את הרכב המתאים 🚗\n\nמתי נוח לך לאסוף את הרכב?',
         'איזה כיף! בואו נתחיל 🚗\n\nמתי תרצו לקחת את הרכב?',
         'הגעתם למקום הנכון 🚗\n\nמתי נוח לכם להתחיל את ההשכרה?'
       ]);
@@ -388,7 +423,7 @@ function locationsPrompt(locale: FlowLocale, pickupLocation?: string, dropoffLoc
         'Got it. From which location would you like to pick up, and where to return?\n\nBranch or delivery address — whatever suits you best.'
       ])
     : pickRandom([
-        'מעולה. מאיפה הכי נוח לכם לאסוף את הרכב ולאן תרצו להחזיר אותו?\n\nאפשר מסניף או מכתובת בארץ — מה שנוח לכם.',
+        'מעולה. מאיפה הכי נוח לך לאסוף את הרכב ולאן תרצה להחזיר אותו?\n\nאפשר מסניף או מכתובת בארץ — מה שנוח לך.',
         'מצוין. איפה תרצו לאסוף ולהחזיר את הרכב?\n\nאפשר לבחור סניף שלנו או כתובת מדויקת למסירה.',
         'הבנתי. מהיכן תרצו לאסוף את הרכב ולאן להחזיר?\n\nכל סניף או כתובת בישראל יעבדו כאן.'
       ]);
@@ -418,7 +453,7 @@ function timesPrompt(locale: FlowLocale, pickupTime?: string, returnTime?: strin
         'What hours suit your schedule for the pickup and drop-off?'
       ])
     : pickRandom([
-        'באילו שעות הכי נוח לכם לאסוף ולהחזיר את הרכב?',
+        'באילו שעות הכי נוח לך לאסוף ולהחזיר את הרכב?',
         'באיזו שעה בערך תרצו לבצע את האיסוף ואת ההחזרה?',
         'אילו שעות עובדות לכם הכי טוב לאיסוף ולהחזרה?'
       ]);
@@ -434,7 +469,7 @@ function vehiclePrompt(locale: FlowLocale) {
         `Great. What type of car suits your needs best? Let me know if you need child seats or extra space.${optionsEn}`
       ])
     : pickRandom([
-        `מעולה. איזה רכב יעשה לכם את הנסיעה הכי נוחה? אפשר גם לציין כמה נוסעים, מזוודות או כיסאות ילדים יש.${optionsHe}`,
+        `מעולה. איזה רכב יעשה לך את הנסיעה הכי נוחה? אפשר גם לציין כמה נוסעים, מזוודות או כיסאות ילדים יש.${optionsHe}`,
         `נהדר. איזה סוג רכב אתם מחפשים? תרגישו חופשי לפרט על כמות נוסעים, ציוד או צרכים מיוחדים.${optionsHe}`,
         `מצוין. איזה רכב יתאים לכם בדיוק? כדאי גם לציין מזוודות, מספר אנשים או בקשות לכיסא תינוק.${optionsHe}`
       ]);
@@ -487,8 +522,8 @@ function confirmationPrompt(state: FlowState, locale: FlowLocale) {
 
 function promptForState(state: FlowState, locale: FlowLocale, booking: BookingSummary | null) {
   if (state.step === 'rental_dates') return rentalServicePrompt(state, locale, datesPrompt(locale, state.pickupDate));
-  if (state.step === 'rental_times') return rentalServicePrompt(state, locale, timesPrompt(locale));
-  if (state.step === 'rental_locations') return rentalServicePrompt(state, locale, locationsPrompt(locale));
+  if (state.step === 'rental_times') return rentalServicePrompt(state, locale, timesPrompt(locale, state.pickupTime, state.returnTime));
+  if (state.step === 'rental_locations') return rentalServicePrompt(state, locale, locationsPrompt(locale, state.pickupLocation, state.dropoffLocation));
   if (state.step === 'rental_vehicle') return rentalServicePrompt(state, locale, vehiclePrompt(locale));
   if (state.step === 'rental_name') return rentalServicePrompt(state, locale, namePrompt(locale));
   if (state.step === 'rental_email') return rentalServicePrompt(state, locale, emailPrompt(locale));
@@ -558,7 +593,7 @@ function parseDateCandidates(input: string) {
   return results;
 }
 
-function parseTimes(input: string): { pickupTime: string; returnTime: string } | null {
+function parseTimeValues(input: string): string[] {
   const wordHours: Record<string, number> = { אחת: 1, אחד: 1, שתיים: 2, שניים: 2, שלוש: 3, ארבע: 4, חמש: 5, שש: 6, שבע: 7, שמונה: 8, תשע: 9, עשר: 10, אחתעשרה: 11, שתיםעשרה: 12, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12 };
   let text = normalized(input)
     // Do this before accepting numeric hours: otherwise 10/09/2026 is read
@@ -572,8 +607,7 @@ function parseTimes(input: string): { pickupTime: string; returnTime: string } |
   // A full request may include party and luggage counts. Once explicit time
   // syntax exists, do not mistake those numbers for hours.
   const explicitTokens = allTokens.filter((token) => Boolean(token[2] || token[3]));
-  const tokens = (explicitTokens.length >= 2 ? explicitTokens : allTokens).slice(0, 2);
-  if (tokens.length !== 2) return null;
+  const tokens = explicitTokens.length ? explicitTokens : allTokens;
   const toTime = (match: RegExpMatchArray) => {
     let hour = Number(match[1]);
     const period = match[3]?.toLowerCase();
@@ -581,20 +615,43 @@ function parseTimes(input: string): { pickupTime: string; returnTime: string } |
     if (period === 'am' && hour === 12) hour = 0;
     return { hour, minute: match[2] ?? '00' };
   };
-  const pickup = toTime(tokens[0]);
-  const dropoff = toTime(tokens[1]);
-  if ([pickup.hour, dropoff.hour].some((hour) => hour < 0 || hour > 23)) return null;
-  return {
-    pickupTime: `${String(pickup.hour).padStart(2, '0')}:${pickup.minute}`,
-    returnTime: `${String(dropoff.hour).padStart(2, '0')}:${dropoff.minute}`,
-  };
+  return tokens
+    .map(toTime)
+    .filter(({ hour }) => hour >= 0 && hour <= 23)
+    .map(({ hour, minute }) => `${String(hour).padStart(2, '0')}:${minute}`);
+}
+
+function parseTimes(input: string): { pickupTime: string; returnTime: string } | null {
+  const [pickupTime, returnTime] = parseTimeValues(input);
+  return pickupTime && returnTime ? { pickupTime, returnTime } : null;
+}
+
+function parseSingleTime(input: string): string | null {
+  const times = parseTimeValues(input);
+  return times.length === 1 ? times[0] : null;
+}
+
+function isVagueTimeReply(input: string) {
+  const answer = normalized(input).replace(/[.!?]/g, '').trim();
+  return /^(?:בבוקר|בערב|בלילה|אחה[״"']?צ|morning|afternoon|evening|at night|גם|same|also|אותה שעה|אותו זמן)$/.test(answer);
+}
+
+function timeClarificationPrompt(locale: FlowLocale, state: FlowState) {
+  if (locale === 'en') {
+    return state.pickupTime
+      ? `I have pickup at ${state.pickupTime}. What return time should I note? For example, 18:00.`
+      : 'Morning works. What pickup time should I note? For example, 08:00.';
+  }
+  return state.pickupTime
+    ? `רשמתי איסוף ב־${state.pickupTime}. באיזו שעה לרשום את ההחזרה? למשל 18:00.`
+    : 'בבוקר זה מצוין. באיזו שעה לרשום את האיסוף? למשל 08:00.';
 }
 
 function parseLocations(input: string): { pickupLocation: string; dropoffLocation: string } | null {
   // Avoid treating ordinary conversational “ready to book” as a route merely
   // because it contains the word “to”. A location pair still has explicit
   // pickup/return wording or a location-style delimiter below.
-  if (/^(?:i(?: am|'m)? )?(?:ready|want|need|think|hope)\s+to\s+(?:book|buy|rent|compare)/i.test(input.trim())) return null;
+  if (/^(?:i(?: am|'m)? )?(?:ready|want|need|think|hope)\s+to\s+(?:book|buy|rent|compare|change|cancel|modify|extend)/i.test(input.trim())) return null;
   const cleanLocation = (value: string) => value.trim()
     .replace(/\s+(?=\d{1,2}[/.\-]\d{1,2}(?:[/.\-]\d{2,4})?\b|\d{1,2}(?::\d{2})?\s*(?:am|pm|בבוקר|בערב|בלילה)\b).*$/i, '')
     .replace(/\s+and$/i, '')
@@ -610,7 +667,8 @@ function parseLocations(input: string): { pickupLocation: string; dropoffLocatio
   const parts = input.split(/\s*(?:\||עד|->|→|\bto\b)\s*/i).map((part) => part.replace(/^(?:איסוף|החזרה|pickup|pick up|drop ?off|return|collect)\s*(?:מ|ב|ל|from|in|at|to)?\s*/i, '').trim());
   const isTime = (value: string) => /^\d{1,2}(?::\d{2})?\s*(?:am|pm|בבוקר|בערב|בלילה)?$/i.test(value);
   const isDate = (value: string) => /^\d{1,2}[/.\-]\d{1,2}(?:[/.\-]\d{2,4})?$/.test(value);
-  if (parts.length === 2 && parts[0] && parts[1] && parts.every((part) => part.length <= 200) && !parts.every(isTime) && !parts.every(isDate)) return { pickupLocation: parts[0], dropoffLocation: parts[1] };
+  const containsDateOrTime = (value: string) => /\b\d{1,2}[/.-]\d{1,2}(?:[/.-]\d{2,4})?\b|\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b|בבוקר|בערב|בלילה|בצהריים|בחצות/i.test(value);
+  if (parts.length === 2 && parts[0] && parts[1] && parts.every((part) => part.length <= 200) && !parts.some(containsDateOrTime) && !parts.every(isTime) && !parts.every(isDate)) return { pickupLocation: parts[0], dropoffLocation: parts[1] };
 
   const natural = input.match(/(?:איסוף|אקח|לקחת|אאסוף|pickup|pick up|collect|delivery)\s+(?:מ|ב|in|from|at)?\s*(.+?)\s+(?:והחזרה|החזרה|ואחזיר|להחזיר|and return|return|drop ?off|bring back)\s+(?:ל|ב|at|to|in)?\s*(.+)$/i);
   const looksLikeTimePhrase = (value: string) => /\d{1,2}(?::\d{2})?|\b(?:am|pm|morning|evening|afternoon|noon|midnight)\b|בבוקר|בערב|בלילה|בצהריים|בחצות|תשע|שש|שמונה|עשר/.test(value);
@@ -749,9 +807,18 @@ function extractRentalDetails(body: string, current: FlowState): Partial<FlowSta
 
   // Dates contain numbers too. Only attempt a time range when the message
   // actually contains time syntax or a time-of-day word.
-  if (/:|\d\s*(?:am|pm)\b|\b(?:morning|evening|afternoon|noon|midnight)\b|בבוקר|בערב|בלילה|בצהריים|בחצות|שעה|hours?/i.test(body)) {
+  const hasTimeSyntax = /:|\d\s*(?:am|pm)\b|\b(?:morning|evening|afternoon|noon|midnight)\b|בבוקר|בערב|בלילה|בצהריים|בחצות|שעה|hours?/i.test(body)
+    || (current.step === 'rental_times' && /^\s*\d{1,2}\s*$/.test(body));
+  if (hasTimeSyntax) {
     const times = parseTimes(body);
     if (times && (!current.pickupDate || current.pickupDate !== current.dropoffDate || times.returnTime > times.pickupTime)) Object.assign(extracted, times);
+    else {
+      const time = parseSingleTime(body);
+      if (time) {
+        if (!current.pickupTime) extracted.pickupTime = time;
+        else if (!current.returnTime) extracted.returnTime = time;
+      }
+    }
   }
 
   const locations = parseLocations(body);
@@ -923,6 +990,9 @@ async function continueRental(phone: string, body: string, current: FlowState, l
   const extracted = extractRentalDetails(body, current);
 
   if (!Object.keys(extracted).length) {
+    if (current.step === 'rental_times' && isVagueTimeReply(body)) {
+      return { handled: true, reply: timeClarificationPrompt(locale, current) };
+    }
     const field = learnableField(current.step);
     const phrase = field ? safeLearningPhrase(body) : null;
     const approvedValue = phrase && field === 'vehicle' ? await store.resolveApprovedVariant?.(phrase, field) : null;
@@ -931,100 +1001,9 @@ async function continueRental(phone: string, body: string, current: FlowState, l
     return null;
   }
   const merged: FlowState = { ...current, ...extracted, locale };
-  
-  let capacityIntervention = '';
-  if (merged.vehiclePreference === 'ECONOMY_COMPACT' && ((merged.luggage && merged.luggage >= 3) || (merged.passengers && merged.passengers >= 5))) {
-    merged.vehiclePreference = (merged.passengers && merged.passengers >= 7) ? 'VAN' : ((merged.luggage && merged.luggage >= 3) ? 'SUV' : 'SEDAN');
-    
-    if (locale === 'en') {
-      capacityIntervention += pickRandom([
-        `(💡 Just a quick note: since you mentioned ${merged.luggage && merged.luggage >= 3 ? 'several bags' : 'multiple passengers'}, a compact car might be a bit too tight. I’ve gone ahead and selected a ${merged.vehiclePreference === 'VAN' ? '7-seater' : merged.vehiclePreference === 'SUV' ? 'spacious SUV' : 'family car'} so you can travel comfortably!)\n\n`,
-        `(💡 Pro tip: with ${merged.luggage && merged.luggage >= 3 ? 'that amount of luggage' : 'that many passengers'}, a small car usually isn't enough. I've upgraded your request to a ${merged.vehiclePreference === 'VAN' ? 'larger 7-seater' : merged.vehiclePreference === 'SUV' ? 'SUV' : 'family-sized car'} to make sure everyone and everything fits perfectly.)\n\n`
-      ]);
-    } else {
-      capacityIntervention += pickRandom([
-        `(💡 טיפ קטן ממני: ראיתי שציינת ${merged.luggage && merged.luggage >= 3 ? 'כמות יפה של מזוודות' : 'מספר נוסעים'}. רכב מיני עלול להיות לכם קצת צפוף, אז הרשיתי לעצמי לשנות את הבקשה לרכב ${merged.vehiclePreference === 'VAN' ? 'מסחרי/7 מקומות' : merged.vehiclePreference === 'SUV' ? 'פנאי (SUV) מרווח' : 'משפחתי'} כדי שהנסיעה תהיה הכי נוחה שיש!)\n\n`,
-        `(💡 חשוב לי שיהיה לכם נוח: בגלל שיש ${merged.luggage && merged.luggage >= 3 ? 'לא מעט מזוודות' : 'כמות כזו של אנשים'}, רכב קטן כנראה לא יספיק. עדכנתי את הבקשה שלכם לרכב ${merged.vehiclePreference === 'VAN' ? 'גדול עם 7 מקומות' : merged.vehiclePreference === 'SUV' ? 'בסגנון ג׳יפון (SUV)' : 'משפחתי נוח'} כדי שהכל ייכנס בלי בעיה.)\n\n`
-      ]);
-    }
-  }
-
-  if (merged.tripNeeds?.includes('young driver') && (merged.vehiclePreference === 'LUXURY' || merged.vehiclePreference === 'SUV')) {
-    merged.vehiclePreference = 'SEDAN';
-    capacityIntervention += locale === 'en' 
-      ? pickRandom([
-          `(💡 Note: Luxury cars and large SUVs usually require drivers to be 24+. I've updated the request to a standard Family car for now, but our representative can check options for you!)\n\n`,
-          `(💡 Just a heads-up: Drivers under 24 typically can't rent luxury or SUV models for insurance reasons. I've noted a family sedan instead, and the team will see what we can do.)\n\n`,
-          `(💡 Quick thing about age limits: our premium and SUV categories require a driver over 24. I set your preference to a standard car for now, and a human agent will review it!)\n\n`
-        ])
-      : pickRandom([
-          `(💡 לתשומת לבכם: רכבי יוקרה ופנאי לרוב דורשים נהג מעל גיל 24. עדכנתי את הבקשה לרכב משפחתי סטנדרטי לבינתיים, אבל הנציג יוכל לבדוק לכם חריגות!)\n\n`,
-          `(💡 רק הערה קטנה על ביטוח: מגבלת הגיל לרכבי מנהלים וג׳יפים היא לרוב 24+. רשמתי לבינתיים רכב משפחתי, והנציג שלנו יבדוק אם יש אישור חריג בשבילכם.)\n\n`,
-          `(💡 חשוב לדעת: בגלל ענייני ביטוח, נהגים צעירים פחות מ-24 לא יכולים לקחת רכבי יוקרה או SUV. סימנתי לכם רכב משפחתי מרווח, ואם תרצו הנציג ינסה לעזור יותר בהמשך!)\n\n`
-        ]);
-  }
-  
-  if (merged.tripNeeds?.includes('off road trip') && !current.tripNeeds?.includes('off road trip')) {
-    capacityIntervention += locale === 'en'
-      ? pickRandom([
-          `(💡 Heads up: Standard rental insurance doesn't cover actual off-road driving. The representative will explain the exact terms for dirt roads!)\n\n`,
-          `(💡 Just so you know, our cars are for paved roads only. Driving off-road voids the insurance, but our rep will explain exactly what's allowed!)\n\n`
-        ])
-      : pickRandom([
-          `(💡 רק מניח פה: הביטוח הסטנדרטי בחברות ההשכרה לא מכסה נסיעה בשטח (אופ-רוד). הנציג שלנו יסביר לכם בדיוק את התנאים לגבי שבילי עפר!)\n\n`,
-          `(💡 חשוב לי להזכיר: הרכבים שלנו, גם הג׳יפים, מיועדים לכביש סלול בלבד. נסיעת שטח מבטלת את הביטוח, אבל הנציג כבר יסביר לכם הכל במדויק.)\n\n`
-        ]);
-  }
-
-  if (merged.tripNeeds?.includes('long term rental') && !current.tripNeeds?.includes('long term rental')) {
-    capacityIntervention += locale === 'en'
-      ? pickRandom([
-          `(💡 Great! For long periods like this, you might actually get a better deal through our monthly leasing department. We'll quote it as a rental first, and the representative will show you both options.)\n\n`,
-          `(💡 Since you need the car for a while, ask our team about our monthly leasing rates! I'll keep setting this up as a normal rental, but they'll check the best price for you.)\n\n`
-        ])
-      : pickRandom([
-          `(💡 איזה יופי! לתקופות ארוכות כאלה, יכול להיות שיהיה לכם משתלם יותר מסלול ליסינג חודשי. אנחנו נתמחר את זה קודם כהשכרה רגילה, והנציג יציג לכם את שתי האופציות.)\n\n`,
-          `(💡 בגלל שמדובר בתקופה כזו ארוכה, כדאי לכם לבדוק את מסלולי הליסינג הגמיש שלנו. אני בינתיים פותח הזמנת השכרה רגילה, והנציג שיתחבר כבר יתאים לכם את המסלול הכי זול.)\n\n`
-        ]);
-  }
-
-  if (merged.tripNeeds?.includes('no credit card') && !current.tripNeeds?.includes('no credit card')) {
-    capacityIntervention += locale === 'en'
-      ? pickRandom([
-          `(💡 Important note: While you can pay in cash or debit, a valid **Credit Card** in the renter's name is mandatory for the security deposit at pickup.)\n\n`,
-          `(💡 Just a heads-up about payment: You can absolutely pay with debit, but you MUST bring a real credit card (with a credit limit) in your name for the security hold when picking up the car.)\n\n`
-        ])
-      : pickRandom([
-          `(💡 הערה חשובה: למרות שאפשר לשלם במזומן או בדביט, **חובה** להציג כרטיס אשראי רגיל (מסגרת אשראי) על שם השוכר לצורך הפיקדון באיסוף הרכב.)\n\n`,
-          `(💡 רק מזכיר מראש: אין בעיה לשלם בדיירקט או מזומן, אבל כדי לשחרר את הרכב בסניף תהיו חייבים להציג כרטיס אשראי פיזי ותקף על שם הנהג בשביל הפיקדון.)\n\n`,
-          `(💡 טיפ לגבי התשלום: התשלום עצמו יכול להיות באשראי דיירקט, אבל חסימת הפיקדון מחייבת כרטיס אשראי רגיל. כדאי לוודא שיש לכם אחד כזה איתכם ביום האיסוף!)\n\n`
-        ]);
-  }
-
-  if (merged.tripNeeds?.includes('cross border') && !current.tripNeeds?.includes('cross border')) {
-    capacityIntervention += locale === 'en'
-      ? pickRandom([
-          `(💡 Please note: Our rental vehicles are not permitted to cross borders (including Sinai/Taba and the Palestinian Territories).)\n\n`,
-          `(💡 Quick reminder: For insurance reasons, the car must stay within Israel. Cross-border travel, including Sinai and the Palestinian Territories, is strictly prohibited.)\n\n`
-        ])
-      : pickRandom([
-          `(💡 שימו לב: רכבי ההשכרה שלנו לא מורשים לחצות גבולות (כולל סיני/טאבה) ולא מורשים להיכנס לשטחי הרשות הפלסטינית.)\n\n`,
-          `(💡 רק מבהיר למען הסר ספק: הביטוח שלנו תקף רק בתוך גבולות ישראל. אי אפשר לרדת עם הרכב לסיני או להיכנס לשטחי הרשות.)\n\n`
-        ]);
-  }
-
-  if (merged.tripNeeds?.includes('pets') && !current.tripNeeds?.includes('pets')) {
-    capacityIntervention += locale === 'en'
-      ? pickRandom([
-          `(💡 We love pets! Just a friendly reminder to return the car clean and free of pet hair to avoid special cleaning fees.)\n\n`,
-          `(💡 Traveling with a pet is great! Just make sure to shake out any hair or dirt before returning the car so we don't have to charge an extra cleaning fee.)\n\n`
-        ])
-      : pickRandom([
-          `(💡 אנחנו מתים על בעלי חיים! רק תזכורת קטנה שכדי להימנע מקנסות ניקיון מיוחדים, כדאי להחזיר את הרכב נקי משערות ולכלוך.)\n\n`,
-          `(💡 איזה כיף לטייל עם חיות! רק קחו בחשבון שאם הרכב חוזר עם שערות או ריח חזק, ניאלץ לחייב על ניקוי מיוחד. כדאי להשתמש בכיסוי למושבים!)\n\n`,
-          `(💡 הולכים להביא את הכלב/חתול? מושלם! רק בבקשה תשמרו על הניקיון, כי שערות על המושבים גוררות קנס ניקיון בהחזרה.)\n\n`
-        ]);
-  }
+  // Trip needs are retained as customer context. The bot must not silently
+  // change a requested category or state an unverified policy, age rule,
+  // insurance term, payment condition, border rule, or fee.
 
   const nextStep = rentalStepFor(merged);
   const vehicleWasAdded = !current.vehiclePreference && Boolean(merged.vehiclePreference);
@@ -1041,7 +1020,7 @@ async function continueRental(phone: string, body: string, current: FlowState, l
       // catalogue is temporarily unavailable.
     }
   }
-  return { handled: true, reply: `${capacityIntervention}${suggestions}${promptForState(state, locale, booking)}` };
+  return { handled: true, reply: `${suggestions}${promptForState(state, locale, booking)}` };
 }
 
 function handoffState(state: FlowState | null, locale: FlowLocale): FlowState {
@@ -1059,6 +1038,7 @@ function handoffSummary(state: FlowState | null, reason: string) {
     state.carSale?.budget && `תקציב עד ₪${state.carSale.budget}`,
     state.carSale?.needs?.length && `צרכי קנייה ${state.carSale.needs.join('/')}`,
     state.leasing?.kind && state.leasing.kind !== 'unknown' && `ליסינג ${state.leasing.kind === 'business' ? 'עסקי' : 'פרטי'}`,
+    state.bookingReference && `מספר הזמנה ${state.bookingReference}`,
   ].filter(Boolean).join(', ') : '';
   return facts ? `${reason} | הקשר: ${facts}` : reason;
 }
@@ -1119,12 +1099,9 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
   const [booking, existingState] = await Promise.all([store.activeBooking(phone), store.loadState(phone)]);
   const locale = detectWhatsAppLocale(body, existingState?.locale);
 
-  // The final "send the request" step is a plain yes/no gate and must never
-  // go through Gemini: free-form generation here would happily say "your
-  // request has been confirmed" without ever calling createRentalRequest,
-  // so the customer is told success while nothing was saved and nobody was
-  // notified. Handled deterministically, before any AI routing, so the
-  // already-built matching PDF quote below is reliably reached.
+  // The final "send the request" step is a plain yes/no gate. It stays
+  // deterministic so a customer is never told the request was confirmed
+  // before createRentalRequest has actually saved it.
   if (existingState?.step === 'rental_confirm') {
     if (!confirmsTerms(body)) {
       return {
@@ -1132,6 +1109,15 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
         reply: locale === 'en'
           ? 'The request has not been submitted yet. Reply I confirm to agree to the terms and submit it, or menu to start again.'
           : 'הבקשה עדיין לא נשלחה. כתבו אני מאשר/ת כדי להסכים לתנאים ולשלוח אותה, או תפריט להתחלה מחדש.',
+      };
+    }
+    if (store.isSimulation) {
+      await store.saveState(phone, null);
+      return {
+        handled: true,
+        reply: locale === 'en'
+          ? 'The simulation is complete. No request was sent, no customer record was created, and no booking was made. You can reset the chat and try another scenario.'
+          : 'הסימולציה הושלמה. לא נשלחה בקשה, לא נוצר רישום לקוח ולא בוצעה הזמנה. אפשר לאפס את השיחה ולנסות תרחיש נוסף.',
       };
     }
     const requestId = await store.createRentalRequest(phone, existingState, locale);
@@ -1167,106 +1153,113 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
 
   const initialRoute = classifyWhatsAppInitialRoute(body, Boolean(booking));
 
-  // --- GEMINI FRONTLINE ---
-  if (process.env.GEMINI_API_KEY) {
-    try {
-      const { processWithGemini } = await import('./gemini-router');
-      const { ANSWERS } = await import('./smartcar-service-knowledge');
-      const systemContext = JSON.stringify(ANSWERS, null, 2);
-      
-      const gemini = await processWithGemini(body, existingState, locale, systemContext);
-      if (gemini) {
-        const merged = { ...(existingState || {}), locale } as FlowState;
-        const deterministicExtracted = extractRentalDetails(body, existingState || { step: 'menu', locale } as FlowState);
-
-        for (const [key, value] of Object.entries(gemini.extractedFields)) {
-          if (value) (merged as unknown as Record<string, unknown>)[key] = value;
-        }
-        for (const [key, value] of Object.entries(deterministicExtracted)) {
-          if (value) (merged as unknown as Record<string, unknown>)[key] = value;
-        }
-
-        if (existingState?.pickupDate && merged.pickupDate !== existingState.pickupDate) {
-           if (!merged.dropoffDate) {
-             merged.dropoffDate = merged.pickupDate;
-             merged.pickupDate = existingState.pickupDate;
-           } else if (!deterministicExtracted.pickupDate) {
-             // Gemini overwrote pickupDate but deterministic only found dropoffDate. Revert Gemini's overwrite!
-             merged.pickupDate = existingState.pickupDate;
-           }
-        }
-        if (existingState?.pickupTime && merged.pickupTime !== existingState.pickupTime) {
-           if (!merged.returnTime) {
-             merged.returnTime = merged.pickupTime;
-             merged.pickupTime = existingState.pickupTime;
-           } else if (!deterministicExtracted.pickupTime) {
-             merged.pickupTime = existingState.pickupTime;
-           }
-        }
-        if (existingState?.pickupLocation && merged.pickupLocation !== existingState.pickupLocation) {
-           if (!merged.dropoffLocation) {
-             merged.dropoffLocation = merged.pickupLocation;
-             merged.pickupLocation = existingState.pickupLocation;
-           } else if (!deterministicExtracted.pickupLocation) {
-             merged.pickupLocation = existingState.pickupLocation;
-           }
-        }
-        
-        let reply = gemini.humanResponse;
-        
-        if (gemini.intent === 'handoff') {
-          await store.saveState(phone, handoffState(existingState, locale));
-          return { handled: true, reply, escalate: true, escalateReason: 'Gemini initiated handoff' };
-        }
-        
-        if (gemini.intent === 'rental' || (existingState && isRentalStep(existingState.step))) {
-          const isReadyForQuote = merged.vehiclePreference && merged.pickupDate && merged.dropoffDate;
-          const wasAlreadyReady = existingState?.vehiclePreference && existingState?.pickupDate && existingState?.dropoffDate;
-          const nextStep = rentalStepFor(merged);
-          merged.step = nextStep;
-          
-          if (isReadyForQuote && !wasAlreadyReady) {
-            try {
-              const quotes = await store.getRentalQuotes?.(merged) ?? [];
-              reply += '\n\n' + quotePrompt(quotes, locale);
-            } catch {}
-          }
-          
-          let nextQuestion = '';
-          if (nextStep === 'rental_dates') nextQuestion = datesPrompt(locale, merged.pickupDate);
-          else if (nextStep === 'rental_times') nextQuestion = timesPrompt(locale, merged.pickupTime, merged.returnTime);
-          else if (nextStep === 'rental_locations') nextQuestion = locationsPrompt(locale, merged.pickupLocation, merged.dropoffLocation);
-          else if (nextStep === 'rental_vehicle') nextQuestion = vehiclePrompt(locale);
-          else if (nextStep === 'rental_name') nextQuestion = namePrompt(locale);
-          else if (nextStep === 'rental_email') nextQuestion = emailPrompt(locale);
-          else if (nextStep === 'rental_confirm') nextQuestion = confirmationPrompt(merged, locale);
-          
-          if (nextQuestion) {
-             reply += `\n\n${nextQuestion}`;
-             merged.lastQuestion = nextQuestion;
-          } else {
-             merged.lastQuestion = undefined;
-          }
-          await store.saveState(phone, merged);
-          
-          return { handled: true, reply };
-        }
-        
-        if (Object.keys(gemini.extractedFields).length > 0 && existingState) {
-          await store.saveState(phone, merged);
-        }
-        
-        return { handled: true, reply };
-      }
-    } catch (err) {
-      console.error('[whatsapp-flow] Gemini frontline failed, falling back:', err);
-    }
-  }
-
   if (input === 'english' || input === 'עברית' || input === 'hebrew') {
     const state = existingState ? { ...existingState, locale, handedOff: false } : { step: 'menu' as const, locale };
     await store.saveState(phone, state);
     return { handled: true, reply: promptForState(state, locale, booking) };
+  }
+
+  // A numeric choice must be interpreted before free-text classifiers. This
+  // keeps the simulator buttons and a real WhatsApp menu from falling into a
+  // generic menu or a rental intake simply because "2" or "3" has no words.
+  if (existingState?.lastQuestion === 'booking_lookup' && !isMenuCommand(body)) {
+    if (!hasBookingLookupDetail(body)) {
+      return { handled: true, reply: bookingLookupClarification(locale) };
+    }
+    const bookingReference = body.trim().replace(/[^a-zA-Z0-9\u0590-\u05ff -]/g, '').slice(0, 80);
+    const state: FlowState = { ...existingState, bookingReference: bookingReference || undefined, lastQuestion: undefined };
+    await store.saveState(phone, handoffState(state, locale));
+    return {
+      handled: true,
+      escalate: true,
+      escalateReason: handoffSummary(state, 'בירור הזמנה שלא אומתה לפי המספר'),
+      reply: locale === 'en'
+        ? 'Thank you. I have passed the booking enquiry with the detail you shared, so you will not need to start a new rental request.'
+        : 'תודה. העברתי את בירור ההזמנה עם הפרט ששיתפתם, כך שלא תצטרכו להתחיל בקשת השכרה חדשה.',
+    };
+  }
+
+  // A customer does not have to know the menu number. Treat ordinary wording
+  // such as "I have an existing booking" exactly like choice 2, even when
+  // the booking was made from another phone number.
+  if (!booking && initialRoute === 'existing_booking_lookup' && (!existingState || existingState.step === 'menu') && !existingState?.lastQuestion) {
+    const state: FlowState = { step: 'menu', locale, lastQuestion: 'booking_lookup' };
+    await store.saveState(phone, state);
+    return { handled: true, reply: bookingLookupPrompt(locale) };
+  }
+
+  if (booking && (!existingState || existingState.step === 'menu')) {
+    if (input === '1') return { handled: true, reply: formatBooking(booking, locale) };
+    if (input === '2' || input === '5') {
+      await store.saveState(phone, handoffState(existingState, locale));
+      return {
+        handled: true,
+        escalate: true,
+        escalateReason: input === '2' ? handoffSummary(existingState, 'בקשה לשינוי או הארכת הזמנה') : handoffSummary(existingState, 'בקשה לדבר עם נציג'),
+        reply: locale === 'en'
+          ? 'I have passed this request with your active booking details, so you will not need to repeat them.'
+          : 'העברתי את הבקשה עם פרטי ההזמנה הפעילה, כך שלא תצטרכו לחזור עליהם.',
+      };
+    }
+    if (input === '3') {
+      const state: FlowState = { step: 'rental_dates', locale };
+      await store.saveState(phone, state);
+      return { handled: true, reply: datesPrompt(locale) };
+    }
+    if (input === '4') return {
+      handled: true,
+      reply: locale === 'en'
+        ? 'Please send the pickup and return locations with the dates. A representative will confirm the route or service without assuming availability.'
+        : 'שלחו את מיקום האיסוף וההחזרה יחד עם התאריכים. נציג יאשר את המסלול או השירות בלי להניח זמינות.',
+    };
+    if (input === '6') {
+      await store.saveState(phone, handoffState(existingState, locale));
+      return {
+        handled: true,
+        escalate: true,
+        escalateReason: handoffSummary(existingState, 'שאלה חופשית של לקוח קיים'),
+        reply: locale === 'en' ? 'Please write the question or important detail here. I have kept the active booking context for a representative.' : 'כתבו כאן את השאלה או הפרט החשוב. שמרתי את הקשר ההזמנה הפעילה לנציג.',
+      };
+    }
+    if (input === '7') return {
+      handled: true,
+      reply: locale === 'en' ? 'Please tell me what happened: accident, flat tyre, or roadside breakdown. If there is immediate danger, contact emergency services first.' : 'כתבו מה קרה: תאונה, פנצ׳ר או תקלה בדרך. אם יש סכנה מיידית, פנו קודם לגורמי החירום.',
+    };
+  }
+
+  if (!booking && (!existingState || existingState.step === 'menu') && !existingState?.lastQuestion) {
+    if (input === '1') {
+      const state: FlowState = { step: 'rental_dates', locale };
+      await store.saveState(phone, state);
+      return { handled: true, reply: datesPrompt(locale) };
+    }
+    if (input === '2') {
+      const state: FlowState = { step: 'menu', locale, lastQuestion: 'booking_lookup' };
+      await store.saveState(phone, state);
+      return { handled: true, reply: bookingLookupPrompt(locale) };
+    }
+    if (input === '3') {
+      const state: FlowState = { step: 'menu', locale, lastQuestion: 'commercial_choice' };
+      await store.saveState(phone, state);
+      return { handled: true, reply: commercialChoicePrompt(locale) };
+    }
+    if (input === '4') return {
+      handled: true,
+      reply: locale === 'en' ? 'Please send the pickup and return locations with the dates, and I will keep the request focused on that service.' : 'שלחו את מיקום האיסוף וההחזרה יחד עם התאריכים, ואשמור את הבירור ממוקד בשירות הזה.',
+    };
+    if (input === '5') {
+      await store.saveState(phone, handoffState(existingState, locale));
+      return {
+        handled: true,
+        escalate: true,
+        escalateReason: 'בקשה לדבר עם נציג',
+        reply: locale === 'en' ? 'I have passed your request to a representative. Please write any important detail here.' : 'העברתי את הבקשה לנציג. אפשר לכתוב כאן כל פרט שחשוב שנכיר.',
+      };
+    }
+    if (input === '6') return {
+      handled: true,
+      reply: locale === 'en' ? 'Please tell me what happened: accident, flat tyre, or roadside breakdown. If there is immediate danger, contact emergency services first.' : 'כתבו מה קרה: תאונה, פנצ׳ר או תקלה בדרך. אם יש סכנה מיידית, פנו קודם לגורמי החירום.',
+    };
   }
 
   if (initialRoute === 'accident') {
@@ -1378,7 +1371,7 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     }
     const sales = getCarSalesReply(body, locale, cars, existingState?.carSale);
     const state: FlowState = {
-      ...(existingState ?? { step: 'menu' as const }), locale, carSale: sales.context,
+      ...(existingState ?? { step: 'menu' as const }), locale, lastQuestion: undefined, carSale: sales.context,
       ...(sales.escalate ? { handedOff: true } : {}),
     };
     await store.saveState(phone, state);
@@ -1454,6 +1447,31 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
         }),
       };
     }
+  }
+
+  // A generic change or cancellation request is genuinely ambiguous while
+  // details are being collected. Preserve the draft and route it with its
+  // context instead of guessing which fact the customer wants changed.
+  const isGenericDraftChange = Boolean(existingState && isRentalStep(existingState.step))
+    && /(?:ביטול|לבטל|שינוי|לשנות|הארכ|להאריך|cancel|cancellation|change|modify|amend|extend|extension)/i.test(input)
+    && !Object.keys(extractRentalDetails(body, existingState!)).length;
+  if (isGenericDraftChange) {
+    await store.saveState(phone, handoffState(existingState, locale));
+    return {
+      handled: true,
+      escalate: true,
+      escalateReason: handoffSummary(existingState, 'בקשת שינוי או ביטול במהלך איסוף פרטים'),
+      reply: composeServiceResponse({
+        locale,
+        input: body,
+        state: existingState,
+        kind: 'handoff',
+        answer: locale === 'en'
+          ? 'I have passed the change or cancellation request to SmartCar with the details already shared, so you will not need to repeat them or start again.'
+          : 'העברתי את בקשת השינוי או הביטול ל־SmartCar עם הפרטים שכבר שיתפתם, כך שלא תצטרכו להתחיל מחדש.',
+        nextStep: locale === 'en' ? 'If you have it, send the booking reference here.' : 'אם יש מספר הזמנה, אפשר לשלוח אותו כאן.',
+      }),
+    };
   }
 
   const validStructuredEmail = existingState?.step === 'rental_email' && Boolean(validEmail(body));
@@ -1618,9 +1636,8 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     return { handled: true, reply: confirmationPrompt(completed, locale) };
   }
 
-  // rental_confirm is handled at the top of getWhatsAppFlowReply, before
-  // Gemini routing — unreachable here since existingState.step can only
-  // still be 'rental_confirm' by returning early above.
+  // rental_confirm is handled at the top of getWhatsAppFlowReply and is
+  // unreachable here because that branch returns early.
 
   // A customer often writes a full sentence after the menu was already shown.
   // Keep recognising service intent instead of forcing them back to a number.

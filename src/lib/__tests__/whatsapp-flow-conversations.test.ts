@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 
 const mockDb = vi.hoisted(() => ({
   states: new Map<string, { state: Record<string, unknown>; updated_at: string }>(),
@@ -75,7 +76,7 @@ vi.mock('@/lib/supabase/server', () => ({
   }),
 }));
 
-import { getWhatsAppFlowReply } from '@/lib/whatsapp-flow';
+import { getWhatsAppFlowReply, type FlowState, type WhatsAppFlowStore } from '@/lib/whatsapp-flow';
 
 const PHONE = '972501234567';
 
@@ -164,6 +165,69 @@ describe('Eight required local SmartCar conversations', () => {
     expect(details.reply).toContain('Kia Picanto');
   });
 
+  it('routes the existing-booking menu choice to a booking enquiry, never to a new rental', async () => {
+    const prompt = await getWhatsAppFlowReply(PHONE, '2');
+    expect(prompt.reply).toContain('מספר ההזמנה');
+    expect(prompt.reply).not.toContain('מתי נוח לך לאסוף');
+    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ step: 'menu', lastQuestion: 'booking_lookup' });
+
+    const handoff = await getWhatsAppFlowReply(PHONE, 'SC-482913');
+    expect(handoff.escalate).toBe(true);
+    expect(handoff.reply).toContain('בירור ההזמנה');
+    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ handedOff: true, bookingReference: 'SC-482913' });
+  });
+
+  it('understands a natural existing-booking request and does not treat uncertainty as a booking reference', async () => {
+    const prompt = await getWhatsAppFlowReply(PHONE, 'יש לי הזמנה אבל החלפתי מספר טלפון');
+    expect(prompt.reply).toContain('מספר ההזמנה');
+    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ lastQuestion: 'booking_lookup' });
+
+    const clarification = await getWhatsAppFlowReply(PHONE, 'לא זוכר');
+    expect(clarification.escalate).not.toBe(true);
+    expect(clarification.reply).toContain('השם המלא');
+    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ lastQuestion: 'booking_lookup' });
+    expect(mockDb.states.get(PHONE)?.state.handedOff).toBeUndefined();
+
+    const handoff = await getWhatsAppFlowReply(PHONE, 'דניאל כהן');
+    expect(handoff.escalate).toBe(true);
+    expect(handoff.escalateReason).toContain('דניאל כהן');
+  });
+
+  it('ends the public simulation truthfully without creating a request or an order', async () => {
+    let state: FlowState | null = {
+      step: 'rental_confirm', locale: 'he', pickupDate: '2026-09-12', dropoffDate: '2026-09-16',
+      pickupTime: '09:00', returnTime: '18:00', pickupLocation: 'Herzliya', dropoffLocation: 'Ben Gurion Airport',
+      vehiclePreference: 'SUV', customerName: 'עידו כהן', customerEmail: 'ido@example.com',
+    };
+    const store: WhatsAppFlowStore = {
+      isSimulation: true,
+      activeBooking: async () => null,
+      loadState: async () => state,
+      saveState: async (_phone, nextState) => { state = nextState; },
+      createRentalRequest: async () => { throw new Error('A simulation must never create a rental request'); },
+    };
+
+    const result = await getWhatsAppFlowReply(PHONE, 'אני מאשר', store);
+    expect(result.escalate).not.toBe(true);
+    expect(result.reply).toContain('הסימולציה הושלמה');
+    expect(result.reply).toContain('לא נשלחה בקשה');
+    expect(state).toBeNull();
+  });
+
+  it('routes the leasing-or-purchase menu choice to a specific commercial question, never to rental', async () => {
+    const result = await getWhatsAppFlowReply(PHONE, '3');
+    expect(result.reply).toContain('ליסינג פרטי');
+    expect(result.reply).toContain('רכב מהקטלוג המאומת למכירה');
+    expect(result.reply).not.toContain('מתי נוח לך לאסוף');
+    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ step: 'menu', lastQuestion: 'commercial_choice' });
+  });
+
+  it('routes the roadside-help menu choice to one safety question instead of a rental prompt', async () => {
+    const result = await getWhatsAppFlowReply(PHONE, '6');
+    expect(result.reply).toContain('תאונה, פנצ׳ר או תקלה');
+    expect(result.reply).not.toContain('מתי נוח לך לאסוף');
+  });
+
   it('5. English customer — flat tyre', async () => {
     addExistingBooking();
     const result = await getWhatsAppFlowReply(PHONE, 'I have a flat tyre');
@@ -224,6 +288,55 @@ describe('Eight required local SmartCar conversations', () => {
     expect(vehicle.reply).toContain('what kind of car');
     const name = await getWhatsAppFlowReply(PHONE, 'SUV');
     expect(name.reply).toContain('Who should I put');
+  });
+
+  it('keeps an imprecise weekend request at the date step instead of inventing dates or hours', async () => {
+    const result = await getWhatsAppFlowReply(PHONE, 'אני מחפש להשכיר רכב לסוף השבוע הבא');
+    const state = mockDb.states.get(PHONE)?.state;
+
+    expect(state).toMatchObject({ step: 'rental_dates' });
+    expect(state).not.toHaveProperty('pickupDate');
+    expect(state).not.toHaveProperty('dropoffDate');
+    expect(state).not.toHaveProperty('pickupTime');
+    expect(result.reply).toMatch(/תאריך|מתי נוח לך/);
+    expect(result.reply).not.toMatch(/08:00|באילו שעות/);
+  });
+
+  it('does not contain a paid-model runtime path in the customer flow', () => {
+    const source = readFileSync(new URL('../whatsapp-flow.ts', import.meta.url), 'utf8');
+    expect(source).not.toContain('processWithGemini');
+    expect(source).not.toContain('GEMINI_API_KEY');
+    expect(source).not.toContain('gemini-router');
+  });
+
+  it('asks for one precise time at a time and preserves context when the answer is vague', async () => {
+    await getWhatsAppFlowReply(PHONE, 'אני צריך רכב 10/09/2026 עד 14/09/2026');
+
+    const vaguePickup = await getWhatsAppFlowReply(PHONE, 'בבוקר');
+    expect(vaguePickup.reply).toContain('באיזו שעה לרשום את האיסוף');
+    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ step: 'rental_times' });
+    expect(mockDb.states.get(PHONE)?.state).not.toHaveProperty('pickupTime');
+
+    const pickup = await getWhatsAppFlowReply(PHONE, '08:00');
+    expect(pickup.reply).toContain('באיזו שעה תרצו להחזיר');
+    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ pickupTime: '08:00', step: 'rental_times' });
+
+    const same = await getWhatsAppFlowReply(PHONE, 'גם');
+    expect(same.reply).toContain('איסוף ב־08:00');
+    expect(same.reply).toContain('באיזו שעה');
+    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ pickupTime: '08:00', step: 'rental_times' });
+    expect(mockDb.states.get(PHONE)?.state).not.toHaveProperty('returnTime');
+
+    const returnTime = await getWhatsAppFlowReply(PHONE, '18:00');
+    expect(returnTime.reply).toContain('מאיפה הכי נוח לך');
+    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ pickupTime: '08:00', returnTime: '18:00', step: 'rental_locations' });
+  });
+
+  it('retains a requested SUV for a young driver without inventing an age policy or replacing it', async () => {
+    const result = await getWhatsAppFlowReply(PHONE, 'אני צריך להשכיר ג׳יפ לנהג צעיר מ-10/09/2026 עד 14/09/2026, 09:00 עד 18:00. איסוף מהרצליה והחזרה לנתבג. שמי עידו והמייל ido@example.com');
+
+    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ vehiclePreference: 'SUV', tripNeeds: 'young driver', step: 'rental_confirm' });
+    expect(result.reply).not.toMatch(/24|חריג|ביטוח/);
   });
 
   it('keeps every valid fact supplied in one Hebrew message and advances directly to confirmation', async () => {

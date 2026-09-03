@@ -143,12 +143,18 @@ describe('rental quote link tokens', () => {
 
   it('keeps a link alive for the whole month a quotation holds', () => {
     const now = Date.parse('2026-07-30T09:00:00.000Z');
-    const expiry = rentalQuoteLinkExpiry('2026-08-29', now);
-    const days = (expiry - now) / (24 * 60 * 60 * 1000);
-    expect(days).toBeGreaterThan(29);
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+    try {
+      const expiry = rentalQuoteLinkExpiry('2026-08-29', now);
+      const days = (expiry - now) / (24 * 60 * 60 * 1000);
+      expect(days).toBeGreaterThan(29);
 
-    const linkToken = mint('482913', 'quote', expiry);
-    expect(verifyRentalQuoteLinkToken(linkToken).valid).toBe(true);
+      const linkToken = mint('482913', 'quote', expiry);
+      expect(verifyRentalQuoteLinkToken(linkToken).valid).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('falls back to 30 days when no validity date is given', () => {

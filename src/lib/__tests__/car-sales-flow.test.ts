@@ -97,6 +97,7 @@ describe('cars-for-sale WhatsApp conversation', () => {
     ['אני רוצה ליסינג פרטי', 'leasing'],
     ['I need business leasing', 'leasing'],
     ['אני רוצה לקנות רכב', 'car_sale'],
+    ['רכבים למכירה', 'car_sale'],
     ['cars for sale please', 'car_sale'],
     ['אני רוצה למכור את הרכב שלי', 'sell_own_car'],
     ['I want to sell my car', 'sell_own_car'],
@@ -106,6 +107,17 @@ describe('cars-for-sale WhatsApp conversation', () => {
     ['vehicle', 'ambiguous'],
   ] as const)('separates commercial intent: %s', (message, expected) => {
     expect(classifyCommercialIntent(message)).toBe(expected);
+  });
+
+  it('takes the commercial menu choice into the verified sales catalogue', async () => {
+    const memory = salesStore();
+    const choice = await getWhatsAppFlowReply(PHONE, '3', memory.store);
+    expect(choice.reply).toContain('רכב מהקטלוג המאומת למכירה');
+    expect(memory.state()).toMatchObject({ step: 'menu', lastQuestion: 'commercial_choice' });
+
+    const result = await getWhatsAppFlowReply(PHONE, 'רכבים למכירה', memory.store);
+    expect(memory.state()?.carSale?.lastAction).toBe('catalog');
+    expect(result.reply).toContain('Toyota Corolla');
   });
 
   it.each([
