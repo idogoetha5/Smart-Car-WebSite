@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { localeAlternates } from '@/lib/seo';
-import { DELIVERY_CITIES, getDeliveryCity } from '@/lib/delivery-cities';
+import { DELIVERY_CITIES, getDeliveryCity, hePrefix } from '@/lib/delivery-cities';
 import { BRANCHES, branchAddress, branchName, mapsUrl, wazeUrl } from '@/lib/branches';
 
 export function generateStaticParams() {
@@ -21,10 +21,10 @@ export async function generateMetadata({
   const name = isHe ? c.nameHe : c.nameEn;
   return {
     title: {
-      absolute: isHe ? `השכרת רכב עם משלוח ל${name} | SmartCar` : `Car Rental Delivered to ${name} | SmartCar`,
+      absolute: isHe ? `השכרת רכב עם משלוח ${hePrefix('ל', c.nameHe)} | SmartCar` : `Car Rental Delivered to ${name} | SmartCar`,
     },
     description: isHe
-      ? `השכרת רכב מ-SmartCar עם מסירה והחזרה ב${name}, בתיאום מראש. צי רחב, שירות אישי ומענה אנושי.`
+      ? `השכרת רכב מ-SmartCar עם מסירה והחזרה ${hePrefix('ב', c.nameHe)}, בתיאום מראש. צי רחב, שירות אישי ומענה אנושי.`
       : `Rent a car from SmartCar with delivery and return in ${name}, by prior arrangement. A wide fleet and personal service.`,
     alternates: localeAlternates(locale, `delivery/${c.slug}`),
   };
