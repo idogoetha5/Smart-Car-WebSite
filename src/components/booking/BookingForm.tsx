@@ -748,8 +748,9 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
             <input
               id="customer-id-number"
               type="text"
-              inputMode="numeric"
-              placeholder={isHe ? 'עד 9 ספרות' : 'Up to 9 digits'}
+              inputMode="text"
+              autoCapitalize="characters"
+              placeholder={isHe ? 'עד 9 אותיות או ספרות' : 'Up to 9 letters or digits'}
               maxLength={9}
               className={`w-full h-10 rounded-lg border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] ${errors.customerIdNumber ? 'border-red-400' : 'border-gray-200'}`}
               {...register('customerIdNumber')}

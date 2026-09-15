@@ -143,6 +143,20 @@ describe('bookingRequestSchema', () => {
       expect(result.success).toBe(true);
     });
 
+    it('accepts an alphanumeric passport number', () => {
+      const result = bookingRequestSchema.safeParse(
+        validPayload({ customerIdNumber: 'C4KRVJMMC' }),
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects punctuation in an ID or passport number', () => {
+      const result = bookingRequestSchema.safeParse(
+        validPayload({ customerIdNumber: 'C4K-RVJ' }),
+      );
+      expect(result.success).toBe(false);
+    });
+
     it('caps free-text notes rather than accepting an unbounded body', () => {
       const result = bookingRequestSchema.safeParse(
         validPayload({ notes: 'x'.repeat(2001) }),

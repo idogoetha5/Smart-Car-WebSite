@@ -34,8 +34,8 @@ const bookingFormFields = {
   customerIdNumber: z
     .string()
     .optional()
-    .refine(val => !val || /^\d{1,9}$/.test(val), {
-      message: 'מספר תעודת זהות חייב להכיל עד 9 ספרות',
+    .refine(val => !val || /^[a-z0-9]{1,9}$/i.test(val), {
+      message: 'מספר תעודת זהות או דרכון חייב להכיל עד 9 אותיות או ספרות',
     }),
   pickupDate: z.string().min(1, 'Pickup date is required').max(32),
   dropoffDate: z.string().min(1, 'Drop-off date is required').max(32),
