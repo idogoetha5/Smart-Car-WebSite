@@ -30,6 +30,7 @@ if (process.env.NODE_ENV === 'development' && !GA_ID) {
 declare global {
   interface Window {
     dataLayer?: unknown[];
+    gtag?: (...args: unknown[]) => void;
   }
 }
 
@@ -65,17 +66,12 @@ export default function GoogleAnalytics() {
   // same tab must not keep receiving updates once the admin navigates in.
   useEffect(() => {
     if (!GA_ID || !everAccepted || isAdminArea(pathname, locale)) return;
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push([
-      'consent',
-      'update',
-      {
-        analytics_storage: consented ? 'granted' : 'denied',
-        ad_storage: 'denied',
-        ad_user_data: 'denied',
-        ad_personalization: 'denied',
-      },
-    ]);
+    window.gtag?.('consent', 'update', {
+      analytics_storage: consented ? 'granted' : 'denied',
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied',
+    });
   }, [consented, everAccepted, pathname, locale]);
 
   // The admin team's own navigation must never count as customer traffic —
@@ -96,7 +92,7 @@ export default function GoogleAnalytics() {
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('consent', 'default', {
-            analytics_storage: 'denied',
+            analytics_storage: '${consented ? 'granted' : 'denied'}',
             ad_storage: 'denied',
             ad_user_data: 'denied',
             ad_personalization: 'denied',
