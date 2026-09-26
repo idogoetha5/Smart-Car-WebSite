@@ -46,6 +46,15 @@ function getGtag() {
   return window.gtag;
 }
 
+function queueConsentUpdate(consented: boolean) {
+  getGtag()('consent', 'update', {
+    analytics_storage: consented ? 'granted' : 'denied',
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+  });
+}
+
 export default function GoogleAnalytics() {
   const locale = useLocale();
   const pathname = usePathname();
@@ -85,12 +94,7 @@ export default function GoogleAnalytics() {
     if (!GA_ID || !everAccepted || isAdminArea(pathname, locale)) return;
     if (lastQueuedConsent.current === consented) return;
 
-    getGtag()('consent', 'update', {
-      analytics_storage: consented ? 'granted' : 'denied',
-      ad_storage: 'denied',
-      ad_user_data: 'denied',
-      ad_personalization: 'denied',
-    });
+    queueConsentUpdate(consented);
     lastQueuedConsent.current = consented;
   }, [consented, everAccepted, pathname, locale]);
 
@@ -107,12 +111,22 @@ export default function GoogleAnalytics() {
           layout, and it is not needed here: dataLayer is an ordered queue, so
           a `consent default` queued ahead of `config` is honoured whenever
           gtag.js finishes loading. */}
-      <Script id="ga4-init" strategy="afterInteractive">
+      <Script
+        id="ga4-init"
+        strategy="afterInteractive"
+        onReady={() => {
+          // Keep the inline script text immutable after execution. React must
+          // never try to replace an already-run <script> node when consent
+          // changes; on iOS that DOM mismatch can recurse inside React DOM.
+          queueConsentUpdate(consented);
+          lastQueuedConsent.current = consented;
+        }}
+      >
         {`
           window.dataLayer = window.dataLayer || [];
           window.gtag = window.gtag || function gtag(){window.dataLayer.push(arguments);};
           window.gtag('consent', 'default', {
-            analytics_storage: '${consented ? 'granted' : 'denied'}',
+            analytics_storage: 'denied',
             ad_storage: 'denied',
             ad_user_data: 'denied',
             ad_personalization: 'denied',
