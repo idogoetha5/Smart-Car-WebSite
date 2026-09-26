@@ -22,7 +22,7 @@ import { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { usePathname } from 'next/navigation';
 import { Analytics } from '@vercel/analytics/react';
-import { readConsent } from '@/lib/cookie-consent';
+import { CONSENT_CHANGE_EVENT, readConsent } from '@/lib/cookie-consent';
 import { isAdminArea } from '@/lib/site-chrome';
 
 export default function ConsentedAnalytics() {
@@ -37,9 +37,13 @@ export default function ConsentedAnalytics() {
       if (readConsent() === 'accepted') setEverAccepted(true);
     };
     check();
-    // writeConsent dispatches `storage` in the current tab too.
+    // Native storage covers other tabs; our custom event covers this tab.
     window.addEventListener('storage', check);
-    return () => window.removeEventListener('storage', check);
+    window.addEventListener(CONSENT_CHANGE_EVENT, check);
+    return () => {
+      window.removeEventListener('storage', check);
+      window.removeEventListener(CONSENT_CHANGE_EVENT, check);
+    };
   }, []);
 
   // The admin team's own navigation must never count as customer traffic —

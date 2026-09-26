@@ -6,6 +6,7 @@ import { useLocale } from 'next-intl';
 import { usePathname } from 'next/navigation';
 import { isAdminArea } from '@/lib/site-chrome';
 import {
+  CONSENT_CHANGE_EVENT,
   REOPEN_EVENT,
   readConsent,
   writeConsent,
@@ -13,15 +14,15 @@ import {
 } from '@/lib/cookie-consent';
 
 /**
- * Consent as an external store. writeConsent already dispatches a `storage`
- * event in the current tab as well as others, so one listener covers both.
+ * Consent as an external store. Native `storage` events cover other tabs;
+ * writeConsent dispatches a dedicated event for the current tab.
  */
 function subscribeConsent(onChange: () => void) {
   window.addEventListener('storage', onChange);
-  window.addEventListener(REOPEN_EVENT, onChange);
+  window.addEventListener(CONSENT_CHANGE_EVENT, onChange);
   return () => {
     window.removeEventListener('storage', onChange);
-    window.removeEventListener(REOPEN_EVENT, onChange);
+    window.removeEventListener(CONSENT_CHANGE_EVENT, onChange);
   };
 }
 
@@ -83,8 +84,8 @@ export default function CookieBanner() {
   };
 
   const choose = (value: ConsentValue) => {
-    // writeConsent dispatches `storage`, which the store above is subscribed
-    // to, so the new value propagates without a second source of truth.
+    // writeConsent dispatches our same-tab consent event, which the store
+    // above subscribes to, so the new value propagates immediately.
     writeConsent(value);
     close();
   };

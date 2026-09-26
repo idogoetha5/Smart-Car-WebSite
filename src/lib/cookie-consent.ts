@@ -11,6 +11,9 @@
 
 export const CONSENT_KEY = 'cookie_consent';
 
+/** Same-tab notification after our own code writes a new choice. */
+export const CONSENT_CHANGE_EVENT = 'smartcar:cookie-consent-change';
+
 /** Custom event asking the banner to re-open for an existing visitor. */
 export const REOPEN_EVENT = 'smartcar:cookie-preferences';
 
@@ -30,9 +33,10 @@ export function readConsent(): ConsentValue | null {
 export function writeConsent(value: ConsentValue): void {
   try {
     localStorage.setItem(CONSENT_KEY, value);
-    // ConsentedAnalytics listens for `storage`, which only fires in *other*
-    // tabs. Dispatch it here so the current tab reacts immediately too.
-    window.dispatchEvent(new StorageEvent('storage', { key: CONSENT_KEY, newValue: value }));
+    // Native `storage` events are browser-owned and fire only in *other*
+    // tabs. Dispatch a dedicated event for this tab instead of constructing
+    // a synthetic StorageEvent, which has had inconsistent WebKit behavior.
+    window.dispatchEvent(new Event(CONSENT_CHANGE_EVENT));
   } catch {
     // Nothing persisted means the banner will ask again next visit, which
     // is the safe outcome — we never treat a failed write as consent.

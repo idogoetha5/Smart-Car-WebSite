@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 
 const mockDb = vi.hoisted(() => ({
@@ -109,9 +109,18 @@ async function completeNewRental(language: 'he' | 'en') {
 }
 
 beforeEach(() => {
+  // These conversation fixtures intentionally exercise September 2026
+  // rentals. Freeze the clock before them instead of letting the suite rot
+  // once those dates pass in real life.
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date('2026-09-01T09:00:00+03:00'));
   mockDb.states.clear();
   mockDb.bookings.length = 0;
   mockDb.rentalRequests.length = 0;
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('Eight required local SmartCar conversations', () => {

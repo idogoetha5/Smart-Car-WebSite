@@ -15,10 +15,14 @@
  */
 
 import Script from 'next/script';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocale } from 'next-intl';
 import { usePathname } from 'next/navigation';
-import { CONSENT_KEY, readConsent } from '@/lib/cookie-consent';
+import {
+  CONSENT_CHANGE_EVENT,
+  CONSENT_KEY,
+  readConsent,
+} from '@/lib/cookie-consent';
 import { isAdminArea } from '@/lib/site-chrome';
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
@@ -34,6 +38,14 @@ declare global {
   }
 }
 
+function getGtag() {
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = window.gtag || function gtag(...args: unknown[]) {
+    window.dataLayer!.push(args);
+  };
+  return window.gtag;
+}
+
 export default function GoogleAnalytics() {
   const locale = useLocale();
   const pathname = usePathname();
@@ -41,6 +53,7 @@ export default function GoogleAnalytics() {
   // Once the tag is on the page it cannot be taken back off, so track whether
   // it was ever loaded separately from the current answer.
   const [everAccepted, setEverAccepted] = useState(false);
+  const lastQueuedConsent = useRef<boolean | null>(null);
 
   useEffect(() => {
     const check = () => {
@@ -57,7 +70,11 @@ export default function GoogleAnalytics() {
       if (e.key === CONSENT_KEY) check();
     };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener(CONSENT_CHANGE_EVENT, check);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener(CONSENT_CHANGE_EVENT, check);
+    };
   }, []);
 
   // Push every change to the tag. After a withdrawal this is what actually
@@ -66,12 +83,15 @@ export default function GoogleAnalytics() {
   // same tab must not keep receiving updates once the admin navigates in.
   useEffect(() => {
     if (!GA_ID || !everAccepted || isAdminArea(pathname, locale)) return;
-    window.gtag?.('consent', 'update', {
+    if (lastQueuedConsent.current === consented) return;
+
+    getGtag()('consent', 'update', {
       analytics_storage: consented ? 'granted' : 'denied',
       ad_storage: 'denied',
       ad_user_data: 'denied',
       ad_personalization: 'denied',
     });
+    lastQueuedConsent.current = consented;
   }, [consented, everAccepted, pathname, locale]);
 
   // The admin team's own navigation must never count as customer traffic —
@@ -90,16 +110,16 @@ export default function GoogleAnalytics() {
       <Script id="ga4-init" strategy="afterInteractive">
         {`
           window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('consent', 'default', {
+          window.gtag = window.gtag || function gtag(){window.dataLayer.push(arguments);};
+          window.gtag('consent', 'default', {
             analytics_storage: '${consented ? 'granted' : 'denied'}',
             ad_storage: 'denied',
             ad_user_data: 'denied',
             ad_personalization: 'denied',
             wait_for_update: 500
           });
-          gtag('js', new Date());
-          gtag('config', '${GA_ID}', {
+          window.gtag('js', new Date());
+          window.gtag('config', '${GA_ID}', {
             send_page_view: true,
             anonymize_ip: true
           });
