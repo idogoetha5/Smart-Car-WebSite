@@ -85,9 +85,17 @@ export default async function LocaleLayout({
     <html
       lang={locale}
       dir={isRTL ? 'rtl' : 'ltr'}
-      className={`${nunito.variable} ${heebo.variable}`}
+      // Browser translation extensions rewrite text nodes by wrapping them in
+      // <font> elements. On iOS Chrome that left React holding references to
+      // nodes that no longer existed; the next booking-form update failed in
+      // removeChild() and React's recovery path overflowed the call stack.
+      // SmartCar already provides complete Hebrew and English routes, so keep
+      // this React-owned document tree out of automatic DOM translation.
+      translate="no"
+      className={`notranslate ${nunito.variable} ${heebo.variable}`}
     >
       <head>
+        <meta name="google" content="notranslate" />
         <meta name="facebook-domain-verification" content="oftqxooijalphukk8wbbo0ps16ekvt" />
         <meta property="fb:pages" content="174590449225975" />
         <link rel="preconnect" href="https://iovpoxmdsgsstaduggvb.supabase.co" crossOrigin="anonymous" />

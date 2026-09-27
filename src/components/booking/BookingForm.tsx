@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Toast } from '@/components/ui/Toast';
-import DatePickerInput, { type DatePickerHandle } from '@/components/ui/DatePickerInput';
+import DatePickerInput from '@/components/ui/DatePickerInput';
 import { bookingSchema, type BookingInput } from '@/lib/validations';
 import { calculateTotalDays } from '@/lib/utils';
 import { getSeasonalPrice, getSeasonalPriceRange } from '@/lib/seasonal';
@@ -314,7 +314,6 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
   const [pickupTime, setPickupTime] = useState('09:00');
   const [returnTime, setReturnTime] = useState('09:00');
-  const returnPickerRef = useRef<DatePickerHandle>(null);
   const submittingRef = useRef(false);
   const honeypotRef = useRef<HTMLInputElement>(null);
   const today = new Date().toISOString().split('T')[0];
@@ -404,7 +403,10 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const allValues = watch();
+  const pickupDate      = watch('pickupDate');
+  const dropoffDate     = watch('dropoffDate');
+  const pickupLocation  = watch('pickupLocation');
+  const dropoffLocation = watch('dropoffLocation');
 
   // Auto-save draft on every change (debounced 800ms)
   useEffect(() => {
@@ -415,10 +417,10 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
         // (name/email/phone/ID/notes/additional-driver details) to
         // browser storage.
         localStorage.setItem(DRAFT_KEY(vehicle.id, locale), JSON.stringify({
-          pickupDate: allValues.pickupDate,
-          dropoffDate: allValues.dropoffDate,
-          pickupLocation: allValues.pickupLocation,
-          dropoffLocation: allValues.dropoffLocation,
+          pickupDate,
+          dropoffDate,
+          pickupLocation,
+          dropoffLocation,
           pickupTime,
           returnTime,
           selectedExtras,
@@ -429,13 +431,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
       } catch { /* storage full or private mode */ }
     }, 800);
     return () => { if (draftTimer.current) clearTimeout(draftTimer.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allValues, pickupTime, returnTime, selectedExtras, additionalDriverName]);
-
-  const pickupDate      = watch('pickupDate');
-  const dropoffDate     = watch('dropoffDate');
-  const pickupLocation  = watch('pickupLocation');
-  const dropoffLocation = watch('dropoffLocation');
+  }, [vehicle.id, locale, pickupDate, dropoffDate, pickupLocation, dropoffLocation, pickupTime, returnTime, selectedExtras]);
 
   const totalDays =
     pickupDate && dropoffDate
@@ -622,7 +618,6 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
                 if (dropoffDate && dropoffDate <= date) {
                   setValue('dropoffDate', '', { shouldValidate: false });
                 }
-                setTimeout(() => returnPickerRef.current?.openPicker(), 50);
               }}
               minDate={today}
               placeholder={isHe ? 'בחר תאריך' : 'Select date'}
@@ -638,7 +633,6 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           <div className={`h-10 rounded-lg border-2 px-3 flex items-center ${errors.dropoffDate ? 'border-red-400' : 'border-gray-200'}`}>
             <DatePickerInput
               fieldLabel={t('dropoff_date')}
-              ref={returnPickerRef}
               value={dropoffDate}
               onChange={(date) => setValue('dropoffDate', date, { shouldValidate: true })}
               minDate={pickupDate || today}
