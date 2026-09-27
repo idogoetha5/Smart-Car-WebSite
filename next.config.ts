@@ -107,6 +107,19 @@ const nextConfig: NextConfig = {
     // src/proxy.ts instead — the next-intl proxy runs before these config
     // redirects and was intercepting those paths first.
     return [
+      // Some versions of iOS request these conventional filenames directly
+      // instead of following the metadata link emitted by Next.js. Serve the
+      // generated 180x180 app icon rather than letting those requests 404.
+      {
+        source: '/apple-touch-icon.png',
+        destination: '/apple-icon.png',
+        permanent: true,
+      },
+      {
+        source: '/apple-touch-icon-precomposed.png',
+        destination: '/apple-icon.png',
+        permanent: true,
+      },
       {
         // Both smartcar.co.il and www.smartcar.co.il answered 200, so every
         // page existed at two addresses: link equity, crawl budget and cache
