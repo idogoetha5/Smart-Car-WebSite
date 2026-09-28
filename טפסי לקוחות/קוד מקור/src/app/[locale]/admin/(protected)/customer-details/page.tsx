@@ -106,7 +106,7 @@ export default function CustomerDetailsAdminPage() {
                         <div><dt className="text-xs font-bold text-gray-400">תאריך לידה</dt><dd className="mt-0.5 font-medium text-gray-800" dir="ltr">{form.date_of_birth}</dd></div>
                         <div><dt className="text-xs font-bold text-gray-400">ת״ז / דרכון</dt><dd className="mt-0.5 font-medium text-gray-800" dir="ltr">{form.passport_number}</dd></div>
                         <div><dt className="text-xs font-bold text-gray-400">רישיון נהיגה</dt><dd className="mt-0.5 font-medium text-gray-800" dir="ltr">{form.driver_license_number}</dd></div>
-                        <div><dt className="text-xs font-bold text-gray-400">מדינה ועיר</dt><dd className="mt-0.5 font-medium text-gray-800">{form.country}, {form.city}</dd></div>
+                        <div><dt className="text-xs font-bold text-gray-400">עיר ומדינה</dt><dd className="mt-0.5 font-medium text-gray-800">{form.city}, {form.country}</dd></div>
                         <div className="sm:col-span-2"><dt className="text-xs font-bold text-gray-400">כתובת מגורים</dt><dd className="mt-0.5 font-medium text-gray-800">{form.address}{form.postal_code ? `, ${form.postal_code}` : ''}</dd></div>
                         <div className="sm:col-span-2"><dt className="text-xs font-bold text-gray-400">כתובת בישראל</dt><dd className="mt-0.5 font-medium text-gray-800">{form.israel_address || '—'}</dd></div>
                       </dl>

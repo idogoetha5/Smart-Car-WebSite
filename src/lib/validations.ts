@@ -149,7 +149,9 @@ export const customerDetailsSchema = z.strictObject({
   country: z.string().trim().min(2, 'Country is required').max(100),
   city: z.string().trim().min(2, 'City is required').max(100),
   address: z.string().trim().min(4, 'Address is required').max(250),
-  postalCode: z.string().trim().max(20),
+  // No longer asked for. Still accepted (and ignored if empty) so a tab left
+  // open on the previous version of the form can submit.
+  postalCode: z.string().trim().max(20).optional(),
   phone: z.string().trim().min(1, 'Phone number is required').max(32)
     .refine(isValidInternationalPhone, { message: 'Invalid phone number' }),
   israelAddress: z.string().trim().max(250).optional(),

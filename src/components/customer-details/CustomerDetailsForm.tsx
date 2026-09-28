@@ -4,8 +4,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Check, CheckCircle2, ChevronLeft, ChevronRight, LockKeyhole } from 'lucide-react';
+import type { CountryCode } from 'libphonenumber-js';
 import TurnstileWidget from '@/components/ui/Turnstile';
+import CityCountryInput from '@/components/customer-details/CityCountryInput';
+import PhoneWithCountryInput from '@/components/customer-details/PhoneWithCountryInput';
 import { type BranchId } from '@/lib/branches';
+import { composeInternationalPhone, DEFAULT_PHONE_COUNTRY, isSupportedPhoneCountry } from '@/lib/phone-prefix';
 
 type FormValues = {
   branchId: BranchId;
@@ -16,7 +20,6 @@ type FormValues = {
   country: string;
   city: string;
   address: string;
-  postalCode: string;
   phone: string;
   israelAddress: string;
   email: string;
@@ -32,7 +35,6 @@ function emptyForm(initialBranch: BranchId): FormValues {
     country: '',
     city: '',
     address: '',
-    postalCode: '',
     phone: '',
     israelAddress: '',
     email: '',
@@ -58,6 +60,10 @@ export default function CustomerDetailsForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [referenceId, setReferenceId] = useState('');
+  const [phoneCountry, setPhoneCountry] = useState<CountryCode>(DEFAULT_PHONE_COUNTRY);
+  const [phoneNational, setPhoneNational] = useState('');
+  // Once the customer picks a prefix themselves, choosing a city no longer changes it.
+  const [phoneCountryChosen, setPhoneCountryChosen] = useState(false);
 
   const text = isHe ? {
     title: 'פרטי לקוח להשכרת רכב',
@@ -67,7 +73,7 @@ export default function CustomerDetailsForm({
     identity: 'פרטי זיהוי', contact: 'כתובת ופרטי קשר', review: 'אישור הפרטים',
     fullName: 'שם מלא', dateOfBirth: 'תאריך לידה',
     passportNumber: 'מספר ת״ז / דרכון', driverLicenseNumber: 'מספר רישיון נהיגה',
-    country: 'מדינה', city: 'עיר', address: 'כתובת מגורים', postalCode: 'מיקוד (לא חובה)',
+    address: 'כתובת מגורים',
     phone: 'מספר טלפון', israelAddress: 'כתובת בישראל', optional: 'לא חובה',
     email: 'כתובת אימייל',
     emailHint: 'לכתובת זו יישלחו חשבוניות וחיובים עתידיים הקשורים להשכרה.',
@@ -86,7 +92,7 @@ export default function CustomerDetailsForm({
     identity: 'Identification details', contact: 'Address and contact details', review: 'Review and confirm',
     fullName: 'Full name', dateOfBirth: 'Date of birth',
     passportNumber: 'ID / passport number', driverLicenseNumber: 'Driving licence number',
-    country: 'Country', city: 'City', address: 'Home address', postalCode: 'Postal / ZIP code (optional)',
+    address: 'Home address',
     phone: 'Phone number', israelAddress: 'Address in Israel', optional: 'Optional',
     email: 'Email address',
     emailHint: 'Future invoices and rental-related charges will be sent to this address.',
@@ -107,7 +113,7 @@ export default function CustomerDetailsForm({
     && values.passportNumber.trim().length >= 3 && values.driverLicenseNumber.trim().length >= 3;
   const stepTwoComplete = values.country.trim().length >= 2 && values.city.trim().length >= 2
     && values.address.trim().length >= 4
-    && values.phone.trim().length > 0 && values.email.includes('@');
+    && phoneNational.replace(/\D/g, '').length >= 4 && values.email.includes('@');
 
   const goNext = () => {
     if ((step === 1 && !stepOneComplete) || (step === 2 && !stepTwoComplete)) {
@@ -131,7 +137,7 @@ export default function CustomerDetailsForm({
       const response = await fetch('/api/customer-details', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...values, locale, invoiceNoticeAccepted, turnstileToken, _website: website }),
+        body: JSON.stringify({ ...values, phone: composeInternationalPhone(phoneCountry, phoneNational), locale, invoiceNoticeAccepted, turnstileToken, _website: website }),
       });
       const json = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(json.error || 'submit_failed');
@@ -152,7 +158,7 @@ export default function CustomerDetailsForm({
           <p className="mx-auto mt-3 max-w-md text-base leading-7 text-gray-600">{text.successBody}</p>
           <button
             type="button"
-            onClick={() => { setValues(emptyForm(initialBranch)); setInvoiceNoticeAccepted(false); setTurnstileToken(''); setReferenceId(''); setStep(1); }}
+            onClick={() => { setValues(emptyForm(initialBranch)); setPhoneCountry(DEFAULT_PHONE_COUNTRY); setPhoneNational(''); setPhoneCountryChosen(false); setInvoiceNoticeAccepted(false); setTurnstileToken(''); setReferenceId(''); setStep(1); }}
             className="mt-8 min-h-12 rounded-xl bg-[#E8743B] px-6 py-3 font-bold text-white transition hover:bg-[#d4632a] focus:outline-none focus:ring-4 focus:ring-[#E8743B]/25"
           >
             {text.another}
@@ -227,15 +233,29 @@ export default function CustomerDetailsForm({
             {step === 2 && (
               <fieldset className="space-y-5">
                 <legend className="mb-5 text-xl font-black text-[#0D2B2B]">{text.contact}</legend>
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div><label htmlFor="country" className={labelClass}>{text.country}</label><input id="country" value={values.country} onChange={update('country')} className={inputClass} autoComplete="country-name" required maxLength={100} /></div>
-                  <div><label htmlFor="city" className={labelClass}>{text.city}</label><input id="city" value={values.city} onChange={update('city')} className={inputClass} autoComplete="address-level2" required maxLength={100} /></div>
-                </div>
+                <CityCountryInput
+                  id="city-country"
+                  locale={locale}
+                  city={values.city}
+                  country={values.country}
+                  onChange={({ city, country, countryCode }) => {
+                    setValues((current) => ({ ...current, city, country }));
+                    if (!phoneCountryChosen && countryCode && isSupportedPhoneCountry(countryCode)) setPhoneCountry(countryCode);
+                  }}
+                  inputClass={inputClass}
+                  labelClass={labelClass}
+                />
                 <div><label htmlFor="home-address" className={labelClass}>{text.address}</label><input id="home-address" value={values.address} onChange={update('address')} className={inputClass} autoComplete="street-address" required maxLength={250} /></div>
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div><label htmlFor="postal-code" className={labelClass}>{text.postalCode}</label><input id="postal-code" value={values.postalCode} onChange={update('postalCode')} className={inputClass} autoComplete="postal-code" maxLength={20} dir="ltr" /></div>
-                  <div><label htmlFor="phone" className={labelClass}>{text.phone}</label><input id="phone" type="tel" value={values.phone} onChange={update('phone')} className={inputClass} autoComplete="tel" inputMode="tel" required maxLength={32} dir="ltr" placeholder="+972…" /></div>
-                </div>
+                <PhoneWithCountryInput
+                  id="phone"
+                  locale={locale}
+                  country={phoneCountry}
+                  national={phoneNational}
+                  onCountryChange={(country) => { setPhoneCountry(country); setPhoneCountryChosen(true); }}
+                  onNationalChange={setPhoneNational}
+                  inputClass={inputClass}
+                  labelClass={labelClass}
+                />
                 <div><label htmlFor="israel-address" className={labelClass}>{text.israelAddress} <span className="font-normal text-gray-500">({text.optional})</span></label><input id="israel-address" value={values.israelAddress} onChange={update('israelAddress')} className={inputClass} maxLength={250} /></div>
                 <div>
                   <label htmlFor="email" className={labelClass}>{text.email}</label>

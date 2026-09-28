@@ -10,7 +10,6 @@ const validForm = {
   country: 'United Kingdom',
   city: 'London',
   address: '10 Example Street',
-  postalCode: 'SW1A 1AA',
   phone: '+442071234567',
   israelAddress: '112 HaYarkon, Tel Aviv',
   email: 'jane@example.com',
@@ -24,8 +23,12 @@ describe('customerDetailsSchema', () => {
     expect(customerDetailsSchema.safeParse(validForm).success).toBe(true);
   });
 
-  it('accepts a form without a postal code', () => {
-    expect(customerDetailsSchema.safeParse({ ...validForm, postalCode: '' }).success).toBe(true);
+  it('no longer needs a postal code', () => {
+    expect('postalCode' in validForm).toBe(false);
+  });
+
+  it('still accepts a postal code sent by an older open copy of the form', () => {
+    expect(customerDetailsSchema.safeParse({ ...validForm, postalCode: 'SW1A 1AA' }).success).toBe(true);
   });
 
   it('accepts an empty optional Israel address', () => {
