@@ -146,7 +146,8 @@ export const customerDetailsSchema = z.strictObject({
     .regex(/^[\p{L}\p{N}\-./ ]+$/u, 'Invalid passport number'),
   driverLicenseNumber: z.string().trim().min(3, 'Driver licence number is required').max(40)
     .regex(/^[\p{L}\p{N}\-./ ]+$/u, 'Invalid driver licence number'),
-  country: z.string().trim().min(2, 'Country is required').max(100),
+  // Optional: a place typed by hand without a country is still accepted.
+  country: z.string().trim().max(100).default(''),
   city: z.string().trim().min(2, 'City is required').max(100),
   address: z.string().trim().min(4, 'Address is required').max(250),
   // No longer asked for. Still accepted (and ignored if empty) so a tab left

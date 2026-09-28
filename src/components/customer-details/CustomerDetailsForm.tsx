@@ -111,7 +111,7 @@ export default function CustomerDetailsForm({
 
   const stepOneComplete = values.fullName.trim().length >= 2 && values.dateOfBirth
     && values.passportNumber.trim().length >= 3 && values.driverLicenseNumber.trim().length >= 3;
-  const stepTwoComplete = values.country.trim().length >= 2 && values.city.trim().length >= 2
+  const stepTwoComplete = values.city.trim().length >= 2
     && values.address.trim().length >= 4
     && phoneNational.replace(/\D/g, '').length >= 4 && values.email.includes('@');
 

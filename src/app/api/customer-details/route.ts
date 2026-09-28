@@ -44,7 +44,7 @@ async function notifyBranch(id: string, value: CustomerDetailsInput): Promise<bo
     `Date of birth: ${value.dateOfBirth}`,
     `ID / passport number: ${value.passportNumber}`,
     `Driving licence number: ${value.driverLicenseNumber}`,
-    `City and country: ${value.city}, ${value.country}`,
+    `City and country: ${[value.city, value.country].filter(Boolean).join(', ')}`,
     `Home address: ${value.address}`,
     `Phone: ${value.phone}`,
     `Address in Israel: ${value.israelAddress || '-'}`,

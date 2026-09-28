@@ -4,6 +4,28 @@
 
 ---
 
+## ⛔ ברקודי ה-QR של טפסי הלקוחות — אסור לשנות לעולם
+
+ארבעת ברקודי ה-QR (הרצליה, תל אביב, ירושלים, נתב״ג) כבר מודפסים ומוצבים פיזית בסניפים. **אסור לשנות אותם, ואסור ליצור אותם מחדש.** לכל מי שעובד על הפרויקט, אדם או בינה מלאכותית:
+
+- אסור לשנות, להחליף, לייצר מחדש או למחוק את תמונות ה-QR (`טפסי לקוחות/QR/`) ואת קובצי ה-PDF להדפסה (`טפסי לקוחות/חוברות להדפסה/`).
+- אסור לשנות את הכתובות שהברקודים מפנים אליהם: `https://www.smartcar.co.il/en/customer-details?branch=<branch>`. כלומר לא את הנתיב `customer-details`, לא את הפרמטר `branch`, ולא את מזהי הסניפים `herzliya` / `telaviv` / `jerusalem` / `airport`.
+- אסור לשנות את `src/lib/branches.ts` בצורה ששוברת את מזהי הסניפים, ואסור להריץ מחדש את `scripts/customer-forms/*` כך שידרסו את הקבצים הקיימים.
+- מותר לשנות את מה שהטופס עצמו עושה (שדות, עיצוב, ולידציה). הכתובת חייבת להמשיך לעבוד בדיוק כמו היום.
+
+### קישורי הטפסים לפי סניף
+
+| סניף | קישור קצר לשליחה בווטסאפ (עברית) | כתובת הברקוד (לא לגעת) |
+|------|------|------|
+| הרצליה | `https://www.smartcar.co.il/f/herzliya` | `https://www.smartcar.co.il/en/customer-details?branch=herzliya` |
+| תל אביב | `https://www.smartcar.co.il/f/telaviv` | `https://www.smartcar.co.il/en/customer-details?branch=telaviv` |
+| ירושלים | `https://www.smartcar.co.il/f/jerusalem` | `https://www.smartcar.co.il/en/customer-details?branch=jerusalem` |
+| נתב״ג | `https://www.smartcar.co.il/f/airport` | `https://www.smartcar.co.il/en/customer-details?branch=airport` |
+
+הקישור הקצר `/f/<סניף>` הוא רק הפניה לטופס בעברית (`/he/customer-details?branch=<סניף>`), מוגדר ב-`next.config.ts`, ונועד לשליחה ללקוחות. הברקודים המודפסים לא משתמשים בו.
+
+---
+
 ## תיאור הפרויקט
 
 SmartCar הוא אתר השכרת רכב ישראלי המציע:

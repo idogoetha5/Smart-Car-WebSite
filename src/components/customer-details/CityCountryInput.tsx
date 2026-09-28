@@ -105,8 +105,6 @@ export default function CityCountryInput({ id, locale, city, country, onChange, 
     }
   };
 
-  const typedWithoutCountry = !picked && text.trim().length >= 2 && !parseCityCountry(text).country;
-
   return (
     <div>
       <label htmlFor={id} className={labelClass}>{isHe ? 'עיר ומדינה' : 'City and country'}</label>
@@ -152,10 +150,10 @@ export default function CityCountryInput({ id, locale, city, country, onChange, 
           </ul>
         )}
       </div>
-      <p id={hintId} className={`mt-2 text-xs leading-5 ${typedWithoutCountry ? 'text-[#B64916]' : 'text-gray-500'}`}>
-        {typedWithoutCountry
-          ? (isHe ? 'בחרו מהרשימה, או כתבו עיר ומדינה עם פסיק ביניהן.' : 'Pick from the list, or type the city and country separated by a comma.')
-          : (isHe ? 'התחילו להקליד את שם העיר ובחרו מהרשימה.' : 'Start typing your city and pick it from the list.')}
+      <p id={hintId} className="mt-2 text-xs leading-5 text-gray-500">
+        {isHe
+          ? 'התחילו להקליד ובחרו מהרשימה. לא מצאתם? אפשר פשוט לכתוב את העיר (ואת המדינה, אם רוצים).'
+          : "Start typing and pick from the list. Can't find it? Just type your city (and country if you like)."}
       </p>
       <p className="mt-0.5 text-[11px] text-gray-400">{isHe ? 'חיפוש מקומות: © OpenStreetMap contributors' : 'Place search: © OpenStreetMap contributors'}</p>
     </div>

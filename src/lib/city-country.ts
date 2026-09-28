@@ -54,13 +54,14 @@ export function uniquePlaces(places: Place[]): Place[] {
 }
 
 /**
- * Free text typed without picking a suggestion ("City, Country"): split on
- * the last comma. Without a comma nothing is inferred, so the customer is
- * asked to pick from the list or add the country.
+ * Free text typed without picking a suggestion: split on the last comma
+ * ("City, Country"). Without a comma the whole text is kept as the city and
+ * the country stays empty, so nobody is blocked when their place is not in
+ * the suggestions list.
  */
 export function parseCityCountry(text: string): { city: string; country: string } {
   const index = text.lastIndexOf(',');
-  if (index === -1) return { city: '', country: '' };
+  if (index === -1) return { city: text.trim(), country: '' };
   return { city: text.slice(0, index).trim(), country: text.slice(index + 1).trim() };
 }
 

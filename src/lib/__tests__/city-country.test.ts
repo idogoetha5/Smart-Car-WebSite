@@ -29,8 +29,8 @@ describe('parseCityCountry', () => {
     expect(parseCityCountry('Paris, Texas, United States')).toEqual({ city: 'Paris, Texas', country: 'United States' });
   });
 
-  it('infers nothing without a comma', () => {
-    expect(parseCityCountry('London')).toEqual({ city: '', country: '' });
+  it('keeps the whole text as the city when there is no comma', () => {
+    expect(parseCityCountry('London')).toEqual({ city: 'London', country: '' });
   });
 });
 

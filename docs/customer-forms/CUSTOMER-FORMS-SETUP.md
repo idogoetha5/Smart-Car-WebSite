@@ -9,6 +9,11 @@ Replace the `branch` value with `telaviv`, `jerusalem`, or `airport` for the
 other branches. Each branch QR uses its own URL, and the branch is assigned
 automatically without asking the customer to choose it.
 
+The printed QR codes point at `/en/customer-details?branch=<branch>` and this
+must NEVER change. For sending on WhatsApp use the short link
+`https://www.smartcar.co.il/f/<branch>` (herzliya, telaviv, jerusalem,
+airport), which redirects to the Hebrew form.
+
 Printable A4 posters are available at:
 
 - `/he/customer-details/qr/herzliya`

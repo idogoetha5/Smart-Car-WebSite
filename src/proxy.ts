@@ -155,9 +155,10 @@ export const config = {
     '/api/admin/(.*)',
     // `q/` is the customer-facing document link. It is not a localized page,
     // so next-intl must not rewrite it to /he/q/... (which is a 404).
+    // `f/` is the short customer-form link (see redirects() in next.config.ts).
     // Metadata icons are global assets. If they pass through next-intl they
     // are rewritten to /he/... and become 404s, so keep every iOS fallback
     // name outside locale routing as well as Next's generated icon routes.
-    '/((?!api|q/|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|apple-touch-icon.png|apple-touch-icon-precomposed.png|icons|images|robots.txt|sitemap.xml).*)',
+    '/((?!api|q/|f/|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|apple-touch-icon.png|apple-touch-icon-precomposed.png|icons|images|robots.txt|sitemap.xml).*)',
   ],
 };
