@@ -1,5 +1,5 @@
 #!/bin/bash
-# Runs pa11y against every URL in scripts/a11y-urls.txt and writes a combined
+# Runs pa11y against every URL in scripts/accessibility/a11y-urls.txt and writes a combined
 # JSON report to $1.
 #
 # The previous version turned `result=""` into `[]`, so a browser that failed
@@ -16,7 +16,7 @@
 set -uo pipefail
 
 OUT="${1:?usage: run-a11y.sh <output.json>}"
-URLS="scripts/a11y-urls.txt"
+URLS="scripts/accessibility/a11y-urls.txt"
 STAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ERR_LOG="${OUT%.json}.stderr.log"
 

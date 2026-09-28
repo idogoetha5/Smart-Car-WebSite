@@ -8,7 +8,7 @@ Automated + manual audit of the public-facing site (32 page/locale combinations:
 - **pa11y** (HTML_CodeSniffer engine, WCAG2AA ruleset) — full run of all 32 URLs, before and after fixes.
 - **axe-core** (via `@axe-core/puppeteer`, `wcag2a` + `wcag2aa` + `wcag21aa` tags) — full run of all 32 URLs, before and after fixes, as an independent second engine (different rule implementation, catches different issue classes — e.g. axe found several color-contrast failures pa11y's engine missed, and vice versa neither replaces manual review).
 
-Raw results: `a11y-before.json` (pa11y, first run), `a11y-after.json` (pa11y, final run), `axe-results.json` (axe-core, final run — the pre-fix axe run was not saved to a separate file, but its findings are folded into the fix list below). These are working artifacts, not committed to git.
+Raw results: `evidence/a11y/2026-07-27/a11y-before.json` (pa11y, first run), `evidence/a11y/2026-07-27/a11y-after.json` (pa11y, final run), `evidence/a11y/2026-07-27/axe-results.json` (axe-core, final run — the pre-fix axe run was not saved to a separate file, but its findings are folded into the fix list below). These are working artifacts, not committed to git.
 
 **Manual checks performed** (things automated tools structurally cannot verify): heading hierarchy on homepage/insurance/leasing (clean h1→h2→h3, no skipped levels, single h1 per page); alt-text quality on all `<Image>`/`<img>` usages outside admin (all descriptive, none filename-based or generic); keyboard-trap check on the one non-native interactive widget on the site (the custom date picker); cookie-consent banner keyboard/focus behavior.
 

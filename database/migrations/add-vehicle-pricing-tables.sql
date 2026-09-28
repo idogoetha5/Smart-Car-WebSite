@@ -58,7 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_vehicle_price_overrides_season ON vehicle_price_o
 ALTER TABLE pricing_seasons          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vehicle_price_overrides  ENABLE ROW LEVEL SECURITY;
 
--- No public Supabase policy, same as vehicles since scripts/hotfix-rls.sql:
+-- No public Supabase policy, same as vehicles since database/maintenance/hotfix-rls.sql:
 -- every read goes through a Next.js route using the service-role client,
 -- which explicitly allowlists the columns it returns.
 DROP POLICY IF EXISTS "Service role manages pricing_seasons" ON pricing_seasons;

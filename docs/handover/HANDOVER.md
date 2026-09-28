@@ -153,7 +153,7 @@ errors / 1 warning (same pre-existing `watch()` warning as always).
   6-digit number at the desk, not a wrong or overwritten record. Real
   tradeoff, already deliberate, not the same bug class as the quote-number
   one above.
-- `scripts/audit-critical.mjs` treating npm audit's endpoint being down as a
+- `scripts/ci/audit-critical.mjs` treating npm audit's endpoint being down as a
   pass rather than a CI failure is intentional (see the comment at the top of
   that file) — already the fix for an earlier, different problem, not a gap.
 - The accessibility statement's screen-reader claims (NVDA/Edge,
@@ -181,7 +181,7 @@ or deployed — see "Deploy is blocked" below before doing either.**
 ### Durable email outbox — now fully documented, not "not yet implemented"
 
 Lives entirely in `src/app/api/cron/email-retry/route.ts` +
-`scripts/add-email-outbox-table.sql` (already applied, from the 30 July
+`database/migrations/add-email-outbox-table.sql` (already applied, from the 30 July
 session). Vercel Cron fires it once daily at 03:00 (`vercel.json`) — the
 Hobby plan caps cron frequency at once a day, so this is the only schedule
 available, not a design choice.
@@ -238,14 +238,14 @@ already the table's primary key) instead of the six-digit `quote_number`.
 The six-digit number is display-only from here on — it is expected to repeat
 across customers, same email or not, concurrent or not. PDF storage paths
 are also keyed by id, never by the display number. See
-`scripts/allow-duplicate-quote-numbers.sql` below for the matching DB change.
+`database/migrations/allow-duplicate-quote-numbers.sql` below for the matching DB change.
 
 ### Two new migrations — additive, NOT yet run against Production
 
-- `scripts/add-season-fleet-fixed-price.sql` — adds nullable
+- `database/migrations/add-season-fleet-fixed-price.sql` — adds nullable
   `pricing_seasons.fixed_price`. Every existing season row keeps working
   exactly as before (falls through to `adjustment_percent`, same as always).
-- `scripts/allow-duplicate-quote-numbers.sql` — drops the `UNIQUE` constraint
+- `database/migrations/allow-duplicate-quote-numbers.sql` — drops the `UNIQUE` constraint
   on `quotes.quote_number` (replaced by a plain index for search) now that
   `id` is the real key. Does not touch, move or delete any existing row;
   today's `quote_number` values are already distinct, so this is a no-op
@@ -551,8 +551,8 @@ with correct SPF for both senders. **Added the missing DMARC record**:
 (monitor-only, Ido's explicit choice) — Cloudflare's own dashboard had been
 flagging this as a recommendation.
 
-**Correction to section 3 above and to OPS-FINDINGS.md item 1**: that Resend
-DKIM record is not the whole story. OPS-FINDINGS.md (28 July) separately
+**Correction to section 3 above and to docs/handover/OPS-FINDINGS.md item 1**: that Resend
+DKIM record is not the whole story. docs/handover/OPS-FINDINGS.md (28 July) separately
 flagged that **Microsoft 365's own DKIM** (`selector1._domainkey` /
 `selector2._domainkey`, for mail actually sent from office@smartcar.co.il
 via Outlook/M365) was never configured — checked DNS again today, still
@@ -561,7 +561,7 @@ guess them), and **the M365 tenant admin is Daniel**, not Ido — same
 dependency as ח.פ. and Cloudflare Application Security. Genuinely blocked,
 not a DNS-access problem.
 
-HSTS (OPS-FINDINGS.md item 2, config drift) — re-checked, already resolved:
+HSTS (docs/handover/OPS-FINDINGS.md item 2, config drift) — re-checked, already resolved:
 `next.config.ts` and the live header both read
 `max-age=31536000; includeSubDomains` now. No longer open.
 
@@ -585,7 +585,7 @@ don't be confused by the R2-flavored naming, there is no R2 involved.
   a raw Postgres connection) — only the manual/scheduled backup scripts do,
   and they take it fresh from `~/.smartcar-db-url` (mode 600, machine-local,
   never in the repo) each run.
-- **`scripts/backup-storage.sh` fixed a real off-by-one bug**: in `db` mode
+- **`scripts/backups/backup-storage.sh` fixed a real off-by-one bug**: in `db` mode
   (reading `image_urls` off the `vehicles` table rather than listing the
   bucket via service-role key — the latter is blocked by the same "Sensitive
   env vars export empty" issue noted elsewhere), the final remote-object-
@@ -598,7 +598,7 @@ don't be confused by the R2-flavored naming, there is no R2 involved.
   live vehicle rows) both uploaded to Google Drive and confirmed present.
 - **Scheduling installed** via `crontab` (not launchd — simpler, matches
   what was already there): DB nightly at 03:00, Storage weekly Sunday 04:00,
-  both through the new `scripts/run-backups.sh [db|storage|all]` wrapper,
+  both through the new `scripts/backups/run-backups.sh [db|storage|all]` wrapper,
   logging to `~/.smartcar-backups/cron.log`. **Caveat, not yet verified**:
   macOS `cron` needs Full Disk Access granted in System Settings → Privacy &
   Security for it to actually fire, and the Mac must be awake at the
@@ -631,7 +631,7 @@ don't be confused by the R2-flavored naming, there is no R2 involved.
 
 - Microsoft 365 DKIM — needs Daniel, the M365 admin. Not code or DNS-access.
 - ח.פ. — still needs Daniel. Note a 4th related field in
-  `LEGAL-IDENTITY-TODO.md` that keeps getting dropped from later summaries:
+  `docs/handover/LEGAL-IDENTITY-TODO.md` that keeps getting dropped from later summaries:
   the car-rental **operator license number** — separate question of whether
   display is legally mandatory, needs a lawyer's call, not just the number.
 - Cron scheduling installed but not yet verified to actually fire

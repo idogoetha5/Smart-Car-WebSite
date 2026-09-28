@@ -49,7 +49,7 @@ export async function POST(request: Request) {
 
   // Save the lead BEFORE attempting the notification email — an email
   // provider outage must never lose a customer inquiry. If the table
-  // doesn't exist yet (scripts/add-consent-ledger-columns.sql not run),
+  // doesn't exist yet (database/migrations/add-consent-ledger-columns.sql not run),
   // log loudly and continue so the notification still goes out.
   // Saving the lead is the operation. It used to be attempted, logged on
   // failure and then ignored, so the API could answer "sent" with nothing

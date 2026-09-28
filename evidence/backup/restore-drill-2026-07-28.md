@@ -5,7 +5,7 @@ scheduled backups).
 
 ## Backup
 
-`scripts/backup-db.sh` against the session pooler
+`scripts/backups/backup-db.sh` against the session pooler
 `aws-1-eu-west-2.pooler.supabase.com:5432`.
 
 - 47 tables, 128K gzipped
@@ -50,9 +50,9 @@ mistaken for a good one, and it did the exact opposite.
 ## Still open
 
 - **Off-site copy.** This backup is on the same machine as everything else.
-  `scripts/backup-db.sh` uploads to Cloudflare R2 once an rclone remote named
+  `scripts/backups/backup-db.sh` uploads to Cloudflare R2 once an rclone remote named
   `r2` exists; until then it prints a warning and keeps the file locally.
-- **Storage buckets.** `scripts/backup-storage.sh` covers them and has not been
+- **Storage buckets.** `scripts/backups/backup-storage.sh` covers them and has not been
   run — pg_dump does not include Storage, so the 678 vehicle images are not yet
   backed up.
 - **Scheduling.** Runs are manual so far.

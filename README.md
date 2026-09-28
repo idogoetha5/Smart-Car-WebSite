@@ -154,6 +154,36 @@ npm run start
 
 ---
 
+## מבנה התיקיות בפרויקט
+
+```
+Smart-Car-WebSite/
+├── src/                  # קוד האתר (Next.js) — כל מה שעולה לאוויר
+├── public/               # תמונות וקבצים סטטיים שהאתר מציג
+├── scripts/              # כלים שמריצים ידנית או מה-CI
+│   ├── ci/               # בדיקות CI: lint-budget, audit-critical
+│   ├── backups/          # גיבוי מסד הנתונים והתמונות (רץ אוטומטית ב-GitHub Actions)
+│   ├── accessibility/    # סריקות נגישות (pa11y / axe / מקלדת)
+│   ├── admin/            # הגדרת Google Authenticator לאדמין
+│   ├── customer-forms/   # יצירת חוברות ה-QR של טפסי הלקוחות
+│   └── whatsapp-bot/     # סימולטור ותרחישי בדיקה לבוט הוואטסאפ
+├── database/             # קובצי SQL ל-Supabase
+│   ├── migrations/       # שינויי סכמה שהורצו (טבלאות, עמודות, הרשאות)
+│   ├── maintenance/      # תיקונים בטוחים שאפשר להריץ שוב
+│   └── dangerous/        # ⛔ סקריפטים שמוחקים נתונים — לא להריץ על פרודקשן
+├── docs/                 # תיעוד
+│   ├── handover/         # מסמך העברה, ממצאים תפעוליים, פרטי ישות משפטית חסרים
+│   ├── whatsapp-bot/     # סטטוס הבוט, הרשאות YCloud, אמנת שירות ומחקר
+│   ├── accessibility/    # דוח נגישות ותיק ראיות
+│   └── customer-forms/   # הוראות הקמת טפסי הלקוחות
+├── evidence/             # תוצרי בדיקות (נגישות, גיבוי, RLS) — ה-JSON לא נשמר ב-git
+├── טפסי לקוחות/          # חבילת טפסי הלקוחות: QR, חוברות להדפסה, SQL, כלים ועותק קוד
+└── archive/              # קבצים שכבר לא בשימוש — נשמרו לעיון בלבד (ראו archive/README.md)
+```
+
+קובצי ההגדרות בשורש (`next.config.ts`, `i18n.ts`, `instrumentation*.ts`, `sentry.*.config.ts`,
+`tsconfig.json`, `eslint.config.mjs`, `vercel.json` וכו׳) חייבים להישאר בשורש — Next.js, Vercel ו-Sentry מחפשים אותם שם.
+
 ## מבנה ספריות עיקרי
 
 ```
@@ -196,7 +226,7 @@ vercel --prod
 
 ## RLS (Row Level Security)
 
-כל הגישה ל-DB מתבצעת דרך `service_role` (bypasses RLS) — אין ולא צריך להיות שום SELECT ציבורי על `bookings`/`leasing_requests`/`reviews`/`cars_for_sale`, כי גם ה-anon key חשוף בכל טעינת דף בדפדפן. המדיניות המלאה מוגדרת בסעיף 6 של `dangerous/supabase-setup.sql`. **אזהרה: אל תריץ מחדש את כל `dangerous/supabase-setup.sql` על בסיס נתונים עם מידע אמיתי — הוא מוחק (`DROP TABLE`) ובונה מחדש `vehicles`/`bookings`/`leasing_requests`/`seo_redirects`.** אם צריך רק לתקן/לוודא RLS על DB קיים, הריצו את `scripts/hotfix-rls.sql` בלבד — הוא אידמפוטנטי ולא נוגע בנתונים.
+כל הגישה ל-DB מתבצעת דרך `service_role` (bypasses RLS) — אין ולא צריך להיות שום SELECT ציבורי על `bookings`/`leasing_requests`/`reviews`/`cars_for_sale`, כי גם ה-anon key חשוף בכל טעינת דף בדפדפן. המדיניות המלאה מוגדרת בסעיף 6 של `database/dangerous/supabase-setup.sql`. **אזהרה: אל תריץ מחדש את כל `database/dangerous/supabase-setup.sql` על בסיס נתונים עם מידע אמיתי — הוא מוחק (`DROP TABLE`) ובונה מחדש `vehicles`/`bookings`/`leasing_requests`/`seo_redirects`.** אם צריך רק לתקן/לוודא RLS על DB קיים, הריצו את `database/maintenance/hotfix-rls.sql` בלבד — הוא אידמפוטנטי ולא נוגע בנתונים.
 
 ---
 

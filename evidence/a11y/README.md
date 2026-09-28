@@ -2,11 +2,11 @@
 
 `pa11y-production-*.json` is a pa11y (HTML_CodeSniffer, WCAG2AA) scan run
 against the **live production site**, not a local build — the URL list in
-`scripts/a11y-urls.txt` points at https://www.smartcar.co.il.
+`scripts/accessibility/a11y-urls.txt` points at https://www.smartcar.co.il.
 
 Reproduce with:
 
-    bash scripts/run-a11y.sh evidence/a11y/pa11y-production-$(date +%Y%m%d).json
+    bash scripts/accessibility/run-a11y.sh evidence/a11y/pa11y-production-$(date +%Y%m%d).json
 
 ## 2026-07-28 run
 
@@ -16,13 +16,13 @@ accessible name, because its `<label>` was never tied to the field. Fixed
 by adding `htmlFor`/`id` (plus `name` and `autocomplete="email"`).
 
 An automated scan is not a conformance statement — it detects only part of
-what matters. The gaps recorded in ACCESSIBILITY-EVIDENCE.md, above all a
+what matters. The gaps recorded in docs/accessibility/ACCESSIBILITY-EVIDENCE.md, above all a
 walkthrough with a real screen reader, remain open.
 
 ## Production run, 2026-07-28 16:04 UTC
 
 34 of 34 URLs scanned, 0 not-tested, 0 errors, produced by the rewritten
-`scripts/run-a11y.sh`.
+`scripts/accessibility/run-a11y.sh`.
 
 That "0" is only meaningful because the script now distinguishes a scanned
 page from one it could not reach. The previous version turned an empty pa11y

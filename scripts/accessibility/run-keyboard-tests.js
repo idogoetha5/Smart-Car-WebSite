@@ -6,7 +6,7 @@
  * Each check reports PASS / FAIL / NOT_TESTED with the observed evidence,
  * so nothing is asserted without something backing it.
  *
- * Usage: node scripts/run-keyboard-tests.js [outfile]
+ * Usage: node scripts/accessibility/run-keyboard-tests.js [outfile]
  */
 const puppeteer = require('puppeteer');
 const fs = require('fs');

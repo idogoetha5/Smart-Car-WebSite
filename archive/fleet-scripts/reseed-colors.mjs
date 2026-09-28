@@ -1,7 +1,7 @@
-import { createClient } from '../node_modules/@supabase/supabase-js/dist/index.mjs';
+import { createClient } from '../../node_modules/@supabase/supabase-js/dist/index.mjs';
 import { requireExplicitOptIn, assertUrlsReachable } from './lib/asset-guard.mjs';
 
-requireExplicitOptIn('scripts/reseed-colors.mjs');
+requireExplicitOptIn('archive/fleet-scripts/reseed-colors.mjs');
 
 const sb = createClient(
   'https://iovpoxmdsgsstaduggvb.supabase.co',

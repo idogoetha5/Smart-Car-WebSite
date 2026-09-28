@@ -99,7 +99,7 @@ jobs:
         # a real advisory and for npm's audit endpoint being down, and the
         # second one has already turned this gate red on a green commit.
         # The script tells the two apart.
-        run: node scripts/audit-critical.mjs
+        run: node scripts/ci/audit-critical.mjs
 
       - name: Secret scan
         uses: gitleaks/gitleaks-action@v2

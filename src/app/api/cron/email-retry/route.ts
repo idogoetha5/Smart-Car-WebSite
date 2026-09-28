@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { sendTemplateEmail, OUTBOX_BACKOFF_MS, type EmailEvent } from '@/lib/email-delivery';
 
 /**
- * Sweeps the email outbox (see scripts/add-email-outbox-table.sql) for
+ * Sweeps the email outbox (see database/migrations/add-email-outbox-table.sql) for
  * sends that exhausted their in-request retries and are now due for
  * another attempt. Triggered by Vercel Cron (see the `crons` entry in
  * vercel.json) once daily at 03:00 — the Hobby plan caps cron frequency

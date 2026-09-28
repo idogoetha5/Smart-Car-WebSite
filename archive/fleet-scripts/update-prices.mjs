@@ -1,10 +1,10 @@
-import { createClient } from '../node_modules/@supabase/supabase-js/dist/index.mjs';
+import { createClient } from '../../node_modules/@supabase/supabase-js/dist/index.mjs';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SERVICE_KEY) {
-  console.error('Missing env vars. Run: source .env.local && node scripts/update-prices.mjs');
+  console.error('Missing env vars. Run: source .env.local && node archive/fleet-scripts/update-prices.mjs');
   process.exit(1);
 }
 

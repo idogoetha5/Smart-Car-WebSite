@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint:budget": "node scripts/lint-budget.mjs"
+    "lint:budget": "node scripts/ci/lint-budget.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

@@ -85,7 +85,7 @@ Tell me it's set up and I'll walk through the live verification list with you: a
 
 ## Guided service flow
 
-Before testing the current bot, run `scripts/add-whatsapp-tables.sql` in the
+Before testing the current bot, run `database/migrations/add-whatsapp-tables.sql` in the
 Supabase SQL Editor. It now also creates `whatsapp_conversation_states`, which
 stores a short-lived (30 minute) rental-intake state. Customers can complete a
 request entirely in WhatsApp in Hebrew or English: dates and times, locations,

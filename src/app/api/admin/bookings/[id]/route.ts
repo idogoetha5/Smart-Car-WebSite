@@ -138,7 +138,7 @@ export async function PATCH(
 
   if (dbStatus === 'CONFIRMED') {
     // Availability re-check and the transition into CONFIRMED happen in a
-    // single database transaction (see scripts/add-approve-booking-rpc.sql).
+    // single database transaction (see database/migrations/add-approve-booking-rpc.sql).
     // Doing the count here and the UPDATE separately let two concurrent
     // approvals for the same vehicle both pass the check and oversell it.
     const { data: rpcRows, error: rpcError } = await supabase

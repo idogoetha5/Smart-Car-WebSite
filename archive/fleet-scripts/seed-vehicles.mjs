@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { requireExplicitOptIn, assertUrlsReachable } from './lib/asset-guard.mjs';
 
-requireExplicitOptIn('scripts/seed-vehicles.mjs');
+requireExplicitOptIn('archive/fleet-scripts/seed-vehicles.mjs');
 
 const sb = createClient(
   'https://iovpoxmdsgsstaduggvb.supabase.co',

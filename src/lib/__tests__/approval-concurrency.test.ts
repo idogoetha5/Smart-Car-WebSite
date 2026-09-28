@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
  * Approval concurrency rules.
  *
  * The real serialisation lives in the `approve_booking` Postgres function
- * (scripts/add-approve-booking-rpc.sql), which locks the vehicle row before
+ * (database/migrations/add-approve-booking-rpc.sql), which locks the vehicle row before
  * counting overlaps so two concurrent approvals for the same vehicle can't
  * both pass the check. That lock can only be exercised against a real
  * database.

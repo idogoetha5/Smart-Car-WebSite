@@ -18,7 +18,7 @@
 DO $$
 BEGIN
   RAISE EXCEPTION
-    'update-images.sql is disabled: its 226 image paths were deleted in 87d004c and now 404. Running it would blank every vehicle image. See scripts/lib/asset-guard.mjs.';
+    'update-images.sql is disabled: its 226 image paths were deleted in 87d004c and now 404. Running it would blank every vehicle image. See archive/fleet-scripts/lib/asset-guard.mjs.';
 END $$;
 
 -- ── Economy ─────────────────────────────────────────────────

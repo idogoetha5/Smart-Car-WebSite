@@ -19,10 +19,10 @@ the generated quote PDF.
 ```bash
 npm install                                   # scan tools are devDependencies
 npm run dev                                   # http://localhost:3000
-bash scripts/run-a11y.sh  evidence/a11y/pa11y-static-after.json
-node scripts/run-axe.js                       # -> axe-results.json
-node scripts/run-axe-dynamic.js  evidence/a11y/axe-dynamic-after.json
-node scripts/run-keyboard-tests.js evidence/a11y/keyboard-tests.json
+bash scripts/accessibility/run-a11y.sh  evidence/a11y/pa11y-static-after.json
+node scripts/accessibility/run-axe.js                       # -> axe-results.json
+node scripts/accessibility/run-axe-dynamic.js  evidence/a11y/axe-dynamic-after.json
+node scripts/accessibility/run-keyboard-tests.js evidence/a11y/keyboard-tests.json
 ```
 
 Raw artefacts live in `evidence/a11y/` (gitignored — never deployed, and
@@ -200,7 +200,7 @@ no claim is made either way.
    languages; on Windows, repeat with NVDA in Chrome and Firefox. Record
    what is announced at each step.
 2. **Booking extras keyboard reachability** — run
-   `scripts/run-keyboard-tests.js` against production (or a local env with
+   `scripts/accessibility/run-keyboard-tests.js` against production (or a local env with
    Supabase credentials), open a vehicle page, Tab to the extras list and
    confirm each checkbox takes focus with a visible ring.
 3. **1.3.5 autocomplete tokens**, **1.4.11 non-text contrast**,

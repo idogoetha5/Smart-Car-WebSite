@@ -48,7 +48,7 @@ export async function GET(request: Request) {
 
   if (error) return NextResponse.json({ error: 'שגיאה בשרת' }, { status: 500 });
 
-  // Bookings created before scripts/normalize-existing-emails.sql runs may
+  // Bookings created before database/maintenance/normalize-existing-emails.sql runs may
   // be stored with different casing and would not match the exact lookup
   // above. Fall back to a case-insensitive match with the like
   // metacharacters escaped — a literal comparison, so `%` or `_` inside an

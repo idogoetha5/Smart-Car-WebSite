@@ -20,7 +20,7 @@ SET smartcar.i_understand_this_deletes_data = 'yes';
 ```
 
 Intended only for a fresh, empty database. To repair RLS on a live database
-use `scripts/hotfix-rls.sql`, which is idempotent and touches no data.
+use `database/maintenance/hotfix-rls.sql`, which is idempotent and touches no data.
 
 ## update-images.sql
 
@@ -35,5 +35,5 @@ Use the Node equivalents in `scripts/` instead — they verify every URL returns
 
 ## Before running anything here
 
-Take a verified backup first: `scripts/backup-db.sh`. A backup you have never
+Take a verified backup first: `scripts/backups/backup-db.sh`. A backup you have never
 restored is not a backup.

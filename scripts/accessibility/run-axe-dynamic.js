@@ -6,7 +6,7 @@
  * Also runs a reflow/zoom pass (320px, 200%, 400%) and a
  * prefers-reduced-motion pass.
  *
- * Usage: node scripts/run-axe-dynamic.js [outfile]
+ * Usage: node scripts/accessibility/run-axe-dynamic.js [outfile]
  */
 const puppeteer = require('puppeteer');
 const { AxePuppeteer } = require('@axe-core/puppeteer');

@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 const { AxePuppeteer } = require('@axe-core/puppeteer');
 const fs = require('fs');
 
-const urls = fs.readFileSync('scripts/a11y-urls.txt', 'utf8').split('\n').filter(Boolean);
+const urls = fs.readFileSync('scripts/accessibility/a11y-urls.txt', 'utf8').split('\n').filter(Boolean);
 
 (async () => {
   const browser = await puppeteer.launch({ headless: true });

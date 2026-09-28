@@ -6,7 +6,7 @@
  * is transmitted — you copy the secret into Vercel yourself, so it never
  * passes through a chat log, a file, or anyone else's hands.
  *
- *   node scripts/enrol-admin-totp.mjs
+ *   node scripts/admin/enrol-admin-totp.mjs
  *
  * Then set ADMIN_TOTP_SECRET in Vercel (Production) and redeploy. Until that
  * variable exists the login is unchanged, so a half-finished enrolment cannot
