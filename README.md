@@ -15,14 +15,14 @@
 
 ### קישורי הטפסים לפי סניף
 
-| סניף | קישור קצר לשליחה בווטסאפ (עברית) | כתובת הברקוד (לא לגעת) |
+| סניף | קישור קצר לשליחה בווטסאפ (אנגלית כברירת מחדל) | כתובת הברקוד (לא לגעת) |
 |------|------|------|
 | הרצליה | `https://www.smartcar.co.il/f/herzliya` | `https://www.smartcar.co.il/en/customer-details?branch=herzliya` |
 | תל אביב | `https://www.smartcar.co.il/f/telaviv` | `https://www.smartcar.co.il/en/customer-details?branch=telaviv` |
 | ירושלים | `https://www.smartcar.co.il/f/jerusalem` | `https://www.smartcar.co.il/en/customer-details?branch=jerusalem` |
 | נתב״ג | `https://www.smartcar.co.il/f/airport` | `https://www.smartcar.co.il/en/customer-details?branch=airport` |
 
-הקישור הקצר `/f/<סניף>` הוא רק הפניה לטופס בעברית (`/he/customer-details?branch=<סניף>`), מוגדר ב-`next.config.ts`, ונועד לשליחה ללקוחות. הברקודים המודפסים לא משתמשים בו.
+הקישור הקצר `/f/<סניף>` הוא רק הפניה לטופס באנגלית (`/en/customer-details?branch=<סניף>`). הלקוח יכול לעבור לעברית בכפתור השפה בטופס, מוגדר ב-`next.config.ts`, ונועד לשליחה ללקוחות. הברקודים המודפסים לא משתמשים בו.
 
 ---
 

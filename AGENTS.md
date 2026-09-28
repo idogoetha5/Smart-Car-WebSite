@@ -19,11 +19,11 @@ The four branch QR codes (herzliya, telaviv, jerusalem, airport) are already pri
 
 Customer-form links per branch (single source of truth, keep this table in sync with `README.md`):
 
-| Branch | Short link to send on WhatsApp (Hebrew form) | QR URL (do not touch) |
+| Branch | Short link to send on WhatsApp (English form by default) | QR URL (do not touch) |
 |--------|------|------|
 | herzliya | `https://www.smartcar.co.il/f/herzliya` | `https://www.smartcar.co.il/en/customer-details?branch=herzliya` |
 | telaviv | `https://www.smartcar.co.il/f/telaviv` | `https://www.smartcar.co.il/en/customer-details?branch=telaviv` |
 | jerusalem | `https://www.smartcar.co.il/f/jerusalem` | `https://www.smartcar.co.il/en/customer-details?branch=jerusalem` |
 | airport | `https://www.smartcar.co.il/f/airport` | `https://www.smartcar.co.il/en/customer-details?branch=airport` |
 
-The short link `/f/<branch>` is only a redirect to `/he/customer-details?branch=<branch>` (defined in `redirects()` in `next.config.ts`; `f/` is excluded from the next-intl matcher in `src/proxy.ts`). The printed QR codes do not use it.
+The short link `/f/<branch>` is only a redirect to `/en/customer-details?branch=<branch>` (English is the default; the form's language button switches to Hebrew) (defined in `redirects()` in `next.config.ts`; `f/` is excluded from the next-intl matcher in `src/proxy.ts`). The printed QR codes do not use it.

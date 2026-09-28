@@ -133,13 +133,14 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       // Short customer-form links for sending on WhatsApp, one per branch:
-      // smartcar.co.il/f/<branch>. They only redirect to the Hebrew form.
+      // smartcar.co.il/f/<branch>. They redirect to the English form (the
+      // default); the customer can switch to Hebrew with the language button.
       // The printed QR codes do NOT use these; they point at
       // /en/customer-details?branch=<branch> and that must never change.
       // Not permanent, so the target can be changed later.
       {
         source: '/f/:branch(herzliya|telaviv|jerusalem|airport)',
-        destination: '/he/customer-details?branch=:branch',
+        destination: '/en/customer-details?branch=:branch',
         permanent: false,
       },
     ];

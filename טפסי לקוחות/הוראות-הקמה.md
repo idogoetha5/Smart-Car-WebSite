@@ -12,7 +12,8 @@ automatically without asking the customer to choose it.
 The printed QR codes point at `/en/customer-details?branch=<branch>` and this
 must NEVER change. For sending on WhatsApp use the short link
 `https://www.smartcar.co.il/f/<branch>` (herzliya, telaviv, jerusalem,
-airport), which redirects to the Hebrew form.
+airport), which redirects to the English form (Hebrew via the form's
+language button).
 
 Printable A4 posters are available at:
 
