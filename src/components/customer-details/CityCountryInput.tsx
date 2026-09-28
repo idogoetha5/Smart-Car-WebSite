@@ -25,7 +25,6 @@ type Props = {
 export default function CityCountryInput({ id, locale, city, country, onChange, inputClass, labelClass }: Props) {
   const isHe = locale === 'he';
   const listboxId = useId();
-  const hintId = `${id}-hint`;
   const [text, setText] = useState(() => formatPlace({ city, country }));
   const [picked, setPicked] = useState(() => Boolean(city && country));
   const [places, setPlaces] = useState<Place[]>([]);
@@ -118,7 +117,6 @@ export default function CityCountryInput({ id, locale, city, country, onChange, 
           onFocus={() => places.length > 0 && setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           className={`${inputClass} pe-11`}
-          placeholder={isHe ? 'לדוגמה: לונדון, בריטניה' : 'e.g. London, United Kingdom'}
           autoComplete="off"
           required
           maxLength={200}
@@ -127,7 +125,6 @@ export default function CityCountryInput({ id, locale, city, country, onChange, 
           aria-controls={listboxId}
           aria-expanded={open}
           aria-activedescendant={open && active >= 0 ? `${listboxId}-${active}` : undefined}
-          aria-describedby={hintId}
         />
         <span className={`pointer-events-none absolute bottom-3.5 end-4 ${picked ? 'text-[#2D5F5F]' : 'text-gray-400'}`} aria-hidden="true">
           {picked ? <Check className="h-5 w-5" /> : <MapPin className="h-5 w-5" />}
@@ -150,11 +147,6 @@ export default function CityCountryInput({ id, locale, city, country, onChange, 
           </ul>
         )}
       </div>
-      <p id={hintId} className="mt-2 text-xs leading-5 text-gray-500">
-        {isHe
-          ? 'התחילו להקליד ובחרו מהרשימה. לא מצאתם? אפשר פשוט לכתוב את העיר (ואת המדינה, אם רוצים).'
-          : "Start typing and pick from the list. Can't find it? Just type your city (and country if you like)."}
-      </p>
       <p className="mt-0.5 text-[11px] text-gray-400">{isHe ? 'חיפוש מקומות: © OpenStreetMap contributors' : 'Place search: © OpenStreetMap contributors'}</p>
     </div>
   );
