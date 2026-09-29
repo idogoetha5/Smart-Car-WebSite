@@ -6,43 +6,28 @@ import { formatLocationForDriver } from '@/lib/location-display';
 import { numericOrderReference } from '@/lib/order-reference';
 
 const SEARCH_WINDOW_DAYS = 45;
+const TASK_FETCH_LIMIT = 500;
 
-interface BookingRow {
+interface TaskRow {
   id: string;
-  customer_name: string;
-  pickup_date: string;
-  dropoff_date: string;
-  pickup_time: string | null;
-  return_time: string | null;
-  pickup_location: string;
-  dropoff_location: string;
-  vehicle: { make: string; model: string; license_plate: string | null } | null;
+  type: 'pickup' | 'return';
+  status: 'open' | 'done' | 'cancelled';
+  booking: {
+    id: string;
+    customer_name: string;
+    pickup_date: string;
+    dropoff_date: string;
+    pickup_time: string | null;
+    return_time: string | null;
+    pickup_location: string;
+    dropoff_location: string;
+    vehicle: { make: string; model: string; license_plate: string | null } | null;
+  } | null;
 }
 
 interface InspectionSlot {
   id: string;
   status: 'awaiting_signature' | 'signed';
-}
-
-function shapeRow(
-  b: BookingRow,
-  inspections: Map<string, InspectionSlot>
-) {
-  return {
-    bookingId: b.id,
-    bookingNumber: numericOrderReference(b.id),
-    customerName: b.customer_name,
-    vehicleName: b.vehicle ? `${b.vehicle.make} ${b.vehicle.model}` : '—',
-    licensePlate: b.vehicle?.license_plate ?? '—',
-    pickupLocation: formatLocationForDriver(b.pickup_location),
-    dropoffLocation: formatLocationForDriver(b.dropoff_location),
-    pickupDate: b.pickup_date,
-    dropoffDate: b.dropoff_date,
-    pickupTime: b.pickup_time,
-    returnTime: b.return_time,
-    pickupInspection: inspections.get(`${b.id}:pickup`) ?? null,
-    returnInspection: inspections.get(`${b.id}:return`) ?? null,
-  };
 }
 
 async function inspectionMapFor(bookingIds: string[]): Promise<Map<string, InspectionSlot>> {
@@ -60,80 +45,120 @@ async function inspectionMapFor(bookingIds: string[]): Promise<Map<string, Inspe
     console.error('[driver/today] inspection lookup failed:', error.message);
     return map;
   }
-  // Ordered ascending, so a later row for the same booking+type overwrites
-  // an earlier one — the map ends up holding the most recent inspection.
   for (const row of data ?? []) {
     map.set(`${row.booking_id}:${row.type}`, { id: row.id, status: row.status });
   }
   return map;
 }
 
+function shapeTask(task: TaskRow, inspections: Map<string, InspectionSlot>) {
+  const booking = task.booking;
+  const time = task.type === 'pickup' ? booking?.pickup_time : booking?.return_time;
+  const location = task.type === 'pickup' ? booking?.pickup_location : booking?.dropoff_location;
+
+  return {
+    taskId: task.id,
+    taskStatus: task.status,
+    type: task.type,
+    bookingId: booking?.id ?? '',
+    bookingNumber: booking ? numericOrderReference(booking.id) : '',
+    customerName: booking?.customer_name ?? '',
+    vehicleName: booking?.vehicle ? `${booking.vehicle.make} ${booking.vehicle.model}` : '—',
+    licensePlate: booking?.vehicle?.license_plate ?? '—',
+    location: formatLocationForDriver(location),
+    time,
+    inspection: booking ? inspections.get(`${booking.id}:${task.type}`) ?? null : null,
+  };
+}
+
+function relevantDate(task: TaskRow): string | null {
+  if (!task.booking) return null;
+  return task.type === 'pickup' ? task.booking.pickup_date : task.booking.dropoff_date;
+}
+
+const TASK_SELECT =
+  'id, type, status, booking:bookings(id, customer_name, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, vehicle:vehicles(make, model, license_plate))';
+
+/**
+ * "היום שלי" — only tasks assigned to the logged-in driver (an admin
+ * session sees every task, unfiltered). A plain website/phone booking
+ * with no task row simply doesn't appear here until one is created — see
+ * the plan's "workflow change" note.
+ */
 export async function GET(request: NextRequest) {
-  const { ok } = await requireDriverOrAdmin();
+  const { ok, driverId } = await requireDriverOrAdmin();
   if (!ok) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const search = request.nextUrl.searchParams.get('search')?.trim() ?? '';
   const supabase = createAdminClient();
-  const VEHICLE_SELECT =
-    'id, customer_name, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, vehicle:vehicles(make, model, license_plate)';
+  let query = supabase
+    .from('driver_tasks')
+    .select(TASK_SELECT)
+    .neq('status', 'cancelled')
+    .order('created_at', { ascending: false })
+    .limit(TASK_FETCH_LIMIT);
+  if (driverId) query = query.eq('assigned_driver_id', driverId);
+
+  const { data, error } = await query.returns<TaskRow[]>();
+  if (error) {
+    console.error('[driver/today] task lookup failed:', error.message);
+    return NextResponse.json({ error: 'Lookup failed' }, { status: 500 });
+  }
+  const tasks = (data ?? []).filter((t) => t.booking !== null);
+
+  const search = request.nextUrl.searchParams.get('search')?.trim() ?? '';
 
   if (search) {
-    // numericOrderReference is a one-way hash with no reverse lookup, so a
-    // search by booking number can't be a direct DB filter — this scans a
-    // bounded window and matches in JS instead of the whole table.
-    const since = new Date(Date.now() - SEARCH_WINDOW_DAYS * 86_400_000).toISOString();
-    const until = new Date(Date.now() + SEARCH_WINDOW_DAYS * 86_400_000).toISOString();
-    const { data, error } = await supabase
-      .from('bookings')
-      .select(VEHICLE_SELECT)
-      .or(
-        `and(pickup_date.gte.${since},pickup_date.lte.${until}),and(dropoff_date.gte.${since},dropoff_date.lte.${until})`
-      )
-      .returns<BookingRow[]>();
-
-    if (error) {
-      console.error('[driver/today] search query failed:', error.message);
-      return NextResponse.json({ error: 'Lookup failed' }, { status: 500 });
-    }
-
+    const since = Date.now() - SEARCH_WINDOW_DAYS * 86_400_000;
+    const until = Date.now() + SEARCH_WINDOW_DAYS * 86_400_000;
     const needle = search.toLowerCase();
-    const matches = (data ?? []).filter((b) => {
-      const plate = (b.vehicle?.license_plate ?? '').toLowerCase();
+
+    const matches = tasks.filter((t) => {
+      const date = relevantDate(t);
+      if (!date) return false;
+      const ts = new Date(date).getTime();
+      if (ts < since || ts > until) return false;
+
+      const plate = (t.booking?.vehicle?.license_plate ?? '').toLowerCase();
+      const name = (t.booking?.customer_name ?? '').toLowerCase();
       return (
-        b.customer_name.toLowerCase().includes(needle) ||
+        name.includes(needle) ||
         plate.includes(needle.replace(/[\s-]/g, '')) ||
-        numericOrderReference(b.id) === search
+        (t.booking && numericOrderReference(t.booking.id) === search)
       );
     });
 
-    const inspections = await inspectionMapFor(matches.map((b) => b.id));
-    return NextResponse.json({ results: matches.map((b) => shapeRow(b, inspections)) });
+    const inspections = await inspectionMapFor(matches.map((t) => t.booking!.id));
+    return NextResponse.json({ results: matches.map((t) => shapeTask(t, inspections)) });
   }
 
   const dateParam = request.nextUrl.searchParams.get('date') === 'tomorrow' ? israelTomorrow() : israelToday();
   const { startISO, endISO } = israelDayRange(dateParam);
+  const start = new Date(startISO).getTime();
+  const end = new Date(endISO).getTime();
 
-  const [pickupsRes, returnsRes] = await Promise.all([
-    supabase.from('bookings').select(VEHICLE_SELECT).gte('pickup_date', startISO).lt('pickup_date', endISO).returns<BookingRow[]>(),
-    supabase.from('bookings').select(VEHICLE_SELECT).gte('dropoff_date', startISO).lt('dropoff_date', endISO).returns<BookingRow[]>(),
-  ]);
+  const inRange = (t: TaskRow) => {
+    const date = relevantDate(t);
+    if (!date) return false;
+    const ts = new Date(date).getTime();
+    return ts >= start && ts < end;
+  };
 
-  if (pickupsRes.error || returnsRes.error) {
-    console.error('[driver/today] date query failed:', pickupsRes.error?.message, returnsRes.error?.message);
-    return NextResponse.json({ error: 'Lookup failed' }, { status: 500 });
-  }
+  const pickups = tasks.filter((t) => t.type === 'pickup' && inRange(t));
+  const returns = tasks.filter((t) => t.type === 'return' && inRange(t));
+  const inspections = await inspectionMapFor([...pickups, ...returns].map((t) => t.booking!.id));
 
-  const allIds = [...(pickupsRes.data ?? []), ...(returnsRes.data ?? [])].map((b) => b.id);
-  const inspections = await inspectionMapFor(allIds);
-
-  const sortByTime = (rows: BookingRow[], timeField: 'pickup_time' | 'return_time') =>
-    [...rows].sort((a, b) => (a[timeField] ?? '99:99').localeCompare(b[timeField] ?? '99:99'));
+  const sortByTime = (rows: TaskRow[]) =>
+    [...rows].sort((a, b) => {
+      const ta = (a.type === 'pickup' ? a.booking?.pickup_time : a.booking?.return_time) ?? '99:99';
+      const tb = (b.type === 'pickup' ? b.booking?.pickup_time : b.booking?.return_time) ?? '99:99';
+      return ta.localeCompare(tb);
+    });
 
   return NextResponse.json({
     date: dateParam,
-    pickups: sortByTime(pickupsRes.data ?? [], 'pickup_time').map((b) => shapeRow(b, inspections)),
-    returns: sortByTime(returnsRes.data ?? [], 'return_time').map((b) => shapeRow(b, inspections)),
+    pickups: sortByTime(pickups).map((t) => shapeTask(t, inspections)),
+    returns: sortByTime(returns).map((t) => shapeTask(t, inspections)),
   });
 }

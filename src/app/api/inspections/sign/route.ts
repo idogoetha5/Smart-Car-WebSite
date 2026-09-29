@@ -161,6 +161,22 @@ export async function POST(request: NextRequest) {
   const inspection = signedRows[0] as unknown as InspectionRow & { signed_at: string };
   const booking = inspection.booking;
 
+  // Best-effort: flips the matching driver task (if any) to 'done' — never
+  // blocks or fails the signing response. A booking with no task (e.g. the
+  // admin inspection flow without the driver-tasks feature) just has
+  // nothing to update here.
+  if (booking?.id) {
+    const { error: taskUpdateError } = await supabase
+      .from('driver_tasks')
+      .update({ status: 'done' })
+      .eq('booking_id', booking.id)
+      .eq('type', inspection.type)
+      .eq('status', 'open');
+    if (taskUpdateError) {
+      console.error('[inspections/sign][POST] task status update failed:', taskUpdateError.message);
+    }
+  }
+
   const signatureBuffer = Buffer.from(match[1], 'base64');
   const signaturePath = inspectionSignaturePath(inspectionId);
   const { error: sigUploadError } = await supabase.storage
