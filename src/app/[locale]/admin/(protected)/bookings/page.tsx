@@ -190,6 +190,11 @@ export default function AdminBookingsPage() {
                     <td className="p-4">
                       <div className="font-medium text-gray-900">{b.customer_name || 'לא צוין'}</div>
                       <div className="text-gray-400 text-xs">{b.customer_email}</div>
+                      {b.source === 'driver' && (
+                        <span className="mt-1 inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">
+                          🚶 הזמנה שנוצרה ע&quot;י נהג במקום
+                        </span>
+                      )}
                     </td>
                     <td className="p-4 text-xs">
                       <div className="text-gray-600">{b.customer_phone || '—'}</div>
