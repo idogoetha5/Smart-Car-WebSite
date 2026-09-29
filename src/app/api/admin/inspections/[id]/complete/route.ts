@@ -98,7 +98,6 @@ export async function POST(
         inspection_type: inspection.type === 'pickup' ? 'קבלת הרכב' : 'החזרת הרכב',
         sign_link: signLink,
         logo_url: LOGO_URL,
-        bcc_email: 'office@smartcar.co.il',
       },
     });
     signLinkSent = result.ok;

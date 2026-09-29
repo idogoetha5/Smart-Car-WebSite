@@ -13,6 +13,7 @@ import {
   fuelEighthsToLabel,
 } from '@/lib/inspection-storage';
 import { numericOrderReference } from '@/lib/order-reference';
+import { sendInspectionOfficeEmail } from '@/lib/inspection-office-email';
 
 const LOGO_URL = 'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/logo.png';
 
@@ -212,10 +213,17 @@ export async function POST(request: NextRequest) {
         inspection_type: typeLabel,
         pdf_link: pdfLink,
         logo_url: LOGO_URL,
-        bcc_email: 'office@smartcar.co.il',
       },
     });
   }
+
+  // Internal notification to the office — independent of whether the
+  // customer email above succeeded, or whether the booking even has a
+  // customer email at all. Any failure here is queued in
+  // inspection_office_outbox for the daily cron sweep to retry, same as
+  // the EmailJS outbox above but via its own table since this send goes
+  // through Resend with a PDF attachment (see sendInspectionOfficeEmail).
+  await sendInspectionOfficeEmail(inspectionId);
 
   return NextResponse.json({ ok: true });
 }

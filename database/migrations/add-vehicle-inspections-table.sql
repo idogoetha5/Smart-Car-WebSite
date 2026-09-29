@@ -79,6 +79,30 @@ ON CONFLICT (id) DO UPDATE SET
   file_size_limit = EXCLUDED.file_size_limit,
   allowed_mime_types = EXCLUDED.allowed_mime_types;
 
+-- inspection_upload_slots is service-role-only (see policy above), but the
+-- browser's TUS upload authenticates as anon — a storage.objects policy
+-- that subqueries the slots table directly would run that subquery as
+-- anon too, RLS would hide every row from it, and every upload would be
+-- rejected. SECURITY DEFINER runs the check as the function's owner
+-- instead of the caller, so it can see the (still locked-down) slots
+-- table without opening it up to anon directly. `SET search_path` pins
+-- name resolution so the function can't be tricked by a caller-controlled
+-- search_path into reading a different table.
+CREATE OR REPLACE FUNCTION inspection_upload_allowed(object_name TEXT)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM inspection_upload_slots s
+    WHERE s.path = object_name AND s.expires_at > NOW()
+  );
+$$;
+
+REVOKE ALL ON FUNCTION inspection_upload_allowed(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION inspection_upload_allowed(TEXT) TO anon, authenticated;
+
 -- Lets the browser's anon-key TUS upload write only the exact object path
 -- our API pre-authorised in inspection_upload_slots, and only before it
 -- expires. All other writes/reads to this bucket still require the
@@ -88,10 +112,7 @@ CREATE POLICY "inspection video resumable upload" ON storage.objects
   FOR INSERT
   WITH CHECK (
     bucket_id = 'vehicle-inspections'
-    AND EXISTS (
-      SELECT 1 FROM inspection_upload_slots s
-      WHERE s.path = storage.objects.name AND s.expires_at > NOW()
-    )
+    AND inspection_upload_allowed(storage.objects.name)
   );
 
 DROP POLICY IF EXISTS "inspection video resumable upload update" ON storage.objects;
@@ -99,8 +120,25 @@ CREATE POLICY "inspection video resumable upload update" ON storage.objects
   FOR UPDATE
   USING (
     bucket_id = 'vehicle-inspections'
-    AND EXISTS (
-      SELECT 1 FROM inspection_upload_slots s
-      WHERE s.path = storage.objects.name AND s.expires_at > NOW()
-    )
+    AND inspection_upload_allowed(storage.objects.name)
   );
+
+-- Retry queue for the internal "customer signed" notification to
+-- office@smartcar.co.il (sent via Resend, with the signed PDF attached —
+-- see src/lib/inspection-office-email.ts). Mirrors customer_sheet_outbox's
+-- shape (add-customer-details-tables migration): one row per inspection,
+-- re-attempted by the daily cron sweep until it succeeds or goes dead.
+CREATE TABLE IF NOT EXISTS inspection_office_outbox (
+  inspection_id  TEXT PRIMARY KEY REFERENCES vehicle_inspections(id) ON DELETE CASCADE,
+  status         TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'dead')),
+  attempts       INTEGER NOT NULL DEFAULT 0,
+  last_error     TEXT,
+  next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE inspection_office_outbox ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "service role only" ON inspection_office_outbox;
+CREATE POLICY "service role only" ON inspection_office_outbox
+  FOR ALL USING (auth.role() = 'service_role');
