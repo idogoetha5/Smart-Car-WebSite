@@ -17,7 +17,10 @@ interface VehicleOption {
 
 export default function DriverQuickBookingPage() {
   const router = useRouter();
-  const { data } = useSWR<{ data: VehicleOption[] }>('/api/driver/vehicles', fetcher);
+  const { data } = useSWR<{ data: VehicleOption[] }>('/api/driver/vehicles', fetcher, {
+    dedupingInterval: 5 * 60_000,
+    revalidateOnFocus: false,
+  });
   const vehicles = data?.data ?? [];
 
   const [customerName, setCustomerName] = useState('');

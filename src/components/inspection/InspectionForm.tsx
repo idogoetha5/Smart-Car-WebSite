@@ -155,12 +155,17 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
 
       <div className="space-y-5">
         <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <label className="block font-black text-gray-800 mb-3">
-            {isHe ? 'סרטון סיור סביב הרכב' : 'Walk-around video'}
+          <label className="block font-black text-gray-800 mb-2">
+            {isHe ? 'סרטון חובה: סביב הרכב ופנים הרכב' : 'Required video: exterior and interior'}
           </label>
+          <p className="mb-3 text-sm font-bold text-gray-500">
+            {isHe
+              ? 'יש לצלם ברצף סיור מלא סביב הרכב, פנים הרכב, לוח הקילומטראז׳ ומד הדלק.'
+              : 'Record one continuous video of the full exterior, interior, odometer and fuel gauge.'}
+          </p>
           <label className="flex min-h-16 items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[#2D5F5F] bg-[#eef6f6] text-[#2D5F5F] font-black cursor-pointer">
             <Video className="h-6 w-6" aria-hidden="true" />
-            {video ? `${video.name} · ${formatBytes(video.size)}` : (isHe ? 'הקלט סרטון' : 'Record video')}
+            {video ? `${video.name} · ${formatBytes(video.size)}` : (isHe ? 'הקלט סרטון חובה' : 'Record required video')}
             <input
               type="file"
               accept="video/*"
@@ -174,7 +179,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
 
         <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
           <label htmlFor="odometer" className="block font-black text-gray-800 mb-3">
-            {isHe ? 'קילומטראז\'' : 'Odometer (km)'}
+            {isHe ? 'קילומטראז׳ (חובה)' : 'Odometer (required)'}
           </label>
           <input
             id="odometer"
@@ -190,7 +195,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
         </div>
 
         <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <span className="block font-black text-gray-800 mb-3">{isHe ? 'רמת דלק' : 'Fuel level'}</span>
+          <span className="block font-black text-gray-800 mb-3">{isHe ? 'רמת דלק (חובה)' : 'Fuel level (required)'}</span>
           <div className="grid grid-cols-5 gap-2">
             {FUEL_TAP_OPTIONS.map((opt) => (
               <button

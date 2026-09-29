@@ -27,5 +27,8 @@ export async function GET() {
     console.error('[driver/vehicles] lookup failed:', error.message);
     return NextResponse.json({ error: 'Lookup failed' }, { status: 500 });
   }
-  return NextResponse.json({ data: data ?? [] });
+  return NextResponse.json(
+    { data: data ?? [] },
+    { headers: { 'Cache-Control': 'private, max-age=300, stale-while-revalidate=600' } }
+  );
 }

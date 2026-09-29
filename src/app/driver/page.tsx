@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import useSWR from 'swr';
+import useSWR, { preload } from 'swr';
 import { Search, LogOut, RefreshCw, Plus } from 'lucide-react';
 import { fetcher } from '@/lib/swr';
 
@@ -84,7 +84,15 @@ export default function DriverTodayPage() {
     pickups?: TaskRow[];
     returns?: TaskRow[];
     results?: TaskRow[];
-  }>(url, fetcher);
+  }>(url, fetcher, { keepPreviousData: true, dedupingInterval: 10_000 });
+
+  const openQuickBooking = () => {
+    // Start loading the fleet before navigation. The destination uses the
+    // same SWR key, so it reuses this in-flight request instead of waiting
+    // for the new page to hydrate before beginning the network round trip.
+    void preload('/api/driver/vehicles', fetcher);
+    router.push('/driver/quick-booking');
+  };
 
   const logout = async () => {
     await fetch('/api/driver/login', { method: 'DELETE' });
@@ -107,7 +115,7 @@ export default function DriverTodayPage() {
         </div>
 
         <button
-          onClick={() => router.push('/driver/quick-booking')}
+          onClick={openQuickBooking}
           className="w-full min-h-12 mb-3 flex items-center justify-center gap-2 rounded-xl bg-[#E8743B] hover:bg-[#d4632a] text-white font-black"
         >
           <Plus className="h-5 w-5" aria-hidden="true" />

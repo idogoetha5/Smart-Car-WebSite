@@ -73,13 +73,8 @@ function shapeTask(task: TaskRow, inspections: Map<string, InspectionSlot>) {
   };
 }
 
-function relevantDate(task: TaskRow): string | null {
-  if (!task.booking) return null;
-  return task.type === 'pickup' ? task.booking.pickup_date : task.booking.dropoff_date;
-}
-
-const TASK_SELECT =
-  'id, type, status, booking:bookings(id, customer_name, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
+const TASK_SELECT_INNER =
+  'id, type, status, booking:bookings!inner(id, customer_name, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
 
 /**
  * "היום שלי" — only tasks assigned to the logged-in driver (an admin
@@ -94,34 +89,50 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
-  let query = supabase
-    .from('driver_tasks')
-    .select(TASK_SELECT)
-    .neq('status', 'cancelled')
-    .order('created_at', { ascending: false })
-    .limit(TASK_FETCH_LIMIT);
-  if (driverId) query = query.eq('assigned_driver_id', driverId);
-
-  const { data, error } = await query.returns<TaskRow[]>();
-  if (error) {
-    console.error('[driver/today] task lookup failed:', error.message);
-    return NextResponse.json({ error: 'Lookup failed' }, { status: 500 });
-  }
-  const tasks = (data ?? []).filter((t) => t.booking !== null);
-
   const search = request.nextUrl.searchParams.get('search')?.trim() ?? '';
 
   if (search) {
-    const since = Date.now() - SEARCH_WINDOW_DAYS * 86_400_000;
-    const until = Date.now() + SEARCH_WINDOW_DAYS * 86_400_000;
+    const sinceISO = new Date(Date.now() - SEARCH_WINDOW_DAYS * 86_400_000).toISOString();
+    const untilISO = new Date(Date.now() + SEARCH_WINDOW_DAYS * 86_400_000).toISOString();
+    let pickupSearchQuery = supabase
+      .from('driver_tasks')
+      .select(TASK_SELECT_INNER)
+      .eq('type', 'pickup')
+      .neq('status', 'cancelled')
+      .gte('booking.pickup_date', sinceISO)
+      .lte('booking.pickup_date', untilISO)
+      .order('created_at', { ascending: false })
+      .limit(TASK_FETCH_LIMIT);
+    let returnSearchQuery = supabase
+      .from('driver_tasks')
+      .select(TASK_SELECT_INNER)
+      .eq('type', 'return')
+      .neq('status', 'cancelled')
+      .gte('booking.dropoff_date', sinceISO)
+      .lte('booking.dropoff_date', untilISO)
+      .order('created_at', { ascending: false })
+      .limit(TASK_FETCH_LIMIT);
+    if (driverId) {
+      pickupSearchQuery = pickupSearchQuery.eq('assigned_driver_id', driverId);
+      returnSearchQuery = returnSearchQuery.eq('assigned_driver_id', driverId);
+    }
+
+    const [pickupSearchResult, returnSearchResult] = await Promise.all([
+      pickupSearchQuery.returns<TaskRow[]>(),
+      returnSearchQuery.returns<TaskRow[]>(),
+    ]);
+    if (pickupSearchResult.error || returnSearchResult.error) {
+      console.error(
+        '[driver/today] search lookup failed:',
+        pickupSearchResult.error?.message ?? returnSearchResult.error?.message
+      );
+      return NextResponse.json({ error: 'Lookup failed' }, { status: 500 });
+    }
+    const tasks = [...(pickupSearchResult.data ?? []), ...(returnSearchResult.data ?? [])]
+      .filter((task) => task.booking !== null);
     const needle = search.toLowerCase();
 
     const matches = tasks.filter((t) => {
-      const date = relevantDate(t);
-      if (!date) return false;
-      const ts = new Date(date).getTime();
-      if (ts < since || ts > until) return false;
-
       const plate = bookingLicensePlate(t.booking).toLowerCase();
       const name = (t.booking?.customer_name ?? '').toLowerCase();
       return (
@@ -137,18 +148,41 @@ export async function GET(request: NextRequest) {
 
   const dateParam = request.nextUrl.searchParams.get('date') === 'tomorrow' ? israelTomorrow() : israelToday();
   const { startISO, endISO } = israelDayRange(dateParam);
-  const start = new Date(startISO).getTime();
-  const end = new Date(endISO).getTime();
+  let pickupQuery = supabase
+    .from('driver_tasks')
+    .select(TASK_SELECT_INNER)
+    .eq('type', 'pickup')
+    .neq('status', 'cancelled')
+    .gte('booking.pickup_date', startISO)
+    .lt('booking.pickup_date', endISO)
+    .order('created_at', { ascending: false });
+  let returnQuery = supabase
+    .from('driver_tasks')
+    .select(TASK_SELECT_INNER)
+    .eq('type', 'return')
+    .neq('status', 'cancelled')
+    .gte('booking.dropoff_date', startISO)
+    .lt('booking.dropoff_date', endISO)
+    .order('created_at', { ascending: false });
+  if (driverId) {
+    pickupQuery = pickupQuery.eq('assigned_driver_id', driverId);
+    returnQuery = returnQuery.eq('assigned_driver_id', driverId);
+  }
 
-  const inRange = (t: TaskRow) => {
-    const date = relevantDate(t);
-    if (!date) return false;
-    const ts = new Date(date).getTime();
-    return ts >= start && ts < end;
-  };
+  const [pickupResult, returnResult] = await Promise.all([
+    pickupQuery.returns<TaskRow[]>(),
+    returnQuery.returns<TaskRow[]>(),
+  ]);
+  if (pickupResult.error || returnResult.error) {
+    console.error(
+      '[driver/today] dated task lookup failed:',
+      pickupResult.error?.message ?? returnResult.error?.message
+    );
+    return NextResponse.json({ error: 'Lookup failed' }, { status: 500 });
+  }
 
-  const pickups = tasks.filter((t) => t.type === 'pickup' && inRange(t));
-  const returns = tasks.filter((t) => t.type === 'return' && inRange(t));
+  const pickups = (pickupResult.data ?? []).filter((task) => task.booking !== null);
+  const returns = (returnResult.data ?? []).filter((task) => task.booking !== null);
   const inspections = await inspectionMapFor([...pickups, ...returns].map((t) => t.booking!.id));
 
   const sortByTime = (rows: TaskRow[]) =>
