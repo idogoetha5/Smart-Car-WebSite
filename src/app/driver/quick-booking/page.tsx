@@ -63,7 +63,7 @@ export default function DriverQuickBookingPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8" dir="rtl">
-      <h1 className="text-2xl font-black text-gray-900 mb-1">בדיקה חדשה — הגעה עצמאית</h1>
+      <h1 className="text-2xl font-black text-gray-900 mb-1">משימה חדשה</h1>
       <p className="text-gray-500 text-sm mb-6">להזמנה שעדיין לא קיימת במערכת</p>
 
       <div className="space-y-5">

@@ -87,5 +87,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'יצירת ההזמנה נכשלה' }, { status: 500 });
   }
 
+  // Assigned to the driver who created it, so it shows up in their own
+  // "היום שלי" immediately — the driver-app's Today list is task-based,
+  // not a raw scan of bookings. Best-effort: the booking already exists
+  // and is usable even if this insert fails, so a failure is logged, not
+  // surfaced as an error to the driver mid-flow.
+  const { error: taskError } = await supabase.from('driver_tasks').insert({
+    booking_id: booking.id,
+    type,
+    assigned_driver_id: driverId,
+    created_by: driverId ? 'driver' : 'admin',
+  });
+  if (taskError) {
+    console.error('[driver/quick-booking] task creation failed:', taskError.message);
+  }
+
   return NextResponse.json({ bookingId: booking.id }, { status: 201 });
 }

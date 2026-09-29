@@ -20,6 +20,7 @@ import {
   MessagesSquare,
   ClipboardList,
   Users,
+  ListChecks,
   X,
 } from 'lucide-react';
 
@@ -95,6 +96,7 @@ export default function AdminSidebar() {
     { href: `/${locale}/admin/leasing-requests`, label: t('manage_leasing'), icon: FileText },
     { href: `/${locale}/admin/customer-details`, label: isHe ? 'טפסי לקוחות' : 'Customer forms', icon: ClipboardList },
     { href: `/${locale}/admin/drivers`, label: isHe ? 'נהגים' : 'Drivers', icon: Users },
+    { href: `/${locale}/admin/tasks`, label: isHe ? 'משימות' : 'Tasks', icon: ListChecks },
     { href: `/${locale}/admin/cars-for-sale`, label: isHe ? 'ניהול רכבים למכירה' : 'Cars for sale', icon: Tag },
     { href: `/${locale}/admin/reviews`, label: isHe ? 'ביקורות' : 'Reviews', icon: Star },
     {

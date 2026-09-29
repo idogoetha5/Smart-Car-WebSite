@@ -6,28 +6,28 @@ import useSWR from 'swr';
 import { Search, LogOut, RefreshCw, Plus } from 'lucide-react';
 import { fetcher } from '@/lib/swr';
 
-interface TodayRow {
+interface TaskRow {
+  taskId: string;
+  taskStatus: 'open' | 'done' | 'cancelled';
+  type: 'pickup' | 'return';
   bookingId: string;
   bookingNumber: string;
   customerName: string;
   vehicleName: string;
   licensePlate: string;
-  pickupLocation: string;
-  dropoffLocation: string;
-  pickupTime: string | null;
-  returnTime: string | null;
-  pickupInspection: { id: string; status: 'awaiting_signature' | 'signed' } | null;
-  returnInspection: { id: string; status: 'awaiting_signature' | 'signed' } | null;
+  location: string;
+  time: string | null;
+  inspection: { id: string; status: 'awaiting_signature' | 'signed' } | null;
 }
 
-function InspectionAction({ bookingId, type, inspection }: { bookingId: string; type: 'pickup' | 'return'; inspection: TodayRow['pickupInspection'] }) {
+function TaskAction({ row }: { row: TaskRow }) {
   const router = useRouter();
-  const label = type === 'pickup' ? 'בדיקת קבלה' : 'בדיקת החזרה';
+  const label = row.type === 'pickup' ? 'בדיקת קבלה' : 'בדיקת החזרה';
 
-  if (!inspection) {
+  if (!row.inspection) {
     return (
       <button
-        onClick={() => router.push(`/driver/inspection/new?bookingId=${bookingId}&type=${type}`)}
+        onClick={() => router.push(`/driver/inspection/new?bookingId=${row.bookingId}&type=${row.type}`)}
         className="min-h-12 px-4 rounded-xl bg-[#E8743B] hover:bg-[#d4632a] text-white font-black text-sm whitespace-nowrap"
       >
         {label}
@@ -35,10 +35,10 @@ function InspectionAction({ bookingId, type, inspection }: { bookingId: string; 
     );
   }
 
-  const signed = inspection.status === 'signed';
+  const signed = row.inspection.status === 'signed';
   return (
     <button
-      onClick={() => router.push(`/driver/inspection/${inspection.id}`)}
+      onClick={() => router.push(`/driver/inspection/${row.inspection!.id}`)}
       className={`min-h-12 px-4 rounded-xl font-black text-sm whitespace-nowrap ${
         signed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
       }`}
@@ -48,10 +48,7 @@ function InspectionAction({ bookingId, type, inspection }: { bookingId: string; 
   );
 }
 
-function BookingCard({ row, primaryType }: { row: TodayRow; primaryType: 'pickup' | 'return' | 'both' }) {
-  const time = primaryType === 'return' ? row.returnTime : row.pickupTime;
-  const location = primaryType === 'return' ? row.dropoffLocation : row.pickupLocation;
-
+function TaskCard({ row }: { row: TaskRow }) {
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
@@ -59,16 +56,11 @@ function BookingCard({ row, primaryType }: { row: TodayRow; primaryType: 'pickup
           <p className="font-black text-gray-900 truncate">{row.customerName}</p>
           <p className="text-sm text-gray-500 truncate">{row.vehicleName} · <span dir="ltr">{row.licensePlate}</span></p>
           <p className="text-xs text-gray-400 mt-1">
-            {location} {time ? `· ${time.slice(0, 5)}` : ''} · #{row.bookingNumber}
+            {row.location} {row.time ? `· ${row.time.slice(0, 5)}` : ''} · #{row.bookingNumber}
           </p>
         </div>
         <div className="flex flex-col gap-2 shrink-0">
-          {(primaryType === 'pickup' || primaryType === 'both') && (
-            <InspectionAction bookingId={row.bookingId} type="pickup" inspection={row.pickupInspection} />
-          )}
-          {(primaryType === 'return' || primaryType === 'both') && (
-            <InspectionAction bookingId={row.bookingId} type="return" inspection={row.returnInspection} />
-          )}
+          <TaskAction row={row} />
         </div>
       </div>
     </div>
@@ -89,9 +81,9 @@ export default function DriverTodayPage() {
     : `/api/driver/today?${dateQuery}`;
 
   const { data, isLoading, isValidating, mutate } = useSWR<{
-    pickups?: TodayRow[];
-    returns?: TodayRow[];
-    results?: TodayRow[];
+    pickups?: TaskRow[];
+    returns?: TaskRow[];
+    results?: TaskRow[];
   }>(url, fetcher);
 
   const logout = async () => {
@@ -119,7 +111,7 @@ export default function DriverTodayPage() {
           className="w-full min-h-12 mb-3 flex items-center justify-center gap-2 rounded-xl bg-[#E8743B] hover:bg-[#d4632a] text-white font-black"
         >
           <Plus className="h-5 w-5" aria-hidden="true" />
-          בדיקה חדשה
+          משימה חדשה
         </button>
 
         <div className="flex gap-2 mb-3">
@@ -157,10 +149,10 @@ export default function DriverTodayPage() {
         {tab === 'search' ? (
           <div className="space-y-3">
             {(data?.results ?? []).map((row) => (
-              <BookingCard key={row.bookingId} row={row} primaryType="both" />
+              <TaskCard key={row.taskId} row={row} />
             ))}
             {search && !isLoading && (data?.results ?? []).length === 0 && (
-              <p className="text-center text-gray-400 py-10">לא נמצאו הזמנות</p>
+              <p className="text-center text-gray-400 py-10">לא נמצאו משימות</p>
             )}
           </div>
         ) : (
@@ -169,7 +161,7 @@ export default function DriverTodayPage() {
               <h2 className="text-sm font-black text-gray-500 mb-2">קבלות</h2>
               <div className="space-y-3">
                 {(data?.pickups ?? []).map((row) => (
-                  <BookingCard key={row.bookingId + 'p'} row={row} primaryType="pickup" />
+                  <TaskCard key={row.taskId} row={row} />
                 ))}
                 {!isLoading && (data?.pickups ?? []).length === 0 && (
                   <p className="text-center text-gray-400 py-6 text-sm">אין קבלות</p>
@@ -180,7 +172,7 @@ export default function DriverTodayPage() {
               <h2 className="text-sm font-black text-gray-500 mb-2">החזרות</h2>
               <div className="space-y-3">
                 {(data?.returns ?? []).map((row) => (
-                  <BookingCard key={row.bookingId + 'r'} row={row} primaryType="return" />
+                  <TaskCard key={row.taskId} row={row} />
                 ))}
                 {!isLoading && (data?.returns ?? []).length === 0 && (
                   <p className="text-center text-gray-400 py-6 text-sm">אין החזרות</p>
