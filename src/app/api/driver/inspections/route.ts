@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifyAdminToken } from '@/lib/admin-auth';
+import { requireDriverOrAdmin } from '@/lib/driver-route-auth';
 import { createInspectionRecord } from '@/lib/inspection-actions';
 
 export async function POST(request: NextRequest) {
-  const cookieStore = await cookies();
-  if (!await verifyAdminToken(cookieStore.get('admin_auth')?.value ?? '')) {
+  const { ok, driverId } = await requireDriverOrAdmin();
+  if (!ok) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -16,6 +15,7 @@ export async function POST(request: NextRequest) {
     odometerKm: Number(body?.odometerKm),
     fuelEighths: Number(body?.fuelEighths),
     videoExt: String(body?.videoExt ?? 'mp4'),
+    driverId,
   });
 
   if (!result.ok) {

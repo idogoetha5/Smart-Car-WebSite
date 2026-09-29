@@ -10,6 +10,8 @@ export interface InspectionPdfData {
   type: 'pickup' | 'return';
   odometerKm: number;
   fuelEighths: number;
+  /** Which driver ran the inspection — undefined/null for an admin-created one. */
+  driverName?: string | null;
   declarationText: string;
   videoSha256: string;
   signedAt: string;
@@ -66,6 +68,7 @@ export function generateInspectionPdfHTML(data: InspectionPdfData): string {
     <tr><th>סוג בדיקה</th><td>${typeLabel}</td></tr>
     <tr><th>קילומטראז'</th><td dir="ltr">${data.odometerKm.toLocaleString('he-IL')} ק"מ</td></tr>
     <tr><th>רמת דלק</th><td>${fuelLabel}</td></tr>
+    <tr><th>נהג מבצע הבדיקה</th><td>${escapeHtml(data.driverName || '—')}</td></tr>
   </table>
 
   <div class="declaration">${escapeHtml(data.declarationText)}</div>

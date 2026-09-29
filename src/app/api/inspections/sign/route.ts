@@ -31,6 +31,7 @@ type InspectionRow = {
     customer_email: string;
     vehicle: { make: string; model: string; license_plate: string | null } | null;
   } | null;
+  driver: { name: string } | null;
 };
 
 /** Loads what the signing page needs to display, for a validly-signed token. */
@@ -132,7 +133,7 @@ export async function POST(request: NextRequest) {
     .eq('id', inspectionId)
     .eq('status', 'awaiting_signature')
     .select(
-      'id, type, odometer_km, fuel_eighths, video_sha256, signed_at, booking:bookings(id, customer_name, customer_email, vehicle:vehicles(make, model, license_plate))'
+      'id, type, odometer_km, fuel_eighths, video_sha256, signed_at, booking:bookings(id, customer_name, customer_email, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
     )
     .returns<InspectionRow[]>();
 
@@ -185,6 +186,7 @@ export async function POST(request: NextRequest) {
     signedAt: inspection.signed_at,
     signerIp,
     signatureDataUrl,
+    driverName: inspection.driver?.name,
   });
 
   const pdfPath = inspectionPdfPath(inspectionId);

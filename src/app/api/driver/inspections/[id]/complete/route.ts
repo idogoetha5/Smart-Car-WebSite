@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifyAdminToken } from '@/lib/admin-auth';
+import { requireDriverOrAdmin } from '@/lib/driver-route-auth';
 import { completeInspectionUpload } from '@/lib/inspection-actions';
 
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const cookieStore = await cookies();
-  if (!await verifyAdminToken(cookieStore.get('admin_auth')?.value ?? '')) {
+  const { ok } = await requireDriverOrAdmin();
+  if (!ok) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

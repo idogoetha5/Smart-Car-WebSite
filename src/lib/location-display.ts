@@ -15,3 +15,14 @@ export function formatLocationForCustomer(value: string | null | undefined): str
     return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
   });
 }
+
+/** Same as {@link formatLocationForCustomer} but resolves a branch id to its Hebrew name — for the Hebrew-only driver app. */
+export function formatLocationForDriver(value: string | null | undefined): string {
+  const location = String(value ?? '').trim();
+  if (!location) return '—';
+
+  const branch = BRANCHES.find((item) => item.id === location.toLowerCase());
+  if (branch) return branch.nameHe;
+
+  return location;
+}

@@ -25,7 +25,7 @@ async function loadInspectionForOfficeEmail(inspectionId: string) {
   const { data, error } = await supabase
     .from('vehicle_inspections')
     .select(
-      'id, type, odometer_km, fuel_eighths, signed_at, video_sha256, signed_pdf_path, booking:bookings(id, customer_name, vehicle:vehicles(make, model, license_plate))'
+      'id, type, odometer_km, fuel_eighths, signed_at, video_sha256, signed_pdf_path, booking:bookings(id, customer_name, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
     )
     .eq('id', inspectionId)
     .maybeSingle();
@@ -44,6 +44,7 @@ async function loadInspectionForOfficeEmail(inspectionId: string) {
       customer_name: string;
       vehicle: { make: string; model: string; license_plate: string | null } | null;
     } | null;
+    driver: { name: string } | null;
   };
 }
 
@@ -147,6 +148,7 @@ export async function sendInspectionOfficeEmail(inspectionId: string): Promise<{
         <tr><td style="padding:4px 10px;color:#666;">סוג בדיקה</td><td style="padding:4px 10px;font-weight:700;">${typeLabel}</td></tr>
         <tr><td style="padding:4px 10px;color:#666;">קילומטראז'</td><td style="padding:4px 10px;font-weight:700;" dir="ltr">${inspection.odometer_km.toLocaleString('he-IL')} ק"מ</td></tr>
         <tr><td style="padding:4px 10px;color:#666;">רמת דלק</td><td style="padding:4px 10px;font-weight:700;">${fuelLabel}</td></tr>
+        <tr><td style="padding:4px 10px;color:#666;">נהג מבצע הבדיקה</td><td style="padding:4px 10px;font-weight:700;">${inspection.driver?.name ?? '—'}</td></tr>
         <tr><td style="padding:4px 10px;color:#666;">נחתם בתאריך</td><td style="padding:4px 10px;font-weight:700;">${signedAtIL}</td></tr>
         <tr><td style="padding:4px 10px;color:#666;">SHA-256 של הסרטון</td><td style="padding:4px 10px;font-size:11px;direction:ltr;text-align:left;word-break:break-all;">${inspection.video_sha256 ?? '—'}</td></tr>
       </table>
