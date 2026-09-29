@@ -1,7 +1,7 @@
 import createMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { locales, defaultLocale } from '../i18n';
-import { verifyAdminToken, verifyInboxToken } from '@/lib/admin-auth';
+import { verifyAdminToken, verifyInboxToken, verifyDriverToken } from '@/lib/admin-auth';
 
 // Daniel's WhatsApp-inbox trial (see src/app/api/admin/whatsapp/inbox-login)
 // uses a separate, narrower cookie instead of the full admin session — both
@@ -9,6 +9,12 @@ import { verifyAdminToken, verifyInboxToken } from '@/lib/admin-auth';
 // inbox_auth cookie would still bounce off the admin-only checks here.
 const INBOX_API_PREFIX = '/api/admin/whatsapp/conversations';
 const INBOX_LOGIN_API = '/api/admin/whatsapp/inbox-login';
+
+// Driver app: entirely separate from admin (own cookie, own secret — see
+// src/lib/admin-auth.ts), but an admin session can also use it, so both
+// gates below accept either credential. /api/admin/* itself is untouched —
+// a driver cookie never grants access there.
+const DRIVER_LOGIN_API = '/api/driver/login';
 
 const intlMiddleware = createMiddleware({
   locales,
@@ -122,6 +128,34 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (pathname.startsWith('/api/driver/')) {
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+      const origin = request.headers.get('origin');
+      const host = request.headers.get('host');
+      if (origin && host) {
+        try {
+          if (new URL(origin).host !== host) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+          }
+        } catch {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+      }
+    }
+
+    if (pathname !== DRIVER_LOGIN_API) {
+      const driverOk = await verifyDriverToken(request.cookies.get('driver_auth')?.value);
+      if (!driverOk) {
+        const adminOk = await verifyAdminToken(request.cookies.get('admin_auth')?.value ?? '');
+        if (!adminOk) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+      }
+    }
+
+    return NextResponse.next();
+  }
+
   // Protect admin routes — redirect to login if not authenticated. The
   // PIN-entry page itself is excluded the same way /admin/login is; the
   // inbox page it leads to accepts the PIN cookie as an alternative below.
@@ -135,6 +169,26 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL(`/${locale}/admin/login`, request.url));
       }
     }
+  }
+
+  // Driver app pages — own login, redirect there if neither a driver nor an
+  // admin session is present. Not locale-prefixed, unlike /admin, and never
+  // passed to intlMiddleware below (it has its own root-level layout).
+  if (pathname === '/driver' || pathname.startsWith('/driver/')) {
+    // /driver/login is the login page itself; the web-app manifest is
+    // fetched by the browser/OS independently of page auth (e.g. while
+    // sitting on the login page, before a session exists) and must stay
+    // reachable, same reasoning as excluding /api/admin/login above.
+    if (pathname !== '/driver/login' && !pathname.startsWith('/driver/manifest')) {
+      const driverOk = await verifyDriverToken(request.cookies.get('driver_auth')?.value);
+      if (!driverOk) {
+        const adminOk = await verifyAdminToken(request.cookies.get('admin_auth')?.value ?? '');
+        if (!adminOk) {
+          return NextResponse.redirect(new URL('/driver/login', request.url));
+        }
+      }
+    }
+    return NextResponse.next();
   }
 
   // Normalise Accept-Language to the locale we want next-intl to pick, so
@@ -153,12 +207,22 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     '/api/admin/(.*)',
+    '/api/driver/(.*)',
+    // Explicit entries so proxy() runs for /driver pages at all — the
+    // catch-all pattern below excludes `driver` (so next-intl never
+    // rewrites it), which otherwise means no matcher entry ever sees it.
+    '/driver',
+    '/driver/(.*)',
     // `q/` is the customer-facing document link. It is not a localized page,
     // so next-intl must not rewrite it to /he/q/... (which is a 404).
     // `f/` is the short customer-form link (see redirects() in next.config.ts).
+    // `insp-video/` and `insp-pdf/` are the inspection video/PDF token
+    // links — same reasoning as `q/`.
+    // `driver` is the driver app — its own root-level layout (own
+    // <html>/<body>, no site chrome), not a localized page either.
     // Metadata icons are global assets. If they pass through next-intl they
     // are rewritten to /he/... and become 404s, so keep every iOS fallback
     // name outside locale routing as well as Next's generated icon routes.
-    '/((?!api|q/|f/|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|apple-touch-icon.png|apple-touch-icon-precomposed.png|icons|images|robots.txt|sitemap.xml).*)',
+    '/((?!api|q/|f/|insp-video/|insp-pdf/|driver|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|apple-touch-icon.png|apple-touch-icon-precomposed.png|icons|images|robots.txt|sitemap.xml).*)',
   ],
 };

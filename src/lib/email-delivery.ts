@@ -33,7 +33,9 @@ export type EmailEvent =
   | 'booking_confirmed'
   | 'contact_lead'
   | 'newsletter_signup'
-  | 'condition_report';
+  | 'condition_report'
+  | 'vehicle_inspection_sign'
+  | 'vehicle_inspection_signed';
 
 export interface SendResult {
   ok: boolean;

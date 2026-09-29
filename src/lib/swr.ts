@@ -61,3 +61,13 @@ export function useApiList<T>(url: string | null, options?: SWRConfiguration) {
   );
   return { items: (data ?? EMPTY) as T[], error, isLoading, isValidating, mutate };
 }
+
+/** Same as {@link useApiList} but for a single-record `{ data: ... }` endpoint. */
+export function useApiItem<T>(url: string | null, options?: SWRConfiguration) {
+  const { data, error, isLoading, isValidating, mutate } = useSWR<T | null>(
+    url,
+    fetcher,
+    options,
+  );
+  return { data, error, isLoading, isValidating, mutate };
+}

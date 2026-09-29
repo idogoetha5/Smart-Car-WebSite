@@ -96,3 +96,78 @@ export async function signInboxToken(): Promise<string> {
 export async function verifyInboxToken(token: string): Promise<boolean> {
   return verifyTokenWithKind(token, 'inbox');
 }
+
+const DRIVER_TOKEN_MAX_AGE = 30 * 24 * 60 * 60; // 30 days — drivers stay logged in on their phone
+
+/**
+ * Driver-app credential (see the plan) — deliberately signed with its own
+ * secret, not ADMIN_COOKIE_SECRET, so a leaked driver cookie can never be
+ * forged into (or replayed as) an admin or inbox cookie even in a signing
+ * implementation bug. Unlike the admin/inbox kinds above, this one carries
+ * an identity: which driver is logged in, so inspections can record who
+ * performed them.
+ */
+function getDriverSecret(): string {
+  const secret =
+    (typeof process !== 'undefined' && process.env.DRIVER_COOKIE_SECRET) ||
+    '';
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('[admin-auth] DRIVER_COOKIE_SECRET must be set in production');
+    }
+    console.warn('[admin-auth] No DRIVER_COOKIE_SECRET configured — driver auth is insecure in this environment');
+    return 'dev-only-insecure-driver-secret';
+  }
+  return secret;
+}
+
+async function getDriverKey(): Promise<CryptoKey> {
+  const enc = new TextEncoder();
+  return crypto.subtle.importKey(
+    'raw',
+    enc.encode(getDriverSecret()),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign', 'verify']
+  );
+}
+
+/** Driver ids are the same 'c'+uuid-shaped text ids used everywhere in this
+ * app — alphanumeric only, so embedding one positionally in a colon-joined
+ * payload is safe (it can never contain a ':' to break parsing). */
+export async function signDriverToken(driverId: string): Promise<string> {
+  const ts = Math.floor(Date.now() / 1000);
+  const payload = `driver:1:${driverId}:${ts}`;
+  const key = await getDriverKey();
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  return `${payload}.${b64urlEncode(sig)}`;
+}
+
+/** Returns the authenticated driverId, or null if the token is missing, malformed, expired or forged. */
+export async function verifyDriverToken(token: string | undefined | null): Promise<string | null> {
+  if (!token) return null;
+  try {
+    const dot = token.lastIndexOf('.');
+    if (dot === -1) return null;
+    const payloadPart = token.slice(0, dot);
+    const sigPart = token.slice(dot + 1);
+    if (!sigPart) return null;
+
+    const parts = payloadPart.split(':');
+    if (parts.length !== 4 || parts[0] !== 'driver' || parts[1] !== '1' || !parts[2] || !parts[3]) return null;
+    const driverId = parts[2];
+
+    const ts = parseInt(parts[3], 10);
+    if (isNaN(ts) || Math.floor(Date.now() / 1000) - ts > DRIVER_TOKEN_MAX_AGE) return null;
+
+    const key = await getDriverKey();
+    const sigBytes = b64urlDecode(sigPart);
+    const sigBuffer: ArrayBuffer = sigBytes.buffer instanceof ArrayBuffer
+      ? sigBytes.buffer.slice(sigBytes.byteOffset, sigBytes.byteOffset + sigBytes.byteLength)
+      : new Uint8Array(sigBytes).buffer;
+    const valid = await crypto.subtle.verify('HMAC', key, sigBuffer, new TextEncoder().encode(payloadPart));
+    return valid ? driverId : null;
+  } catch {
+    return null;
+  }
+}

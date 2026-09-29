@@ -250,6 +250,18 @@ export default function AdminBookingsPage() {
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-1.5 flex-wrap">
+                        <a
+                          href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=pickup`}
+                          className="bg-[#eef6f6] hover:bg-[#d9ecec] text-[#2D5F5F] px-3 py-1 rounded-lg text-xs font-bold transition-colors whitespace-nowrap"
+                        >
+                          🚗 בדיקת קבלה
+                        </a>
+                        <a
+                          href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=return`}
+                          className="bg-[#eef6f6] hover:bg-[#d9ecec] text-[#2D5F5F] px-3 py-1 rounded-lg text-xs font-bold transition-colors whitespace-nowrap"
+                        >
+                          🔁 בדיקת החזרה
+                        </a>
                         {(b.status === 'pending' || b.status === 'PENDING') && (
                           <>
                             <button

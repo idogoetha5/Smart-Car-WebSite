@@ -1,0 +1,94 @@
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import bcrypt from 'bcryptjs';
+import { createAdminClient } from '@/lib/supabase/server';
+import { signDriverToken } from '@/lib/admin-auth';
+import { checkRateLimit } from '@/lib/ratelimit';
+
+const DRIVER_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
+
+function getClientIp(req: Request): string {
+  const fwd = req.headers.get('x-forwarded-for');
+  return fwd ? fwd.split(',')[0].trim() : 'unknown';
+}
+
+/** Public: the name picker needs the active-driver list before anyone is logged in. Names only — no PIN hashes or other fields. */
+export async function GET() {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from('drivers')
+    .select('id, name')
+    .eq('active', true)
+    .order('name', { ascending: true });
+
+  if (error) {
+    console.error('[driver-login] driver list failed:', error.message);
+    return NextResponse.json({ error: 'Lookup failed' }, { status: 500 });
+  }
+  return NextResponse.json({ data: data ?? [] });
+}
+
+export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const body = await request.json().catch(() => ({}));
+  const driverId = String(body?.driverId ?? '').trim();
+  const pin = String(body?.pin ?? '').trim();
+
+  // Rate-limited per driver+ip, not just per ip, so one driver mistyping
+  // their PIN repeatedly can't lock another driver out of logging in from
+  // the same depot wifi.
+  const { success, retryAfter } = await checkRateLimit(`driver-login:${ip}:${driverId}`, 5, 15 * 60 * 1000);
+  if (!success) {
+    return NextResponse.json(
+      { error: 'יותר מדי ניסיונות. נסו שוב בעוד כמה דקות.' },
+      { status: 429, headers: { 'Retry-After': String(retryAfter ?? 60) } }
+    );
+  }
+
+  if (!driverId || !pin) {
+    return NextResponse.json({ error: 'נא לבחור נהג ולהזין קוד' }, { status: 400 });
+  }
+
+  const supabase = createAdminClient();
+  const { data: driver, error } = await supabase
+    .from('drivers')
+    .select('id, pin_hash, active')
+    .eq('id', driverId)
+    .maybeSingle();
+
+  // Same generic error for "no such driver" and "wrong PIN" — the driver
+  // list is already public via GET above, so this isn't hiding an
+  // enumeration risk, just keeping the failure message simple.
+  const genericError = NextResponse.json({ error: 'קוד שגוי' }, { status: 401 });
+
+  if (error) {
+    console.error('[driver-login] lookup failed:', error.message);
+    return NextResponse.json({ error: 'שגיאת שרת' }, { status: 500 });
+  }
+  if (!driver || !driver.active) {
+    return genericError;
+  }
+
+  const pinValid = await bcrypt.compare(pin, driver.pin_hash);
+  if (!pinValid) {
+    return genericError;
+  }
+
+  const token = await signDriverToken(driver.id);
+  const cookieStore = await cookies();
+  cookieStore.set('driver_auth', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: DRIVER_COOKIE_MAX_AGE,
+    path: '/',
+  });
+
+  return NextResponse.json({ success: true });
+}
+
+export async function DELETE() {
+  const cookieStore = await cookies();
+  cookieStore.delete('driver_auth');
+  return NextResponse.json({ success: true });
+}
