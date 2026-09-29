@@ -48,8 +48,10 @@
     "react-hook-form": "^7.76.1",
     "resend": "^6.12.4",
     "sharp": "^0.35.3",
+    "signature_pad": "^5.1.4",
     "swr": "^2.4.2",
     "tailwind-merge": "^3.6.0",
+    "tus-js-client": "^4.3.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
