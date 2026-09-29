@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { Search, LogOut, RefreshCw } from 'lucide-react';
+import { Search, LogOut, RefreshCw, Plus } from 'lucide-react';
 import { fetcher } from '@/lib/swr';
 
 interface TodayRow {
@@ -113,6 +113,14 @@ export default function DriverTodayPage() {
             </button>
           </div>
         </div>
+
+        <button
+          onClick={() => router.push('/driver/quick-booking')}
+          className="w-full min-h-12 mb-3 flex items-center justify-center gap-2 rounded-xl bg-[#E8743B] hover:bg-[#d4632a] text-white font-black"
+        >
+          <Plus className="h-5 w-5" aria-hidden="true" />
+          בדיקה חדשה
+        </button>
 
         <div className="flex gap-2 mb-3">
           {(['today', 'tomorrow', 'search'] as Tab[]).map((t) => (
