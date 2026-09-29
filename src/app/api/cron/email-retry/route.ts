@@ -134,7 +134,14 @@ export async function GET(request: Request) {
     }
   }
 
-  const customerSheets = await retryPendingCustomerSheetSync();
+  let customerSheets = { swept: 0, delivered: 0, pending: 0 };
+  try {
+    customerSheets = await retryPendingCustomerSheetSync();
+  } catch (sheetError) {
+    // The email retry sweep must remain independent from the optional Sheets
+    // mirror. A database or webhook issue is logged and retried next run.
+    console.error("[customer-sheet][cron] retry sweep failed:", sheetError);
+  }
 
   return NextResponse.json({
     success: true,
