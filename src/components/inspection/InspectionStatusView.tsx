@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, Clock, RefreshCw } from 'lucide-react';
 import { useApiItem } from '@/lib/swr';
 import { fuelEighthsToLabel } from '@/lib/inspection-storage';
+import { bookingVehicleName } from '@/lib/booking-vehicle';
 
 interface InspectionDetail {
   id: string;
@@ -14,6 +15,7 @@ interface InspectionDetail {
   signed_at: string | null;
   booking: {
     customer_name: string;
+    custom_vehicle_name: string | null;
     vehicle: { make: string; model: string; license_plate: string | null } | null;
   } | null;
 }
@@ -97,7 +99,7 @@ export default function InspectionStatusView({ apiBase, id, isHe, signLink }: In
 
       <div className="mt-5 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-2 text-sm">
         <div className="flex justify-between"><span className="text-gray-400">{isHe ? 'לקוח' : 'Customer'}</span><span className="font-bold">{inspection.booking?.customer_name}</span></div>
-        <div className="flex justify-between"><span className="text-gray-400">{isHe ? 'רכב' : 'Vehicle'}</span><span className="font-bold">{inspection.booking?.vehicle ? `${inspection.booking.vehicle.make} ${inspection.booking.vehicle.model}` : '—'}</span></div>
+        <div className="flex justify-between"><span className="text-gray-400">{isHe ? 'רכב' : 'Vehicle'}</span><span className="font-bold">{bookingVehicleName(inspection.booking)}</span></div>
         <div className="flex justify-between"><span className="text-gray-400">{isHe ? 'קילומטראז\'' : 'Odometer'}</span><span className="font-bold" dir="ltr">{inspection.odometer_km.toLocaleString('he-IL')} km</span></div>
         <div className="flex justify-between"><span className="text-gray-400">{isHe ? 'דלק' : 'Fuel'}</span><span className="font-bold">{fuelEighthsToLabel(inspection.fuel_eighths)}</span></div>
       </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireDriverOrAdmin } from '@/lib/driver-route-auth';
 import { createAdminClient } from '@/lib/supabase/server';
 import { isValidInternationalPhone } from '@/lib/validations';
+import { isValidEmail, normalizeEmail } from '@/lib/email';
 
 const UNSPECIFIED_LOCATION = 'לא צוין';
 
@@ -25,6 +26,7 @@ export async function POST(request: NextRequest) {
   const customerPhone = String(body?.customerPhone ?? '').trim();
   const customerEmail = String(body?.customerEmail ?? '').trim();
   const vehicleId = String(body?.vehicleId ?? '').trim();
+  const customVehicleName = String(body?.customVehicleName ?? '').trim();
   const type = body?.type === 'pickup' || body?.type === 'return' ? body.type : null;
 
   if (!customerName) {
@@ -33,23 +35,30 @@ export async function POST(request: NextRequest) {
   if (!customerPhone || !isValidInternationalPhone(customerPhone)) {
     return NextResponse.json({ error: 'מספר טלפון לא תקין' }, { status: 400 });
   }
-  if (!vehicleId || !type) {
-    return NextResponse.json({ error: 'יש לבחור רכב וסוג בדיקה' }, { status: 400 });
+  if (!isValidEmail(customerEmail)) {
+    return NextResponse.json({ error: 'יש להזין כתובת אימייל תקינה של הלקוח' }, { status: 400 });
+  }
+  if (!type || (!vehicleId && !customVehicleName)) {
+    return NextResponse.json({ error: 'יש לבחור רכב או לכתוב את שם הרכב, ולבחור סוג בדיקה' }, { status: 400 });
   }
 
   const supabase = createAdminClient();
-  const { data: vehicle, error: vehicleError } = await supabase
-    .from('vehicles')
-    .select('id, price_per_day')
-    .eq('id', vehicleId)
-    .maybeSingle();
+  let pricePerDay = 0;
+  if (vehicleId) {
+    const { data: vehicle, error: vehicleError } = await supabase
+      .from('vehicles')
+      .select('id, price_per_day')
+      .eq('id', vehicleId)
+      .maybeSingle();
 
-  if (vehicleError) {
-    console.error('[driver/quick-booking] vehicle lookup failed:', vehicleError.message);
-    return NextResponse.json({ error: 'שגיאת שרת' }, { status: 500 });
-  }
-  if (!vehicle) {
-    return NextResponse.json({ error: 'הרכב לא נמצא' }, { status: 404 });
+    if (vehicleError) {
+      console.error('[driver/quick-booking] vehicle lookup failed:', vehicleError.message);
+      return NextResponse.json({ error: 'שגיאת שרת' }, { status: 500 });
+    }
+    if (!vehicle) {
+      return NextResponse.json({ error: 'הרכב לא נמצא' }, { status: 404 });
+    }
+    pricePerDay = Number(vehicle.price_per_day) || 0;
   }
 
   const now = new Date();
@@ -59,32 +68,37 @@ export async function POST(request: NextRequest) {
   // reservation. Admin can revise the dates through existing tools if needed.
   const pickupDate = now;
   const dropoffDate = type === 'return' ? now : plusOneDay;
-  const pricePerDay = Number(vehicle.price_per_day) || 0;
+  const bookingPayload: Record<string, unknown> = {
+    vehicle_id: vehicleId || null,
+    customer_name: customerName,
+    customer_email: normalizeEmail(customerEmail),
+    customer_phone: customerPhone,
+    pickup_date: pickupDate.toISOString(),
+    dropoff_date: dropoffDate.toISOString(),
+    pickup_location: UNSPECIFIED_LOCATION,
+    dropoff_location: UNSPECIFIED_LOCATION,
+    total_days: 1,
+    price_per_day: pricePerDay,
+    total_price: pricePerDay,
+    status: 'CONFIRMED',
+    source: 'driver',
+    created_by_driver_id: driverId,
+  };
+  if (!vehicleId) bookingPayload.custom_vehicle_name = customVehicleName;
 
   const { data: booking, error: insertError } = await supabase
     .from('bookings')
-    .insert({
-      vehicle_id: vehicleId,
-      customer_name: customerName,
-      customer_email: customerEmail || '',
-      customer_phone: customerPhone,
-      pickup_date: pickupDate.toISOString(),
-      dropoff_date: dropoffDate.toISOString(),
-      pickup_location: UNSPECIFIED_LOCATION,
-      dropoff_location: UNSPECIFIED_LOCATION,
-      total_days: 1,
-      price_per_day: pricePerDay,
-      total_price: pricePerDay,
-      status: 'CONFIRMED',
-      source: 'driver',
-      created_by_driver_id: driverId,
-    })
+    .insert(bookingPayload)
     .select('id')
     .single();
 
   if (insertError || !booking) {
     console.error('[driver/quick-booking] insert failed:', insertError?.message);
-    return NextResponse.json({ error: 'יצירת ההזמנה נכשלה' }, { status: 500 });
+    const missingMigration = insertError?.message.includes('custom_vehicle_name');
+    return NextResponse.json(
+      { error: missingMigration ? 'יש לעדכן את מסד הנתונים לפני הוספת רכב ידני' : 'יצירת ההזמנה נכשלה' },
+      { status: 500 }
+    );
   }
 
   // Assigned to the driver who created it, so it shows up in their own

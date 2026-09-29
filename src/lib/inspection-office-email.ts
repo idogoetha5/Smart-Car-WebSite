@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { OFFICE_EMAIL } from '@/lib/constants';
 import { numericOrderReference } from '@/lib/order-reference';
 import { fuelEighthsToLabel, INSPECTION_BUCKET } from '@/lib/inspection-storage';
+import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
 
 /**
  * Internal "customer signed" notification to the office — separate from
@@ -25,7 +26,7 @@ async function loadInspectionForOfficeEmail(inspectionId: string) {
   const { data, error } = await supabase
     .from('vehicle_inspections')
     .select(
-      'id, type, odometer_km, fuel_eighths, signed_at, video_sha256, signed_pdf_path, booking:bookings(id, customer_name, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
+      'id, type, odometer_km, fuel_eighths, signed_at, video_sha256, signed_pdf_path, booking:bookings(id, customer_name, custom_vehicle_name, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
     )
     .eq('id', inspectionId)
     .maybeSingle();
@@ -42,6 +43,7 @@ async function loadInspectionForOfficeEmail(inspectionId: string) {
     booking: {
       id: string;
       customer_name: string;
+      custom_vehicle_name: string | null;
       vehicle: { make: string; model: string; license_plate: string | null } | null;
     } | null;
     driver: { name: string } | null;
@@ -128,8 +130,8 @@ export async function sendInspectionOfficeEmail(inspectionId: string): Promise<{
   const signedAtIL = inspection.signed_at
     ? new Date(inspection.signed_at).toLocaleString('he-IL', { dateStyle: 'medium', timeStyle: 'medium' })
     : '—';
-  const vehicleName = booking?.vehicle ? `${booking.vehicle.make} ${booking.vehicle.model}` : '—';
-  const licensePlate = booking?.vehicle?.license_plate ?? '—';
+  const vehicleName = bookingVehicleName(booking);
+  const licensePlate = bookingLicensePlate(booking);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.smartcar.co.il';
   const adminLink = `${baseUrl}/he/admin/inspections/${inspectionId}`;
 

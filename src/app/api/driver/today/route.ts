@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { israelToday, israelTomorrow, israelDayRange } from '@/lib/israel-day';
 import { formatLocationForDriver } from '@/lib/location-display';
 import { numericOrderReference } from '@/lib/order-reference';
+import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
 
 const SEARCH_WINDOW_DAYS = 45;
 const TASK_FETCH_LIMIT = 500;
@@ -21,6 +22,7 @@ interface TaskRow {
     return_time: string | null;
     pickup_location: string;
     dropoff_location: string;
+    custom_vehicle_name: string | null;
     vehicle: { make: string; model: string; license_plate: string | null } | null;
   } | null;
 }
@@ -63,8 +65,8 @@ function shapeTask(task: TaskRow, inspections: Map<string, InspectionSlot>) {
     bookingId: booking?.id ?? '',
     bookingNumber: booking ? numericOrderReference(booking.id) : '',
     customerName: booking?.customer_name ?? '',
-    vehicleName: booking?.vehicle ? `${booking.vehicle.make} ${booking.vehicle.model}` : '—',
-    licensePlate: booking?.vehicle?.license_plate ?? '—',
+    vehicleName: bookingVehicleName(booking),
+    licensePlate: bookingLicensePlate(booking),
     location: formatLocationForDriver(location),
     time,
     inspection: booking ? inspections.get(`${booking.id}:${task.type}`) ?? null : null,
@@ -77,7 +79,7 @@ function relevantDate(task: TaskRow): string | null {
 }
 
 const TASK_SELECT =
-  'id, type, status, booking:bookings(id, customer_name, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, vehicle:vehicles(make, model, license_plate))';
+  'id, type, status, booking:bookings(id, customer_name, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
 
 /**
  * "היום שלי" — only tasks assigned to the logged-in driver (an admin
@@ -120,7 +122,7 @@ export async function GET(request: NextRequest) {
       const ts = new Date(date).getTime();
       if (ts < since || ts > until) return false;
 
-      const plate = (t.booking?.vehicle?.license_plate ?? '').toLowerCase();
+      const plate = bookingLicensePlate(t.booking).toLowerCase();
       const name = (t.booking?.customer_name ?? '').toLowerCase();
       return (
         name.includes(needle) ||

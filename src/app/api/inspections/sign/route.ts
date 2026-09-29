@@ -14,6 +14,7 @@ import {
 } from '@/lib/inspection-storage';
 import { numericOrderReference } from '@/lib/order-reference';
 import { sendInspectionOfficeEmail } from '@/lib/inspection-office-email';
+import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
 
 const LOGO_URL = 'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/logo.png';
 
@@ -29,6 +30,7 @@ type InspectionRow = {
     id: string;
     customer_name: string;
     customer_email: string;
+    custom_vehicle_name: string | null;
     vehicle: { make: string; model: string; license_plate: string | null } | null;
   } | null;
   driver: { name: string } | null;
@@ -55,7 +57,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase
     .from('vehicle_inspections')
     .select(
-      'id, type, odometer_km, fuel_eighths, status, signed_at, video_sha256, booking:bookings(id, customer_name, customer_email, vehicle:vehicles(make, model, license_plate))'
+      'id, type, odometer_km, fuel_eighths, status, signed_at, video_sha256, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))'
     )
     .eq('id', link.inspectionId!)
     .maybeSingle<InspectionRow>();
@@ -77,10 +79,8 @@ export async function GET(request: NextRequest) {
       status: data.status,
       signedAt: data.signed_at,
       customerName: data.booking?.customer_name ?? '',
-      vehicleName: data.booking?.vehicle
-        ? `${data.booking.vehicle.make} ${data.booking.vehicle.model}`
-        : '',
-      licensePlate: data.booking?.vehicle?.license_plate ?? '',
+      vehicleName: bookingVehicleName(data.booking),
+      licensePlate: bookingLicensePlate(data.booking),
       declaration: INSPECTION_DECLARATION[data.type],
       videoReady: Boolean(data.video_sha256),
     },
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
     .eq('id', inspectionId)
     .eq('status', 'awaiting_signature')
     .select(
-      'id, type, odometer_km, fuel_eighths, video_sha256, signed_at, booking:bookings(id, customer_name, customer_email, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
+      'id, type, odometer_km, fuel_eighths, video_sha256, signed_at, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
     )
     .returns<InspectionRow[]>();
 
@@ -192,8 +192,8 @@ export async function POST(request: NextRequest) {
     bookingId: booking?.id ?? '',
     bookingNumber,
     customerName: booking?.customer_name ?? '',
-    vehicleName: booking?.vehicle ? `${booking.vehicle.make} ${booking.vehicle.model}` : '',
-    licensePlate: booking?.vehicle?.license_plate ?? '',
+    vehicleName: bookingVehicleName(booking),
+    licensePlate: bookingLicensePlate(booking),
     type: inspection.type,
     odometerKm: inspection.odometer_km,
     fuelEighths: inspection.fuel_eighths,
@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
       params: {
         to_email: booking.customer_email,
         to_name: booking.customer_name,
-        vehicle_name: booking.vehicle ? `${booking.vehicle.make} ${booking.vehicle.model}` : '',
+        vehicle_name: bookingVehicleName(booking),
         inspection_type: typeLabel,
         pdf_link: pdfLink,
         logo_url: LOGO_URL,

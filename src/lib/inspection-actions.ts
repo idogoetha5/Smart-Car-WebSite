@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { createInspectionToken } from '@/lib/inspection-link';
 import { sendTemplateEmail } from '@/lib/email-delivery';
 import { INSPECTION_BUCKET, inspectionVideoPath } from '@/lib/inspection-storage';
+import { bookingVehicleName } from '@/lib/booking-vehicle';
 
 /**
  * Inspection business logic, shared by the admin routes
@@ -138,7 +139,7 @@ export async function completeInspectionUpload(inspectionId: string): Promise<Ac
   const { data: inspection, error } = await supabase
     .from('vehicle_inspections')
     .select(
-      'id, type, video_path, video_sha256, booking:bookings(id, customer_name, customer_email, vehicle:vehicles(make, model))'
+      'id, type, video_path, video_sha256, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))'
     )
     .eq('id', inspectionId)
     .maybeSingle();
@@ -189,7 +190,8 @@ export async function completeInspectionUpload(inspectionId: string): Promise<Ac
   const booking = inspection.booking as unknown as {
     customer_name: string;
     customer_email: string;
-    vehicle: { make: string; model: string } | null;
+    custom_vehicle_name: string | null;
+    vehicle: { make: string; model: string; license_plate: string | null } | null;
   } | null;
 
   let signLinkSent = false;
@@ -201,7 +203,7 @@ export async function completeInspectionUpload(inspectionId: string): Promise<Ac
       params: {
         to_email: booking.customer_email,
         to_name: booking.customer_name,
-        vehicle_name: `${booking.vehicle?.make ?? ''} ${booking.vehicle?.model ?? ''}`.trim(),
+        vehicle_name: bookingVehicleName(booking),
         inspection_type: inspection.type === 'pickup' ? 'קבלת הרכב' : 'החזרת הרכב',
         sign_link: signLink,
         logo_url: LOGO_URL,
@@ -220,7 +222,7 @@ export async function getInspectionStatus(inspectionId: string): Promise<ActionR
   const { data, error } = await supabase
     .from('vehicle_inspections')
     .select(
-      'id, booking_id, type, odometer_km, fuel_eighths, status, signed_at, video_sha256, booking:bookings(id, customer_name, customer_email, vehicle:vehicles(make, model, license_plate))'
+      'id, booking_id, type, odometer_km, fuel_eighths, status, signed_at, video_sha256, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))'
     )
     .eq('id', inspectionId)
     .maybeSingle();
