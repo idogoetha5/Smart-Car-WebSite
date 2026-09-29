@@ -31,13 +31,13 @@ export default function PhoneWithCountryInput({
   const hintId = `${id}-hint`;
 
   return (
-    <div>
+    <div className="min-w-0">
       <label htmlFor={id} className={labelClass}>{isHe ? 'מספר טלפון' : 'Phone number'}</label>
-      <div className="flex gap-2" dir="ltr">
+      <div className="grid min-w-0 grid-cols-[7.5rem_minmax(0,1fr)] gap-2 sm:grid-cols-[12rem_minmax(0,1fr)]" dir="ltr">
         <select
           value={country}
           onChange={(event) => onCountryChange(event.target.value as CountryCode)}
-          className={`${inputClass} w-[8.5rem] shrink-0 px-3`}
+          className={`${inputClass} min-w-0 max-w-full px-2 text-sm sm:px-3 sm:text-base`}
           aria-label={isHe ? 'קידומת מדינה' : 'Country code'}
           aria-describedby={hintId}
         >
@@ -52,7 +52,7 @@ export default function PhoneWithCountryInput({
           type="tel"
           value={national}
           onChange={(event) => onNationalChange(event.target.value)}
-          className={`${inputClass} min-w-0 flex-1`}
+          className={`${inputClass} min-w-0 max-w-full`}
           autoComplete="tel-national"
           inputMode="tel"
           required
