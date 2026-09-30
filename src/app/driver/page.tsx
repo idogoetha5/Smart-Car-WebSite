@@ -23,11 +23,24 @@ interface TaskRow {
   time: string | null;
   inspection: { id: string; status: 'awaiting_signature' | 'signed'; pdfUrl?: string } | null;
   date?: string | null;
+  /** Search: a completed handover still waiting for its return form. */
+  awaitingReturn?: boolean;
 }
 
 function TaskAction({ row }: { row: TaskRow }) {
   const router = useRouter();
   const base = 'flex min-h-14 flex-1 items-center justify-center rounded-2xl text-base font-black active:scale-[0.98] transition';
+
+  if (row.awaitingReturn) {
+    return (
+      <button
+        onClick={() => router.push(`/driver/inspection/new?bookingId=${row.bookingId}&type=return`)}
+        className={`${base} bg-[#E8743B] text-white`}
+      >
+        התחל בדיקת החזרה
+      </button>
+    );
+  }
 
   if (!row.inspection) {
     return (
@@ -106,7 +119,8 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
   const [saveError, setSaveError] = useState('');
   const [marking, setMarking] = useState(false);
 
-  const isDone = row.taskStatus === 'done';
+  const awaiting = Boolean(row.awaitingReturn);
+  const isDone = row.taskStatus === 'done' && !awaiting;
   const signed = row.inspection?.status === 'signed';
   const time = row.time ? row.time.slice(0, 5) : null;
   const wazeUrl = hasAddress ? `https://waze.com/ul?q=${encodeURIComponent(row.navQuery as string)}&navigate=yes` : null;
@@ -182,7 +196,7 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
     icon: hasAddress ? <Pencil className="h-6 w-6 shrink-0" aria-hidden="true" /> : <MapPin className="h-6 w-6 shrink-0" aria-hidden="true" />,
     onClick: () => setEditing(true),
   });
-  items.push({
+  if (!awaiting) items.push({
     key: 'done',
     label: marking ? 'שומר…' : isDone ? 'ביטול סימון "בוצע"' : 'סמן כבוצע',
     icon: <CheckCircle2 className="h-6 w-6 shrink-0" aria-hidden="true" />,
@@ -201,7 +215,11 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
             {row.vehicleName} · <span dir="ltr">{row.licensePlate}</span>
           </p>
         </div>
-        {isDone ? (
+        {awaiting ? (
+          <span className="shrink-0 rounded-full bg-amber-100 px-3 py-1 text-sm font-black text-amber-800">
+            נמסר{row.date ? ` ${new Date(row.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}` : ''}
+          </span>
+        ) : isDone ? (
           <span className="shrink-0 rounded-full bg-green-100 px-3 py-1 text-sm font-black text-green-700">✓ בוצע</span>
         ) : time ? (
           <span className="shrink-0 rounded-full bg-[#2D5F5F]/10 px-3 py-1 text-base font-black text-[#2D5F5F]" dir="ltr">{time}</span>

@@ -121,12 +121,31 @@ export async function searchHandovers(query: string): Promise<HandoverDamage[]> 
     return [];
   }
   const compact = needle.replace(/[\s-]/g, '');
-  return (data ?? [])
-    .filter((r) => {
-      const name = (r.booking?.customer_name ?? '').toLowerCase();
-      const plate = bookingLicensePlate(r.booking).toLowerCase().replace(/[\s-]/g, '');
-      return name.includes(needle) || (compact.length >= 3 && plate.includes(compact));
-    })
+  const matches = (data ?? []).filter((r) => {
+    const name = (r.booking?.customer_name ?? '').toLowerCase();
+    const plate = bookingLicensePlate(r.booking).toLowerCase().replace(/[\s-]/g, '');
+    return name.includes(needle) || (compact.length >= 3 && plate.includes(compact));
+  });
+  if (!matches.length) return [];
+
+  // A handover drops out of the return picker once its return is signed —
+  // either on the same rental or linked to this handover explicitly.
+  const bookingIds = [...new Set(matches.map((r) => r.booking_id).filter((id): id is string => Boolean(id)))];
+  const handoverIds = matches.map((r) => r.id);
+  const [byBooking, byLink] = await Promise.all([
+    bookingIds.length
+      ? supabase.from('vehicle_inspections').select('booking_id').eq('type', 'return').eq('status', 'signed').in('booking_id', bookingIds)
+      : Promise.resolve({ data: [] as Array<{ booking_id: string | null }>, error: null }),
+    supabase.from('vehicle_inspections').select('handover_inspection_id').eq('type', 'return').eq('status', 'signed').in('handover_inspection_id', handoverIds),
+  ]);
+  if (byBooking.error || byLink.error) {
+    console.error('[inspection-previous] returned lookup failed:', byBooking.error?.message ?? byLink.error?.message);
+  }
+  const returnedBookings = new Set((byBooking.data ?? []).map((r) => r.booking_id));
+  const returnedHandovers = new Set((byLink.data ?? []).map((r: { handover_inspection_id: string | null }) => r.handover_inspection_id));
+
+  return matches
+    .filter((r) => !returnedHandovers.has(r.id) && !(r.booking_id && returnedBookings.has(r.booking_id)))
     .slice(0, 20)
     .map(shape);
 }
