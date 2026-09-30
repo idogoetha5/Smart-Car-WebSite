@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ClipboardPlus, KeyRound, RefreshCw, UserPlus } from 'lucide-react';
+import { ChevronDown, ClipboardPlus, KeyRound, RefreshCw, Search, UserPlus } from 'lucide-react';
 import DriverTaskForm from '@/components/admin/DriverTaskForm';
 import { bookingLicensePlate, bookingVehicleName, type BookingVehicleSource } from '@/lib/booking-vehicle';
 import { useApiList } from '@/lib/swr';
@@ -68,6 +68,24 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
   const [error, setError] = useState('');
   const [assigningDriverId, setAssigningDriverId] = useState<string | null>(null);
   const [filterDate, setFilterDate] = useState('');
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [taskSearch, setTaskSearch] = useState<Record<string, string>>({});
+
+  const toggleExpanded = (key: string) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  /** Open first (soonest first), then done, then cancelled; filtered by customer name or address. */
+  const prepareTasks = (list: Task[], key: string) => {
+    const needle = (taskSearch[key] ?? '').trim().toLowerCase();
+    const order = { open: 0, done: 1, cancelled: 2 } as const;
+    const dateOf = (t: Task) => new Date((t.type === 'pickup' ? t.booking?.pickup_date : t.booking?.dropoff_date) ?? 0).getTime();
+    return list
+      .filter((t) => {
+        if (!needle) return true;
+        const address = (t.type === 'pickup' ? t.booking?.pickup_location : t.booking?.dropoff_location) ?? '';
+        return (t.booking?.customer_name ?? '').toLowerCase().includes(needle) || address.toLowerCase().includes(needle);
+      })
+      .sort((a, b) => order[a.status] - order[b.status] || dateOf(a) - dateOf(b));
+  };
   const activeDrivers = useMemo(() => drivers.filter((driver) => driver.active), [drivers]);
 
   const visibleTasks = useMemo(() => {
@@ -309,48 +327,104 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
           {drivers.map((driver) => {
             const driverTasks = tasksByDriver.get(driver.id) ?? [];
             const openCount = driverTasks.filter((task) => task.status === 'open').length;
+            const isOpen = Boolean(expanded[driver.id]);
+            const shown = isOpen ? prepareTasks(driverTasks, driver.id) : [];
             return (
               <section key={driver.id} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-lg font-black text-gray-900">{driver.name}</h3>
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${driver.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{driver.active ? 'פעיל' : 'מושבת'}</span>
-                      <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">{openCount} משימות פתוחות</span>
-                    </div>
-                    <p className="mt-1 text-xs text-gray-400">{driverTasks.length} משימות בתצוגה</p>
+                <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-lg font-black text-gray-900">{driver.name}</h3>
+                    {!driver.active && <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-500">מושבת</span>}
+                    {openCount > 0 && <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">{openCount} פתוחות</span>}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {driver.active && (
-                      <button onClick={() => setAssigningDriverId(assigningDriverId === driver.id ? null : driver.id)} className="flex min-h-10 items-center gap-1.5 rounded-lg bg-[#E8743B] px-3 text-xs font-black text-white hover:bg-[#d4632a]">
+                      <button
+                        onClick={() => setAssigningDriverId(assigningDriverId === driver.id ? null : driver.id)}
+                        className="flex min-h-10 items-center gap-1.5 rounded-lg bg-[#E8743B] px-3 text-sm font-black text-white hover:bg-[#d4632a]"
+                      >
                         <ClipboardPlus className="h-4 w-4" aria-hidden="true" />
-                        הקצאת משימה
+                        הקצאת משימה חדשה
                       </button>
                     )}
-                    <button onClick={() => toggleActive(driver)} className="min-h-10 rounded-lg bg-gray-50 px-3 text-xs font-bold text-gray-700 hover:bg-gray-100">{driver.active ? 'השבתה' : 'הפעלה'}</button>
-                    <button onClick={() => resetPin(driver)} className="flex min-h-10 items-center gap-1 rounded-lg bg-[#eef6f6] px-3 text-xs font-bold text-[#2D5F5F] hover:bg-[#d9ecec]"><KeyRound className="h-3.5 w-3.5" aria-hidden="true" />איפוס קוד</button>
+                    <button
+                      onClick={() => toggleExpanded(driver.id)}
+                      aria-expanded={isOpen}
+                      className="flex min-h-10 items-center gap-1.5 rounded-lg border-2 border-gray-200 px-3 text-sm font-black text-gray-700 hover:bg-gray-50"
+                    >
+                      משימות ({driverTasks.length})
+                      <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                    </button>
                   </div>
                 </div>
 
-                {assigningDriverId === driver.id && <DriverTaskForm driver={driver} tasksApi={tasksApi} bookingsApi={isAdmin ? '/api/bookings' : '/api/driver/manage/bookings'} onCancel={() => setAssigningDriverId(null)} onCreated={() => { setAssigningDriverId(null); mutateTasks(); }} />}
+                {assigningDriverId === driver.id && (
+                  <div className="border-t border-gray-100">
+                    <DriverTaskForm driver={driver} tasksApi={tasksApi} bookingsApi={isAdmin ? '/api/bookings' : '/api/driver/manage/bookings'} onCancel={() => setAssigningDriverId(null)} onCreated={() => { setAssigningDriverId(null); mutateTasks(); setExpanded((prev) => ({ ...prev, [driver.id]: true })); }} />
+                  </div>
+                )}
 
-                <div className="space-y-2 border-t border-gray-100 p-4 sm:p-5">
-                  {driverTasks.map(renderTask)}
-                  {driverTasks.length === 0 && <p className="py-4 text-center text-sm text-gray-400">אין משימות לנהג בתאריך שנבחר</p>}
-                </div>
+                {isOpen && (
+                  <div className="space-y-3 border-t border-gray-100 bg-gray-50/50 p-4">
+                    <div className="relative">
+                      <Search className="absolute top-1/2 -translate-y-1/2 start-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+                      <input
+                        type="search"
+                        value={taskSearch[driver.id] ?? ''}
+                        onChange={(event) => setTaskSearch((prev) => ({ ...prev, [driver.id]: event.target.value }))}
+                        placeholder="חיפוש לפי שם לקוח או כתובת"
+                        className="w-full min-h-11 rounded-xl border border-gray-200 bg-white ps-10 pe-3 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      {shown.map(renderTask)}
+                      {shown.length === 0 && (
+                        <p className="py-4 text-center text-sm text-gray-400">
+                          {taskSearch[driver.id]?.trim() ? 'לא נמצאו משימות' : 'אין משימות לנהג'}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2 border-t border-gray-100 pt-3">
+                      <button onClick={() => toggleActive(driver)} className="min-h-9 rounded-lg bg-white px-3 text-xs font-bold text-gray-600 hover:bg-gray-100">{driver.active ? 'השבתת נהג' : 'הפעלת נהג'}</button>
+                      <button onClick={() => resetPin(driver)} className="flex min-h-9 items-center gap-1 rounded-lg bg-[#eef6f6] px-3 text-xs font-bold text-[#2D5F5F] hover:bg-[#d9ecec]"><KeyRound className="h-3.5 w-3.5" aria-hidden="true" />איפוס קוד</button>
+                    </div>
+                  </div>
+                )}
               </section>
             );
           })}
 
-          {(tasksByDriver.get('unassigned') ?? []).length > 0 && (
-            <section className="overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm">
-              <div className="border-b border-amber-100 bg-amber-50 p-4 sm:p-5">
-                <h3 className="text-lg font-black text-amber-900">משימות שעדיין לא שויכו</h3>
-                <p className="text-sm text-amber-700">בחרו נהג בכל משימה כדי להעביר אותה אליו</p>
-              </div>
-              <div className="space-y-2 p-4 sm:p-5">{(tasksByDriver.get('unassigned') ?? []).map(renderTask)}</div>
-            </section>
-          )}
+          {(tasksByDriver.get('unassigned') ?? []).length > 0 && (() => {
+            const unassigned = tasksByDriver.get('unassigned') ?? [];
+            const isOpen = Boolean(expanded.unassigned);
+            const shown = isOpen ? prepareTasks(unassigned, 'unassigned') : [];
+            return (
+              <section className="overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm">
+                <button onClick={() => toggleExpanded('unassigned')} aria-expanded={isOpen} className="flex w-full items-center justify-between gap-3 bg-amber-50 p-4 text-start">
+                  <span>
+                    <span className="block text-lg font-black text-amber-900">משימות שעדיין לא שויכו ({unassigned.length})</span>
+                    <span className="block text-sm text-amber-700">בחרו נהג בכל משימה כדי להעביר אותה אליו</span>
+                  </span>
+                  <ChevronDown className={`h-5 w-5 text-amber-800 transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                </button>
+                {isOpen && (
+                  <div className="space-y-3 p-4">
+                    <div className="relative">
+                      <Search className="absolute top-1/2 -translate-y-1/2 start-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+                      <input
+                        type="search"
+                        value={taskSearch.unassigned ?? ''}
+                        onChange={(event) => setTaskSearch((prev) => ({ ...prev, unassigned: event.target.value }))}
+                        placeholder="חיפוש לפי שם לקוח או כתובת"
+                        className="w-full min-h-11 rounded-xl border border-gray-200 bg-white ps-10 pe-3 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">{shown.map(renderTask)}</div>
+                  </div>
+                )}
+              </section>
+            );
+          })()}
 
           {drivers.length === 0 && <div className="rounded-2xl bg-white p-8 text-center text-gray-400">אין נהגים עדיין</div>}
         </div>
