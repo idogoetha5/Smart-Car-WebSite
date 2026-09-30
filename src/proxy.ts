@@ -74,6 +74,13 @@ const OLD_PATH_REDIRECTS: Record<string, string> = {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Branch managers' short link (shared on WhatsApp): one hop straight to
+  // the manager login — before next-intl, which would otherwise send it to
+  // /he/manager first — so link previews resolve.
+  if (pathname === '/manager' || pathname === '/manager/') {
+    return NextResponse.redirect(new URL('/driver/manager-login', request.url), 307);
+  }
   // request.nextUrl.pathname's decode-state for non-ASCII segments isn't
   // guaranteed here — normalize so the old-URL matching below works
   // whether it arrives decoded or still percent-encoded.

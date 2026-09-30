@@ -11,6 +11,7 @@ import '../globals.css';
 const heebo = Heebo({ subsets: ['hebrew', 'latin'], display: 'swap' });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.smartcar.co.il'),
   title: 'SmartCar נהגים',
   description: 'אפליקציית נהגים לבדיקות רכב',
   robots: { index: false, follow: false },
@@ -22,6 +23,13 @@ export const metadata: Metadata = {
   },
   icons: {
     apple: '/apple-icon.png',
+  },
+  openGraph: {
+    title: 'SmartCar נהגים',
+    description: 'אפליקציית נהגים לבדיקות רכב',
+    images: [{ url: '/images/logo.png' }],
+    locale: 'he_IL',
+    type: 'website',
   },
 };
 
