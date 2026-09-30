@@ -6,7 +6,7 @@
  */
 
 const LATE_CHARGES_HE = `אגרות, קנסות ודוחות
-אני אחראי/ת לכל חיוב שנוצר ממועד קבלת הרכב ועד מועד החזרתו, לרבות חיובים שהודעה עליהם תתקבל לאחר תום תקופת השכירות, ובהם:
+אני אחראי/ת לכל חיוב שנוצר ממועד מסירת הרכב ועד מועד החזרתו, לרבות חיובים שהודעה עליהם תתקבל לאחר תום תקופת השכירות, ובהם:
 • כביש 6, מנהרות הכרמל, הנתיב המהיר וכבישי אגרה נוספים
 • דוחות חניה ודוחות של רשויות מקומיות
 • דוחות תנועה ומשטרה, כולל מצלמות מהירות ורמזור
@@ -14,7 +14,7 @@ const LATE_CHARGES_HE = `אגרות, קנסות ודוחות
 אני מסכים/ה שחברת SmartCar תסב דוחות על שמי ככל שהחוק מאפשר, ותחייב את אמצעי התשלום שמסרתי בסכום החיוב ובדמי טיפול לפי הסכם השכירות. על כל חיוב כזה אקבל הודעה עם פירוט.`;
 
 const LATE_CHARGES_EN = `Tolls, fines and penalties
-I am responsible for every charge incurred from the time I received the vehicle until its return, including charges notified after the rental period has ended, such as:
+I am responsible for every charge incurred from the time the vehicle was handed over to me until its return, including charges notified after the rental period has ended, such as:
 • Road 6, the Carmel Tunnels, the Fast Lane and other toll roads
 • Parking tickets and local-authority fines
 • Traffic and police fines, including speed and red-light cameras
@@ -23,7 +23,7 @@ I agree that SmartCar may transfer fines to my name as far as the law allows, an
 
 export const INSPECTION_DECLARATION: Record<'pickup' | 'return', { he: string; en: string }> = {
   pickup: {
-    he: `אישור קבלת רכב
+    he: `אישור מסירת רכב
 
 בחתימתי על מסמך זה אני מאשר/ת כדלקמן:
 
@@ -39,7 +39,7 @@ export const INSPECTION_DECLARATION: Record<'pickup' | 'return', { he: string; e
 ${LATE_CHARGES_HE}
 
 אישור זה מהווה חלק בלתי נפרד מהסכם השכירות.`,
-    en: `Vehicle pickup confirmation
+    en: `Vehicle handover confirmation
 
 By signing this document, I confirm the following:
 
@@ -100,7 +100,7 @@ This confirmation forms an integral part of the rental agreement.`,
 
 /** Section titles inside the declarations — rendered bold on the sign page and in the PDF. */
 export const DECLARATION_HEADINGS = new Set<string>([
-  'אישור קבלת רכב',
+  'אישור מסירת רכב',
   'אישור החזרת רכב',
   'מצב הרכב',
   "קילומטראז' ודלק",
@@ -108,7 +108,7 @@ export const DECLARATION_HEADINGS = new Set<string>([
   'בדיקה סופית',
   'חפצים אישיים',
   'אגרות, קנסות ודוחות',
-  'Vehicle pickup confirmation',
+  'Vehicle handover confirmation',
   'Vehicle return confirmation',
   'Condition of the vehicle',
   'Mileage and fuel',
