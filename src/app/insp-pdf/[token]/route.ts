@@ -38,20 +38,17 @@ export async function GET(request: Request, context: { params: Promise<{ token: 
     return message('המסמך החתום עדיין אינו זמין.', 404);
   }
 
-  const { data: file, error: downloadError } = await supabase.storage
+  // Signed PDFs with photos can exceed Vercel's 4.5MB response cap, so
+  // redirect to a short-lived signed URL instead of streaming through here.
+  const { data: signed, error: signError } = await supabase.storage
     .from(INSPECTION_BUCKET)
-    .download(inspection.signed_pdf_path);
-  if (downloadError || !file) {
-    console.error('[insp-pdf] download failed:', downloadError?.message);
+    .createSignedUrl(inspection.signed_pdf_path, 60 * 60);
+  if (signError || !signed?.signedUrl) {
+    console.error('[insp-pdf] signed url failed:', signError?.message);
     return message('לא ניתן לטעון את המסמך כרגע.', 500);
   }
-
-  return new NextResponse(new Uint8Array(await file.arrayBuffer()), {
-    headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': 'inline; filename="SmartCar_Inspection.pdf"',
-      'Cache-Control': 'private, no-store',
-      'X-Robots-Tag': 'noindex, nofollow',
-    },
+  return NextResponse.redirect(signed.signedUrl, {
+    status: 302,
+    headers: { 'Cache-Control': 'private, no-store', 'X-Robots-Tag': 'noindex, nofollow' },
   });
 }

@@ -44,11 +44,10 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
-  let pricePerDay = 0;
   if (vehicleId) {
     const { data: vehicle, error: vehicleError } = await supabase
       .from('vehicles')
-      .select('id, price_per_day')
+      .select('id')
       .eq('id', vehicleId)
       .maybeSingle();
 
@@ -59,7 +58,6 @@ export async function POST(request: NextRequest) {
     if (!vehicle) {
       return NextResponse.json({ error: 'הרכב לא נמצא' }, { status: 404 });
     }
-    pricePerDay = Number(vehicle.price_per_day) || 0;
   }
 
   const now = new Date();
@@ -79,8 +77,9 @@ export async function POST(request: NextRequest) {
     pickup_location: type === 'pickup' ? location : UNSPECIFIED_LOCATION,
     dropoff_location: type === 'return' ? location : UNSPECIFIED_LOCATION,
     total_days: 1,
-    price_per_day: pricePerDay,
-    total_price: pricePerDay,
+    // Field job, not a priced reservation.
+    price_per_day: 0,
+    total_price: 0,
     status: 'CONFIRMED',
     source: 'driver',
     created_by_driver_id: driverId,

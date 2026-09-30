@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase
     .from('bookings')
     .select('created_at')
+    .or('source.is.null,source.not.in.(driver,phone)')
     .gte('created_at', since.toISOString());
 
   if (error) { console.error(error.message); return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 }); }

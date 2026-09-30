@@ -53,6 +53,9 @@ export default function AdminBookingsPage() {
     const cust = searchCustomer.toLowerCase();
     const car = searchCar.toLowerCase();
     return bookings.filter(b => {
+      // Driver-app field jobs aren't reservations (placeholder dates/prices);
+      // they live under נהגים → עבודות שבוצעו ונחתמו.
+      if (b.source === 'driver' || b.source === 'phone') return false;
       if (cust) {
         const name = (b.customer_name ?? '').toLowerCase();
         const email = (b.customer_email ?? '').toLowerCase();

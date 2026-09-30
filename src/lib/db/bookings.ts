@@ -25,6 +25,14 @@ function mapBookingRow(row: any): Booking {
   };
 }
 
+/**
+ * Bookings the driver app / driver tasks create on the spot ('driver' walk-ins,
+ * 'phone' task bookings) are field jobs, not real reservations — their dates
+ * and prices are placeholders — so they stay out of the bookings list and the
+ * dashboard numbers. They're shown under "נהגים → עבודות שבוצעו ונחתמו".
+ */
+export const FIELD_JOB_FILTER = 'source.is.null,source.not.in.(driver,phone)';
+
 export async function getBookings(): Promise<Booking[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -41,6 +49,7 @@ export async function getActiveBookingsCount(): Promise<number> {
   const { count, error } = await supabase
     .from('bookings')
     .select('*', { count: 'exact', head: true })
+    .or(FIELD_JOB_FILTER)
     .in('status', ['PENDING', 'CONFIRMED', 'ACTIVE']);
 
   if (error) throw error;
@@ -52,6 +61,7 @@ export async function getRecentBookings(limit = 5): Promise<Booking[]> {
   const { data, error } = await supabase
     .from('bookings')
     .select(`*, vehicle:vehicles(make, model, year)`)
+    .or(FIELD_JOB_FILTER)
     .order('created_at', { ascending: false })
     .limit(limit);
 
@@ -68,6 +78,7 @@ export async function getWeeklyBookingCounts(): Promise<{ date: string; count: n
   const { data, error } = await supabase
     .from('bookings')
     .select('created_at')
+    .or(FIELD_JOB_FILTER)
     .gte('created_at', since.toISOString());
 
   if (error) throw error;
@@ -94,6 +105,7 @@ export async function getMonthlyRevenue(): Promise<number> {
   const { data, error } = await supabase
     .from('bookings')
     .select('total_price')
+    .or(FIELD_JOB_FILTER)
     .in('status', ['CONFIRMED', 'ACTIVE', 'COMPLETED'])
     .gte('created_at', startOfMonth.toISOString());
 

@@ -160,12 +160,10 @@ export async function createDriverTask(request: NextRequest, createdBy: string):
     if (!vehicleId && !customVehicleName) {
       return NextResponse.json({ error: 'יש לבחור רכב או לכתוב את שם הרכב' }, { status: 400 });
     }
-
-    let pricePerDay = 0;
     if (vehicleId) {
       const { data: vehicle, error: vehicleError } = await supabase
         .from('vehicles')
-        .select('id, price_per_day')
+        .select('id')
         .eq('id', vehicleId)
         .maybeSingle();
       if (vehicleError) {
@@ -175,7 +173,6 @@ export async function createDriverTask(request: NextRequest, createdBy: string):
       if (!vehicle) {
         return NextResponse.json({ error: 'הרכב לא נמצא' }, { status: 404 });
       }
-      pricePerDay = Number(vehicle.price_per_day) || 0;
     }
 
     const scheduled = scheduledAt ? new Date(scheduledAt) : new Date();
@@ -192,8 +189,9 @@ export async function createDriverTask(request: NextRequest, createdBy: string):
       pickup_location: type === 'pickup' ? (location || UNSPECIFIED_LOCATION) : UNSPECIFIED_LOCATION,
       dropoff_location: type === 'return' ? (location || UNSPECIFIED_LOCATION) : UNSPECIFIED_LOCATION,
       total_days: 1,
-      price_per_day: pricePerDay,
-      total_price: pricePerDay,
+      // Field job, not a priced reservation.
+      price_per_day: 0,
+      total_price: 0,
       status: 'CONFIRMED',
       source: 'phone',
     };

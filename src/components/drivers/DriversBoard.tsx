@@ -14,6 +14,20 @@ interface Driver {
   created_at: string;
 }
 
+interface SignedJob {
+  id: string;
+  type: 'pickup' | 'return';
+  signedAt: string | null;
+  customerName: string;
+  vehicleName: string;
+  licensePlate: string;
+  address: string;
+  driverName: string;
+  damageCount: number;
+  pdfUrl: string | null;
+  videoUrl: string | null;
+}
+
 interface Task {
   id: string;
   type: 'pickup' | 'return';
@@ -60,6 +74,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
   const drivers = useMemo(() => people.filter((person) => person.role !== 'manager'), [people]);
   const managers = useMemo(() => people.filter((person) => person.role === 'manager'), [people]);
   const { items: tasks, isLoading: tasksLoading, isValidating: tasksValidating, mutate: mutateTasks } = useApiList<Task>(tasksApi);
+  const { items: signedJobs } = useApiList<SignedJob>(isAdmin ? '/api/admin/inspections/signed' : '/api/driver/manage/inspections');
   const [managerName, setManagerName] = useState('');
   const [managerPin, setManagerPin] = useState('');
   const [driverName, setName] = useState('');
@@ -420,6 +435,72 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
                       />
                     </div>
                     <div className="space-y-2">{shown.map(renderTask)}</div>
+                  </div>
+                )}
+              </section>
+            );
+          })()}
+
+          {signedJobs.length > 0 && (() => {
+            const isOpen = Boolean(expanded.signed);
+            const needle = (taskSearch.signed ?? '').trim().toLowerCase();
+            const shown = !isOpen
+              ? []
+              : signedJobs.filter((job) =>
+                  !needle ||
+                  [job.customerName, job.address, job.licensePlate, job.driverName, job.vehicleName].some((v) => (v ?? '').toLowerCase().includes(needle))
+                );
+            return (
+              <section className="overflow-hidden rounded-2xl border border-green-200 bg-white shadow-sm">
+                <button onClick={() => toggleExpanded('signed')} aria-expanded={isOpen} className="flex w-full items-center justify-between gap-3 bg-green-50 p-4 text-start">
+                  <span>
+                    <span className="block text-lg font-black text-green-900">עבודות שבוצעו ונחתמו ({signedJobs.length})</span>
+                    <span className="block text-sm text-green-700">מסירות והחזרות שהלקוח חתם עליהן, עם המסמך החתום</span>
+                  </span>
+                  <ChevronDown className={`h-5 w-5 text-green-800 transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                </button>
+                {isOpen && (
+                  <div className="space-y-3 p-4">
+                    <div className="relative">
+                      <Search className="absolute top-1/2 -translate-y-1/2 start-3 h-4 w-4 text-gray-400" aria-hidden="true" />
+                      <input
+                        type="search"
+                        value={taskSearch.signed ?? ''}
+                        onChange={(event) => setTaskSearch((prev) => ({ ...prev, signed: event.target.value }))}
+                        placeholder="חיפוש לפי לקוח, כתובת, רכב או נהג"
+                        className="w-full min-h-11 rounded-xl border border-gray-200 bg-white ps-10 pe-3 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      {shown.map((job) => (
+                        <div key={job.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 p-3">
+                          <div className="min-w-0">
+                            <p className="font-bold text-gray-900">
+                              {job.customerName || 'ללא שם לקוח'}{' '}
+                              <span className="text-xs font-bold text-gray-500">· {job.type === 'pickup' ? 'מסירה' : 'החזרה'}</span>
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              {job.vehicleName}{job.licensePlate && job.licensePlate !== '—' ? ` · ${job.licensePlate}` : ''}
+                              {job.driverName ? ` · נהג: ${job.driverName}` : ''}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {job.signedAt ? `נחתם ${formatDateTime(job.signedAt)}` : ''}
+                              {job.address ? ` · ${job.address}` : ''}
+                              {job.damageCount > 0 ? ` · ${job.damageCount} נזקים סומנו` : ''}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            {job.pdfUrl && (
+                              <a href={job.pdfUrl} target="_blank" rel="noopener noreferrer" className="min-h-9 rounded-lg bg-[#2D5F5F] px-3 py-2 text-xs font-black text-white">PDF חתום</a>
+                            )}
+                            {job.videoUrl && (
+                              <a href={job.videoUrl} target="_blank" rel="noopener noreferrer" className="min-h-9 rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-xs font-black text-gray-700">סרטון</a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {shown.length === 0 && <p className="py-4 text-center text-sm text-gray-400">לא נמצאו עבודות</p>}
+                    </div>
                   </div>
                 )}
               </section>
