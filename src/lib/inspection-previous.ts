@@ -1,40 +1,125 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { createInspectionToken } from '@/lib/inspection-link';
+import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
 import type { DamageMark } from '@/lib/inspection-damage';
+import type { Checklist } from '@/lib/inspection-checklist';
 
 export interface HandoverDamage {
   inspectionId: string;
   marks: DamageMark[];
   /** Token for /insp-photo of the handover inspection's photos. */
   mediaToken: string;
+  odometerKm: number;
+  fuelEighths: number;
+  checklist: Checklist | null;
+  customerName: string;
+  vehicleName: string;
+  licensePlate: string;
+  signedAt: string | null;
+}
+
+const SELECT =
+  'id, status, type, damage_marks, odometer_km, fuel_eighths, checklist, signed_at, created_at, booking:bookings(customer_name, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
+
+type Row = {
+  id: string;
+  status: string;
+  type: string;
+  damage_marks: DamageMark[] | null;
+  odometer_km: number;
+  fuel_eighths: number;
+  checklist: Checklist | null;
+  signed_at: string | null;
+  booking: {
+    customer_name: string;
+    custom_vehicle_name: string | null;
+    vehicle: { make: string; model: string; license_plate: string | null } | null;
+  } | null;
+};
+
+function shape(row: Row): HandoverDamage {
+  return {
+    inspectionId: row.id,
+    marks: row.damage_marks ?? [],
+    mediaToken: createInspectionToken(row.id, 24),
+    odometerKm: row.odometer_km,
+    fuelEighths: row.fuel_eighths,
+    checklist: row.checklist ?? null,
+    customerName: row.booking?.customer_name ?? '',
+    vehicleName: bookingVehicleName(row.booking),
+    licensePlate: bookingLicensePlate(row.booking),
+    signedAt: row.signed_at,
+  };
 }
 
 /**
- * Damage recorded at handover (pickup) for a booking — shown grey on the
- * return inspection so the driver only marks what's new, and used to flag
- * new damage to the office. Prefers the latest signed handover; falls back
- * to the latest one at all.
+ * The handover (pickup) a return is compared with: the one the driver
+ * picked (handoverInspectionId), otherwise the latest signed — or latest —
+ * handover on the same booking. Its damage is drawn grey on the return so
+ * only new damage is marked, and its mileage/fuel/checklist are the
+ * baseline for the office alerts.
  */
-export async function loadHandoverDamage(bookingId: string): Promise<HandoverDamage | null> {
-  if (!bookingId) return null;
+export async function loadHandover(params: { bookingId?: string | null; handoverInspectionId?: string | null }): Promise<HandoverDamage | null> {
   const supabase = createAdminClient();
+  if (params.handoverInspectionId) {
+    const { data, error } = await supabase
+      .from('vehicle_inspections')
+      .select(SELECT)
+      .eq('id', params.handoverInspectionId)
+      .eq('type', 'pickup')
+      .maybeSingle<Row>();
+    if (error) console.error('[inspection-previous] by id failed:', error.message);
+    if (data) return shape(data);
+  }
+  if (!params.bookingId) return null;
   const { data, error } = await supabase
     .from('vehicle_inspections')
-    .select('id, status, damage_marks, created_at')
-    .eq('booking_id', bookingId)
+    .select(SELECT)
+    .eq('booking_id', params.bookingId)
     .eq('type', 'pickup')
     .order('created_at', { ascending: false })
-    .limit(10);
+    .limit(10)
+    .returns<Row[]>();
   if (error) {
     console.error('[inspection-previous] lookup failed:', error.message);
     return null;
   }
   const rows = data ?? [];
   const row = rows.find((r) => r.status === 'signed') ?? rows[0];
-  if (!row) return null;
-  return {
-    inspectionId: row.id,
-    marks: ((row.damage_marks ?? []) as DamageMark[]),
-    mediaToken: createInspectionToken(row.id, 24),
-  };
+  return row ? shape(row) : null;
+}
+
+/** Back-compat wrapper. */
+export async function loadHandoverDamage(bookingId: string, handoverInspectionId?: string | null) {
+  return loadHandover({ bookingId, handoverInspectionId });
+}
+
+/** Signed handovers from the last 120 days matching a customer name or plate — for the return picker. */
+export async function searchHandovers(query: string): Promise<HandoverDamage[]> {
+  const needle = query.trim().toLowerCase();
+  if (needle.length < 2) return [];
+  const supabase = createAdminClient();
+  const since = new Date(Date.now() - 120 * 86_400_000).toISOString();
+  const { data, error } = await supabase
+    .from('vehicle_inspections')
+    .select(SELECT)
+    .eq('type', 'pickup')
+    .eq('status', 'signed')
+    .gte('signed_at', since)
+    .order('signed_at', { ascending: false })
+    .limit(400)
+    .returns<Row[]>();
+  if (error) {
+    console.error('[inspection-previous] search failed:', error.message);
+    return [];
+  }
+  const compact = needle.replace(/[\s-]/g, '');
+  return (data ?? [])
+    .filter((r) => {
+      const name = (r.booking?.customer_name ?? '').toLowerCase();
+      const plate = bookingLicensePlate(r.booking).toLowerCase().replace(/[\s-]/g, '');
+      return name.includes(needle) || (compact.length >= 3 && plate.includes(compact));
+    })
+    .slice(0, 20)
+    .map(shape);
 }

@@ -42,6 +42,8 @@ export interface CreateInspectionParams {
   sidePhotoViews?: unknown;
   /** Optional condition checklist ({ item: 'ok' | 'bad' }). */
   checklist?: unknown;
+  /** Return only: the handover inspection it's compared with (picked by the driver). */
+  handoverInspectionId?: string | null;
   driverId?: string | null;
 }
 
@@ -163,6 +165,23 @@ export async function createInspectionRecord(
       checklist: parseChecklist(params.checklist),
     })
     .eq('id', inspection.id);
+
+  if (type === 'return' && params.handoverInspectionId) {
+    // Best-effort: only link a real handover; never fails the inspection.
+    const { data: handover } = await supabase
+      .from('vehicle_inspections')
+      .select('id')
+      .eq('id', String(params.handoverInspectionId))
+      .eq('type', 'pickup')
+      .maybeSingle();
+    if (handover) {
+      const { error: linkError } = await supabase
+        .from('vehicle_inspections')
+        .update({ handover_inspection_id: handover.id })
+        .eq('id', inspection.id);
+      if (linkError) console.error('[inspection-actions] handover link failed:', linkError.message);
+    }
+  }
   if (pathError) {
     console.error('[inspection-actions] media paths update failed:', pathError.message);
     return { ok: false, status: 500, error: 'Failed to prepare upload' };

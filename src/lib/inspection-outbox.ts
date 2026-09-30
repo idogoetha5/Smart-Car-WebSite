@@ -44,6 +44,8 @@ export interface InspectionDraft {
   noDamage: boolean;
   sidePhotos: Partial<Record<SidePhotoView, Blob>>;
   checklist: Checklist;
+  /** Return only: handover inspection it's compared with. */
+  handoverInspectionId?: string | null;
   /** Filled once the server created the inspection — retries reuse it. */
   created?: {
     inspectionId: string;
@@ -164,6 +166,7 @@ export async function sendDraft(
         noDamage: draft.noDamage && draft.marks.length === 0,
         sidePhotoViews: Object.keys(draft.sidePhotos),
         checklist: draft.checklist,
+        handoverInspectionId: draft.handoverInspectionId ?? null,
       });
       draft.created = created;
       draft.photosDone = [];

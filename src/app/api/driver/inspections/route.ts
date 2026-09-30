@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
     noDamage: body?.noDamage === true,
     sidePhotoViews: body?.sidePhotoViews,
     checklist: body?.checklist,
+    handoverInspectionId: body?.handoverInspectionId ? String(body.handoverInspectionId) : null,
     driverId,
   });
 

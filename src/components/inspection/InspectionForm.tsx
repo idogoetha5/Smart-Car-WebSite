@@ -66,6 +66,17 @@ interface HandoverMark extends DiagramMark {
   note: string;
 }
 
+interface Handover {
+  inspectionId: string;
+  customerName: string;
+  vehicleName: string;
+  licensePlate: string;
+  signedAt: string | null;
+  odometerKm: number;
+  fuelEighths: number;
+  marks: HandoverMark[];
+}
+
 type Stage = 'idle' | 'compressing' | SendStage | 'offline' | 'done';
 
 const STEPS = [
@@ -109,8 +120,14 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
   const [sidePhotosOpen, setSidePhotosOpen] = useState(false);
   const [checklist, setChecklist] = useState<Checklist>({});
   const [checklistOpen, setChecklistOpen] = useState(false);
-  const [handoverMarks, setHandoverMarks] = useState<HandoverMark[]>([]);
+  const [handover, setHandover] = useState<Handover | null>(null);
+  const [handoverChecked, setHandoverChecked] = useState(false);
+  const [handoverPicker, setHandoverPicker] = useState(false);
+  const [handoverSearch, setHandoverSearch] = useState('');
+  const [handoverResults, setHandoverResults] = useState<Handover[]>([]);
+  const [handoverSearching, setHandoverSearching] = useState(false);
   const [handoverOpen, setHandoverOpen] = useState(false);
+  const handoverMarks: HandoverMark[] = handover?.marks ?? [];
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<Stage>('idle');
@@ -118,14 +135,35 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
   const [inspectionId, setInspectionId] = useState('');
   const draftRef = useRef<InspectionDraft | null>(null);
 
-  // Return: load the damage recorded at handover (grey on the diagram).
+  // Return: the handover on this booking (grey damage + km/fuel baseline).
+  // If there isn't one (e.g. a walk-in return), the driver picks it by
+  // customer name.
   useEffect(() => {
     if (!isReturn || !bookingId) return;
     fetch(`/api/driver/inspections/handover?bookingId=${encodeURIComponent(bookingId)}`)
       .then((res) => (res.ok ? res.json() : null))
-      .then((json) => setHandoverMarks(json?.data?.marks ?? []))
-      .catch(() => {});
+      .then((json) => {
+        if (json?.data) setHandover(json.data);
+        else setHandoverPicker(true);
+      })
+      .catch(() => setHandoverPicker(true))
+      .finally(() => setHandoverChecked(true));
   }, [isReturn, bookingId]);
+
+  useEffect(() => {
+    if (!handoverPicker) return;
+    const q = handoverSearch.trim();
+    if (q.length < 2) return;
+    const timer = window.setTimeout(() => {
+      setHandoverSearching(true);
+      fetch(`/api/driver/inspections/handover?search=${encodeURIComponent(q)}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((json) => setHandoverResults(json?.data ?? []))
+        .catch(() => setHandoverResults([]))
+        .finally(() => setHandoverSearching(false));
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [handoverPicker, handoverSearch]);
 
   const evidence = evidenceError({ hasVideo: Boolean(video), markCount: marks.length, noDamage });
   const step0Ok = odometerKm.trim() !== '' && fuelEighths !== null;
@@ -254,6 +292,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
         noDamage: noDamage && marks.length === 0,
         sidePhotos: Object.fromEntries(sideViewsTaken.map((v) => [v, sidePhotos[v] as File])),
         checklist,
+        handoverInspectionId: isReturn ? handover?.inspectionId ?? null : null,
       };
       // Saved on the phone first, so nothing is lost without signal.
       await saveDraft(draft);
@@ -353,6 +392,84 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
       {/* Step 1: odometer + fuel */}
       {step === 0 && (
         <div className="space-y-5">
+          {isReturn && handoverChecked && (
+            <div className="rounded-2xl border-2 border-[#2D5F5F]/30 bg-[#eef6f6] p-4">
+              {handover && !handoverPicker ? (
+                <>
+                  <p className="text-sm font-black text-[#2D5F5F]">{isHe ? 'משווה לבדיקת המסירה:' : 'Compared with handover:'}</p>
+                  <p className="mt-1 font-black text-gray-900">
+                    {handover.customerName} · {handover.vehicleName}
+                    {handover.licensePlate && handover.licensePlate !== '—' ? ` · ${handover.licensePlate}` : ''}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {handover.signedAt ? `${new Date(handover.signedAt).toLocaleDateString('he-IL')} · ` : ''}
+                    {isHe ? `במסירה: ${handover.odometerKm.toLocaleString('he-IL')} ק״מ · דלק ${FUEL_TAP_OPTIONS.find((o) => o.eighths === handover.fuelEighths)?.symbol ?? handover.fuelEighths + '/8'}` : ''}
+                    {handover.marks.length ? ` · ${handover.marks.length} ${isHe ? 'נזקים קיימים' : 'existing damages'}` : ''}
+                  </p>
+                  <button type="button" onClick={() => setHandoverPicker(true)} className="mt-2 text-sm font-bold text-[#2D5F5F] underline">
+                    {isHe ? 'זו לא הבדיקה הנכונה? בחר אחרת' : 'Pick a different one'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="mb-2 text-sm font-black text-[#2D5F5F]">
+                    {isHe ? 'בחר את בדיקת המסירה של הרכב — הנזקים הקיימים יסומנו באפור' : 'Pick the handover inspection — existing damage shows grey'}
+                  </p>
+                  <input
+                    type="search"
+                    value={handoverSearch}
+                    onChange={(e) => setHandoverSearch(e.target.value)}
+                    placeholder={isHe ? 'חיפוש לפי שם לקוח או לוחית רישוי' : 'Search by customer name or plate'}
+                    className="w-full min-h-12 rounded-xl border-2 border-gray-200 bg-white px-3 text-base"
+                  />
+                  <div className="mt-2 space-y-2">
+                    {handoverSearching && <p className="text-sm text-gray-500">{isHe ? 'מחפש…' : 'Searching…'}</p>}
+                    {(handoverSearch.trim().length >= 2 ? handoverResults : []).map((h) => (
+                      <button
+                        key={h.inspectionId}
+                        type="button"
+                        onClick={() => {
+                          setHandover(h);
+                          setHandoverPicker(false);
+                        }}
+                        className="block w-full rounded-xl border-2 border-gray-200 bg-white p-3 text-start"
+                      >
+                        <span className="block font-black text-gray-900">{h.customerName}</span>
+                        <span className="block text-xs text-gray-600">
+                          {h.vehicleName}
+                          {h.licensePlate && h.licensePlate !== '—' ? ` · ${h.licensePlate}` : ''}
+                          {h.signedAt ? ` · ${new Date(h.signedAt).toLocaleDateString('he-IL')}` : ''}
+                          {` · ${h.odometerKm.toLocaleString('he-IL')} ק״מ`}
+                          {h.marks.length ? ` · ${h.marks.length} נזקים` : ''}
+                        </span>
+                      </button>
+                    ))}
+                    {!handoverSearching && handoverSearch.trim().length >= 2 && handoverResults.length === 0 && (
+                      <p className="text-sm text-gray-500">{isHe ? 'לא נמצאה בדיקת מסירה חתומה' : 'No signed handover found'}</p>
+                    )}
+                  </div>
+                  <div className="mt-2 flex gap-4">
+                    {handover && (
+                      <button type="button" onClick={() => setHandoverPicker(false)} className="text-sm font-bold text-[#2D5F5F] underline">
+                        {isHe ? 'חזרה לבדיקה שנבחרה' : 'Back'}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHandover(null);
+                        setHandoverPicker(false);
+                      }}
+                      className="text-sm font-bold text-gray-500 underline"
+                    >
+                      {isHe ? 'המשך בלי בדיקת מסירה' : 'Continue without'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
             <label htmlFor="odometer" className="block font-black text-gray-800 mb-3">
               {isHe ? 'קילומטראז׳' : 'Odometer'}

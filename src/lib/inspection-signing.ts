@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { createInspectionToken } from '@/lib/inspection-link';
-import { loadHandoverDamage } from '@/lib/inspection-previous';
+import { loadHandover } from '@/lib/inspection-previous';
 import { sendTemplateEmail } from '@/lib/email-delivery';
 import { renderInspectionPdf } from '@/lib/inspection-pdf-server';
 import { INSPECTION_DECLARATION } from '@/lib/inspection-declaration';
@@ -42,6 +42,7 @@ type InspectionRow = {
   side_photos: Record<string, string> | null;
   media_completed_at: string | null;
   checklist: Checklist | null;
+  handover_inspection_id?: string | null;
   booking: {
     id: string;
     customer_name: string;
@@ -53,7 +54,7 @@ type InspectionRow = {
 };
 
 const VIEW_SELECT =
-  'id, type, odometer_km, fuel_eighths, status, signed_at, video_sha256, video_path, damage_marks, no_damage, side_photos, media_completed_at, checklist, booking:bookings(id, customer_name, customer_email, customer_phone, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
+  'id, type, odometer_km, fuel_eighths, status, signed_at, video_sha256, video_path, damage_marks, no_damage, side_photos, media_completed_at, checklist, handover_inspection_id, booking:bookings(id, customer_name, customer_email, customer_phone, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
 
 export type SignResult = { ok: true } | { ok: false; status: number; error: string };
 
@@ -73,7 +74,7 @@ export async function loadSignView(
     return { ok: false, status: 500, error: 'lookup_failed' };
   }
   if (!data) return { ok: false, status: 404, error: 'not_found' };
-  const handover = data.type === 'return' && data.booking?.id ? await loadHandoverDamage(data.booking.id) : null;
+  const handover = data.type === 'return' ? await loadHandover({ bookingId: data.booking?.id, handoverInspectionId: data.handover_inspection_id }) : null;
   return {
     ok: true,
     data: {
@@ -207,7 +208,7 @@ async function finalizeSignedInspection(args: {
       sidePhotos: sidePhotoRows,
       checklist: checklistEntries(inspection.checklist),
       handoverMarks:
-        inspection.type === 'return' && booking?.id ? (await loadHandoverDamage(booking.id))?.marks ?? [] : [],
+        inspection.type === 'return' ? (await loadHandover({ bookingId: booking?.id, handoverInspectionId: inspection.handover_inspection_id }))?.marks ?? [] : [],
     });
 
     const pdfPath = inspectionPdfPath(inspectionId);
@@ -298,7 +299,7 @@ export async function signInspection(params: {
     .eq('id', inspectionId)
     .eq('status', 'awaiting_signature')
     .select(
-      'id, type, odometer_km, fuel_eighths, video_sha256, video_path, damage_marks, no_damage, side_photos, checklist, signed_at, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
+      'id, type, odometer_km, fuel_eighths, video_sha256, video_path, damage_marks, no_damage, side_photos, checklist, handover_inspection_id, signed_at, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
     )
     .returns<InspectionRow[]>();
 

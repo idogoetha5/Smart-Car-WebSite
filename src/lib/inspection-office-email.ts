@@ -6,6 +6,7 @@ import { fuelEighthsToLabel, INSPECTION_BUCKET } from '@/lib/inspection-storage'
 import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
 import { calculateInspectionDeviation } from '@/lib/inspection-deviation';
 import { createInspectionToken } from '@/lib/inspection-link';
+import { loadHandover } from '@/lib/inspection-previous';
 import { damageKindLabel, VIEW_LABELS, type DamageMark } from '@/lib/inspection-damage';
 import { checklistEntries, checklistLabel, checklistRegressions, type Checklist } from '@/lib/inspection-checklist';
 
@@ -30,7 +31,7 @@ async function loadInspectionForOfficeEmail(inspectionId: string) {
   const { data, error } = await supabase
     .from('vehicle_inspections')
     .select(
-      'id, type, odometer_km, fuel_eighths, signed_at, video_sha256, video_path, damage_marks, no_damage, side_photos, checklist, signed_pdf_path, booking:bookings(id, customer_name, total_days, custom_vehicle_name, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
+      'id, type, odometer_km, fuel_eighths, signed_at, video_sha256, video_path, damage_marks, no_damage, side_photos, checklist, handover_inspection_id, signed_pdf_path, booking:bookings(id, customer_name, total_days, custom_vehicle_name, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
     )
     .eq('id', inspectionId)
     .maybeSingle();
@@ -48,6 +49,7 @@ async function loadInspectionForOfficeEmail(inspectionId: string) {
     no_damage: boolean | null;
     side_photos: Record<string, string> | null;
     checklist: Checklist | null;
+    handover_inspection_id?: string | null;
     signed_pdf_path: string | null;
     booking: {
       id: string;
@@ -152,28 +154,22 @@ export async function sendInspectionOfficeEmail(inspectionId: string): Promise<{
     booking?.total_days ?? 1
   );
   let checklistRegressed: string[] = [];
-  if (inspection.type === 'return' && booking?.id) {
-    const { data: pickup } = await supabase
-      .from('vehicle_inspections')
-      .select('odometer_km, fuel_eighths, checklist')
-      .eq('booking_id', booking.id)
-      .eq('type', 'pickup')
-      .eq('status', 'signed')
-      .order('signed_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+  if (inspection.type === 'return') {
+    // Baseline: the handover the driver linked, else the one on this booking.
+    const pickup = await loadHandover({ bookingId: booking?.id, handoverInspectionId: inspection.handover_inspection_id });
+    // Mileage allowance by the real rental length when we know the handover
+    // date (a walk-in return's own booking says 1 day).
+    const rentalDays =
+      pickup?.signedAt && inspection.signed_at
+        ? Math.max(1, Math.ceil((new Date(inspection.signed_at).getTime() - new Date(pickup.signedAt).getTime()) / 86_400_000))
+        : booking?.total_days ?? 1;
 
     deviation = calculateInspectionDeviation(
-      pickup
-        ? { odometerKm: pickup.odometer_km, fuelEighths: pickup.fuel_eighths }
-        : null,
+      pickup ? { odometerKm: pickup.odometerKm, fuelEighths: pickup.fuelEighths } : null,
       { odometerKm: inspection.odometer_km, fuelEighths: inspection.fuel_eighths },
-      booking.total_days ?? 1
+      rentalDays
     );
-    checklistRegressed = checklistRegressions(
-      (pickup?.checklist ?? null) as Checklist | null,
-      inspection.checklist
-    ).map((id) => checklistLabel(id));
+    checklistRegressed = checklistRegressions(pickup?.checklist ?? null, inspection.checklist).map((id) => checklistLabel(id));
   }
 
   const missingPdfWarning = pdfMissing
