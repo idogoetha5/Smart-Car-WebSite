@@ -3,6 +3,7 @@
  * and the branch-manager API (/api/driver/manage/tasks). Callers do their
  * own auth first.
  */
+import { readVehicleInput, resolveVehicle } from '@/lib/custom-vehicle';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { israelDayRange } from '@/lib/israel-day';
@@ -12,7 +13,7 @@ import { isValidEmail, normalizeEmail } from '@/lib/email';
 const UNSPECIFIED_LOCATION = 'לא צוין';
 
 const TASK_SELECT =
-  'id, type, status, notes, created_by, created_at, assigned_driver_id, driver:drivers(id, name), booking:bookings(id, customer_name, customer_phone, pickup_date, dropoff_date, pickup_location, dropoff_location, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
+  'id, type, status, notes, created_by, created_at, assigned_driver_id, driver:drivers(id, name), booking:bookings(id, customer_name, customer_phone, pickup_date, dropoff_date, pickup_location, dropoff_location, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))';
 
 interface TaskWithBooking {
   id: string;
@@ -32,6 +33,7 @@ interface TaskWithBooking {
     pickup_location: string;
     dropoff_location: string;
     custom_vehicle_name: string | null;
+    custom_license_plate?: string | null;
     vehicle: { make: string; model: string; license_plate: string | null } | null;
   } | null;
 }
@@ -148,8 +150,6 @@ export async function createDriverTask(request: NextRequest, createdBy: string):
     const customerName = String(body?.customerName ?? '').trim();
     const customerPhone = String(body?.customerPhone ?? '').trim();
     const customerEmail = String(body?.customerEmail ?? '').trim();
-    const vehicleId = String(body?.vehicleId ?? '').trim();
-    const customVehicleName = String(body?.customVehicleName ?? '').trim();
 
     if (!customerName) {
       return NextResponse.json({ error: 'שם הלקוח הוא שדה חובה' }, { status: 400 });
@@ -160,22 +160,9 @@ export async function createDriverTask(request: NextRequest, createdBy: string):
     if (!isValidEmail(customerEmail)) {
       return NextResponse.json({ error: 'יש להזין כתובת אימייל תקינה של הלקוח' }, { status: 400 });
     }
-    if (!vehicleId && !customVehicleName) {
-      return NextResponse.json({ error: 'יש לבחור רכב או לכתוב את שם הרכב' }, { status: 400 });
-    }
-    if (vehicleId) {
-      const { data: vehicle, error: vehicleError } = await supabase
-        .from('vehicles')
-        .select('id')
-        .eq('id', vehicleId)
-        .maybeSingle();
-      if (vehicleError) {
-        console.error('[admin/tasks] vehicle lookup failed:', vehicleError.message);
-        return NextResponse.json({ error: 'שגיאת שרת' }, { status: 500 });
-      }
-      if (!vehicle) {
-        return NextResponse.json({ error: 'הרכב לא נמצא' }, { status: 404 });
-      }
+    const vehicle = await resolveVehicle(supabase, readVehicleInput(body));
+    if (!vehicle.ok) {
+      return NextResponse.json({ error: vehicle.error }, { status: vehicle.status });
     }
 
     const scheduled = scheduledAt ? new Date(scheduledAt) : new Date();
@@ -183,7 +170,7 @@ export async function createDriverTask(request: NextRequest, createdBy: string):
     const pickupDate = scheduled;
     const dropoffDate = type === 'return' ? scheduled : plusOneDay;
     const bookingPayload: Record<string, unknown> = {
-      vehicle_id: vehicleId || null,
+      vehicle_id: vehicle.vehicleId,
       customer_name: customerName,
       customer_email: normalizeEmail(customerEmail),
       customer_phone: customerPhone,
@@ -199,7 +186,8 @@ export async function createDriverTask(request: NextRequest, createdBy: string):
       source: 'phone',
     };
     if (scheduledTime) bookingPayload[type === 'pickup' ? 'pickup_time' : 'return_time'] = scheduledTime;
-    if (!vehicleId) bookingPayload.custom_vehicle_name = customVehicleName;
+    if (vehicle.customVehicleName) bookingPayload.custom_vehicle_name = vehicle.customVehicleName;
+    if (vehicle.customLicensePlate) bookingPayload.custom_license_plate = vehicle.customLicensePlate;
 
     const { data: booking, error: insertError } = await supabase
       .from('bookings')
@@ -209,7 +197,7 @@ export async function createDriverTask(request: NextRequest, createdBy: string):
 
     if (insertError || !booking) {
       console.error('[admin/tasks] booking insert failed:', insertError?.message);
-      const missingMigration = insertError?.message.includes('custom_vehicle_name');
+      const missingMigration = /custom_vehicle_name|custom_license_plate/.test(insertError?.message ?? '');
       return NextResponse.json(
         { error: missingMigration ? 'יש לעדכן את מסד הנתונים לפני הוספת רכב ידני' : 'יצירת ההזמנה נכשלה' },
         { status: 500 }

@@ -22,7 +22,7 @@ export interface HandoverDamage {
 }
 
 const SELECT =
-  'id, booking_id, status, type, damage_marks, odometer_km, fuel_eighths, checklist, signed_at, created_at, booking:bookings(customer_name, customer_phone, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
+  'id, booking_id, status, type, damage_marks, odometer_km, fuel_eighths, checklist, signed_at, created_at, booking:bookings(customer_name, customer_phone, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))';
 
 type Row = {
   id: string;
@@ -38,6 +38,7 @@ type Row = {
     customer_name: string;
     customer_phone?: string | null;
     custom_vehicle_name: string | null;
+    custom_license_plate?: string | null;
     vehicle: { make: string; model: string; license_plate: string | null } | null;
   } | null;
 };

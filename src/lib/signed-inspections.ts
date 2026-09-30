@@ -15,7 +15,7 @@ export async function listSignedInspections(): Promise<NextResponse> {
   const { data, error } = await supabase
     .from('vehicle_inspections')
     .select(
-      'id, type, signed_at, video_path, damage_marks, signed_pdf_path, driver_id, driver:drivers(name), booking:bookings(id, customer_name, custom_vehicle_name, pickup_location, dropoff_location, vehicle:vehicles(make, model, license_plate))'
+      'id, type, signed_at, video_path, damage_marks, signed_pdf_path, driver_id, driver:drivers(name), booking:bookings(id, customer_name, custom_vehicle_name, custom_license_plate, pickup_location, dropoff_location, vehicle:vehicles(make, model, license_plate))'
     )
     .eq('status', 'signed')
     .order('signed_at', { ascending: false })
@@ -29,6 +29,7 @@ export async function listSignedInspections(): Promise<NextResponse> {
     const booking = row.booking as unknown as {
       customer_name: string;
       custom_vehicle_name: string | null;
+    custom_license_plate?: string | null;
       pickup_location: string | null;
       dropoff_location: string | null;
       vehicle: { make: string; model: string; license_plate: string | null } | null;

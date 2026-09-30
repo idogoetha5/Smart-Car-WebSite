@@ -48,13 +48,14 @@ type InspectionRow = {
     customer_name: string;
     customer_email: string;
     custom_vehicle_name: string | null;
+    custom_license_plate?: string | null;
     vehicle: { make: string; model: string; license_plate: string | null } | null;
   } | null;
   driver: { name: string } | null;
 };
 
 const VIEW_SELECT =
-  'id, type, odometer_km, fuel_eighths, status, signed_at, video_sha256, video_path, damage_marks, no_damage, side_photos, media_completed_at, checklist, handover_inspection_id, booking:bookings(id, customer_name, customer_email, customer_phone, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
+  'id, type, odometer_km, fuel_eighths, status, signed_at, video_sha256, video_path, damage_marks, no_damage, side_photos, media_completed_at, checklist, handover_inspection_id, booking:bookings(id, customer_name, customer_email, customer_phone, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))';
 
 export type SignResult = { ok: true } | { ok: false; status: number; error: string };
 
@@ -308,7 +309,7 @@ export async function signInspection(params: {
     .eq('id', inspectionId)
     .eq('status', 'awaiting_signature')
     .select(
-      'id, type, odometer_km, fuel_eighths, video_sha256, video_path, damage_marks, no_damage, side_photos, checklist, handover_inspection_id, signed_at, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
+      'id, type, odometer_km, fuel_eighths, video_sha256, video_path, damage_marks, no_damage, side_photos, checklist, handover_inspection_id, signed_at, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
     )
     .returns<InspectionRow[]>();
 

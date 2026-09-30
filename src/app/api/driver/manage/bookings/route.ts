@@ -10,7 +10,7 @@ export async function GET() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('bookings')
-    .select('id, customer_name, custom_vehicle_name, vehicle:vehicles(make, model)')
+    .select('id, customer_name, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model)')
     .order('created_at', { ascending: false })
     .limit(300);
   if (error) {

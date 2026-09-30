@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
+import { bookingLicensePlate, bookingVehicleName, normalizePlate } from '@/lib/booking-vehicle';
 
 describe('booking vehicle display', () => {
   it('uses the fleet vehicle when one is linked', () => {
@@ -25,5 +25,17 @@ describe('booking vehicle display', () => {
   it('returns a display placeholder for missing values', () => {
     expect(bookingVehicleName(null)).toBe('—');
     expect(bookingLicensePlate(null)).toBe('—');
+  });
+
+  it('shows a typed-in plate, with or without a name', () => {
+    expect(bookingLicensePlate({ vehicle: null, custom_vehicle_name: 'Ford Transit', custom_license_plate: '98-765-43' })).toBe('98-765-43');
+    expect(bookingVehicleName({ vehicle: null, custom_vehicle_name: null, custom_license_plate: '98-765-43' })).toBe('רכב');
+    expect(bookingLicensePlate({ vehicle: null, custom_vehicle_name: null, custom_license_plate: '98-765-43' })).toBe('98-765-43');
+  });
+
+  it('compares plates by digits only', () => {
+    expect(normalizePlate('12-345-67')).toBe('1234567');
+    expect(normalizePlate(' 12 345 67 ')).toBe('1234567');
+    expect(normalizePlate(null)).toBe('');
   });
 });

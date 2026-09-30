@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireDriverOrAdmin } from '@/lib/driver-route-auth';
+import { readVehicleInput, resolveVehicle } from '@/lib/custom-vehicle';
 import { createAdminClient } from '@/lib/supabase/server';
 import { isValidInternationalPhone } from '@/lib/validations';
 import { isValidEmail, normalizeEmail } from '@/lib/email';
@@ -25,8 +26,7 @@ export async function POST(request: NextRequest) {
   const customerName = String(body?.customerName ?? '').trim();
   const customerPhone = String(body?.customerPhone ?? '').trim();
   const customerEmail = String(body?.customerEmail ?? '').trim();
-  const vehicleId = String(body?.vehicleId ?? '').trim();
-  const customVehicleName = String(body?.customVehicleName ?? '').trim();
+  const vehicleInput = readVehicleInput(body);
   const type = body?.type === 'pickup' || body?.type === 'return' ? body.type : null;
   const location = String(body?.location ?? '').trim().slice(0, 200) || UNSPECIFIED_LOCATION;
 
@@ -39,25 +39,14 @@ export async function POST(request: NextRequest) {
   if (!isValidEmail(customerEmail)) {
     return NextResponse.json({ error: 'יש להזין כתובת אימייל תקינה של הלקוח' }, { status: 400 });
   }
-  if (!type || (!vehicleId && !customVehicleName)) {
-    return NextResponse.json({ error: 'יש לבחור רכב או לכתוב את שם הרכב, ולבחור סוג בדיקה' }, { status: 400 });
+  if (!type) {
+    return NextResponse.json({ error: 'יש לבחור סוג בדיקה' }, { status: 400 });
   }
 
   const supabase = createAdminClient();
-  if (vehicleId) {
-    const { data: vehicle, error: vehicleError } = await supabase
-      .from('vehicles')
-      .select('id')
-      .eq('id', vehicleId)
-      .maybeSingle();
-
-    if (vehicleError) {
-      console.error('[driver/quick-booking] vehicle lookup failed:', vehicleError.message);
-      return NextResponse.json({ error: 'שגיאת שרת' }, { status: 500 });
-    }
-    if (!vehicle) {
-      return NextResponse.json({ error: 'הרכב לא נמצא' }, { status: 404 });
-    }
+  const vehicle = await resolveVehicle(supabase, vehicleInput);
+  if (!vehicle.ok) {
+    return NextResponse.json({ error: vehicle.error }, { status: vehicle.status });
   }
 
   const now = new Date();
@@ -68,7 +57,7 @@ export async function POST(request: NextRequest) {
   const pickupDate = now;
   const dropoffDate = type === 'return' ? now : plusOneDay;
   const bookingPayload: Record<string, unknown> = {
-    vehicle_id: vehicleId || null,
+    vehicle_id: vehicle.vehicleId,
     customer_name: customerName,
     customer_email: normalizeEmail(customerEmail),
     customer_phone: customerPhone,
@@ -84,7 +73,8 @@ export async function POST(request: NextRequest) {
     source: 'driver',
     created_by_driver_id: driverId,
   };
-  if (!vehicleId) bookingPayload.custom_vehicle_name = customVehicleName;
+  if (vehicle.customVehicleName) bookingPayload.custom_vehicle_name = vehicle.customVehicleName;
+  if (vehicle.customLicensePlate) bookingPayload.custom_license_plate = vehicle.customLicensePlate;
 
   const { data: booking, error: insertError } = await supabase
     .from('bookings')
@@ -94,7 +84,7 @@ export async function POST(request: NextRequest) {
 
   if (insertError || !booking) {
     console.error('[driver/quick-booking] insert failed:', insertError?.message);
-    const missingMigration = insertError?.message.includes('custom_vehicle_name');
+    const missingMigration = /custom_vehicle_name|custom_license_plate/.test(insertError?.message ?? '');
     return NextResponse.json(
       { error: missingMigration ? 'יש לעדכן את מסד הנתונים לפני הוספת רכב ידני' : 'יצירת ההזמנה נכשלה' },
       { status: 500 }

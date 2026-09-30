@@ -16,6 +16,7 @@ interface InspectionDetail {
   booking: {
     customer_name: string;
     custom_vehicle_name: string | null;
+    custom_license_plate?: string | null;
     vehicle: { make: string; model: string; license_plate: string | null } | null;
   } | null;
 }

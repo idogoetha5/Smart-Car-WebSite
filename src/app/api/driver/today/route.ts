@@ -31,6 +31,7 @@ interface TaskRow {
     pickup_location: string;
     dropoff_location: string;
     custom_vehicle_name: string | null;
+    custom_license_plate?: string | null;
     vehicle: { make: string; model: string; license_plate: string | null } | null;
   } | null;
 }
@@ -103,7 +104,7 @@ function shapeTask(task: TaskRow, inspections: Map<string, InspectionSlot>, awai
 }
 
 const TASK_SELECT_INNER =
-  'id, type, status, updated_at, assigned_driver_id, booking:bookings!inner(id, customer_name, customer_phone, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
+  'id, type, status, updated_at, assigned_driver_id, booking:bookings!inner(id, customer_name, customer_phone, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))';
 
 /**
  * "היום שלי" — only tasks assigned to the logged-in driver (an admin

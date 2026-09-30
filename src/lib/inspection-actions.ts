@@ -242,7 +242,7 @@ export async function completeInspectionUpload(inspectionId: string): Promise<Ac
   const { data: inspection, error } = await supabase
     .from('vehicle_inspections')
     .select(
-      'id, type, video_path, video_sha256, damage_marks, side_photos, media_completed_at, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))'
+      'id, type, video_path, video_sha256, damage_marks, side_photos, media_completed_at, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))'
     )
     .eq('id', inspectionId)
     .maybeSingle();
@@ -334,7 +334,7 @@ export async function sendInspectionSignLink(inspectionId: string): Promise<Acti
   const { data: inspection, error } = await supabase
     .from('vehicle_inspections')
     .select(
-      'id, type, status, video_path, damage_marks, media_completed_at, video_sha256, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))'
+      'id, type, status, video_path, damage_marks, media_completed_at, video_sha256, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))'
     )
     .eq('id', inspectionId)
     .maybeSingle();
@@ -357,6 +357,7 @@ export async function sendInspectionSignLink(inspectionId: string): Promise<Acti
     customer_name: string;
     customer_email: string;
     custom_vehicle_name: string | null;
+    custom_license_plate?: string | null;
     vehicle: { make: string; model: string; license_plate: string | null } | null;
   } | null;
 
@@ -410,7 +411,7 @@ export async function getInspectionStatus(inspectionId: string): Promise<ActionR
   const { data, error } = await supabase
     .from('vehicle_inspections')
     .select(
-      'id, booking_id, type, odometer_km, fuel_eighths, status, signed_at, video_sha256, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))'
+      'id, booking_id, type, odometer_km, fuel_eighths, status, signed_at, video_sha256, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))'
     )
     .eq('id', inspectionId)
     .maybeSingle();

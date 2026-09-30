@@ -16,6 +16,7 @@ interface BookingOption {
   id: string;
   customer_name: string;
   custom_vehicle_name: string | null;
+    custom_license_plate?: string | null;
   vehicle: { make: string; model: string } | null;
 }
 
@@ -55,6 +56,7 @@ export default function DriverTaskForm({
   const [customerEmail, setCustomerEmail] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [customVehicleName, setCustomVehicleName] = useState('');
+  const [customLicensePlate, setCustomLicensePlate] = useState('');
   const [bookingSearch, setBookingSearch] = useState('');
   const [bookingId, setBookingId] = useState('');
   const [date, setDate] = useState(() => localDateString(0));
@@ -102,6 +104,7 @@ export default function DriverTaskForm({
           customerEmail: mode === 'new' ? customerEmail : undefined,
           vehicleId: mode === 'new' && vehicleMode === 'fleet' ? vehicleId : undefined,
           customVehicleName: mode === 'new' && vehicleMode === 'custom' ? customVehicleName : undefined,
+          customLicensePlate: mode === 'new' && vehicleMode === 'custom' ? customLicensePlate : undefined,
           scheduledAt,
           scheduledTime: time || undefined,
           location: location || undefined,
@@ -209,7 +212,15 @@ export default function DriverTaskForm({
                   {vehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.make} {vehicle.model} {vehicle.license_plate ? `— ${vehicle.license_plate}` : ''}</option>)}
                 </select>
               ) : (
-                <input value={customVehicleName} onChange={(event) => setCustomVehicleName(event.target.value)} placeholder="לדוגמה: טויוטה קורולה לבנה" className={field} required />
+                <div className="space-y-3">
+                  <label className="block"><span className={label}>{customLicensePlate.trim() ? 'שם הרכב (לא חובה)' : 'שם הרכב'}</span>
+                    <input value={customVehicleName} onChange={(event) => setCustomVehicleName(event.target.value)} placeholder="לדוגמה: טויוטה קורולה לבנה" className={field} required={!customLicensePlate.trim()} />
+                  </label>
+                  <label className="block"><span className={label}>{customVehicleName.trim() ? 'מספר רישוי (לא חובה)' : 'מספר רישוי'}</span>
+                    <input value={customLicensePlate} onChange={(event) => setCustomLicensePlate(event.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" className={field} required={!customVehicleName.trim()} />
+                  </label>
+                  <p className="text-sm text-gray-500">מספיק אחד מהשניים — מספר רישוי או שם רכב.</p>
+                </div>
               )}
             </div>
           </div>

@@ -109,6 +109,7 @@ export default function DriverQuickBookingPage() {
   const [vehicleId, setVehicleId] = useState('');
   const [vehicleMode, setVehicleMode] = useState<'fleet' | 'custom'>('fleet');
   const [customVehicleName, setCustomVehicleName] = useState('');
+  const [customLicensePlate, setCustomLicensePlate] = useState('');
   const [type, setType] = useState<'pickup' | 'return' | null>(null);
   const [manualReturn, setManualReturn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -127,7 +128,7 @@ export default function DriverQuickBookingPage() {
 
   const hasVehicle = vehicleMode === 'fleet'
     ? Boolean(vehicleId)
-    : Boolean(customVehicleName.trim());
+    : Boolean(customVehicleName.trim() || customLicensePlate.trim());
   const canSubmit = customerName.trim() !== '' && customerPhone.trim() !== '' && customerEmail.trim() !== '' && hasVehicle && type && !submitting;
 
   const handleSubmit = async () => {
@@ -149,6 +150,7 @@ export default function DriverQuickBookingPage() {
           location: location.trim() || undefined,
           vehicleId: vehicleMode === 'fleet' ? vehicleId : undefined,
           customVehicleName: vehicleMode === 'custom' ? customVehicleName : undefined,
+          customLicensePlate: vehicleMode === 'custom' ? customLicensePlate : undefined,
           type,
         }),
       });
@@ -260,7 +262,17 @@ export default function DriverQuickBookingPage() {
               </div>
             </>
           ) : (
-            <input value={customVehicleName} onChange={(e) => setCustomVehicleName(e.target.value)} placeholder="כתוב את שם הרכב" className="w-full min-h-12 rounded-xl border-2 border-gray-200 px-3 text-base" />
+            <div className="space-y-3">
+              <label className="block">
+                <span className="block text-sm font-bold text-gray-600 mb-1">{customLicensePlate.trim() ? 'שם הרכב (לא חובה)' : 'שם הרכב'}</span>
+                <input value={customVehicleName} onChange={(e) => setCustomVehicleName(e.target.value)} placeholder="לדוגמה: טויוטה קורולה לבנה" className="w-full min-h-12 rounded-xl border-2 border-gray-200 px-3 text-base" />
+              </label>
+              <label className="block">
+                <span className="block text-sm font-bold text-gray-600 mb-1">{customVehicleName.trim() ? 'מספר רישוי (לא חובה)' : 'מספר רישוי'}</span>
+                <input value={customLicensePlate} onChange={(e) => setCustomLicensePlate(e.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" className="w-full min-h-12 rounded-xl border-2 border-gray-200 px-3 text-base" />
+              </label>
+              <p className="text-sm text-gray-500">מספיק אחד מהשניים — מספר רישוי או שם רכב.</p>
+            </div>
           )}
         </div>
 

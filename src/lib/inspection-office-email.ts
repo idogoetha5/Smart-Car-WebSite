@@ -31,7 +31,7 @@ async function loadInspectionForOfficeEmail(inspectionId: string) {
   const { data, error } = await supabase
     .from('vehicle_inspections')
     .select(
-      'id, type, odometer_km, fuel_eighths, signed_at, video_sha256, video_path, damage_marks, no_damage, side_photos, checklist, handover_inspection_id, signed_pdf_path, booking:bookings(id, customer_name, total_days, custom_vehicle_name, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
+      'id, type, odometer_km, fuel_eighths, signed_at, video_sha256, video_path, damage_marks, no_damage, side_photos, checklist, handover_inspection_id, signed_pdf_path, booking:bookings(id, customer_name, total_days, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
     )
     .eq('id', inspectionId)
     .maybeSingle();
@@ -56,6 +56,7 @@ async function loadInspectionForOfficeEmail(inspectionId: string) {
       customer_name: string;
       total_days: number | null;
       custom_vehicle_name: string | null;
+    custom_license_plate?: string | null;
       vehicle: { make: string; model: string; license_plate: string | null } | null;
     } | null;
     driver: { name: string } | null;
