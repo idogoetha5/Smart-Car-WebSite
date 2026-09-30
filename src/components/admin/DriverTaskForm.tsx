@@ -77,6 +77,10 @@ export default function DriverTaskForm({
       .slice(0, 20);
   }, [bookings, bookingSearch]);
 
+  const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
+  // Every job needs a licence plate: a fleet car without one in the system asks for it.
+  const fleetPlateMissing = vehicleMode === 'fleet' && Boolean(selectedVehicle) && !selectedVehicle?.license_plate?.trim();
+
   const createTask = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
@@ -104,7 +108,7 @@ export default function DriverTaskForm({
           customerEmail: mode === 'new' ? customerEmail : undefined,
           vehicleId: mode === 'new' && vehicleMode === 'fleet' ? vehicleId : undefined,
           customVehicleName: mode === 'new' && vehicleMode === 'custom' ? customVehicleName : undefined,
-          customLicensePlate: mode === 'new' && vehicleMode === 'custom' ? customLicensePlate : undefined,
+          customLicensePlate: mode === 'new' && (vehicleMode === 'custom' || fleetPlateMissing) ? customLicensePlate : undefined,
           scheduledAt,
           scheduledTime: time || undefined,
           location: location || undefined,
@@ -211,7 +215,13 @@ export default function DriverTaskForm({
                   <option value="">בחר רכב</option>
                   {vehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.make} {vehicle.model} {vehicle.license_plate ? `— ${vehicle.license_plate}` : ''}</option>)}
                 </select>
-              ) : (
+              ) : null}
+              {vehicleMode === 'fleet' && fleetPlateMissing && (
+                <label className="mt-3 block rounded-xl border-2 border-amber-300 bg-amber-50 p-3"><span className={label}>לרכב הזה אין מספר רישוי במערכת — כתוב אותו</span>
+                  <input value={customLicensePlate} onChange={(event) => setCustomLicensePlate(event.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" className={field} required />
+                </label>
+              )}
+              {vehicleMode === 'custom' ? (
                 <div className="space-y-3">
                   <label className="block"><span className={label}>מספר רישוי</span>
                     <input value={customLicensePlate} onChange={(event) => setCustomLicensePlate(event.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" className={field} required />
@@ -220,7 +230,7 @@ export default function DriverTaskForm({
                     <input value={customVehicleName} onChange={(event) => setCustomVehicleName(event.target.value)} placeholder="לדוגמה: טויוטה קורולה לבנה" className={field} />
                   </label>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         )}

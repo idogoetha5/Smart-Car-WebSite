@@ -30,12 +30,17 @@ export async function resolveVehicle(supabase: Admin, input: VehicleInput): Prom
   const { vehicleId, customVehicleName, customLicensePlate } = input;
 
   if (vehicleId) {
-    const { data, error } = await supabase.from('vehicles').select('id').eq('id', vehicleId).maybeSingle();
+    const { data, error } = await supabase.from('vehicles').select('id, license_plate').eq('id', vehicleId).maybeSingle();
     if (error) {
       console.error('[custom-vehicle] vehicle lookup failed:', error.message);
       return { ok: false, status: 500, error: 'שגיאת שרת' };
     }
     if (!data) return { ok: false, status: 404, error: 'הרכב לא נמצא' };
+    // Every job needs a plate: a fleet car without one takes the typed plate on the booking.
+    if (!(data as { license_plate: string | null }).license_plate?.trim()) {
+      if (!customLicensePlate) return { ok: false, status: 400, error: 'לרכב הזה אין מספר רישוי במערכת — יש לכתוב אותו' };
+      return { ok: true, vehicleId, customVehicleName: null, customLicensePlate };
+    }
     return { ok: true, vehicleId, customVehicleName: null, customLicensePlate: null };
   }
 

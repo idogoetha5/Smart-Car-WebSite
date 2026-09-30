@@ -126,8 +126,11 @@ export default function DriverQuickBookingPage() {
       })
     : vehicles;
 
+  const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
+  // Every job needs a licence plate: a fleet car without one in the system asks for it.
+  const fleetPlateMissing = vehicleMode === 'fleet' && Boolean(selectedVehicle) && !selectedVehicle?.license_plate?.trim();
   const hasVehicle = vehicleMode === 'fleet'
-    ? Boolean(vehicleId)
+    ? Boolean(vehicleId) && (!fleetPlateMissing || Boolean(customLicensePlate.trim()))
     : Boolean(customLicensePlate.trim());
   const canSubmit = customerName.trim() !== '' && customerPhone.trim() !== '' && customerEmail.trim() !== '' && hasVehicle && type && !submitting;
 
@@ -150,7 +153,7 @@ export default function DriverQuickBookingPage() {
           location: location.trim() || undefined,
           vehicleId: vehicleMode === 'fleet' ? vehicleId : undefined,
           customVehicleName: vehicleMode === 'custom' ? customVehicleName : undefined,
-          customLicensePlate: vehicleMode === 'custom' ? customLicensePlate : undefined,
+          customLicensePlate: vehicleMode === 'custom' || fleetPlateMissing ? customLicensePlate : undefined,
           type,
         }),
       });
@@ -260,6 +263,12 @@ export default function DriverQuickBookingPage() {
                 ))}
                 {filteredVehicles.length === 0 && <p className="text-center text-gray-400 text-sm py-4">לא נמצאו רכבים</p>}
               </div>
+              {fleetPlateMissing && (
+                <label className="mt-3 block rounded-xl border-2 border-amber-300 bg-amber-50 p-3">
+                  <span className="block text-sm font-bold text-amber-900 mb-1">לרכב הזה אין מספר רישוי במערכת — כתוב אותו</span>
+                  <input value={customLicensePlate} onChange={(e) => setCustomLicensePlate(e.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" required className="w-full min-h-12 rounded-xl border-2 border-gray-200 bg-white px-3 text-base" />
+                </label>
+              )}
             </>
           ) : (
             <div className="space-y-3">
