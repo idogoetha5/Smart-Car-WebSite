@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { requireDriverOrAdmin } from '@/lib/driver-route-auth';
 import { completeInspectionUpload } from '@/lib/inspection-actions';
 
+// Downloads + hashes the uploaded video (can be 100MB+) and sends the customer email.
+export const maxDuration = 120;
+
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }

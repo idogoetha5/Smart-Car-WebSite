@@ -5,6 +5,7 @@ import { numericOrderReference } from '@/lib/order-reference';
 import { fuelEighthsToLabel, INSPECTION_BUCKET } from '@/lib/inspection-storage';
 import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
 import { calculateInspectionDeviation } from '@/lib/inspection-deviation';
+import { createInspectionToken } from '@/lib/inspection-link';
 
 /**
  * Internal "customer signed" notification to the office — separate from
@@ -136,6 +137,7 @@ export async function sendInspectionOfficeEmail(inspectionId: string): Promise<{
   const licensePlate = bookingLicensePlate(booking);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.smartcar.co.il';
   const adminLink = `${baseUrl}/he/admin/inspections/${inspectionId}`;
+  const videoLink = `${baseUrl}/insp-video/${encodeURIComponent(createInspectionToken(inspectionId, 24 * 365))}`;
 
   let deviation = calculateInspectionDeviation(
     null,
@@ -188,7 +190,8 @@ export async function sendInspectionOfficeEmail(inspectionId: string): Promise<{
         <tr><td style="padding:4px 10px;color:#666;">נחתם בתאריך</td><td style="padding:4px 10px;font-weight:700;">${signedAtIL}</td></tr>
         <tr><td style="padding:4px 10px;color:#666;">SHA-256 של הסרטון</td><td style="padding:4px 10px;font-size:11px;direction:ltr;text-align:left;word-break:break-all;">${inspection.video_sha256 ?? '—'}</td></tr>
       </table>
-      <p style="margin-top:16px;"><a href="${adminLink}" style="color:#2D5F5F;font-weight:700;">צפייה במסמך החתום ובסרטון (מסך ניהול מאובטח)</a></p>
+      <p style="margin-top:16px;"><a href="${videoLink}" style="display:inline-block;background:#2D5F5F;color:#fff;text-decoration:none;font-weight:700;padding:10px 20px;border-radius:8px;">▶ צפייה בסרטון הבדיקה</a></p>
+      <p style="margin-top:8px;">המסמך החתום מצורף כ-PDF. <a href="${adminLink}" style="color:#2D5F5F;font-weight:700;">פרטי הבדיקה במסך הניהול</a></p>
     </div>
   `;
 
@@ -199,7 +202,7 @@ export async function sendInspectionOfficeEmail(inspectionId: string): Promise<{
       to: OFFICE_EMAIL,
       subject: `${deviation.hasDeviation ? '🚨 חריגה — ' : pdfMissing ? '⚠️ ' : ''}בדיקת רכב נחתמה — ${typeLabel} #${bookingNumber}`,
       html,
-      text: `בדיקת רכב נחתמה. הזמנה ${bookingNumber}, ${booking?.customer_name ?? ''}.${deviation.hasDeviation ? ` חריגה: ${deviation.warnings.join('; ')}.` : ''} מסמך חתום וסרטון: ${adminLink}`,
+      text: `בדיקת רכב נחתמה. הזמנה ${bookingNumber}, ${booking?.customer_name ?? ''}.${deviation.hasDeviation ? ` חריגה: ${deviation.warnings.join('; ')}.` : ''} סרטון: ${videoLink} | ניהול: ${adminLink}`,
       attachments: pdfBuffer
         ? [{ content: pdfBuffer, filename: `SmartCar_Inspection_${bookingNumber}.pdf`, contentType: 'application/pdf' }]
         : [],

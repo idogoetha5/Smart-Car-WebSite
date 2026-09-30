@@ -4,6 +4,7 @@ import { createInspectionToken } from '@/lib/inspection-link';
 import { sendTemplateEmail } from '@/lib/email-delivery';
 import { INSPECTION_BUCKET, inspectionVideoPath } from '@/lib/inspection-storage';
 import { bookingVehicleName } from '@/lib/booking-vehicle';
+import { sendInspectionCustomerEmail } from '@/lib/inspection-customer-email';
 
 /**
  * Inspection business logic, shared by the admin routes
@@ -33,14 +34,15 @@ export interface CreateInspectionResult {
   bucket: string;
   path: string;
   uploadEndpoint: string;
+  /** Signed upload token (sent as the TUS `x-signature` header). */
+  uploadToken: string;
   expiresAt: string;
 }
 
 /**
  * Starts a pickup/return inspection: creates the row and pre-authorises
- * exactly one direct-to-storage video upload (see
- * database/migrations/add-vehicle-inspections-table.sql for the storage RLS
- * policy this backs). The browser then uploads the video itself via TUS —
+ * exactly one direct-to-storage video upload via a Supabase signed upload
+ * token. The browser then uploads the video itself via TUS —
  * it never passes through this (or any) Vercel function, which caps
  * request bodies at 4.5MB.
  */
@@ -95,13 +97,29 @@ export async function createInspectionRecord(
   }
 
   const path = inspectionVideoPath(inspection.id, videoExt);
-  const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
 
-  const { error: slotError } = await supabase
-    .from('inspection_upload_slots')
-    .insert({ path, inspection_id: inspection.id, expires_at: expiresAt });
-  if (slotError) {
-    console.error('[inspection-actions] upload slot creation failed:', slotError.message);
+  // Record where the video will live *before* the upload starts —
+  // completeInspectionUpload, the customer video link and the office email
+  // all read video_path, so without it nothing downstream can find the file.
+  const { error: pathError } = await supabase
+    .from('vehicle_inspections')
+    .update({ video_path: path })
+    .eq('id', inspection.id);
+  if (pathError) {
+    console.error('[inspection-actions] video_path update failed:', pathError.message);
+    return { ok: false, status: 500, error: 'Failed to prepare upload' };
+  }
+
+  // The browser uploads straight to Supabase Storage (never through a
+  // Vercel function, which caps bodies at 4.5MB) using a server-issued
+  // signed upload token scoped to exactly this one object path. The token
+  // is verified by Storage itself, so the upload no longer depends on
+  // anon-role RLS policies on storage.objects (which returned 403).
+  const { data: signed, error: signError } = await supabase.storage
+    .from(INSPECTION_BUCKET)
+    .createSignedUploadUrl(path, { upsert: true });
+  if (signError || !signed?.token) {
+    console.error('[inspection-actions] signed upload url failed:', signError?.message);
     return { ok: false, status: 500, error: 'Failed to authorise upload' };
   }
 
@@ -111,13 +129,17 @@ export async function createInspectionRecord(
     return { ok: false, status: 500, error: 'Server misconfigured' };
   }
 
+  // Signed upload tokens are valid for 2 hours on Supabase's side.
+  const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+
   return {
     ok: true,
     data: {
       inspectionId: inspection.id,
       bucket: INSPECTION_BUCKET,
       path,
-      uploadEndpoint: `${supabaseUrl}/storage/v1/upload/resumable`,
+      uploadEndpoint: `${supabaseUrl}/storage/v1/upload/resumable/sign`,
+      uploadToken: signed.token,
       expiresAt,
     },
   };
@@ -194,22 +216,43 @@ export async function completeInspectionUpload(inspectionId: string): Promise<Ac
     vehicle: { make: string; model: string; license_plate: string | null } | null;
   } | null;
 
+  const videoLink = `${baseUrl}/insp-video/${encodeURIComponent(token)}`;
+  const typeLabel = inspection.type === 'pickup' ? 'קבלת הרכב' : 'החזרת הרכב';
+  const vehicleName = booking ? bookingVehicleName(booking) : '';
+
   let signLinkSent = false;
   if (booking?.customer_email) {
-    const result = await sendTemplateEmail({
-      event: 'vehicle_inspection_sign',
-      idempotencyKey: key,
-      templateId: process.env.NEXT_PUBLIC_EMAILJS_INSPECTION_SIGN_TEMPLATE_ID,
-      params: {
-        to_email: booking.customer_email,
-        to_name: booking.customer_name,
-        vehicle_name: bookingVehicleName(booking),
-        inspection_type: inspection.type === 'pickup' ? 'קבלת הרכב' : 'החזרת הרכב',
-        sign_link: signLink,
-        logo_url: LOGO_URL,
-      },
+    // Primary: Resend (verified office sender). Fallback: the EmailJS
+    // outbox, which also queues retries if it fails.
+    const direct = await sendInspectionCustomerEmail({
+      inspectionId,
+      toEmail: booking.customer_email,
+      customerName: booking.customer_name,
+      vehicleName,
+      typeLabel,
+      signLink,
+      videoLink,
+      logoUrl: LOGO_URL,
     });
-    signLinkSent = result.ok;
+    signLinkSent = direct.ok;
+
+    if (!signLinkSent) {
+      const result = await sendTemplateEmail({
+        event: 'vehicle_inspection_sign',
+        idempotencyKey: key,
+        templateId: process.env.NEXT_PUBLIC_EMAILJS_INSPECTION_SIGN_TEMPLATE_ID,
+        params: {
+          to_email: booking.customer_email,
+          to_name: booking.customer_name,
+          vehicle_name: vehicleName,
+          inspection_type: typeLabel,
+          sign_link: signLink,
+          video_link: videoLink,
+          logo_url: LOGO_URL,
+        },
+      });
+      signLinkSent = result.ok;
+    }
   }
 
   return { ok: true, data: { signLinkSent, signLink } };

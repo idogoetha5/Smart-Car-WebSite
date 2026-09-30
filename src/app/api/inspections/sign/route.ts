@@ -16,6 +16,9 @@ import { numericOrderReference } from '@/lib/order-reference';
 import { sendInspectionOfficeEmail } from '@/lib/inspection-office-email';
 import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
 
+// Renders the signed PDF with headless Chromium, then emails the office.
+export const maxDuration = 60;
+
 const LOGO_URL = 'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/logo.png';
 
 type InspectionRow = {

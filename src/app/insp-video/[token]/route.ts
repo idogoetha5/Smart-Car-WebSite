@@ -7,22 +7,16 @@ import { INSPECTION_BUCKET } from '@/lib/inspection-storage';
 export const runtime = 'nodejs';
 
 /**
- * Streams the private inspection video to a holder of a valid signing
- * token — same "token resolves to a private storage object, streamed by
- * the service-role client, never a public/Supabase-signed URL" pattern as
- * src/app/q/[token]/route.ts. A GET here never changes inspection status.
+ * Gives a holder of a valid inspection token access to the private
+ * inspection video by redirecting to a 1-hour Supabase signed URL. The
+ * bucket stays private; the token is still the gate. A GET here never
+ * changes inspection status.
  */
 function message(text: string, status: number) {
   return new NextResponse(text, {
     status,
     headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'private, no-store', 'X-Robots-Tag': 'noindex, nofollow' },
   });
-}
-
-function contentTypeFor(path: string): string {
-  if (path.endsWith('.mov')) return 'video/quicktime';
-  if (path.endsWith('.webm')) return 'video/webm';
-  return 'video/mp4';
 }
 
 export async function GET(request: Request, context: { params: Promise<{ token: string }> }) {
@@ -50,21 +44,19 @@ export async function GET(request: Request, context: { params: Promise<{ token: 
     return message('הסרטון אינו זמין.', 404);
   }
 
-  const { data: file, error: downloadError } = await supabase.storage
+  // Vercel functions cap response bodies at 4.5MB, so streaming a phone
+  // video through here fails. Instead hand the holder of a valid token a
+  // short-lived signed URL straight from Storage (supports seeking/Range).
+  const { data: signed, error: signError } = await supabase.storage
     .from(INSPECTION_BUCKET)
-    .download(inspection.video_path);
-  if (downloadError || !file) {
-    console.error('[insp-video] download failed:', downloadError?.message);
+    .createSignedUrl(inspection.video_path, 60 * 60);
+  if (signError || !signed?.signedUrl) {
+    console.error('[insp-video] signed url failed:', signError?.message);
     return message('לא ניתן לטעון את הסרטון כרגע.', 500);
   }
 
-  return new NextResponse(new Uint8Array(await file.arrayBuffer()), {
-    headers: {
-      'Content-Type': contentTypeFor(inspection.video_path),
-      'Content-Disposition': 'inline',
-      'Cache-Control': 'private, no-store',
-      'X-Robots-Tag': 'noindex, nofollow',
-      'Accept-Ranges': 'none',
-    },
+  return NextResponse.redirect(signed.signedUrl, {
+    status: 302,
+    headers: { 'Cache-Control': 'private, no-store', 'X-Robots-Tag': 'noindex, nofollow' },
   });
 }

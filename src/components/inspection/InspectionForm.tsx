@@ -48,6 +48,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
   const [error, setError] = useState('');
   const [inspectionId, setInspectionId] = useState('');
   const [signLink, setSignLink] = useState('');
+  const [signLinkSent, setSignLinkSent] = useState(true);
 
   const canSubmit = Boolean(video) && odometerKm.trim() !== '' && fuelEighths !== null && !uploading;
 
@@ -81,13 +82,15 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
           endpoint: created.uploadEndpoint,
           retryDelays: [0, 3000, 5000, 10000, 20000],
           chunkSize: 6 * 1024 * 1024,
+          // Signed-upload endpoint: Storage authorises the upload from the
+          // server-issued token in x-signature (scoped to this one path),
+          // not from the anon role's RLS policies.
           headers: {
-            authorization: `Bearer ${SUPABASE_ANON_KEY}`,
             apikey: SUPABASE_ANON_KEY,
-            'x-upsert': 'true',
+            'x-signature': created.uploadToken,
           },
           uploadDataDuringCreation: true,
-          removeFingerprintOnSuccess: true,
+          storeFingerprintForResuming: false,
           metadata: {
             bucketName: created.bucket,
             objectName: created.path,
@@ -97,10 +100,11 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
           onProgress: (uploaded, total) => setProgress(Math.round((uploaded / total) * 100)),
           onSuccess: () => resolve(),
         });
-        upload.findPreviousUploads().then((previous) => {
-          if (previous.length) upload.resumeFromPreviousUpload(previous[0]);
-          upload.start();
-        });
+        // Each submit creates a new inspection with its own object path and
+        // token, so never resume an older upload (it would target a
+        // different inspection's path). Network blips within this upload
+        // are still retried via retryDelays.
+        upload.start();
       });
 
       setStage('finishing');
@@ -109,6 +113,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
       if (!completeRes.ok) throw new Error(completed?.error || 'Failed to finish inspection');
 
       setSignLink(completed.signLink ?? '');
+      setSignLinkSent(completed.signLinkSent !== false);
       setStage('done');
     } catch (err) {
       setError((err as Error)?.message || (isHe ? 'משהו השתבש. נסה שוב.' : 'Something went wrong. Try again.'));
@@ -133,9 +138,29 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
         <h1 className="text-2xl font-black text-gray-900 mb-2">
           {isHe ? 'הבדיקה נשמרה' : 'Inspection saved'}
         </h1>
-        <p className="text-gray-600 mb-6">
-          {isHe ? 'קישור לחתימה נשלח ללקוח.' : 'A signing link was sent to the customer.'}
-        </p>
+        {signLinkSent ? (
+          <p className="text-gray-600 mb-6">
+            {isHe
+              ? 'נשלח ללקוח מייל עם הסרטון וטופס לחתימה. לאחר שיחתום, המסמך החתום והסרטון יישלחו למשרד.'
+              : 'The customer was emailed the video and a form to sign. Once signed, the signed document and video go to the office.'}
+          </p>
+        ) : (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-start">
+            <p className="font-bold text-red-700 mb-2">
+              {isHe ? 'המייל ללקוח לא נשלח. שלח לו את הקישור ידנית:' : 'The customer email failed. Send the link manually:'}
+            </p>
+            {signLink && (
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(signLink)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block min-h-11 px-4 py-2 rounded-lg bg-green-600 text-white font-bold"
+              >
+                {isHe ? 'שליחה בוואטסאפ' : 'Send via WhatsApp'}
+              </a>
+            )}
+          </div>
+        )}
         <button
           onClick={() => router.push(statusHref(inspectionId, signLink))}
           className="min-h-12 px-6 rounded-xl bg-[#E8743B] hover:bg-[#d4632a] text-white font-black"
