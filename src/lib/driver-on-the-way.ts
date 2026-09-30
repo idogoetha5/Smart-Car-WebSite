@@ -23,7 +23,7 @@ export function onTheWayMessage(params: {
 }): string {
   const first = params.customerName.trim().split(/\s+/)[0] || '';
   const hello = first ? `שלום ${first},` : 'שלום,';
-  const me = params.driverName?.trim() ? `כאן ${params.driverName.trim()}, הנהג של SmartCar.` : 'כאן הנהג של SmartCar.';
+  const me = params.driverName?.trim() ? `כאן ${params.driverName.trim()}, נציג SmartCar.` : 'כאן נציג SmartCar.';
   const car = params.vehicleName && params.vehicleName !== '—' ? ` ה${params.vehicleName}` : ' הרכב';
 
   const body =
