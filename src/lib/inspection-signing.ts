@@ -137,7 +137,7 @@ async function finalizeSignedInspection(args: {
     if (booking?.id) {
       const { error: taskUpdateError } = await supabase
         .from('driver_tasks')
-        .update({ status: 'done' })
+        .update({ status: 'done', updated_at: new Date().toISOString() })
         .eq('booking_id', booking.id)
         .eq('type', inspection.type)
         .eq('status', 'open');

@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
   const vehicleId = String(body?.vehicleId ?? '').trim();
   const customVehicleName = String(body?.customVehicleName ?? '').trim();
   const type = body?.type === 'pickup' || body?.type === 'return' ? body.type : null;
+  const location = String(body?.location ?? '').trim().slice(0, 200) || UNSPECIFIED_LOCATION;
 
   if (!customerName) {
     return NextResponse.json({ error: 'שם הלקוח הוא שדה חובה' }, { status: 400 });
@@ -75,8 +76,8 @@ export async function POST(request: NextRequest) {
     customer_phone: customerPhone,
     pickup_date: pickupDate.toISOString(),
     dropoff_date: dropoffDate.toISOString(),
-    pickup_location: UNSPECIFIED_LOCATION,
-    dropoff_location: UNSPECIFIED_LOCATION,
+    pickup_location: type === 'pickup' ? location : UNSPECIFIED_LOCATION,
+    dropoff_location: type === 'return' ? location : UNSPECIFIED_LOCATION,
     total_days: 1,
     price_per_day: pricePerDay,
     total_price: pricePerDay,

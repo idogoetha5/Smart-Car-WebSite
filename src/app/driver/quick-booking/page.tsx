@@ -26,6 +26,7 @@ export default function DriverQuickBookingPage() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
+  const [location, setLocation] = useState('');
   const [vehicleSearch, setVehicleSearch] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [vehicleMode, setVehicleMode] = useState<'fleet' | 'custom'>('fleet');
@@ -66,6 +67,7 @@ export default function DriverQuickBookingPage() {
           customerName,
           customerPhone,
           customerEmail,
+          location: location.trim() || undefined,
           vehicleId: vehicleMode === 'fleet' ? vehicleId : undefined,
           customVehicleName: vehicleMode === 'custom' ? customVehicleName : undefined,
           type,
@@ -114,6 +116,15 @@ export default function DriverQuickBookingPage() {
               type="email"
               required
               dir="ltr"
+              className="w-full min-h-12 rounded-xl border-2 border-gray-200 px-3 text-base"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1">כתובת (לוויז, לא חובה)</label>
+            <input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="רחוב, מספר, עיר"
               className="w-full min-h-12 rounded-xl border-2 border-gray-200 px-3 text-base"
             />
           </div>

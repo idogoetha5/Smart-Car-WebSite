@@ -20,6 +20,7 @@ export async function PATCH(
   const update: Record<string, unknown> = {};
 
   if (typeof body?.active === 'boolean') update.active = body.active;
+  if (body?.role === 'driver' || body?.role === 'manager') update.role = body.role;
   if (typeof body?.name === 'string' && body.name.trim()) update.name = body.name.trim();
   if (typeof body?.pin === 'string' && body.pin.trim()) {
     if (!PIN_PATTERN.test(body.pin.trim())) {
@@ -37,7 +38,7 @@ export async function PATCH(
     .from('drivers')
     .update(update)
     .eq('id', id)
-    .select('id, name, active, created_at')
+    .select('id, name, active, role, created_at')
     .maybeSingle();
 
   if (error) {

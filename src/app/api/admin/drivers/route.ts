@@ -15,7 +15,7 @@ export async function GET() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('drivers')
-    .select('id, name, active, created_at')
+    .select('id, name, active, role, created_at')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const name = String(body?.name ?? '').trim();
   const pin = String(body?.pin ?? '').trim();
+  const role = body?.role === 'manager' ? 'manager' : 'driver';
 
   if (!name) {
     return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -46,8 +47,8 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('drivers')
-    .insert({ name, pin_hash: pinHash })
-    .select('id, name, active, created_at')
+    .insert(role === 'manager' ? { name, pin_hash: pinHash, role } : { name, pin_hash: pinHash })
+    .select('id, name, active, role, created_at')
     .single();
 
   if (error) {

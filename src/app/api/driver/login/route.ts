@@ -12,13 +12,16 @@ function getClientIp(req: Request): string {
   return fwd ? fwd.split(',')[0].trim() : 'unknown';
 }
 
-/** Public: the name picker needs the active-driver list before anyone is logged in. Names only — no PIN hashes or other fields. */
-export async function GET() {
+/** Public: the name picker needs the active-driver (or manager) list before anyone is logged in. Names only — no PIN hashes or other fields. */
+export async function GET(request: Request) {
+  // ?role=manager → branch managers (their own login page); default → drivers.
+  const role = new URL(request.url).searchParams.get('role') === 'manager' ? 'manager' : 'driver';
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('drivers')
     .select('id, name')
     .eq('active', true)
+    .eq('role', role)
     .order('name', { ascending: true });
 
   if (error) {
