@@ -470,14 +470,14 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
         {/* Fuel */}
         <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
           <span className="block font-black text-gray-800 mb-3">{isHe ? 'רמת דלק (חובה)' : 'Fuel level (required)'}</span>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-5 gap-2" dir="ltr">
             {FUEL_TAP_OPTIONS.map((opt) => (
               <button
                 key={opt.eighths}
                 type="button"
                 disabled={uploading}
                 onClick={() => setFuelEighths(opt.eighths)}
-                className={`min-h-16 rounded-xl border-2 font-black text-lg transition-colors ${
+                className={`min-h-14 rounded-xl border-2 font-black text-base transition-colors ${
                   fuelEighths === opt.eighths
                     ? 'border-[#E8743B] bg-orange-50 text-[#E8743B]'
                     : 'border-gray-200 text-gray-600'

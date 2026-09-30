@@ -88,7 +88,7 @@ export async function createInspectionRecord(
   if (!Number.isFinite(odometerKm) || odometerKm < 0) {
     return { ok: false, status: 400, error: 'Invalid odometer reading' };
   }
-  if (![0, 2, 4, 6, 8].includes(fuelEighths)) {
+  if (!Number.isInteger(fuelEighths) || fuelEighths < 0 || fuelEighths > 8) {
     return { ok: false, status: 400, error: 'Invalid fuel level' };
   }
   if (hasVideo && !ALLOWED_EXT.has(videoExt)) {

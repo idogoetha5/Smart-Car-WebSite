@@ -116,3 +116,14 @@ describe('checklist', () => {
     expect(checklistRegressions(null, { lights: 'bad' })).toEqual([]);
   });
 });
+
+import { fuelEighthsToLabel, FUEL_TAP_OPTIONS } from '../inspection-storage';
+
+describe('fuel in eighths', () => {
+  it('labels every eighth like the paper form', () => {
+    expect([0, 1, 4, 7, 8].map(fuelEighthsToLabel)).toEqual(['E', '1/8', '4/8', '7/8', 'F']);
+  });
+  it('offers all nine positions', () => {
+    expect(FUEL_TAP_OPTIONS.map((o) => o.eighths)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+  });
+});

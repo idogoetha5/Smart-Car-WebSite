@@ -14,16 +14,21 @@ export function inspectionPdfPath(inspectionId: string): string {
   return `${inspectionId}/signed.pdf`;
 }
 
-/** Tap-scale fuel gauge: 0/2/4/6/8 eighths → E / ¼ / ½ / ¾ / F. */
+/** Fuel gauge in eighths, like the paper form: 0..8 → E, 1/8 … 7/8, F. */
 export function fuelEighthsToLabel(eighths: number): string {
-  const labels: Record<number, string> = { 0: 'E', 2: '¼', 4: '½', 6: '¾', 8: 'F' };
-  return labels[eighths] ?? `${eighths}/8`;
+  if (eighths === 0) return 'E';
+  if (eighths === 8) return 'F';
+  return `${eighths}/8`;
 }
 
 export const FUEL_TAP_OPTIONS = [
   { eighths: 0, he: 'ריק', en: 'Empty', symbol: 'E' },
-  { eighths: 2, he: 'רבע', en: 'Quarter', symbol: '¼' },
-  { eighths: 4, he: 'חצי', en: 'Half', symbol: '½' },
-  { eighths: 6, he: 'שלושת רבעי', en: 'Three quarters', symbol: '¾' },
+  { eighths: 1, he: 'שמינית', en: 'One eighth', symbol: '1/8' },
+  { eighths: 2, he: 'שתי שמיניות', en: 'Two eighths', symbol: '2/8' },
+  { eighths: 3, he: 'שלוש שמיניות', en: 'Three eighths', symbol: '3/8' },
+  { eighths: 4, he: 'חצי', en: 'Half', symbol: '4/8' },
+  { eighths: 5, he: 'חמש שמיניות', en: 'Five eighths', symbol: '5/8' },
+  { eighths: 6, he: 'שש שמיניות', en: 'Six eighths', symbol: '6/8' },
+  { eighths: 7, he: 'שבע שמיניות', en: 'Seven eighths', symbol: '7/8' },
   { eighths: 8, he: 'מלא', en: 'Full', symbol: 'F' },
 ] as const;
