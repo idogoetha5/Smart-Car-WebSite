@@ -84,7 +84,7 @@ function checklistSection(data: InspectionPdfData): string {
  * never be able to drift apart.
  */
 export function generateInspectionPdfHTML(data: InspectionPdfData): string {
-  const typeLabel = data.type === 'pickup' ? 'קבלת הרכב' : 'החזרת הרכב';
+  const typeLabel = data.type === 'pickup' ? 'מסירת הרכב' : 'החזרת הרכב';
   const fuelLabel = fuelEighthsToLabel(data.fuelEighths);
   const signedAtIL = new Date(data.signedAt).toLocaleString('he-IL', {
     dateStyle: 'medium',

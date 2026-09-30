@@ -158,7 +158,7 @@ export default function DriverQuickBookingPage() {
               onClick={() => setType('pickup')}
               className={`min-h-14 rounded-xl border-2 font-black ${type === 'pickup' ? 'border-[#E8743B] bg-orange-50 text-[#E8743B]' : 'border-gray-200 text-gray-600'}`}
             >
-              בדיקת קבלה
+              בדיקת מסירה
             </button>
             <button
               type="button"

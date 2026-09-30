@@ -135,7 +135,7 @@ export async function sendInspectionOfficeEmail(inspectionId: string): Promise<{
 
   const booking = inspection.booking;
   const bookingNumber = numericOrderReference(booking?.id ?? inspectionId);
-  const typeLabel = inspection.type === 'pickup' ? 'קבלת הרכב' : 'החזרת הרכב';
+  const typeLabel = inspection.type === 'pickup' ? 'מסירת הרכב' : 'החזרת הרכב';
   const fuelLabel = fuelEighthsToLabel(inspection.fuel_eighths);
   const signedAtIL = inspection.signed_at
     ? new Date(inspection.signed_at).toLocaleString('he-IL', { dateStyle: 'medium', timeStyle: 'medium' })

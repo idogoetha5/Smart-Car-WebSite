@@ -22,7 +22,7 @@ interface TaskRow {
 
 function TaskAction({ row }: { row: TaskRow }) {
   const router = useRouter();
-  const label = row.type === 'pickup' ? 'בדיקת קבלה' : 'בדיקת החזרה';
+  const label = row.type === 'pickup' ? 'בדיקת מסירה' : 'בדיקת החזרה';
 
   if (!row.inspection) {
     return (
@@ -166,13 +166,13 @@ export default function DriverTodayPage() {
         ) : (
           <>
             <section>
-              <h2 className="text-sm font-black text-gray-500 mb-2">קבלות</h2>
+              <h2 className="text-sm font-black text-gray-500 mb-2">מסירות</h2>
               <div className="space-y-3">
                 {(data?.pickups ?? []).map((row) => (
                   <TaskCard key={row.taskId} row={row} />
                 ))}
                 {!isLoading && (data?.pickups ?? []).length === 0 && (
-                  <p className="text-center text-gray-400 py-6 text-sm">אין קבלות</p>
+                  <p className="text-center text-gray-400 py-6 text-sm">אין מסירות</p>
                 )}
               </div>
             </section>

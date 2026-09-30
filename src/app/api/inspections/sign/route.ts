@@ -215,7 +215,7 @@ async function finalizeSignedInspection(args: {
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.smartcar.co.il';
   const pdfLink = `${baseUrl}/insp-pdf/${encodeURIComponent(token)}`;
-  const typeLabel = inspection.type === 'pickup' ? 'קבלת הרכב' : 'החזרת הרכב';
+  const typeLabel = inspection.type === 'pickup' ? 'מסירת הרכב' : 'החזרת הרכב';
 
   // Customer copy: Resend with the signed PDF attached; EmailJS template
   // is only the fallback if Resend fails.

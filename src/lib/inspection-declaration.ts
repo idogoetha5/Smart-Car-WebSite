@@ -62,10 +62,10 @@ This confirmation forms an integral part of the rental agreement.`,
 בחתימתי על מסמך זה אני מאשר/ת כדלקמן:
 
 מצב הרכב
-ראיתי את תיעוד בדיקת ההחזרה (סרטון, שרטוט נזקים, תמונות וצ'קליסט, לפי מה שצורף), והוא משקף נכון את מצב הרכב ברגע ההחזרה. נזק שתועד כאן ולא הופיע בבדיקת הקבלה נוצר בתקופת השכירות ובאחריותי, בהתאם להסכם השכירות.
+ראיתי את תיעוד בדיקת ההחזרה (סרטון, שרטוט נזקים, תמונות וצ'קליסט, לפי מה שצורף), והוא משקף נכון את מצב הרכב ברגע ההחזרה. נזק שתועד כאן ולא הופיע בבדיקת המסירה נוצר בתקופת השכירות ובאחריותי, בהתאם להסכם השכירות.
 
 קילומטראז' ודלק
-הקילומטראז' ומפלס הדלק שנרשמו בהחזרה נכונים. חריגה ממכסת הקילומטרים או חוסר בדלק לעומת הקבלה יחויבו לפי הסכם השכירות.
+הקילומטראז' ומפלס הדלק שנרשמו בהחזרה נכונים. חריגה ממכסת הקילומטרים או חוסר בדלק לעומת המסירה יחויבו לפי הסכם השכירות.
 
 בדיקה סופית
 ידוע לי כי ייתכנו נזקים שלא ניתן לזהותם בבדיקה בעת ההחזרה. נזק כאמור שיתגלה בבדיקה מקצועית סמוך לאחר מכן יחויב לפי הסכם השכירות, ולפני כל חיוב תימסר לי הודעה בצירוף פירוט ותמונות.
@@ -81,10 +81,10 @@ ${LATE_CHARGES_HE}
 By signing this document, I confirm the following:
 
 Condition of the vehicle
-I have seen the return inspection record (video, damage diagram, photos and checklist, as attached), and it accurately reflects the vehicle's condition at return. Any damage documented here that did not appear in the pickup inspection occurred during the rental and is my responsibility, in accordance with the rental agreement.
+I have seen the return inspection record (video, damage diagram, photos and checklist, as attached), and it accurately reflects the vehicle's condition at return. Any damage documented here that did not appear in the handover inspection occurred during the rental and is my responsibility, in accordance with the rental agreement.
 
 Mileage and fuel
-The odometer reading and fuel level recorded at return are correct. Exceeding the mileage allowance or a fuel shortfall compared with pickup will be charged under the rental agreement.
+The odometer reading and fuel level recorded at return are correct. Exceeding the mileage allowance or a fuel shortfall compared with handover will be charged under the rental agreement.
 
 Final inspection
 I understand that some damage may not be identifiable at the return inspection. Any such damage found in a professional inspection shortly afterwards will be charged under the rental agreement, and I will receive a notice with details and photos before any charge.

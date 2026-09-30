@@ -110,7 +110,7 @@ function InspectionSignForm() {
 
   if (!data) return null;
 
-  const typeLabel = data.type === 'pickup' ? (isHe ? 'קבלת הרכב' : 'Vehicle pickup') : (isHe ? 'החזרת הרכב' : 'Vehicle return');
+  const typeLabel = data.type === 'pickup' ? (isHe ? 'מסירת הרכב' : 'Vehicle handover') : (isHe ? 'החזרת הרכב' : 'Vehicle return');
 
   if (done || data.status === 'signed') {
     return (

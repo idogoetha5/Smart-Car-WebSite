@@ -141,7 +141,7 @@ export default function DriverTaskForm({ driver, onCancel, onCreated }: DriverTa
       )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <select value={type} onChange={(event) => setType(event.target.value as 'pickup' | 'return')} className="min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm"><option value="pickup">קבלה</option><option value="return">החזרה</option></select>
+        <select value={type} onChange={(event) => setType(event.target.value as 'pickup' | 'return')} className="min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm"><option value="pickup">מסירה</option><option value="return">החזרה</option></select>
         <input type="datetime-local" value={scheduledAt} onChange={(event) => setScheduledAt(event.target.value)} className="min-h-11 rounded-xl border border-gray-200 px-3 text-sm" />
         <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="כתובת / סניף" className="min-h-11 rounded-xl border border-gray-200 px-3 text-sm" />
       </div>

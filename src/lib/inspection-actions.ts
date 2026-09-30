@@ -310,7 +310,7 @@ export async function completeInspectionUpload(inspectionId: string): Promise<Ac
   } | null;
 
   const videoLink = `${baseUrl}/insp-video/${encodeURIComponent(token)}`;
-  const typeLabel = inspection.type === 'pickup' ? 'קבלת הרכב' : 'החזרת הרכב';
+  const typeLabel = inspection.type === 'pickup' ? 'מסירת הרכב' : 'החזרת הרכב';
   const vehicleName = booking ? bookingVehicleName(booking) : '';
 
   let signLinkSent = false;

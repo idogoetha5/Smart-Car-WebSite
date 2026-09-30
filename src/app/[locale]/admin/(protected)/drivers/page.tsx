@@ -154,7 +154,7 @@ export default function AdminDriversPage() {
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <p className="font-bold text-gray-900">{task.booking?.customer_name ?? 'ללא שם לקוח'}</p>
-            <p className="mt-0.5 text-xs text-gray-500">{task.type === 'pickup' ? 'קבלה' : 'החזרה'} · {formatDateTime(scheduledAt)}</p>
+            <p className="mt-0.5 text-xs text-gray-500">{task.type === 'pickup' ? 'מסירה' : 'החזרה'} · {formatDateTime(scheduledAt)}</p>
           </div>
           <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${STATUS_CLASS[task.status]}`}>{STATUS_LABEL[task.status]}</span>
         </div>

@@ -259,7 +259,7 @@ export default function AdminBookingsPage() {
                           href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=pickup`}
                           className="bg-[#eef6f6] hover:bg-[#d9ecec] text-[#2D5F5F] px-3 py-1 rounded-lg text-xs font-bold transition-colors whitespace-nowrap"
                         >
-                          🚗 בדיקת קבלה
+                          🚗 בדיקת מסירה
                         </a>
                         <a
                           href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=return`}

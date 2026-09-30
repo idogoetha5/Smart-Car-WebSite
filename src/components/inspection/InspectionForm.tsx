@@ -325,7 +325,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
   return (
     <div className="max-w-lg mx-auto px-4 py-8" dir={isHe ? 'rtl' : 'ltr'}>
       <h1 className="text-2xl font-black text-gray-900 mb-1">
-        {type === 'pickup' ? (isHe ? 'בדיקת קבלת רכב' : 'Pickup inspection') : (isHe ? 'בדיקת החזרת רכב' : 'Return inspection')}
+        {type === 'pickup' ? (isHe ? 'בדיקת מסירת רכב' : 'Handover inspection') : (isHe ? 'בדיקת החזרת רכב' : 'Return inspection')}
       </h1>
       <p className="text-gray-500 text-sm mb-2" dir="ltr">{bookingId}</p>
       <p className="mb-6 rounded-xl bg-[#eef6f6] p-3 text-sm font-bold text-[#2D5F5F]">
