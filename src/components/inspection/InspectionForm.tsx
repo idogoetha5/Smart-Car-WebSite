@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Video, CheckCircle2 } from 'lucide-react';
 import { FUEL_TAP_OPTIONS } from '@/lib/inspection-storage';
+import { compressVideoIfNeeded, MAX_UPLOAD_BYTES, VideoTooLongError } from '@/lib/video-compress';
 
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
@@ -44,7 +45,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
   const [fuelEighths, setFuelEighths] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [stage, setStage] = useState<'idle' | 'creating' | 'uploading' | 'finishing' | 'done'>('idle');
+  const [stage, setStage] = useState<'idle' | 'compressing' | 'creating' | 'uploading' | 'finishing' | 'done'>('idle');
   const [error, setError] = useState('');
   const [inspectionId, setInspectionId] = useState('');
   const [signLink, setSignLink] = useState('');
@@ -56,9 +57,26 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
     if (!video || fuelEighths === null || !bookingId) return;
     setUploading(true);
     setError('');
-    setStage('creating');
 
     try {
+      // Supabase's current plan caps each file at 50MB — shrink big phone
+      // videos in the browser first (no-op for small ones).
+      let uploadFile = video;
+      if (video.size > MAX_UPLOAD_BYTES * 0.84) {
+        setStage('compressing');
+        setProgress(0);
+        try {
+          uploadFile = await compressVideoIfNeeded(video, (p) => setProgress(Math.round(p * 100)));
+        } catch (err) {
+          throw new Error(
+            err instanceof VideoTooLongError
+              ? (isHe ? 'הסרטון ארוך מדי. צלם סרטון קצר יותר (עד כ־4 דקות).' : 'Video is too long. Record a shorter one (about 4 minutes max).')
+              : (isHe ? 'לא ניתן לכווץ את הסרטון בטלפון הזה. צלם סרטון קצר יותר.' : 'Could not compress the video on this phone. Record a shorter one.')
+          );
+        }
+      }
+
+      setStage('creating');
       const createRes = await fetch(apiBase, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -67,7 +85,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
           type,
           odometerKm: Number(odometerKm),
           fuelEighths,
-          videoExt: extOf(video),
+          videoExt: extOf(uploadFile),
         }),
       });
       const created = await createRes.json().catch(() => ({}));
@@ -78,7 +96,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
 
       const tus = await import('tus-js-client');
       await new Promise<void>((resolve, reject) => {
-        const upload = new tus.Upload(video, {
+        const upload = new tus.Upload(uploadFile, {
           endpoint: created.uploadEndpoint,
           retryDelays: [0, 3000, 5000, 10000, 20000],
           chunkSize: 6 * 1024 * 1024,
@@ -94,7 +112,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
           metadata: {
             bucketName: created.bucket,
             objectName: created.path,
-            contentType: video.type || 'video/mp4',
+            contentType: (uploadFile.type || 'video/mp4').split(';')[0],
           },
           onError: (err) => reject(err),
           onProgress: (uploaded, total) => setProgress(Math.round((uploaded / total) * 100)),
@@ -245,7 +263,9 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
 
         {uploading && (
           <div className="text-center text-sm font-bold text-gray-600">
-            {stage === 'uploading'
+            {stage === 'compressing'
+              ? `${isHe ? 'מכווץ סרטון — לא לסגור את המסך' : 'Compressing video — keep this screen open'}… ${progress}%`
+              : stage === 'uploading'
               ? `${isHe ? 'מעלה סרטון' : 'Uploading video'}… ${progress}%`
               : isHe ? 'מסיים...' : 'Finishing…'}
           </div>
