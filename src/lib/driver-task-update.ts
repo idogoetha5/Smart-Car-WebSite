@@ -2,7 +2,51 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { setTaskLocation } from '@/lib/driver-task-location';
 
-/** Reassign, edit notes/address, or cancel a task — shared by admin and branch managers. */
+async function rescheduleTask(
+  id: string,
+  scheduledAt: unknown,
+  scheduledTime: unknown
+): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const supabase = createAdminClient();
+  const { data: task, error } = await supabase
+    .from('driver_tasks')
+    .select('type, booking_id, booking:bookings(pickup_date, dropoff_date)')
+    .eq('id', id)
+    .maybeSingle<{ type: string; booking_id: string | null; booking: { pickup_date: string; dropoff_date: string } | null }>();
+  if (error) {
+    console.error('[driver-task-update] task lookup failed:', error.message);
+    return { ok: false, status: 500, error: 'שגיאת שרת' };
+  }
+  if (!task?.booking_id) return { ok: false, status: 404, error: 'המשימה לא נמצאה' };
+
+  const isPickup = task.type === 'pickup';
+  const update: Record<string, unknown> = {};
+  if (typeof scheduledAt === 'string' && scheduledAt) {
+    const when = new Date(scheduledAt);
+    if (Number.isNaN(when.getTime())) return { ok: false, status: 400, error: 'תאריך לא תקין' };
+    update[isPickup ? 'pickup_date' : 'dropoff_date'] = when.toISOString();
+    // Keep the rental consistent: return never before pickup.
+    const other = new Date((isPickup ? task.booking?.dropoff_date : task.booking?.pickup_date) ?? '').getTime();
+    if (!Number.isNaN(other)) {
+      if (isPickup && when.getTime() > other) update.dropoff_date = new Date(when.getTime() + 86_400_000).toISOString();
+      if (!isPickup && when.getTime() < other) update.pickup_date = when.toISOString();
+    }
+  }
+  if (typeof scheduledTime === 'string') {
+    if (scheduledTime && !/^\d{2}:\d{2}$/.test(scheduledTime)) return { ok: false, status: 400, error: 'שעה לא תקינה' };
+    update[isPickup ? 'pickup_time' : 'return_time'] = scheduledTime || null;
+  }
+  if (Object.keys(update).length === 0) return { ok: true };
+
+  const { error: updateError } = await supabase.from('bookings').update(update).eq('id', task.booking_id);
+  if (updateError) {
+    console.error('[driver-task-update] reschedule failed:', updateError.message);
+    return { ok: false, status: 500, error: 'עדכון המועד נכשל' };
+  }
+  return { ok: true };
+}
+
+/** Reassign, edit notes/address/date/time, or cancel a task — shared by admin and branch managers. */
 export async function updateDriverTask(request: Request, id: string): Promise<NextResponse> {
   const body = await request.json().catch(() => null);
   const update: Record<string, unknown> = {};
@@ -11,6 +55,15 @@ export async function updateDriverTask(request: Request, id: string): Promise<Ne
   if (typeof body?.notes === 'string') update.notes = body.notes.trim() || null;
   if (body?.status === 'open' || body?.status === 'done' || body?.status === 'cancelled') {
     update.status = body.status;
+  }
+
+  // Reschedule: new date (ISO) and/or time (HH:MM, '' clears) on the rental,
+  // on the side (pickup/return) this task is for.
+  const hasSchedule = typeof body?.scheduledAt === 'string' || typeof body?.scheduledTime === 'string';
+  if (hasSchedule) {
+    const result = await rescheduleTask(id, body.scheduledAt, body.scheduledTime);
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+    if (Object.keys(update).length === 0 && !('location' in (body ?? {}))) return NextResponse.json({ success: true });
   }
 
   const hasLocation = 'location' in (body ?? {});

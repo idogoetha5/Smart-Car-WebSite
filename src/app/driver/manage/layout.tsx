@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'SmartCar מנהלים',
   description: 'הקצאת משימות לנהגים ומעקב',
+  manifest: '/driver/manifest-manager',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'SmartCar מנהלים' },
   openGraph: {
     title: 'SmartCar מנהלים',

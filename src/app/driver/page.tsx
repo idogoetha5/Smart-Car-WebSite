@@ -6,6 +6,7 @@ import useSWR, { preload } from 'swr';
 import { Search, LogOut, RefreshCw, Plus, Navigation, Phone, Pencil, MapPin, MessageCircle, MoreHorizontal, CheckCircle2 } from 'lucide-react';
 import { fetcher } from '@/lib/swr';
 import PendingInspections from '@/components/inspection/PendingInspections';
+import { BrandBar, BrandHero, brandIconButton } from '@/components/app/Brand';
 import { arrivedMessage, onTheWayLink, onTheWayMessage, returnReminderMessage, signedCopyMessage } from '@/lib/driver-on-the-way';
 
 interface TaskRow {
@@ -324,34 +325,34 @@ export default function DriverTodayPage() {
 
   return (
     <div className="min-h-screen pb-10" dir="rtl">
-      <div className="sticky top-0 z-10 bg-[#F5F0E8]/95 backdrop-blur px-4 pt-6 pb-3 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-black text-gray-900">היום שלי</h1>
-          <div className="flex items-center gap-2">
-            <button onClick={() => mutate()} className="flex h-11 w-11 items-center justify-center rounded-xl text-gray-500 active:bg-gray-100" aria-label="רענון">
-              <RefreshCw className={`h-5 w-5 ${isValidating ? 'animate-spin' : ''}`} aria-hidden="true" />
-            </button>
-            <button onClick={logout} className="flex h-11 w-11 items-center justify-center rounded-xl text-gray-500 active:bg-gray-100" aria-label="יציאה">
-              <LogOut className="h-5 w-5" aria-hidden="true" />
-            </button>
-          </div>
-        </div>
+      <BrandBar label="נהגים">
+        <button onClick={() => mutate()} className={brandIconButton} aria-label="רענון">
+          <RefreshCw className={`h-5 w-5 ${isValidating ? 'animate-spin' : ''}`} aria-hidden="true" />
+        </button>
+        <button onClick={logout} className={brandIconButton} aria-label="יציאה">
+          <LogOut className="h-5 w-5" aria-hidden="true" />
+        </button>
+      </BrandBar>
+
+      <BrandHero>
+        <h1 className="text-2xl font-black text-[#0D2B2B]">{me?.name ? `שלום, ${me.name}` : 'היום שלי'}</h1>
+        <p className="mb-4 text-sm text-gray-600">המשימות שלך להיום ולמחר</p>
 
         <button
           onClick={openQuickBooking}
-          className="w-full min-h-12 mb-3 flex items-center justify-center gap-2 rounded-xl bg-[#E8743B] hover:bg-[#d4632a] text-white font-black"
+          className="w-full min-h-12 mb-3 flex items-center justify-center gap-2 rounded-xl bg-[#E8743B] hover:bg-[#d4632a] text-white font-black shadow-sm"
         >
           <Plus className="h-5 w-5" aria-hidden="true" />
           משימה חדשה
         </button>
 
-        <div className="flex gap-2 mb-3">
+        <div className="flex gap-1 rounded-2xl bg-white/70 p-1">
           {(['today', 'tomorrow', 'search'] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`min-h-11 flex-1 rounded-xl font-bold text-sm ${
-                tab === t ? 'bg-[#2D5F5F] text-white' : 'bg-white text-gray-600 border border-gray-200'
+              className={`min-h-11 flex-1 rounded-xl font-black text-sm ${
+                tab === t ? 'bg-[#2D5F5F] text-white shadow-sm' : 'text-[#2D5F5F]'
               }`}
             >
               {t === 'today' ? 'היום' : t === 'tomorrow' ? 'מחר' : 'חיפוש'}
@@ -360,7 +361,7 @@ export default function DriverTodayPage() {
         </div>
 
         {tab === 'search' && (
-          <div className="relative">
+          <div className="relative mt-3">
             <Search className="absolute top-1/2 -translate-y-1/2 start-3 h-4 w-4 text-gray-400" aria-hidden="true" />
             <input
               type="search"
@@ -368,15 +369,15 @@ export default function DriverTodayPage() {
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && setSearch(searchInput.trim())}
               placeholder="שם לקוח / לוחית רישוי / מספר הזמנה"
-              className="w-full min-h-12 ps-10 pe-4 rounded-xl border-2 border-gray-200 text-base"
+              className="w-full min-h-12 ps-10 pe-4 rounded-xl border-2 border-white bg-white text-base"
             />
           </div>
         )}
-      </div>
+      </BrandHero>
 
       <PendingInspections />
 
-      <div className="px-4 pt-4 space-y-6">
+      <div className="mx-auto max-w-5xl px-4 pt-4 space-y-6 sm:px-8">
         {isLoading && <div className="h-24 animate-pulse rounded-2xl bg-gray-100" />}
 
         {tab === 'search' ? (
@@ -391,7 +392,7 @@ export default function DriverTodayPage() {
         ) : (
           <>
             <section>
-              <h2 className="text-sm font-black text-gray-500 mb-2">מסירות</h2>
+              <h2 className="text-sm font-black text-[#2D5F5F] mb-2">מסירות</h2>
               <div className="space-y-3">
                 {(data?.pickups ?? []).map((row) => (
                   <TaskCard key={row.taskId || `h-${row.bookingId}`} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} isTomorrow={tab === 'tomorrow'} />
@@ -402,7 +403,7 @@ export default function DriverTodayPage() {
               </div>
             </section>
             <section>
-              <h2 className="text-sm font-black text-gray-500 mb-2">החזרות</h2>
+              <h2 className="text-sm font-black text-[#2D5F5F] mb-2">החזרות</h2>
               <div className="space-y-3">
                 {(data?.returns ?? []).map((row) => (
                   <TaskCard key={row.taskId || `h-${row.bookingId}`} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} isTomorrow={tab === 'tomorrow'} />
