@@ -34,7 +34,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#2D5F5F',
+  themeColor: '#ffffff',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -43,7 +43,7 @@ export const viewport: Viewport = {
 export default function DriverLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="he" dir="rtl" className={heebo.className}>
-      <body className="min-h-screen bg-[#F5F0E8] text-gray-900 antialiased">{children}</body>
+      <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">{children}</body>
     </html>
   );
 }

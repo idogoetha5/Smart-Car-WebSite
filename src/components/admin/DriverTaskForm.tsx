@@ -61,6 +61,9 @@ export default function DriverTaskForm({
   const [bookingId, setBookingId] = useState('');
   const [date, setDate] = useState(() => localDateString(0));
   const [time, setTime] = useState('');
+  const [planReturn, setPlanReturn] = useState(false);
+  const [returnDate, setReturnDate] = useState(() => localDateString(1));
+  const [returnTime, setReturnTime] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [creating, setCreating] = useState(false);
@@ -78,7 +81,8 @@ export default function DriverTaskForm({
   }, [bookings, bookingSearch]);
 
   const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
-  // Every job needs a licence plate: a fleet car without one in the system asks for it.
+  // A fleet car without a plate in the system offers a plate field (optional here —
+  // managers may not know it yet; the driver app asks for it).
   const fleetPlateMissing = vehicleMode === 'fleet' && Boolean(selectedVehicle) && !selectedVehicle?.license_plate?.trim();
 
   const createTask = async (event: React.FormEvent) => {
@@ -92,8 +96,17 @@ export default function DriverTaskForm({
       setError('יש לבחור תאריך');
       return;
     }
+    if (mode === 'new' && vehicleMode === 'custom' && !customLicensePlate.trim() && !customVehicleName.trim()) {
+      setError('יש לכתוב מספר רישוי או שם רכב');
+      return;
+    }
     // No time → midday, so the task still lands on the right day for the driver.
     const scheduledAt = new Date(`${date}T${time || '12:00'}:00`).toISOString();
+    const withReturn = type === 'pickup' && planReturn && Boolean(returnDate);
+    if (withReturn && returnDate < date) {
+      setError('תאריך ההחזרה לא יכול להיות לפני המסירה');
+      return;
+    }
 
     setCreating(true);
     try {
@@ -114,6 +127,8 @@ export default function DriverTaskForm({
           location: location || undefined,
           notes: notes || undefined,
           assignedDriverId: driver.id,
+          returnAt: withReturn ? new Date(`${returnDate}T${returnTime || '12:00'}:00`).toISOString() : undefined,
+          returnTime: withReturn && returnTime ? returnTime : undefined,
         }),
       });
       const json = await response.json().catch(() => ({}));
@@ -217,16 +232,16 @@ export default function DriverTaskForm({
                 </select>
               ) : null}
               {vehicleMode === 'fleet' && fleetPlateMissing && (
-                <label className="mt-3 block rounded-xl border-2 border-amber-300 bg-amber-50 p-3"><span className={label}>לרכב הזה אין מספר רישוי במערכת — כתוב אותו</span>
-                  <input value={customLicensePlate} onChange={(event) => setCustomLicensePlate(event.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" className={field} required />
+                <label className="mt-3 block rounded-xl border-2 border-amber-300 bg-amber-50 p-3"><span className={label}>לרכב הזה אין מספר רישוי במערכת (לא חובה)</span>
+                  <input value={customLicensePlate} onChange={(event) => setCustomLicensePlate(event.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" className={field} />
                 </label>
               )}
               {vehicleMode === 'custom' ? (
                 <div className="space-y-3">
-                  <label className="block"><span className={label}>מספר רישוי</span>
-                    <input value={customLicensePlate} onChange={(event) => setCustomLicensePlate(event.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" className={field} required />
+                  <label className="block"><span className={label}>מספר רישוי (לא חובה)</span>
+                    <input value={customLicensePlate} onChange={(event) => setCustomLicensePlate(event.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" className={field} />
                   </label>
-                  <label className="block"><span className={label}>שם הרכב (לא חובה)</span>
+                  <label className="block"><span className={label}>שם הרכב</span>
                     <input value={customVehicleName} onChange={(event) => setCustomVehicleName(event.target.value)} placeholder="לדוגמה: טויוטה קורולה לבנה" className={field} />
                   </label>
                 </div>
@@ -235,6 +250,28 @@ export default function DriverTaskForm({
           </div>
         )}
       </div>
+
+      {type === 'pickup' && (
+        <div className={`rounded-2xl border-2 p-3 ${planReturn ? 'border-[#2D5F5F] bg-[#eef6f6]' : 'border-gray-200 bg-white'}`}>
+          <label className="flex min-h-12 cursor-pointer items-center gap-3 text-base font-bold text-gray-800">
+            <input type="checkbox" checked={planReturn} onChange={(event) => setPlanReturn(event.target.checked)} className="h-6 w-6 shrink-0 accent-[#2D5F5F]" />
+            ליצור גם משימת החזרה
+          </label>
+          {planReturn && (
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <label className="block">
+                <span className={label}>תאריך החזרה</span>
+                <input type="date" value={returnDate} min={date} onChange={(event) => setReturnDate(event.target.value)} className={field} required />
+              </label>
+              <label className="block">
+                <span className={label}>שעה (לא חובה)</span>
+                <input type="time" value={returnTime} onChange={(event) => setReturnTime(event.target.value)} className={field} />
+              </label>
+              <p className="col-span-2 text-sm text-gray-600">משימת ההחזרה תשויך ל{driver.name}. אפשר להעביר אותה לנהג אחר אחר כך.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       <label className="block"><span className={label}>כתובת ללקוח — לוויז (לא חובה)</span>
         <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="רחוב, מספר, עיר" className={field} />

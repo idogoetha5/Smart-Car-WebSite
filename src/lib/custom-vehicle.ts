@@ -26,8 +26,14 @@ export function readVehicleInput(body: Record<string, unknown> | null): VehicleI
  * (licence plate required, name optional). A typed plate that matches
  * a fleet car is linked to that car, so it shows with its real name.
  */
-export async function resolveVehicle(supabase: Admin, input: VehicleInput): Promise<ResolvedVehicle> {
+export async function resolveVehicle(
+  supabase: Admin,
+  input: VehicleInput,
+  /** Drivers must enter a plate; managers/admin assigning ahead may not know it yet. */
+  options: { requirePlate: boolean } = { requirePlate: true }
+): Promise<ResolvedVehicle> {
   const { vehicleId, customVehicleName, customLicensePlate } = input;
+  const { requirePlate } = options;
 
   if (vehicleId) {
     const { data, error } = await supabase.from('vehicles').select('id, license_plate').eq('id', vehicleId).maybeSingle();
@@ -38,14 +44,18 @@ export async function resolveVehicle(supabase: Admin, input: VehicleInput): Prom
     if (!data) return { ok: false, status: 404, error: 'הרכב לא נמצא' };
     // Every job needs a plate: a fleet car without one takes the typed plate on the booking.
     if (!(data as { license_plate: string | null }).license_plate?.trim()) {
-      if (!customLicensePlate) return { ok: false, status: 400, error: 'לרכב הזה אין מספר רישוי במערכת — יש לכתוב אותו' };
-      return { ok: true, vehicleId, customVehicleName: null, customLicensePlate };
+      if (!customLicensePlate && requirePlate) return { ok: false, status: 400, error: 'לרכב הזה אין מספר רישוי במערכת — יש לכתוב אותו' };
+      return { ok: true, vehicleId, customVehicleName: null, customLicensePlate: customLicensePlate || null };
     }
     return { ok: true, vehicleId, customVehicleName: null, customLicensePlate: null };
   }
 
-  if (!customLicensePlate) {
-    return { ok: false, status: 400, error: 'יש לבחור רכב מהרשימה, או לכתוב את מספר הרישוי' };
+  if (requirePlate ? !customLicensePlate : !customLicensePlate && !customVehicleName) {
+    return {
+      ok: false,
+      status: 400,
+      error: requirePlate ? 'יש לבחור רכב מהרשימה, או לכתוב את מספר הרישוי' : 'יש לבחור רכב, או לכתוב מספר רישוי או שם רכב',
+    };
   }
 
   const plateDigits = normalizePlate(customLicensePlate);

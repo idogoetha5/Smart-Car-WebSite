@@ -13,7 +13,7 @@ import { isValidEmail, normalizeEmail } from '@/lib/email';
 const UNSPECIFIED_LOCATION = 'לא צוין';
 
 const TASK_SELECT =
-  'id, type, status, notes, created_by, created_at, assigned_driver_id, driver:drivers(id, name), booking:bookings(id, customer_name, customer_phone, pickup_date, dropoff_date, pickup_location, dropoff_location, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))';
+  'id, type, status, notes, created_by, created_at, assigned_driver_id, driver:drivers(id, name), booking:bookings(id, customer_name, customer_phone, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))';
 
 interface TaskWithBooking {
   id: string;
@@ -30,6 +30,8 @@ interface TaskWithBooking {
     customer_phone: string;
     pickup_date: string;
     dropoff_date: string;
+    pickup_time?: string | null;
+    return_time?: string | null;
     pickup_location: string;
     dropoff_location: string;
     custom_vehicle_name: string | null;
@@ -160,7 +162,7 @@ export async function createDriverTask(request: NextRequest, createdBy: string):
     if (!isValidEmail(customerEmail)) {
       return NextResponse.json({ error: 'יש להזין כתובת אימייל תקינה של הלקוח' }, { status: 400 });
     }
-    const vehicle = await resolveVehicle(supabase, readVehicleInput(body));
+    const vehicle = await resolveVehicle(supabase, readVehicleInput(body), { requirePlate: false });
     if (!vehicle.ok) {
       return NextResponse.json({ error: vehicle.error }, { status: vehicle.status });
     }
@@ -223,5 +225,24 @@ export async function createDriverTask(request: NextRequest, createdBy: string):
     return NextResponse.json({ error: 'יצירת המשימה נכשלה' }, { status: 500 });
   }
 
-  return NextResponse.json({ taskId: task.id, bookingId }, { status: 201 });
+  // Handover with its return planned in the same step: set the rental's
+  // return date/time and create the return task for the same driver.
+  const returnAt = type === 'pickup' && body?.returnAt ? String(body.returnAt) : null;
+  let returnTaskId: string | null = null;
+  if (returnAt && !Number.isNaN(new Date(returnAt).getTime())) {
+    const returnTime = typeof body?.returnTime === 'string' && /^\d{2}:\d{2}$/.test(body.returnTime) ? body.returnTime : null;
+    const bookingUpdate: Record<string, unknown> = { dropoff_date: new Date(returnAt).toISOString() };
+    if (returnTime) bookingUpdate.return_time = returnTime;
+    const { error: returnBookingError } = await supabase.from('bookings').update(bookingUpdate).eq('id', bookingId);
+    if (returnBookingError) console.error('[admin/tasks] return date update failed:', returnBookingError.message);
+    const { data: returnTask, error: returnTaskError } = await supabase
+      .from('driver_tasks')
+      .insert({ booking_id: bookingId, type: 'return', assigned_driver_id: assignedDriverId, created_by: createdBy })
+      .select('id')
+      .single();
+    if (returnTaskError) console.error('[admin/tasks] return task insert failed:', returnTaskError.message);
+    returnTaskId = returnTask?.id ?? null;
+  }
+
+  return NextResponse.json({ taskId: task.id, bookingId, returnTaskId }, { status: 201 });
 }

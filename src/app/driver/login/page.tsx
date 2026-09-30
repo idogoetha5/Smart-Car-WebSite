@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Delete } from 'lucide-react';
@@ -71,7 +72,11 @@ export default function DriverLoginPage() {
   if (!selected) {
     return (
       <div className="min-h-screen px-4 py-10" dir="rtl">
-        <h1 className="text-2xl font-black text-gray-900 text-center mb-1">SmartCar נהגים</h1>
+        <div className="mb-6 flex flex-col items-center gap-2">
+          <Image src="/images/logo.png" alt="SmartCar" width={160} height={72} className="h-14 w-auto object-contain" priority />
+          <span className="rounded-full bg-[#eef6f6] px-3 py-1 text-sm font-black text-[#2D5F5F]">נהגים</span>
+        </div>
+        <h1 className="text-2xl font-black text-[#0D2B2B] text-center mb-1">כניסה</h1>
         <p className="text-gray-500 text-center mb-8">בחרו את שמכם</p>
         {error && <p className="text-red-600 text-sm text-center mb-4">{error}</p>}
         <div className="max-w-md mx-auto grid grid-cols-2 gap-3">
@@ -79,7 +84,7 @@ export default function DriverLoginPage() {
             <button
               key={driver.id}
               onClick={() => setSelected(driver)}
-              className="min-h-20 rounded-2xl border-2 border-gray-200 bg-white font-black text-lg text-gray-800 hover:border-[#2D5F5F] transition-colors"
+              className="min-h-20 rounded-2xl border-2 border-gray-200 bg-white font-black text-lg text-gray-800 hover:border-[#2D5F5F] active:border-[#E8743B] shadow-sm transition-colors"
             >
               {driver.name}
             </button>
@@ -94,7 +99,8 @@ export default function DriverLoginPage() {
 
   return (
     <div className="min-h-screen px-4 py-10 flex flex-col items-center" dir="rtl">
-      <h1 className="text-2xl font-black text-gray-900 mb-1">שלום, {selected.name}</h1>
+      <Image src="/images/logo.png" alt="SmartCar" width={128} height={58} className="mb-4 h-11 w-auto object-contain" priority />
+      <h1 className="text-2xl font-black text-[#0D2B2B] mb-1">שלום, {selected.name}</h1>
       <button onClick={() => { setSelected(null); setPin(''); setError(''); }} className="text-sm text-[#2D5F5F] font-bold mb-6">
         לא אני? חזרה
       </button>
