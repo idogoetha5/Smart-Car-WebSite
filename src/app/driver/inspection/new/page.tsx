@@ -15,7 +15,6 @@ function DriverNewInspectionInner() {
       bookingId={bookingId}
       type={type}
       isHe
-      statusHref={(id, signLink) => `/driver/inspection/${id}?signLink=${encodeURIComponent(signLink)}`}
     />
   );
 }

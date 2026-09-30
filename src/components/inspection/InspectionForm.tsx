@@ -62,8 +62,6 @@ export interface InspectionFormProps {
   bookingId: string;
   type: 'pickup' | 'return';
   isHe: boolean;
-  /** Where the "track status" button on the done screen navigates to. */
-  statusHref: (inspectionId: string, signLink: string) => string;
 }
 
 /**
@@ -73,7 +71,7 @@ export interface InspectionFormProps {
  * video, damage marked on the car diagram (tap a spot → type → note →
  * optional photo), or "no damage" + a photo of each of the 4 sides.
  */
-export default function InspectionForm({ apiBase, bookingId, type, isHe, statusHref }: InspectionFormProps) {
+export default function InspectionForm({ apiBase, bookingId, type, isHe }: InspectionFormProps) {
   const router = useRouter();
 
   const [video, setVideo] = useState<File | null>(null);
@@ -90,8 +88,6 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
   const [stage, setStage] = useState<Stage>('idle');
   const [error, setError] = useState('');
   const [inspectionId, setInspectionId] = useState('');
-  const [signLink, setSignLink] = useState('');
-  const [signLinkSent, setSignLinkSent] = useState(true);
 
   const sideViewsTaken = useMemo(
     () => SIDE_PHOTO_VIEWS.filter((v) => Boolean(sidePhotos[v])),
@@ -250,9 +246,9 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
       const completed = await completeRes.json().catch(() => ({}));
       if (!completeRes.ok) throw new Error(completed?.error || 'Failed to finish inspection');
 
-      setSignLink(completed.signLink ?? '');
-      setSignLinkSent(completed.signLinkSent !== false);
+      // Straight to the in-person review + signature screen on this phone.
       setStage('done');
+      router.push(`/driver/inspection/${encodeURIComponent(created.inspectionId)}/sign`);
     } catch (err) {
       setError((err as Error)?.message || (isHe ? 'משהו השתבש. נסה שוב.' : 'Something went wrong. Try again.'));
       setStage('idle');
@@ -273,37 +269,12 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center" dir={isHe ? 'rtl' : 'ltr'}>
         <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" aria-hidden="true" />
-        <h1 className="text-2xl font-black text-gray-900 mb-2">
-          {isHe ? 'הבדיקה נשמרה' : 'Inspection saved'}
-        </h1>
-        {signLinkSent ? (
-          <p className="text-gray-600 mb-6">
-            {isHe
-              ? 'נשלח ללקוח מייל עם פרטי הבדיקה וטופס לחתימה. לאחר שיחתום, המסמך החתום יישלח למשרד.'
-              : 'The customer was emailed the inspection and a form to sign. Once signed, the signed document goes to the office.'}
-          </p>
-        ) : (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-start">
-            <p className="font-bold text-red-700 mb-2">
-              {isHe ? 'המייל ללקוח לא נשלח. שלח לו את הקישור ידנית:' : 'The customer email failed. Send the link manually:'}
-            </p>
-            {signLink && (
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(signLink)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block min-h-11 px-4 py-2 rounded-lg bg-green-600 text-white font-bold"
-              >
-                {isHe ? 'שליחה בוואטסאפ' : 'Send via WhatsApp'}
-              </a>
-            )}
-          </div>
-        )}
+        <h1 className="text-2xl font-black text-gray-900 mb-4">{isHe ? 'הבדיקה נשמרה' : 'Inspection saved'}</h1>
         <button
-          onClick={() => router.push(statusHref(inspectionId, signLink))}
+          onClick={() => router.push(`/driver/inspection/${encodeURIComponent(inspectionId)}/sign`)}
           className="min-h-12 px-6 rounded-xl bg-[#E8743B] hover:bg-[#d4632a] text-white font-black"
         >
-          {isHe ? 'מעקב אחר סטטוס' : 'Track status'}
+          {isHe ? 'לחתימת הלקוח' : 'Customer signature'}
         </button>
       </div>
     );

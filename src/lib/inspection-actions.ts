@@ -297,6 +297,38 @@ export async function completeInspectionUpload(inspectionId: string): Promise<Ac
     await supabase.from('inspection_upload_slots').delete().eq('inspection_id', inspectionId);
   }
 
+  // The customer now reviews and signs in person on the driver's phone
+  // (/driver/inspection/[id]/sign). The emailed link is only sent on demand
+  // (sendInspectionSignLink) when the customer isn't there.
+  const token = createInspectionToken(inspectionId);
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.smartcar.co.il';
+  const signLink = `${baseUrl}/he/inspection-sign?token=${encodeURIComponent(token)}`;
+  return { ok: true, data: { signLinkSent: false, signLink } };
+}
+
+/**
+ * Remote-signing fallback: emails the customer a link to review and sign
+ * (for when they're not with the driver, e.g. a key-drop return).
+ */
+export async function sendInspectionSignLink(inspectionId: string): Promise<ActionResult<CompleteInspectionResult>> {
+  const supabase = createAdminClient();
+  const { data: inspection, error } = await supabase
+    .from('vehicle_inspections')
+    .select(
+      'id, type, status, video_path, damage_marks, media_completed_at, video_sha256, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))'
+    )
+    .eq('id', inspectionId)
+    .maybeSingle();
+  if (error) {
+    console.error('[inspection-actions] sign-link lookup failed:', error.message);
+    return { ok: false, status: 500, error: 'Lookup failed' };
+  }
+  if (!inspection) return { ok: false, status: 404, error: 'Inspection not found' };
+  if (!inspection.media_completed_at && !inspection.video_sha256) {
+    return { ok: false, status: 409, error: 'Inspection upload not finished' };
+  }
+  if (inspection.status === 'signed') return { ok: false, status: 409, error: 'הבדיקה כבר נחתמה' };
+
   const key = `vehicle_inspection_sign:${inspectionId}`;
   const token = createInspectionToken(inspectionId);
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.smartcar.co.il';

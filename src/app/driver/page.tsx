@@ -38,12 +38,12 @@ function TaskAction({ row }: { row: TaskRow }) {
   const signed = row.inspection.status === 'signed';
   return (
     <button
-      onClick={() => router.push(`/driver/inspection/${row.inspection!.id}`)}
+      onClick={() => router.push(signed ? `/driver/inspection/${row.inspection!.id}` : `/driver/inspection/${row.inspection!.id}/sign`)}
       className={`min-h-12 px-4 rounded-xl font-black text-sm whitespace-nowrap ${
         signed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
       }`}
     >
-      {signed ? '✓ נחתם' : 'ממתין לחתימה'}
+      {signed ? '✓ נחתם' : 'לחתימת הלקוח'}
     </button>
   );
 }

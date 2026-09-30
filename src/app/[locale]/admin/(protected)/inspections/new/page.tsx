@@ -18,7 +18,6 @@ function AdminNewInspectionInner() {
       bookingId={bookingId}
       type={type}
       isHe={isHe}
-      statusHref={(id) => `/${locale}/admin/inspections/${id}`}
     />
   );
 }
