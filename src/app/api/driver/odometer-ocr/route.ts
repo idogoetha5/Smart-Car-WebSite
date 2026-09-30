@@ -47,7 +47,8 @@ export async function POST(request: NextRequest) {
               ],
             },
           ],
-          generationConfig: { temperature: 0, maxOutputTokens: 20 },
+          // No "thinking": on 2.5 models it eats the tiny output budget and leaves an empty answer.
+          generationConfig: { temperature: 0, maxOutputTokens: 64, thinkingConfig: { thinkingBudget: 0 } },
         }),
         signal: AbortSignal.timeout(20_000),
       }
