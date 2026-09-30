@@ -9,6 +9,7 @@ import SignaturePadField from '@/components/inspection/SignaturePadField';
 import CarDamageDiagram from '@/components/inspection/CarDamageDiagram';
 import { damageKindLabel, VIEW_LABELS, type DamageView } from '@/lib/inspection-damage';
 import { checklistLabel } from '@/lib/inspection-checklist';
+import { DECLARATION_HEADINGS } from '@/lib/inspection-declaration';
 
 interface SignData {
   inspectionId: string;
@@ -221,7 +222,14 @@ function InspectionSignForm() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="rounded-2xl border border-[#B8D8D8] bg-[#eef6f6] p-5">
-          <p className="text-sm text-gray-800 whitespace-pre-wrap">{isHe ? data.declaration.he : data.declaration.en}</p>
+          <p className="text-sm text-gray-800 whitespace-pre-wrap">
+            {(isHe ? data.declaration.he : data.declaration.en).split('\n').map((line, i) => (
+              <span key={i}>
+                {DECLARATION_HEADINGS.has(line.trim()) ? <strong className="text-base text-gray-900">{line}</strong> : line}
+                {'\n'}
+              </span>
+            ))}
+          </p>
           <label className="mt-4 flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"

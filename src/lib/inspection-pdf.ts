@@ -2,6 +2,7 @@ import { fuelEighthsToLabel } from './inspection-storage';
 import { damageKindLabel, VIEW_LABELS, type DamageMark, type DamageView } from './inspection-damage';
 import { renderCarDiagramHtml } from './car-diagram-shapes';
 import { checklistLabel } from './inspection-checklist';
+import { DECLARATION_HEADINGS } from './inspection-declaration';
 
 export interface InspectionPdfData {
   inspectionId: string;
@@ -133,7 +134,7 @@ export function generateInspectionPdfHTML(data: InspectionPdfData): string {
   ${damageSection(data)}
   ${checklistSection(data)}
 
-  <div class="declaration">${escapeHtml(data.declarationText)}</div>
+  <div class="declaration">${data.declarationText.split('\n').map((line) => (DECLARATION_HEADINGS.has(line.trim()) ? `<strong style="font-size:13px;">${escapeHtml(line)}</strong>` : escapeHtml(line))).join('\n')}</div>
 
   <div class="signature-block">
     <div>

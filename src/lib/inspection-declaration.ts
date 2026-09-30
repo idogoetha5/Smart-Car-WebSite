@@ -11,7 +11,7 @@ const LATE_CHARGES_HE = `חיובים שמגיעים מאוחר
 • דוחות חניה ודוחות של רשויות מקומיות
 • דוחות תנועה ומשטרה, כולל מצלמות מהירות ורמזור
 • גרירה, פינוי, נעילת גלגל או אחסנת רכב
-אני מסכים/ה ש-SmartCar תסב דוחות על שמי ככל שהחוק מאפשר, ותחייב את אמצעי התשלום שמסרתי בסכום החיוב ובדמי טיפול לפי הסכם השכירות. על כל חיוב כזה אקבל הודעה עם פירוט.`;
+אני מסכים/ה שחברת SmartCar תסב דוחות על שמי ככל שהחוק מאפשר, ותחייב את אמצעי התשלום שמסרתי בסכום החיוב ובדמי טיפול לפי הסכם השכירות. על כל חיוב כזה אקבל הודעה עם פירוט.`;
 
 const LATE_CHARGES_EN = `Charges that arrive later
 Some charges only reach us weeks after a rental ends. I am responsible for every charge incurred from the moment I received the vehicle until I returned it, even if the notice arrives later, including:
@@ -78,7 +78,7 @@ Have a good trip!`,
 ${LATE_CHARGES_HE}
 
 אישור זה הוא חלק מהסכם השכירות.
-תודה שבחרת ב-SmartCar!`,
+תודה שבחרת בנו!`,
     en: `Vehicle return confirmation
 
 We went over the vehicle's condition together at return. By signing, I confirm:
@@ -101,3 +101,23 @@ This confirmation forms part of the rental agreement.
 Thank you for choosing SmartCar!`,
   },
 };
+
+/** Section titles inside the declarations — rendered bold on the sign page and in the PDF. */
+export const DECLARATION_HEADINGS = new Set<string>([
+  'אישור קבלת רכב',
+  'אישור החזרת רכב',
+  'מצב הרכב',
+  "קילומטראז' ודלק",
+  'שימוש ברכב',
+  'בדיקה סופית',
+  'חפצים אישיים',
+  'חיובים שמגיעים מאוחר',
+  'Vehicle pickup confirmation',
+  'Vehicle return confirmation',
+  'Condition of the vehicle',
+  'Mileage and fuel',
+  'Use of the vehicle',
+  'Final inspection',
+  'Personal belongings',
+  'Charges that arrive later',
+]);
