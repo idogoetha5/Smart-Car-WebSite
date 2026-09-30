@@ -14,6 +14,7 @@ import {
 } from '@/lib/inspection-storage';
 import { numericOrderReference } from '@/lib/order-reference';
 import { sendInspectionOfficeEmail } from '@/lib/inspection-office-email';
+import { sendInspectionSignedCustomerEmail } from '@/lib/inspection-customer-email';
 import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
 import type { DamageMark } from '@/lib/inspection-damage';
 import { checklistEntries, type Checklist } from '@/lib/inspection-checklist';
@@ -156,6 +157,8 @@ async function finalizeSignedInspection(args: {
 
   const bookingNumber = numericOrderReference(booking?.id ?? inspectionId);
 
+  let pdfBuffer: Buffer | null = null;
+
   // PDF: any failure (Chromium, photo URLs, upload) leaves the office email
   // to go out without it — sendInspectionOfficeEmail flags a missing PDF.
   try {
@@ -174,7 +177,7 @@ async function finalizeSignedInspection(args: {
       Object.entries(inspection.side_photos ?? {}).map(async ([view, path]) => ({ view, photoUrl: await photoUrlFor(path) }))
     );
 
-    const pdfBuffer = await renderInspectionPdf({
+    pdfBuffer = await renderInspectionPdf({
       inspectionId,
       bookingId: booking?.id ?? '',
       bookingNumber,
@@ -214,21 +217,36 @@ async function finalizeSignedInspection(args: {
   const pdfLink = `${baseUrl}/insp-pdf/${encodeURIComponent(token)}`;
   const typeLabel = inspection.type === 'pickup' ? 'קבלת הרכב' : 'החזרת הרכב';
 
+  // Customer copy: Resend with the signed PDF attached; EmailJS template
+  // is only the fallback if Resend fails.
   try {
     if (booking?.customer_email) {
-      await sendTemplateEmail({
-        event: 'vehicle_inspection_signed',
-        idempotencyKey: `vehicle_inspection_signed:${inspectionId}`,
-        templateId: process.env.NEXT_PUBLIC_EMAILJS_INSPECTION_SIGNED_TEMPLATE_ID,
-        params: {
-          to_email: booking.customer_email,
-          to_name: booking.customer_name,
-          vehicle_name: bookingVehicleName(booking),
-          inspection_type: typeLabel,
-          pdf_link: pdfLink,
-          logo_url: LOGO_URL,
-        },
+      const sent = await sendInspectionSignedCustomerEmail({
+        inspectionId,
+        toEmail: booking.customer_email,
+        customerName: booking.customer_name,
+        vehicleName: bookingVehicleName(booking),
+        typeLabel,
+        pdfBuffer,
+        pdfLink,
+        videoLink: inspection.video_path ? `${baseUrl}/insp-video/${encodeURIComponent(token)}` : null,
+        logoUrl: LOGO_URL,
       });
+      if (!sent.ok) {
+        await sendTemplateEmail({
+          event: 'vehicle_inspection_signed',
+          idempotencyKey: `vehicle_inspection_signed:${inspectionId}`,
+          templateId: process.env.NEXT_PUBLIC_EMAILJS_INSPECTION_SIGNED_TEMPLATE_ID,
+          params: {
+            to_email: booking.customer_email,
+            to_name: booking.customer_name,
+            vehicle_name: bookingVehicleName(booking),
+            inspection_type: typeLabel,
+            pdf_link: pdfLink,
+            logo_url: LOGO_URL,
+          },
+        });
+      }
     }
   } catch (err) {
     console.error('[inspections/sign][POST] customer email failed:', err);

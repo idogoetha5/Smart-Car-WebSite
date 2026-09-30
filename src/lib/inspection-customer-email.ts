@@ -91,3 +91,80 @@ export async function sendInspectionCustomerEmail(
     return { ok: false, error: message };
   }
 }
+
+export interface InspectionSignedCustomerEmailParams {
+  inspectionId: string;
+  toEmail: string;
+  customerName: string;
+  vehicleName: string;
+  typeLabel: string;
+  /** Null when the PDF could not be generated; the link below still works later. */
+  pdfBuffer: Buffer | null;
+  pdfLink: string;
+  videoLink: string | null;
+  logoUrl: string;
+}
+
+/**
+ * "Thank you — here is your signed copy" email to the customer right after
+ * signing, with the signed PDF attached. Sent via Resend like the sign
+ * request above; the caller falls back to the EmailJS template if it fails.
+ */
+export async function sendInspectionSignedCustomerEmail(
+  params: InspectionSignedCustomerEmailParams
+): Promise<{ ok: boolean; error?: string }> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { ok: false, error: 'Resend is not configured' };
+
+  const name = escapeHtml(params.customerName || '');
+  const vehicle = escapeHtml(params.vehicleName || '');
+  const typeLabel = escapeHtml(params.typeLabel);
+  const attached = Boolean(params.pdfBuffer);
+
+  const html = `
+  <div dir="rtl" style="font-family:Arial,Tahoma,sans-serif;color:#0D2B2B;max-width:560px;margin:0 auto;">
+    <div style="text-align:center;padding:16px 0;"><img src="${params.logoUrl}" alt="SmartCar" style="height:48px;"></div>
+    <h2 style="margin:0 0 12px;">תודה ${name},</h2>
+    <p style="font-size:16px;line-height:1.6;">
+      החתימה על בדיקת ${typeLabel} עבור הרכב <strong>${vehicle}</strong> התקבלה בהצלחה.
+      ${attached ? 'העותק החתום מצורף למייל זה כקובץ PDF.' : 'העותק החתום זמין בקישור למטה.'}
+    </p>
+    <p style="text-align:center;margin:24px 0;">
+      <a href="${params.pdfLink}" style="display:inline-block;background:#E8743B;color:#fff;text-decoration:none;font-weight:700;font-size:17px;padding:14px 28px;border-radius:10px;">הורדת המסמך החתום</a>
+    </p>
+    ${params.videoLink ? `<p style="text-align:center;margin:0 0 24px;"><a href="${params.videoLink}" style="color:#2D5F5F;font-weight:700;">צפייה בסרטון הבדיקה</a></p>` : ''}
+    <p style="font-size:13px;color:#666;">הקישורים אישיים. לשאלות ניתן להשיב למייל זה.</p>
+    <p style="font-size:13px;color:#666;">SmartCar — השכרת רכב</p>
+  </div>`;
+
+  const text = `תודה ${params.customerName},\nהחתימה על בדיקת ${params.typeLabel} עבור הרכב ${params.vehicleName} התקבלה.\nהמסמך החתום: ${params.pdfLink}${params.videoLink ? `\nסרטון הבדיקה: ${params.videoLink}` : ''}\nSmartCar`;
+
+  try {
+    const resend = new Resend(apiKey);
+    const { error } = await resend.emails.send(
+      {
+        from: `SmartCar <${OFFICE_EMAIL}>`,
+        to: params.toEmail,
+        replyTo: OFFICE_EMAIL,
+        subject: `SmartCar — העותק החתום של בדיקת ${params.typeLabel}`,
+        html,
+        text,
+        attachments: params.pdfBuffer
+          ? [{ content: params.pdfBuffer, filename: 'SmartCar_Inspection_Signed.pdf', contentType: 'application/pdf' }]
+          : [],
+        tags: [{ name: 'category', value: 'vehicle-inspection-signed-customer' }],
+      },
+      { idempotencyKey: `vehicle-inspection-signed-customer-${params.inspectionId}` }
+    );
+    if (error) {
+      const message = `${error.name}: ${error.message}`;
+      console.error('[inspection-customer-email] signed copy failed for %s: %s', params.inspectionId, message);
+      return { ok: false, error: message };
+    }
+    return { ok: true };
+  } catch (err) {
+    const message = (err as Error)?.message ?? String(err);
+    console.error('[inspection-customer-email] signed copy threw for %s: %s', params.inspectionId, message);
+    return { ok: false, error: message };
+  }
+}
