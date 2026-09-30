@@ -213,13 +213,12 @@ export default function DriverTaskForm({
                 </select>
               ) : (
                 <div className="space-y-3">
-                  <label className="block"><span className={label}>{customLicensePlate.trim() ? 'שם הרכב (לא חובה)' : 'שם הרכב'}</span>
-                    <input value={customVehicleName} onChange={(event) => setCustomVehicleName(event.target.value)} placeholder="לדוגמה: טויוטה קורולה לבנה" className={field} required={!customLicensePlate.trim()} />
+                  <label className="block"><span className={label}>מספר רישוי</span>
+                    <input value={customLicensePlate} onChange={(event) => setCustomLicensePlate(event.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" className={field} required />
                   </label>
-                  <label className="block"><span className={label}>{customVehicleName.trim() ? 'מספר רישוי (לא חובה)' : 'מספר רישוי'}</span>
-                    <input value={customLicensePlate} onChange={(event) => setCustomLicensePlate(event.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" className={field} required={!customVehicleName.trim()} />
+                  <label className="block"><span className={label}>שם הרכב (לא חובה)</span>
+                    <input value={customVehicleName} onChange={(event) => setCustomVehicleName(event.target.value)} placeholder="לדוגמה: טויוטה קורולה לבנה" className={field} />
                   </label>
-                  <p className="text-sm text-gray-500">מספיק אחד מהשניים — מספר רישוי או שם רכב.</p>
                 </div>
               )}
             </div>

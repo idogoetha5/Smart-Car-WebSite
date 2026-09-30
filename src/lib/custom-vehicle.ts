@@ -23,7 +23,7 @@ export function readVehicleInput(body: Record<string, unknown> | null): VehicleI
 
 /**
  * The car for a new field job: a fleet vehicle, or one typed in by hand
- * (name and/or licence plate — either is enough). A typed plate that matches
+ * (licence plate required, name optional). A typed plate that matches
  * a fleet car is linked to that car, so it shows with its real name.
  */
 export async function resolveVehicle(supabase: Admin, input: VehicleInput): Promise<ResolvedVehicle> {
@@ -39,8 +39,8 @@ export async function resolveVehicle(supabase: Admin, input: VehicleInput): Prom
     return { ok: true, vehicleId, customVehicleName: null, customLicensePlate: null };
   }
 
-  if (!customVehicleName && !customLicensePlate) {
-    return { ok: false, status: 400, error: 'יש לבחור רכב, או לכתוב מספר רישוי או שם רכב' };
+  if (!customLicensePlate) {
+    return { ok: false, status: 400, error: 'יש לבחור רכב מהרשימה, או לכתוב את מספר הרישוי' };
   }
 
   const plateDigits = normalizePlate(customLicensePlate);

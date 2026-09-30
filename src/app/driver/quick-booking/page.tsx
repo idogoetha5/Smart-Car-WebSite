@@ -128,7 +128,7 @@ export default function DriverQuickBookingPage() {
 
   const hasVehicle = vehicleMode === 'fleet'
     ? Boolean(vehicleId)
-    : Boolean(customVehicleName.trim() || customLicensePlate.trim());
+    : Boolean(customLicensePlate.trim());
   const canSubmit = customerName.trim() !== '' && customerPhone.trim() !== '' && customerEmail.trim() !== '' && hasVehicle && type && !submitting;
 
   const handleSubmit = async () => {
@@ -264,14 +264,13 @@ export default function DriverQuickBookingPage() {
           ) : (
             <div className="space-y-3">
               <label className="block">
-                <span className="block text-sm font-bold text-gray-600 mb-1">{customLicensePlate.trim() ? 'שם הרכב (לא חובה)' : 'שם הרכב'}</span>
-                <input value={customVehicleName} onChange={(e) => setCustomVehicleName(e.target.value)} placeholder="לדוגמה: טויוטה קורולה לבנה" className="w-full min-h-12 rounded-xl border-2 border-gray-200 px-3 text-base" />
+                <span className="block text-sm font-bold text-gray-600 mb-1">מספר רישוי</span>
+                <input value={customLicensePlate} onChange={(e) => setCustomLicensePlate(e.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" required className="w-full min-h-12 rounded-xl border-2 border-gray-200 px-3 text-base" />
               </label>
               <label className="block">
-                <span className="block text-sm font-bold text-gray-600 mb-1">{customVehicleName.trim() ? 'מספר רישוי (לא חובה)' : 'מספר רישוי'}</span>
-                <input value={customLicensePlate} onChange={(e) => setCustomLicensePlate(e.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" className="w-full min-h-12 rounded-xl border-2 border-gray-200 px-3 text-base" />
+                <span className="block text-sm font-bold text-gray-600 mb-1">שם הרכב (לא חובה)</span>
+                <input value={customVehicleName} onChange={(e) => setCustomVehicleName(e.target.value)} placeholder="לדוגמה: טויוטה קורולה לבנה" className="w-full min-h-12 rounded-xl border-2 border-gray-200 px-3 text-base" />
               </label>
-              <p className="text-sm text-gray-500">מספיק אחד מהשניים — מספר רישוי או שם רכב.</p>
             </div>
           )}
         </div>
