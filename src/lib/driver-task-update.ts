@@ -41,3 +41,25 @@ export async function updateDriverTask(request: Request, id: string): Promise<Ne
   }
   return NextResponse.json({ success: true });
 }
+
+/**
+ * Permanently removes a task — only once it has been cancelled, so an open
+ * or completed task can never be deleted by mistake. The booking (and any
+ * inspection) is kept.
+ */
+export async function deleteCancelledTask(id: string): Promise<NextResponse> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from('driver_tasks')
+    .delete()
+    .eq('id', id)
+    .eq('status', 'cancelled')
+    .select('id')
+    .maybeSingle();
+  if (error) {
+    console.error('[driver-task-update] delete failed:', error.message);
+    return NextResponse.json({ error: 'המחיקה נכשלה' }, { status: 500 });
+  }
+  if (!data) return NextResponse.json({ error: 'אפשר למחוק רק משימה שבוטלה' }, { status: 409 });
+  return NextResponse.json({ success: true });
+}

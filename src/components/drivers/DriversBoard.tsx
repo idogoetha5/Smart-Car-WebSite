@@ -168,6 +168,13 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
     mutateTasks();
   };
 
+  const deleteTask = async (task: Task) => {
+    if (!window.confirm('למחוק את המשימה לצמיתות?')) return;
+    const response = await fetch(`${tasksApi}/${task.id}`, { method: 'DELETE' });
+    if (!response.ok) { alert('המחיקה נכשלה'); return; }
+    mutateTasks((current) => (current ?? []).filter((item) => item.id !== task.id), { revalidate: false });
+  };
+
   const cancelTask = async (task: Task) => {
     if (!window.confirm('לבטל את המשימה?')) return;
     const response = await fetch(`${tasksApi}/${task.id}`, {
@@ -210,6 +217,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
           {task.inspection?.status === 'signed' && <span className="text-xs font-bold text-green-600">✓ נחתם</span>}
           {task.inspection?.status === 'awaiting_signature' && <span className="text-xs font-bold text-amber-600">ממתין לחתימה</span>}
           {task.status === 'open' && <button onClick={() => cancelTask(task)} className="text-xs font-bold text-red-500 hover:text-red-700">ביטול משימה</button>}
+          {task.status === 'cancelled' && <button onClick={() => deleteTask(task)} className="text-xs font-bold text-red-600 underline hover:text-red-800">מחיקה</button>}
         </div>
       </div>
     );
