@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR, { preload } from 'swr';
-import { Search, LogOut, RefreshCw, Plus, Navigation, Phone, Pencil, MapPin } from 'lucide-react';
+import { Search, LogOut, RefreshCw, Plus, Navigation, Phone, Pencil, MapPin, MessageCircle } from 'lucide-react';
 import { fetcher } from '@/lib/swr';
 import PendingInspections from '@/components/inspection/PendingInspections';
+import { onTheWayLink, onTheWayMessage } from '@/lib/driver-on-the-way';
 
 interface TaskRow {
   taskId: string;
@@ -51,7 +52,7 @@ function TaskAction({ row }: { row: TaskRow }) {
   );
 }
 
-function TaskCard({ row, onChanged }: { row: TaskRow; onChanged: () => void }) {
+function TaskCard({ row, onChanged, driverName }: { row: TaskRow; onChanged: () => void; driverName: string }) {
   const hasAddress = Boolean(row.navQuery);
   const [editing, setEditing] = useState(false);
   const [address, setAddress] = useState(hasAddress ? row.location : '');
@@ -117,6 +118,24 @@ function TaskCard({ row, onChanged }: { row: TaskRow; onChanged: () => void }) {
           </button>
         </div>
       </div>
+
+      {!isDone && row.customerPhone && (() => {
+        const link = onTheWayLink(
+          row.customerPhone,
+          onTheWayMessage({ customerName: row.customerName, driverName, vehicleName: row.vehicleName, type: row.type })
+        );
+        return link ? (
+          <a
+            href={link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] text-sm font-black text-white"
+          >
+            <MessageCircle className="h-5 w-5" aria-hidden="true" />
+            שלח ללקוח: אני בדרך (עד 60 דק׳)
+          </a>
+        ) : null;
+      })()}
 
       {editing ? (
         <div className="mt-3 space-y-2">
@@ -191,6 +210,8 @@ export default function DriverTodayPage() {
   const [tab, setTab] = useState<Tab>('today');
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+
+  const { data: me } = useSWR<{ role: string; name?: string }>('/api/driver/me', fetcher, { dedupingInterval: 60_000 });
 
   const dateQuery = tab === 'tomorrow' ? 'date=tomorrow' : 'date=today';
   const url = tab === 'search'
@@ -276,7 +297,7 @@ export default function DriverTodayPage() {
         {tab === 'search' ? (
           <div className="space-y-3">
             {(data?.results ?? []).map((row) => (
-              <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} />
+              <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} />
             ))}
             {search && !isLoading && (data?.results ?? []).length === 0 && (
               <p className="text-center text-gray-400 py-10">לא נמצאו משימות</p>
@@ -288,7 +309,7 @@ export default function DriverTodayPage() {
               <h2 className="text-sm font-black text-gray-500 mb-2">מסירות</h2>
               <div className="space-y-3">
                 {(data?.pickups ?? []).map((row) => (
-                  <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} />
+                  <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} />
                 ))}
                 {!isLoading && (data?.pickups ?? []).length === 0 && (
                   <p className="text-center text-gray-400 py-6 text-sm">אין מסירות</p>
@@ -299,7 +320,7 @@ export default function DriverTodayPage() {
               <h2 className="text-sm font-black text-gray-500 mb-2">החזרות</h2>
               <div className="space-y-3">
                 {(data?.returns ?? []).map((row) => (
-                  <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} />
+                  <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} />
                 ))}
                 {!isLoading && (data?.returns ?? []).length === 0 && (
                   <p className="text-center text-gray-400 py-6 text-sm">אין החזרות</p>
