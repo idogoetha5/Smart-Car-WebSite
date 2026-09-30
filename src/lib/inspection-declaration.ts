@@ -59,54 +59,54 @@ This confirmation forms an integral part of the rental agreement.`,
   return: {
     he: `אישור החזרת רכב
 
-בחתימתי על מסמך זה אני מאשר/ת את החזרת הרכב כמפורט בטופס:
+אני, החתום/ה מטה, מאשר/ת כי החזרתי לחברת SmartCar את הרכב המפורט בטופס זה, וכי עיינתי בממצאי בדיקת ההחזרה שנערכה בנוכחותי. בחתימתי על מסמך זה אני מצהיר/ה ומאשר/ת כדלקמן:
 
-מצב הרכב בהחזרה
-ראיתי את תיעוד בדיקת ההחזרה ואת שרטוט הנזקים. הנקודות האפורות הן נזקים שתועדו כבר בבדיקת המסירה, והן אינן באחריותי. הנזקים המסומנים באדום הם נזקים חדשים שנוצרו בתקופת השכירות, והם יטופלו בהתאם להסכם השכירות.
+1. מצב הרכב במועד ההחזרה
+ממצאי בדיקת ההחזרה, לרבות שרטוט הנזקים, התמונות והסרטון ככל שצורפו, משקפים נכונה את מצב הרכב במועד ההחזרה. נזקים המסומנים באפור תועדו בבדיקת המסירה ואינם באחריותי. נזקים המסומנים באדום לא תועדו בבדיקת המסירה, ויחולו לגביהם הוראות הסכם השכירות.
 
-קילומטראז' ודלק
-הקילומטראז' ומפלס הדלק שנרשמו בהחזרה נכונים. חוסר בדלק לעומת המסירה, או חריגה ממכסת הקילומטרים, יחויבו בהתאם להסכם השכירות.
+2. קילומטראז' ומפלס דלק
+נתוני הקילומטראז' ומפלס הדלק שנרשמו במועד ההחזרה נכונים. חוסר בדלק ביחס למפלס שנרשם במסירה, וכן חריגה ממכסת הקילומטרים שנקבעה, יחויבו בהתאם להסכם השכירות.
 
-נזקים שיתגלו בבדיקה מקצועית
-ייתכן שנזק מסוים אינו ניתן לזיהוי בבדיקה במקום. נזק כזה שיתגלה בבדיקה מקצועית סמוך להחזרה יטופל בהתאם להסכם השכירות, ולפני כל חיוב תימסר לי הודעה בצירוף פירוט ותמונות.
+3. נזקים שאינם ניתנים לזיהוי במועד ההחזרה
+ידוע לי כי ייתכנו נזקים שלא ניתן לאתרם בבדיקה חזותית במקום, כגון נזקים בחלקו התחתון של הרכב או תקלות מכניות. נזק כאמור שיאותר בבדיקה מקצועית סמוך למועד ההחזרה ושמקורו בתקופת השכירות, יטופל בהתאם להסכם השכירות. בטרם כל חיוב תימסר לי הודעה בכתב בצירוף פירוט ותיעוד.
 
-דוחות וחיובים מתקופת השכירות
-החזרת הרכב אינה פוטרת אותי מחיובים שנוצרו בתקופת השכירות, גם אם יתקבלו לאחר ההחזרה, ובהם:
-• כביש 6, מנהרות הכרמל, הנתיב המהיר וכבישי אגרה נוספים
-• דוחות חניה ודוחות של רשויות מקומיות
-• דוחות תנועה ומשטרה, כולל מצלמות מהירות ורמזור
-• גרירה, פינוי, נעילת גלגל או אחסנת רכב
-אני מסכים/ה שחברת SmartCar תסב דוחות על שמי ככל שהחוק מאפשר, ותחייב את אמצעי התשלום שמסרתי בסכום החיוב ובדמי טיפול לפי הסכם השכירות. על כל חיוב כזה אקבל הודעה עם פירוט.
+4. אגרות, קנסות ודוחות מתקופת השכירות
+החזרת הרכב אינה גורעת מאחריותי לכל חיוב שנוצר במהלך תקופת השכירות, אף אם ההודעה עליו תתקבל לאחר מועד ההחזרה, ובכלל זה:
+• אגרות כביש 6, מנהרות הכרמל, הנתיב המהיר וכבישי אגרה נוספים;
+• דוחות חניה ודוחות של רשויות מקומיות;
+• דוחות תנועה, לרבות דוחות משטרה ודוחות של מצלמות אכיפה;
+• הוצאות גרירה, פינוי, נעילת גלגל ואחסנת רכב.
+אני מסכים/ה כי SmartCar תהא רשאית להסב על שמי דוחות כאמור, ככל שהדין מאפשר זאת, ולחייב את אמצעי התשלום שמסרתי בסכום החיוב ובדמי הטיפול הקבועים בהסכם השכירות. על כל חיוב כאמור תימסר לי הודעה בצירוף פירוט.
 
-חפצים אישיים
-וידאתי כי נטלתי את כל חפציי מהרכב. SmartCar אינה אחראית לחפצים שנשארו ברכב.
+5. חפצים אישיים
+הוצאתי מהרכב את כל חפציי האישיים. SmartCar לא תישא באחריות לחפצים שנותרו ברכב לאחר מועד ההחזרה.
 
-אישור זה מהווה חלק בלתי נפרד מהסכם השכירות.`,
+אישור זה מהווה חלק בלתי נפרד מהסכם השכירות, ואין בו כדי לגרוע מהוראותיו.`,
     en: `Vehicle return confirmation
 
-By signing this document, I confirm the return of the vehicle as set out in this form:
+I, the undersigned, confirm that I have returned to SmartCar the vehicle described in this form, and that I have reviewed the findings of the return inspection carried out in my presence. By signing this document, I declare and confirm as follows:
 
-Condition at return
-I have seen the return inspection record and the damage diagram. The grey dots are damage already recorded at handover and are not my responsibility. The damage marked in red is new damage that occurred during the rental and will be handled in accordance with the rental agreement.
+1. Condition of the vehicle at return
+The findings of the return inspection, including the damage diagram, photos and video where attached, accurately reflect the condition of the vehicle at the time of return. Damage marked in grey was recorded at the handover inspection and is not my responsibility. Damage marked in red was not recorded at handover, and the provisions of the rental agreement shall apply to it.
 
-Mileage and fuel
-The odometer reading and fuel level recorded at return are correct. A fuel shortfall compared with handover, or exceeding the mileage allowance, will be charged under the rental agreement.
+2. Mileage and fuel level
+The odometer reading and fuel level recorded at return are correct. Any fuel shortfall relative to the level recorded at handover, and any excess over the agreed mileage allowance, will be charged in accordance with the rental agreement.
 
-Damage found in a professional inspection
-Some damage may not be identifiable on the spot. Any such damage found in a professional inspection shortly after the return will be handled under the rental agreement, and I will receive a notice with details and photos before any charge.
+3. Damage not identifiable at return
+I understand that some damage may not be detectable by a visual inspection on site, such as damage to the underside of the vehicle or mechanical faults. Any such damage found in a professional inspection shortly after the return and originating in the rental period will be handled in accordance with the rental agreement. I will receive written notice with details and documentation before any charge.
 
-Fines and charges from the rental period
-Returning the vehicle does not release me from charges incurred during the rental, even if they arrive after the return, including:
-• Road 6, the Carmel Tunnels, the Fast Lane and other toll roads
-• Parking tickets and local-authority fines
-• Traffic and police fines, including speed and red-light cameras
-• Towing, removal, wheel clamping or vehicle storage
-I agree that SmartCar may transfer fines to my name as far as the law allows, and charge the payment method I provided for the amount plus a handling fee under the rental agreement. I will receive a notice with details of any such charge.
+4. Tolls, fines and penalties from the rental period
+Returning the vehicle does not diminish my responsibility for any charge incurred during the rental period, even if notice of it is received after the return, including:
+• Road 6, the Carmel Tunnels, the Fast Lane and other toll roads;
+• Parking tickets and local-authority fines;
+• Traffic fines, including police and enforcement-camera fines;
+• Towing, removal, wheel-clamping and vehicle storage costs.
+I agree that SmartCar may transfer such fines to my name as far as the law allows, and charge the payment method I provided for the amount plus the handling fee set out in the rental agreement. I will receive notice with details of any such charge.
 
-Personal belongings
-I have made sure to take all my belongings from the vehicle. SmartCar is not responsible for items left in the vehicle.
+5. Personal belongings
+I have removed all my personal belongings from the vehicle. SmartCar shall not be liable for items left in the vehicle after the return.
 
-This confirmation forms an integral part of the rental agreement.`,
+This confirmation forms an integral part of the rental agreement and does not derogate from any of its provisions.`,
   },
 };
 
@@ -121,6 +121,11 @@ export const DECLARATION_HEADINGS = new Set<string>([
   'חפצים אישיים',
   'אגרות, קנסות ודוחות',
   'מצב הרכב בהחזרה',
+  '1. מצב הרכב במועד ההחזרה',
+  "2. קילומטראז' ומפלס דלק",
+  '3. נזקים שאינם ניתנים לזיהוי במועד ההחזרה',
+  '4. אגרות, קנסות ודוחות מתקופת השכירות',
+  '5. חפצים אישיים',
   'נזקים שיתגלו בבדיקה מקצועית',
   'דוחות וחיובים מתקופת השכירות',
   'Vehicle handover confirmation',
@@ -132,6 +137,11 @@ export const DECLARATION_HEADINGS = new Set<string>([
   'Personal belongings',
   'Tolls, fines and penalties',
   'Condition at return',
+  '1. Condition of the vehicle at return',
+  '2. Mileage and fuel level',
+  '3. Damage not identifiable at return',
+  '4. Tolls, fines and penalties from the rental period',
+  '5. Personal belongings',
   'Damage found in a professional inspection',
   'Fines and charges from the rental period',
 ]);
