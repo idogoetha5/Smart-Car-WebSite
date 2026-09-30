@@ -177,8 +177,8 @@ export function generateInspectionPdfHTML(data: InspectionPdfData): string {
     <tr><th>שם הלקוח</th><td>${escapeHtml(data.customerName)}</td></tr>
     <tr><th>רכב</th><td>${escapeHtml(data.vehicleName)} — <span dir="ltr">${escapeHtml(data.licensePlate)}</span></td></tr>
     <tr><th>סוג בדיקה</th><td>${typeLabel}</td></tr>
-    <tr><th>קילומטראז'</th><td dir="ltr">${data.odometerKm.toLocaleString('he-IL')} ק"מ</td></tr>
-    <tr><th>רמת דלק</th><td>${fuelLabel}</td></tr>
+    ${data.type === 'return' ? '' : `<tr><th>קילומטראז'</th><td dir="ltr">${data.odometerKm.toLocaleString('he-IL')} ק"מ</td></tr>
+    <tr><th>רמת דלק</th><td>${fuelLabel}</td></tr>`}
     <tr><th>נהג מבצע הבדיקה</th><td>${escapeHtml(data.driverName || '—')}</td></tr>
   </table>
 

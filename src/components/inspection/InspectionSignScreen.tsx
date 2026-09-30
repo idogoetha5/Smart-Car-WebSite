@@ -186,7 +186,11 @@ export default function InspectionSignScreen({
         const driven = baseKm != null ? data.odometerKm - baseKm : null;
         const newCount = data.damageMarks?.length ?? 0;
         const oldCount = data.handoverMarks?.length ?? 0;
-        const km = (n: number) => `${n.toLocaleString('he-IL')} ${isHe ? 'ק״מ' : 'km'}`;
+        const km = (n: number) => (
+          <>
+            <span dir="ltr">{n.toLocaleString('he-IL')}</span> {isHe ? 'ק״מ' : 'km'}
+          </>
+        );
         return (
           <div className="mb-5 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
             <p className="px-5 pt-5 pb-3 font-black text-gray-900">{isHe ? 'סיכום החזרה — השוואה למסירה' : 'Return summary — compared with handover'}</p>
@@ -204,10 +208,10 @@ export default function InspectionSignScreen({
               <tbody className="divide-y divide-gray-100">
                 <tr>
                   <th className="px-3 py-3 text-start font-bold text-gray-500">{isHe ? "ק״מ" : 'Odometer'}</th>
-                  <td className="px-3 py-3" dir="ltr">{baseKm != null ? km(baseKm) : '—'}</td>
+                  <td className="px-3 py-3">{baseKm != null ? km(baseKm) : '—'}</td>
                   <td className="px-3 py-3 font-black">
-                    <span dir="ltr">{km(data.odometerKm)}</span>
-                    {driven != null && driven >= 0 && <span className="block text-xs font-bold text-gray-500">{isHe ? `נסעו ${km(driven)}` : `${km(driven)} driven`}</span>}
+                    {km(data.odometerKm)}
+                    {driven != null && driven >= 0 && <span className="block text-xs font-bold text-gray-500">{isHe ? <>נסעו {km(driven)}</> : <>{km(driven)} driven</>}</span>}
                   </td>
                 </tr>
                 <tr>
