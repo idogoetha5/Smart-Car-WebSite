@@ -105,6 +105,8 @@ export function generateInspectionPdfHTML(data: InspectionPdfData): string {
   td, th { padding: 8px 10px; border: 1px solid #d9ecec; font-size: 13px; text-align: right; }
   th { background: #eef6f6; width: 30%; font-weight: 700; }
   .declaration { background: #eef6f6; border: 1px solid #B8D8D8; border-radius: 8px; padding: 14px; font-size: 12px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 18px; }
+  tr, .sides figure { break-inside: avoid; page-break-inside: avoid; }
+  .sign-section { break-inside: avoid; page-break-inside: avoid; }
   .signature-block { display: flex; align-items: flex-end; justify-content: space-between; border-top: 1px solid #d9ecec; padding-top: 14px; }
   .signature-block img { max-width: 260px; max-height: 100px; border-bottom: 1px solid #999; }
   .damage h2 { font-size: 15px; margin: 0 0 8px; }
@@ -134,6 +136,7 @@ export function generateInspectionPdfHTML(data: InspectionPdfData): string {
   ${damageSection(data)}
   ${checklistSection(data)}
 
+  <div class="sign-section">
   <div class="declaration">${data.declarationText.split('\n').map((line) => (DECLARATION_HEADINGS.has(line.trim()) ? `<strong style="font-size:13px;">${escapeHtml(line)}</strong>` : escapeHtml(line))).join('\n')}</div>
 
   <div class="signature-block">
@@ -145,6 +148,7 @@ export function generateInspectionPdfHTML(data: InspectionPdfData): string {
       נחתם בתאריך: ${signedAtIL}<br />
       כתובת IP: <span dir="ltr">${escapeHtml(data.signerIp)}</span>
     </div>
+  </div>
   </div>
 
   <p class="meta">
