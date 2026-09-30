@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyAdminToken } from '@/lib/admin-auth';
 import { createAdminClient } from '@/lib/supabase/server';
+import { setTaskLocation } from '@/lib/driver-task-location';
 
-/** Reassign, edit notes, or cancel a task. */
+/** Reassign, edit notes/address, or cancel a task. */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -21,6 +22,13 @@ export async function PATCH(
   if (typeof body?.notes === 'string') update.notes = body.notes.trim() || null;
   if (body?.status === 'open' || body?.status === 'done' || body?.status === 'cancelled') {
     update.status = body.status;
+  }
+
+  const hasLocation = 'location' in (body ?? {});
+  if (hasLocation) {
+    const result = await setTaskLocation(id, body.location);
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+    if (Object.keys(update).length === 0) return NextResponse.json({ success: true });
   }
 
   if (Object.keys(update).length === 0) {

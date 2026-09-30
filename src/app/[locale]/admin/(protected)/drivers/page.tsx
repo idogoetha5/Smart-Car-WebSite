@@ -134,6 +134,18 @@ export default function AdminDriversPage() {
     mutateTasks();
   };
 
+  const editAddress = async (task: Task, current: string) => {
+    const next = window.prompt('כתובת ללקוח (לוויז). השאר ריק כדי למחוק:', current === 'לא צוין' ? '' : current);
+    if (next === null) return;
+    const response = await fetch(`/api/admin/tasks/${task.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ location: next }),
+    });
+    if (!response.ok) { alert('עדכון הכתובת נכשל'); return; }
+    mutateTasks();
+  };
+
   const cancelTask = async (task: Task) => {
     if (!window.confirm('לבטל את המשימה?')) return;
     const response = await fetch(`/api/admin/tasks/${task.id}`, {
@@ -160,7 +172,12 @@ export default function AdminDriversPage() {
         </div>
         <div className="mt-2 grid gap-1 text-xs text-gray-600 sm:grid-cols-2">
           <span>{bookingVehicleName(task.booking)}{plate !== '—' ? ` · ${plate}` : ''}</span>
-          <span>{location || 'לא צוינה כתובת'}</span>
+          <span>
+            {location && location !== 'לא צוין' ? location : 'לא צוינה כתובת'}{' '}
+            <button onClick={() => editAddress(task, location ?? '')} className="font-bold text-[#2D5F5F] underline">
+              {location && location !== 'לא צוין' ? 'ערוך' : 'הוסף כתובת'}
+            </button>
+          </span>
         </div>
         {task.notes && <p className="mt-2 text-xs text-gray-500">הערה: {task.notes}</p>}
         <div className="mt-3 flex flex-wrap items-center gap-2">

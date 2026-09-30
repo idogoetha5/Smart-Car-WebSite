@@ -143,7 +143,7 @@ export default function DriverTaskForm({ driver, onCancel, onCreated }: DriverTa
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <select value={type} onChange={(event) => setType(event.target.value as 'pickup' | 'return')} className="min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm"><option value="pickup">מסירה</option><option value="return">החזרה</option></select>
         <input type="datetime-local" value={scheduledAt} onChange={(event) => setScheduledAt(event.target.value)} className="min-h-11 rounded-xl border border-gray-200 px-3 text-sm" />
-        <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="כתובת / סניף" className="min-h-11 rounded-xl border border-gray-200 px-3 text-sm" />
+        <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="כתובת ללקוח — לוויז (לא חובה)" className="min-h-11 rounded-xl border border-gray-200 px-3 text-sm" />
       </div>
       <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="הערות" rows={2} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm" />
       {error && <p className="text-sm text-red-600">{error}</p>}

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR, { preload } from 'swr';
-import { Search, LogOut, RefreshCw, Plus, Navigation, Phone } from 'lucide-react';
+import { Search, LogOut, RefreshCw, Plus, Navigation, Phone, Pencil, MapPin } from 'lucide-react';
 import { fetcher } from '@/lib/swr';
 import PendingInspections from '@/components/inspection/PendingInspections';
 
@@ -51,7 +51,32 @@ function TaskAction({ row }: { row: TaskRow }) {
   );
 }
 
-function TaskCard({ row }: { row: TaskRow }) {
+function TaskCard({ row, onChanged }: { row: TaskRow; onChanged: () => void }) {
+  const hasAddress = Boolean(row.navQuery);
+  const [editing, setEditing] = useState(false);
+  const [address, setAddress] = useState(hasAddress ? row.location : '');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+
+  const saveAddress = async () => {
+    setSaving(true);
+    setSaveError('');
+    try {
+      const res = await fetch(`/api/driver/tasks/${encodeURIComponent(row.taskId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ location: address.trim() }),
+      });
+      if (!res.ok) throw new Error();
+      setEditing(false);
+      onChanged();
+    } catch {
+      setSaveError('שמירת הכתובת נכשלה');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
@@ -59,25 +84,64 @@ function TaskCard({ row }: { row: TaskRow }) {
           <p className="font-black text-gray-900 truncate">{row.customerName}</p>
           <p className="text-sm text-gray-500 truncate">{row.vehicleName} · <span dir="ltr">{row.licensePlate}</span></p>
           <p className="text-xs text-gray-400 mt-1">
-            {row.location} {row.time ? `· ${row.time.slice(0, 5)}` : ''} · #{row.bookingNumber}
+            {hasAddress ? row.location : 'ללא כתובת'} {row.time ? `· ${row.time.slice(0, 5)}` : ''} · #{row.bookingNumber}
           </p>
         </div>
         <div className="flex flex-col gap-2 shrink-0">
           <TaskAction row={row} />
         </div>
       </div>
-      {(row.navQuery || row.customerPhone) && (
+
+      {editing ? (
+        <div className="mt-3 space-y-2">
+          <input
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="כתובת ללקוח — רחוב, מספר, עיר"
+            autoFocus
+            className="w-full min-h-11 rounded-xl border-2 border-gray-200 px-3 text-base"
+          />
+          <div className="flex gap-2">
+            <button type="button" onClick={saveAddress} disabled={saving} className="min-h-11 flex-1 rounded-xl bg-[#2D5F5F] text-sm font-black text-white disabled:opacity-50">
+              {saving ? 'שומר…' : 'שמור כתובת'}
+            </button>
+            <button type="button" onClick={() => setEditing(false)} className="min-h-11 rounded-xl border-2 border-gray-200 px-4 text-sm font-black text-gray-600">
+              ביטול
+            </button>
+          </div>
+          {saveError && <p className="text-xs text-red-600">{saveError}</p>}
+        </div>
+      ) : (
         <div className="mt-3 flex gap-2">
-          {row.navQuery && (
-            <a
-              href={`https://waze.com/ul?q=${encodeURIComponent(row.navQuery)}&navigate=yes`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border-2 border-[#33CCFF] bg-[#eefbff] text-sm font-black text-[#0a7ea4]"
+          {hasAddress ? (
+            <>
+              <a
+                href={`https://waze.com/ul?q=${encodeURIComponent(row.navQuery as string)}&navigate=yes`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border-2 border-[#33CCFF] bg-[#eefbff] text-sm font-black text-[#0a7ea4]"
+              >
+                <Navigation className="h-4 w-4" aria-hidden="true" />
+                Waze
+              </a>
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                aria-label="עריכת כתובת"
+                className="flex min-h-11 w-11 items-center justify-center rounded-xl border-2 border-gray-200 text-gray-500"
+              >
+                <Pencil className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 text-sm font-black text-gray-500"
             >
-              <Navigation className="h-4 w-4" aria-hidden="true" />
-              Waze
-            </a>
+              <MapPin className="h-4 w-4" aria-hidden="true" />
+              הוסף כתובת לוויז
+            </button>
           )}
           {row.customerPhone && (
             <a
@@ -186,7 +250,7 @@ export default function DriverTodayPage() {
         {tab === 'search' ? (
           <div className="space-y-3">
             {(data?.results ?? []).map((row) => (
-              <TaskCard key={row.taskId} row={row} />
+              <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} />
             ))}
             {search && !isLoading && (data?.results ?? []).length === 0 && (
               <p className="text-center text-gray-400 py-10">לא נמצאו משימות</p>
@@ -198,7 +262,7 @@ export default function DriverTodayPage() {
               <h2 className="text-sm font-black text-gray-500 mb-2">מסירות</h2>
               <div className="space-y-3">
                 {(data?.pickups ?? []).map((row) => (
-                  <TaskCard key={row.taskId} row={row} />
+                  <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} />
                 ))}
                 {!isLoading && (data?.pickups ?? []).length === 0 && (
                   <p className="text-center text-gray-400 py-6 text-sm">אין מסירות</p>
@@ -209,7 +273,7 @@ export default function DriverTodayPage() {
               <h2 className="text-sm font-black text-gray-500 mb-2">החזרות</h2>
               <div className="space-y-3">
                 {(data?.returns ?? []).map((row) => (
-                  <TaskCard key={row.taskId} row={row} />
+                  <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} />
                 ))}
                 {!isLoading && (data?.returns ?? []).length === 0 && (
                   <p className="text-center text-gray-400 py-6 text-sm">אין החזרות</p>
