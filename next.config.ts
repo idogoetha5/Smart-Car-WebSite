@@ -81,6 +81,8 @@ const nextConfig: NextConfig = {
     // quote once a rental request is confirmed — same binary-tracing gap.
     '/api/whatsapp/webhook/route': ['./node_modules/@sparticuz/chromium/bin/**'],
     '/api/whatsapp/simulator/route': ['./node_modules/@sparticuz/chromium/bin/**'],
+    // Signed inspection PDF is rendered inside the customer-signing POST.
+    '/api/inspections/sign/route': ['./node_modules/@sparticuz/chromium/bin/**'],
   },
   images: {
     remotePatterns: [

@@ -69,6 +69,12 @@ function InspectionSignForm() {
         body: JSON.stringify({ token, signatureDataUrl, declarationAccepted, turnstileToken }),
       });
       const json = await res.json().catch(() => ({}));
+      // 409 = this inspection was already signed (double tap, retry after a
+      // slow response) — the signature is stored, so show success.
+      if (res.status === 409 && /נחתמה/.test(String(json?.error ?? ''))) {
+        setDone(true);
+        return;
+      }
       if (!res.ok) {
         setSubmitError(json?.error || (isHe ? 'החתימה נכשלה. נסה שוב.' : 'Signing failed. Try again.'));
         return;
