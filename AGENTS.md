@@ -39,3 +39,10 @@ Drivers and branch managers use the driver app (`/driver/*`, `src/components/ins
 - Branch managers (`/driver/manage`, `/driver/manager-login`, `DriversBoard`, `DriverTaskForm`) use it on **both phone and computer**: it must also look right at 1366px wide (centred, no stretched single-column walls). The audit checks these screens at desktop size too.
 - Before merging, run the audit and look at the screenshots it saves:
   `npm run dev` then `npm i --no-save playwright && npm run audit:mobile` (screenshots in `scripts/mobile-audit/out/`). It must print "All driver screens pass". When you add a new driver screen, add it to the list in `scripts/mobile-audit/run.mjs`.
+
+## Phone notifications (Web Push) for drivers and managers
+
+- Texts live in `src/lib/push-messages.ts` (keep them human, polite and short, in Hebrew); sending in `src/lib/push.ts`; task-change hooks in `src/lib/push-notify.ts`; service worker `public/driver-sw.js`; opt-in card `src/components/app/PushSetup.tsx`.
+- Needs env vars on Vercel (Production): `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`mailto:office@smartcar.co.il`). Generate once with `npx web-push generate-vapid-keys`. Never commit them. Changing the keys invalidates every phone's subscription.
+- Without the keys everything still works; notifications are simply off and the opt-in card stays hidden.
+- Table `push_subscriptions` (migration `database/migrations/add-push-subscriptions.sql`). Morning summary cron: `/api/cron/driver-morning`.

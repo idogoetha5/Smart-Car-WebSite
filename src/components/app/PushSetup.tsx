@@ -77,9 +77,14 @@ export default function PushSetup({ audience }: { audience: 'driver' | 'manager'
       const { publicKey } = await fetch('/api/driver/push').then((r) => r.json());
       const reg = await registration();
       await navigator.serviceWorker.ready;
+      // The phone's push service can hang when offline — give up after 20s.
+      const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 20_000));
       const sub =
         (await reg.pushManager.getSubscription()) ??
-        (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) }));
+        (await Promise.race([
+          reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) }),
+          timeout,
+        ]));
       const res = await fetch('/api/driver/push', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -90,7 +95,7 @@ export default function PushSetup({ audience }: { audience: 'driver' | 'manager'
       setState('on');
       setMessage('ההתראות הופעלו. שלחנו התראת ניסיון לטלפון.');
     } catch {
-      setMessage('לא הצלחנו להפעיל התראות. נסו שוב בעוד רגע.');
+      setMessage('לא הצלחנו להפעיל התראות. בדקו שיש אינטרנט ונסו שוב.');
     } finally {
       setBusy(false);
     }

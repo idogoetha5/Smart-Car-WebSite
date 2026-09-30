@@ -593,7 +593,7 @@ export default function DriversBoard({ mode, page = 'board' }: { mode: 'admin' |
 
         {calMode === 'month' ? (
           <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
-            <section className="rounded-2xl bg-white p-3 shadow-sm sm:p-4">
+            <section className="rounded-2xl bg-white p-1.5 shadow-sm sm:p-4">
               <div className="mb-3 flex items-center justify-between">
                 <button onClick={() => shiftMonth(-1)} aria-label="החודש הקודם" className="flex h-11 w-11 items-center justify-center rounded-xl text-[#2D5F5F] hover:bg-[#eef6f6]">
                   <ChevronDown className="h-5 w-5 -rotate-90" aria-hidden="true" />
@@ -603,10 +603,10 @@ export default function DriversBoard({ mode, page = 'board' }: { mode: 'admin' |
                   <ChevronDown className="h-5 w-5 rotate-90" aria-hidden="true" />
                 </button>
               </div>
-              <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-gray-500">
+              <div className="grid grid-cols-7 gap-0.5 text-center text-xs font-bold text-gray-500 sm:gap-1">
                 {['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'].map((d) => <div key={d} className="py-1">{d}</div>)}
               </div>
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
                 {cells.map((day, i) => {
                   if (!day) return <div key={`e${i}`} />;
                   const list = tasksByDay.get(day) ?? [];
@@ -622,7 +622,7 @@ export default function DriversBoard({ mode, page = 'board' }: { mode: 'admin' |
                       onClick={() => { setCalDay(day); setCalCreating(false); }}
                       aria-label={`${Number(day.slice(8))} — ${list.length} משימות`}
                       aria-pressed={isSelected}
-                      className={`relative flex min-h-14 flex-col items-center justify-start gap-0.5 rounded-xl border-2 p-1 sm:min-h-20 sm:items-stretch sm:p-1.5 ${
+                      className={`relative flex min-h-14 min-w-0 flex-col items-center justify-start gap-0.5 rounded-xl border-2 p-1 sm:min-h-20 sm:items-stretch sm:p-1.5 ${
                         isSelected ? 'border-[#2D5F5F] bg-[#eef6f6]' : isToday ? 'border-[#E8743B] bg-white' : 'border-transparent bg-gray-50 hover:border-[#B8D8D8]'
                       } ${past ? 'opacity-60' : ''}`}
                     >
@@ -718,7 +718,7 @@ export default function DriversBoard({ mode, page = 'board' }: { mode: 'admin' |
 
   if (page === 'calendar') {
     return (
-      <div className="mx-auto w-full max-w-5xl p-4 sm:p-8" dir="rtl">
+      <div className="mx-auto w-full max-w-5xl px-3 py-4 sm:p-8" dir="rtl">
         {loading ? <div className="h-40 animate-pulse rounded-2xl bg-gray-200" /> : renderCalendar()}
       </div>
     );
