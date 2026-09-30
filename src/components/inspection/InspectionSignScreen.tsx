@@ -33,6 +33,9 @@ interface SignData {
   /** Return only: damage recorded at handover (grey). */
   handoverMarks?: Array<{ n: number; view: DamageView; x: number; y: number; kind: string; note: string; hasPhoto: boolean }>;
   handoverMediaToken?: string;
+  handoverOdometerKm?: number | null;
+  handoverFuelLabel?: string | null;
+  handoverSignedAt?: string | null;
 }
 
 async function signDataFetcher(url: string): Promise<SignData> {
@@ -170,9 +173,60 @@ export default function InspectionSignScreen({
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5 space-y-2 text-sm">
         <div className="flex justify-between"><span className="text-gray-400">{isHe ? 'לקוח' : 'Customer'}</span><span className="font-bold">{data.customerName}</span></div>
         <div className="flex justify-between"><span className="text-gray-400">{isHe ? 'רכב' : 'Vehicle'}</span><span className="font-bold">{data.vehicleName} <span dir="ltr">{data.licensePlate}</span></span></div>
-        <div className="flex justify-between"><span className="text-gray-400">{isHe ? "קילומטראז'" : 'Odometer'}</span><span className="font-bold" dir="ltr">{data.odometerKm.toLocaleString('he-IL')} km</span></div>
-        <div className="flex justify-between"><span className="text-gray-400">{isHe ? 'דלק' : 'Fuel'}</span><span className="font-bold">{data.fuelLabel}</span></div>
+        {data.type !== 'return' && (
+          <>
+            <div className="flex justify-between"><span className="text-gray-400">{isHe ? "קילומטראז'" : 'Odometer'}</span><span className="font-bold" dir="ltr">{data.odometerKm.toLocaleString('he-IL')} km</span></div>
+            <div className="flex justify-between"><span className="text-gray-400">{isHe ? 'דלק' : 'Fuel'}</span><span className="font-bold">{data.fuelLabel}</span></div>
+          </>
+        )}
       </div>
+
+      {data.type === 'return' && (() => {
+        const baseKm = data.handoverOdometerKm ?? null;
+        const driven = baseKm != null ? data.odometerKm - baseKm : null;
+        const newCount = data.damageMarks?.length ?? 0;
+        const oldCount = data.handoverMarks?.length ?? 0;
+        const km = (n: number) => `${n.toLocaleString('he-IL')} ${isHe ? 'ק״מ' : 'km'}`;
+        return (
+          <div className="mb-5 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+            <p className="px-5 pt-5 pb-3 font-black text-gray-900">{isHe ? 'סיכום החזרה — השוואה למסירה' : 'Return summary — compared with handover'}</p>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-gray-500">
+                  <th className="px-3 py-2 text-start font-bold" />
+                  <th className="px-3 py-2 text-start font-bold">
+                    {isHe ? 'במסירה' : 'Handover'}
+                    {data.handoverSignedAt ? <span className="block text-xs font-normal">{new Date(data.handoverSignedAt).toLocaleDateString('he-IL')}</span> : null}
+                  </th>
+                  <th className="px-3 py-2 text-start font-bold">{isHe ? 'בהחזרה' : 'Return'}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                <tr>
+                  <th className="px-3 py-3 text-start font-bold text-gray-500">{isHe ? "ק״מ" : 'Odometer'}</th>
+                  <td className="px-3 py-3" dir="ltr">{baseKm != null ? km(baseKm) : '—'}</td>
+                  <td className="px-3 py-3 font-black">
+                    <span dir="ltr">{km(data.odometerKm)}</span>
+                    {driven != null && driven >= 0 && <span className="block text-xs font-bold text-gray-500">{isHe ? `נסעו ${km(driven)}` : `${km(driven)} driven`}</span>}
+                  </td>
+                </tr>
+                <tr>
+                  <th className="px-3 py-3 text-start font-bold text-gray-500">{isHe ? 'דלק' : 'Fuel'}</th>
+                  <td className="px-3 py-3">{data.handoverFuelLabel ?? '—'}</td>
+                  <td className="px-3 py-3 font-black">{data.fuelLabel}</td>
+                </tr>
+                <tr>
+                  <th className="px-3 py-3 text-start font-bold text-gray-500">{isHe ? 'נזקים' : 'Damage'}</th>
+                  <td className="px-3 py-3">{isHe ? `${oldCount} קיימים` : `${oldCount} existing`}</td>
+                  <td className={`px-3 py-3 font-black ${newCount ? 'text-red-600' : 'text-green-700'}`}>
+                    {newCount ? (isHe ? `${newCount} חדשים` : `${newCount} new`) : (isHe ? 'אין חדשים' : 'None new')}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
 
       {(data.hasVideo ?? true) &&
         (data.videoReady ? (
@@ -229,7 +283,7 @@ export default function InspectionSignScreen({
 
       {data.noDamage && (
         <div className="mb-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-black text-green-800">
-          {isHe ? 'לא נמצאו נזקים ברכב.' : 'No damage found on the car.'}
+          {data.type === 'return' ? (isHe ? 'לא נמצאו נזקים חדשים ברכב.' : 'No new damage found on the car.') : (isHe ? 'לא נמצאו נזקים ברכב.' : 'No damage found on the car.')}
         </div>
       )}
 

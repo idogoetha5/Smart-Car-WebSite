@@ -29,10 +29,36 @@ export interface InspectionPdfData {
   checklist?: Array<{ id: string; value: 'ok' | 'bad' }>;
   /** Return only: damage already recorded at handover (drawn grey). */
   handoverMarks?: DamageMark[];
+  /** Return only: the handover baseline, for the handover-vs-return table. */
+  handoverOdometerKm?: number | null;
+  handoverFuelEighths?: number | null;
+  handoverSignedAt?: string | null;
 }
 
 function escapeHtml(str: string): string {
   return str.replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c] ?? c));
+}
+
+/** Return: handover vs return side by side, so the customer signs on the difference. */
+function returnSummarySection(data: InspectionPdfData): string {
+  if (data.type !== 'return') return '';
+  const hasBase = data.handoverOdometerKm != null;
+  const km = (n: number) => `${n.toLocaleString('he-IL')} ק"מ`;
+  const driven = hasBase ? data.odometerKm - (data.handoverOdometerKm as number) : null;
+  const newCount = (data.damageMarks ?? []).length;
+  const oldCount = (data.handoverMarks ?? []).length;
+  const handoverDate = data.handoverSignedAt ? new Date(data.handoverSignedAt).toLocaleDateString('he-IL') : '—';
+  return `<div class="damage">
+    <h2>סיכום החזרה — השוואה למסירה</h2>
+    <table class="damage-table">
+      <thead><tr><th></th><th>במסירה (${escapeHtml(handoverDate)})</th><th>בהחזרה</th></tr></thead>
+      <tbody>
+        <tr><th>קילומטראז'</th><td>${hasBase ? km(data.handoverOdometerKm as number) : '—'}</td><td>${km(data.odometerKm)}${driven != null && driven >= 0 ? ` (נסעו ${km(driven)})` : ''}</td></tr>
+        <tr><th>רמת דלק</th><td>${data.handoverFuelEighths != null ? fuelEighthsToLabel(data.handoverFuelEighths) : '—'}</td><td>${fuelEighthsToLabel(data.fuelEighths)}</td></tr>
+        <tr><th>נזקים</th><td>${oldCount} נזקים קיימים (אפור)</td><td>${newCount ? `<strong style="color:#dc2626;">${newCount} נזקים חדשים</strong>` : 'אין נזקים חדשים'}</td></tr>
+      </tbody>
+    </table>
+  </div>`;
 }
 
 function damageSection(data: InspectionPdfData): string {
@@ -156,6 +182,7 @@ export function generateInspectionPdfHTML(data: InspectionPdfData): string {
     <tr><th>נהג מבצע הבדיקה</th><td>${escapeHtml(data.driverName || '—')}</td></tr>
   </table>
 
+  ${returnSummarySection(data)}
   ${damageSection(data)}
   ${checklistSection(data)}
 

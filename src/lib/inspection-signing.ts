@@ -88,6 +88,9 @@ export async function loadSignView(
         hasPhoto: Boolean(m.photo_path),
       })),
       handoverMediaToken: handover?.mediaToken ?? '',
+      handoverOdometerKm: handover ? handover.odometerKm : null,
+      handoverFuelLabel: handover ? fuelEighthsToLabel(handover.fuelEighths) : null,
+      handoverSignedAt: handover?.signedAt ?? null,
       inspectionId: data.id,
       type: data.type,
       odometerKm: data.odometer_km,
@@ -186,6 +189,10 @@ async function finalizeSignedInspection(args: {
       Object.entries(inspection.side_photos ?? {}).map(async ([view, path]) => ({ view, photoUrl: await photoUrlFor(path) }))
     );
 
+    const handover =
+      inspection.type === 'return'
+        ? await loadHandover({ bookingId: booking?.id, handoverInspectionId: inspection.handover_inspection_id })
+        : null;
     pdfBuffer = await renderInspectionPdf({
       inspectionId,
       bookingId: booking?.id ?? '',
@@ -207,8 +214,10 @@ async function finalizeSignedInspection(args: {
       noDamage: Boolean(inspection.no_damage),
       sidePhotos: sidePhotoRows,
       checklist: checklistEntries(inspection.checklist),
-      handoverMarks:
-        inspection.type === 'return' ? (await loadHandover({ bookingId: booking?.id, handoverInspectionId: inspection.handover_inspection_id }))?.marks ?? [] : [],
+      handoverMarks: handover?.marks ?? [],
+      handoverOdometerKm: handover?.odometerKm ?? null,
+      handoverFuelEighths: handover?.fuelEighths ?? null,
+      handoverSignedAt: handover?.signedAt ?? null,
     });
 
     const pdfPath = inspectionPdfPath(inspectionId);
