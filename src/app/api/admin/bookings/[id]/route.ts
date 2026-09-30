@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/server';
+import { deleteBookingCascade } from '@/lib/booking-delete';
 import { verifyAdminToken } from '@/lib/admin-auth';
 import { alreadyDelivered, sendTemplateEmail } from '@/lib/email-delivery';
 import { formatLocationForCustomer } from '@/lib/location-display';
@@ -212,8 +213,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const { id } = await params;
-  const supabase = createAdminClient();
-  const { error } = await supabase.from('bookings').delete().eq('id', id);
-  if (error) { console.error(error.message); return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 }); }
+  const result = await deleteBookingCascade(id);
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 500 });
   return NextResponse.json({ success: true });
 }
