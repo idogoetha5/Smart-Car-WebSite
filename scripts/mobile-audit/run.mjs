@@ -56,9 +56,11 @@ for(const path of pages){
  if(path==='/driver/quick-booking'){
    await p.getByRole('button',{name:'בדיקת החזרה'}).click(); await p.locator('#return-search').fill('דני'); await p.waitForTimeout(900); await check('quick_return');
    await p.getByRole('button',{name:/הזנת פרטים ידנית/}).click(); await check('quick_return_manual');
+   await p.getByRole('button',{name:'רכב שלא ברשימה'}).click(); await check('quick_custom_car');
  }
  if(path==='/driver/manage'){
-   const open=p.getByRole('button',{name:/הקצאת משימה/}).first(); if(await open.count()){ await open.click(); await check('manage_assign'); await p.getByRole('button',{name:'החזרה',exact:true}).click(); await check('manage_assign_return'); }
+   const open=p.getByRole('button',{name:/הקצאת משימה/}).first(); if(await open.count()){ await open.click(); await check('manage_assign'); await p.getByRole('button',{name:'החזרה',exact:true}).click(); await check('manage_assign_return');
+   await p.getByRole('button',{name:'לקוח חדש'}).click(); await p.getByRole('button',{name:'לא ברשימה'}).click(); await check('manage_custom_car'); }
    else console.log('manage: assign button not found');
  }
  if(path.includes('inspection/new')){
