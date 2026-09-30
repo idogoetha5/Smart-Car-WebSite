@@ -102,9 +102,13 @@ export default function AdminBookingsPage() {
   };
 
   const handleDelete = async (id: string, customerName: string) => {
-    if (!window.confirm(`למחוק לצמיתות את ההזמנה של ${customerName}?\nפעולה זו אינה ניתנת לביטול.`)) return;
+    if (!window.confirm(`למחוק לצמיתות את ההזמנה של ${customerName}?\nיימחקו גם משימות הנהג ובדיקות הרכב של ההזמנה (סרטונים, תמונות ומסמכים חתומים).\nפעולה זו אינה ניתנת לביטול.`)) return;
     const res = await fetch(`/api/admin/bookings/${id}`, { method: 'DELETE' });
-    if (!res.ok) { alert('שגיאה במחיקה'); return; }
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      alert(json?.error || 'שגיאה במחיקה');
+      return;
+    }
     mutateBookings(curr => (curr ?? []).filter(b => b.id !== id), { revalidate: false });
   };
 
