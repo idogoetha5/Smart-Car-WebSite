@@ -1,6 +1,7 @@
 import { fuelEighthsToLabel } from './inspection-storage';
 import { damageKindLabel, VIEW_LABELS, type DamageMark, type DamageView } from './inspection-damage';
 import { renderCarDiagramHtml } from './car-diagram-shapes';
+import { checklistLabel } from './inspection-checklist';
 
 export interface InspectionPdfData {
   inspectionId: string;
@@ -24,6 +25,7 @@ export interface InspectionPdfData {
   damageMarks?: Array<DamageMark & { photoUrl?: string | null }>;
   noDamage?: boolean;
   sidePhotos?: Array<{ view: string; photoUrl: string | null }>;
+  checklist?: Array<{ id: string; value: 'ok' | 'bad' }>;
 }
 
 function escapeHtml(str: string): string {
@@ -60,6 +62,18 @@ function damageSection(data: InspectionPdfData): string {
     ${marks.length ? `<table><tr><th style="width:36px;">#</th><th>מיקום</th><th>סוג</th><th>הערה</th><th>תמונה</th></tr>${rows}</table>` : ''}
     ${sideFigures ? `<div class="sides">${sideFigures}</div>` : ''}
   </div>`;
+}
+
+function checklistSection(data: InspectionPdfData): string {
+  const items = data.checklist ?? [];
+  if (!items.length) return '';
+  const rows = items
+    .map(
+      (i) =>
+        `<tr><td>${escapeHtml(checklistLabel(i.id))}</td><td style="width:90px;font-weight:700;color:${i.value === 'ok' ? '#15803d' : '#dc2626'};">${i.value === 'ok' ? '✓ תקין' : '✗ לא תקין'}</td></tr>`
+    )
+    .join('');
+  return `<div class="damage"><h2>צ'קליסט</h2><table>${rows}</table></div>`;
 }
 
 /**
@@ -117,6 +131,7 @@ export function generateInspectionPdfHTML(data: InspectionPdfData): string {
   </table>
 
   ${damageSection(data)}
+  ${checklistSection(data)}
 
   <div class="declaration">${escapeHtml(data.declarationText)}</div>
 

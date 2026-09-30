@@ -8,6 +8,7 @@ import TurnstileWidget from '@/components/ui/Turnstile';
 import SignaturePadField from '@/components/inspection/SignaturePadField';
 import CarDamageDiagram from '@/components/inspection/CarDamageDiagram';
 import { damageKindLabel, VIEW_LABELS, type DamageView } from '@/lib/inspection-damage';
+import { checklistLabel } from '@/lib/inspection-checklist';
 
 interface SignData {
   inspectionId: string;
@@ -26,6 +27,7 @@ interface SignData {
   damageMarks?: Array<{ n: number; view: DamageView; x: number; y: number; kind: string; note: string; hasPhoto: boolean }>;
   noDamage?: boolean;
   sidePhotoViews?: string[];
+  checklist?: Array<{ id: string; value: 'ok' | 'bad' }>;
 }
 
 async function signDataFetcher(url: string): Promise<SignData> {
@@ -192,6 +194,22 @@ function InspectionSignForm() {
               </figcaption>
             </figure>
           ))}
+        </div>
+      )}
+
+      {(data.checklist?.length ?? 0) > 0 && (
+        <div className="mb-5 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <p className="mb-2 font-black text-gray-900">{isHe ? "צ'קליסט" : 'Checklist'}</p>
+          <ul className="divide-y divide-gray-100 text-sm">
+            {data.checklist!.map((i) => (
+              <li key={i.id} className="flex justify-between py-1.5">
+                <span className="text-gray-700">{checklistLabel(i.id, isHe)}</span>
+                <span className={`font-black ${i.value === 'ok' ? 'text-green-700' : 'text-red-600'}`}>
+                  {i.value === 'ok' ? (isHe ? '✓ תקין' : '✓ OK') : (isHe ? '✗ לא תקין' : '✗ Not OK')}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

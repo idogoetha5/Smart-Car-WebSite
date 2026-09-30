@@ -16,6 +16,7 @@ import { numericOrderReference } from '@/lib/order-reference';
 import { sendInspectionOfficeEmail } from '@/lib/inspection-office-email';
 import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
 import type { DamageMark } from '@/lib/inspection-damage';
+import { checklistEntries, type Checklist } from '@/lib/inspection-checklist';
 
 // Renders the signed PDF with headless Chromium, then emails the office.
 export const maxDuration = 60;
@@ -35,6 +36,7 @@ type InspectionRow = {
   no_damage: boolean | null;
   side_photos: Record<string, string> | null;
   media_completed_at: string | null;
+  checklist: Checklist | null;
   booking: {
     id: string;
     customer_name: string;
@@ -66,7 +68,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase
     .from('vehicle_inspections')
     .select(
-      'id, type, odometer_km, fuel_eighths, status, signed_at, video_sha256, video_path, damage_marks, no_damage, side_photos, media_completed_at, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))'
+      'id, type, odometer_km, fuel_eighths, status, signed_at, video_sha256, video_path, damage_marks, no_damage, side_photos, media_completed_at, checklist, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))'
     )
     .eq('id', link.inspectionId!)
     .maybeSingle<InspectionRow>();
@@ -105,6 +107,7 @@ export async function GET(request: NextRequest) {
       })),
       noDamage: Boolean(data.no_damage),
       sidePhotoViews: Object.keys(data.side_photos ?? {}),
+      checklist: checklistEntries(data.checklist),
     },
   });
 }
@@ -155,7 +158,7 @@ export async function POST(request: NextRequest) {
     .eq('id', inspectionId)
     .eq('status', 'awaiting_signature')
     .select(
-      'id, type, odometer_km, fuel_eighths, video_sha256, video_path, damage_marks, no_damage, side_photos, signed_at, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
+      'id, type, odometer_km, fuel_eighths, video_sha256, video_path, damage_marks, no_damage, side_photos, checklist, signed_at, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
     )
     .returns<InspectionRow[]>();
 
@@ -245,6 +248,7 @@ export async function POST(request: NextRequest) {
     damageMarks: damageRows,
     noDamage: Boolean(inspection.no_damage),
     sidePhotos: sidePhotoRows,
+    checklist: checklistEntries(inspection.checklist),
   });
 
   const pdfPath = inspectionPdfPath(inspectionId);

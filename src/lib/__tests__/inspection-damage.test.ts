@@ -98,3 +98,21 @@ describe('car diagram svg', () => {
     expect(html.match(/<svg/g)?.length).toBe(5);
   });
 });
+
+import { parseChecklist, checklistRegressions, checklistEntries } from '../inspection-checklist';
+
+describe('checklist', () => {
+  it('keeps only known items with ok/bad, nothing required', () => {
+    expect(parseChecklist({ lights: 'ok', gps: 'ok', tires: 'bad', mirrors: 'maybe' })).toEqual({ lights: 'ok', tires: 'bad' });
+    expect(parseChecklist(undefined)).toEqual({});
+    expect(parseChecklist(['x'])).toEqual({});
+  });
+  it('does not include GPS, antenna or service sticker', () => {
+    const ids = checklistEntries(parseChecklist({ gps: 'ok', antenna: 'ok', service_sticker: 'ok' }));
+    expect(ids).toEqual([]);
+  });
+  it('flags items that were ok at pickup and bad at return', () => {
+    expect(checklistRegressions({ lights: 'ok', tires: 'ok', audio: 'bad' }, { lights: 'bad', tires: 'ok', audio: 'bad' })).toEqual(['lights']);
+    expect(checklistRegressions(null, { lights: 'bad' })).toEqual([]);
+  });
+});

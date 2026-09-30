@@ -18,6 +18,7 @@ import {
   type DamageView,
   type SidePhotoView,
 } from '@/lib/inspection-damage';
+import { CHECKLIST_ITEMS, type Checklist, type ChecklistItemId } from '@/lib/inspection-checklist';
 
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
@@ -82,6 +83,8 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
   const [pending, setPending] = useState<PendingMark | null>(null);
   const [noDamage, setNoDamage] = useState(false);
   const [sidePhotos, setSidePhotos] = useState<Partial<Record<SidePhotoView, File>>>({});
+  const [checklist, setChecklist] = useState<Checklist>({});
+  const [checklistOpen, setChecklistOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<Stage>('idle');
@@ -111,6 +114,15 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
     ]);
     setNoDamage(false);
     setPending(null);
+  };
+
+  const toggleChecklist = (id: ChecklistItemId, value: 'ok' | 'bad') => {
+    setChecklist((prev) => {
+      const next = { ...prev };
+      if (next[id] === value) delete next[id];
+      else next[id] = value;
+      return next;
+    });
   };
 
   const removeMark = (n: number) => {
@@ -156,6 +168,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
           damageMarks: marks.map((m) => ({ view: m.view, x: m.x, y: m.y, kind: m.kind, note: m.note, hasPhoto: Boolean(m.photo) })),
           noDamage: noDamage && marks.length === 0,
           sidePhotoViews: usedSideViews,
+          checklist,
         }),
       });
       const created = await createRes.json().catch(() => ({}));
@@ -475,6 +488,59 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe, statusH
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Optional checklist */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setChecklistOpen((o) => !o)}
+            className="flex w-full items-center justify-between font-black text-gray-800"
+            aria-expanded={checklistOpen}
+          >
+            <span>
+              {isHe ? "צ'קליסט (לא חובה)" : 'Checklist (optional)'}
+              {Object.keys(checklist).length > 0 && (
+                <span className="ms-2 text-sm font-bold text-gray-500">· {Object.keys(checklist).length}/{CHECKLIST_ITEMS.length}</span>
+              )}
+            </span>
+            <span className="text-gray-400">{checklistOpen ? '▲' : '▼'}</span>
+          </button>
+          {checklistOpen && (
+            <ul className="mt-3 divide-y divide-gray-100">
+              {CHECKLIST_ITEMS.map((item) => (
+                <li key={item.id} className="flex items-center justify-between gap-2 py-2">
+                  <span className="text-sm font-bold text-gray-700">{isHe ? item.he : item.en}</span>
+                  <span className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      disabled={uploading}
+                      onClick={() => toggleChecklist(item.id, 'ok')}
+                      aria-pressed={checklist[item.id] === 'ok'}
+                      aria-label={isHe ? 'תקין' : 'OK'}
+                      className={`h-11 w-11 rounded-xl border-2 text-lg font-black ${
+                        checklist[item.id] === 'ok' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-200 text-gray-400'
+                      }`}
+                    >
+                      ✓
+                    </button>
+                    <button
+                      type="button"
+                      disabled={uploading}
+                      onClick={() => toggleChecklist(item.id, 'bad')}
+                      aria-pressed={checklist[item.id] === 'bad'}
+                      aria-label={isHe ? 'לא תקין' : 'Not OK'}
+                      className={`h-11 w-11 rounded-xl border-2 text-lg font-black ${
+                        checklist[item.id] === 'bad' ? 'border-red-600 bg-red-50 text-red-700' : 'border-gray-200 text-gray-400'
+                      }`}
+                    >
+                      ✗
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {evidence && !uploading && (

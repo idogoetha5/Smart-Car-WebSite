@@ -13,6 +13,7 @@ import {
   sidePhotoPath,
   type DamageMark,
 } from '@/lib/inspection-damage';
+import { parseChecklist } from '@/lib/inspection-checklist';
 
 /**
  * Inspection business logic, shared by the admin routes
@@ -39,6 +40,8 @@ export interface CreateInspectionParams {
   damageMarks?: unknown;
   noDamage?: boolean;
   sidePhotoViews?: unknown;
+  /** Optional condition checklist ({ item: 'ok' | 'bad' }). */
+  checklist?: unknown;
   driverId?: string | null;
 }
 
@@ -157,6 +160,7 @@ export async function createInspectionRecord(
       damage_marks: storedMarks,
       no_damage: noDamage && marks.length === 0,
       side_photos: sidePhotos,
+      checklist: parseChecklist(params.checklist),
     })
     .eq('id', inspection.id);
   if (pathError) {

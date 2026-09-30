@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
     damageMarks: body?.damageMarks,
     noDamage: body?.noDamage === true,
     sidePhotoViews: body?.sidePhotoViews,
+    checklist: body?.checklist,
   });
 
   if (!result.ok) {
