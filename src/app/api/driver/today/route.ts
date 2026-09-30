@@ -6,6 +6,7 @@ import { formatLocationForDriver, navigationQueryFor } from '@/lib/location-disp
 import { createInspectionToken } from '@/lib/inspection-link';
 import { numericOrderReference } from '@/lib/order-reference';
 import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
+import { searchHandovers } from '@/lib/inspection-previous';
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.smartcar.co.il';
 
@@ -193,6 +194,31 @@ export async function GET(request: NextRequest) {
       }
     }
     for (const t of returnMatches) results.push(shapeTask(t, inspections));
+
+    // Signed handovers that have no driver task (e.g. done from the admin) —
+    // still waiting for a return, so every driver can find them too.
+    const shown = new Set(results.map((r) => r.bookingId));
+    for (const h of await searchHandovers(search)) {
+      if (!h.bookingId || shown.has(h.bookingId) || returnTaskBookings.has(h.bookingId)) continue;
+      shown.add(h.bookingId);
+      results.push({
+        taskId: '',
+        taskStatus: 'done' as const,
+        type: 'pickup' as const,
+        bookingId: h.bookingId,
+        bookingNumber: numericOrderReference(h.bookingId),
+        customerName: h.customerName,
+        vehicleName: h.vehicleName,
+        licensePlate: h.licensePlate,
+        location: '',
+        navQuery: '',
+        customerPhone: h.customerPhone ?? '',
+        time: null,
+        date: h.signedAt,
+        inspection: { id: h.inspectionId, status: 'signed' as const },
+        awaitingReturn: true,
+      });
+    }
     return NextResponse.json({ results });
   }
 

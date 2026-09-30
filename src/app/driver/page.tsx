@@ -190,13 +190,14 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
       if (arrived) items.push({ key: 'arr', label: 'וואטסאפ: הגעתי', icon: wa, href: arrived, tone: 'whatsapp' });
     }
   }
-  items.push({
+  // Address/done edit the driver task — a handover found without one (search) has neither.
+  if (row.taskId) items.push({
     key: 'addr',
     label: hasAddress ? 'עריכת כתובת' : 'הוספת כתובת לוויז',
     icon: hasAddress ? <Pencil className="h-6 w-6 shrink-0" aria-hidden="true" /> : <MapPin className="h-6 w-6 shrink-0" aria-hidden="true" />,
     onClick: () => setEditing(true),
   });
-  if (!awaiting) items.push({
+  if (!awaiting && row.taskId) items.push({
     key: 'done',
     label: marking ? 'שומר…' : isDone ? 'ביטול סימון "בוצע"' : 'סמן כבוצע',
     icon: <CheckCircle2 className="h-6 w-6 shrink-0" aria-hidden="true" />,
@@ -246,12 +247,12 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
             <Navigation className="h-5 w-5" aria-hidden="true" />
             ניווט
           </a>
-        ) : (
+        ) : row.taskId ? (
           <button type="button" onClick={() => { setEditing(true); setSheet(true); }} className={`${secBtn} border-dashed border-gray-300 text-gray-500`}>
             <MapPin className="h-5 w-5" aria-hidden="true" />
             הוסף כתובת
           </button>
-        )}
+        ) : null}
         {telUrl && (
           <a href={telUrl} className={`${secBtn} border-green-500 bg-green-50 text-green-700`}>
             <Phone className="h-5 w-5" aria-hidden="true" />
@@ -381,7 +382,7 @@ export default function DriverTodayPage() {
         {tab === 'search' ? (
           <div className="space-y-3">
             {(data?.results ?? []).map((row) => (
-              <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} />
+              <TaskCard key={row.taskId || `h-${row.bookingId}`} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} />
             ))}
             {search && !isLoading && (data?.results ?? []).length === 0 && (
               <p className="text-center text-gray-400 py-10">לא נמצאו משימות</p>
@@ -393,7 +394,7 @@ export default function DriverTodayPage() {
               <h2 className="text-sm font-black text-gray-500 mb-2">מסירות</h2>
               <div className="space-y-3">
                 {(data?.pickups ?? []).map((row) => (
-                  <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} isTomorrow={tab === 'tomorrow'} />
+                  <TaskCard key={row.taskId || `h-${row.bookingId}`} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} isTomorrow={tab === 'tomorrow'} />
                 ))}
                 {!isLoading && (data?.pickups ?? []).length === 0 && (
                   <p className="text-center text-gray-400 py-6 text-sm">אין מסירות</p>
@@ -404,7 +405,7 @@ export default function DriverTodayPage() {
               <h2 className="text-sm font-black text-gray-500 mb-2">החזרות</h2>
               <div className="space-y-3">
                 {(data?.returns ?? []).map((row) => (
-                  <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} isTomorrow={tab === 'tomorrow'} />
+                  <TaskCard key={row.taskId || `h-${row.bookingId}`} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} isTomorrow={tab === 'tomorrow'} />
                 ))}
                 {!isLoading && (data?.returns ?? []).length === 0 && (
                   <p className="text-center text-gray-400 py-6 text-sm">אין החזרות</p>
