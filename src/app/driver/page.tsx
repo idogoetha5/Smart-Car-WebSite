@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR, { preload } from 'swr';
-import { Search, LogOut, RefreshCw, Plus, Navigation, Phone, Pencil, MapPin } from 'lucide-react';
+import { Search, LogOut, RefreshCw, Plus, Navigation, Phone, Pencil, MapPin, ClipboardList } from 'lucide-react';
 import { fetcher } from '@/lib/swr';
 import PendingInspections from '@/components/inspection/PendingInspections';
 
@@ -166,6 +166,8 @@ export default function DriverTodayPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
 
+  const { data: me } = useSWR<{ role: string; canManage: boolean }>('/api/driver/me', fetcher, { dedupingInterval: 60_000 });
+
   const dateQuery = tab === 'tomorrow' ? 'date=tomorrow' : 'date=today';
   const url = tab === 'search'
     ? (search ? `/api/driver/today?search=${encodeURIComponent(search)}` : null)
@@ -204,6 +206,16 @@ export default function DriverTodayPage() {
             </button>
           </div>
         </div>
+
+        {me?.canManage && (
+          <button
+            onClick={() => router.push('/driver/manage')}
+            className="w-full min-h-12 mb-2 flex items-center justify-center gap-2 rounded-xl bg-[#2D5F5F] text-white font-black"
+          >
+            <ClipboardList className="h-5 w-5" aria-hidden="true" />
+            משימות לנהגים (מנהל סניף)
+          </button>
+        )}
 
         <button
           onClick={openQuickBooking}

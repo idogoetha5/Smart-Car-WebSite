@@ -10,6 +10,7 @@ interface Driver {
   id: string;
   name: string;
   active: boolean;
+  role?: 'driver' | 'manager';
   created_at: string;
 }
 
@@ -48,6 +49,7 @@ export default function AdminDriversPage() {
   const { items: tasks, isLoading: tasksLoading, isValidating: tasksValidating, mutate: mutateTasks } = useApiList<Task>('/api/admin/tasks');
   const [name, setName] = useState('');
   const [pin, setPin] = useState('');
+  const [role, setRole] = useState<'driver' | 'manager'>('driver');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
   const [assigningDriverId, setAssigningDriverId] = useState<string | null>(null);
@@ -86,7 +88,7 @@ export default function AdminDriversPage() {
       const response = await fetch('/api/admin/drivers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, pin }),
+        body: JSON.stringify({ name, pin, role }),
       });
       const json = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -95,6 +97,7 @@ export default function AdminDriversPage() {
       }
       setName('');
       setPin('');
+      setRole('driver');
       mutate((current) => (current ? [json.data, ...current] : [json.data]), { revalidate: false });
     } finally {
       setCreating(false);
@@ -109,6 +112,17 @@ export default function AdminDriversPage() {
     });
     if (!response.ok) { alert('העדכון נכשל'); return; }
     mutate((current) => (current ?? []).map((item) => (item.id === driver.id ? { ...item, active: !driver.active } : item)), { revalidate: false });
+  };
+
+  const toggleRole = async (driver: Driver) => {
+    const next = driver.role === 'manager' ? 'driver' : 'manager';
+    const response = await fetch(`/api/admin/drivers/${driver.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: next }),
+    });
+    if (!response.ok) { alert('העדכון נכשל'); return; }
+    mutate();
   };
 
   const resetPin = async (driver: Driver) => {
@@ -215,9 +229,16 @@ export default function AdminDriversPage() {
           <label className="mb-1 block text-xs font-bold text-gray-500">קוד (4 ספרות)</label>
           <input value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" maxLength={4} required className="min-h-11 w-32 rounded-xl border border-gray-200 px-3 text-sm" dir="ltr" />
         </div>
+        <div>
+          <label className="mb-1 block text-xs font-bold text-gray-500">תפקיד</label>
+          <select value={role} onChange={(event) => setRole(event.target.value as 'driver' | 'manager')} className="min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm">
+            <option value="driver">נהג</option>
+            <option value="manager">מנהל סניף (מקצה משימות)</option>
+          </select>
+        </div>
         <button type="submit" disabled={creating} className="flex min-h-11 items-center gap-2 rounded-xl bg-[#E8743B] px-4 text-sm font-black text-white hover:bg-[#d4632a] disabled:opacity-50">
           <UserPlus className="h-4 w-4" aria-hidden="true" />
-          הוספת נהג
+          {role === 'manager' ? 'הוספת מנהל סניף' : 'הוספת נהג'}
         </button>
         {error && <p className="text-sm text-red-600">{error}</p>}
       </form>
@@ -247,6 +268,7 @@ export default function AdminDriversPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-lg font-black text-gray-900">{driver.name}</h3>
                       <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${driver.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{driver.active ? 'פעיל' : 'מושבת'}</span>
+                      {driver.role === 'manager' && <span className="rounded-full bg-purple-100 px-2.5 py-1 text-xs font-bold text-purple-700">מנהל סניף</span>}
                       <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">{openCount} משימות פתוחות</span>
                     </div>
                     <p className="mt-1 text-xs text-gray-400">{driverTasks.length} משימות בתצוגה</p>
@@ -259,6 +281,7 @@ export default function AdminDriversPage() {
                       </button>
                     )}
                     <button onClick={() => toggleActive(driver)} className="min-h-10 rounded-lg bg-gray-50 px-3 text-xs font-bold text-gray-700 hover:bg-gray-100">{driver.active ? 'השבתה' : 'הפעלה'}</button>
+                    <button onClick={() => toggleRole(driver)} className="min-h-10 rounded-lg bg-gray-50 px-3 text-xs font-bold text-gray-700 hover:bg-gray-100">{driver.role === 'manager' ? 'הפוך לנהג' : 'הפוך למנהל סניף'}</button>
                     <button onClick={() => resetPin(driver)} className="flex min-h-10 items-center gap-1 rounded-lg bg-[#eef6f6] px-3 text-xs font-bold text-[#2D5F5F] hover:bg-[#d9ecec]"><KeyRound className="h-3.5 w-3.5" aria-hidden="true" />איפוס קוד</button>
                   </div>
                 </div>

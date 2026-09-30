@@ -23,9 +23,19 @@ interface DriverTaskFormProps {
   driver: { id: string; name: string };
   onCancel: () => void;
   onCreated: () => void;
+  /** Admin: '/api/admin/tasks'. Branch managers: '/api/driver/manage/tasks'. */
+  tasksApi?: string;
+  /** Admin: '/api/bookings'. Branch managers: '/api/driver/manage/bookings'. */
+  bookingsApi?: string;
 }
 
-export default function DriverTaskForm({ driver, onCancel, onCreated }: DriverTaskFormProps) {
+export default function DriverTaskForm({
+  driver,
+  onCancel,
+  onCreated,
+  tasksApi = '/api/admin/tasks',
+  bookingsApi = '/api/bookings',
+}: DriverTaskFormProps) {
   const [mode, setMode] = useState<'new' | 'existing'>('new');
   const [vehicleMode, setVehicleMode] = useState<'fleet' | 'custom'>('fleet');
   const [type, setType] = useState<'pickup' | 'return'>('pickup');
@@ -43,7 +53,7 @@ export default function DriverTaskForm({ driver, onCancel, onCreated }: DriverTa
   const [error, setError] = useState('');
 
   const { items: vehicles } = useApiList<Vehicle>(mode === 'new' && vehicleMode === 'fleet' ? '/api/driver/vehicles' : null);
-  const { items: bookings } = useApiList<BookingOption>(mode === 'existing' ? '/api/bookings' : null);
+  const { items: bookings } = useApiList<BookingOption>(mode === 'existing' ? bookingsApi : null);
 
   const filteredBookings = useMemo(() => {
     if (!bookingSearch.trim()) return bookings.slice(0, 20);
@@ -63,7 +73,7 @@ export default function DriverTaskForm({ driver, onCancel, onCreated }: DriverTa
 
     setCreating(true);
     try {
-      const response = await fetch('/api/admin/tasks', {
+      const response = await fetch(tasksApi, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
