@@ -273,11 +273,11 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
           <form onSubmit={(event) => { event.preventDefault(); void createPerson('driver'); }} className="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
             <div>
               <label className="mb-1 block text-xs font-bold text-gray-500">שם הנהג</label>
-              <input value={driverName} onChange={(event) => setName(event.target.value)} required className="min-h-11 rounded-xl border border-gray-200 px-3 text-sm" />
+              <input value={driverName} onChange={(event) => setName(event.target.value)} required className="min-h-11 rounded-xl border border-gray-200 px-3 text-base" />
             </div>
             <div>
               <label className="mb-1 block text-xs font-bold text-gray-500">קוד (4 ספרות)</label>
-              <input value={driverPin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" maxLength={4} required className="min-h-11 w-32 rounded-xl border border-gray-200 px-3 text-sm" dir="ltr" />
+              <input value={driverPin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" maxLength={4} required className="min-h-11 w-32 rounded-xl border border-gray-200 px-3 text-base" dir="ltr" />
             </div>
             <button type="submit" disabled={creating} className="flex min-h-11 items-center gap-2 rounded-xl bg-[#E8743B] px-4 text-sm font-black text-white hover:bg-[#d4632a] disabled:opacity-50">
               <UserPlus className="h-4 w-4" aria-hidden="true" />
@@ -291,11 +291,11 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
             <form onSubmit={(event) => { event.preventDefault(); void createPerson('manager'); }} className="mb-4 flex flex-wrap items-end gap-3">
               <div>
                 <label className="mb-1 block text-xs font-bold text-gray-500">שם המנהל</label>
-                <input value={managerName} onChange={(event) => setManagerName(event.target.value)} required className="min-h-11 rounded-xl border border-gray-200 px-3 text-sm" />
+                <input value={managerName} onChange={(event) => setManagerName(event.target.value)} required className="min-h-11 rounded-xl border border-gray-200 px-3 text-base" />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-bold text-gray-500">קוד (4 ספרות)</label>
-                <input value={managerPin} onChange={(event) => setManagerPin(event.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" maxLength={4} required className="min-h-11 w-32 rounded-xl border border-gray-200 px-3 text-sm" dir="ltr" />
+                <input value={managerPin} onChange={(event) => setManagerPin(event.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" maxLength={4} required className="min-h-11 w-32 rounded-xl border border-gray-200 px-3 text-base" dir="ltr" />
               </div>
               <button type="submit" disabled={creating} className="flex min-h-11 items-center gap-2 rounded-xl bg-[#2D5F5F] px-4 text-sm font-black text-white disabled:opacity-50">
                 <UserPlus className="h-4 w-4" aria-hidden="true" />
@@ -331,7 +331,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
         </div>
         <label className="flex items-center gap-2 text-sm font-bold text-gray-600">
           תאריך
-          <input type="date" value={filterDate} onChange={(event) => setFilterDate(event.target.value)} className="min-h-11 rounded-xl border border-gray-200 bg-white px-3 font-normal" />
+          <input type="date" value={filterDate} onChange={(event) => setFilterDate(event.target.value)} className="min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-base font-normal" />
         </label>
       </div>
 
@@ -356,7 +356,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
                     {driver.active && (
                       <button
                         onClick={() => setAssigningDriverId(assigningDriverId === driver.id ? null : driver.id)}
-                        className="flex min-h-10 items-center gap-1.5 rounded-lg bg-[#E8743B] px-3 text-sm font-black text-white hover:bg-[#d4632a]"
+                        className="flex min-h-12 items-center gap-1.5 rounded-lg bg-[#E8743B] px-3 text-sm font-black text-white hover:bg-[#d4632a]"
                       >
                         <ClipboardPlus className="h-4 w-4" aria-hidden="true" />
                         הקצאת משימה חדשה
@@ -365,7 +365,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
                     <button
                       onClick={() => toggleExpanded(driver.id)}
                       aria-expanded={isOpen}
-                      className="flex min-h-10 items-center gap-1.5 rounded-lg border-2 border-gray-200 px-3 text-sm font-black text-gray-700 hover:bg-gray-50"
+                      className="flex min-h-12 items-center gap-1.5 rounded-lg border-2 border-gray-200 px-3 text-sm font-black text-gray-700 hover:bg-gray-50"
                     >
                       משימות ({driverTasks.length})
                       <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
@@ -388,7 +388,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
                         value={taskSearch[driver.id] ?? ''}
                         onChange={(event) => setTaskSearch((prev) => ({ ...prev, [driver.id]: event.target.value }))}
                         placeholder="חיפוש לפי שם לקוח או כתובת"
-                        className="w-full min-h-11 rounded-xl border border-gray-200 bg-white ps-10 pe-3 text-sm"
+                        className="w-full min-h-12 rounded-xl border border-gray-200 bg-white ps-10 pe-3 text-base"
                       />
                     </div>
                     <div className="space-y-2">
@@ -431,7 +431,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
                         value={taskSearch.unassigned ?? ''}
                         onChange={(event) => setTaskSearch((prev) => ({ ...prev, unassigned: event.target.value }))}
                         placeholder="חיפוש לפי שם לקוח או כתובת"
-                        className="w-full min-h-11 rounded-xl border border-gray-200 bg-white ps-10 pe-3 text-sm"
+                        className="w-full min-h-12 rounded-xl border border-gray-200 bg-white ps-10 pe-3 text-base"
                       />
                     </div>
                     <div className="space-y-2">{shown.map(renderTask)}</div>
@@ -468,7 +468,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
                         value={taskSearch.signed ?? ''}
                         onChange={(event) => setTaskSearch((prev) => ({ ...prev, signed: event.target.value }))}
                         placeholder="חיפוש לפי לקוח, כתובת, רכב או נהג"
-                        className="w-full min-h-11 rounded-xl border border-gray-200 bg-white ps-10 pe-3 text-sm"
+                        className="w-full min-h-12 rounded-xl border border-gray-200 bg-white ps-10 pe-3 text-base"
                       />
                     </div>
                     <div className="space-y-2">

@@ -87,7 +87,7 @@ function ReturnPicker({ onNotFound }: { onNotFound: () => void }) {
         )}
       </div>
       <button type="button" onClick={onNotFound} className="mt-3 min-h-12 w-full rounded-xl border-2 border-dashed border-gray-300 text-base font-bold text-gray-600">
-        אין מסירה במערכת — פרטי לקוח ידנית
+        לא מוצא? הזנת פרטים ידנית
       </button>
     </div>
   );
