@@ -17,7 +17,6 @@ const DISMISS_KEY = 'smartcar-install-hint-dismissed';
 export default function InstallHint({ appName }: { appName: string }) {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
-  const [isIos, setIsIos] = useState(false);
 
   useEffect(() => {
     let dismissed = false;
@@ -31,19 +30,13 @@ export default function InstallHint({ appName }: { appName: string }) {
       (navigator as Navigator & { standalone?: boolean }).standalone === true;
     if (dismissed || standalone) return;
 
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
     const onPrompt = (e: Event) => {
       e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);
       setVisible(true);
     };
     window.addEventListener('beforeinstallprompt', onPrompt);
-    // iPhone has no install prompt — show the manual steps instead.
-    const t = ios ? setTimeout(() => { setIsIos(true); setVisible(true); }, 0) : undefined;
-    return () => {
-      window.removeEventListener('beforeinstallprompt', onPrompt);
-      if (t) clearTimeout(t);
-    };
+    return () => window.removeEventListener('beforeinstallprompt', onPrompt);
   }, []);
 
   if (!visible) return null;
@@ -69,13 +62,10 @@ export default function InstallHint({ appName }: { appName: string }) {
       <Download className="mt-0.5 h-6 w-6 shrink-0 text-[#2D5F5F]" aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <p className="font-black text-[#0D2B2B]">התקנת {appName} כאפליקציה</p>
-        {isIos ? (
-          <p className="mt-1 text-sm text-gray-600">בספארי: לחצו על כפתור השיתוף ⬆︎ ואז &quot;הוספה למסך הבית&quot;.</p>
-        ) : (
-          <button onClick={install} className="mt-2 min-h-11 rounded-xl bg-[#2D5F5F] px-4 text-sm font-black text-white">
-            התקנה
-          </button>
-        )}
+        <p className="mt-1 text-sm text-gray-600">אייקון במסך הבית, נפתח במסך מלא ומקבל התראות.</p>
+        <button onClick={install} className="mt-2 min-h-11 rounded-xl bg-[#2D5F5F] px-4 text-sm font-black text-white">
+          התקנה
+        </button>
       </div>
       <button onClick={dismiss} aria-label="סגירה" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-gray-400 hover:bg-gray-100">
         <X className="h-5 w-5" aria-hidden="true" />

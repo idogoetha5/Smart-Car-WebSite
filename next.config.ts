@@ -34,7 +34,7 @@ const securityHeaders = [
       // match for *.ingest.sentry.io, and every event was being blocked here.
       "connect-src 'self' https://*.supabase.co https://api.emailjs.com https://nominatim.openstreetmap.org https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io",
       "frame-src https://challenges.cloudflare.com",
-      "worker-src blob:",
+      "worker-src 'self' blob:",
       // Defence-in-depth against injected <base>/<object> and form
       // exfiltration to a third-party endpoint.
       "object-src 'none'",

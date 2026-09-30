@@ -4,6 +4,7 @@
  * own auth first.
  */
 import { readVehicleInput, resolveVehicle } from '@/lib/custom-vehicle';
+import { inBackground, notifyTaskCreated } from '@/lib/push-notify';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { israelDayRange } from '@/lib/israel-day';
@@ -243,6 +244,8 @@ export async function createDriverTask(request: NextRequest, createdBy: string):
     if (returnTaskError) console.error('[admin/tasks] return task insert failed:', returnTaskError.message);
     returnTaskId = returnTask?.id ?? null;
   }
+
+  inBackground(() => notifyTaskCreated(task.id, returnTaskId));
 
   return NextResponse.json({ taskId: task.id, bookingId, returnTaskId }, { status: 201 });
 }
