@@ -47,8 +47,8 @@ export async function POST(request: NextRequest) {
               ],
             },
           ],
-          // No "thinking": on 2.5 models it eats the tiny output budget and leaves an empty answer.
-          generationConfig: { temperature: 0, maxOutputTokens: 64, thinkingConfig: { thinkingBudget: 0 } },
+          // Generous budget: thinking models spend output tokens before answering, and a tiny cap yields an empty reply.
+          generationConfig: { temperature: 0, maxOutputTokens: 2048 },
         }),
         signal: AbortSignal.timeout(20_000),
       }
@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
     const text: string = json?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
     const digits = text.replace(/[^\d]/g, '');
     const km = digits.length >= 1 && digits.length <= 7 ? Number(digits) : null;
+    if (km === null) console.warn('[odometer-ocr] no reading; model=%s finish=%s raw=%j', MODEL, json?.candidates?.[0]?.finishReason, text.slice(0, 80));
     return NextResponse.json({ km });
   } catch (err) {
     console.error('[odometer-ocr] failed:', err);
