@@ -35,7 +35,7 @@ export default function BranchManagerPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F0E8]" dir="rtl">
-      <div className="flex justify-end px-4 pt-4">
+      <div className="mx-auto flex w-full max-w-5xl justify-end px-4 pt-4 sm:px-8">
         <button onClick={logout} className="flex min-h-11 items-center gap-1 rounded-xl px-3 text-base font-bold text-gray-500 active:bg-gray-100" aria-label="יציאה">
           <LogOut className="h-5 w-5" aria-hidden="true" />
           יציאה

@@ -36,5 +36,6 @@ Drivers and branch managers use the driver app (`/driver/*`, `src/components/ins
 - Every button/link/input is at least 44x44px (prefer 56px for main actions). Main action = one big full-width button; secondary actions go in a bottom sheet, not a wall of buttons.
 - Text inputs use at least 16px font (`text-base`), so iPhones don't zoom in.
 - Fixed bottom bars and sheets respect `env(safe-area-inset-bottom)`.
+- Branch managers (`/driver/manage`, `/driver/manager-login`, `DriversBoard`, `DriverTaskForm`) use it on **both phone and computer**: it must also look right at 1366px wide (centred, no stretched single-column walls). The audit checks these screens at desktop size too.
 - Before merging, run the audit and look at the screenshots it saves:
   `npm run dev` then `npm i --no-save playwright && npm run audit:mobile` (screenshots in `scripts/mobile-audit/out/`). It must print "All driver screens pass". When you add a new driver screen, add it to the list in `scripts/mobile-audit/run.mjs`.

@@ -51,6 +51,11 @@ const STATUS_CLASS: Record<Task['status'], string> = {
   cancelled: 'bg-gray-100 text-gray-500',
 };
 
+/** YYYY-MM-DD in Israel for today + offset days (matches the date filter's format). */
+function israelDate(offsetDays: number): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date(Date.now() + offsetDays * 86_400_000));
+}
+
 function formatDateTime(value?: string) {
   if (!value) return '—';
   const date = new Date(value);
@@ -85,6 +90,8 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
   const [filterDate, setFilterDate] = useState('');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [taskSearch, setTaskSearch] = useState<Record<string, string>>({});
+  const [editingAddress, setEditingAddress] = useState<{ id: string; value: string } | null>(null);
+  const [addingDriver, setAddingDriver] = useState(false);
 
   const toggleExpanded = (key: string) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
@@ -149,6 +156,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
       } else {
         setName('');
         setPin('');
+        setAddingDriver(false);
       }
       mutate((current) => (current ? [json.data, ...current] : [json.data]), { revalidate: false });
     } finally {
@@ -189,15 +197,14 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
     mutateTasks();
   };
 
-  const editAddress = async (task: Task, current: string) => {
-    const next = window.prompt('כתובת ללקוח (לוויז). השאר ריק כדי למחוק:', current === 'לא צוין' ? '' : current);
-    if (next === null) return;
+  const saveAddress = async (task: Task, next: string) => {
     const response = await fetch(`${tasksApi}/${task.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ location: next }),
+      body: JSON.stringify({ location: next.trim() }),
     });
     if (!response.ok) { alert('עדכון הכתובת נכשל'); return; }
+    setEditingAddress(null);
     mutateTasks();
   };
 
@@ -222,42 +229,68 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
   const renderTask = (task: Task) => {
     const scheduledAt = task.type === 'pickup' ? task.booking?.pickup_date : task.booking?.dropoff_date;
     const location = task.type === 'pickup' ? task.booking?.pickup_location : task.booking?.dropoff_location;
+    const hasLocation = Boolean(location && location !== 'לא צוין');
     const plate = bookingLicensePlate(task.booking);
+    const editing = editingAddress?.id === task.id;
+    const smallBtn = 'min-h-11 rounded-xl px-3 text-sm font-bold';
     return (
-      <div key={task.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <p className="font-bold text-gray-900">{task.booking?.customer_name ?? 'ללא שם לקוח'}</p>
-            <p className="mt-0.5 text-xs text-gray-500">{task.type === 'pickup' ? 'מסירה' : 'החזרה'} · {formatDateTime(scheduledAt)}</p>
+      <div key={task.id} className="rounded-2xl border border-gray-200 bg-white p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-base font-black text-gray-900">{task.booking?.customer_name ?? 'ללא שם לקוח'}</p>
+            <p className="mt-0.5 text-sm text-gray-600">
+              <span className="font-bold">{task.type === 'pickup' ? 'מסירה' : 'החזרה'}</span> · {formatDateTime(scheduledAt)}
+            </p>
           </div>
-          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${STATUS_CLASS[task.status]}`}>{STATUS_LABEL[task.status]}</span>
+          <span className={`shrink-0 rounded-full px-3 py-1 text-sm font-bold ${STATUS_CLASS[task.status]}`}>{STATUS_LABEL[task.status]}</span>
         </div>
-        <div className="mt-2 grid gap-1 text-xs text-gray-600 sm:grid-cols-2">
-          <span>{bookingVehicleName(task.booking)}{plate !== '—' ? ` · ${plate}` : ''}</span>
-          <span>
-            {location && location !== 'לא צוין' ? location : 'לא צוינה כתובת'}{' '}
-            <button onClick={() => editAddress(task, location ?? '')} className="font-bold text-[#2D5F5F] underline">
-              {location && location !== 'לא צוין' ? 'ערוך' : 'הוסף כתובת'}
+
+        <p className="mt-2 flex min-w-0 gap-1 text-sm text-gray-600">
+          <span className="truncate">{bookingVehicleName(task.booking)}</span>
+          {plate !== '—' && <><span className="shrink-0">·</span><span className="shrink-0 font-bold text-gray-800" dir="ltr">{plate}</span></>}
+        </p>
+
+        {editing ? (
+          <div className="mt-2 flex flex-wrap gap-2">
+            <input
+              value={editingAddress.value}
+              onChange={(event) => setEditingAddress({ id: task.id, value: event.target.value })}
+              placeholder="רחוב, מספר, עיר"
+              autoFocus
+              className="min-h-11 min-w-0 flex-1 basis-56 rounded-xl border-2 border-gray-200 px-3 text-base"
+            />
+            <button onClick={() => saveAddress(task, editingAddress.value)} className={`${smallBtn} bg-[#2D5F5F] text-white`}>שמירה</button>
+            <button onClick={() => setEditingAddress(null)} className={`${smallBtn} border-2 border-gray-200 text-gray-600`}>ביטול</button>
+          </div>
+        ) : (
+          <div className="mt-1 flex items-center justify-between gap-2">
+            <p className={`min-w-0 truncate text-sm ${hasLocation ? 'text-gray-700' : 'text-gray-400'}`}>{hasLocation ? location : 'לא צוינה כתובת'}</p>
+            <button onClick={() => setEditingAddress({ id: task.id, value: hasLocation ? location ?? '' : '' })} className={`${smallBtn} shrink-0 text-[#2D5F5F] hover:bg-[#eef6f6]`}>
+              {hasLocation ? 'עריכת כתובת' : 'הוספת כתובת'}
             </button>
-          </span>
-        </div>
-        {task.notes && <p className="mt-2 text-xs text-gray-500">הערה: {task.notes}</p>}
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <select value={task.assigned_driver_id ?? ''} onChange={(event) => reassign(task, event.target.value)} aria-label="שינוי נהג למשימה" className="min-h-9 rounded-lg border border-gray-200 bg-white px-2 text-xs">
-            <option value="">ללא שיוך</option>
-            {activeDrivers.map((driver) => <option key={driver.id} value={driver.id}>{driver.name}</option>)}
-          </select>
-          {task.inspection?.status === 'signed' && <span className="text-xs font-bold text-green-600">✓ נחתם</span>}
-          {task.inspection?.status === 'awaiting_signature' && <span className="text-xs font-bold text-amber-600">ממתין לחתימה</span>}
-          {task.status === 'open' && <button onClick={() => cancelTask(task)} className="text-xs font-bold text-red-500 hover:text-red-700">ביטול משימה</button>}
-          {task.status === 'cancelled' && <button onClick={() => deleteTask(task)} className="text-xs font-bold text-red-600 underline hover:text-red-800">מחיקה</button>}
+          </div>
+        )}
+        {task.notes && <p className="mt-2 rounded-lg bg-gray-50 p-2 text-sm text-gray-600">הערה: {task.notes}</p>}
+
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
+          <label className="flex min-w-0 flex-1 basis-48 items-center gap-2 text-sm font-bold text-gray-600">
+            נהג
+            <select value={task.assigned_driver_id ?? ''} onChange={(event) => reassign(task, event.target.value)} aria-label="שינוי נהג למשימה" className="min-h-11 min-w-0 flex-1 rounded-xl border-2 border-gray-200 bg-white px-2 text-base font-normal">
+              <option value="">ללא שיוך</option>
+              {activeDrivers.map((driver) => <option key={driver.id} value={driver.id}>{driver.name}</option>)}
+            </select>
+          </label>
+          {task.inspection?.status === 'signed' && <span className="text-sm font-bold text-green-700">✓ נחתם</span>}
+          {task.inspection?.status === 'awaiting_signature' && <span className="text-sm font-bold text-amber-700">ממתין לחתימה</span>}
+          {task.status === 'open' && <button onClick={() => cancelTask(task)} className={`${smallBtn} text-red-600 hover:bg-red-50`}>ביטול משימה</button>}
+          {task.status === 'cancelled' && <button onClick={() => deleteTask(task)} className={`${smallBtn} bg-red-50 text-red-700 hover:bg-red-100`}>מחיקה</button>}
         </div>
       </div>
     );
   };
 
   return (
-    <div className="p-4 sm:p-8" dir="rtl">
+    <div className="mx-auto w-full max-w-5xl p-4 sm:p-8" dir="rtl">
       <div className="mb-7 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black text-gray-900">{isAdmin ? 'נהגים' : 'משימות לנהגים'}</h1>
@@ -270,20 +303,30 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
       </div>
 
       <div className="mb-8 space-y-4">
-          <form onSubmit={(event) => { event.preventDefault(); void createPerson('driver'); }} className="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-            <div>
-              <label className="mb-1 block text-xs font-bold text-gray-500">שם הנהג</label>
-              <input value={driverName} onChange={(event) => setName(event.target.value)} required className="min-h-11 rounded-xl border border-gray-200 px-3 text-base" />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-bold text-gray-500">קוד (4 ספרות)</label>
-              <input value={driverPin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" maxLength={4} required className="min-h-11 w-32 rounded-xl border border-gray-200 px-3 text-base" dir="ltr" />
-            </div>
-            <button type="submit" disabled={creating} className="flex min-h-11 items-center gap-2 rounded-xl bg-[#E8743B] px-4 text-sm font-black text-white hover:bg-[#d4632a] disabled:opacity-50">
-              <UserPlus className="h-4 w-4" aria-hidden="true" />
+          {!addingDriver ? (
+            <button onClick={() => setAddingDriver(true)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 bg-white text-base font-black text-gray-700 hover:bg-gray-50 sm:w-auto sm:px-6">
+              <UserPlus className="h-5 w-5" aria-hidden="true" />
               הוספת נהג
             </button>
+          ) : (
+          <form onSubmit={(event) => { event.preventDefault(); void createPerson('driver'); }} className="grid grid-cols-1 gap-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:flex sm:flex-wrap sm:items-end">
+            <label className="block">
+              <span className="mb-1 block text-sm font-bold text-gray-600">שם הנהג</span>
+              <input value={driverName} onChange={(event) => setName(event.target.value)} required autoFocus className="min-h-12 w-full rounded-xl border-2 border-gray-200 px-3 text-base sm:w-56" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-sm font-bold text-gray-600">קוד כניסה (4 ספרות)</span>
+              <input value={driverPin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" maxLength={4} required className="min-h-12 w-full rounded-xl border-2 border-gray-200 px-3 text-base sm:w-36" dir="ltr" />
+            </label>
+            <div className="flex gap-2">
+              <button type="submit" disabled={creating} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#E8743B] px-5 text-base font-black text-white hover:bg-[#d4632a] disabled:opacity-50">
+                <UserPlus className="h-5 w-5" aria-hidden="true" />
+                הוספה
+              </button>
+              <button type="button" onClick={() => setAddingDriver(false)} className="min-h-12 rounded-xl border-2 border-gray-200 px-4 text-base font-bold text-gray-600">ביטול</button>
+            </div>
           </form>
+          )}
 
           {isAdmin && (<section className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-black text-gray-900">מנהלים</h2>
@@ -313,8 +356,8 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
                       <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${manager.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{manager.active ? 'פעיל' : 'מושבת'}</span>
                     </span>
                     <span className="flex gap-2">
-                      <button onClick={() => toggleActive(manager)} className="min-h-9 rounded-lg bg-gray-50 px-3 text-xs font-bold text-gray-700 hover:bg-gray-100">{manager.active ? 'השבתה' : 'הפעלה'}</button>
-                      <button onClick={() => resetPin(manager)} className="flex min-h-9 items-center gap-1 rounded-lg bg-[#eef6f6] px-3 text-xs font-bold text-[#2D5F5F] hover:bg-[#d9ecec]"><KeyRound className="h-3.5 w-3.5" aria-hidden="true" />איפוס קוד</button>
+                      <button onClick={() => toggleActive(manager)} className="min-h-11 rounded-xl bg-gray-50 px-4 text-sm font-bold text-gray-700 hover:bg-gray-100">{manager.active ? 'השבתה' : 'הפעלה'}</button>
+                      <button onClick={() => resetPin(manager)} className="flex min-h-11 items-center gap-1 rounded-xl bg-[#eef6f6] px-4 text-sm font-bold text-[#2D5F5F] hover:bg-[#d9ecec]"><KeyRound className="h-3.5 w-3.5" aria-hidden="true" />איפוס קוד</button>
                     </span>
                   </li>
                 ))}
@@ -329,10 +372,14 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
           <h2 className="text-xl font-black text-gray-900">משימות לפי נהג</h2>
           <p className="text-sm text-gray-500">מקצים ורואים את המשימות בתוך הנהג המתאים</p>
         </div>
-        <label className="flex items-center gap-2 text-sm font-bold text-gray-600">
-          תאריך
-          <input type="date" value={filterDate} onChange={(event) => setFilterDate(event.target.value)} className="min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-base font-normal" />
-        </label>
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          {([['', 'הכל'], [israelDate(0), 'היום'], [israelDate(1), 'מחר']] as const).map(([value, text]) => (
+            <button key={text} onClick={() => setFilterDate(value)} className={`min-h-11 flex-1 rounded-xl border-2 px-4 text-sm font-black sm:flex-none ${filterDate === value ? 'border-[#2D5F5F] bg-[#2D5F5F] text-white' : 'border-gray-200 bg-white text-gray-600'}`}>
+              {text}
+            </button>
+          ))}
+          <input type="date" value={filterDate} onChange={(event) => setFilterDate(event.target.value)} aria-label="תאריך" className="min-h-11 flex-1 rounded-xl border-2 border-gray-200 bg-white px-3 text-base sm:flex-none" />
+        </div>
       </div>
 
       {isLoading || tasksLoading ? (
@@ -352,20 +399,20 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
                     {!driver.active && <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-500">מושבת</span>}
                     {openCount > 0 && <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">{openCount} פתוחות</span>}
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex w-full gap-2 sm:w-auto">
                     {driver.active && (
                       <button
                         onClick={() => setAssigningDriverId(assigningDriverId === driver.id ? null : driver.id)}
-                        className="flex min-h-12 items-center gap-1.5 rounded-lg bg-[#E8743B] px-3 text-sm font-black text-white hover:bg-[#d4632a]"
+                        className="flex min-h-12 flex-[3] items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-[#E8743B] px-3 text-sm font-black text-white hover:bg-[#d4632a] sm:flex-none"
                       >
                         <ClipboardPlus className="h-4 w-4" aria-hidden="true" />
-                        הקצאת משימה חדשה
+                        משימה חדשה
                       </button>
                     )}
                     <button
                       onClick={() => toggleExpanded(driver.id)}
                       aria-expanded={isOpen}
-                      className="flex min-h-12 items-center gap-1.5 rounded-lg border-2 border-gray-200 px-3 text-sm font-black text-gray-700 hover:bg-gray-50"
+                      className="flex min-h-12 flex-[2] items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-gray-200 px-3 text-sm font-black text-gray-700 hover:bg-gray-50 sm:flex-none"
                     >
                       משימות ({driverTasks.length})
                       <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
@@ -391,17 +438,17 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
                         className="w-full min-h-12 rounded-xl border border-gray-200 bg-white ps-10 pe-3 text-base"
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="grid gap-3 lg:grid-cols-2">
                       {shown.map(renderTask)}
                       {shown.length === 0 && (
-                        <p className="py-4 text-center text-sm text-gray-400">
+                        <p className="py-4 text-center text-sm text-gray-400 lg:col-span-2">
                           {taskSearch[driver.id]?.trim() ? 'לא נמצאו משימות' : 'אין משימות לנהג'}
                         </p>
                       )}
                     </div>
                     <div className="flex flex-wrap gap-2 border-t border-gray-100 pt-3">
-                      <button onClick={() => toggleActive(driver)} className="min-h-9 rounded-lg bg-white px-3 text-xs font-bold text-gray-600 hover:bg-gray-100">{driver.active ? 'השבתת נהג' : 'הפעלת נהג'}</button>
-                      <button onClick={() => resetPin(driver)} className="flex min-h-9 items-center gap-1 rounded-lg bg-[#eef6f6] px-3 text-xs font-bold text-[#2D5F5F] hover:bg-[#d9ecec]"><KeyRound className="h-3.5 w-3.5" aria-hidden="true" />איפוס קוד</button>
+                      <button onClick={() => toggleActive(driver)} className="min-h-11 rounded-xl border-2 border-gray-200 bg-white px-4 text-sm font-bold text-gray-600 hover:bg-gray-100">{driver.active ? 'השבתת נהג' : 'הפעלת נהג'}</button>
+                      <button onClick={() => resetPin(driver)} className="flex min-h-11 items-center gap-1 rounded-xl bg-[#eef6f6] px-4 text-sm font-bold text-[#2D5F5F] hover:bg-[#d9ecec]"><KeyRound className="h-3.5 w-3.5" aria-hidden="true" />איפוס קוד</button>
                     </div>
                   </div>
                 )}
@@ -434,7 +481,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
                         className="w-full min-h-12 rounded-xl border border-gray-200 bg-white ps-10 pe-3 text-base"
                       />
                     </div>
-                    <div className="space-y-2">{shown.map(renderTask)}</div>
+                    <div className="grid gap-3 lg:grid-cols-2">{shown.map(renderTask)}</div>
                   </div>
                 )}
               </section>
@@ -479,11 +526,11 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
                               {job.customerName || 'ללא שם לקוח'}{' '}
                               <span className="text-xs font-bold text-gray-500">· {job.type === 'pickup' ? 'מסירה' : 'החזרה'}</span>
                             </p>
-                            <p className="text-xs text-gray-600">
+                            <p className="text-sm text-gray-600">
                               {job.vehicleName}{job.licensePlate && job.licensePlate !== '—' ? ` · ${job.licensePlate}` : ''}
                               {job.driverName ? ` · נהג: ${job.driverName}` : ''}
                             </p>
-                            <p className="text-xs text-gray-400">
+                            <p className="text-sm text-gray-500">
                               {job.signedAt ? `נחתם ${formatDateTime(job.signedAt)}` : ''}
                               {job.address ? ` · ${job.address}` : ''}
                               {job.damageCount > 0 ? ` · ${job.damageCount} נזקים סומנו` : ''}
@@ -491,10 +538,10 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
                           </div>
                           <div className="flex gap-2">
                             {job.pdfUrl && (
-                              <a href={job.pdfUrl} target="_blank" rel="noopener noreferrer" className="min-h-9 rounded-lg bg-[#2D5F5F] px-3 py-2 text-xs font-black text-white">PDF חתום</a>
+                              <a href={job.pdfUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center rounded-xl bg-[#2D5F5F] px-4 text-sm font-black text-white">PDF חתום</a>
                             )}
                             {job.videoUrl && (
-                              <a href={job.videoUrl} target="_blank" rel="noopener noreferrer" className="min-h-9 rounded-lg border-2 border-gray-200 bg-white px-3 py-2 text-xs font-black text-gray-700">סרטון</a>
+                              <a href={job.videoUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center rounded-xl border-2 border-gray-200 bg-white px-4 text-sm font-black text-gray-700">סרטון</a>
                             )}
                           </div>
                         </div>

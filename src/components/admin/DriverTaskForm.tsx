@@ -138,7 +138,7 @@ export default function DriverTaskForm({
     `min-h-12 flex-1 rounded-xl border-2 text-base font-black ${active ? 'border-[#2D5F5F] bg-[#2D5F5F] text-white' : 'border-gray-200 bg-white text-gray-600'}`;
 
   return (
-    <form onSubmit={createTask} className="space-y-5 border-t border-orange-100 bg-orange-50/40 p-4 sm:p-5">
+    <form onSubmit={createTask} className="space-y-5 border-t border-orange-100 bg-orange-50/40 p-4 sm:p-6">
       <div>
         <h3 className="text-lg font-black text-gray-900">משימה חדשה עבור {driver.name}</h3>
         <p className="text-sm text-gray-500">המשימה תופיע אצל הנהג ביום שנבחר (וגם יום לפני, בלשונית &quot;מחר&quot;)</p>
@@ -194,7 +194,7 @@ export default function DriverTaskForm({
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <label className="block"><span className={label}>שם הלקוח</span>
               <input value={customerName} onChange={(event) => setCustomerName(event.target.value)} className={field} required />
             </label>
@@ -204,7 +204,7 @@ export default function DriverTaskForm({
             <label className="block"><span className={label}>אימייל הלקוח</span>
               <input type="email" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} dir="ltr" className={field} required />
             </label>
-            <div>
+            <div className="sm:col-span-2">
               <span className={label}>רכב</span>
               <div className="mb-2 flex gap-2">
                 <button type="button" onClick={() => setVehicleMode('fleet')} className={tab(vehicleMode === 'fleet')}>רכב מהצי</button>
