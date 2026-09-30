@@ -6,6 +6,7 @@ import { fuelEighthsToLabel, INSPECTION_BUCKET } from '@/lib/inspection-storage'
 import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
 import { calculateInspectionDeviation } from '@/lib/inspection-deviation';
 import { createInspectionToken } from '@/lib/inspection-link';
+import { damageKindLabel, VIEW_LABELS, type DamageMark } from '@/lib/inspection-damage';
 
 /**
  * Internal "customer signed" notification to the office — separate from
@@ -28,7 +29,7 @@ async function loadInspectionForOfficeEmail(inspectionId: string) {
   const { data, error } = await supabase
     .from('vehicle_inspections')
     .select(
-      'id, type, odometer_km, fuel_eighths, signed_at, video_sha256, signed_pdf_path, booking:bookings(id, customer_name, total_days, custom_vehicle_name, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
+      'id, type, odometer_km, fuel_eighths, signed_at, video_sha256, video_path, damage_marks, no_damage, side_photos, signed_pdf_path, booking:bookings(id, customer_name, total_days, custom_vehicle_name, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
     )
     .eq('id', inspectionId)
     .maybeSingle();
@@ -41,6 +42,10 @@ async function loadInspectionForOfficeEmail(inspectionId: string) {
     fuel_eighths: number;
     signed_at: string | null;
     video_sha256: string | null;
+    video_path: string | null;
+    damage_marks: DamageMark[] | null;
+    no_damage: boolean | null;
+    side_photos: Record<string, string> | null;
     signed_pdf_path: string | null;
     booking: {
       id: string;
@@ -173,6 +178,18 @@ export async function sendInspectionOfficeEmail(inspectionId: string): Promise<{
       </div>`
     : '';
 
+  const marks = inspection.damage_marks ?? [];
+  const damageHtml = marks.length
+    ? `<h3 style="margin:16px 0 6px;">נזקים קיימים שסומנו (${marks.length})</h3><ol style="margin:0;padding-inline-start:20px;">${marks
+        .map(
+          (m) =>
+            `<li>${VIEW_LABELS[m.view]?.he ?? m.view} — <strong>${damageKindLabel(m.kind)}</strong>${m.note ? `: ${m.note.replace(/[<>&]/g, '')}` : ''}${m.photo_path ? ' 📷' : ''}</li>`
+        )
+        .join('')}</ol><p style="font-size:12px;color:#666;">השרטוט והתמונות מופיעים ב-PDF המצורף.</p>`
+    : inspection.no_damage
+      ? '<p style="margin-top:12px;font-weight:700;">הנהג אישר: אין נזקים (צולמו 4 צדדים — בקובץ ה-PDF).</p>'
+      : '';
+
   const html = `
     <div dir="rtl" style="font-family:Arial,Tahoma,sans-serif;color:#0D2B2B;">
       <h2>בדיקת רכב נחתמה — ${typeLabel}</h2>
@@ -190,7 +207,8 @@ export async function sendInspectionOfficeEmail(inspectionId: string): Promise<{
         <tr><td style="padding:4px 10px;color:#666;">נחתם בתאריך</td><td style="padding:4px 10px;font-weight:700;">${signedAtIL}</td></tr>
         <tr><td style="padding:4px 10px;color:#666;">SHA-256 של הסרטון</td><td style="padding:4px 10px;font-size:11px;direction:ltr;text-align:left;word-break:break-all;">${inspection.video_sha256 ?? '—'}</td></tr>
       </table>
-      <p style="margin-top:16px;"><a href="${videoLink}" style="display:inline-block;background:#2D5F5F;color:#fff;text-decoration:none;font-weight:700;padding:10px 20px;border-radius:8px;">▶ צפייה בסרטון הבדיקה</a></p>
+      ${damageHtml}
+      ${inspection.video_path ? `<p style="margin-top:16px;"><a href="${videoLink}" style="display:inline-block;background:#2D5F5F;color:#fff;text-decoration:none;font-weight:700;padding:10px 20px;border-radius:8px;">▶ צפייה בסרטון הבדיקה</a></p>` : '<p style="margin-top:16px;color:#666;">ללא סרטון — תועד בשרטוט נזקים / תמונות.</p>'}
       <p style="margin-top:8px;">המסמך החתום מצורף כ-PDF. <a href="${adminLink}" style="color:#2D5F5F;font-weight:700;">פרטי הבדיקה במסך הניהול</a></p>
     </div>
   `;
@@ -202,7 +220,7 @@ export async function sendInspectionOfficeEmail(inspectionId: string): Promise<{
       to: OFFICE_EMAIL,
       subject: `${deviation.hasDeviation ? '🚨 חריגה — ' : pdfMissing ? '⚠️ ' : ''}בדיקת רכב נחתמה — ${typeLabel} #${bookingNumber}`,
       html,
-      text: `בדיקת רכב נחתמה. הזמנה ${bookingNumber}, ${booking?.customer_name ?? ''}.${deviation.hasDeviation ? ` חריגה: ${deviation.warnings.join('; ')}.` : ''} סרטון: ${videoLink} | ניהול: ${adminLink}`,
+      text: `בדיקת רכב נחתמה. הזמנה ${bookingNumber}, ${booking?.customer_name ?? ''}.${deviation.hasDeviation ? ` חריגה: ${deviation.warnings.join('; ')}.` : ''} ${inspection.video_path ? `סרטון: ${videoLink} | ` : ''}${marks.length ? `נזקים שסומנו: ${marks.length} | ` : ''}ניהול: ${adminLink}`,
       attachments: pdfBuffer
         ? [{ content: pdfBuffer, filename: `SmartCar_Inspection_${bookingNumber}.pdf`, contentType: 'application/pdf' }]
         : [],

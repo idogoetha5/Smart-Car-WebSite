@@ -15,7 +15,11 @@ export async function POST(request: NextRequest) {
     type: body?.type,
     odometerKm: Number(body?.odometerKm),
     fuelEighths: Number(body?.fuelEighths),
+    hasVideo: body?.hasVideo !== false,
     videoExt: String(body?.videoExt ?? 'mp4'),
+    damageMarks: body?.damageMarks,
+    noDamage: body?.noDamage === true,
+    sidePhotoViews: body?.sidePhotoViews,
   });
 
   if (!result.ok) {

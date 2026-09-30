@@ -26,6 +26,9 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self' data:",
       "img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com",
+      // Inspection videos play from short-lived Supabase signed URLs
+      // (/insp-video redirects there); blob: is the in-browser compressor.
+      "media-src 'self' blob: https://*.supabase.co",
       // GA4 reporting + Sentry error ingestion. The Sentry org is on the EU
       // region, so its host is *.ingest.de.sentry.io — that is NOT a suffix
       // match for *.ingest.sentry.io, and every event was being blocked here.

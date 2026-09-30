@@ -6,6 +6,8 @@ import useSWR from 'swr';
 import { AlertTriangle, CheckCircle } from 'lucide-react';
 import TurnstileWidget from '@/components/ui/Turnstile';
 import SignaturePadField from '@/components/inspection/SignaturePadField';
+import CarDamageDiagram from '@/components/inspection/CarDamageDiagram';
+import { damageKindLabel, VIEW_LABELS, type DamageView } from '@/lib/inspection-damage';
 
 interface SignData {
   inspectionId: string;
@@ -19,6 +21,11 @@ interface SignData {
   licensePlate: string;
   declaration: { he: string; en: string };
   videoReady: boolean;
+  hasVideo?: boolean;
+  mediaReady?: boolean;
+  damageMarks?: Array<{ n: number; view: DamageView; x: number; y: number; kind: string; note: string; hasPhoto: boolean }>;
+  noDamage?: boolean;
+  sidePhotoViews?: string[];
 }
 
 async function signDataFetcher(url: string): Promise<SignData> {
@@ -114,7 +121,7 @@ function InspectionSignForm() {
     <div className="max-w-2xl mx-auto px-4 py-10" dir={isHe ? 'rtl' : 'ltr'}>
       <div className="mb-6">
         <h1 className="text-3xl font-black text-gray-900 mb-1">{typeLabel}</h1>
-        <p className="text-gray-600 text-sm">{isHe ? 'עברו על הסרטון והפרטים, ואשרו בחתימה' : 'Review the video and details, then sign to confirm'}</p>
+        <p className="text-gray-600 text-sm">{isHe ? 'עברו על מצב הרכב והפרטים, ואשרו בחתימה' : 'Review the car’s condition and details, then sign to confirm'}</p>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5 space-y-2 text-sm">
@@ -124,13 +131,67 @@ function InspectionSignForm() {
         <div className="flex justify-between"><span className="text-gray-400">{isHe ? 'דלק' : 'Fuel'}</span><span className="font-bold">{data.fuelLabel}</span></div>
       </div>
 
-      {data.videoReady ? (
-        <div className="mb-5 overflow-hidden rounded-2xl border border-gray-100 bg-black">
-          <video controls playsInline className="w-full max-h-[60vh]" src={`/insp-video/${encodeURIComponent(token)}`} />
+      {(data.hasVideo ?? true) &&
+        (data.videoReady ? (
+          <div className="mb-5 overflow-hidden rounded-2xl border border-gray-100 bg-black">
+            <video controls playsInline className="w-full max-h-[60vh]" src={`/insp-video/${encodeURIComponent(token)}`} />
+          </div>
+        ) : (
+          <div className="mb-5 rounded-2xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-400">
+            {isHe ? 'הסרטון עדיין לא זמין' : 'Video not yet available'}
+          </div>
+        ))}
+
+      {(data.damageMarks?.length ?? 0) > 0 && (
+        <div className="mb-5 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <p className="mb-3 font-black text-gray-900">
+            {isHe ? `נזקים קיימים שסומנו (${data.damageMarks!.length})` : `Existing damage marked (${data.damageMarks!.length})`}
+          </p>
+          <CarDamageDiagram marks={data.damageMarks!} isHe={isHe} />
+          <ol className="mt-4 space-y-3">
+            {data.damageMarks!.map((m) => (
+              <li key={m.n} className="flex items-start gap-3 rounded-xl border border-gray-100 p-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm font-black text-white">{m.n}</span>
+                <div className="min-w-0 flex-1 text-sm">
+                  <p className="font-black text-gray-800">
+                    {damageKindLabel(m.kind, isHe)} · <span className="font-bold text-gray-500">{isHe ? VIEW_LABELS[m.view]?.he : VIEW_LABELS[m.view]?.en}</span>
+                  </p>
+                  {m.note && <p className="text-gray-600 break-words">{m.note}</p>}
+                  {m.hasPhoto && (
+                    <a href={`/insp-photo/${encodeURIComponent(token)}/mark-${m.n}`} target="_blank" rel="noopener noreferrer">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`/insp-photo/${encodeURIComponent(token)}/mark-${m.n}`}
+                        alt={isHe ? `נזק ${m.n}` : `Damage ${m.n}`}
+                        className="mt-2 max-h-48 rounded-lg border border-gray-200"
+                        loading="lazy"
+                      />
+                    </a>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
         </div>
-      ) : (
-        <div className="mb-5 rounded-2xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-400">
-          {isHe ? 'הסרטון עדיין לא זמין' : 'Video not yet available'}
+      )}
+
+      {data.noDamage && (
+        <div className="mb-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-black text-green-800">
+          {isHe ? 'לא נמצאו נזקים ברכב.' : 'No damage found on the car.'}
+        </div>
+      )}
+
+      {(data.sidePhotoViews?.length ?? 0) > 0 && (
+        <div className="mb-5 grid grid-cols-2 gap-2">
+          {data.sidePhotoViews!.map((v) => (
+            <figure key={v} className="overflow-hidden rounded-xl border border-gray-100 bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/insp-photo/${encodeURIComponent(token)}/side-${v}`} alt="" className="h-32 w-full object-cover" loading="lazy" />
+              <figcaption className="p-1 text-center text-xs font-bold text-gray-500">
+                {isHe ? VIEW_LABELS[v as DamageView]?.he : VIEW_LABELS[v as DamageView]?.en}
+              </figcaption>
+            </figure>
+          ))}
         </div>
       )}
 

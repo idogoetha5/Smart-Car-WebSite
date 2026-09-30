@@ -223,6 +223,6 @@ export const config = {
     // Metadata icons are global assets. If they pass through next-intl they
     // are rewritten to /he/... and become 404s, so keep every iOS fallback
     // name outside locale routing as well as Next's generated icon routes.
-    '/((?!api|q/|f/|insp-video/|insp-pdf/|driver|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|apple-touch-icon.png|apple-touch-icon-precomposed.png|icons|images|robots.txt|sitemap.xml).*)',
+    '/((?!api|q/|f/|insp-video/|insp-photo/|insp-pdf/|driver|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|apple-touch-icon.png|apple-touch-icon-precomposed.png|icons|images|robots.txt|sitemap.xml).*)',
   ],
 };

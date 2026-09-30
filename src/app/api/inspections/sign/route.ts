@@ -15,6 +15,7 @@ import {
 import { numericOrderReference } from '@/lib/order-reference';
 import { sendInspectionOfficeEmail } from '@/lib/inspection-office-email';
 import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
+import type { DamageMark } from '@/lib/inspection-damage';
 
 // Renders the signed PDF with headless Chromium, then emails the office.
 export const maxDuration = 60;
@@ -29,6 +30,11 @@ type InspectionRow = {
   status: 'awaiting_signature' | 'signed';
   signed_at: string | null;
   video_sha256: string | null;
+  video_path: string | null;
+  damage_marks: DamageMark[] | null;
+  no_damage: boolean | null;
+  side_photos: Record<string, string> | null;
+  media_completed_at: string | null;
   booking: {
     id: string;
     customer_name: string;
@@ -60,7 +66,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase
     .from('vehicle_inspections')
     .select(
-      'id, type, odometer_km, fuel_eighths, status, signed_at, video_sha256, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))'
+      'id, type, odometer_km, fuel_eighths, status, signed_at, video_sha256, video_path, damage_marks, no_damage, side_photos, media_completed_at, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))'
     )
     .eq('id', link.inspectionId!)
     .maybeSingle<InspectionRow>();
@@ -86,6 +92,19 @@ export async function GET(request: NextRequest) {
       licensePlate: bookingLicensePlate(data.booking),
       declaration: INSPECTION_DECLARATION[data.type],
       videoReady: Boolean(data.video_sha256),
+      hasVideo: Boolean(data.video_path),
+      mediaReady: Boolean(data.media_completed_at || data.video_sha256),
+      damageMarks: (data.damage_marks ?? []).map((m) => ({
+        n: m.n,
+        view: m.view,
+        x: m.x,
+        y: m.y,
+        kind: m.kind,
+        note: m.note,
+        hasPhoto: Boolean(m.photo_path),
+      })),
+      noDamage: Boolean(data.no_damage),
+      sidePhotoViews: Object.keys(data.side_photos ?? {}),
     },
   });
 }
@@ -136,7 +155,7 @@ export async function POST(request: NextRequest) {
     .eq('id', inspectionId)
     .eq('status', 'awaiting_signature')
     .select(
-      'id, type, odometer_km, fuel_eighths, video_sha256, signed_at, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
+      'id, type, odometer_km, fuel_eighths, video_sha256, video_path, damage_marks, no_damage, side_photos, signed_at, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate)), driver:drivers(name)'
     )
     .returns<InspectionRow[]>();
 
@@ -190,6 +209,22 @@ export async function POST(request: NextRequest) {
   }
 
   const bookingNumber = numericOrderReference(booking?.id ?? inspectionId);
+
+  // Short-lived signed URLs so headless Chromium can embed the damage and
+  // side photos in the PDF (the bucket itself stays private).
+  const marks = inspection.damage_marks ?? [];
+  const photoUrlFor = async (path: string | null | undefined): Promise<string | null> => {
+    if (!path) return null;
+    const { data: signedUrl } = await supabase.storage.from(INSPECTION_BUCKET).createSignedUrl(path, 10 * 60);
+    return signedUrl?.signedUrl ?? null;
+  };
+  const damageRows = await Promise.all(
+    marks.map(async (m) => ({ ...m, photoUrl: await photoUrlFor(m.photo_path) }))
+  );
+  const sidePhotoRows = await Promise.all(
+    Object.entries(inspection.side_photos ?? {}).map(async ([view, path]) => ({ view, photoUrl: await photoUrlFor(path) }))
+  );
+
   const pdfBuffer = await renderInspectionPdf({
     inspectionId,
     bookingId: booking?.id ?? '',
@@ -206,6 +241,10 @@ export async function POST(request: NextRequest) {
     signerIp,
     signatureDataUrl,
     driverName: inspection.driver?.name,
+    hasVideo: Boolean(inspection.video_path),
+    damageMarks: damageRows,
+    noDamage: Boolean(inspection.no_damage),
+    sidePhotos: sidePhotoRows,
   });
 
   const pdfPath = inspectionPdfPath(inspectionId);

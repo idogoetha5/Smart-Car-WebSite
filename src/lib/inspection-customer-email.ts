@@ -24,7 +24,9 @@ export interface InspectionCustomerEmailParams {
   vehicleName: string;
   typeLabel: string;
   signLink: string;
-  videoLink: string;
+  /** Null when the inspection was documented with the damage diagram instead of a video. */
+  videoLink: string | null;
+  damageCount: number;
   logoUrl: string;
 }
 
@@ -38,26 +40,30 @@ export async function sendInspectionCustomerEmail(
   const vehicle = escapeHtml(params.vehicleName || '');
   const typeLabel = escapeHtml(params.typeLabel);
 
+  const damageText =
+    params.damageCount > 0 ? `סומנו ${params.damageCount} נזקים קיימים על שרטוט הרכב, עם הערות ותמונות.` : '';
+  const intro = params.videoLink
+    ? `צילמנו סרטון סיור סביב הרכב ובתוכו, כולל קילומטראז' ומד הדלק. ${damageText}`
+    : damageText || 'תיעדנו את מצב הרכב בתמונות מכל הצדדים.';
+
   const html = `
   <div dir="rtl" style="font-family:Arial,Tahoma,sans-serif;color:#0D2B2B;max-width:560px;margin:0 auto;">
     <div style="text-align:center;padding:16px 0;"><img src="${params.logoUrl}" alt="SmartCar" style="height:48px;"></div>
     <h2 style="margin:0 0 12px;">שלום ${name},</h2>
     <p style="font-size:16px;line-height:1.6;">
       בוצעה בדיקת ${typeLabel} עבור הרכב <strong>${vehicle}</strong>.
-      צילמנו סרטון סיור סביב הרכב ובתוכו, כולל קילומטראז' ומד הדלק.
+      ${intro}
     </p>
-    <p style="font-size:16px;line-height:1.6;">אנא צפו בסרטון ואשרו בחתימה על טופס הבדיקה:</p>
+    <p style="font-size:16px;line-height:1.6;">אנא עברו על הפרטים ואשרו בחתימה על טופס הבדיקה:</p>
     <p style="text-align:center;margin:24px 0;">
-      <a href="${params.signLink}" style="display:inline-block;background:#E8743B;color:#fff;text-decoration:none;font-weight:700;font-size:17px;padding:14px 28px;border-radius:10px;">צפייה בסרטון וחתימה על הטופס</a>
+      <a href="${params.signLink}" style="display:inline-block;background:#E8743B;color:#fff;text-decoration:none;font-weight:700;font-size:17px;padding:14px 28px;border-radius:10px;">${params.videoLink ? 'צפייה בסרטון וחתימה על הטופס' : 'צפייה בפרטי הבדיקה וחתימה'}</a>
     </p>
-    <p style="text-align:center;margin:0 0 24px;">
-      <a href="${params.videoLink}" style="color:#2D5F5F;font-weight:700;">קישור ישיר לסרטון</a>
-    </p>
+    ${params.videoLink ? `<p style="text-align:center;margin:0 0 24px;"><a href="${params.videoLink}" style="color:#2D5F5F;font-weight:700;">קישור ישיר לסרטון</a></p>` : ''}
     <p style="font-size:13px;color:#666;">הקישורים אישיים ותקפים ל-30 יום. לשאלות ניתן להשיב למייל זה.</p>
     <p style="font-size:13px;color:#666;">SmartCar — השכרת רכב</p>
   </div>`;
 
-  const text = `שלום ${params.customerName},\nבוצעה בדיקת ${params.typeLabel} עבור הרכב ${params.vehicleName}.\nצפייה בסרטון וחתימה על הטופס: ${params.signLink}\nקישור ישיר לסרטון: ${params.videoLink}\nSmartCar`;
+  const text = `שלום ${params.customerName},\nבוצעה בדיקת ${params.typeLabel} עבור הרכב ${params.vehicleName}.\nצפייה בפרטי הבדיקה וחתימה: ${params.signLink}${params.videoLink ? `\nקישור ישיר לסרטון: ${params.videoLink}` : ''}\nSmartCar`;
 
   try {
     const resend = new Resend(apiKey);
@@ -66,7 +72,7 @@ export async function sendInspectionCustomerEmail(
         from: `SmartCar <${OFFICE_EMAIL}>`,
         to: params.toEmail,
         replyTo: OFFICE_EMAIL,
-        subject: `SmartCar — בדיקת ${params.typeLabel}: צפייה בסרטון וחתימה`,
+        subject: `SmartCar — בדיקת ${params.typeLabel}: אישור וחתימה`,
         html,
         text,
         tags: [{ name: 'category', value: 'vehicle-inspection-customer' }],
