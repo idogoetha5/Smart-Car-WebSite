@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { createAdminClient } from '@/lib/supabase/server';
+import { driversWithPush } from '@/lib/push';
 import { verifyAdminToken } from '@/lib/admin-auth';
 
 const PIN_PATTERN = /^\d{4}$/;
@@ -22,7 +23,8 @@ export async function GET() {
     console.error('[admin/drivers] list failed:', error.message);
     return NextResponse.json({ error: 'Lookup failed' }, { status: 500 });
   }
-  return NextResponse.json({ data: data ?? [] });
+  const withPush = await driversWithPush();
+  return NextResponse.json({ data: (data ?? []).map((d) => ({ ...d, pushEnabled: withPush.has(d.id) })) });
 }
 
 export async function POST(request: NextRequest) {

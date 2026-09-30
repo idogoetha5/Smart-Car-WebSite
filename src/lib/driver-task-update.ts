@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { setTaskLocation } from '@/lib/driver-task-location';
+import { inBackground, loadTaskSnapshot, notifyTaskChanged } from '@/lib/push-notify';
 
 async function rescheduleTask(
   id: string,
@@ -49,6 +50,20 @@ async function rescheduleTask(
 /** Reassign, edit notes/address/date/time, or cancel a task — shared by admin and branch managers. */
 export async function updateDriverTask(request: Request, id: string): Promise<NextResponse> {
   const body = await request.json().catch(() => null);
+  // Snapshot before the edit, so the driver can be told what changed.
+  const before = await loadTaskSnapshot(id);
+  const changes = {
+    reassigned: 'assignedDriverId' in (body ?? {}),
+    rescheduled: typeof body?.scheduledAt === 'string' || typeof body?.scheduledTime === 'string',
+    addressChanged: 'location' in (body ?? {}),
+  };
+  const response = await applyTaskUpdate(body, id);
+  if (before && response.ok) inBackground(() => notifyTaskChanged(before, changes));
+  return response;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function applyTaskUpdate(body: any, id: string): Promise<NextResponse> {
   const update: Record<string, unknown> = {};
 
   if ('assignedDriverId' in (body ?? {})) update.assigned_driver_id = body.assignedDriverId || null;

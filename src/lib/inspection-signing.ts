@@ -12,6 +12,8 @@ import {
 } from '@/lib/inspection-storage';
 import { numericOrderReference } from '@/lib/order-reference';
 import { sendInspectionOfficeEmail } from '@/lib/inspection-office-email';
+import { inspectionSignedMessage } from '@/lib/push-messages';
+import { sendPushToManagers } from '@/lib/push';
 import { sendInspectionSignedCustomerEmail } from '@/lib/inspection-customer-email';
 import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
 import type { DamageMark } from '@/lib/inspection-damage';
@@ -279,6 +281,22 @@ async function finalizeSignedInspection(args: {
     await sendInspectionOfficeEmail(inspectionId);
   } catch (err) {
     console.error('[inspections/sign][POST] office email threw:', err);
+  }
+
+  // Phone notification to the branch managers (best-effort, no-op without VAPID keys).
+  try {
+    const plate = bookingLicensePlate(booking);
+    await sendPushToManagers(
+      inspectionSignedMessage({
+        type: inspection.type,
+        customerName: booking?.customer_name ?? '',
+        vehicle: [bookingVehicleName(booking), plate !== '—' ? plate : ''].filter(Boolean).join(' '),
+        driverName: inspection.driver?.name ?? null,
+        newDamageCount: inspection.type === 'return' ? (inspection.damage_marks ?? []).length : 0,
+      })
+    );
+  } catch (err) {
+    console.error('[inspections/sign][POST] manager push threw:', err);
   }
 }
 

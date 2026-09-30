@@ -26,6 +26,8 @@ interface Driver {
   active: boolean;
   role?: 'driver' | 'manager';
   created_at: string;
+  /** At least one phone with notifications on. */
+  pushEnabled?: boolean;
 }
 
 interface SignedJob {
@@ -123,7 +125,7 @@ const byWhen = (a: Task, b: Task) => {
  * tasks per driver, and signed jobs — with one search and a "needs
  * attention" strip above them. Refreshes itself every minute.
  */
-export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
+export default function DriversBoard({ mode, page = 'board' }: { mode: 'admin' | 'manager'; page?: 'board' | 'calendar' }) {
   const isAdmin = mode === 'admin';
   const tasksApi = isAdmin ? '/api/admin/tasks' : '/api/driver/manage/tasks';
   const peopleApi = isAdmin ? '/api/admin/drivers' : '/api/driver/manage/drivers';
@@ -226,6 +228,24 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
     () => liveTasks.filter((t) => taskWhen(t).day === boardDate).sort(byWhen),
     [liveTasks, boardDate]
   );
+
+  // ---- calendar (separate page) ---------------------------------------------
+  const [calMonth, setCalMonth] = useState(() => israelDate(Date.now()).slice(0, 7));
+  const [calDay, setCalDay] = useState(() => israelDate(Date.now()));
+  const [calMode, setCalMode] = useState<'month' | 'agenda'>('month');
+  const [calCreating, setCalCreating] = useState(false);
+  const tasksByDay = useMemo(() => {
+    const map = new Map<string, Task[]>();
+    for (const task of liveTasks) {
+      const { day } = taskWhen(task);
+      if (!day) continue;
+      const list = map.get(day);
+      if (list) list.push(task);
+      else map.set(day, [task]);
+    }
+    for (const list of map.values()) list.sort(byWhen);
+    return map;
+  }, [liveTasks]);
 
   // ---- per driver -----------------------------------------------------------
   const tasksByDriver = useMemo(() => {
@@ -531,6 +551,179 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
     unassigned: boardTasks.filter((t) => !t.assigned_driver_id && t.status === 'open').length,
   };
 
+  const shiftMonth = (delta: number) => {
+    const [y, m] = calMonth.split('-').map(Number);
+    const next = new Date(Date.UTC(y, m - 1 + delta, 1));
+    setCalMonth(`${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}`);
+  };
+
+  const renderCalendar = () => {
+    const [y, m] = calMonth.split('-').map(Number);
+    const first = new Date(Date.UTC(y, m - 1, 1));
+    const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    const lead = first.getUTCDay(); // Sunday = 0 — the Israeli week starts on Sunday
+    const cells: Array<string | null> = [
+      ...Array.from({ length: lead }, () => null),
+      ...Array.from({ length: daysInMonth }, (_, i) => `${calMonth}-${String(i + 1).padStart(2, '0')}`),
+    ];
+    while (cells.length % 7) cells.push(null);
+    const monthTitle = new Intl.DateTimeFormat('he-IL', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(first);
+    const selected = tasksByDay.get(calDay) ?? [];
+    const selectedTitle = (() => {
+      const [sy, sm, sd] = calDay.split('-').map(Number);
+      const weekday = new Intl.DateTimeFormat('he-IL', { weekday: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(sy, sm - 1, sd, 12)));
+      const rel = calDay === today ? 'היום · ' : calDay === tomorrow ? 'מחר · ' : '';
+      return `${rel}${weekday}, ${sd}.${sm}`;
+    })();
+    const agendaDays = [...tasksByDay.keys()].filter((d) => d >= today).sort();
+
+    return (
+      <div>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-black text-[#0D2B2B]">לוח שנה</h1>
+            <p className="mt-1 text-gray-500">כל המשימות קדימה · לחצו על יום כדי לראות או להוסיף משימה</p>
+          </div>
+          <div className="flex gap-1 rounded-2xl bg-[#D6EEF5] p-1">
+            {([['month', 'חודש'], ['agenda', 'רשימה']] as const).map(([key, text]) => (
+              <button key={key} onClick={() => setCalMode(key)} className={`min-h-11 rounded-xl px-5 text-sm font-black ${calMode === key ? 'bg-white text-[#0D2B2B] shadow-sm' : 'text-[#2D5F5F]'}`}>{text}</button>
+            ))}
+          </div>
+        </div>
+
+        {calMode === 'month' ? (
+          <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+            <section className="rounded-2xl bg-white p-3 shadow-sm sm:p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <button onClick={() => shiftMonth(-1)} aria-label="החודש הקודם" className="flex h-11 w-11 items-center justify-center rounded-xl text-[#2D5F5F] hover:bg-[#eef6f6]">
+                  <ChevronDown className="h-5 w-5 -rotate-90" aria-hidden="true" />
+                </button>
+                <p className="text-lg font-black text-[#0D2B2B]">{monthTitle}</p>
+                <button onClick={() => shiftMonth(1)} aria-label="החודש הבא" className="flex h-11 w-11 items-center justify-center rounded-xl text-[#2D5F5F] hover:bg-[#eef6f6]">
+                  <ChevronDown className="h-5 w-5 rotate-90" aria-hidden="true" />
+                </button>
+              </div>
+              <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-gray-500">
+                {['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'].map((d) => <div key={d} className="py-1">{d}</div>)}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {cells.map((day, i) => {
+                  if (!day) return <div key={`e${i}`} />;
+                  const list = tasksByDay.get(day) ?? [];
+                  const pickups = list.filter((t) => t.type === 'pickup').length;
+                  const returns = list.length - pickups;
+                  const unassigned = list.some((t) => t.status === 'open' && !t.assigned_driver_id);
+                  const isSelected = day === calDay;
+                  const isToday = day === today;
+                  const past = day < today;
+                  return (
+                    <button
+                      key={day}
+                      onClick={() => { setCalDay(day); setCalCreating(false); }}
+                      aria-label={`${Number(day.slice(8))} — ${list.length} משימות`}
+                      aria-pressed={isSelected}
+                      className={`relative flex min-h-14 flex-col items-center justify-start gap-0.5 rounded-xl border-2 p-1 sm:min-h-20 sm:items-stretch sm:p-1.5 ${
+                        isSelected ? 'border-[#2D5F5F] bg-[#eef6f6]' : isToday ? 'border-[#E8743B] bg-white' : 'border-transparent bg-gray-50 hover:border-[#B8D8D8]'
+                      } ${past ? 'opacity-60' : ''}`}
+                    >
+                      <span className={`text-sm font-black sm:text-start ${isToday ? 'text-[#E8743B]' : 'text-[#0D2B2B]'}`}>{Number(day.slice(8))}</span>
+                      {list.length > 0 && (
+                        <>
+                          <span className="rounded-full bg-[#2D5F5F] px-1.5 text-[11px] font-black leading-5 text-white sm:hidden">{list.length}</span>
+                          <span className="hidden flex-col gap-0.5 text-start text-[11px] font-bold leading-4 sm:flex">
+                            {pickups > 0 && <span className="truncate rounded bg-orange-50 px-1 text-[#C24E17]">{pickups} מסירות</span>}
+                            {returns > 0 && <span className="truncate rounded bg-[#eef6f6] px-1 text-[#2D5F5F]">{returns} החזרות</span>}
+                          </span>
+                        </>
+                      )}
+                      {unassigned && <span className="absolute top-1 end-1 h-2.5 w-2.5 rounded-full bg-red-500" aria-label="יש משימה בלי נהג" />}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-3 flex flex-wrap gap-3 text-xs text-gray-500">
+                <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-red-500" /> משימה בלי נהג</span>
+                <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full border-2 border-[#E8743B]" /> היום</span>
+              </p>
+            </section>
+
+            <section>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-xl font-black text-[#0D2B2B]">{selectedTitle}</h2>
+                {!calCreating && (
+                  <button onClick={() => setCalCreating(true)} className="flex min-h-12 items-center gap-1.5 rounded-xl bg-[#E8743B] px-4 text-sm font-black text-white hover:bg-[#d4632a]">
+                    <ClipboardPlus className="h-4 w-4" aria-hidden="true" />
+                    משימה חדשה ליום הזה
+                  </button>
+                )}
+              </div>
+              {calCreating && (
+                <div className="mb-4 overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm">
+                  <DriverTaskForm
+                    key={calDay}
+                    drivers={activeDrivers}
+                    defaultDate={calDay}
+                    tasksApi={tasksApi}
+                    bookingsApi={isAdmin ? '/api/bookings' : '/api/driver/manage/bookings'}
+                    onCancel={() => setCalCreating(false)}
+                    onCreated={() => { setCalCreating(false); mutateTasks(); }}
+                  />
+                </div>
+              )}
+              <div className="space-y-3">
+                {selected.map((t) => (
+                  <div key={t.id}>
+                    <p className="mb-1 text-sm font-black text-[#2D5F5F]">{t.assigned_driver_id ? driverName.get(t.assigned_driver_id) ?? 'נהג' : 'ללא נהג'}</p>
+                    {renderTask(t)}
+                  </div>
+                ))}
+                {selected.length === 0 && !calCreating && <p className="rounded-2xl bg-white p-6 text-center text-gray-400">אין משימות ביום הזה</p>}
+              </div>
+            </section>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {agendaDays.map((day) => {
+              const list = tasksByDay.get(day) ?? [];
+              const [ay, am, ad] = day.split('-').map(Number);
+              const weekday = new Intl.DateTimeFormat('he-IL', { weekday: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(ay, am - 1, ad, 12)));
+              return (
+                <section key={day}>
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <h2 className="text-lg font-black text-[#0D2B2B]">
+                      {day === today ? 'היום · ' : day === tomorrow ? 'מחר · ' : ''}{weekday}, {ad}.{am}
+                      <span className="ms-2 text-sm font-bold text-gray-500">{list.length} משימות</span>
+                    </h2>
+                    <button onClick={() => { setCalDay(day); setCalMonth(day.slice(0, 7)); setCalMode('month'); setCalCreating(true); }} className="min-h-11 rounded-xl px-3 text-sm font-bold text-[#E8743B] hover:bg-orange-50">
+                      + משימה
+                    </button>
+                  </div>
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    {list.map((t) => (
+                      <div key={t.id}>
+                        <p className="mb-1 text-sm font-black text-[#2D5F5F]">{t.assigned_driver_id ? driverName.get(t.assigned_driver_id) ?? 'נהג' : 'ללא נהג'}</p>
+                        {renderTask(t)}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+            {agendaDays.length === 0 && <p className="rounded-2xl bg-white p-8 text-center text-gray-400">אין משימות קדימה</p>}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  if (page === 'calendar') {
+    return (
+      <div className="mx-auto w-full max-w-5xl p-4 sm:p-8" dir="rtl">
+        {loading ? <div className="h-40 animate-pulse rounded-2xl bg-gray-200" /> : renderCalendar()}
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-5xl p-4 sm:p-8" dir="rtl">
       {/* Header + search */}
@@ -661,6 +854,11 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
                           <h3 className="text-lg font-black text-[#0D2B2B]">{driver.name}</h3>
                           {!driver.active && <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-500">מושבת</span>}
                           <span className="rounded-full bg-[#eef6f6] px-2.5 py-1 text-xs font-bold text-[#2D5F5F]">היום {load.today} · מחר {load.tomorrow}</span>
+                          {driver.pushEnabled !== undefined && (
+                            <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${driver.pushEnabled ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                              {driver.pushEnabled ? '🔔 התראות פעילות' : 'התראות כבויות'}
+                            </span>
+                          )}
                         </div>
                         <div className="flex w-full gap-2 sm:w-auto">
                           {driver.active && (

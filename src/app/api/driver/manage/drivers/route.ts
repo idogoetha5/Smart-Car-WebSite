@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { requireManagerOrAdmin } from '@/lib/driver-route-auth';
 import { createAdminClient } from '@/lib/supabase/server';
+import { driversWithPush } from '@/lib/push';
 
 const PIN_PATTERN = /^\d{4}$/;
 
@@ -20,7 +21,8 @@ export async function GET() {
     console.error('[driver/manage/drivers] list failed:', error.message);
     return NextResponse.json({ error: 'Lookup failed' }, { status: 500 });
   }
-  return NextResponse.json({ data: data ?? [] });
+  const withPush = await driversWithPush();
+  return NextResponse.json({ data: (data ?? []).map((d) => ({ ...d, pushEnabled: withPush.has(d.id) })) });
 }
 
 /** Branch manager: add a driver (name + 4-digit code). Managers can only create drivers. */

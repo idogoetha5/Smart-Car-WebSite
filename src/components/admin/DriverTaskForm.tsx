@@ -21,7 +21,12 @@ interface BookingOption {
 }
 
 interface DriverTaskFormProps {
-  driver: { id: string; name: string };
+  /** Pre-chosen driver (from a driver's row). Without it the form offers a driver picker, where "no driver yet" is allowed. */
+  driver?: { id: string; name: string } | null;
+  /** Drivers to pick from when `driver` isn't given. */
+  drivers?: Array<{ id: string; name: string }>;
+  /** YYYY-MM-DD to start on (e.g. the day clicked in the calendar). */
+  defaultDate?: string;
   onCancel: () => void;
   onCreated: () => void;
   /** Admin: '/api/admin/tasks'. Branch managers: '/api/driver/manage/tasks'. */
@@ -42,7 +47,9 @@ const field = 'min-h-12 w-full rounded-xl border-2 border-gray-200 bg-white px-3
 const label = 'mb-1 block text-sm font-bold text-gray-600';
 
 export default function DriverTaskForm({
-  driver,
+  driver: fixedDriver = null,
+  drivers = [],
+  defaultDate,
   onCancel,
   onCreated,
   tasksApi = '/api/admin/tasks',
@@ -59,10 +66,17 @@ export default function DriverTaskForm({
   const [customLicensePlate, setCustomLicensePlate] = useState('');
   const [bookingSearch, setBookingSearch] = useState('');
   const [bookingId, setBookingId] = useState('');
-  const [date, setDate] = useState(() => localDateString(0));
+  const [date, setDate] = useState(() => defaultDate || localDateString(0));
+  const [pickedDriverId, setPickedDriverId] = useState('');
+  const driver = fixedDriver ?? drivers.find((d) => d.id === pickedDriverId) ?? null;
   const [time, setTime] = useState('');
   const [planReturn, setPlanReturn] = useState(false);
-  const [returnDate, setReturnDate] = useState(() => localDateString(1));
+  const [returnDate, setReturnDate] = useState(() => {
+    const base = new Date(`${defaultDate || localDateString(0)}T12:00:00`);
+    base.setDate(base.getDate() + 1);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${base.getFullYear()}-${pad(base.getMonth() + 1)}-${pad(base.getDate())}`;
+  });
   const [returnTime, setReturnTime] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
@@ -126,7 +140,7 @@ export default function DriverTaskForm({
           scheduledTime: time || undefined,
           location: location || undefined,
           notes: notes || undefined,
-          assignedDriverId: driver.id,
+          assignedDriverId: driver?.id ?? null,
           returnAt: withReturn ? new Date(`${returnDate}T${returnTime || '12:00'}:00`).toISOString() : undefined,
           returnTime: withReturn && returnTime ? returnTime : undefined,
         }),
@@ -155,9 +169,19 @@ export default function DriverTaskForm({
   return (
     <form onSubmit={createTask} className="space-y-5 border-t border-orange-100 bg-orange-50/40 p-4 sm:p-6">
       <div>
-        <h3 className="text-lg font-black text-gray-900">משימה חדשה עבור {driver.name}</h3>
-        <p className="text-sm text-gray-500">המשימה תופיע אצל הנהג ביום שנבחר (וגם יום לפני, בלשונית &quot;מחר&quot;)</p>
+        <h3 className="text-lg font-black text-gray-900">{fixedDriver ? `משימה חדשה עבור ${fixedDriver.name}` : 'משימה חדשה'}</h3>
+        <p className="text-sm text-gray-500">המשימה תופיע אצל הנהג ביום שנבחר (וגם יום לפני, בלשונית &quot;מחר&quot;), והוא יקבל התראה לטלפון</p>
       </div>
+
+      {!fixedDriver && (
+        <label className="block">
+          <span className={label}>נהג</span>
+          <select value={pickedDriverId} onChange={(event) => setPickedDriverId(event.target.value)} className={field}>
+            <option value="">עוד לא — אשייך נהג אחר כך</option>
+            {drivers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </label>
+      )}
 
       <div>
         <span className={label}>סוג משימה</span>
@@ -267,7 +291,7 @@ export default function DriverTaskForm({
                 <span className={label}>שעה (לא חובה)</span>
                 <input type="time" value={returnTime} onChange={(event) => setReturnTime(event.target.value)} className={field} />
               </label>
-              <p className="col-span-2 text-sm text-gray-600">משימת ההחזרה תשויך ל{driver.name}. אפשר להעביר אותה לנהג אחר אחר כך.</p>
+              <p className="col-span-2 text-sm text-gray-600">{driver ? `משימת ההחזרה תשויך ל${driver.name}.` : 'משימת ההחזרה תיפתח בלי נהג.'} אפשר להעביר אותה לנהג אחר אחר כך.</p>
             </div>
           )}
         </div>
@@ -281,7 +305,7 @@ export default function DriverTaskForm({
       </label>
       {error && <p className="text-sm font-bold text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button type="submit" disabled={creating} className="min-h-14 flex-[2] rounded-xl bg-[#E8743B] text-base font-black text-white disabled:opacity-50">{creating ? 'יוצר...' : `הקצאה ל${driver.name}`}</button>
+        <button type="submit" disabled={creating} className="min-h-14 flex-[2] rounded-xl bg-[#E8743B] text-base font-black text-white disabled:opacity-50">{creating ? 'יוצר...' : driver ? `הקצאה ל${driver.name}` : 'יצירת משימה'}</button>
         <button type="button" onClick={onCancel} className="min-h-14 flex-1 rounded-xl border-2 border-gray-200 bg-white text-base font-bold text-gray-600">ביטול</button>
       </div>
     </form>
