@@ -5,6 +5,8 @@ import { loadHandover, searchHandovers, type HandoverDamage } from '@/lib/inspec
 function toClient(h: HandoverDamage) {
   return {
     inspectionId: h.inspectionId,
+    bookingId: h.bookingId,
+    customerPhone: h.customerPhone,
     mediaToken: h.mediaToken,
     odometerKm: h.odometerKm,
     fuelEighths: h.fuelEighths,

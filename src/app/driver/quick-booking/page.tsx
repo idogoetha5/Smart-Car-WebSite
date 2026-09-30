@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { Search } from 'lucide-react';
@@ -13,6 +13,84 @@ interface VehicleOption {
   model: string;
   license_plate: string | null;
   price_per_day: number;
+}
+
+interface HandoverOption {
+  inspectionId: string;
+  bookingId: string | null;
+  customerName: string;
+  vehicleName: string;
+  licensePlate: string;
+  signedAt: string | null;
+  marks: unknown[];
+}
+
+/** Return: find the customer's signed handover and continue on that same rental. */
+function ReturnPicker({ onNotFound }: { onNotFound: () => void }) {
+  const router = useRouter();
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState<HandoverOption[]>([]);
+  const [searching, setSearching] = useState(false);
+  const query = q.trim();
+
+  useEffect(() => {
+    if (query.length < 2) return;
+    const t = setTimeout(() => {
+      setSearching(true);
+      fetch(`/api/driver/inspections/handover?search=${encodeURIComponent(query)}`)
+        .then((r) => r.json())
+        .then((json) => setResults(json?.data ?? []))
+        .catch(() => setResults([]))
+        .finally(() => setSearching(false));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const shown = query.length >= 2 ? results : [];
+
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+      <label className="block font-black text-gray-800 mb-1" htmlFor="return-search">של איזה לקוח ההחזרה?</label>
+      <p className="mb-3 text-sm text-gray-500">בחר את הלקוח — הנזקים מהמסירה יופיעו באפור, ותסמן רק נזקים חדשים.</p>
+      <div className="relative mb-3">
+        <Search className="absolute top-1/2 -translate-y-1/2 start-3 h-5 w-5 text-gray-400" aria-hidden="true" />
+        <input
+          id="return-search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="שם הלקוח או לוחית רישוי"
+          autoFocus
+          className="w-full min-h-14 ps-11 pe-3 rounded-xl border-2 border-gray-200 text-base"
+        />
+      </div>
+      <div className="space-y-2">
+        {shown.map((h) => (
+          <button
+            key={h.inspectionId}
+            type="button"
+            disabled={!h.bookingId}
+            onClick={() => router.push(`/driver/inspection/new?bookingId=${encodeURIComponent(h.bookingId ?? '')}&type=return`)}
+            className="w-full min-h-16 rounded-xl border-2 border-gray-200 px-4 py-2 text-right active:border-[#E8743B] active:bg-orange-50 disabled:opacity-40"
+          >
+            <span className="block text-base font-black text-gray-900">{h.customerName}</span>
+            <span className="block text-sm text-gray-500">
+              {h.vehicleName}
+              {h.licensePlate && h.licensePlate !== '—' ? <> · <span dir="ltr">{h.licensePlate}</span></> : null}
+              {h.signedAt ? ` · נמסר ${new Date(h.signedAt).toLocaleDateString('he-IL')}` : ''}
+              {h.marks.length ? ` · ${h.marks.length} נזקים` : ''}
+            </span>
+          </button>
+        ))}
+        {searching && <p className="py-3 text-center text-sm text-gray-400">מחפש…</p>}
+        {!searching && query.length >= 2 && shown.length === 0 && (
+          <p className="py-3 text-center text-sm text-gray-400">לא נמצאה מסירה חתומה ללקוח הזה</p>
+        )}
+      </div>
+      <button type="button" onClick={onNotFound} className="mt-3 min-h-12 w-full rounded-xl border-2 border-dashed border-gray-300 text-base font-bold text-gray-600">
+        אין מסירה במערכת — פרטי לקוח ידנית
+      </button>
+    </div>
+  );
 }
 
 export default function DriverQuickBookingPage() {
@@ -32,6 +110,7 @@ export default function DriverQuickBookingPage() {
   const [vehicleMode, setVehicleMode] = useState<'fleet' | 'custom'>('fleet');
   const [customVehicleName, setCustomVehicleName] = useState('');
   const [type, setType] = useState<'pickup' | 'return' | null>(null);
+  const [manualReturn, setManualReturn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -86,12 +165,36 @@ export default function DriverQuickBookingPage() {
   return (
     <div className="max-w-lg mx-auto px-4 py-8" dir="rtl">
       <h1 className="text-2xl font-black text-gray-900 mb-1">משימה חדשה</h1>
-      <p className="text-gray-500 text-sm mb-6">להזמנה שעדיין לא קיימת במערכת</p>
+      <p className="text-gray-500 text-base mb-6">מסירה חדשה, או החזרה של לקוח קיים</p>
 
       <div className="space-y-5">
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <span className="block font-black text-gray-800 mb-3">מה עושים?</span>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setType('pickup')}
+              className={`min-h-14 rounded-xl border-2 font-black ${type === 'pickup' ? 'border-[#E8743B] bg-orange-50 text-[#E8743B]' : 'border-gray-200 text-gray-600'}`}
+            >
+              בדיקת מסירה
+            </button>
+            <button
+              type="button"
+              onClick={() => { setType('return'); setManualReturn(false); }}
+              className={`min-h-14 rounded-xl border-2 font-black ${type === 'return' ? 'border-[#E8743B] bg-orange-50 text-[#E8743B]' : 'border-gray-200 text-gray-600'}`}
+            >
+              בדיקת החזרה
+            </button>
+          </div>
+        </div>
+
+        {type === 'return' && !manualReturn && <ReturnPicker onNotFound={() => setManualReturn(true)} />}
+
+        {(type === 'pickup' || (type === 'return' && manualReturn)) && (
+        <>
         <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-3">
           <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1">שם הלקוח</label>
+            <label className="block text-sm font-bold text-gray-600 mb-1">שם הלקוח</label>
             <input
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
@@ -99,7 +202,7 @@ export default function DriverQuickBookingPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1">טלפון</label>
+            <label className="block text-sm font-bold text-gray-600 mb-1">טלפון</label>
             <input
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
@@ -109,7 +212,7 @@ export default function DriverQuickBookingPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1">אימייל הלקוח (חובה)</label>
+            <label className="block text-sm font-bold text-gray-600 mb-1">אימייל הלקוח (חובה)</label>
             <input
               value={customerEmail}
               onChange={(e) => setCustomerEmail(e.target.value)}
@@ -120,7 +223,7 @@ export default function DriverQuickBookingPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1">כתובת (לוויז, לא חובה)</label>
+            <label className="block text-sm font-bold text-gray-600 mb-1">כתובת (לוויז, לא חובה)</label>
             <input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
@@ -133,10 +236,10 @@ export default function DriverQuickBookingPage() {
         <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
           <label className="block font-black text-gray-800 mb-3">רכב</label>
           <div className="mb-4 grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => setVehicleMode('fleet')} className={`min-h-11 rounded-xl border-2 text-sm font-black ${vehicleMode === 'fleet' ? 'border-[#2D5F5F] bg-[#eef6f6] text-[#2D5F5F]' : 'border-gray-200 text-gray-600'}`}>
+            <button type="button" onClick={() => setVehicleMode('fleet')} className={`min-h-12 rounded-xl border-2 text-base font-black ${vehicleMode === 'fleet' ? 'border-[#2D5F5F] bg-[#eef6f6] text-[#2D5F5F]' : 'border-gray-200 text-gray-600'}`}>
               רכב מהצי
             </button>
-            <button type="button" onClick={() => setVehicleMode('custom')} className={`min-h-11 rounded-xl border-2 text-sm font-black ${vehicleMode === 'custom' ? 'border-[#2D5F5F] bg-[#eef6f6] text-[#2D5F5F]' : 'border-gray-200 text-gray-600'}`}>
+            <button type="button" onClick={() => setVehicleMode('custom')} className={`min-h-12 rounded-xl border-2 text-base font-black ${vehicleMode === 'custom' ? 'border-[#2D5F5F] bg-[#eef6f6] text-[#2D5F5F]' : 'border-gray-200 text-gray-600'}`}>
               רכב שלא ברשימה
             </button>
           </div>
@@ -144,7 +247,7 @@ export default function DriverQuickBookingPage() {
             <>
               <div className="relative mb-3">
                 <Search className="absolute top-1/2 -translate-y-1/2 start-3 h-4 w-4 text-gray-400" aria-hidden="true" />
-                <input value={vehicleSearch} onChange={(e) => setVehicleSearch(e.target.value)} placeholder="חיפוש לפי דגם / לוחית רישוי" className="w-full min-h-11 ps-10 pe-3 rounded-xl border-2 border-gray-200 text-base" />
+                <input value={vehicleSearch} onChange={(e) => setVehicleSearch(e.target.value)} placeholder="חיפוש לפי דגם / לוחית רישוי" className="w-full min-h-12 ps-10 pe-3 rounded-xl border-2 border-gray-200 text-base" />
               </div>
               <div className="max-h-56 overflow-y-auto space-y-2">
                 {filteredVehicles.map((v) => (
@@ -161,26 +264,6 @@ export default function DriverQuickBookingPage() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <span className="block font-black text-gray-800 mb-3">סוג בדיקה</span>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setType('pickup')}
-              className={`min-h-14 rounded-xl border-2 font-black ${type === 'pickup' ? 'border-[#E8743B] bg-orange-50 text-[#E8743B]' : 'border-gray-200 text-gray-600'}`}
-            >
-              בדיקת מסירה
-            </button>
-            <button
-              type="button"
-              onClick={() => setType('return')}
-              className={`min-h-14 rounded-xl border-2 font-black ${type === 'return' ? 'border-[#E8743B] bg-orange-50 text-[#E8743B]' : 'border-gray-200 text-gray-600'}`}
-            >
-              בדיקת החזרה
-            </button>
-          </div>
-        </div>
-
         {error && <p className="text-red-600 text-sm text-center">{error}</p>}
 
         <button
@@ -191,6 +274,8 @@ export default function DriverQuickBookingPage() {
         >
           {submitting ? 'יוצר הזמנה...' : 'המשך לבדיקה'}
         </button>
+        </>
+        )}
       </div>
     </div>
   );

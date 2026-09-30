@@ -6,6 +6,9 @@ import type { Checklist } from '@/lib/inspection-checklist';
 
 export interface HandoverDamage {
   inspectionId: string;
+  /** The rental the handover belongs to — a return is done on the same booking. */
+  bookingId: string | null;
+  customerPhone: string | null;
   marks: DamageMark[];
   /** Token for /insp-photo of the handover inspection's photos. */
   mediaToken: string;
@@ -19,10 +22,11 @@ export interface HandoverDamage {
 }
 
 const SELECT =
-  'id, status, type, damage_marks, odometer_km, fuel_eighths, checklist, signed_at, created_at, booking:bookings(customer_name, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
+  'id, booking_id, status, type, damage_marks, odometer_km, fuel_eighths, checklist, signed_at, created_at, booking:bookings(customer_name, customer_phone, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
 
 type Row = {
   id: string;
+  booking_id: string | null;
   status: string;
   type: string;
   damage_marks: DamageMark[] | null;
@@ -32,6 +36,7 @@ type Row = {
   signed_at: string | null;
   booking: {
     customer_name: string;
+    customer_phone?: string | null;
     custom_vehicle_name: string | null;
     vehicle: { make: string; model: string; license_plate: string | null } | null;
   } | null;
@@ -40,6 +45,8 @@ type Row = {
 function shape(row: Row): HandoverDamage {
   return {
     inspectionId: row.id,
+    bookingId: row.booking_id,
+    customerPhone: row.booking?.customer_phone ?? null,
     marks: row.damage_marks ?? [],
     mediaToken: createInspectionToken(row.id, 24),
     odometerKm: row.odometer_km,

@@ -29,6 +29,17 @@ interface DriverTaskFormProps {
   bookingsApi?: string;
 }
 
+/** YYYY-MM-DD for today + offset days, in the device's (Israel) local time. */
+function localDateString(offsetDays: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+const field = 'min-h-12 w-full rounded-xl border-2 border-gray-200 bg-white px-3 text-base';
+const label = 'mb-1 block text-sm font-bold text-gray-600';
+
 export default function DriverTaskForm({
   driver,
   onCancel,
@@ -46,7 +57,8 @@ export default function DriverTaskForm({
   const [customVehicleName, setCustomVehicleName] = useState('');
   const [bookingSearch, setBookingSearch] = useState('');
   const [bookingId, setBookingId] = useState('');
-  const [scheduledAt, setScheduledAt] = useState('');
+  const [date, setDate] = useState(() => localDateString(0));
+  const [time, setTime] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [creating, setCreating] = useState(false);
@@ -67,9 +79,15 @@ export default function DriverTaskForm({
     event.preventDefault();
     setError('');
     if (mode === 'existing' && !bookingId) {
-      setError('יש לבחור הזמנה קיימת');
+      setError(type === 'return' ? 'יש לבחור את ההזמנה של הלקוח (המסירה)' : 'יש לבחור הזמנה קיימת');
       return;
     }
+    if (!date) {
+      setError('יש לבחור תאריך');
+      return;
+    }
+    // No time → midday, so the task still lands on the right day for the driver.
+    const scheduledAt = new Date(`${date}T${time || '12:00'}:00`).toISOString();
 
     setCreating(true);
     try {
@@ -84,7 +102,8 @@ export default function DriverTaskForm({
           customerEmail: mode === 'new' ? customerEmail : undefined,
           vehicleId: mode === 'new' && vehicleMode === 'fleet' ? vehicleId : undefined,
           customVehicleName: mode === 'new' && vehicleMode === 'custom' ? customVehicleName : undefined,
-          scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
+          scheduledAt,
+          scheduledTime: time || undefined,
           location: location || undefined,
           notes: notes || undefined,
           assignedDriverId: driver.id,
@@ -101,65 +120,112 @@ export default function DriverTaskForm({
     }
   };
 
+  const chooseType = (next: 'pickup' | 'return') => {
+    setType(next);
+    // A return belongs to the rental where the car was handed over, so the
+    // driver sees the handover damage in grey. Default to picking that booking.
+    setMode(next === 'return' ? 'existing' : 'new');
+  };
+
+  const tab = (active: boolean) =>
+    `min-h-12 flex-1 rounded-xl border-2 text-base font-black ${active ? 'border-[#2D5F5F] bg-[#2D5F5F] text-white' : 'border-gray-200 bg-white text-gray-600'}`;
+
   return (
-    <form onSubmit={createTask} className="space-y-4 border-t border-orange-100 bg-orange-50/40 p-4 sm:p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="font-black text-gray-900">משימה חדשה עבור {driver.name}</h3>
-          <p className="text-xs text-gray-500">המשימה תשויך אוטומטית לנהג הזה</p>
-        </div>
+    <form onSubmit={createTask} className="space-y-5 border-t border-orange-100 bg-orange-50/40 p-4 sm:p-5">
+      <div>
+        <h3 className="text-lg font-black text-gray-900">משימה חדשה עבור {driver.name}</h3>
+        <p className="text-sm text-gray-500">המשימה תופיע אצל הנהג ביום שנבחר (וגם יום לפני, בלשונית &quot;מחר&quot;)</p>
+      </div>
+
+      <div>
+        <span className={label}>סוג משימה</span>
         <div className="flex gap-2">
-          <button type="button" onClick={() => setMode('new')} className={`min-h-10 rounded-lg px-4 text-sm font-bold ${mode === 'new' ? 'bg-[#2D5F5F] text-white' : 'bg-white text-gray-600'}`}>הזמנה חדשה</button>
-          <button type="button" onClick={() => setMode('existing')} className={`min-h-10 rounded-lg px-4 text-sm font-bold ${mode === 'existing' ? 'bg-[#2D5F5F] text-white' : 'bg-white text-gray-600'}`}>הזמנה קיימת</button>
+          <button type="button" onClick={() => chooseType('pickup')} className={tab(type === 'pickup')}>מסירה</button>
+          <button type="button" onClick={() => chooseType('return')} className={tab(type === 'return')}>החזרה</button>
         </div>
       </div>
 
-      {mode === 'new' ? (
-        <div className="space-y-3">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <input value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="שם הלקוח" className="min-h-11 rounded-xl border border-gray-200 px-3 text-sm" required />
-            <input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} placeholder="טלפון" dir="ltr" className="min-h-11 rounded-xl border border-gray-200 px-3 text-sm" required />
-            <input type="email" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} placeholder="אימייל הלקוח (חובה)" dir="ltr" className="min-h-11 rounded-xl border border-gray-200 px-3 text-sm" required />
-          </div>
+      <div>
+        <span className={label}>מתי</span>
+        <div className="mb-2 flex gap-2">
+          <button type="button" onClick={() => setDate(localDateString(0))} className={tab(date === localDateString(0))}>היום</button>
+          <button type="button" onClick={() => setDate(localDateString(1))} className={tab(date === localDateString(1))}>מחר</button>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="block">
+            <span className={label}>תאריך</span>
+            <input type="date" value={date} min={localDateString(0)} onChange={(event) => setDate(event.target.value)} className={field} required />
+          </label>
+          <label className="block">
+            <span className={label}>שעה (לא חובה)</span>
+            <input type="time" value={time} onChange={(event) => setTime(event.target.value)} className={field} />
+          </label>
+        </div>
+      </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-3">
-            <div className="mb-3 flex gap-2">
-              <button type="button" onClick={() => setVehicleMode('fleet')} className={`min-h-9 rounded-lg px-3 text-xs font-bold ${vehicleMode === 'fleet' ? 'bg-[#2D5F5F] text-white' : 'bg-gray-100 text-gray-600'}`}>רכב מהצי</button>
-              <button type="button" onClick={() => setVehicleMode('custom')} className={`min-h-9 rounded-lg px-3 text-xs font-bold ${vehicleMode === 'custom' ? 'bg-[#2D5F5F] text-white' : 'bg-gray-100 text-gray-600'}`}>רכב שלא ברשימה</button>
-            </div>
-            {vehicleMode === 'fleet' ? (
-              <select value={vehicleId} onChange={(event) => setVehicleId(event.target.value)} className="min-h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm" required>
-                <option value="">בחר רכב</option>
-                {vehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.make} {vehicle.model} {vehicle.license_plate ? `— ${vehicle.license_plate}` : ''}</option>)}
-              </select>
-            ) : (
-              <input value={customVehicleName} onChange={(event) => setCustomVehicleName(event.target.value)} placeholder="שם הרכב, לדוגמה: טויוטה קורולה לבנה" className="min-h-11 w-full rounded-xl border border-gray-200 px-3 text-sm" required />
+      <div>
+        <span className={label}>{type === 'return' ? 'של איזה לקוח ההחזרה?' : 'הלקוח'}</span>
+        <div className="mb-3 flex gap-2">
+          <button type="button" onClick={() => setMode('existing')} className={tab(mode === 'existing')}>{type === 'return' ? 'לקוח קיים' : 'הזמנה קיימת'}</button>
+          <button type="button" onClick={() => setMode('new')} className={tab(mode === 'new')}>לקוח חדש</button>
+        </div>
+
+        {mode === 'existing' ? (
+          <div>
+            {type === 'return' && (
+              <p className="mb-2 text-sm text-[#2D5F5F]">בחר את ההזמנה שבה הרכב נמסר — כך הנהג יראה באפור את הנזקים שסומנו במסירה.</p>
             )}
+            <input value={bookingSearch} onChange={(event) => setBookingSearch(event.target.value)} placeholder="חיפוש לפי שם לקוח / מספר הזמנה" className={`${field} mb-2`} />
+            <div className="max-h-64 space-y-2 overflow-y-auto">
+              {filteredBookings.map((booking) => (
+                <button type="button" key={booking.id} onClick={() => setBookingId(booking.id)} className={`min-h-14 w-full rounded-xl border-2 px-3 py-2 text-right text-base ${bookingId === booking.id ? 'border-[#E8743B] bg-orange-50' : 'border-gray-200 bg-white'}`}>
+                  <span className="block font-bold text-gray-900">{booking.customer_name}</span>
+                  <span className="block text-sm text-gray-500">{bookingVehicleName(booking)} · #{numericOrderReference(booking.id)}</span>
+                </button>
+              ))}
+              {filteredBookings.length === 0 && <p className="py-4 text-center text-sm text-gray-400">לא נמצאו הזמנות</p>}
+            </div>
           </div>
-        </div>
-      ) : (
-        <div>
-          <input value={bookingSearch} onChange={(event) => setBookingSearch(event.target.value)} placeholder="חיפוש לפי שם לקוח / מספר הזמנה" className="mb-2 min-h-11 w-full rounded-xl border border-gray-200 px-3 text-sm" />
-          <div className="max-h-40 space-y-1 overflow-y-auto">
-            {filteredBookings.map((booking) => (
-              <button type="button" key={booking.id} onClick={() => setBookingId(booking.id)} className={`min-h-10 w-full rounded-lg border-2 px-3 text-right text-sm ${bookingId === booking.id ? 'border-[#E8743B] bg-orange-50' : 'border-transparent bg-white'}`}>
-                {booking.customer_name} — {bookingVehicleName(booking)} — #{numericOrderReference(booking.id)}
-              </button>
-            ))}
+        ) : (
+          <div className="space-y-3">
+            <label className="block"><span className={label}>שם הלקוח</span>
+              <input value={customerName} onChange={(event) => setCustomerName(event.target.value)} className={field} required />
+            </label>
+            <label className="block"><span className={label}>טלפון</span>
+              <input value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} type="tel" dir="ltr" className={field} required />
+            </label>
+            <label className="block"><span className={label}>אימייל הלקוח</span>
+              <input type="email" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} dir="ltr" className={field} required />
+            </label>
+            <div>
+              <span className={label}>רכב</span>
+              <div className="mb-2 flex gap-2">
+                <button type="button" onClick={() => setVehicleMode('fleet')} className={tab(vehicleMode === 'fleet')}>רכב מהצי</button>
+                <button type="button" onClick={() => setVehicleMode('custom')} className={tab(vehicleMode === 'custom')}>לא ברשימה</button>
+              </div>
+              {vehicleMode === 'fleet' ? (
+                <select value={vehicleId} onChange={(event) => setVehicleId(event.target.value)} className={field} required>
+                  <option value="">בחר רכב</option>
+                  {vehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.make} {vehicle.model} {vehicle.license_plate ? `— ${vehicle.license_plate}` : ''}</option>)}
+                </select>
+              ) : (
+                <input value={customVehicleName} onChange={(event) => setCustomVehicleName(event.target.value)} placeholder="לדוגמה: טויוטה קורולה לבנה" className={field} required />
+              )}
+            </div>
           </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <select value={type} onChange={(event) => setType(event.target.value as 'pickup' | 'return')} className="min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm"><option value="pickup">מסירה</option><option value="return">החזרה</option></select>
-        <input type="datetime-local" value={scheduledAt} onChange={(event) => setScheduledAt(event.target.value)} className="min-h-11 rounded-xl border border-gray-200 px-3 text-sm" />
-        <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="כתובת ללקוח — לוויז (לא חובה)" className="min-h-11 rounded-xl border border-gray-200 px-3 text-sm" />
+        )}
       </div>
-      <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="הערות" rows={2} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm" />
-      {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <label className="block"><span className={label}>כתובת ללקוח — לוויז (לא חובה)</span>
+        <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="רחוב, מספר, עיר" className={field} />
+      </label>
+      <label className="block"><span className={label}>הערות לנהג (לא חובה)</span>
+        <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={2} className="w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 text-base" />
+      </label>
+      {error && <p className="text-sm font-bold text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button type="submit" disabled={creating} className="min-h-11 rounded-xl bg-[#E8743B] px-5 text-sm font-black text-white hover:bg-[#d4632a] disabled:opacity-50">{creating ? 'יוצר...' : `הקצאה ל${driver.name}`}</button>
-        <button type="button" onClick={onCancel} className="min-h-11 rounded-xl border border-gray-200 bg-white px-5 text-sm font-bold text-gray-600 hover:bg-gray-50">ביטול</button>
+        <button type="submit" disabled={creating} className="min-h-14 flex-[2] rounded-xl bg-[#E8743B] text-base font-black text-white disabled:opacity-50">{creating ? 'יוצר...' : `הקצאה ל${driver.name}`}</button>
+        <button type="button" onClick={onCancel} className="min-h-14 flex-1 rounded-xl border-2 border-gray-200 bg-white text-base font-bold text-gray-600">ביטול</button>
       </div>
     </form>
   );

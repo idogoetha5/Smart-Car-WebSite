@@ -110,6 +110,8 @@ export async function createDriverTask(request: NextRequest, createdBy: string):
   const assignedDriverId = body?.assignedDriverId ? String(body.assignedDriverId).trim() : null;
   const notes = body?.notes ? String(body.notes).trim() : null;
   const scheduledAt = body?.scheduledAt ? String(body.scheduledAt) : null; // ISO datetime
+  // Israel wall-clock time the driver sees on the task card (HH:MM).
+  const scheduledTime = typeof body?.scheduledTime === 'string' && /^\d{2}:\d{2}$/.test(body.scheduledTime) ? body.scheduledTime : null;
   const location = body?.location ? String(body.location).trim() : null;
 
   const supabase = createAdminClient();
@@ -132,6 +134,7 @@ export async function createDriverTask(request: NextRequest, createdBy: string):
 
     const update: Record<string, unknown> = {};
     if (scheduledAt) update[type === 'pickup' ? 'pickup_date' : 'dropoff_date'] = scheduledAt;
+    if (scheduledTime) update[type === 'pickup' ? 'pickup_time' : 'return_time'] = scheduledTime;
     if (location) update[type === 'pickup' ? 'pickup_location' : 'dropoff_location'] = location;
     if (Object.keys(update).length > 0) {
       const { error: updateError } = await supabase.from('bookings').update(update).eq('id', bookingId);
@@ -195,6 +198,7 @@ export async function createDriverTask(request: NextRequest, createdBy: string):
       status: 'CONFIRMED',
       source: 'phone',
     };
+    if (scheduledTime) bookingPayload[type === 'pickup' ? 'pickup_time' : 'return_time'] = scheduledTime;
     if (!vehicleId) bookingPayload.custom_vehicle_name = customVehicleName;
 
     const { data: booking, error: insertError } = await supabase
