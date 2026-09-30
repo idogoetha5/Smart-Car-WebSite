@@ -163,7 +163,8 @@ export async function GET(request: NextRequest) {
     }
     const needle = search.toLowerCase();
     const matchesSearch = (t: TaskRow) => {
-      const plate = bookingLicensePlate(t.booking).toLowerCase();
+      // Compare plates without dashes/spaces on both sides: "12-345-67" is found by "1234567" too.
+      const plate = bookingLicensePlate(t.booking).toLowerCase().replace(/[\s-]/g, '');
       const name = (t.booking?.customer_name ?? '').toLowerCase();
       return (
         name.includes(needle) ||
