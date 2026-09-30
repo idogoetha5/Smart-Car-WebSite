@@ -78,7 +78,7 @@ function damageSection(data: InspectionPdfData): string {
     <h2>${title}</h2>
     ${marks.length || ghosts.length ? renderCarDiagramHtml(marks, ghosts) : ''}
     ${ghostList}
-    ${marks.length ? `<table><tr><th style="width:36px;">#</th><th>מיקום</th><th>סוג</th><th>הערה</th><th>תמונה</th></tr>${rows}</table>` : ''}
+    ${marks.length ? `<table class="damage-table"><thead><tr><th style="width:36px;">#</th><th>מיקום</th><th>סוג</th><th>הערה</th><th>תמונה</th></tr></thead><tbody>${rows}</tbody></table>` : ''}
     ${sideFigures ? `<div class="sides">${sideFigures}</div>` : ''}
   </div>`;
 }
@@ -127,7 +127,12 @@ export function generateInspectionPdfHTML(data: InspectionPdfData): string {
   .sign-section { break-inside: avoid; page-break-inside: avoid; }
   .signature-block { display: flex; align-items: flex-end; justify-content: space-between; border-top: 1px solid #d9ecec; padding-top: 14px; }
   .signature-block img { max-width: 260px; max-height: 100px; border-bottom: 1px solid #999; }
-  .damage h2 { font-size: 15px; margin: 0 0 8px; }
+  .damage h2 { font-size: 15px; margin: 0 0 8px; break-after: avoid; page-break-after: avoid; }
+  /* Never leave the damage table's header row alone at the bottom of a page:
+     the header repeats on every page and always travels with its first row. */
+  thead { display: table-header-group; }
+  .damage-table thead, .damage-table tbody tr:first-child { break-after: avoid; page-break-after: avoid; }
+  .damage-table { break-before: auto; }
   .damage table td { vertical-align: top; }
   .damage th { width: auto; }
   .damage img.photo { max-width: 150px; max-height: 110px; border-radius: 4px; }
