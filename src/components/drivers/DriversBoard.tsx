@@ -71,6 +71,8 @@ const STATUS_CLASS: Record<Task['status'], string> = {
   cancelled: 'bg-gray-100 text-gray-500',
 };
 const REFRESH_MS = 60_000;
+/** Items shown in 'דורש טיפול' before 'הצג הכל' — keeps the day's board in view on a phone. */
+const ATTENTION_PREVIEW = 2;
 
 const israelDayFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' });
 const israelClockFormatter = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', hour12: false });
@@ -149,6 +151,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
   const [filterDate, setFilterDate] = useState('');
   const [query, setQuery] = useState('');
   const [attentionOpen, setAttentionOpen] = useState(true);
+  const [attentionAll, setAttentionAll] = useState(false);
   const [managerName, setManagerName] = useState('');
   const [managerPin, setManagerPin] = useState('');
   const [newDriverName, setNewDriverName] = useState('');
@@ -548,7 +551,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="חיפוש לקוח, לוחית רישוי, טלפון או כתובת"
+          placeholder="חיפוש: לקוח, לוחית, טלפון, כתובת"
           className="w-full min-h-14 rounded-2xl border-2 border-[#B8D8D8] bg-white ps-12 pe-12 text-base shadow-sm focus:border-[#2D5F5F] focus:outline-none"
         />
         {query && (
@@ -580,8 +583,8 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
               </button>
               {attentionOpen && (
                 <div className="grid gap-3 p-4 lg:grid-cols-2">
-                  {attention.items.map(({ task, reason }) => renderTask(task, reason))}
-                  {attention.damageJobs.map((job) => (
+                  {(attentionAll ? attention.items : attention.items.slice(0, ATTENTION_PREVIEW)).map(({ task, reason }) => renderTask(task, reason))}
+                  {(attentionAll || attention.items.length < ATTENTION_PREVIEW ? attention.damageJobs : []).map((job) => (
                     <div key={`dmg-${job.id}`}>
                       <p className="mb-2 inline-flex items-center gap-1 rounded-full bg-red-50 px-3 py-1 text-sm font-black text-red-700">
                         <AlertTriangle className="h-4 w-4" aria-hidden="true" />
@@ -590,6 +593,11 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
                       {renderSignedJob(job)}
                     </div>
                   ))}
+                  {!attentionAll && attentionCount > ATTENTION_PREVIEW && (
+                    <button onClick={() => setAttentionAll(true)} className="min-h-12 rounded-xl border-2 border-red-200 bg-white text-base font-black text-red-700 lg:col-span-2">
+                      הצג הכל ({attentionCount})
+                    </button>
+                  )}
                 </div>
               )}
             </section>

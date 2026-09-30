@@ -21,9 +21,10 @@ const today={pickups:[row({}),row({customerName:'מיכל לוי-אברהמי ע
 const SIGN={data:{inspectionId:'i1',type:'pickup',odometerKm:45210,fuelLabel:'4/8',status:'awaiting_signature',signedAt:null,customerName:'דניאל כהן',vehicleName:'טויוטה קורולה',licensePlate:'12-345-67',declaration:{he:'אני מאשר/ת כי קיבלתי את הרכב במצב המתואר.\n\nאגרות, קנסות ודוחות\nהשוכר אחראי לכל הדוחות.',en:'x'},videoReady:false,hasVideo:false,mediaReady:true,damageMarks:[{n:1,view:'front',x:0.4,y:0.5,kind:'scratch',note:'שריטה בפגוש',hasPhoto:false}],noDamage:false,sidePhotoViews:[],checklist:[{id:'spare',value:'ok'}],mediaToken:'m'}};
 const pages=process.argv.slice(2).length?process.argv.slice(2):['/driver','/driver/login','/driver/manager-login','/driver/quick-booking','/driver/inspection/new?bookingId=b1&type=pickup','/driver/inspection/new?bookingId=b1&type=return','/driver/inspection/i1/sign','/driver/inspection/i2/sign','/driver/manage'];
 const b=await chromium.launch().catch(()=>chromium.launch({executablePath:'/opt/pw-browsers/chromium'}));
-const bk=(o)=>({customer_name:'דניאל כהן',pickup_date:'2026-10-01T07:30:00Z',dropoff_date:'2026-10-04T07:30:00Z',pickup_location:'רחוב הרצל 12, תל אביב',dropoff_location:'לא צוין',custom_vehicle_name:null,vehicle:{make:'Toyota',model:'Corolla',license_plate:'12-345-67'},...o});
-const MANAGE_TASKS=[{id:'t1',type:'pickup',status:'open',notes:'ללקוח יש כלב, לצלצל בשער',assigned_driver_id:'d1',booking:bk({}),inspection:null},{id:'t2',type:'return',status:'done',notes:null,assigned_driver_id:'d1',booking:bk({customer_name:'מיכל לוי-אברהמי',dropoff_location:'שדה התעופה בן גוריון'}),inspection:{id:'i2',status:'signed'}},{id:'t3',type:'pickup',status:'cancelled',notes:null,assigned_driver_id:'d1',booking:bk({customer_name:'יוסי מזרחי',pickup_location:'לא צוין'}),inspection:null},{id:'t4',type:'pickup',status:'open',notes:null,assigned_driver_id:null,booking:bk({customer_name:'רונית אלון'}),inspection:null}];
-const MANAGE_SIGNED=[{id:'s1',type:'pickup',signedAt:'2026-09-30T09:00:00Z',customerName:'דניאל כהן',vehicleName:'Toyota Corolla',licensePlate:'12-345-67',address:'רחוב הרצל 12, תל אביב',driverName:'דניאל',damageCount:2,pdfUrl:'https://x/p.pdf',videoUrl:'https://x/v.mp4'}];
+const NOW=new Date(); const iso=(d,h)=>{const x=new Date(NOW.getTime()+d*86400000); x.setUTCHours(h,0,0,0); return x.toISOString();};
+const bk=(o)=>({customer_name:'דניאל כהן',customer_phone:'0521234567',pickup_date:iso(0,9),dropoff_date:iso(3,9),pickup_time:'23:30:00',return_time:'10:00:00',pickup_location:'רחוב הרצל 12, תל אביב',dropoff_location:'לא צוין',custom_vehicle_name:null,vehicle:{make:'Toyota',model:'Corolla',license_plate:'12-345-67'},...o});
+const MANAGE_TASKS=[{id:'t1',type:'pickup',status:'open',notes:'ללקוח יש כלב, לצלצל בשער',assigned_driver_id:'d1',booking:bk({}),inspection:null},{id:'t2',type:'return',status:'done',notes:null,assigned_driver_id:'d1',booking:bk({customer_name:'מיכל לוי-אברהמי',dropoff_date:iso(0,8),return_time:'08:00:00',dropoff_location:'שדה התעופה בן גוריון'}),inspection:{id:'s1',status:'signed'}},{id:'t3',type:'pickup',status:'cancelled',notes:null,assigned_driver_id:'d1',booking:bk({customer_name:'יוסי מזרחי',pickup_location:'לא צוין'}),inspection:null},{id:'t4',type:'pickup',status:'open',notes:null,assigned_driver_id:null,booking:bk({customer_name:'רונית אלון',pickup_time:'07:00:00'}),inspection:null},{id:'t5',type:'return',status:'open',notes:null,assigned_driver_id:'d2',booking:bk({customer_name:'אורי שחר',dropoff_date:iso(1,9)}),inspection:{id:'i9',status:'awaiting_signature'}}];
+const MANAGE_SIGNED=[{id:'s2',type:'return',signedAt:NOW.toISOString(),customerName:'שירה גל',vehicleName:'Kia Picanto',licensePlate:'55-111-22',address:'',driverName:'אבי',damageCount:1,pdfUrl:'https://x/p.pdf',videoUrl:null},{id:'s1',type:'pickup',signedAt:'2026-09-30T09:00:00Z',customerName:'דניאל כהן',vehicleName:'Toyota Corolla',licensePlate:'12-345-67',address:'רחוב הרצל 12, תל אביב',driverName:'דניאל',damageCount:2,pdfUrl:'https://x/p.pdf',videoUrl:'https://x/v.mp4'}];
 let p;
 async function newPage(viewport,mobile){
 const ctx=await b.newContext({viewport,deviceScaleFactor:mobile?2:1,isMobile:mobile,hasTouch:mobile,locale:'he-IL'});
@@ -52,13 +53,21 @@ async function check(name){
  console.log(bad?'FAIL':'ok  ',name,bad?JSON.stringify(res):'');
 }
 async function manageFlow(tag){
+   await check('manage_board'+tag);
+   await p.getByRole('button',{name:'שינוי מועד'}).first().click(); await check('manage_reschedule'+tag);
+   await p.getByRole('button',{name:'ביטול',exact:true}).first().click();
+   await p.getByRole('tab',{name:'לפי נהג'}).click();
    await p.getByRole('button',{name:/משימות \(/}).first().click(); await check('manage_tasks'+tag);
    await p.getByRole('button',{name:'עריכת כתובת'}).first().click(); await check('manage_edit_address'+tag);
    await p.getByRole('button',{name:'ביטול',exact:true}).first().click();
-   await p.getByRole('button',{name:/עבודות שבוצעו/}).click(); await p.getByRole('button',{name:/לא שויכו/}).click(); await check('manage_signed_unassigned'+tag);
+   await p.getByRole('button',{name:/לא שויכו/}).click(); await check('manage_unassigned'+tag);
    await p.getByRole('button',{name:'הוספת נהג'}).click(); await check('manage_add_driver'+tag);
-   const open=p.getByRole('button',{name:/משימה חדשה/}).first(); await open.click(); await check('manage_assign'+tag); await p.getByRole('button',{name:'החזרה',exact:true}).click(); await check('manage_assign_return'+tag);
+   await p.getByRole('button',{name:/^משימה חדשה$/}).first().click(); await check('manage_assign'+tag);
+   await p.getByRole('checkbox').first().check(); await check('manage_assign_with_return'+tag);
+   await p.getByRole('button',{name:'החזרה',exact:true}).click(); await check('manage_assign_return'+tag);
    await p.getByRole('button',{name:'לקוח חדש'}).click(); await p.getByRole('button',{name:'לא ברשימה'}).click(); await check('manage_custom_car'+tag);
+   await p.getByRole('tab',{name:/נחתמו/}).click(); await check('manage_signed'+tag);
+   await p.locator('input[type=search]').first().fill('דני'); await check('manage_search'+tag);
 }
 for(const path of pages){
  await p.goto(BASE+path,{waitUntil:'networkidle'}).catch(e=>console.log('goto',e.message));
