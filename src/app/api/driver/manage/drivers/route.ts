@@ -8,7 +8,7 @@ export async function GET() {
   if (!ok) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const supabase = createAdminClient();
-  const { data, error } = await supabase.from('drivers').select('id, name').eq('active', true).order('name');
+  const { data, error } = await supabase.from('drivers').select('id, name, active').eq('active', true).eq('role', 'driver').order('name');
   if (error) {
     console.error('[driver/manage/drivers] list failed:', error.message);
     return NextResponse.json({ error: 'Lookup failed' }, { status: 500 });

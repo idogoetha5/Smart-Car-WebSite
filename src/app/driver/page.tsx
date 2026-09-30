@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR, { preload } from 'swr';
-import { Search, LogOut, RefreshCw, Plus, Navigation, Phone, Pencil, MapPin, ClipboardList } from 'lucide-react';
+import { Search, LogOut, RefreshCw, Plus, Navigation, Phone, Pencil, MapPin } from 'lucide-react';
 import { fetcher } from '@/lib/swr';
 import PendingInspections from '@/components/inspection/PendingInspections';
 
@@ -58,6 +58,22 @@ function TaskCard({ row, onChanged }: { row: TaskRow; onChanged: () => void }) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
+  const isDone = row.taskStatus === 'done';
+  const [marking, setMarking] = useState(false);
+  const toggleDone = async () => {
+    setMarking(true);
+    try {
+      const res = await fetch(`/api/driver/tasks/${encodeURIComponent(row.taskId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: isDone ? 'open' : 'done' }),
+      });
+      if (res.ok) onChanged();
+    } finally {
+      setMarking(false);
+    }
+  };
+
   const saveAddress = async () => {
     setSaving(true);
     setSaveError('');
@@ -78,17 +94,27 @@ function TaskCard({ row, onChanged }: { row: TaskRow; onChanged: () => void }) {
   };
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+    <div className={`rounded-2xl border p-4 shadow-sm ${isDone ? 'border-green-200 bg-green-50/60 opacity-75' : 'border-gray-100 bg-white'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-black text-gray-900 truncate">{row.customerName}</p>
+          <p className={`font-black truncate ${isDone ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{row.customerName}</p>
           <p className="text-sm text-gray-500 truncate">{row.vehicleName} · <span dir="ltr">{row.licensePlate}</span></p>
           <p className="text-xs text-gray-400 mt-1">
             {hasAddress ? row.location : 'ללא כתובת'} {row.time ? `· ${row.time.slice(0, 5)}` : ''} · #{row.bookingNumber}
           </p>
         </div>
         <div className="flex flex-col gap-2 shrink-0">
-          <TaskAction row={row} />
+          {!isDone && <TaskAction row={row} />}
+          <button
+            type="button"
+            onClick={toggleDone}
+            disabled={marking}
+            className={`min-h-10 rounded-xl px-3 text-sm font-black whitespace-nowrap disabled:opacity-50 ${
+              isDone ? 'border-2 border-green-600 text-green-700' : 'border-2 border-gray-200 text-gray-600'
+            }`}
+          >
+            {isDone ? '✓ בוצע (בטל)' : '✓ בוצע'}
+          </button>
         </div>
       </div>
 
@@ -166,8 +192,6 @@ export default function DriverTodayPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
 
-  const { data: me } = useSWR<{ role: string; canManage: boolean }>('/api/driver/me', fetcher, { dedupingInterval: 60_000 });
-
   const dateQuery = tab === 'tomorrow' ? 'date=tomorrow' : 'date=today';
   const url = tab === 'search'
     ? (search ? `/api/driver/today?search=${encodeURIComponent(search)}` : null)
@@ -206,16 +230,6 @@ export default function DriverTodayPage() {
             </button>
           </div>
         </div>
-
-        {me?.canManage && (
-          <button
-            onClick={() => router.push('/driver/manage')}
-            className="w-full min-h-12 mb-2 flex items-center justify-center gap-2 rounded-xl bg-[#2D5F5F] text-white font-black"
-          >
-            <ClipboardList className="h-5 w-5" aria-hidden="true" />
-            משימות לנהגים (מנהל סניף)
-          </button>
-        )}
 
         <button
           onClick={openQuickBooking}

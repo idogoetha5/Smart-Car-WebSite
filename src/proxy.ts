@@ -179,12 +179,14 @@ export async function proxy(request: NextRequest) {
     // fetched by the browser/OS independently of page auth (e.g. while
     // sitting on the login page, before a session exists) and must stay
     // reachable, same reasoning as excluding /api/admin/login above.
-    if (pathname !== '/driver/login' && !pathname.startsWith('/driver/manifest')) {
+    if (pathname !== '/driver/login' && pathname !== '/driver/manager-login' && !pathname.startsWith('/driver/manifest')) {
       const driverOk = await verifyDriverToken(request.cookies.get('driver_auth')?.value);
       if (!driverOk) {
         const adminOk = await verifyAdminToken(request.cookies.get('admin_auth')?.value ?? '');
         if (!adminOk) {
-          return NextResponse.redirect(new URL('/driver/login', request.url));
+          // Branch managers have their own login (names of managers only).
+          const loginPath = pathname.startsWith('/driver/manage') ? '/driver/manager-login' : '/driver/login';
+          return NextResponse.redirect(new URL(loginPath, request.url));
         }
       }
     }

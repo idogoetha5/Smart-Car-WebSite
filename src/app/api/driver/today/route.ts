@@ -13,6 +13,7 @@ interface TaskRow {
   id: string;
   type: 'pickup' | 'return';
   status: 'open' | 'done' | 'cancelled';
+  updated_at?: string | null;
   booking: {
     id: string;
     customer_name: string;
@@ -54,6 +55,16 @@ async function inspectionMapFor(bookingIds: string[]): Promise<Map<string, Inspe
   return map;
 }
 
+const DONE_VISIBLE_MS = 24 * 60 * 60 * 1000;
+
+/** Tasks marked done (by the driver or by signing) drop off the driver's lists 24h later. */
+function isVisible(task: TaskRow): boolean {
+  if (task.booking === null) return false;
+  if (task.status !== 'done') return true;
+  const doneAt = task.updated_at ? new Date(task.updated_at).getTime() : NaN;
+  return Number.isNaN(doneAt) || Date.now() - doneAt < DONE_VISIBLE_MS;
+}
+
 function shapeTask(task: TaskRow, inspections: Map<string, InspectionSlot>) {
   const booking = task.booking;
   const time = task.type === 'pickup' ? booking?.pickup_time : booking?.return_time;
@@ -77,7 +88,7 @@ function shapeTask(task: TaskRow, inspections: Map<string, InspectionSlot>) {
 }
 
 const TASK_SELECT_INNER =
-  'id, type, status, booking:bookings!inner(id, customer_name, customer_phone, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
+  'id, type, status, updated_at, booking:bookings!inner(id, customer_name, customer_phone, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
 
 /**
  * "היום שלי" — only tasks assigned to the logged-in driver (an admin
@@ -131,8 +142,7 @@ export async function GET(request: NextRequest) {
       );
       return NextResponse.json({ error: 'Lookup failed' }, { status: 500 });
     }
-    const tasks = [...(pickupSearchResult.data ?? []), ...(returnSearchResult.data ?? [])]
-      .filter((task) => task.booking !== null);
+    const tasks = [...(pickupSearchResult.data ?? []), ...(returnSearchResult.data ?? [])].filter(isVisible);
     const needle = search.toLowerCase();
 
     const matches = tasks.filter((t) => {
@@ -184,8 +194,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Lookup failed' }, { status: 500 });
   }
 
-  const pickups = (pickupResult.data ?? []).filter((task) => task.booking !== null);
-  const returns = (returnResult.data ?? []).filter((task) => task.booking !== null);
+  const pickups = (pickupResult.data ?? []).filter(isVisible);
+  const returns = (returnResult.data ?? []).filter(isVisible);
   const inspections = await inspectionMapFor([...pickups, ...returns].map((t) => t.booking!.id));
 
   const sortByTime = (rows: TaskRow[]) =>
