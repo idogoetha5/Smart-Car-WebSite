@@ -26,7 +26,7 @@ await ctx.addCookies([{name:'driver_auth',value:token,url:BASE}]);
 const p=await ctx.newPage();
 await p.route('**/api/driver/**',r=>{const u=r.request().url();
  let body={};
- if(u.includes('/today'))body=today; else if(u.includes('/me'))body=p.url().includes('/manage')?{role:'manager',name:'עידו',canManage:true}:{role:'driver',name:'יוסי'}; else if(u.includes('/vehicles'))body={vehicles:[]};
+ if(u.includes('/today?search'))body={results:[row({awaitingReturn:true,taskStatus:'done',date:'2026-09-25',inspection:{id:'i1',status:'signed',pdfUrl:'https://x/p.pdf'}}),row({type:'return',customerName:'רונית לוי'})]}; else if(u.includes('/today'))body=today; else if(u.includes('/me'))body=p.url().includes('/manage')?{role:'manager',name:'עידו',canManage:true}:{role:'driver',name:'יוסי'}; else if(u.includes('/vehicles'))body={vehicles:[]};
  if(u.includes('/inspections/i2'))body={data:{...SIGN.data,inspectionId:'i2',type:'return',fuelLabel:'5/8',handoverMarks:[{n:1,view:'left',x:0.3,y:0.5,kind:'dent',note:'',hasPhoto:false}],handoverOdometerKm:44800,handoverFuelLabel:'F',handoverSignedAt:'2026-09-20T10:00:00Z'}}; else if(u.includes('handover?search'))body={data:[{inspectionId:'h1',bookingId:'b1',customerName:'דניאל כהן',vehicleName:'טויוטה קורולה',licensePlate:'12-345-67',signedAt:'2026-09-20T10:00:00Z',marks:[{}],odometerKm:40000,fuelEighths:8}]}; else if(u.includes('handover'))body={data:null}; else if(u.includes('/manage/drivers'))body={data:[{id:'d1',name:'דניאל',active:true,role:'driver',created_at:'2026-09-01'}]}; else if(u.includes('/manage/'))body={data:[]}; else if(u.includes('/inspections/'))body=SIGN; r.fulfill({json:body});});
 async function check(name){
  await p.waitForTimeout(800);
@@ -50,6 +50,8 @@ for(const path of pages){
  if(path==='/driver'){
    await p.getByRole('button',{name:/עוד/}).first().click(); await check('driver_sheet');
    await p.getByText('עריכת כתובת').click(); await check('driver_sheet_edit');
+   await p.getByRole('button',{name:'סגור'}).last().click();
+   await p.getByRole('button',{name:'חיפוש',exact:true}).click(); await p.locator('input[type=search]').fill('דני'); await p.keyboard.press('Enter'); await check('driver_search');
  }
  if(path==='/driver/quick-booking'){
    await p.getByRole('button',{name:'בדיקת החזרה'}).click(); await p.locator('#return-search').fill('דני'); await p.waitForTimeout(900); await check('quick_return');

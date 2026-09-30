@@ -211,9 +211,6 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className={`text-lg font-black leading-tight truncate ${isDone ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{row.customerName}</p>
-          <p className="mt-0.5 text-sm text-gray-500 truncate">
-            {row.vehicleName} · <span dir="ltr">{row.licensePlate}</span>
-          </p>
         </div>
         {awaiting ? (
           <span className="shrink-0 rounded-full bg-amber-100 px-3 py-1 text-sm font-black text-amber-800">
@@ -225,6 +222,12 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
           <span className="shrink-0 rounded-full bg-[#2D5F5F]/10 px-3 py-1 text-base font-black text-[#2D5F5F]" dir="ltr">{time}</span>
         ) : null}
       </div>
+
+      <p className="mt-0.5 flex min-w-0 gap-1 text-sm text-gray-500">
+        <span className="truncate">{row.vehicleName}</span>
+        <span className="shrink-0">·</span>
+        <span className="shrink-0 font-bold text-gray-700" dir="ltr">{row.licensePlate}</span>
+      </p>
 
       <p className={`mt-2 flex items-center gap-1.5 text-sm truncate ${hasAddress ? 'text-gray-700' : 'text-gray-400'}`}>
         <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
