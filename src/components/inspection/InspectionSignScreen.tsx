@@ -30,6 +30,9 @@ interface SignData {
   checklist?: Array<{ id: string; value: 'ok' | 'bad' }>;
   /** Token for the /insp-video and /insp-photo media routes. */
   mediaToken: string;
+  /** Return only: damage recorded at handover (grey). */
+  handoverMarks?: Array<{ n: number; view: DamageView; x: number; y: number; kind: string; note: string; hasPhoto: boolean }>;
+  handoverMediaToken?: string;
 }
 
 async function signDataFetcher(url: string): Promise<SignData> {
@@ -182,14 +185,23 @@ export default function InspectionSignScreen({
           </div>
         ))}
 
-      {(data.damageMarks?.length ?? 0) > 0 && (
+      {((data.damageMarks?.length ?? 0) > 0 || (data.handoverMarks?.length ?? 0) > 0) && (
         <div className="mb-5 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
           <p className="mb-3 font-black text-gray-900">
-            {isHe ? `נזקים קיימים שסומנו (${data.damageMarks!.length})` : `Existing damage marked (${data.damageMarks!.length})`}
+            {data.type === 'return'
+              ? (data.damageMarks?.length
+                  ? (isHe ? `נזקים חדשים שסומנו בהחזרה (${data.damageMarks.length})` : `New damage at return (${data.damageMarks.length})`)
+                  : (isHe ? 'לא סומנו נזקים חדשים' : 'No new damage marked'))
+              : (isHe ? `נזקים קיימים שסומנו (${data.damageMarks!.length})` : `Existing damage marked (${data.damageMarks!.length})`)}
           </p>
-          <CarDamageDiagram marks={data.damageMarks!} isHe={isHe} />
+          <CarDamageDiagram marks={data.damageMarks ?? []} ghostMarks={data.handoverMarks ?? []} isHe={isHe} />
+          {(data.handoverMarks?.length ?? 0) > 0 && (
+            <p className="mt-2 text-xs font-bold text-gray-500">
+              {isHe ? 'נקודות אפורות: נזקים שתועדו כבר במסירה.' : 'Grey dots: damage already recorded at handover.'}
+            </p>
+          )}
           <ol className="mt-4 space-y-3">
-            {data.damageMarks!.map((m) => (
+            {(data.damageMarks ?? []).map((m) => (
               <li key={m.n} className="flex items-start gap-3 rounded-xl border border-gray-100 p-3">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm font-black text-white">{m.n}</span>
                 <div className="min-w-0 flex-1 text-sm">
@@ -288,7 +300,7 @@ export default function InspectionSignScreen({
           disabled={submitting || !signatureDataUrl || !declarationAccepted || (requireTurnstile && !turnstileToken)}
           className="w-full min-h-14 bg-[#E8743B] hover:bg-[#d4632a] disabled:opacity-40 text-white font-black text-lg rounded-xl transition-colors"
         >
-          {submitting ? (isHe ? 'שולח...' : 'Submitting...') : (isHe ? 'אישור וחתימה' : 'Confirm and sign')}
+          {submitting ? (isHe ? 'שולח...' : 'Submitting...') : (isHe ? 'חתימה ושליחה' : 'Sign and send')}
         </button>
       </form>
     </div>

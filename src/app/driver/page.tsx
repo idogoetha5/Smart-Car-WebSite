@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR, { preload } from 'swr';
-import { Search, LogOut, RefreshCw, Plus } from 'lucide-react';
+import { Search, LogOut, RefreshCw, Plus, Navigation, Phone } from 'lucide-react';
 import { fetcher } from '@/lib/swr';
+import PendingInspections from '@/components/inspection/PendingInspections';
 
 interface TaskRow {
   taskId: string;
@@ -16,6 +17,8 @@ interface TaskRow {
   vehicleName: string;
   licensePlate: string;
   location: string;
+  navQuery?: string;
+  customerPhone?: string;
   time: string | null;
   inspection: { id: string; status: 'awaiting_signature' | 'signed' } | null;
 }
@@ -63,6 +66,30 @@ function TaskCard({ row }: { row: TaskRow }) {
           <TaskAction row={row} />
         </div>
       </div>
+      {(row.navQuery || row.customerPhone) && (
+        <div className="mt-3 flex gap-2">
+          {row.navQuery && (
+            <a
+              href={`https://waze.com/ul?q=${encodeURIComponent(row.navQuery)}&navigate=yes`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border-2 border-[#33CCFF] bg-[#eefbff] text-sm font-black text-[#0a7ea4]"
+            >
+              <Navigation className="h-4 w-4" aria-hidden="true" />
+              Waze
+            </a>
+          )}
+          {row.customerPhone && (
+            <a
+              href={`tel:${row.customerPhone.replace(/[^\d+]/g, '')}`}
+              className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border-2 border-green-500 bg-green-50 text-sm font-black text-green-700"
+            >
+              <Phone className="h-4 w-4" aria-hidden="true" />
+              התקשר ללקוח
+            </a>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -150,6 +177,8 @@ export default function DriverTodayPage() {
           </div>
         )}
       </div>
+
+      <PendingInspections />
 
       <div className="px-4 pt-4 space-y-6">
         {isLoading && <div className="h-24 animate-pulse rounded-2xl bg-gray-100" />}

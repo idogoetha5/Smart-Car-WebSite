@@ -8,7 +8,7 @@
  * Evidence rule (at least one is required):
  *   - a walk-around video, OR
  *   - at least one damage marked on the diagram, OR
- *   - "no damage" confirmed + a photo of each of the 4 sides.
+ *   - "no damage" confirmed (side photos are optional).
  */
 
 export const DAMAGE_VIEWS = ['front', 'rear', 'left', 'right', 'top'] as const;
@@ -112,17 +112,13 @@ export function evidenceError(params: {
   hasVideo: boolean;
   markCount: number;
   noDamage: boolean;
-  sidePhotoViews: readonly string[];
+  /** Optional since side photos became optional; kept for callers. */
+  sidePhotoViews?: readonly string[];
 }): string | null {
-  const { hasVideo, markCount, noDamage, sidePhotoViews } = params;
+  const { hasVideo, markCount, noDamage } = params;
   if (noDamage && markCount > 0) return 'סומנו נזקים וגם "אין נזקים" — יש לבחור אחד';
-  if (hasVideo || markCount > 0) return null;
-  if (noDamage) {
-    const missing = SIDE_PHOTO_VIEWS.filter((v) => !sidePhotoViews.includes(v));
-    if (missing.length === 0) return null;
-    return `חסרות תמונות: ${missing.map((v) => VIEW_LABELS[v].he).join(', ')}`;
-  }
-  return 'יש לצלם סרטון או לסמן נזקים בשרטוט (או לאשר "אין נזקים" ולצלם 4 צדדים)';
+  if (hasVideo || markCount > 0 || noDamage) return null;
+  return 'יש לצלם סרטון, לסמן נזקים בשרטוט, או לאשר "אין נזקים"';
 }
 
 export function markPhotoPath(inspectionId: string, n: number): string {

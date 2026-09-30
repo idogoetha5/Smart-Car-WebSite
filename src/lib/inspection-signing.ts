@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { createInspectionToken } from '@/lib/inspection-link';
+import { loadHandoverDamage } from '@/lib/inspection-previous';
 import { sendTemplateEmail } from '@/lib/email-delivery';
 import { renderInspectionPdf } from '@/lib/inspection-pdf-server';
 import { INSPECTION_DECLARATION } from '@/lib/inspection-declaration';
@@ -72,9 +73,20 @@ export async function loadSignView(
     return { ok: false, status: 500, error: 'lookup_failed' };
   }
   if (!data) return { ok: false, status: 404, error: 'not_found' };
+  const handover = data.type === 'return' && data.booking?.id ? await loadHandoverDamage(data.booking.id) : null;
   return {
     ok: true,
     data: {
+      handoverMarks: (handover?.marks ?? []).map((m) => ({
+        n: m.n,
+        view: m.view,
+        x: m.x,
+        y: m.y,
+        kind: m.kind,
+        note: m.note,
+        hasPhoto: Boolean(m.photo_path),
+      })),
+      handoverMediaToken: handover?.mediaToken ?? '',
       inspectionId: data.id,
       type: data.type,
       odometerKm: data.odometer_km,
@@ -191,6 +203,8 @@ async function finalizeSignedInspection(args: {
       noDamage: Boolean(inspection.no_damage),
       sidePhotos: sidePhotoRows,
       checklist: checklistEntries(inspection.checklist),
+      handoverMarks:
+        inspection.type === 'return' && booking?.id ? (await loadHandoverDamage(booking.id))?.marks ?? [] : [],
     });
 
     const pdfPath = inspectionPdfPath(inspectionId);

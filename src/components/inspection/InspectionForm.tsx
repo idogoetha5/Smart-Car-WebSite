@@ -1,13 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Video, CheckCircle2, Camera, Trash2, X } from 'lucide-react';
+import { Video, CheckCircle2, Camera, Trash2, X, WifiOff, ChevronDown, ChevronUp, ScanLine } from 'lucide-react';
 import { FUEL_TAP_OPTIONS } from '@/lib/inspection-storage';
 import { compressVideoIfNeeded, MAX_UPLOAD_BYTES, VideoTooLongError } from '@/lib/video-compress';
 import { compressImage } from '@/lib/image-compress';
-import { createClient } from '@/lib/supabase/client';
-import CarDamageDiagram from '@/components/inspection/CarDamageDiagram';
+import CarDamageDiagram, { type DiagramMark } from '@/components/inspection/CarDamageDiagram';
 import {
   DAMAGE_KINDS,
   SIDE_PHOTO_VIEWS,
@@ -19,8 +18,7 @@ import {
   type SidePhotoView,
 } from '@/lib/inspection-damage';
 import { CHECKLIST_ITEMS, type Checklist, type ChecklistItemId } from '@/lib/inspection-checklist';
-
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+import { newLocalId, OfflineError, saveDraft, sendDraft, type InspectionDraft, type SendStage } from '@/lib/inspection-outbox';
 
 function extOf(file: File): string {
   const fromName = file.name.split('.').pop()?.toLowerCase();
@@ -33,6 +31,15 @@ function extOf(file: File): string {
 function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
 }
 
 interface LocalMark {
@@ -54,7 +61,18 @@ interface PendingMark {
   photo: File | null;
 }
 
-type Stage = 'idle' | 'compressing' | 'creating' | 'photos' | 'uploading' | 'finishing' | 'done';
+interface HandoverMark extends DiagramMark {
+  kind: string;
+  note: string;
+}
+
+type Stage = 'idle' | 'compressing' | SendStage | 'offline' | 'done';
+
+const STEPS = [
+  { he: 'ק״מ ודלק', en: 'Mileage & fuel' },
+  { he: 'סרטון', en: 'Video' },
+  { he: 'נזקים', en: 'Damage' },
+] as const;
 
 export interface InspectionFormProps {
   /** '/api/admin/inspections' or '/api/driver/inspections' — same shared inspection-actions.ts logic either way, different auth. */
@@ -65,42 +83,76 @@ export interface InspectionFormProps {
 }
 
 /**
- * Inspection capture, shared by the admin flow and the driver app (same
- * component, different apiBase). Odometer + fuel are always required; for
- * the car's condition the driver needs at least one of: a walk-around
- * video, damage marked on the car diagram (tap a spot → type → note →
- * optional photo), or "no damage" + a photo of each of the 4 sides.
+ * Step-by-step inspection, shared by the admin flow and the driver app:
+ *   1. odometer (typed, or read from a dashboard photo) + fuel in eighths
+ *   2. walk-around video — optional, "skip"
+ *   3. damage diagram (tap → type → note → optional photo) with the
+ *      optional checklist folded in. On a return, handover damage is
+ *      pre-drawn grey so only new damage is marked.
+ * Then everything is saved on the phone first and sent (works offline —
+ * it's sent when signal returns), and the app opens the in-person
+ * signature screen.
  */
 export default function InspectionForm({ apiBase, bookingId, type, isHe }: InspectionFormProps) {
   const router = useRouter();
+  const isReturn = type === 'return';
 
+  const [step, setStep] = useState(0);
   const [video, setVideo] = useState<File | null>(null);
   const [odometerKm, setOdometerKm] = useState('');
   const [fuelEighths, setFuelEighths] = useState<number | null>(null);
+  const [ocrState, setOcrState] = useState<'idle' | 'reading' | 'failed'>('idle');
   const [marks, setMarks] = useState<LocalMark[]>([]);
   const [pending, setPending] = useState<PendingMark | null>(null);
   const [noDamage, setNoDamage] = useState(false);
   const [sidePhotos, setSidePhotos] = useState<Partial<Record<SidePhotoView, File>>>({});
+  const [sidePhotosOpen, setSidePhotosOpen] = useState(false);
   const [checklist, setChecklist] = useState<Checklist>({});
   const [checklistOpen, setChecklistOpen] = useState(false);
+  const [handoverMarks, setHandoverMarks] = useState<HandoverMark[]>([]);
+  const [handoverOpen, setHandoverOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<Stage>('idle');
   const [error, setError] = useState('');
   const [inspectionId, setInspectionId] = useState('');
+  const draftRef = useRef<InspectionDraft | null>(null);
 
-  const sideViewsTaken = useMemo(
-    () => SIDE_PHOTO_VIEWS.filter((v) => Boolean(sidePhotos[v])),
-    [sidePhotos]
-  );
-  const evidence = evidenceError({
-    hasVideo: Boolean(video),
-    markCount: marks.length,
-    noDamage,
-    sidePhotoViews: noDamage ? sideViewsTaken : [],
-  });
-  const canSubmit =
-    !evidence && !pending && odometerKm.trim() !== '' && fuelEighths !== null && !uploading;
+  // Return: load the damage recorded at handover (grey on the diagram).
+  useEffect(() => {
+    if (!isReturn || !bookingId) return;
+    fetch(`/api/driver/inspections/handover?bookingId=${encodeURIComponent(bookingId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => setHandoverMarks(json?.data?.marks ?? []))
+      .catch(() => {});
+  }, [isReturn, bookingId]);
+
+  const evidence = evidenceError({ hasVideo: Boolean(video), markCount: marks.length, noDamage });
+  const step0Ok = odometerKm.trim() !== '' && fuelEighths !== null;
+  const canSubmit = step0Ok && !evidence && !pending && !uploading;
+
+  const sideViewsTaken = useMemo(() => SIDE_PHOTO_VIEWS.filter((v) => Boolean(sidePhotos[v])), [sidePhotos]);
+
+  const readOdometer = async (file: File) => {
+    setOcrState('reading');
+    try {
+      const jpeg = await compressImage(file, 1280, 0.85);
+      const res = await fetch('/api/driver/odometer-ocr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: await blobToDataUrl(jpeg) }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (typeof json?.km === 'number') {
+        setOdometerKm(String(json.km));
+        setOcrState('idle');
+      } else {
+        setOcrState('failed');
+      }
+    } catch {
+      setOcrState('failed');
+    }
+  };
 
   const savePending = () => {
     if (!pending || !pending.kind) return;
@@ -112,6 +164,10 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
     setPending(null);
   };
 
+  const removeMark = (n: number) => {
+    setMarks((prev) => prev.filter((m) => m.n !== n).map((m, i) => ({ ...m, n: i + 1 })));
+  };
+
   const toggleChecklist = (id: ChecklistItemId, value: 'ok' | 'bad') => {
     setChecklist((prev) => {
       const next = { ...prev };
@@ -121,15 +177,49 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
     });
   };
 
-  const removeMark = (n: number) => {
-    setMarks((prev) => prev.filter((m) => m.n !== n).map((m, i) => ({ ...m, n: i + 1 })));
-  };
+  const send = useCallback(async () => {
+    const draft = draftRef.current;
+    if (!draft) return;
+    setUploading(true);
+    setError('');
+    try {
+      const id = await sendDraft(draft, (s, p) => {
+        setStage(s);
+        setProgress(p);
+      });
+      setInspectionId(id);
+      setStage('done');
+      router.push(`/driver/inspection/${encodeURIComponent(id)}/sign`);
+    } catch (err) {
+      if (err instanceof OfflineError) {
+        setStage('offline');
+      } else {
+        setError((err as Error)?.message || (isHe ? 'משהו השתבש. נסה שוב.' : 'Something went wrong. Try again.'));
+        setStage('idle');
+      }
+    } finally {
+      setUploading(false);
+    }
+  }, [router, isHe]);
+
+  // Offline: retry automatically when the connection returns (and every 30s).
+  useEffect(() => {
+    if (stage !== 'offline') return;
+    const retry = () => {
+      if (navigator.onLine) void send();
+    };
+    window.addEventListener('online', retry);
+    const timer = window.setInterval(retry, 30_000);
+    return () => {
+      window.removeEventListener('online', retry);
+      window.clearInterval(timer);
+    };
+  }, [stage, send]);
 
   const handleSubmit = async () => {
     if (fuelEighths === null || !bookingId || evidence) return;
     setUploading(true);
     setError('');
-
     try {
       // Supabase's current plan caps each file at 50MB — shrink big phone
       // videos in the browser first (no-op for small ones).
@@ -148,113 +238,33 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
         }
       }
 
-      const usedSideViews = noDamage && marks.length === 0 ? sideViewsTaken : [];
-
-      setStage('creating');
-      const createRes = await fetch(apiBase, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bookingId,
-          type,
-          odometerKm: Number(odometerKm),
-          fuelEighths,
-          hasVideo: Boolean(uploadFile),
-          videoExt: uploadFile ? extOf(uploadFile) : 'mp4',
-          damageMarks: marks.map((m) => ({ view: m.view, x: m.x, y: m.y, kind: m.kind, note: m.note, hasPhoto: Boolean(m.photo) })),
-          noDamage: noDamage && marks.length === 0,
-          sidePhotoViews: usedSideViews,
-          checklist,
-        }),
-      });
-      const created = await createRes.json().catch(() => ({}));
-      if (!createRes.ok) throw new Error(created?.error || 'Failed to start inspection');
-      setInspectionId(created.inspectionId);
-
-      // Photos first (small), then the video.
-      const photoUploads: Array<{ key: string; path: string; token: string }> = created.photos ?? [];
-      if (photoUploads.length) {
-        setStage('photos');
-        setProgress(0);
-        const supabase = createClient();
-        const fileForKey = (key: string): File | null => {
-          if (key.startsWith('mark-')) return marks.find((m) => `mark-${m.n}` === key)?.photo ?? null;
-          if (key.startsWith('side-')) return sidePhotos[key.slice(5) as SidePhotoView] ?? null;
-          return null;
-        };
-        let doneCount = 0;
-        for (const p of photoUploads) {
-          const original = fileForKey(p.key);
-          if (!original) throw new Error(isHe ? 'תמונה חסרה. נסה שוב.' : 'A photo is missing. Try again.');
-          const jpeg = await compressImage(original);
-          let lastError: string | null = null;
-          for (let attempt = 0; attempt < 3; attempt++) {
-            const { error: upErr } = await supabase.storage
-              .from(created.bucket)
-              .uploadToSignedUrl(p.path, p.token, jpeg, { contentType: 'image/jpeg' });
-            if (!upErr) {
-              lastError = null;
-              break;
-            }
-            lastError = upErr.message;
-            await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
-          }
-          if (lastError) throw new Error(isHe ? `העלאת תמונה נכשלה: ${lastError}` : `Photo upload failed: ${lastError}`);
-          doneCount++;
-          setProgress(Math.round((doneCount / photoUploads.length) * 100));
-        }
-      }
-
-      if (uploadFile && created.video) {
-        setStage('uploading');
-        setProgress(0);
-        const fileToSend = uploadFile;
-        const tus = await import('tus-js-client');
-        await new Promise<void>((resolve, reject) => {
-          const upload = new tus.Upload(fileToSend, {
-            endpoint: created.video.uploadEndpoint,
-            retryDelays: [0, 3000, 5000, 10000, 20000],
-            chunkSize: 6 * 1024 * 1024,
-            // Signed-upload endpoint: Storage authorises the upload from the
-            // server-issued token in x-signature (scoped to this one path),
-            // not from the anon role's RLS policies.
-            headers: {
-              apikey: SUPABASE_ANON_KEY,
-              'x-signature': created.video.uploadToken,
-            },
-            uploadDataDuringCreation: true,
-            storeFingerprintForResuming: false,
-            metadata: {
-              bucketName: created.bucket,
-              objectName: created.video.path,
-              contentType: (fileToSend.type || 'video/mp4').split(';')[0],
-            },
-            onError: (err) => reject(err),
-            onProgress: (uploaded, total) => setProgress(Math.round((uploaded / total) * 100)),
-            onSuccess: () => resolve(),
-          });
-          // Each submit creates a new inspection with its own object path and
-          // token, so never resume an older upload (it would target a
-          // different inspection's path). Network blips within this upload
-          // are still retried via retryDelays.
-          upload.start();
-        });
-      }
-
-      setStage('finishing');
-      const completeRes = await fetch(`${apiBase}/${created.inspectionId}/complete`, { method: 'POST' });
-      const completed = await completeRes.json().catch(() => ({}));
-      if (!completeRes.ok) throw new Error(completed?.error || 'Failed to finish inspection');
-
-      // Straight to the in-person review + signature screen on this phone.
-      setStage('done');
-      router.push(`/driver/inspection/${encodeURIComponent(created.inspectionId)}/sign`);
+      const draft: InspectionDraft = {
+        localId: newLocalId(),
+        createdAt: Date.now(),
+        apiBase,
+        bookingId,
+        type,
+        customerLabel: bookingId,
+        odometerKm: Number(odometerKm),
+        fuelEighths,
+        video: uploadFile,
+        videoExt: uploadFile ? extOf(uploadFile) : 'mp4',
+        videoType: uploadFile?.type || 'video/mp4',
+        marks: marks.map((m) => ({ view: m.view, x: m.x, y: m.y, kind: m.kind, note: m.note, photo: m.photo })),
+        noDamage: noDamage && marks.length === 0,
+        sidePhotos: Object.fromEntries(sideViewsTaken.map((v) => [v, sidePhotos[v] as File])),
+        checklist,
+      };
+      // Saved on the phone first, so nothing is lost without signal.
+      await saveDraft(draft);
+      draftRef.current = draft;
     } catch (err) {
       setError((err as Error)?.message || (isHe ? 'משהו השתבש. נסה שוב.' : 'Something went wrong. Try again.'));
       setStage('idle');
-    } finally {
       setUploading(false);
+      return;
     }
+    await send();
   };
 
   if (!bookingId) {
@@ -280,6 +290,27 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
     );
   }
 
+  if (stage === 'offline') {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-16 text-center" dir={isHe ? 'rtl' : 'ltr'}>
+        <WifiOff className="w-14 h-14 text-amber-500 mx-auto mb-4" aria-hidden="true" />
+        <h1 className="text-2xl font-black text-gray-900 mb-2">{isHe ? 'אין קליטה' : 'No signal'}</h1>
+        <p className="text-gray-600 mb-6">
+          {isHe
+            ? 'הבדיקה נשמרה בטלפון ותישלח אוטומטית כשתחזור קליטה. אפשר להשאיר את המסך פתוח.'
+            : 'The inspection is saved on this phone and will be sent automatically when signal returns.'}
+        </p>
+        <button
+          onClick={() => void send()}
+          disabled={uploading}
+          className="min-h-12 px-6 rounded-xl bg-[#2D5F5F] text-white font-black disabled:opacity-50"
+        >
+          {uploading ? (isHe ? 'מנסה…' : 'Trying…') : (isHe ? 'נסה עכשיו' : 'Try now')}
+        </button>
+      </div>
+    );
+  }
+
   const stageText = (() => {
     switch (stage) {
       case 'compressing':
@@ -293,242 +324,334 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
     }
   })();
 
-  return (
-    <div className="max-w-lg mx-auto px-4 py-8" dir={isHe ? 'rtl' : 'ltr'}>
-      <h1 className="text-2xl font-black text-gray-900 mb-1">
-        {type === 'pickup' ? (isHe ? 'בדיקת מסירת רכב' : 'Handover inspection') : (isHe ? 'בדיקת החזרת רכב' : 'Return inspection')}
-      </h1>
-      <p className="text-gray-500 text-sm mb-2" dir="ltr">{bookingId}</p>
-      <p className="mb-6 rounded-xl bg-[#eef6f6] p-3 text-sm font-bold text-[#2D5F5F]">
-        {isHe
-          ? 'חובה: קילומטראז׳ ודלק. למצב הרכב — סרטון, או סימון נזקים בשרטוט (אפשר גם וגם).'
-          : 'Required: odometer and fuel. For the car’s condition — a video, or damage marked on the diagram (or both).'}
-      </p>
+  const title = type === 'pickup' ? (isHe ? 'בדיקת מסירת רכב' : 'Handover inspection') : (isHe ? 'בדיקת החזרת רכב' : 'Return inspection');
 
-      <div className="space-y-5">
-        {/* Video */}
+  return (
+    <div className="max-w-lg mx-auto px-4 py-6 pb-28" dir={isHe ? 'rtl' : 'ltr'}>
+      <h1 className="text-2xl font-black text-gray-900 mb-3">{title}</h1>
+
+      {/* Progress */}
+      <ol className="mb-6 grid grid-cols-3 gap-2" aria-label={isHe ? 'שלבים' : 'Steps'}>
+        {STEPS.map((s, i) => (
+          <li key={i}>
+            <button
+              type="button"
+              disabled={uploading || (i > 0 && !step0Ok)}
+              onClick={() => setStep(i)}
+              className="w-full text-start"
+              aria-current={step === i ? 'step' : undefined}
+            >
+              <span className={`block h-2 rounded-full ${i <= step ? 'bg-[#E8743B]' : 'bg-gray-200'}`} />
+              <span className={`mt-1 block text-xs font-black ${i === step ? 'text-gray-900' : 'text-gray-400'}`}>
+                {i + 1}. {isHe ? s.he : s.en}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ol>
+
+      {/* Step 1: odometer + fuel */}
+      {step === 0 && (
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <label htmlFor="odometer" className="block font-black text-gray-800 mb-3">
+              {isHe ? 'קילומטראז׳' : 'Odometer'}
+            </label>
+            <input
+              id="odometer"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={odometerKm}
+              onChange={(e) => setOdometerKm(e.target.value)}
+              placeholder="0"
+              className="w-full min-h-14 rounded-xl border-2 border-gray-200 px-4 text-2xl font-black text-center focus:outline-none focus:border-[#2D5F5F]"
+            />
+            <label className="mt-3 flex min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#2D5F5F] text-sm font-black text-[#2D5F5F] cursor-pointer">
+              <ScanLine className="h-5 w-5" aria-hidden="true" />
+              {ocrState === 'reading'
+                ? (isHe ? 'קורא את הקילומטראז׳…' : 'Reading odometer…')
+                : (isHe ? 'צלם את לוח השעונים — הקילומטראז׳ יתמלא לבד' : 'Photograph the dashboard to fill it in')}
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                disabled={ocrState === 'reading'}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void readOdometer(f);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+            {ocrState === 'failed' && (
+              <p className="mt-2 text-center text-sm font-bold text-amber-700">
+                {isHe ? 'לא הצלחתי לקרוא מהתמונה — הקלד ידנית.' : 'Couldn’t read it — please type it.'}
+              </p>
+            )}
+            {odometerKm && ocrState === 'idle' && (
+              <p className="mt-2 text-center text-xs text-gray-500">{isHe ? 'בדוק שהמספר נכון לפני שממשיכים.' : 'Check the number before continuing.'}</p>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <span className="block font-black text-gray-800 mb-3">{isHe ? 'רמת דלק' : 'Fuel level'}</span>
+            <div className="grid grid-cols-5 gap-2" dir="ltr">
+              {FUEL_TAP_OPTIONS.map((opt) => (
+                <button
+                  key={opt.eighths}
+                  type="button"
+                  onClick={() => setFuelEighths(opt.eighths)}
+                  className={`min-h-14 rounded-xl border-2 font-black text-base transition-colors ${
+                    fuelEighths === opt.eighths ? 'border-[#E8743B] bg-orange-50 text-[#E8743B]' : 'border-gray-200 text-gray-600'
+                  }`}
+                  aria-label={isHe ? opt.he : opt.en}
+                >
+                  {opt.symbol}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: video (optional) */}
+      {step === 1 && (
         <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <label className="block font-black text-gray-800 mb-2">
-            {isHe ? 'סרטון סיור: סביב הרכב ופנים הרכב' : 'Walk-around video: exterior and interior'}
-          </label>
-          <p className="mb-3 text-sm font-bold text-gray-500">
+          <p className="font-black text-gray-800 mb-1">{isHe ? 'סרטון סיור (לא חובה)' : 'Walk-around video (optional)'}</p>
+          <p className="mb-4 text-sm font-bold text-gray-500">
             {isHe
               ? 'צילום ברצף: סיור מלא סביב הרכב, פנים הרכב, לוח הקילומטראז׳ ומד הדלק.'
               : 'One continuous video of the full exterior, interior, odometer and fuel gauge.'}
           </p>
-          <label className="flex min-h-16 items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[#2D5F5F] bg-[#eef6f6] text-[#2D5F5F] font-black cursor-pointer px-3 text-center">
-            <Video className="h-6 w-6 shrink-0" aria-hidden="true" />
-            {video ? `${video.name} · ${formatBytes(video.size)}` : (isHe ? 'צלם סרטון' : 'Record video')}
+          <label className="flex min-h-20 items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[#2D5F5F] bg-[#eef6f6] text-[#2D5F5F] font-black cursor-pointer px-3 text-center">
+            <Video className="h-7 w-7 shrink-0" aria-hidden="true" />
+            {video ? `✓ ${video.name} · ${formatBytes(video.size)}` : (isHe ? 'צלם סרטון' : 'Record video')}
             <input
               type="file"
               accept="video/*"
               capture="environment"
               className="hidden"
-              disabled={uploading}
               onChange={(e) => setVideo(e.target.files?.[0] ?? null)}
             />
           </label>
-          {video && !uploading && (
-            <button type="button" onClick={() => setVideo(null)} className="mt-2 text-sm font-bold text-gray-500 underline">
+          {video && (
+            <button type="button" onClick={() => setVideo(null)} className="mt-3 text-sm font-bold text-gray-500 underline">
               {isHe ? 'הסר סרטון' : 'Remove video'}
             </button>
           )}
         </div>
+      )}
 
-        {/* Damage diagram */}
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <span className="block font-black text-gray-800 mb-1">{isHe ? 'שרטוט נזקים' : 'Damage diagram'}</span>
-          <p className="mb-3 text-sm font-bold text-gray-500">
-            {isHe
-              ? 'גע בנקודה ברכב שבה יש נזק, בחר סוג, כתוב מה רואים וצלם תמונה.'
-              : 'Tap where the damage is, choose the type, add a note and a photo.'}
-          </p>
-          <CarDamageDiagram
-            marks={marks}
-            isHe={isHe}
-            disabled={uploading || noDamage}
-            pending={pending}
-            onTap={(view, x, y) => setPending({ view, x, y, kind: null, note: '', photo: null })}
-          />
-
-          {marks.length > 0 && (
-            <ol className="mt-4 space-y-2">
-              {marks.map((m) => (
-                <li key={m.n} className="flex items-start gap-3 rounded-xl border border-gray-100 p-3">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm font-black text-white">{m.n}</span>
-                  <div className="min-w-0 flex-1 text-sm">
-                    <p className="font-black text-gray-800">
-                      {damageKindLabel(m.kind, isHe)} · <span className="font-bold text-gray-500">{isHe ? VIEW_LABELS[m.view].he : VIEW_LABELS[m.view].en}</span>
-                    </p>
-                    {m.note && <p className="text-gray-600 break-words">{m.note}</p>}
-                    {m.photo && <p className="text-xs font-bold text-[#2D5F5F]">📷 {isHe ? 'תמונה מצורפת' : 'Photo attached'}</p>}
-                  </div>
-                  {!uploading && (
-                    <button type="button" onClick={() => removeMark(m.n)} aria-label={isHe ? 'מחק' : 'Delete'} className="p-2 text-gray-400">
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ol>
-          )}
-
-          {marks.length === 0 && (
-            <label className="mt-4 flex items-center gap-3 rounded-xl border-2 border-gray-200 p-3 font-black text-gray-800 cursor-pointer">
-              <input
-                type="checkbox"
-                className="h-5 w-5"
-                checked={noDamage}
-                disabled={uploading}
-                onChange={(e) => setNoDamage(e.target.checked)}
-              />
-              {isHe ? 'אין נזקים ברכב' : 'No damage on the car'}
-            </label>
-          )}
-
-          {noDamage && marks.length === 0 && !video && (
-            <div className="mt-3">
-              <p className="mb-2 text-sm font-bold text-gray-600">
-                {isHe ? 'בלי סרטון — צלם תמונה מכל צד (חובה):' : 'Without a video — take a photo of each side (required):'}
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {SIDE_PHOTO_VIEWS.map((v) => (
-                  <label
-                    key={v}
-                    className={`flex min-h-14 items-center justify-center gap-2 rounded-xl border-2 font-black cursor-pointer text-sm ${
-                      sidePhotos[v] ? 'border-green-500 bg-green-50 text-green-700' : 'border-dashed border-[#2D5F5F] text-[#2D5F5F]'
-                    }`}
-                  >
-                    <Camera className="h-5 w-5" aria-hidden="true" />
-                    {sidePhotos[v] ? '✓ ' : ''}
-                    {isHe ? VIEW_LABELS[v].he : VIEW_LABELS[v].en}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      disabled={uploading}
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) setSidePhotos((prev) => ({ ...prev, [v]: f }));
-                      }}
-                    />
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Odometer */}
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <label htmlFor="odometer" className="block font-black text-gray-800 mb-3">
-            {isHe ? 'קילומטראז׳ (חובה)' : 'Odometer (required)'}
-          </label>
-          <input
-            id="odometer"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={odometerKm}
-            disabled={uploading}
-            onChange={(e) => setOdometerKm(e.target.value)}
-            placeholder="0"
-            className="w-full min-h-14 rounded-xl border-2 border-gray-200 px-4 text-2xl font-black text-center focus:outline-none focus:border-[#2D5F5F]"
-          />
-        </div>
-
-        {/* Fuel */}
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <span className="block font-black text-gray-800 mb-3">{isHe ? 'רמת דלק (חובה)' : 'Fuel level (required)'}</span>
-          <div className="grid grid-cols-5 gap-2" dir="ltr">
-            {FUEL_TAP_OPTIONS.map((opt) => (
-              <button
-                key={opt.eighths}
-                type="button"
-                disabled={uploading}
-                onClick={() => setFuelEighths(opt.eighths)}
-                className={`min-h-14 rounded-xl border-2 font-black text-base transition-colors ${
-                  fuelEighths === opt.eighths
-                    ? 'border-[#E8743B] bg-orange-50 text-[#E8743B]'
-                    : 'border-gray-200 text-gray-600'
-                }`}
-                aria-label={isHe ? opt.he : opt.en}
-              >
-                {opt.symbol}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Optional checklist */}
-        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <button
-            type="button"
-            onClick={() => setChecklistOpen((o) => !o)}
-            className="flex w-full items-center justify-between font-black text-gray-800"
-            aria-expanded={checklistOpen}
-          >
-            <span>
-              {isHe ? "צ'קליסט (לא חובה)" : 'Checklist (optional)'}
-              {Object.keys(checklist).length > 0 && (
-                <span className="ms-2 text-sm font-bold text-gray-500">· {Object.keys(checklist).length}/{CHECKLIST_ITEMS.length}</span>
-              )}
+      {/* Step 3: damage diagram + optional checklist */}
+      {step === 2 && (
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <span className="block font-black text-gray-800 mb-1">
+              {isReturn ? (isHe ? 'נזקים חדשים' : 'New damage') : (isHe ? 'נזקים' : 'Damage')}
             </span>
-            <span className="text-gray-400">{checklistOpen ? '▲' : '▼'}</span>
-          </button>
-          {checklistOpen && (
-            <ul className="mt-3 divide-y divide-gray-100">
-              {CHECKLIST_ITEMS.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-2 py-2">
-                  <span className="text-sm font-bold text-gray-700">{isHe ? item.he : item.en}</span>
-                  <span className="flex shrink-0 gap-2">
-                    <button
-                      type="button"
-                      disabled={uploading}
-                      onClick={() => toggleChecklist(item.id, 'ok')}
-                      aria-pressed={checklist[item.id] === 'ok'}
-                      aria-label={isHe ? 'תקין' : 'OK'}
-                      className={`h-11 w-11 rounded-xl border-2 text-lg font-black ${
-                        checklist[item.id] === 'ok' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-200 text-gray-400'
+            <p className="mb-3 text-sm font-bold text-gray-500">
+              {isReturn && handoverMarks.length > 0
+                ? (isHe ? 'הנקודות האפורות תועדו כבר במסירה. סמן רק נזקים חדשים: גע בנקודה, בחר סוג ואפשר להוסיף תמונה.' : 'Grey dots were recorded at handover. Mark only new damage.')
+                : (isHe ? 'גע בנקודה ברכב שבה יש נזק, בחר סוג, כתוב מה רואים ואפשר להוסיף תמונה.' : 'Tap where the damage is, choose the type, add a note and optionally a photo.')}
+            </p>
+            <CarDamageDiagram
+              marks={marks}
+              ghostMarks={handoverMarks}
+              isHe={isHe}
+              disabled={uploading || noDamage}
+              pending={pending}
+              onTap={(view, x, y) => setPending({ view, x, y, kind: null, note: '', photo: null })}
+            />
+
+            {handoverMarks.length > 0 && (
+              <div className="mt-3 rounded-xl bg-gray-50 p-3">
+                <button type="button" onClick={() => setHandoverOpen((o) => !o)} className="flex w-full items-center justify-between text-sm font-black text-gray-600">
+                  {isHe ? `נזקים שתועדו במסירה (${handoverMarks.length})` : `Recorded at handover (${handoverMarks.length})`}
+                  {handoverOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+                {handoverOpen && (
+                  <ol className="mt-2 space-y-1 text-sm text-gray-600">
+                    {handoverMarks.map((m) => (
+                      <li key={m.n}>
+                        <span className="font-black">{m.n}.</span> {damageKindLabel(m.kind, isHe)} · {isHe ? VIEW_LABELS[m.view].he : VIEW_LABELS[m.view].en}
+                        {m.note ? ` — ${m.note}` : ''}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            )}
+
+            {marks.length > 0 && (
+              <ol className="mt-4 space-y-2">
+                {marks.map((m) => (
+                  <li key={m.n} className="flex items-start gap-3 rounded-xl border border-gray-100 p-3">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm font-black text-white">{m.n}</span>
+                    <div className="min-w-0 flex-1 text-sm">
+                      <p className="font-black text-gray-800">
+                        {damageKindLabel(m.kind, isHe)} · <span className="font-bold text-gray-500">{isHe ? VIEW_LABELS[m.view].he : VIEW_LABELS[m.view].en}</span>
+                      </p>
+                      {m.note && <p className="text-gray-600 break-words">{m.note}</p>}
+                      {m.photo && <p className="text-xs font-bold text-[#2D5F5F]">📷 {isHe ? 'תמונה מצורפת' : 'Photo attached'}</p>}
+                    </div>
+                    {!uploading && (
+                      <button type="button" onClick={() => removeMark(m.n)} aria-label={isHe ? 'מחק' : 'Delete'} className="p-2 text-gray-400">
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            )}
+
+            {marks.length === 0 && (
+              <label className="mt-4 flex items-center gap-3 rounded-xl border-2 border-gray-200 p-3 font-black text-gray-800 cursor-pointer">
+                <input type="checkbox" className="h-5 w-5" checked={noDamage} disabled={uploading} onChange={(e) => setNoDamage(e.target.checked)} />
+                {isReturn ? (isHe ? 'אין נזקים חדשים' : 'No new damage') : (isHe ? 'אין נזקים ברכב' : 'No damage on the car')}
+              </label>
+            )}
+
+            {/* Optional side photos */}
+            <div className="mt-3">
+              <button type="button" onClick={() => setSidePhotosOpen((o) => !o)} className="flex w-full items-center justify-between text-sm font-black text-gray-600">
+                {isHe ? `צילומי 4 צדדים (לא חובה)${sideViewsTaken.length ? ` · ${sideViewsTaken.length}/4` : ''}` : `4 side photos (optional)${sideViewsTaken.length ? ` · ${sideViewsTaken.length}/4` : ''}`}
+                {sidePhotosOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+              {sidePhotosOpen && (
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {SIDE_PHOTO_VIEWS.map((v) => (
+                    <label
+                      key={v}
+                      className={`flex min-h-14 items-center justify-center gap-2 rounded-xl border-2 font-black cursor-pointer text-sm ${
+                        sidePhotos[v] ? 'border-green-500 bg-green-50 text-green-700' : 'border-dashed border-[#2D5F5F] text-[#2D5F5F]'
                       }`}
                     >
-                      ✓
-                    </button>
-                    <button
-                      type="button"
-                      disabled={uploading}
-                      onClick={() => toggleChecklist(item.id, 'bad')}
-                      aria-pressed={checklist[item.id] === 'bad'}
-                      aria-label={isHe ? 'לא תקין' : 'Not OK'}
-                      className={`h-11 w-11 rounded-xl border-2 text-lg font-black ${
-                        checklist[item.id] === 'bad' ? 'border-red-600 bg-red-50 text-red-700' : 'border-gray-200 text-gray-400'
-                      }`}
-                    >
-                      ✗
-                    </button>
-                  </span>
-                </li>
-              ))}
-            </ul>
+                      <Camera className="h-5 w-5" aria-hidden="true" />
+                      {sidePhotos[v] ? '✓ ' : ''}
+                      {isHe ? VIEW_LABELS[v].he : VIEW_LABELS[v].en}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        disabled={uploading}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) setSidePhotos((prev) => ({ ...prev, [v]: f }));
+                        }}
+                      />
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Optional checklist, folded inside the damage step */}
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setChecklistOpen((o) => !o)}
+              className="flex w-full items-center justify-between font-black text-gray-800"
+              aria-expanded={checklistOpen}
+            >
+              <span>
+                {isHe ? "צ'קליסט (לא חובה)" : 'Checklist (optional)'}
+                {Object.keys(checklist).length > 0 && (
+                  <span className="ms-2 text-sm font-bold text-gray-500">· {Object.keys(checklist).length}/{CHECKLIST_ITEMS.length}</span>
+                )}
+              </span>
+              {checklistOpen ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
+            </button>
+            {checklistOpen && (
+              <ul className="mt-3 divide-y divide-gray-100">
+                {CHECKLIST_ITEMS.map((item) => (
+                  <li key={item.id} className="flex items-center justify-between gap-2 py-2">
+                    <span className="text-sm font-bold text-gray-700">{isHe ? item.he : item.en}</span>
+                    <span className="flex shrink-0 gap-2">
+                      <button
+                        type="button"
+                        disabled={uploading}
+                        onClick={() => toggleChecklist(item.id, 'ok')}
+                        aria-pressed={checklist[item.id] === 'ok'}
+                        aria-label={isHe ? 'תקין' : 'OK'}
+                        className={`h-11 w-11 rounded-xl border-2 text-lg font-black ${
+                          checklist[item.id] === 'ok' ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-200 text-gray-400'
+                        }`}
+                      >
+                        ✓
+                      </button>
+                      <button
+                        type="button"
+                        disabled={uploading}
+                        onClick={() => toggleChecklist(item.id, 'bad')}
+                        aria-pressed={checklist[item.id] === 'bad'}
+                        aria-label={isHe ? 'לא תקין' : 'Not OK'}
+                        className={`h-11 w-11 rounded-xl border-2 text-lg font-black ${
+                          checklist[item.id] === 'bad' ? 'border-red-600 bg-red-50 text-red-700' : 'border-gray-200 text-gray-400'
+                        }`}
+                      >
+                        ✗
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {evidence && !uploading && <p className="rounded-xl bg-amber-50 p-3 text-center text-sm font-bold text-amber-800">{evidence}</p>}
+        </div>
+      )}
+
+      {error && <p className="mt-4 text-red-600 text-sm text-center">{error}</p>}
+      {uploading && <div className="mt-4 text-center text-sm font-bold text-gray-600">{stageText}</div>}
+
+      {/* Bottom navigation */}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 backdrop-blur px-4 py-3">
+        <div className="mx-auto flex max-w-lg gap-3">
+          {step > 0 && (
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => setStep((s) => s - 1)}
+              className="min-h-14 flex-1 rounded-xl border-2 border-gray-200 bg-white font-black text-gray-700 disabled:opacity-40"
+            >
+              {isHe ? 'חזור' : 'Back'}
+            </button>
+          )}
+          {step === 0 && (
+            <button
+              type="button"
+              disabled={!step0Ok}
+              onClick={() => setStep(1)}
+              className="min-h-14 flex-[2] rounded-xl bg-[#E8743B] font-black text-lg text-white disabled:opacity-40"
+            >
+              {isHe ? 'הבא' : 'Next'}
+            </button>
+          )}
+          {step === 1 && (
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              className="min-h-14 flex-[2] rounded-xl bg-[#E8743B] font-black text-lg text-white"
+            >
+              {video ? (isHe ? 'הבא' : 'Next') : (isHe ? 'דלג' : 'Skip')}
+            </button>
+          )}
+          {step === 2 && (
+            <button
+              type="button"
+              disabled={!canSubmit}
+              onClick={handleSubmit}
+              className="min-h-14 flex-[2] rounded-xl bg-[#E8743B] font-black text-lg text-white disabled:opacity-40"
+            >
+              {uploading ? (isHe ? 'שולח...' : 'Sending…') : (isHe ? 'לחתימת הלקוח' : 'To customer signature')}
+            </button>
           )}
         </div>
-
-        {evidence && !uploading && (
-          <p className="rounded-xl bg-amber-50 p-3 text-center text-sm font-bold text-amber-800">{evidence}</p>
-        )}
-        {error && <p className="text-red-600 text-sm text-center">{error}</p>}
-
-        {uploading && <div className="text-center text-sm font-bold text-gray-600">{stageText}</div>}
-
-        <button
-          type="button"
-          disabled={!canSubmit}
-          onClick={handleSubmit}
-          className="w-full min-h-14 rounded-xl bg-[#E8743B] hover:bg-[#d4632a] disabled:opacity-40 text-white font-black text-lg"
-        >
-          {uploading ? (isHe ? 'שולח...' : 'Sending…') : (isHe ? 'שלח בדיקה ללקוח' : 'Send inspection to customer')}
-        </button>
       </div>
 
       {/* Add-damage sheet */}
@@ -562,7 +685,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
               onChange={(e) => setPending({ ...pending, note: e.target.value })}
               maxLength={300}
               rows={2}
-              placeholder={isHe ? 'מה רואים? למשל: שריטה 10 ס״מ בדלת' : 'What do you see? e.g. 10cm scratch on door'}
+              placeholder={isHe ? 'מה רואים? (לא חובה) למשל: שריטה 10 ס״מ בדלת' : 'What do you see? (optional)'}
               className="mb-3 w-full rounded-xl border-2 border-gray-200 p-3 text-base focus:outline-none focus:border-[#2D5F5F]"
             />
             <label
@@ -571,7 +694,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
               }`}
             >
               <Camera className="h-5 w-5" aria-hidden="true" />
-              {pending.photo ? (isHe ? '✓ תמונה צורפה (החלף)' : '✓ Photo attached (replace)') : (isHe ? 'צלם תמונה של הנזק' : 'Take a photo of the damage')}
+              {pending.photo ? (isHe ? '✓ תמונה צורפה (החלף)' : '✓ Photo attached (replace)') : (isHe ? 'הוסף תמונה (לא חובה)' : 'Add a photo (optional)')}
               <input
                 type="file"
                 accept="image/*"

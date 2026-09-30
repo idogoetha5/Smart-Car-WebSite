@@ -179,11 +179,13 @@ export async function sendInspectionOfficeEmail(inspectionId: string): Promise<{
   const missingPdfWarning = pdfMissing
     ? '<p style="color:#b91c1c;font-weight:700;">⚠️ קובץ ה-PDF החתום חסר — יש לבדוק ידנית באמצעות הקישור למטה.</p>'
     : '';
+  const newDamageCount = inspection.type === 'return' ? (inspection.damage_marks ?? []).length : 0;
   const alertLines = [
     ...deviation.warnings,
+    ...(newDamageCount > 0 ? [`${newDamageCount} נזקים חדשים סומנו בהחזרה (לא היו במסירה)`] : []),
     ...checklistRegressed.map((label) => `${label} — היה תקין במסירה, לא תקין בהחזרה`),
   ];
-  const hasAlert = deviation.hasDeviation || checklistRegressed.length > 0;
+  const hasAlert = deviation.hasDeviation || checklistRegressed.length > 0 || newDamageCount > 0;
   const deviationWarning = hasAlert
     ? `<div style="margin:14px 0;padding:12px;border:2px solid #dc2626;background:#fef2f2;color:#991b1b;font-weight:700;">
         🚨 נמצאה חריגה בבדיקת ההחזרה:<br>${alertLines.join('<br>')}
@@ -202,7 +204,7 @@ export async function sendInspectionOfficeEmail(inspectionId: string): Promise<{
 
   const marks = inspection.damage_marks ?? [];
   const damageHtml = marks.length
-    ? `<h3 style="margin:16px 0 6px;">נזקים קיימים שסומנו (${marks.length})</h3><ol style="margin:0;padding-inline-start:20px;">${marks
+    ? `<h3 style="margin:16px 0 6px;">${inspection.type === 'return' ? 'נזקים חדשים שסומנו בהחזרה' : 'נזקים קיימים שסומנו'} (${marks.length})</h3><ol style="margin:0;padding-inline-start:20px;">${marks
         .map(
           (m) =>
             `<li>${VIEW_LABELS[m.view]?.he ?? m.view} — <strong>${damageKindLabel(m.kind)}</strong>${m.note ? `: ${m.note.replace(/[<>&]/g, '')}` : ''}${m.photo_path ? ' 📷' : ''}</li>`

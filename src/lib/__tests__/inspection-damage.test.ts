@@ -24,9 +24,9 @@ describe('evidenceError', () => {
   it('rejects nothing at all', () => {
     expect(evidenceError(base)).toMatch(/סרטון/);
   });
-  it('requires all 4 side photos for "no damage" without video', () => {
-    expect(evidenceError({ ...base, noDamage: true, sidePhotoViews: ['front', 'rear'] })).toMatch(/צד ימין|צד שמאל/);
-    expect(evidenceError({ ...base, noDamage: true, sidePhotoViews: ['front', 'rear', 'left', 'right'] })).toBeNull();
+  it('accepts "no damage" without video or photos (photos are optional)', () => {
+    expect(evidenceError({ ...base, noDamage: true })).toBeNull();
+    expect(evidenceError({ ...base, noDamage: true, sidePhotoViews: ['front'] })).toBeNull();
   });
   it('accepts "no damage" with a video and no photos', () => {
     expect(evidenceError({ ...base, hasVideo: true, noDamage: true })).toBeNull();

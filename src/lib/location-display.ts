@@ -26,3 +26,12 @@ export function formatLocationForDriver(value: string | null | undefined): strin
 
   return location;
 }
+
+/** Address string for Waze: a branch id resolves to its street + city, anything else is used as typed. */
+export function navigationQueryFor(value: string | null | undefined): string {
+  const location = String(value ?? '').trim();
+  if (!location) return '';
+  const branch = BRANCHES.find((item) => item.id === location.toLowerCase());
+  if (branch) return `${branch.streetHe}, ${branch.cityHe}`;
+  return location;
+}

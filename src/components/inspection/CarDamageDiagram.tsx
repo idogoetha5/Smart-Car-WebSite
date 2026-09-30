@@ -13,6 +13,8 @@ export interface DiagramMark {
 
 interface CarDamageDiagramProps {
   marks: DiagramMark[];
+  /** Damage already recorded at handover — shown grey on a return inspection. */
+  ghostMarks?: DiagramMark[];
   isHe: boolean;
   /** When set, tapping a view reports the tapped point (as 0..1 fractions). */
   onTap?: (view: DamageView, x: number, y: number) => void;
@@ -26,7 +28,7 @@ interface CarDamageDiagramProps {
  * dots for marked damage. Editable (driver form) when onTap is given,
  * read-only (customer sign page) otherwise.
  */
-export default function CarDamageDiagram({ marks, isHe, onTap, pending, disabled }: CarDamageDiagramProps) {
+export default function CarDamageDiagram({ marks, ghostMarks = [], isHe, onTap, pending, disabled }: CarDamageDiagramProps) {
   const handleClick = (view: DamageView) => (e: MouseEvent<SVGSVGElement>) => {
     if (!onTap || disabled) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -73,6 +75,16 @@ export default function CarDamageDiagram({ marks, isHe, onTap, pending, disabled
                   {s.frontArrow.dir === 'left' ? (isHe ? '◄ חזית' : '◄ front') : (isHe ? 'חזית ►' : 'front ►')}
                 </text>
               )}
+              {ghostMarks
+                .filter((m) => m.view === view)
+                .map((m) => (
+                  <g key={`g${m.n}`}>
+                    <circle cx={m.x * s.width} cy={m.y * s.height} r={10} fill="#cbd5e1" stroke="#fff" strokeWidth={2} />
+                    <text x={m.x * s.width} y={m.y * s.height} dy="4" textAnchor="middle" fontSize="11" fontWeight="700" fill="#475569" fontFamily="Arial">
+                      {m.n}
+                    </text>
+                  </g>
+                ))}
               {marks
                 .filter((m) => m.view === view)
                 .map((m) => (

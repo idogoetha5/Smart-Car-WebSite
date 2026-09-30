@@ -27,6 +27,8 @@ export interface InspectionPdfData {
   noDamage?: boolean;
   sidePhotos?: Array<{ view: string; photoUrl: string | null }>;
   checklist?: Array<{ id: string; value: 'ok' | 'bad' }>;
+  /** Return only: damage already recorded at handover (drawn grey). */
+  handoverMarks?: DamageMark[];
 }
 
 function escapeHtml(str: string): string {
@@ -35,8 +37,23 @@ function escapeHtml(str: string): string {
 
 function damageSection(data: InspectionPdfData): string {
   const marks = data.damageMarks ?? [];
+  const ghosts = data.handoverMarks ?? [];
+  const isReturn = data.type === 'return';
   const sides = (data.sidePhotos ?? []).filter((s) => s.photoUrl);
-  if (!marks.length && !data.noDamage && !sides.length) return '';
+  if (!marks.length && !ghosts.length && !data.noDamage && !sides.length) return '';
+
+  const ghostList = ghosts.length
+    ? `<p style="font-size:11px;color:#475569;margin:4px 0 10px;">נקודות אפורות — נזקים שתועדו כבר במסירה: ${ghosts
+        .map((g) => `${g.n}. ${escapeHtml(VIEW_LABELS[g.view]?.he ?? g.view)} — ${escapeHtml(damageKindLabel(g.kind))}${g.note ? ` (${escapeHtml(g.note)})` : ''}`)
+        .join(' · ')}</p>`
+    : '';
+  const title = marks.length
+    ? isReturn
+      ? `נזקים חדשים שסומנו בהחזרה (${marks.length})`
+      : `נזקים קיימים שסומנו (${marks.length})`
+    : isReturn
+      ? 'לא סומנו נזקים חדשים בהחזרה'
+      : 'מצב הרכב: לא נמצאו נזקים';
 
   const rows = marks
     .map(
@@ -58,8 +75,9 @@ function damageSection(data: InspectionPdfData): string {
     .join('');
 
   return `<div class="damage">
-    <h2>${marks.length ? `נזקים קיימים שסומנו (${marks.length})` : 'מצב הרכב: לא נמצאו נזקים'}</h2>
-    ${marks.length ? renderCarDiagramHtml(marks) : ''}
+    <h2>${title}</h2>
+    ${marks.length || ghosts.length ? renderCarDiagramHtml(marks, ghosts) : ''}
+    ${ghostList}
     ${marks.length ? `<table><tr><th style="width:36px;">#</th><th>מיקום</th><th>סוג</th><th>הערה</th><th>תמונה</th></tr>${rows}</table>` : ''}
     ${sideFigures ? `<div class="sides">${sideFigures}</div>` : ''}
   </div>`;

@@ -112,12 +112,20 @@ function escapeXml(s: string): string {
 }
 
 /** Static SVG for one view with its numbered marks (used in the signed PDF). */
-export function renderCarViewSvg(view: DamageView, marks: DamageMark[], widthPx = 300): string {
+export function renderCarViewSvg(view: DamageView, marks: DamageMark[], widthPx = 300, ghostMarks: DamageMark[] = []): string {
   const s = CAR_VIEW_SHAPES[view];
   const shapeTransform = s.mirror ? ` transform="translate(${s.width} 0) scale(-1 1)"` : '';
   const shape =
     s.paths.map((d) => `<path d="${d}" fill="none" stroke="${STROKE}" stroke-width="2" stroke-linejoin="round"/>`).join('') +
     s.circles.map(([cx, cy, r]) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${STROKE}" stroke-width="2"/>`).join('');
+  const ghosts = ghostMarks
+    .filter((m) => m.view === view)
+    .map((m) => {
+      const cx = (m.x * s.width).toFixed(1);
+      const cy = (m.y * s.height).toFixed(1);
+      return `<circle cx="${cx}" cy="${cy}" r="10" fill="#cbd5e1" stroke="#fff" stroke-width="2"/><text x="${cx}" y="${cy}" dy="4" text-anchor="middle" font-size="11" font-weight="700" fill="#475569" font-family="Arial">${m.n}</text>`;
+    })
+    .join('');
   const dots = marks
     .filter((m) => m.view === view)
     .map((m) => {
@@ -127,14 +135,14 @@ export function renderCarViewSvg(view: DamageView, marks: DamageMark[], widthPx 
     })
     .join('');
   const heightPx = Math.round((widthPx * s.height) / s.width);
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${s.width} ${s.height}" width="${widthPx}" height="${heightPx}"><g${shapeTransform}>${shape}</g>${dots}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${s.width} ${s.height}" width="${widthPx}" height="${heightPx}"><g${shapeTransform}>${shape}</g>${ghosts}${dots}</svg>`;
 }
 
 /** All five views in a grid, captioned (for the signed PDF). */
-export function renderCarDiagramHtml(marks: DamageMark[]): string {
+export function renderCarDiagramHtml(marks: DamageMark[], ghostMarks: DamageMark[] = []): string {
   const cells = DIAGRAM_ORDER.map(
     (view) =>
-      `<div style="display:inline-block;vertical-align:top;margin:4px 6px;text-align:center;"><div style="font-size:11px;color:#666;margin-bottom:2px;">${escapeXml(VIEW_LABELS[view].he)}</div>${renderCarViewSvg(view, marks, CAR_VIEW_SHAPES[view].width > 300 ? 300 : 170)}</div>`
+      `<div style="display:inline-block;vertical-align:top;margin:4px 6px;text-align:center;"><div style="font-size:11px;color:#666;margin-bottom:2px;">${escapeXml(VIEW_LABELS[view].he)}</div>${renderCarViewSvg(view, marks, CAR_VIEW_SHAPES[view].width > 300 ? 300 : 170, ghostMarks)}</div>`
   ).join('');
   return `<div style="text-align:center;">${cells}</div>`;
 }

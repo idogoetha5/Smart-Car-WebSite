@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireDriverOrAdmin } from '@/lib/driver-route-auth';
 import { createAdminClient } from '@/lib/supabase/server';
 import { israelToday, israelTomorrow, israelDayRange } from '@/lib/israel-day';
-import { formatLocationForDriver } from '@/lib/location-display';
+import { formatLocationForDriver, navigationQueryFor } from '@/lib/location-display';
 import { numericOrderReference } from '@/lib/order-reference';
 import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
 
@@ -16,6 +16,7 @@ interface TaskRow {
   booking: {
     id: string;
     customer_name: string;
+    customer_phone: string | null;
     pickup_date: string;
     dropoff_date: string;
     pickup_time: string | null;
@@ -68,13 +69,15 @@ function shapeTask(task: TaskRow, inspections: Map<string, InspectionSlot>) {
     vehicleName: bookingVehicleName(booking),
     licensePlate: bookingLicensePlate(booking),
     location: formatLocationForDriver(location),
+    navQuery: navigationQueryFor(location),
+    customerPhone: booking?.customer_phone ?? '',
     time,
     inspection: booking ? inspections.get(`${booking.id}:${task.type}`) ?? null : null,
   };
 }
 
 const TASK_SELECT_INNER =
-  'id, type, status, booking:bookings!inner(id, customer_name, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
+  'id, type, status, booking:bookings!inner(id, customer_name, customer_phone, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
 
 /**
  * "היום שלי" — only tasks assigned to the logged-in driver (an admin
