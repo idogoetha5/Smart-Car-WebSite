@@ -54,7 +54,9 @@ function formatDateTime(value?: string) {
 export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
   const isAdmin = mode === 'admin';
   const tasksApi = isAdmin ? '/api/admin/tasks' : '/api/driver/manage/tasks';
-  const { items: people, isLoading, isValidating, mutate } = useApiList<Driver>(isAdmin ? '/api/admin/drivers' : '/api/driver/manage/drivers');
+  // Managers can add drivers, disable them and reset their codes too (not managers).
+  const peopleApi = isAdmin ? '/api/admin/drivers' : '/api/driver/manage/drivers';
+  const { items: people, isLoading, isValidating, mutate } = useApiList<Driver>(peopleApi);
   const drivers = useMemo(() => people.filter((person) => person.role !== 'manager'), [people]);
   const managers = useMemo(() => people.filter((person) => person.role === 'manager'), [people]);
   const { items: tasks, isLoading: tasksLoading, isValidating: tasksValidating, mutate: mutateTasks } = useApiList<Task>(tasksApi);
@@ -98,7 +100,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
     }
     setCreating(true);
     try {
-      const response = await fetch('/api/admin/drivers', {
+      const response = await fetch(peopleApi, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, pin, role }),
@@ -122,7 +124,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
   };
 
   const toggleActive = async (driver: Driver) => {
-    const response = await fetch(`/api/admin/drivers/${driver.id}`, {
+    const response = await fetch(`${peopleApi}/${driver.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ active: !driver.active }),
@@ -135,7 +137,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
     const newPin = window.prompt(`קוד חדש עבור ${driver.name} (4 ספרות)`);
     if (!newPin) return;
     if (!/^\d{4}$/.test(newPin)) { alert('הקוד חייב להיות 4 ספרות'); return; }
-    const response = await fetch(`/api/admin/drivers/${driver.id}`, {
+    const response = await fetch(`${peopleApi}/${driver.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pin: newPin }),
@@ -226,8 +228,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
         </button>
       </div>
 
-      {isAdmin && (
-        <div className="mb-8 space-y-4">
+      <div className="mb-8 space-y-4">
           <form onSubmit={(event) => { event.preventDefault(); void createPerson('driver'); }} className="flex flex-wrap items-end gap-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
             <div>
               <label className="mb-1 block text-xs font-bold text-gray-500">שם הנהג</label>
@@ -243,7 +244,7 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
             </button>
           </form>
 
-          <section className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm">
+          {isAdmin && (<section className="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-black text-gray-900">מנהלים</h2>
             <p className="mb-3 text-sm text-gray-500">מנהלי סניפים מקצים משימות לנהגים בדף נפרד (smartcar.co.il/manager), בלי גישה לאדמין. נכנסים עם השם וקוד של 4 ספרות.</p>
             <form onSubmit={(event) => { event.preventDefault(); void createPerson('manager'); }} className="mb-4 flex flex-wrap items-end gap-3">
@@ -278,10 +279,9 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
                 ))}
               </ul>
             )}
-          </section>
+          </section>)}
           {error && <p className="text-sm text-red-600">{error}</p>}
-        </div>
-      )}
+      </div>
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -319,8 +319,8 @@ export default function DriversBoard({ mode }: { mode: 'admin' | 'manager' }) {
                         הקצאת משימה
                       </button>
                     )}
-                    {isAdmin && <button onClick={() => toggleActive(driver)} className="min-h-10 rounded-lg bg-gray-50 px-3 text-xs font-bold text-gray-700 hover:bg-gray-100">{driver.active ? 'השבתה' : 'הפעלה'}</button>}
-                    {isAdmin && <button onClick={() => resetPin(driver)} className="flex min-h-10 items-center gap-1 rounded-lg bg-[#eef6f6] px-3 text-xs font-bold text-[#2D5F5F] hover:bg-[#d9ecec]"><KeyRound className="h-3.5 w-3.5" aria-hidden="true" />איפוס קוד</button>}
+                    <button onClick={() => toggleActive(driver)} className="min-h-10 rounded-lg bg-gray-50 px-3 text-xs font-bold text-gray-700 hover:bg-gray-100">{driver.active ? 'השבתה' : 'הפעלה'}</button>
+                    <button onClick={() => resetPin(driver)} className="flex min-h-10 items-center gap-1 rounded-lg bg-[#eef6f6] px-3 text-xs font-bold text-[#2D5F5F] hover:bg-[#d9ecec]"><KeyRound className="h-3.5 w-3.5" aria-hidden="true" />איפוס קוד</button>
                   </div>
                 </div>
 
