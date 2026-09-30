@@ -56,3 +56,61 @@ export function onTheWayLink(phone: string | null | undefined, message: string):
   if (!number) return null;
   return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 }
+
+const SIGN_OFF = ['SmartCar — השכרת רכב עד הבית', 'www.smartcar.co.il'];
+
+function greeting(customerName: string): string {
+  const first = customerName.trim().split(/\s+/)[0] || '';
+  return first ? `שלום ${first},` : 'שלום,';
+}
+
+/** "I've arrived" — sent when the representative is at the address. */
+export function arrivedMessage(params: { customerName: string; driverName?: string | null; type: 'pickup' | 'return' }): string {
+  const me = params.driverName?.trim() ? `כאן ${params.driverName.trim()}, נציג SmartCar.` : 'כאן נציג SmartCar.';
+  const body =
+    params.type === 'pickup'
+      ? 'הגעתי לכתובת ואני ממתין לך עם הרכב 🚗\nנא להביא רישיון נהיגה ותעודה מזהה.'
+      : 'הגעתי לכתובת לאיסוף הרכב 🚗\nאשמח שתצא/י אליי עם המפתחות.';
+  return [greeting(params.customerName), me, '', body, '', 'תודה!', ...SIGN_OFF].join('\n');
+}
+
+/** After signing: thank-you with the link to the signed form. */
+export function signedCopyMessage(params: { customerName: string; type: 'pickup' | 'return'; pdfUrl: string }): string {
+  const what = params.type === 'pickup' ? 'מסירת הרכב' : 'החזרת הרכב';
+  const extra =
+    params.type === 'pickup'
+      ? 'נסיעה טובה! לכל שאלה במהלך השכירות אנחנו זמינים כאן.'
+      : 'תודה שבחרת ב־SmartCar, נשמח לראותך שוב!';
+  return [
+    greeting(params.customerName),
+    `תודה על החתימה על טופס ${what} ✅`,
+    '',
+    'לצפייה בטופס החתום:',
+    params.pdfUrl,
+    '',
+    extra,
+    ...SIGN_OFF,
+  ].join('\n');
+}
+
+/** Day-before reminder for a return pickup. */
+export function returnReminderMessage(params: {
+  customerName: string;
+  dateLabel: string;
+  time?: string | null;
+  address?: string | null;
+}): string {
+  const when = `${params.dateLabel}${params.time ? ` בשעה ${params.time}` : ''}`;
+  const where = params.address ? ` מ${params.address}` : '';
+  return [
+    greeting(params.customerName),
+    'תזכורת מ־SmartCar 🚗',
+    '',
+    `מחר, ${when}, נגיע לאסוף את הרכב${where}.`,
+    'נבקש לוודא שהרכב זמין, עם אותה כמות דלק כמו במסירה, ושלא נשארו בו חפצים אישיים.',
+    'אם צריך לשנות את המועד — אפשר להשיב כאן.',
+    '',
+    'תודה!',
+    ...SIGN_OFF,
+  ].join('\n');
+}

@@ -53,7 +53,7 @@ type InspectionRow = {
 };
 
 const VIEW_SELECT =
-  'id, type, odometer_km, fuel_eighths, status, signed_at, video_sha256, video_path, damage_marks, no_damage, side_photos, media_completed_at, checklist, booking:bookings(id, customer_name, customer_email, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
+  'id, type, odometer_km, fuel_eighths, status, signed_at, video_sha256, video_path, damage_marks, no_damage, side_photos, media_completed_at, checklist, booking:bookings(id, customer_name, customer_email, customer_phone, custom_vehicle_name, vehicle:vehicles(make, model, license_plate))';
 
 export type SignResult = { ok: true } | { ok: false; status: number; error: string };
 
@@ -113,6 +113,9 @@ export async function loadSignView(
       sidePhotoViews: Object.keys(data.side_photos ?? {}),
       checklist: checklistEntries(data.checklist),
       customerEmail: data.booking?.customer_email ?? '',
+      customerPhone: (data.booking as { customer_phone?: string | null } | null)?.customer_phone ?? '',
+      // 30-day link to the signed PDF, for sending the customer a copy on WhatsApp.
+      signedPdfUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.smartcar.co.il'}/insp-pdf/${encodeURIComponent(createInspectionToken(data.id))}`,
       mediaToken,
     },
   };

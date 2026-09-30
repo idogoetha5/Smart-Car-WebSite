@@ -3,8 +3,11 @@ import { requireDriverOrAdmin } from '@/lib/driver-route-auth';
 import { createAdminClient } from '@/lib/supabase/server';
 import { israelToday, israelTomorrow, israelDayRange } from '@/lib/israel-day';
 import { formatLocationForDriver, navigationQueryFor } from '@/lib/location-display';
+import { createInspectionToken } from '@/lib/inspection-link';
 import { numericOrderReference } from '@/lib/order-reference';
 import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
+
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.smartcar.co.il';
 
 const SEARCH_WINDOW_DAYS = 45;
 const TASK_FETCH_LIMIT = 500;
@@ -32,6 +35,8 @@ interface TaskRow {
 interface InspectionSlot {
   id: string;
   status: 'awaiting_signature' | 'signed';
+  /** Link to the signed PDF (30-day token) for the 'send signed copy' WhatsApp button. */
+  pdfUrl?: string;
 }
 
 async function inspectionMapFor(bookingIds: string[]): Promise<Map<string, InspectionSlot>> {
@@ -50,7 +55,11 @@ async function inspectionMapFor(bookingIds: string[]): Promise<Map<string, Inspe
     return map;
   }
   for (const row of data ?? []) {
-    map.set(`${row.booking_id}:${row.type}`, { id: row.id, status: row.status });
+    map.set(`${row.booking_id}:${row.type}`, {
+      id: row.id,
+      status: row.status,
+      pdfUrl: row.status === 'signed' ? `${SITE_URL}/insp-pdf/${encodeURIComponent(createInspectionToken(row.id))}` : undefined,
+    });
   }
   return map;
 }
@@ -83,6 +92,7 @@ function shapeTask(task: TaskRow, inspections: Map<string, InspectionSlot>) {
     navQuery: navigationQueryFor(location),
     customerPhone: booking?.customer_phone ?? '',
     time,
+    date: (task.type === 'pickup' ? booking?.pickup_date : booking?.dropoff_date) ?? null,
     inspection: booking ? inspections.get(`${booking.id}:${task.type}`) ?? null : null,
   };
 }

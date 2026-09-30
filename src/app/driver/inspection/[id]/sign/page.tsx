@@ -3,7 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Smartphone } from 'lucide-react';
+import useSWR from 'swr';
+import { MessageCircle, Smartphone } from 'lucide-react';
+import { fetcher } from '@/lib/swr';
+import { onTheWayLink, signedCopyMessage } from '@/lib/driver-on-the-way';
 import InspectionSignScreen from '@/components/inspection/InspectionSignScreen';
 
 /**
@@ -38,6 +41,18 @@ export default function DriverInspectionSignPage() {
     }
   };
 
+  const dataUrl = id ? `/api/driver/inspections/${encodeURIComponent(id)}/sign` : null;
+  // Separate cache key from the sign screen's own fetch (different response shape).
+  const { data: view } = useSWR<{ data: { customerName: string; customerPhone?: string; signedPdfUrl?: string; type: 'pickup' | 'return' } }>(
+    dataUrl ? `${dataUrl}?for=share` : null,
+    fetcher
+  );
+  const v = view?.data;
+  const whatsappCopy =
+    v?.customerPhone && v.signedPdfUrl
+      ? onTheWayLink(v.customerPhone, signedCopyMessage({ customerName: v.customerName, type: v.type, pdfUrl: v.signedPdfUrl }))
+      : null;
+
   const backHome = (
     <Link
       href="/driver"
@@ -67,12 +82,27 @@ export default function DriverInspectionSignPage() {
       </div>)}
 
       <InspectionSignScreen
-        dataUrl={id ? `/api/driver/inspections/${encodeURIComponent(id)}/sign` : null}
+        dataUrl={dataUrl}
         submitUrl={`/api/driver/inspections/${encodeURIComponent(id)}/sign`}
         requireTurnstile={false}
         isHe
         doneText="תודה! הטופס החתום נשלח למייל של הלקוח ולמשרד."
-        afterDone={backHome}
+        afterDone={
+          <div className="mt-6 flex flex-col items-center gap-3">
+            {whatsappCopy && (
+              <a
+                href={whatsappCopy}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#25D366] px-6 font-black text-white"
+              >
+                <MessageCircle className="h-5 w-5" aria-hidden="true" />
+                שלח ללקוח את הטופס החתום בוואטסאפ
+              </a>
+            )}
+            {backHome}
+          </div>
+        }
         onSigned={() => setSigned(true)}
       />
 

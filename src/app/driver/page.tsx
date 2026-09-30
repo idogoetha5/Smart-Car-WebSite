@@ -6,7 +6,7 @@ import useSWR, { preload } from 'swr';
 import { Search, LogOut, RefreshCw, Plus, Navigation, Phone, Pencil, MapPin, MessageCircle } from 'lucide-react';
 import { fetcher } from '@/lib/swr';
 import PendingInspections from '@/components/inspection/PendingInspections';
-import { onTheWayLink, onTheWayMessage } from '@/lib/driver-on-the-way';
+import { arrivedMessage, onTheWayLink, onTheWayMessage, returnReminderMessage, signedCopyMessage } from '@/lib/driver-on-the-way';
 
 interface TaskRow {
   taskId: string;
@@ -21,7 +21,8 @@ interface TaskRow {
   navQuery?: string;
   customerPhone?: string;
   time: string | null;
-  inspection: { id: string; status: 'awaiting_signature' | 'signed' } | null;
+  inspection: { id: string; status: 'awaiting_signature' | 'signed'; pdfUrl?: string } | null;
+  date?: string | null;
 }
 
 function TaskAction({ row }: { row: TaskRow }) {
@@ -52,7 +53,7 @@ function TaskAction({ row }: { row: TaskRow }) {
   );
 }
 
-function TaskCard({ row, onChanged, driverName }: { row: TaskRow; onChanged: () => void; driverName: string }) {
+function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: TaskRow; onChanged: () => void; driverName: string; isTomorrow?: boolean }) {
   const hasAddress = Boolean(row.navQuery);
   const [editing, setEditing] = useState(false);
   const [address, setAddress] = useState(hasAddress ? row.location : '');
@@ -119,22 +120,62 @@ function TaskCard({ row, onChanged, driverName }: { row: TaskRow; onChanged: () 
         </div>
       </div>
 
-      {!isDone && row.customerPhone && (() => {
-        const link = onTheWayLink(
+      {row.customerPhone && (() => {
+        const signed = row.inspection?.status === 'signed';
+        const onTheWay = onTheWayLink(
           row.customerPhone,
           onTheWayMessage({ customerName: row.customerName, driverName, vehicleName: row.vehicleName, type: row.type })
         );
-        return link ? (
-          <a
-            href={link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] text-sm font-black text-white"
-          >
-            <MessageCircle className="h-5 w-5" aria-hidden="true" />
-            שלח ללקוח: אני בדרך (עד 60 דק׳)
-          </a>
-        ) : null;
+        const arrived = onTheWayLink(row.customerPhone, arrivedMessage({ customerName: row.customerName, driverName, type: row.type }));
+        const signedCopy =
+          signed && row.inspection?.pdfUrl
+            ? onTheWayLink(row.customerPhone, signedCopyMessage({ customerName: row.customerName, type: row.type, pdfUrl: row.inspection.pdfUrl }))
+            : null;
+        const reminder =
+          isTomorrow && row.type === 'return' && !isDone && !signed
+            ? onTheWayLink(
+                row.customerPhone,
+                returnReminderMessage({
+                  customerName: row.customerName,
+                  dateLabel: row.date ? new Date(row.date).toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'numeric' }) : '',
+                  time: row.time ? row.time.slice(0, 5) : null,
+                  address: row.navQuery ? row.location : null,
+                })
+              )
+            : null;
+        const btn = 'flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl text-sm font-black';
+        return (
+          <div className="mt-3 space-y-2">
+            {signedCopy && (
+              <a href={signedCopy} target="_blank" rel="noopener noreferrer" className={`${btn} bg-[#25D366] text-white`}>
+                <MessageCircle className="h-5 w-5" aria-hidden="true" />
+                שלח ללקוח את הטופס החתום
+              </a>
+            )}
+            {reminder && (
+              <a href={reminder} target="_blank" rel="noopener noreferrer" className={`${btn} bg-[#25D366] text-white`}>
+                <MessageCircle className="h-5 w-5" aria-hidden="true" />
+                תזכורת ללקוח: איסוף הרכב מחר
+              </a>
+            )}
+            {!isDone && !signed && !isTomorrow && (
+              <div className="flex gap-2">
+                {onTheWay && (
+                  <a href={onTheWay} target="_blank" rel="noopener noreferrer" className={`${btn} bg-[#25D366] text-white`}>
+                    <MessageCircle className="h-5 w-5" aria-hidden="true" />
+                    אני בדרך
+                  </a>
+                )}
+                {arrived && (
+                  <a href={arrived} target="_blank" rel="noopener noreferrer" className={`${btn} border-2 border-[#25D366] text-[#128C4B]`}>
+                    <MessageCircle className="h-5 w-5" aria-hidden="true" />
+                    הגעתי
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        );
       })()}
 
       {editing ? (
@@ -309,7 +350,7 @@ export default function DriverTodayPage() {
               <h2 className="text-sm font-black text-gray-500 mb-2">מסירות</h2>
               <div className="space-y-3">
                 {(data?.pickups ?? []).map((row) => (
-                  <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} />
+                  <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} isTomorrow={tab === 'tomorrow'} />
                 ))}
                 {!isLoading && (data?.pickups ?? []).length === 0 && (
                   <p className="text-center text-gray-400 py-6 text-sm">אין מסירות</p>
@@ -320,7 +361,7 @@ export default function DriverTodayPage() {
               <h2 className="text-sm font-black text-gray-500 mb-2">החזרות</h2>
               <div className="space-y-3">
                 {(data?.returns ?? []).map((row) => (
-                  <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} />
+                  <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} isTomorrow={tab === 'tomorrow'} />
                 ))}
                 {!isLoading && (data?.returns ?? []).length === 0 && (
                   <p className="text-center text-gray-400 py-6 text-sm">אין החזרות</p>
