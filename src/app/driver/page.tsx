@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR, { preload } from 'swr';
-import { Search, LogOut, RefreshCw, Plus, Navigation, Phone, Pencil, MapPin, MessageCircle } from 'lucide-react';
+import { Search, LogOut, RefreshCw, Plus, Navigation, Phone, Pencil, MapPin, MessageCircle, MoreHorizontal, CheckCircle2 } from 'lucide-react';
 import { fetcher } from '@/lib/swr';
 import PendingInspections from '@/components/inspection/PendingInspections';
 import { arrivedMessage, onTheWayLink, onTheWayMessage, returnReminderMessage, signedCopyMessage } from '@/lib/driver-on-the-way';
@@ -27,15 +27,15 @@ interface TaskRow {
 
 function TaskAction({ row }: { row: TaskRow }) {
   const router = useRouter();
-  const label = row.type === 'pickup' ? 'בדיקת מסירה' : 'בדיקת החזרה';
+  const base = 'flex min-h-14 flex-1 items-center justify-center rounded-2xl text-base font-black active:scale-[0.98] transition';
 
   if (!row.inspection) {
     return (
       <button
         onClick={() => router.push(`/driver/inspection/new?bookingId=${row.bookingId}&type=${row.type}`)}
-        className="min-h-12 px-4 rounded-xl bg-[#E8743B] hover:bg-[#d4632a] text-white font-black text-sm whitespace-nowrap"
+        className={`${base} bg-[#E8743B] text-white`}
       >
-        {label}
+        {row.type === 'pickup' ? 'התחל בדיקת מסירה' : 'התחל בדיקת החזרה'}
       </button>
     );
   }
@@ -44,33 +44,89 @@ function TaskAction({ row }: { row: TaskRow }) {
   return (
     <button
       onClick={() => router.push(signed ? `/driver/inspection/${row.inspection!.id}` : `/driver/inspection/${row.inspection!.id}/sign`)}
-      className={`min-h-12 px-4 rounded-xl font-black text-sm whitespace-nowrap ${
-        signed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-      }`}
+      className={`${base} ${signed ? 'bg-green-100 text-green-700' : 'bg-amber-400 text-gray-900'}`}
     >
-      {signed ? '✓ נחתם' : 'לחתימת הלקוח'}
+      {signed ? '✓ נחתם — צפייה בטופס' : 'לחתימת הלקוח'}
     </button>
+  );
+}
+
+interface SheetItem {
+  key: string;
+  label: string;
+  icon: ReactNode;
+  href?: string;
+  onClick?: () => void;
+  tone?: 'whatsapp' | 'default' | 'done';
+}
+
+function ActionSheet({ title, items, onClose, children }: { title: string; items: SheetItem[]; onClose: () => void; children?: ReactNode }) {
+  const tones = {
+    whatsapp: 'text-[#128C4B]',
+    default: 'text-gray-800',
+    done: 'text-[#2D5F5F]',
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-end" dir="rtl" role="dialog" aria-modal="true">
+      <button type="button" aria-label="סגירה" onClick={onClose} className="absolute inset-0 bg-black/40" />
+      <div className="relative w-full max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl">
+        <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-gray-300" />
+        <p className="mb-2 truncate text-center text-sm font-bold text-gray-500">{title}</p>
+        {children}
+        <div className="divide-y divide-gray-100">
+          {items.map((it) => {
+            const cls = `flex min-h-14 w-full items-center gap-4 px-2 text-start text-base font-bold ${tones[it.tone ?? 'default']}`;
+            return it.href ? (
+              <a key={it.key} href={it.href} target={it.href.startsWith('tel:') ? undefined : '_blank'} rel="noopener noreferrer" onClick={onClose} className={cls}>
+                {it.icon}
+                {it.label}
+              </a>
+            ) : (
+              <button key={it.key} type="button" onClick={it.onClick} className={cls}>
+                {it.icon}
+                {it.label}
+              </button>
+            );
+          })}
+        </div>
+        <button type="button" onClick={onClose} className="mt-3 min-h-14 w-full rounded-2xl bg-gray-100 text-base font-black text-gray-700">
+          סגור
+        </button>
+      </div>
+    </div>
   );
 }
 
 function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: TaskRow; onChanged: () => void; driverName: string; isTomorrow?: boolean }) {
   const hasAddress = Boolean(row.navQuery);
+  const [sheet, setSheet] = useState(false);
   const [editing, setEditing] = useState(false);
   const [address, setAddress] = useState(hasAddress ? row.location : '');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [marking, setMarking] = useState(false);
 
   const isDone = row.taskStatus === 'done';
-  const [marking, setMarking] = useState(false);
+  const signed = row.inspection?.status === 'signed';
+  const time = row.time ? row.time.slice(0, 5) : null;
+  const wazeUrl = hasAddress ? `https://waze.com/ul?q=${encodeURIComponent(row.navQuery as string)}&navigate=yes` : null;
+  const telUrl = row.customerPhone ? `tel:${row.customerPhone.replace(/[^\d+]/g, '')}` : null;
+
+  const patch = (body: Record<string, string>) =>
+    fetch(`/api/driver/tasks/${encodeURIComponent(row.taskId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
   const toggleDone = async () => {
     setMarking(true);
     try {
-      const res = await fetch(`/api/driver/tasks/${encodeURIComponent(row.taskId)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: isDone ? 'open' : 'done' }),
-      });
-      if (res.ok) onChanged();
+      const res = await patch({ status: isDone ? 'open' : 'done' });
+      if (res.ok) {
+        setSheet(false);
+        onChanged();
+      }
     } finally {
       setMarking(false);
     }
@@ -80,13 +136,10 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
     setSaving(true);
     setSaveError('');
     try {
-      const res = await fetch(`/api/driver/tasks/${encodeURIComponent(row.taskId)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ location: address.trim() }),
-      });
+      const res = await patch({ location: address.trim() });
       if (!res.ok) throw new Error();
       setEditing(false);
+      setSheet(false);
       onChanged();
     } catch {
       setSaveError('שמירת הכתובת נכשלה');
@@ -95,150 +148,107 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
     }
   };
 
+  // Build the sheet: only the messages that make sense right now, most relevant first.
+  const wa = <MessageCircle className="h-6 w-6 shrink-0" aria-hidden="true" />;
+  const items: SheetItem[] = [];
+  if (row.customerPhone) {
+    const phone = row.customerPhone;
+    if (signed && row.inspection?.pdfUrl) {
+      const href = onTheWayLink(phone, signedCopyMessage({ customerName: row.customerName, type: row.type, pdfUrl: row.inspection.pdfUrl }));
+      if (href) items.push({ key: 'copy', label: 'וואטסאפ: שלח את הטופס החתום', icon: wa, href, tone: 'whatsapp' });
+    }
+    if (isTomorrow && row.type === 'return' && !isDone && !signed) {
+      const href = onTheWayLink(
+        phone,
+        returnReminderMessage({
+          customerName: row.customerName,
+          dateLabel: row.date ? new Date(row.date).toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'numeric' }) : '',
+          time,
+          address: hasAddress ? row.location : null,
+        })
+      );
+      if (href) items.push({ key: 'remind', label: 'וואטסאפ: תזכורת לאיסוף מחר', icon: wa, href, tone: 'whatsapp' });
+    }
+    if (!isDone && !signed && !isTomorrow) {
+      const onTheWay = onTheWayLink(phone, onTheWayMessage({ customerName: row.customerName, driverName, vehicleName: row.vehicleName, type: row.type }));
+      const arrived = onTheWayLink(phone, arrivedMessage({ customerName: row.customerName, driverName, type: row.type }));
+      if (onTheWay) items.push({ key: 'otw', label: 'וואטסאפ: אני בדרך', icon: wa, href: onTheWay, tone: 'whatsapp' });
+      if (arrived) items.push({ key: 'arr', label: 'וואטסאפ: הגעתי', icon: wa, href: arrived, tone: 'whatsapp' });
+    }
+  }
+  items.push({
+    key: 'addr',
+    label: hasAddress ? 'עריכת כתובת' : 'הוספת כתובת לוויז',
+    icon: hasAddress ? <Pencil className="h-6 w-6 shrink-0" aria-hidden="true" /> : <MapPin className="h-6 w-6 shrink-0" aria-hidden="true" />,
+    onClick: () => setEditing(true),
+  });
+  items.push({
+    key: 'done',
+    label: marking ? 'שומר…' : isDone ? 'ביטול סימון "בוצע"' : 'סמן כבוצע',
+    icon: <CheckCircle2 className="h-6 w-6 shrink-0" aria-hidden="true" />,
+    onClick: toggleDone,
+    tone: 'done',
+  });
+
+  const iconBtn = 'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 active:scale-95 transition';
+
   return (
-    <div className={`rounded-2xl border p-4 shadow-sm ${isDone ? 'border-green-200 bg-green-50/60 opacity-75' : 'border-gray-100 bg-white'}`}>
+    <div className={`rounded-3xl border p-4 shadow-sm ${isDone ? 'border-green-200 bg-green-50/60' : 'border-gray-100 bg-white'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className={`font-black truncate ${isDone ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{row.customerName}</p>
-          <p className="text-sm text-gray-500 truncate">{row.vehicleName} · <span dir="ltr">{row.licensePlate}</span></p>
-          <p className="text-xs text-gray-400 mt-1">
-            {hasAddress ? row.location : 'ללא כתובת'} {row.time ? `· ${row.time.slice(0, 5)}` : ''} · #{row.bookingNumber}
+          <p className={`text-lg font-black leading-tight truncate ${isDone ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{row.customerName}</p>
+          <p className="mt-0.5 text-sm text-gray-500 truncate">
+            {row.vehicleName} · <span dir="ltr">{row.licensePlate}</span>
           </p>
         </div>
-        <div className="flex flex-col gap-2 shrink-0">
-          {!isDone && <TaskAction row={row} />}
-          <button
-            type="button"
-            onClick={toggleDone}
-            disabled={marking}
-            className={`min-h-10 rounded-xl px-3 text-sm font-black whitespace-nowrap disabled:opacity-50 ${
-              isDone ? 'border-2 border-green-600 text-green-700' : 'border-2 border-gray-200 text-gray-600'
-            }`}
-          >
-            {isDone ? '✓ בוצע (בטל)' : '✓ בוצע'}
-          </button>
-        </div>
+        {isDone ? (
+          <span className="shrink-0 rounded-full bg-green-100 px-3 py-1 text-sm font-black text-green-700">✓ בוצע</span>
+        ) : time ? (
+          <span className="shrink-0 rounded-full bg-[#2D5F5F]/10 px-3 py-1 text-base font-black text-[#2D5F5F]" dir="ltr">{time}</span>
+        ) : null}
       </div>
 
-      {row.customerPhone && (() => {
-        const signed = row.inspection?.status === 'signed';
-        const onTheWay = onTheWayLink(
-          row.customerPhone,
-          onTheWayMessage({ customerName: row.customerName, driverName, vehicleName: row.vehicleName, type: row.type })
-        );
-        const arrived = onTheWayLink(row.customerPhone, arrivedMessage({ customerName: row.customerName, driverName, type: row.type }));
-        const signedCopy =
-          signed && row.inspection?.pdfUrl
-            ? onTheWayLink(row.customerPhone, signedCopyMessage({ customerName: row.customerName, type: row.type, pdfUrl: row.inspection.pdfUrl }))
-            : null;
-        const reminder =
-          isTomorrow && row.type === 'return' && !isDone && !signed
-            ? onTheWayLink(
-                row.customerPhone,
-                returnReminderMessage({
-                  customerName: row.customerName,
-                  dateLabel: row.date ? new Date(row.date).toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'numeric' }) : '',
-                  time: row.time ? row.time.slice(0, 5) : null,
-                  address: row.navQuery ? row.location : null,
-                })
-              )
-            : null;
-        const btn = 'flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl text-sm font-black';
-        return (
-          <div className="mt-3 space-y-2">
-            {signedCopy && (
-              <a href={signedCopy} target="_blank" rel="noopener noreferrer" className={`${btn} bg-[#25D366] text-white`}>
-                <MessageCircle className="h-5 w-5" aria-hidden="true" />
-                שלח ללקוח את הטופס החתום
-              </a>
-            )}
-            {reminder && (
-              <a href={reminder} target="_blank" rel="noopener noreferrer" className={`${btn} bg-[#25D366] text-white`}>
-                <MessageCircle className="h-5 w-5" aria-hidden="true" />
-                תזכורת ללקוח: איסוף הרכב מחר
-              </a>
-            )}
-            {!isDone && !signed && !isTomorrow && (
-              <div className="flex gap-2">
-                {onTheWay && (
-                  <a href={onTheWay} target="_blank" rel="noopener noreferrer" className={`${btn} bg-[#25D366] text-white`}>
-                    <MessageCircle className="h-5 w-5" aria-hidden="true" />
-                    אני בדרך
-                  </a>
-                )}
-                {arrived && (
-                  <a href={arrived} target="_blank" rel="noopener noreferrer" className={`${btn} border-2 border-[#25D366] text-[#128C4B]`}>
-                    <MessageCircle className="h-5 w-5" aria-hidden="true" />
-                    הגעתי
-                  </a>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      <p className={`mt-2 flex items-center gap-1.5 text-sm truncate ${hasAddress ? 'text-gray-700' : 'text-gray-400'}`}>
+        <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span className="truncate">{hasAddress ? row.location : 'אין כתובת'}</span>
+      </p>
 
-      {editing ? (
-        <div className="mt-3 space-y-2">
-          <input
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="כתובת ללקוח — רחוב, מספר, עיר"
-            autoFocus
-            className="w-full min-h-11 rounded-xl border-2 border-gray-200 px-3 text-base"
-          />
-          <div className="flex gap-2">
-            <button type="button" onClick={saveAddress} disabled={saving} className="min-h-11 flex-1 rounded-xl bg-[#2D5F5F] text-sm font-black text-white disabled:opacity-50">
-              {saving ? 'שומר…' : 'שמור כתובת'}
-            </button>
-            <button type="button" onClick={() => setEditing(false)} className="min-h-11 rounded-xl border-2 border-gray-200 px-4 text-sm font-black text-gray-600">
-              ביטול
-            </button>
-          </div>
-          {saveError && <p className="text-xs text-red-600">{saveError}</p>}
-        </div>
-      ) : (
-        <div className="mt-3 flex gap-2">
-          {hasAddress ? (
-            <>
-              <a
-                href={`https://waze.com/ul?q=${encodeURIComponent(row.navQuery as string)}&navigate=yes`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border-2 border-[#33CCFF] bg-[#eefbff] text-sm font-black text-[#0a7ea4]"
-              >
-                <Navigation className="h-4 w-4" aria-hidden="true" />
-                Waze
-              </a>
-              <button
-                type="button"
-                onClick={() => setEditing(true)}
-                aria-label="עריכת כתובת"
-                className="flex min-h-11 w-11 items-center justify-center rounded-xl border-2 border-gray-200 text-gray-500"
-              >
-                <Pencil className="h-4 w-4" aria-hidden="true" />
+      <div className="mt-3 flex gap-2">
+        {!isDone && <TaskAction row={row} />}
+        {isDone && <div className="flex-1" />}
+        {wazeUrl && (
+          <a href={wazeUrl} target="_blank" rel="noopener noreferrer" aria-label="ניווט בוויז" className={`${iconBtn} border-[#33CCFF] bg-[#eefbff] text-[#0a7ea4]`}>
+            <Navigation className="h-6 w-6" aria-hidden="true" />
+          </a>
+        )}
+        {telUrl && (
+          <a href={telUrl} aria-label="התקשר ללקוח" className={`${iconBtn} border-green-500 bg-green-50 text-green-700`}>
+            <Phone className="h-6 w-6" aria-hidden="true" />
+          </a>
+        )}
+        <button type="button" onClick={() => setSheet(true)} aria-label="עוד פעולות" className={`${iconBtn} border-gray-200 bg-white text-gray-600`}>
+          <MoreHorizontal className="h-7 w-7" aria-hidden="true" />
+        </button>
+      </div>
+
+      {sheet && (
+        <ActionSheet title={`${row.customerName} · #${row.bookingNumber}`} items={editing ? [] : items} onClose={() => { setSheet(false); setEditing(false); }}>
+          {editing && (
+            <div className="space-y-2 pb-2">
+              <input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="רחוב, מספר, עיר"
+                autoFocus
+                className="w-full min-h-14 rounded-2xl border-2 border-gray-200 px-4 text-base"
+              />
+              <button type="button" onClick={saveAddress} disabled={saving || !address.trim()} className="min-h-14 w-full rounded-2xl bg-[#2D5F5F] text-base font-black text-white disabled:opacity-50">
+                {saving ? 'שומר…' : 'שמור כתובת'}
               </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 text-sm font-black text-gray-500"
-            >
-              <MapPin className="h-4 w-4" aria-hidden="true" />
-              הוסף כתובת לוויז
-            </button>
+              {saveError && <p className="text-sm text-red-600">{saveError}</p>}
+            </div>
           )}
-          {row.customerPhone && (
-            <a
-              href={`tel:${row.customerPhone.replace(/[^\d+]/g, '')}`}
-              className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border-2 border-green-500 bg-green-50 text-sm font-black text-green-700"
-            >
-              <Phone className="h-4 w-4" aria-hidden="true" />
-              התקשר ללקוח
-            </a>
-          )}
-        </div>
+        </ActionSheet>
       )}
     </div>
   );
@@ -324,7 +334,7 @@ export default function DriverTodayPage() {
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && setSearch(searchInput.trim())}
               placeholder="שם לקוח / לוחית רישוי / מספר הזמנה"
-              className="w-full min-h-12 ps-10 pe-4 rounded-xl border-2 border-gray-200 text-sm"
+              className="w-full min-h-12 ps-10 pe-4 rounded-xl border-2 border-gray-200 text-base"
             />
           </div>
         )}

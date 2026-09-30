@@ -144,7 +144,7 @@ export default function DriverQuickBookingPage() {
             <>
               <div className="relative mb-3">
                 <Search className="absolute top-1/2 -translate-y-1/2 start-3 h-4 w-4 text-gray-400" aria-hidden="true" />
-                <input value={vehicleSearch} onChange={(e) => setVehicleSearch(e.target.value)} placeholder="חיפוש לפי דגם / לוחית רישוי" className="w-full min-h-11 ps-10 pe-3 rounded-xl border-2 border-gray-200 text-sm" />
+                <input value={vehicleSearch} onChange={(e) => setVehicleSearch(e.target.value)} placeholder="חיפוש לפי דגם / לוחית רישוי" className="w-full min-h-11 ps-10 pe-3 rounded-xl border-2 border-gray-200 text-base" />
               </div>
               <div className="max-h-56 overflow-y-auto space-y-2">
                 {filteredVehicles.map((v) => (
