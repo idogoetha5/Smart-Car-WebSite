@@ -111,7 +111,7 @@ export default function DriverInspectionSignPage() {
           type="button"
           onClick={sendLink}
           disabled={linkState === 'sending'}
-          className="text-sm font-bold text-gray-500 underline disabled:opacity-50"
+          className="min-h-12 w-full rounded-2xl border-2 border-gray-200 px-4 text-base font-bold text-gray-600 disabled:opacity-50"
         >
           {linkState === 'sending' ? 'שולח…' : 'הלקוח לא נמצא? שלח לו קישור לחתימה במייל'}
         </button>

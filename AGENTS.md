@@ -27,3 +27,14 @@ Customer-form links per branch (single source of truth, keep this table in sync 
 | airport | `https://www.smartcar.co.il/f/airport` | `https://www.smartcar.co.il/en/customer-details?branch=airport` |
 
 The short link `/f/<branch>` is only a redirect to `/en/customer-details?branch=<branch>` (English is the default; the form's language button switches to Hebrew) (defined in `redirects()` in `next.config.ts`; `f/` is excluded from the next-intl matcher in `src/proxy.ts`). The printed QR codes do not use it.
+
+## Driver app: mobile-first is a hard requirement
+
+Drivers and branch managers use the driver app (`/driver/*`, `src/components/inspection/*`, the sign screens) **only on their phones**, often one-handed and outdoors. Any change there is not done until it passes this threshold:
+
+- Works at 360px wide with no horizontal scrolling.
+- Every button/link/input is at least 44x44px (prefer 56px for main actions). Main action = one big full-width button; secondary actions go in a bottom sheet, not a wall of buttons.
+- Text inputs use at least 16px font (`text-base`), so iPhones don't zoom in.
+- Fixed bottom bars and sheets respect `env(safe-area-inset-bottom)`.
+- Before merging, run the audit and look at the screenshots it saves:
+  `npm run dev` then `npm i --no-save playwright && npm run audit:mobile` (screenshots in `scripts/mobile-audit/out/`). It must print "All driver screens pass". When you add a new driver screen, add it to the list in `scripts/mobile-audit/run.mjs`.

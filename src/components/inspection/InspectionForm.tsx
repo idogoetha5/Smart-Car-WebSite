@@ -366,7 +366,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
   const title = type === 'pickup' ? (isHe ? 'בדיקת מסירת רכב' : 'Handover inspection') : (isHe ? 'בדיקת החזרת רכב' : 'Return inspection');
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 pb-28" dir={isHe ? 'rtl' : 'ltr'}>
+    <div className="max-w-lg mx-auto px-4 py-6 pb-32" dir={isHe ? 'rtl' : 'ltr'}>
       <h1 className="text-2xl font-black text-gray-900 mb-3">{title}</h1>
 
       {/* Progress */}
@@ -377,11 +377,11 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
               type="button"
               disabled={uploading || (i > 0 && !step0Ok)}
               onClick={() => setStep(i)}
-              className="w-full text-start"
+              className="w-full min-h-11 py-1 text-start"
               aria-current={step === i ? 'step' : undefined}
             >
               <span className={`block h-2 rounded-full ${i <= step ? 'bg-[#E8743B]' : 'bg-gray-200'}`} />
-              <span className={`mt-1 block text-xs font-black ${i === step ? 'text-gray-900' : 'text-gray-400'}`}>
+              <span className={`mt-1 block text-sm font-black ${i === step ? 'text-gray-900' : 'text-gray-400'}`}>
                 {i + 1}. {isHe ? s.he : s.en}
               </span>
             </button>
@@ -460,7 +460,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
                         setHandover(null);
                         setHandoverPicker(false);
                       }}
-                      className="text-sm font-bold text-gray-500 underline"
+                      className="min-h-12 px-2 text-base font-bold text-gray-500 underline"
                     >
                       {isHe ? 'המשך בלי בדיקת מסירה' : 'Continue without'}
                     </button>
@@ -584,7 +584,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
 
             {handoverMarks.length > 0 && (
               <div className="mt-3 rounded-xl bg-gray-50 p-3">
-                <button type="button" onClick={() => setHandoverOpen((o) => !o)} className="flex w-full items-center justify-between text-sm font-black text-gray-600">
+                <button type="button" onClick={() => setHandoverOpen((o) => !o)} className="flex min-h-12 w-full items-center justify-between text-base font-black text-gray-600">
                   {isHe ? `נזקים שתועדו במסירה (${handoverMarks.length})` : `Recorded at handover (${handoverMarks.length})`}
                   {handoverOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </button>
@@ -624,15 +624,15 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
             )}
 
             {marks.length === 0 && (
-              <label className="mt-4 flex items-center gap-3 rounded-xl border-2 border-gray-200 p-3 font-black text-gray-800 cursor-pointer">
-                <input type="checkbox" className="h-5 w-5" checked={noDamage} disabled={uploading} onChange={(e) => setNoDamage(e.target.checked)} />
+              <label className="mt-4 flex min-h-14 items-center gap-3 rounded-xl border-2 border-gray-200 p-3 font-black text-gray-800 cursor-pointer">
+                <input type="checkbox" className="h-6 w-6" checked={noDamage} disabled={uploading} onChange={(e) => setNoDamage(e.target.checked)} />
                 {isReturn ? (isHe ? 'אין נזקים חדשים' : 'No new damage') : (isHe ? 'אין נזקים ברכב' : 'No damage on the car')}
               </label>
             )}
 
             {/* Optional side photos */}
             <div className="mt-3">
-              <button type="button" onClick={() => setSidePhotosOpen((o) => !o)} className="flex w-full items-center justify-between text-sm font-black text-gray-600">
+              <button type="button" onClick={() => setSidePhotosOpen((o) => !o)} className="flex min-h-12 w-full items-center justify-between text-base font-black text-gray-600">
                 {isHe ? `צילומי 4 צדדים (לא חובה)${sideViewsTaken.length ? ` · ${sideViewsTaken.length}/4` : ''}` : `4 side photos (optional)${sideViewsTaken.length ? ` · ${sideViewsTaken.length}/4` : ''}`}
                 {sidePhotosOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </button>
@@ -671,7 +671,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
             <button
               type="button"
               onClick={() => setChecklistOpen((o) => !o)}
-              className="flex w-full items-center justify-between font-black text-gray-800"
+              className="flex min-h-12 w-full items-center justify-between font-black text-gray-800"
               aria-expanded={checklistOpen}
             >
               <span>
@@ -727,7 +727,7 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
       {uploading && <div className="mt-4 text-center text-sm font-bold text-gray-600">{stageText}</div>}
 
       {/* Bottom navigation */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 backdrop-blur px-4 py-3">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 backdrop-blur px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto flex max-w-lg gap-3">
           {step > 0 && (
             <button
@@ -774,12 +774,12 @@ export default function InspectionForm({ apiBase, bookingId, type, isHe }: Inspe
       {/* Add-damage sheet */}
       {pending && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" role="dialog" aria-modal="true">
-          <div className="w-full max-w-lg rounded-t-2xl bg-white p-5 pb-8 shadow-xl" dir={isHe ? 'rtl' : 'ltr'}>
+          <div className="w-full max-w-lg rounded-t-2xl bg-white p-5 pb-[max(2rem,env(safe-area-inset-bottom))] shadow-xl" dir={isHe ? 'rtl' : 'ltr'}>
             <div className="mb-3 flex items-center justify-between">
               <p className="font-black text-gray-900">
                 {isHe ? 'נזק חדש' : 'New damage'} · {isHe ? VIEW_LABELS[pending.view].he : VIEW_LABELS[pending.view].en}
               </p>
-              <button type="button" onClick={() => setPending(null)} aria-label={isHe ? 'סגור' : 'Close'} className="p-2 text-gray-500">
+              <button type="button" onClick={() => setPending(null)} aria-label={isHe ? 'סגור' : 'Close'} className="flex h-11 w-11 items-center justify-center rounded-xl text-gray-500">
                 <X className="h-5 w-5" />
               </button>
             </div>

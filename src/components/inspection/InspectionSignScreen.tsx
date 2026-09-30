@@ -273,12 +273,12 @@ export default function InspectionSignScreen({
               </span>
             ))}
           </p>
-          <label className="mt-4 flex items-start gap-3 cursor-pointer">
+          <label className="mt-4 flex min-h-14 items-center gap-3 rounded-xl border-2 border-gray-200 bg-white p-3 cursor-pointer">
             <input
               type="checkbox"
               checked={declarationAccepted}
               onChange={(e) => setDeclarationAccepted(e.target.checked)}
-              className="mt-1 h-4 w-4"
+              className="h-6 w-6 shrink-0"
             />
             <span className="text-sm font-bold text-gray-800">
               {isHe ? 'קראתי והבנתי.' : 'I have read and understood.'}

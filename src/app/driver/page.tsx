@@ -190,7 +190,7 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
     tone: 'done',
   });
 
-  const iconBtn = 'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 active:scale-95 transition';
+  const secBtn = 'flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl border-2 text-xs font-black active:scale-95 transition';
 
   return (
     <div className={`rounded-3xl border p-4 shadow-sm ${isDone ? 'border-green-200 bg-green-50/60' : 'border-gray-100 bg-white'}`}>
@@ -213,21 +213,33 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
         <span className="truncate">{hasAddress ? row.location : 'אין כתובת'}</span>
       </p>
 
-      <div className="mt-3 flex gap-2">
-        {!isDone && <TaskAction row={row} />}
-        {isDone && <div className="flex-1" />}
-        {wazeUrl && (
-          <a href={wazeUrl} target="_blank" rel="noopener noreferrer" aria-label="ניווט בוויז" className={`${iconBtn} border-[#33CCFF] bg-[#eefbff] text-[#0a7ea4]`}>
-            <Navigation className="h-6 w-6" aria-hidden="true" />
+      {!isDone && (
+        <div className="mt-3 flex">
+          <TaskAction row={row} />
+        </div>
+      )}
+
+      <div className="mt-2 flex gap-2">
+        {wazeUrl ? (
+          <a href={wazeUrl} target="_blank" rel="noopener noreferrer" className={`${secBtn} border-[#33CCFF] bg-[#eefbff] text-[#0a7ea4]`}>
+            <Navigation className="h-5 w-5" aria-hidden="true" />
+            ניווט
           </a>
+        ) : (
+          <button type="button" onClick={() => { setEditing(true); setSheet(true); }} className={`${secBtn} border-dashed border-gray-300 text-gray-500`}>
+            <MapPin className="h-5 w-5" aria-hidden="true" />
+            הוסף כתובת
+          </button>
         )}
         {telUrl && (
-          <a href={telUrl} aria-label="התקשר ללקוח" className={`${iconBtn} border-green-500 bg-green-50 text-green-700`}>
-            <Phone className="h-6 w-6" aria-hidden="true" />
+          <a href={telUrl} className={`${secBtn} border-green-500 bg-green-50 text-green-700`}>
+            <Phone className="h-5 w-5" aria-hidden="true" />
+            חיוג
           </a>
         )}
-        <button type="button" onClick={() => setSheet(true)} aria-label="עוד פעולות" className={`${iconBtn} border-gray-200 bg-white text-gray-600`}>
-          <MoreHorizontal className="h-7 w-7" aria-hidden="true" />
+        <button type="button" onClick={() => setSheet(true)} className={`${secBtn} border-gray-200 bg-white text-gray-600`}>
+          <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
+          {items.length > 2 ? 'וואטסאפ ועוד' : 'עוד'}
         </button>
       </div>
 
@@ -294,10 +306,10 @@ export default function DriverTodayPage() {
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-black text-gray-900">היום שלי</h1>
           <div className="flex items-center gap-2">
-            <button onClick={() => mutate()} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" aria-label="רענון">
+            <button onClick={() => mutate()} className="flex h-11 w-11 items-center justify-center rounded-xl text-gray-500 active:bg-gray-100" aria-label="רענון">
               <RefreshCw className={`h-5 w-5 ${isValidating ? 'animate-spin' : ''}`} aria-hidden="true" />
             </button>
-            <button onClick={logout} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100" aria-label="יציאה">
+            <button onClick={logout} className="flex h-11 w-11 items-center justify-center rounded-xl text-gray-500 active:bg-gray-100" aria-label="יציאה">
               <LogOut className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
