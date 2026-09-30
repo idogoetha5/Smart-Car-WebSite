@@ -77,8 +77,8 @@ export default function AdminDriversPage() {
   const createDriver = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
-    if (!/^\d{4,6}$/.test(pin)) {
-      setError('הקוד חייב להיות בין 4 ל-6 ספרות');
+    if (!/^\d{4}$/.test(pin)) {
+      setError('הקוד חייב להיות 4 ספרות');
       return;
     }
     setCreating(true);
@@ -112,9 +112,9 @@ export default function AdminDriversPage() {
   };
 
   const resetPin = async (driver: Driver) => {
-    const newPin = window.prompt(`קוד חדש עבור ${driver.name} (4–6 ספרות)`);
+    const newPin = window.prompt(`קוד חדש עבור ${driver.name} (4 ספרות)`);
     if (!newPin) return;
-    if (!/^\d{4,6}$/.test(newPin)) { alert('הקוד חייב להיות בין 4 ל-6 ספרות'); return; }
+    if (!/^\d{4}$/.test(newPin)) { alert('הקוד חייב להיות 4 ספרות'); return; }
     const response = await fetch(`/api/admin/drivers/${driver.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -195,8 +195,8 @@ export default function AdminDriversPage() {
           <input value={name} onChange={(event) => setName(event.target.value)} required className="min-h-11 rounded-xl border border-gray-200 px-3 text-sm" />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-bold text-gray-500">קוד (4–6 ספרות)</label>
-          <input value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, ''))} inputMode="numeric" required className="min-h-11 w-32 rounded-xl border border-gray-200 px-3 text-sm" dir="ltr" />
+          <label className="mb-1 block text-xs font-bold text-gray-500">קוד (4 ספרות)</label>
+          <input value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" maxLength={4} required className="min-h-11 w-32 rounded-xl border border-gray-200 px-3 text-sm" dir="ltr" />
         </div>
         <button type="submit" disabled={creating} className="flex min-h-11 items-center gap-2 rounded-xl bg-[#E8743B] px-4 text-sm font-black text-white hover:bg-[#d4632a] disabled:opacity-50">
           <UserPlus className="h-4 w-4" aria-hidden="true" />

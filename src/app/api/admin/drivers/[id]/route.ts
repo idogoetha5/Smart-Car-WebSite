@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { createAdminClient } from '@/lib/supabase/server';
 import { verifyAdminToken } from '@/lib/admin-auth';
 
-const PIN_PATTERN = /^\d{4,6}$/;
+const PIN_PATTERN = /^\d{4}$/;
 
 export async function PATCH(
   request: Request,
@@ -23,7 +23,7 @@ export async function PATCH(
   if (typeof body?.name === 'string' && body.name.trim()) update.name = body.name.trim();
   if (typeof body?.pin === 'string' && body.pin.trim()) {
     if (!PIN_PATTERN.test(body.pin.trim())) {
-      return NextResponse.json({ error: 'PIN must be 4–6 digits' }, { status: 400 });
+      return NextResponse.json({ error: 'הקוד חייב להיות 4 ספרות' }, { status: 400 });
     }
     update.pin_hash = await bcrypt.hash(body.pin.trim(), 10);
   }

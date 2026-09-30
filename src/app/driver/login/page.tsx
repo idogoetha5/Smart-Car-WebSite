@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Delete } from 'lucide-react';
 
+/** Driver PINs are exactly 4 digits. */
+const PIN_LENGTH = 4;
+
 interface DriverOption {
   id: string;
   name: string;
@@ -53,15 +56,12 @@ export default function DriverLoginPage() {
   };
 
   const tapDigit = (d: string) => {
-    if (submitting || pin.length >= 6) return;
+    if (submitting || pin.length >= PIN_LENGTH) return;
     const next = pin + d;
     setPin(next);
     setError('');
-    if (next.length >= 4) {
-      // Auto-submit once a plausible PIN length is reached; a wrong PIN
-      // just clears back to empty via the error path above.
-      if (next.length === 6) submit(next);
-    }
+    // Auto-submit on the 4th digit; a wrong PIN clears back to empty.
+    if (next.length === PIN_LENGTH) submit(next);
   };
 
   if (loading) {
@@ -100,7 +100,7 @@ export default function DriverLoginPage() {
       </button>
 
       <div className="flex gap-3 mb-6" dir="ltr" aria-live="polite">
-        {Array.from({ length: 6 }).map((_, i) => (
+        {Array.from({ length: PIN_LENGTH }).map((_, i) => (
           <div
             key={i}
             className={`h-4 w-4 rounded-full border-2 ${i < pin.length ? 'bg-[#2D5F5F] border-[#2D5F5F]' : 'border-gray-300'}`}
@@ -110,7 +110,8 @@ export default function DriverLoginPage() {
 
       {error && <p className="text-red-600 text-sm text-center mb-4">{error}</p>}
 
-      <div className="grid grid-cols-3 gap-3 max-w-xs w-full">
+      {/* Phone-style keypad: 1-2-3 left to right even though the page is RTL. */}
+      <div className="grid grid-cols-3 gap-3 max-w-xs w-full" dir="ltr">
         {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
           <button
             key={d}
@@ -140,7 +141,7 @@ export default function DriverLoginPage() {
         </button>
         <button
           type="button"
-          disabled={submitting || pin.length < 4}
+          disabled={submitting || pin.length < PIN_LENGTH}
           onClick={() => submit(pin)}
           className="min-h-16 rounded-2xl bg-[#E8743B] disabled:opacity-30 text-white font-black"
         >

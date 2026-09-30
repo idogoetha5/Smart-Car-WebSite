@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { createAdminClient } from '@/lib/supabase/server';
 import { verifyAdminToken } from '@/lib/admin-auth';
 
-const PIN_PATTERN = /^\d{4,6}$/;
+const PIN_PATTERN = /^\d{4}$/;
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Name is required' }, { status: 400 });
   }
   if (!PIN_PATTERN.test(pin)) {
-    return NextResponse.json({ error: 'PIN must be 4–6 digits' }, { status: 400 });
+    return NextResponse.json({ error: 'הקוד חייב להיות 4 ספרות' }, { status: 400 });
   }
 
   const pinHash = await bcrypt.hash(pin, 10);
