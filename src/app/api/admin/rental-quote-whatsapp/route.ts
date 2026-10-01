@@ -1,6 +1,5 @@
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { verifyAdminToken } from '@/lib/admin-auth';
+import { requireManagerOrAdmin } from '@/lib/driver-route-auth';
 import {
   createRentalQuoteLink,
   rentalQuoteLinkExpiry,
@@ -27,8 +26,7 @@ function publicOrigin(request: Request): string {
 }
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  if (!await verifyAdminToken(cookieStore.get('admin_auth')?.value ?? '')) {
+  if (!(await requireManagerOrAdmin()).ok) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { CalendarDays, Car, FileCheck2, LayoutDashboard, LogOut, Users } from 'lucide-react';
+import { CalendarDays, Car, FileCheck2, FileText, LayoutDashboard, LogOut, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { fetcher } from '@/lib/swr';
 import PushBell from '@/components/app/PushBell';
@@ -22,6 +22,7 @@ const NAV = [
   { href: '/driver/manage/vehicles', label: 'רכבים', icon: Car },
   { href: '/driver/manage/drivers', label: 'נהגים', icon: Users },
   { href: '/driver/manage/signed', label: 'מסמכים', icon: FileCheck2 },
+  { href: '/driver/manage/quotes', label: 'הצעות', icon: FileText },
 ] as const;
 
 function NavBadge({ href }: { href: string }) {
@@ -67,6 +68,7 @@ export default function ManagerShell({ children }: { children: ReactNode }) {
   }
 
   const name = me.name || 'מנהל';
+  const quotesPage = pathname.startsWith('/driver/manage/quotes');
 
   return (
     <ToastProvider>
@@ -81,7 +83,7 @@ export default function ManagerShell({ children }: { children: ReactNode }) {
             <SidebarActions />
             <nav className="flex flex-col gap-1" aria-label="ניווט">
               {NAV.map(({ href, label, icon: Icon }) => {
-                const active = pathname === href;
+                const active = href === '/driver/manage' ? pathname === href : pathname.startsWith(href);
                 return (
                   <Link
                     key={href}
@@ -125,7 +127,7 @@ export default function ManagerShell({ children }: { children: ReactNode }) {
               </div>
             </header>
 
-            <main className="mx-auto w-full max-w-5xl px-4 pb-32 pt-5 sm:px-8 lg:pb-12 lg:pt-8">{children}</main>
+            <main className={`mx-auto w-full px-4 pb-32 pt-5 sm:px-8 lg:pb-12 lg:pt-8 ${quotesPage ? 'max-w-[1500px]' : 'max-w-5xl'}`}>{children}</main>
           </div>
 
           {/* Floating "משימה חדשה" with a short menu (phone) */}
@@ -135,7 +137,7 @@ export default function ManagerShell({ children }: { children: ReactNode }) {
           <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-gray-100 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden" aria-label="ניווט">
             <div className="mx-auto flex max-w-lg">
               {NAV.map(({ href, label, icon: Icon }) => {
-                const active = pathname === href;
+                const active = href === '/driver/manage' ? pathname === href : pathname.startsWith(href);
                 return (
                   <Link
                     key={href}

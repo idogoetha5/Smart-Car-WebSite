@@ -263,6 +263,16 @@ function money(value: number, locale: string) {
 
 export default function RentalQuotesPage() {
   const adminLocale = useLocale();
+  return <RentalQuoteBuilder adminLocale={adminLocale} />;
+}
+
+export function RentalQuoteBuilder({
+  adminLocale,
+  loginUrl = `/${adminLocale}/admin/login`,
+}: {
+  adminLocale: string;
+  loginUrl?: string;
+}) {
   const isHe = adminLocale === 'he';
   const t = TEXT[isHe ? 'he' : 'en'];
   const today = useMemo(() => isoToday(), []);
@@ -539,8 +549,7 @@ export default function RentalQuotesPage() {
     window.setTimeout(() => {
       // Full-page navigation is intentional after an authentication state change,
       // so the server re-reads the updated session cookie.
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-      window.location.href = `/${adminLocale}/admin/login`;
+      window.location.href = loginUrl;
     }, 1_200);
   };
 
@@ -761,7 +770,7 @@ export default function RentalQuotesPage() {
                     onChange={(event) =>
                       setQuoteLocale(event.target.value as RentalQuoteLocale)
                     }
-                    className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-[#2D5F5F]"
+                    className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-base outline-none focus:ring-2 focus:ring-[#2D5F5F]"
                   >
                     <option value="he">{t.hebrew}</option>
                     <option value="en">{t.english}</option>
@@ -945,7 +954,7 @@ export default function RentalQuotesPage() {
                         onChange={(event) =>
                           fillVehicleFromInventory(index, event.target.value)
                         }
-                        className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-[#2D5F5F]"
+                        className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-base outline-none focus:ring-2 focus:ring-[#2D5F5F]"
                       >
                         <option value={MANUAL_VEHICLE}>{t.manual}</option>
                         {inventory.map((item) => (
@@ -993,7 +1002,7 @@ export default function RentalQuotesPage() {
                                 }
                                 inputMode="numeric"
                                 dir="ltr"
-                                className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-[#2D5F5F]"
+                                className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-base outline-none focus:ring-2 focus:ring-[#2D5F5F]"
                               />
                               <button
                                 type="button"
@@ -1190,7 +1199,7 @@ export default function RentalQuotesPage() {
                               billing: event.target.value as ExtraBilling,
                             })
                           }
-                          className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-[#2D5F5F]"
+                          className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-base outline-none focus:ring-2 focus:ring-[#2D5F5F]"
                         >
                           <option value="day">{t.perDay}</option>
                           <option value="flat">{t.flat}</option>
@@ -1263,7 +1272,7 @@ export default function RentalQuotesPage() {
                     onChange={(event) =>
                       setVatMode(event.target.value as VatMode)
                     }
-                    className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-[#2D5F5F]"
+                    className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-base outline-none focus:ring-2 focus:ring-[#2D5F5F]"
                   >
                     <option value="included">{t.vatIncluded}</option>
                     <option value="excluded">{t.vatExcluded}</option>
@@ -1280,7 +1289,7 @@ export default function RentalQuotesPage() {
                     value={notes}
                     onChange={(event) => setNotes(event.target.value)}
                     rows={3}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2D5F5F]"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-base outline-none focus:ring-2 focus:ring-[#2D5F5F]"
                   />
                 </label>
               </div>
@@ -1357,7 +1366,7 @@ function Field({
         // form stay as they are.
         dir={dir ?? (type === 'time' ? 'ltr' : undefined)}
         placeholder={placeholder}
-        className={`min-h-11 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2 focus:ring-[#2D5F5F] ${
+        className={`min-h-11 w-full rounded-lg border px-3 text-base outline-none focus:ring-2 focus:ring-[#2D5F5F] ${
           readOnly
             ? 'border-gray-200 bg-gray-50 text-gray-500'
             : 'border-gray-300 bg-white'

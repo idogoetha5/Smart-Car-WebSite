@@ -68,11 +68,10 @@ export async function GET(
   }
 
   const isConfirmation = link.mode === 'confirmation';
-  const asciiName = `${
-    isConfirmation ? 'SmartCar_Booking_Confirmation' : 'SmartCar_Rental_Quote'
-  }_${link.quoteNumber}.pdf`;
+  const isLeasing = link.mode === 'leasing';
+  const asciiName = `${isConfirmation ? 'SmartCar_Booking_Confirmation' : isLeasing ? 'SmartCar_Leasing_Quote' : 'SmartCar_Rental_Quote'}_${link.quoteNumber}.pdf`;
   const utf8Name = encodeURIComponent(
-    `${isConfirmation ? 'אישור הזמנה SmartCar' : 'הצעת מחיר SmartCar'} ${link.quoteNumber}.pdf`
+    `${isConfirmation ? 'אישור הזמנה SmartCar' : isLeasing ? 'הצעת ליסינג SmartCar' : 'הצעת מחיר SmartCar'} ${link.quoteNumber}.pdf`
   );
 
   try {

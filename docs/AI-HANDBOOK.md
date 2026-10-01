@@ -36,6 +36,7 @@ Shell `src/components/app/ManagerShell.tsx` (sidebar on a computer, bottom tabs 
 - **יומן** (`CalendarView`): month grid and list of all future tasks; create a task on any day.
 - **רכבים** (`VehiclesView`): fleet with status (בסניף / אצל לקוח / במוסך / לשטיפה), last km, last wash, next test date, history (garage, washes, handovers, returns). Add a car (plate, test date, km, ...) and delete a car (trash icon, with confirmation). API `/api/driver/manage/fleet` and `/fleet/[id]`.
 - **נהגים** (`DriversView`): drivers with today/tomorrow load and notification status. Managers can add drivers, disable them and reset their PIN. Managers cannot create managers; only the admin can.
+- **הצעות מחיר** (`/driver/manage/quotes`): rental and leasing builders shared with the admin, so the PDF layout, fields and calculations stay identical. Both can download a PDF and open a pre-filled WhatsApp message to the customer's phone with a branded `/q/<token>` PDF link (valid for 30 days). The shared manager/admin APIs are `/api/admin/vehicles`, `/api/admin/rental-quote-pdf`, `/api/admin/rental-quote-whatsapp`, `/api/admin/quote-pdf`, `/api/admin/quote-email` and `/api/admin/quote-whatsapp`; writes to the vehicle inventory remain admin-only.
 - **מסמכים**: signed inspections with PDF and video.
 - License plate is **optional** for managers and admin.
 
@@ -122,6 +123,7 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
+- 2026-10-01 — Added the exact admin rental and leasing quote builders to the manager app, including branded WhatsApp delivery for both. Branch `clean-main`. No migration. Ready to deploy.
 - 2026-10-01 — Cleanup: removed stale worktree `.worktrees/damage` and leftover bundle/patch files; lint and lint:budget pass locally. Deployed (docs only).
 - 2026-10-01 — Separate driver/manager sessions (`manager_auth`). Fixes tasks not showing in the driver app after a manager login. Branch `fix/separate-sessions`, merge 828849a. No migration. Deployed.
 - 2026-10-01 — Rental exceptions panel, fleet add/delete with test date and km, copy polish (Codex). Commits 65aad9e, 474da35. Migrations `add-rental-alert-reviews.sql`, `add-vehicle-fleet-details.sql`. Deployed.

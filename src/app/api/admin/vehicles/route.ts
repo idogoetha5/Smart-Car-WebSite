@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/server';
 import { verifyAdminToken } from '@/lib/admin-auth';
+import { requireManagerOrAdmin } from '@/lib/driver-route-auth';
 
 async function checkAuth() {
   const cookieStore = await cookies();
@@ -10,7 +11,7 @@ async function checkAuth() {
 }
 
 export async function GET() {
-  if (!await checkAuth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await requireManagerOrAdmin()).ok) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const supabase = createAdminClient();
   const { data, error } = await supabase.from('vehicles').select('*').order('make');
   if (error) { console.error(error.message); return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 }); }

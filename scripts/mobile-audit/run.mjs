@@ -19,7 +19,7 @@ const token=`${payload}.${b64u(crypto.createHmac('sha256',process.env.DRIVER_COO
 const row=(o)=>({taskId:'t'+Math.random(),taskStatus:'open',type:'pickup',bookingId:'b1',bookingNumber:'1042',customerName:'דניאל כהן',vehicleName:'טויוטה קורולה היברידית',licensePlate:'12-345-67',location:'רחוב הרצל 12, תל אביב',navQuery:'רחוב הרצל 12 תל אביב',customerPhone:'0521234567',time:'09:30:00',inspection:null,date:'2026-10-01',...o});
 const today={open:[row({taskId:'o1',urgent:true,claimable:true,customerName:'שגיא לוי',time:'14:30:00'})],services:[row({type:'service',taskId:'s1',customerName:'מוסך יוסי',vehicleName:'Kia Picanto',licensePlate:'55-111-22',time:'11:00:00',service:{kind:'garage',kindLabel:'מוסך',reason:'תקלה',details:'נורית מנוע דולקת'}})],pickups:[row({}),row({customerName:'מיכל לוי-אברהמי עם שם ארוך מאוד',inspection:{id:'i1',status:'awaiting_signature'},navQuery:undefined,location:''})],returns:[row({type:'return',inspection:{id:'i2',status:'signed',pdfUrl:'https://x/p.pdf'}}),row({type:'return',taskStatus:'done'})]};
 const SIGN={data:{inspectionId:'i1',type:'pickup',odometerKm:45210,fuelLabel:'4/8',status:'awaiting_signature',signedAt:null,customerName:'דניאל כהן',vehicleName:'טויוטה קורולה',licensePlate:'12-345-67',declaration:{he:'אני מאשר/ת כי קיבלתי את הרכב במצב המתואר.\n\nאגרות, קנסות ודוחות\nהשוכר אחראי לכל הדוחות.',en:'x'},videoReady:false,hasVideo:false,mediaReady:true,damageMarks:[{n:1,view:'front',x:0.4,y:0.5,kind:'scratch',note:'שריטה בפגוש',hasPhoto:false}],noDamage:false,sidePhotoViews:[],checklist:[{id:'spare',value:'ok'}],mediaToken:'m'}};
-const pages=process.argv.slice(2).length?process.argv.slice(2):['/driver','/driver/login','/driver/manager-login','/driver/quick-booking','/driver/inspection/new?bookingId=b1&type=pickup','/driver/inspection/new?bookingId=b1&type=return','/driver/inspection/i1/sign','/driver/inspection/i2/sign','/driver/manage','/driver/manage/calendar'];
+const pages=process.argv.slice(2).length?process.argv.slice(2):['/driver','/driver/login','/driver/manager-login','/driver/quick-booking','/driver/inspection/new?bookingId=b1&type=pickup','/driver/inspection/new?bookingId=b1&type=return','/driver/inspection/i1/sign','/driver/inspection/i2/sign','/driver/manage','/driver/manage/calendar','/driver/manage/quotes','/driver/manage/quotes/rental','/driver/manage/quotes/leasing'];
 const b=await chromium.launch()
   .catch(()=>chromium.launch({channel:'chrome'}))
   .catch(()=>chromium.launch({executablePath:'/opt/pw-browsers/chromium'}));
@@ -39,6 +39,7 @@ async function newPage(viewport,mobile){
 const ctx=await b.newContext({viewport,deviceScaleFactor:mobile?2:1,isMobile:mobile,hasTouch:mobile,locale:'he-IL'});
 await ctx.addCookies([{name:'driver_auth',value:token,url:BASE}]);
 p=await ctx.newPage();
+await p.route('**/api/admin/vehicles',r=>r.fulfill({json:{vehicles:FLEET.map(v=>({id:v.id,make:v.make,model:v.model,year:v.year,license_plate:v.licensePlate,category:'B',price_per_day:220,image_urls:[],deposit_amount:1500,mileage_limit:200,monthly_price:3200}))}}));
 await p.route('**/api/driver/**',r=>{const u=r.request().url();
  let body={};
  if(u.endsWith('/api/driver/push')){r.fulfill({json:{publicKey:'BBw-JBD4MrJ2kJJBsx8UzFE2UbXfD8mH4_d0Rxwk8drcYGzmZTpl-29qWBnKMO-p-64dYP1WnaVqT0IIpjRVc1U'}});return;}

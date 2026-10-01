@@ -15,6 +15,17 @@ const INBOX_LOGIN_API = '/api/admin/whatsapp/inbox-login';
 // gates below accept either credential. /api/admin/* itself is untouched —
 // a driver cookie never grants access there.
 const DRIVER_LOGIN_API = '/api/driver/login';
+// The manager app intentionally reuses the exact admin quotation engines.
+// The route itself still checks role='manager'; this edge gate only lets the
+// signed manager session reach those shared handlers.
+const MANAGER_QUOTE_APIS = new Set([
+  '/api/admin/vehicles',
+  '/api/admin/rental-quote-pdf',
+  '/api/admin/rental-quote-whatsapp',
+  '/api/admin/quote-pdf',
+  '/api/admin/quote-email',
+  '/api/admin/quote-whatsapp',
+]);
 
 const intlMiddleware = createMiddleware({
   locales,
@@ -124,6 +135,11 @@ export async function proxy(request: NextRequest) {
     if (!pathname.startsWith('/api/admin/login') && pathname !== INBOX_LOGIN_API) {
       const adminOk = await verifyAdminToken(request.cookies.get('admin_auth')?.value ?? '');
       if (!adminOk) {
+        const managerQuoteOk = MANAGER_QUOTE_APIS.has(pathname) && (
+          (await verifyDriverToken(request.cookies.get('manager_auth')?.value)) ||
+          (await verifyDriverToken(request.cookies.get('driver_auth')?.value))
+        );
+        if (managerQuoteOk) return NextResponse.next();
         const inboxOk = pathname.startsWith(INBOX_API_PREFIX)
           && await verifyInboxToken(request.cookies.get('inbox_auth')?.value ?? '');
         if (!inboxOk) {

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifyAdminToken } from '@/lib/admin-auth';
+import { requireManagerOrAdmin } from '@/lib/driver-route-auth';
 import { sendQuoteEmail } from '@/lib/quote-email-server';
 import { archiveQuotePdf, markQuoteSent } from '@/lib/quote-history';
 import type { QuoteData } from '@/lib/quote-pdf';
@@ -27,8 +26,7 @@ function validQuoteData(value: unknown): value is QuoteData {
 }
 
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  if (!await verifyAdminToken(cookieStore.get('admin_auth')?.value ?? '')) {
+  if (!(await requireManagerOrAdmin()).ok) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

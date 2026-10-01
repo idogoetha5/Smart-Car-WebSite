@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifyAdminToken } from '@/lib/admin-auth';
+import { requireManagerOrAdmin } from '@/lib/driver-route-auth';
 import { randomUUID } from 'crypto';
 import type { QuoteData } from '@/lib/quote-pdf';
 import { archiveQuotePdf } from '@/lib/quote-history';
@@ -9,13 +8,8 @@ import { renderQuotePdf } from '@/lib/quote-pdf-server';
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
-async function checkAuth() {
-  const cookieStore = await cookies();
-  return verifyAdminToken(cookieStore.get('admin_auth')?.value ?? '');
-}
-
 export async function POST(request: Request) {
-  if (!await checkAuth()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await requireManagerOrAdmin()).ok) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const data = (await request.json().catch(() => null)) as QuoteData | null;
   if (!data || !data.customerName || !data.vehicles?.length) {

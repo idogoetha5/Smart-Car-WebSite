@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
-import { Plus, Trash2, Download, Send } from 'lucide-react';
+import { Plus, Trash2, Download, MessageCircle, Send } from 'lucide-react';
 
 const A4_W = 794;
 const A4_H = 1123;
@@ -53,6 +53,10 @@ const DEFAULT_TERMS_EN = [
 ].join('\n');
 
 export default function AdminQuotesPage() {
+  return <LeasingQuoteBuilder />;
+}
+
+export function LeasingQuoteBuilder({ loginUrl = '/he/admin/login' }: { loginUrl?: string }) {
   // Stable for the whole builder session — every save/PDF/send while editing
   // this one draft reuses it, so they update the same row. A fresh page load
   // (a genuinely new quotation) always gets a fresh id, even if the display
@@ -63,6 +67,7 @@ export default function AdminQuotesPage() {
   const [quoteNumber] = useState(generateQuoteNumber());
   const [date] = useState(todayIL());
   const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [companyId, setCompanyId] = useState('');
@@ -91,7 +96,7 @@ export default function AdminQuotesPage() {
   
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const [busy, setBusy] = useState<'pdf' | 'send' | null>(null);
+  const [busy, setBusy] = useState<'pdf' | 'send' | 'whatsapp' | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const previewWrapRef = useRef<HTMLDivElement>(null);
@@ -119,6 +124,7 @@ export default function AdminQuotesPage() {
     quoteNumber,
     date,
     customerName,
+    customerPhone,
     customerEmail,
     companyName,
     companyId,
@@ -128,7 +134,7 @@ export default function AdminQuotesPage() {
     additionalTerms: additionalTerms.split('\n').map(s => s.trim()).filter(Boolean),
     footerNote: footerNote.trim() || undefined,
     isBinding,
-  }), [quoteId, quoteNumber, date, customerName, customerEmail, companyName, companyId, vehicles, language, includedTerms, additionalTerms, footerNote, isBinding]);
+  }), [quoteId, quoteNumber, date, customerName, customerPhone, customerEmail, companyName, companyId, vehicles, language, includedTerms, additionalTerms, footerNote, isBinding]);
 
   // Stable shell (fonts + styles) rendered once so the iframe never reloads;
   // the body is written live on every edit for an instant, flicker-free preview.
@@ -193,8 +199,7 @@ export default function AdminQuotesPage() {
       setError('ההתחברות שלך פגה — מעביר אותך לדף ההתחברות...');
       // Full-page navigation is intentional after an authentication state change,
       // so the server re-reads the updated session cookie.
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-      setTimeout(() => { window.location.href = '/he/admin/login'; }, 1200);
+      setTimeout(() => { window.location.href = loginUrl; }, 1200);
       return null;
     }
     if (!res.ok) {
@@ -246,8 +251,7 @@ export default function AdminQuotesPage() {
         setError('ההתחברות שלך פגה — מעביר אותך לדף ההתחברות...');
         // Full-page navigation is intentional after an authentication state change,
         // so the server re-reads the updated session cookie.
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-        setTimeout(() => { window.location.href = '/he/admin/login'; }, 1200);
+        setTimeout(() => { window.location.href = loginUrl; }, 1200);
         return;
       }
 
@@ -265,15 +269,58 @@ export default function AdminQuotesPage() {
     }
   };
 
+  const handleWhatsApp = async () => {
+    if (!customerName.trim() || !customerPhone.trim() || !vehicles.some((vehicle) => vehicle.name.trim())) {
+      setError('יש למלא שם לקוח, מספר WhatsApp ולפחות רכב אחד');
+      setSuccess('');
+      return;
+    }
+
+    const whatsappWindow = window.open('', '_blank');
+    setBusy('whatsapp');
+    setError('');
+    setSuccess('');
+    try {
+      const response = await fetch('/api/admin/quote-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(quoteData),
+      });
+      if (response.status === 401) {
+        whatsappWindow?.close();
+        setError('ההתחברות שלך פגה — מעביר אותך לדף ההתחברות...');
+        window.setTimeout(() => { window.location.href = loginUrl; }, 1_200);
+        return;
+      }
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body.whatsappUrl) {
+        whatsappWindow?.close();
+        setError(body.error || 'לא ניתן היה להכין את ההודעה ל-WhatsApp');
+        return;
+      }
+      if (whatsappWindow) {
+        whatsappWindow.opener = null;
+        whatsappWindow.location.href = body.whatsappUrl;
+      } else {
+        window.location.href = body.whatsappUrl;
+      }
+    } catch {
+      whatsappWindow?.close();
+      setError('לא ניתן היה להכין את ההודעה ל-WhatsApp');
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
-    <div className="p-4 sm:p-8 max-w-[1400px] mx-auto" dir="rtl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="mx-auto max-w-[1400px] p-0 sm:p-4 lg:p-8" dir="rtl">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-gray-900">הצעת מחיר ליסינג</h1>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex">
           <select 
             value={language}
             onChange={(e) => changeLanguage(e.target.value as 'he' | 'en')}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white font-medium"
+            className="min-h-11 rounded-xl border border-gray-300 bg-white px-3 text-base font-medium"
           >
             <option value="he">עברית</option>
             <option value="en">English</option>
@@ -281,7 +328,7 @@ export default function AdminQuotesPage() {
           <button
             onClick={handleDownload}
             disabled={busy !== null}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-bold disabled:opacity-50"
+            className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gray-900 px-4 text-sm font-bold text-white disabled:opacity-50"
           >
             <Download className="w-4 h-4" />
             {busy === 'pdf' ? 'מכין...' : 'PDF'}
@@ -289,10 +336,18 @@ export default function AdminQuotesPage() {
           <button
             onClick={handleSend}
             disabled={busy !== null}
-            className="flex items-center gap-2 px-4 py-2 bg-[#2D5F5F] text-white rounded-lg text-sm font-bold disabled:opacity-50"
+            className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#2D5F5F] px-4 text-sm font-bold text-white disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
             {busy === 'send' ? 'מכין...' : 'שלח'}
+          </button>
+          <button
+            onClick={handleWhatsApp}
+            disabled={busy !== null}
+            className="col-span-2 flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#17a857] px-4 text-sm font-bold text-white disabled:opacity-50 sm:col-span-1"
+          >
+            <MessageCircle className="h-4 w-4" aria-hidden="true" />
+            {busy === 'whatsapp' ? 'מכין קישור…' : 'WhatsApp'}
           </button>
         </div>
       </div>
@@ -338,7 +393,7 @@ export default function AdminQuotesPage() {
         </div>
 
         {/* Right: form */}
-        <div className="space-y-5 overflow-y-auto pr-1" style={{ maxHeight: '80vh' }}>
+        <div className="space-y-5 lg:max-h-[80vh] lg:overflow-y-auto lg:pe-1">
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <h2 className="font-bold text-gray-900 mb-3">פרטי הצעה</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -351,6 +406,7 @@ export default function AdminQuotesPage() {
             <h2 className="font-bold text-gray-900 mb-3">פרטי לקוח</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="שם לקוח" value={customerName} onChange={setCustomerName} />
+              <Field label="טלפון ל-WhatsApp" value={customerPhone} onChange={setCustomerPhone} type="tel" highlight />
               <Field label="מייל לקוח" value={customerEmail} onChange={setCustomerEmail} type="email" highlight />
               <Field label="ת.פ / ע.מ" value={companyId} onChange={setCompanyId} />
               <Field label="שם חברה" value={companyName} onChange={setCompanyName} />
@@ -360,7 +416,7 @@ export default function AdminQuotesPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-bold text-gray-900">רכבים</h2>
-              <button onClick={addVehicle} className="flex items-center gap-1 text-sm font-bold text-[#2D5F5F]">
+              <button onClick={addVehicle} className="flex min-h-11 items-center gap-1 rounded-xl px-3 text-sm font-bold text-[#2D5F5F] transition-colors hover:bg-[#edf5f4]">
                 <Plus className="w-4 h-4" /> הוסף רכב
               </button>
             </div>
@@ -380,7 +436,7 @@ export default function AdminQuotesPage() {
                 <select
                   onChange={(e) => applyFromInventory(i, e.target.value)}
                   defaultValue=""
-                  className="w-full mb-3 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  className="mb-3 min-h-12 w-full rounded-lg border border-gray-300 px-3 py-2 text-base"
                 >
                   <option value="">— בחירה ידנית —</option>
                   {inventory.map((iv) => (
@@ -423,7 +479,7 @@ export default function AdminQuotesPage() {
                   <textarea 
                     value={includedTerms}
                     onChange={e => setIncludedTerms(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm h-32"
+                    className="h-32 w-full rounded-lg border border-gray-300 px-3 py-2 text-base"
                     placeholder="הזן סעיפים..."
                   />
                 </div>
@@ -432,7 +488,7 @@ export default function AdminQuotesPage() {
                   <textarea 
                     value={additionalTerms}
                     onChange={e => setAdditionalTerms(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm h-32"
+                    className="h-32 w-full rounded-lg border border-gray-300 px-3 py-2 text-base"
                     placeholder="הזן תנאים..."
                   />
                 </div>
@@ -452,7 +508,7 @@ export default function AdminQuotesPage() {
                   <textarea 
                     value={footerNote}
                     onChange={e => setFooterNote(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm h-20"
+                    className="h-20 w-full rounded-lg border border-gray-300 px-3 py-2 text-base"
                     placeholder="השאר ריק כדי להשתמש בטקסט ברירת המחדל (ההצעה בתוקף עד...)"
                   />
                 </div>
@@ -483,7 +539,7 @@ function Field({
         value={value}
         readOnly={readOnly}
         onChange={(e) => onChange?.(e.target.value)}
-        className={`w-full border rounded-lg px-3 py-2 text-sm ${
+        className={`min-h-12 w-full rounded-xl border px-3 text-base ${
           readOnly ? 'bg-gray-50 border-gray-200 text-gray-500' : 'border-gray-300'
         } ${highlight ? 'bg-yellow-50 border-yellow-300' : ''}`}
       />

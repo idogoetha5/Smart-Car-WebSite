@@ -27,15 +27,17 @@ const SIGNATURE_LENGTH = 16;
 const SLOT_LENGTH = 8;
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]+$/;
 
-export type QuoteLinkMode = 'quote' | 'confirmation';
+export type QuoteLinkMode = 'quote' | 'confirmation' | 'leasing';
 
 const MODE_TO_CHAR: Record<QuoteLinkMode, string> = {
   quote: 'q',
   confirmation: 'c',
+  leasing: 'l',
 };
 const CHAR_TO_MODE: Record<string, QuoteLinkMode> = {
   q: 'quote',
   c: 'confirmation',
+  l: 'leasing',
 };
 
 function secret(): string {

@@ -30,6 +30,7 @@ export interface QuoteData {
   date: string;
   validUntil?: string;
   customerName: string;
+  customerPhone?: string;
   customerEmail: string;
   companyName: string;
   companyId: string;

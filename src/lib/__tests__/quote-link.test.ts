@@ -14,7 +14,7 @@ import {
 const MONTH_AHEAD = Date.now() + 30 * 24 * 60 * 60 * 1000;
 const mint = (
   quoteNumber: string,
-  mode: 'quote' | 'confirmation',
+  mode: 'quote' | 'confirmation' | 'leasing',
   expiresAt: number = MONTH_AHEAD,
   slot = 'slot0001'
 ) => createRentalQuoteLink(quoteNumber, mode, expiresAt, slot).token;
@@ -49,6 +49,10 @@ describe('rental quote link tokens', () => {
     );
     expect(confirmation.valid).toBe(true);
     expect(confirmation.mode).toBe('confirmation');
+
+    const leasing = verifyRentalQuoteLinkToken(mint('482913', 'leasing'));
+    expect(leasing.valid).toBe(true);
+    expect(leasing.mode).toBe('leasing');
   });
 
   it('stays short, URL-safe and branded', () => {
@@ -268,6 +272,14 @@ describe('GET /q/[token]', () => {
     );
     expect(response.headers.get('content-disposition')).toContain(
       'SmartCar_Booking_Confirmation_482913.pdf'
+    );
+  });
+
+  it('names a leasing quotation as such', async () => {
+    download.mockResolvedValue({ data: new Blob([new Uint8Array([1])]), error: null });
+    const response = await call(mint('482913', 'leasing'));
+    expect(response.headers.get('content-disposition')).toContain(
+      'SmartCar_Leasing_Quote_482913.pdf'
     );
   });
 
