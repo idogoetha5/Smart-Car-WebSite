@@ -407,6 +407,34 @@ export default function DriverTodayPage() {
     router.push('/driver/login');
   };
 
+  // A branch manager's session is not a driver: tasks are assigned to the
+  // driver row, so ask for the driver login instead of showing an empty day.
+  if (me?.role === 'manager') {
+    return (
+      <div className="min-h-screen" dir="rtl">
+        <BrandBar label="נהגים" />
+        <main className="mx-auto max-w-md px-4 pt-10">
+          <div className="rounded-3xl bg-white p-6 text-center shadow-sm ring-1 ring-black/[0.04]">
+            <h1 className="mb-2 text-xl font-black text-[#0D2B2B]">מחוברים כאן כמנהל</h1>
+            <p className="mb-6 text-base text-gray-600">כדי לראות את המשימות שקיבלתם כנהג, היכנסו עם השם שלכם ברשימת הנהגים. אפליקציית המנהלים תישאר מחוברת.</p>
+            <button
+              onClick={() => router.push('/driver/login')}
+              className="mb-3 min-h-14 w-full rounded-2xl bg-[#E8743B] text-base font-black text-white shadow-sm shadow-orange-200"
+            >
+              כניסה כנהג
+            </button>
+            <button
+              onClick={() => router.push('/driver/manage')}
+              className="min-h-12 w-full rounded-2xl text-base font-bold text-[#2D5F5F] ring-1 ring-[#2D5F5F]/20"
+            >
+              לאפליקציית המנהלים
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen pb-10" dir="rtl">
       <BrandBar label="נהגים">

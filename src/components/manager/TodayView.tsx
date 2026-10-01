@@ -19,7 +19,7 @@ const DAYS_AHEAD = 14;
 /** Manager home: greeting, search, a strip of days, what needs attention, and the chosen day's tasks by time. */
 export default function TodayView() {
   const { liveTasks, tasks, alerts, now, today, loading, openNewTask } = useManager();
-  const { data: me } = useSWR<{ name?: string }>('/api/driver/me', fetcher);
+  const { data: me } = useSWR<{ name?: string }>('/api/driver/me?as=manager', fetcher);
   const [day, setDay] = useState(today);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<AlertKind | null>(null);

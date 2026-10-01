@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireDriverOrAdmin } from '@/lib/driver-route-auth';
+import { audienceOf, requireDriverOrAdmin } from '@/lib/driver-route-auth';
 import { createAdminClient } from '@/lib/supabase/server';
 import { vapidPublicKey } from '@/lib/push';
 
@@ -12,7 +12,7 @@ export async function GET() {
 
 /** Save this device's push subscription for the logged-in driver/manager. */
 export async function POST(request: Request) {
-  const { ok, driverId } = await requireDriverOrAdmin();
+  const { ok, driverId } = await requireDriverOrAdmin(audienceOf(request));
   if (!ok) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (!driverId) return NextResponse.json({ error: 'התראות זמינות רק לנהגים ולמנהלים' }, { status: 400 });
 
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
 
 /** Turn notifications off on this device. */
 export async function DELETE(request: Request) {
-  const { ok, driverId } = await requireDriverOrAdmin();
+  const { ok, driverId } = await requireDriverOrAdmin(audienceOf(request));
   if (!ok || !driverId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const body = await request.json().catch(() => null);
   const endpoint = String(body?.endpoint ?? '');

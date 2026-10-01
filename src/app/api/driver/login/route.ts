@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { createAdminClient } from '@/lib/supabase/server';
-import { signDriverToken } from '@/lib/admin-auth';
+import { signDriverToken, verifyDriverToken } from '@/lib/admin-auth';
+import { DRIVER_COOKIE, MANAGER_COOKIE, audienceOf, driverRole } from '@/lib/driver-route-auth';
 import { checkRateLimit } from '@/lib/ratelimit';
 
 const DRIVER_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
   const supabase = createAdminClient();
   const { data: driver, error } = await supabase
     .from('drivers')
-    .select('id, pin_hash, active')
+    .select('id, pin_hash, active, role')
     .eq('id', driverId)
     .maybeSingle();
 
@@ -79,19 +80,39 @@ export async function POST(request: Request) {
 
   const token = await signDriverToken(driver.id);
   const cookieStore = await cookies();
-  cookieStore.set('driver_auth', token, {
+  const options = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'strict' as const,
     maxAge: DRIVER_COOKIE_MAX_AGE,
     path: '/',
-  });
+  };
+  if ((driver as { role?: string }).role === 'manager') {
+    // Manager app session — leaves a driver session on the same phone untouched.
+    cookieStore.set(MANAGER_COOKIE, token, options);
+  } else {
+    // An older manager session lived in driver_auth: keep it as the manager
+    // session before the driver login takes that cookie over.
+    const previous = await verifyDriverToken(cookieStore.get(DRIVER_COOKIE)?.value);
+    if (previous && previous !== driver.id && !cookieStore.get(MANAGER_COOKIE)?.value && (await driverRole(previous)) === 'manager') {
+      cookieStore.set(MANAGER_COOKIE, cookieStore.get(DRIVER_COOKIE)!.value, options);
+    }
+    cookieStore.set(DRIVER_COOKIE, token, options);
+  }
 
   return NextResponse.json({ success: true });
 }
 
-export async function DELETE() {
+/** Log out of one app: ?as=manager → the manager app, otherwise the driver app. */
+export async function DELETE(request: Request) {
   const cookieStore = await cookies();
-  cookieStore.delete('driver_auth');
+  if (audienceOf(request) === 'manager') {
+    cookieStore.delete(MANAGER_COOKIE);
+    // An older manager session may still be in driver_auth.
+    const legacy = await verifyDriverToken(cookieStore.get(DRIVER_COOKIE)?.value);
+    if (legacy && (await driverRole(legacy)) === 'manager') cookieStore.delete(DRIVER_COOKIE);
+  } else {
+    cookieStore.delete(DRIVER_COOKIE);
+  }
   return NextResponse.json({ success: true });
 }

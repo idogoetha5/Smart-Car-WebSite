@@ -31,6 +31,7 @@ async function registration(): Promise<ServiceWorkerRegistration> {
  * offers one-tap install where the browser supports it.
  */
 export default function PushBell({ audience }: { audience: 'driver' | 'manager' }) {
+  const as = audience === 'manager' ? '?as=manager' : '';
   const [state, setState] = useState<State>('loading');
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -63,7 +64,7 @@ export default function PushBell({ audience }: { audience: 'driver' | 'manager' 
       const sub = await reg.pushManager.getSubscription();
       if (sub && Notification.permission === 'granted') {
         // Re-save quietly, in case the server cleaned it up.
-        void fetch('/api/driver/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON() }) });
+        void fetch(`/api/driver/push${as}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON() }) });
         set('on');
       } else {
         set('off');
@@ -74,7 +75,7 @@ export default function PushBell({ audience }: { audience: 'driver' | 'manager' 
       cancelled = true;
       window.removeEventListener('beforeinstallprompt', onPrompt);
     };
-  }, []);
+  }, [as]);
 
   const enable = async () => {
     setBusy(true);
@@ -96,13 +97,13 @@ export default function PushBell({ audience }: { audience: 'driver' | 'manager' 
           reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) }),
           timeout,
         ]));
-      const res = await fetch('/api/driver/push', {
+      const res = await fetch(`/api/driver/push${as}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subscription: sub.toJSON() }),
       });
       if (!res.ok) throw new Error();
-      await fetch('/api/driver/push/test', { method: 'POST' });
+      await fetch(`/api/driver/push/test${as}`, { method: 'POST' });
       setState('on');
       setMessage({ ok: true, text: 'ההתראות הופעלו. שלחנו התראת ניסיון.' });
     } catch {
@@ -114,7 +115,7 @@ export default function PushBell({ audience }: { audience: 'driver' | 'manager' 
 
   const sendTest = async () => {
     setBusy(true);
-    await fetch('/api/driver/push/test', { method: 'POST' }).catch(() => null);
+    await fetch(`/api/driver/push/test${as}`, { method: 'POST' }).catch(() => null);
     setBusy(false);
     setMessage({ ok: true, text: 'נשלחה התראת ניסיון.' });
   };
