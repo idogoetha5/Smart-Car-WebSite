@@ -68,6 +68,38 @@ body {
   @apply min-h-screen bg-gray-50 text-gray-900 antialiased;
 }
 
+/* Manager product surface: keep SmartCar's palette while giving every page
+   the same quiet, high-clarity interaction language. */
+.manager-app {
+  color: #0D2B2B;
+  text-rendering: optimizeLegibility;
+}
+
+.manager-app ::selection {
+  background: #B8D8D8;
+  color: #0D2B2B;
+}
+
+.manager-app button,
+.manager-app a,
+.manager-app input,
+.manager-app select,
+.manager-app textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.manager-app :focus-visible {
+  outline: 3px solid rgb(45 95 95 / 22%);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  .manager-app button:not(:disabled),
+  .manager-app a {
+    transition-duration: 160ms;
+  }
+}
+
 /* Date inputs always display LTR (DD/MM/YYYY) regardless of page direction */
 input[type="date"] {
   direction: ltr;

@@ -73,9 +73,9 @@ export default function ManagerShell({ children }: { children: ReactNode }) {
   return (
     <ToastProvider>
       <ManagerDataProvider mode="manager">
-        <div className="min-h-screen bg-[#F6F8F8] lg:flex" dir="rtl">
+        <div className="manager-app min-h-screen bg-[#F6F8F8] lg:flex" dir="rtl">
           {/* Sidebar (computer) */}
-          <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-e border-slate-200/80 bg-white px-3 py-5 lg:flex">
+          <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-e border-slate-200/80 bg-white px-3 py-5 shadow-[-12px_0_32px_rgba(13,43,43,0.025)] lg:flex">
             <div className="mb-5 flex items-center gap-2 border-b border-slate-100 px-2 pb-5">
               <Link href="/driver/manage" aria-label="חזרה לדף היום" className="flex min-h-11 items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F]">
                 <Image src="/images/logo.png" alt="SmartCar" width={112} height={50} className="h-9 w-auto object-contain" priority />
@@ -131,14 +131,14 @@ export default function ManagerShell({ children }: { children: ReactNode }) {
               </div>
             </header>
 
-            <main className={`mx-auto w-full px-4 pb-32 pt-5 sm:px-8 lg:px-10 lg:pb-12 lg:pt-8 ${quotesPage ? 'max-w-[1500px]' : 'max-w-[1360px]'}`}>{children}</main>
+            <main className={`mx-auto w-full animate-fade-in px-4 pb-32 pt-5 sm:px-8 lg:px-10 lg:pb-12 lg:pt-8 ${quotesPage ? 'max-w-[1500px]' : 'max-w-[1360px]'}`}>{children}</main>
           </div>
 
           {/* Floating "משימה חדשה" with a short menu (phone) */}
           <PhoneActions />
 
           {/* Tab bar (phone) */}
-          <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-gray-100 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden" aria-label="ניווט">
+          <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200/80 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_30px_rgba(13,43,43,0.06)] backdrop-blur-xl lg:hidden" aria-label="ניווט">
             <div className="mx-auto flex max-w-lg">
               {NAV.map(({ href, label, icon: Icon }) => {
                 const active = href === '/driver/manage' ? pathname === href : pathname.startsWith(href);
