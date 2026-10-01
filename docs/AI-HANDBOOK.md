@@ -93,7 +93,7 @@ Texts in `src/lib/push-messages.ts` (human, polite, short Hebrew; each task type
    - Mobile audit: `npm run dev`, then `npm i --no-save playwright && npm run audit:mobile`. It must print "All driver screens pass the mobile threshold". Add new screens and mocks to `scripts/mobile-audit/run.mjs`, and look at the screenshots.
    - Visual check: `BASE=http://localhost:3000 node scripts/mobile-audit/review.mjs` → `scripts/mobile-audit/out/review/`.
 6. Commit as Ido (`Ido Goetha <ido.goetha5@gmail.com>`). Never commit secrets (`.env*`, VAPID keys, service keys).
-7. There are no extra worktrees anymore; work on branches from clean-main.
+7. There are no extra worktrees anymore; work on branches from clean-main. A leftover `.worktrees/` folder makes `npm run lint` and `lint:budget` fail locally (ESLint scans it) while CI stays green; remove it with `git worktree remove --force <dir> && git worktree prune`.
 
 ## 5. How to deploy (go live)
 
@@ -102,6 +102,7 @@ Texts in `src/lib/push-messages.ts` (human, polite, short Hebrew; each task type
 3. `git push origin clean-main`. Vercel deploys production from it automatically, and GitHub CI runs (verify + audit jobs). `npx vercel deploy --prod --yes` also works from a clean checkout. If the CLI fails with "File size limit exceeded", delete the local `.next` cache. For a local `vercel build`, move `.env.local` aside so it doesn't override the production env.
 4. Verify on the live site: `/driver/manage` (logged in as a manager) and `/driver` (logged in as a driver). Check `/api/driver/today` returns the expected tasks, and that the browser console has no errors.
 5. Env on Vercel Production: Supabase keys, `DRIVER_COOKIE_SECRET`, `ADMIN_COOKIE_SECRET`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET`, Resend, Gemini, Turnstile. Never print them.
+   With a manager-only session, `/driver` must show "מחוברים כאן כמנהל" with a "כניסה כנהג" button (checked live 1 Oct 2026). Don't type PINs.
 6. Tell Ido in Hebrew what changed, and what he should check on his phone.
 
 ## 6. Open items
@@ -121,6 +122,7 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
+- 2026-10-01 — Cleanup: removed stale worktree `.worktrees/damage` and leftover bundle/patch files; lint and lint:budget pass locally. Deployed (docs only).
 - 2026-10-01 — Separate driver/manager sessions (`manager_auth`). Fixes tasks not showing in the driver app after a manager login. Branch `fix/separate-sessions`, merge 828849a. No migration. Deployed.
 - 2026-10-01 — Rental exceptions panel, fleet add/delete with test date and km, copy polish (Codex). Commits 65aad9e, 474da35. Migrations `add-rental-alert-reviews.sql`, `add-vehicle-fleet-details.sql`. Deployed.
 - 2026-10-01 — Wash and car care as their own jobs, "משימה להיום", vehicles page, task-type notifications. Commit 8affa96. Migrations `add-service-tasks.sql`, `add-urgent-tasks.sql`. Deployed.
