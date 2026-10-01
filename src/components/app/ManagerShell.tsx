@@ -22,7 +22,7 @@ const NAV = [
   { href: '/driver/manage/vehicles', label: 'רכבים', icon: Car },
   { href: '/driver/manage/drivers', label: 'נהגים', icon: Users },
   { href: '/driver/manage/signed', label: 'מסמכים', icon: FileCheck2 },
-  { href: '/driver/manage/quotes', label: 'הצעות', icon: FileText },
+  { href: '/driver/manage/quotes', label: 'הצעות מחיר', icon: FileText },
 ] as const;
 
 function NavBadge({ href }: { href: string }) {

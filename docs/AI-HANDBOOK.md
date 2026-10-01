@@ -123,7 +123,7 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
-- 2026-10-01 — Added the exact admin rental and leasing quote builders to the manager app, including branded WhatsApp delivery for both. Branch `clean-main`. No migration. Ready to deploy.
+- 2026-10-01 — Added the exact admin rental and leasing quote builders to the manager app, including branded WhatsApp delivery for both. Branch `clean-main`, commit `0baf851`. No migration. Deployed.
 - 2026-10-01 — Cleanup: removed stale worktree `.worktrees/damage` and leftover bundle/patch files; lint and lint:budget pass locally. Deployed (docs only).
 - 2026-10-01 — Separate driver/manager sessions (`manager_auth`). Fixes tasks not showing in the driver app after a manager login. Branch `fix/separate-sessions`, merge 828849a. No migration. Deployed.
 - 2026-10-01 — Rental exceptions panel, fleet add/delete with test date and km, copy polish (Codex). Commits 65aad9e, 474da35. Migrations `add-rental-alert-reviews.sql`, `add-vehicle-fleet-details.sql`. Deployed.
