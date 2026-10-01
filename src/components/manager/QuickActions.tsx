@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Clock3, Droplets, Plus, Wrench } from 'lucide-react';
+import { ChevronLeft, Clock3, Droplets, Plus, Wrench } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Sheet from '@/components/ui/Sheet';
 import { useManager, type NewTaskOptions } from './ManagerData';
@@ -25,14 +25,19 @@ export const QUICK_ACTIONS: Action[] = [
 function ActionRow({ a, onPick }: { a: Action; onPick: () => void }) {
   const Icon = a.icon;
   return (
-    <button onClick={onPick} className="flex min-h-14 w-full items-center gap-3 rounded-2xl px-3 py-2 text-start transition hover:bg-gray-50">
-      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${a.tone}`}>
+    <button
+      type="button"
+      onClick={onPick}
+      className="group flex min-h-[4.5rem] w-full items-center gap-3 rounded-2xl border border-gray-200 bg-white px-3.5 py-3 text-start shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-[#2D5F5F]/25 hover:shadow-md active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2D5F5F]/15"
+    >
+      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${a.tone}`}>
         <Icon className="h-5 w-5" aria-hidden="true" />
       </span>
-      <span className="min-w-0">
+      <span className="min-w-0 flex-1">
         <span className="block text-base font-black text-[#0D2B2B]">{a.title}</span>
         <span className="block truncate text-xs font-bold text-gray-500">{a.hint}</span>
       </span>
+      <ChevronLeft className="h-5 w-5 shrink-0 text-gray-300 transition group-hover:-translate-x-0.5 group-hover:text-[#2D5F5F]" aria-hidden="true" />
     </button>
   );
 }
@@ -49,7 +54,7 @@ export function SidebarActions() {
         <Plus className="h-5 w-5" aria-hidden="true" />
         משימה חדשה
       </button>
-      <div className="rounded-2xl bg-white p-1 ring-1 ring-black/[0.06]">
+      <div className="space-y-2 rounded-2xl bg-gray-50/70 p-2">
         {QUICK_ACTIONS.map((a) => (
           <ActionRow key={a.key} a={a} onPick={() => openNewTask(a.opts)} />
         ))}
@@ -76,7 +81,7 @@ export function PhoneActions() {
         <span>משימה חדשה</span>
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="מה לשלוח?">
-        <div className="space-y-1">
+        <div className="space-y-2">
           <ActionRow
             a={{ key: 'new', title: 'משימה חדשה', hint: 'מסירה או החזרה, לכל תאריך', icon: Plus, tone: 'bg-orange-50 text-[#E8743B]', opts: {} }}
             onPick={() => pick()}

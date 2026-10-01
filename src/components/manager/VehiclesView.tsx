@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Car, ChevronLeft, Droplets, Gauge, KeyRound, RotateCcw, Search, Wrench, X } from 'lucide-react';
+import { CalendarClock, Car, ChevronLeft, Droplets, Gauge, KeyRound, Plus, RotateCcw, Search, Trash2, Wrench, X } from 'lucide-react';
 import { useApiList } from '@/lib/swr';
 import { dayLabel } from '@/lib/task-schedule';
 import { serviceReasonLabel, serviceTitle } from '@/lib/service-task';
@@ -9,6 +9,7 @@ import Sheet from '@/components/ui/Sheet';
 import EmptyState from '@/components/ui/EmptyState';
 import type { FleetEvent, FleetVehicle } from '@/app/api/driver/manage/fleet/route';
 import { useManager } from './ManagerData';
+import { useToast } from '@/components/ui/AppToast';
 
 const FILTERS = [
   { key: 'all', label: 'הכל' },
@@ -20,6 +21,51 @@ type Filter = (typeof FILTERS)[number]['key'];
 
 const km = (n: number) => `${n.toLocaleString('he-IL')} ק״מ`;
 const carName = (v: FleetVehicle) => `${v.make} ${v.model}`.trim();
+const field = 'min-h-12 w-full rounded-2xl border border-gray-200 bg-gray-50/70 px-4 text-base transition focus:border-[#2D5F5F] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5F5F]/10';
+const label = 'mb-1.5 block text-sm font-bold text-gray-700';
+
+const CATEGORY_OPTIONS = [
+  ['MINI', 'מיני'], ['ECONOMY', 'חסכוני'], ['COMPACT', 'קומפקטי'], ['SEDAN', 'סדאן'],
+  ['CROSSOVER', 'קרוסאובר'], ['SUV', 'SUV'], ['LUXURY', 'יוקרה'], ['VAN', 'ואן'],
+  ['COMMERCIAL', 'מסחרי'], ['ELECTRIC', 'חשמלי'],
+] as const;
+const FUEL_OPTIONS = [['GASOLINE', 'בנזין'], ['DIESEL', 'דיזל'], ['ELECTRIC', 'חשמלי'], ['HYBRID', 'היברידי']] as const;
+const TRANSMISSION_OPTIONS = [['AUTOMATIC', 'אוטומטי'], ['MANUAL', 'ידני']] as const;
+
+interface NewVehicleForm {
+  make: string;
+  model: string;
+  licensePlate: string;
+  year: string;
+  testDueDate: string;
+  currentOdometerKm: string;
+  color: string;
+  category: string;
+  fuelType: string;
+  transmission: string;
+  seats: string;
+  doors: string;
+  pricePerDay: string;
+  pricePerMonth: string;
+  depositAmount: string;
+  available: boolean;
+}
+
+const emptyVehicle = (): NewVehicleForm => ({
+  make: '', model: '', licensePlate: '', year: String(new Date().getFullYear()), testDueDate: '', currentOdometerKm: '',
+  color: 'לבן', category: 'ECONOMY', fuelType: 'GASOLINE', transmission: 'AUTOMATIC', seats: '5', doors: '4',
+  pricePerDay: '150', pricePerMonth: '2000', depositAmount: '1500', available: true,
+});
+
+function testLabel(date: string | null, now: number) {
+  if (!date) return { text: 'מועד טסט לא הוזן', urgent: false };
+  const due = new Date(`${date}T12:00:00`).getTime();
+  const days = Math.ceil((due - now) / 86_400_000);
+  const formatted = new Intl.DateTimeFormat('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(due));
+  if (days < 0) return { text: `הטסט פג ב־${formatted}`, urgent: true };
+  if (days <= 30) return { text: `טסט עד ${formatted}`, urgent: true };
+  return { text: `טסט עד ${formatted}`, urgent: false };
+}
 
 function Plate({ plate }: { plate: string | null }) {
   if (!plate) return <span className="text-xs text-gray-400">אין מספר רישוי</span>;
@@ -93,10 +139,16 @@ function EventRow({ e, now, onOpen }: { e: FleetEvent; now: number; onOpen?: () 
  */
 export default function VehiclesView() {
   const { now, openNewTask, openTask, newTask } = useManager();
+  const toast = useToast();
   const { items: cars, isLoading, mutate } = useApiList<FleetVehicle>('/api/driver/manage/fleet', { refreshInterval: 60_000 });
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [openId, setOpenId] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState<NewVehicleForm>(() => emptyVehicle());
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [deleting, setDeleting] = useState<FleetVehicle | null>(null);
 
   // A wash / garage job sent from here shows on the car straight away.
   const wasOpen = useRef(false);
@@ -134,11 +186,68 @@ export default function VehiclesView() {
     openNewTask({ type, vehicleId: v.id });
   };
 
+  const setField = <K extends keyof NewVehicleForm>(key: K, value: NewVehicleForm[K]) => {
+    setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const addVehicle = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setFormError('');
+    setSaving(true);
+    try {
+      const response = await fetch('/api/driver/manage/fleet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setFormError(json.error || 'לא הצלחנו להוסיף את הרכב');
+        return;
+      }
+      setAdding(false);
+      setForm(emptyVehicle());
+      await mutate();
+      toast('הרכב נוסף לצי');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteVehicle = async () => {
+    if (!deleting) return;
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/driver/manage/fleet/${deleting.id}`, { method: 'DELETE' });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        toast(json.error || 'לא הצלחנו למחוק את הרכב', false);
+        return;
+      }
+      setOpenId(null);
+      setDeleting(null);
+      await mutate();
+      toast('הרכב נמחק מהצי');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div>
-      <div className="mb-5">
-        <h1 className="text-2xl font-black text-[#0D2B2B] sm:text-3xl">רכבים</h1>
-        <p className="text-sm text-gray-500">{cars.length ? `${cars.length} רכבים בצי` : 'הצי של הסניף'}</p>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-black text-[#0D2B2B] sm:text-3xl">רכבים</h1>
+          <p className="text-sm text-gray-500">{cars.length ? `${cars.length} רכבים בצי` : 'הצי של הסניף'}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => { setForm(emptyVehicle()); setFormError(''); setAdding(true); }}
+          className="flex min-h-12 shrink-0 items-center gap-2 rounded-2xl bg-[#E8743B] px-4 text-sm font-black text-white shadow-sm shadow-orange-200 transition hover:bg-[#d4632a] active:scale-[0.98]"
+        >
+          <Plus className="h-5 w-5" aria-hidden="true" />
+          הוספת רכב
+        </button>
       </div>
 
       <div className="relative mb-4">
@@ -185,8 +294,16 @@ export default function VehiclesView() {
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {shown.map((v) => (
-            <li key={v.id} className="flex flex-col rounded-3xl bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
-              <button onClick={() => setOpenId(v.id)} className="mb-3 flex min-h-12 items-start gap-3 text-start">
+            <li key={v.id} className="relative flex flex-col rounded-3xl bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
+              <button
+                type="button"
+                onClick={() => setDeleting(v)}
+                aria-label={`מחיקת ${carName(v)}`}
+                className="absolute left-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+              >
+                <Trash2 className="h-5 w-5" aria-hidden="true" />
+              </button>
+              <button onClick={() => setOpenId(v.id)} className="mb-3 flex min-h-12 items-start gap-3 ps-12 text-start">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eef6f6] text-[#2D5F5F]">
                   <Car className="h-5 w-5" aria-hidden="true" />
                 </span>
@@ -207,6 +324,10 @@ export default function VehiclesView() {
                 <span className="flex items-center gap-1">
                   <Droplets className="h-4 w-4" aria-hidden="true" />
                   {v.lastWash ? dayLabel(v.lastWash, now) : 'לא נשטף'}
+                </span>
+                <span className={`flex items-center gap-1 ${testLabel(v.testDueDate, now).urgent ? 'font-bold text-red-600' : ''}`}>
+                  <CalendarClock className="h-4 w-4" aria-hidden="true" />
+                  {testLabel(v.testDueDate, now).text}
                 </span>
               </p>
               <div className="mt-auto grid grid-cols-2 gap-2">
@@ -249,12 +370,14 @@ export default function VehiclesView() {
               <Plate plate={open.licensePlate} />
               <StatusPill v={open} />
               {open.year ? <span className="text-sm text-gray-500">{open.year}</span> : null}
+              {open.color ? <span className="text-sm text-gray-500">{open.color}</span> : null}
             </div>
-            <dl className="mb-5 grid grid-cols-3 gap-2 text-center">
+            <dl className="mb-5 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
               {[
                 { label: 'ק״מ אחרון', value: open.lastKm != null ? open.lastKm.toLocaleString('he-IL') : '—' },
                 { label: 'שטיפה אחרונה', value: open.lastWash ? dayLabel(open.lastWash, now) : '—' },
                 { label: 'טיפול אחרון', value: open.lastService ? dayLabel(open.lastService, now) : '—' },
+                { label: 'טסט', value: testLabel(open.testDueDate, now).text.replace('טסט עד ', '') },
               ].map((s) => (
                 <div key={s.label} className="rounded-2xl bg-gray-50 px-2 py-3">
                   <dt className="text-xs font-bold text-gray-500">{s.label}</dt>
@@ -286,6 +409,68 @@ export default function VehiclesView() {
             )}
           </div>
         )}
+      </Sheet>
+
+      <Sheet
+        open={adding}
+        onClose={() => !saving && setAdding(false)}
+        title="הוספת רכב לצי"
+        footer={
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setAdding(false)} disabled={saving} className="min-h-12 flex-1 rounded-2xl bg-gray-100 text-sm font-bold text-gray-600">ביטול</button>
+            <button type="submit" form="add-fleet-vehicle" disabled={saving} className="min-h-12 flex-[2] rounded-2xl bg-[#E8743B] text-sm font-black text-white shadow-sm shadow-orange-200 disabled:opacity-50">
+              {saving ? 'מוסיף את הרכב…' : 'הוספת הרכב'}
+            </button>
+          </div>
+        }
+      >
+        <form id="add-fleet-vehicle" onSubmit={addVehicle} className="space-y-5">
+          <p className="text-sm text-gray-500">הפרטים ישמשו את צוות הסניף, המשימות וההזמנות.</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label><span className={label}>יצרן *</span><input required value={form.make} onChange={(e) => setField('make', e.target.value)} className={field} placeholder="לדוגמה: Kia" /></label>
+            <label><span className={label}>דגם *</span><input required value={form.model} onChange={(e) => setField('model', e.target.value)} className={field} placeholder="לדוגמה: Picanto" /></label>
+            <label><span className={label}>מספר רישוי *</span><input required dir="ltr" value={form.licensePlate} onChange={(e) => setField('licensePlate', e.target.value)} className={field} placeholder="12-345-67" /></label>
+            <label><span className={label}>שנת ייצור *</span><input required type="number" min="1950" max={new Date().getFullYear() + 1} value={form.year} onChange={(e) => setField('year', e.target.value)} className={field} /></label>
+            <label><span className={label}>מועד הטסט הבא *</span><input required type="date" value={form.testDueDate} onChange={(e) => setField('testDueDate', e.target.value)} className={field} /></label>
+            <label><span className={label}>קילומטרים נוכחיים</span><input type="number" min="0" value={form.currentOdometerKm} onChange={(e) => setField('currentOdometerKm', e.target.value)} className={field} placeholder="לדוגמה: 45210" /></label>
+            <label><span className={label}>צבע</span><input value={form.color} onChange={(e) => setField('color', e.target.value)} className={field} /></label>
+            <label><span className={label}>קטגוריה</span><select value={form.category} onChange={(e) => setField('category', e.target.value)} className={field}>{CATEGORY_OPTIONS.map(([value, text]) => <option key={value} value={value}>{text}</option>)}</select></label>
+            <label><span className={label}>סוג דלק</span><select value={form.fuelType} onChange={(e) => setField('fuelType', e.target.value)} className={field}>{FUEL_OPTIONS.map(([value, text]) => <option key={value} value={value}>{text}</option>)}</select></label>
+            <label><span className={label}>תיבת הילוכים</span><select value={form.transmission} onChange={(e) => setField('transmission', e.target.value)} className={field}>{TRANSMISSION_OPTIONS.map(([value, text]) => <option key={value} value={value}>{text}</option>)}</select></label>
+            <label><span className={label}>מספר מושבים</span><input type="number" min="1" value={form.seats} onChange={(e) => setField('seats', e.target.value)} className={field} /></label>
+            <label><span className={label}>מספר דלתות</span><input type="number" min="1" value={form.doors} onChange={(e) => setField('doors', e.target.value)} className={field} /></label>
+          </div>
+          <div>
+            <h3 className="mb-2 font-black text-[#0D2B2B]">תמחור</h3>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <label><span className={label}>מחיר ליום</span><input type="number" min="0" value={form.pricePerDay} onChange={(e) => setField('pricePerDay', e.target.value)} className={field} /></label>
+              <label><span className={label}>מחיר לחודש</span><input type="number" min="0" value={form.pricePerMonth} onChange={(e) => setField('pricePerMonth', e.target.value)} className={field} /></label>
+              <label><span className={label}>פיקדון</span><input type="number" min="0" value={form.depositAmount} onChange={(e) => setField('depositAmount', e.target.value)} className={field} /></label>
+            </div>
+          </div>
+          <label className="flex min-h-12 items-center gap-3 rounded-2xl bg-gray-50 px-4 text-sm font-bold text-gray-700">
+            <input type="checkbox" checked={form.available} onChange={(e) => setField('available', e.target.checked)} className="h-5 w-5 accent-[#2D5F5F]" />
+            הרכב זמין להזמנות
+          </label>
+          {formError && <p role="alert" className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{formError}</p>}
+        </form>
+      </Sheet>
+
+      <Sheet
+        open={!!deleting}
+        onClose={() => !saving && setDeleting(null)}
+        title="מחיקת רכב"
+        footer={
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setDeleting(null)} disabled={saving} className="min-h-12 flex-1 rounded-2xl bg-gray-100 text-sm font-bold text-gray-600">חזרה</button>
+            <button type="button" onClick={deleteVehicle} disabled={saving} className="min-h-12 flex-[2] rounded-2xl bg-red-600 text-sm font-black text-white disabled:opacity-50">{saving ? 'מוחק…' : 'מחיקת הרכב'}</button>
+          </div>
+        }
+      >
+        <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-800">
+          <p className="font-black">למחוק את {deleting ? carName(deleting) : 'הרכב'}?</p>
+          <p className="mt-1">הפעולה סופית. רכב שיש לו היסטוריית הזמנות לא יימחק, כדי לשמור על המסמכים הקיימים.</p>
+        </div>
       </Sheet>
     </div>
   );
