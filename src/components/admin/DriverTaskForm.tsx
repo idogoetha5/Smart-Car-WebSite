@@ -27,6 +27,8 @@ interface DriverTaskFormProps {
   drivers?: Array<{ id: string; name: string }>;
   /** YYYY-MM-DD to start on (e.g. the day clicked in the calendar). */
   defaultDate?: string;
+  /** Inside a sheet/dialog that already has its own title: no heading or tinted frame. */
+  embedded?: boolean;
   onCancel: () => void;
   onCreated: () => void;
   /** Admin: '/api/admin/tasks'. Branch managers: '/api/driver/manage/tasks'. */
@@ -43,13 +45,14 @@ function localDateString(offsetDays: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-const field = 'min-h-12 w-full rounded-xl border-2 border-gray-200 bg-white px-3 text-base';
-const label = 'mb-1 block text-sm font-bold text-gray-600';
+const field = 'min-h-12 w-full rounded-2xl border border-gray-200 bg-gray-50/70 px-4 text-base transition focus:border-[#2D5F5F] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5F5F]/10';
+const label = 'mb-1.5 block text-sm font-bold text-gray-700';
 
 export default function DriverTaskForm({
   driver: fixedDriver = null,
   drivers = [],
   defaultDate,
+  embedded = false,
   onCancel,
   onCreated,
   tasksApi = '/api/admin/tasks',
@@ -164,14 +167,16 @@ export default function DriverTaskForm({
   };
 
   const tab = (active: boolean) =>
-    `min-h-12 flex-1 rounded-xl border-2 text-base font-black ${active ? 'border-[#2D5F5F] bg-[#2D5F5F] text-white' : 'border-gray-200 bg-white text-gray-600'}`;
+    `min-h-11 flex-1 rounded-xl text-base font-black transition ${active ? 'bg-white text-[#0D2B2B] shadow-sm ring-1 ring-black/5' : 'text-gray-500 hover:text-gray-700'}`;
 
   return (
-    <form onSubmit={createTask} className="space-y-5 border-t border-orange-100 bg-orange-50/40 p-4 sm:p-6">
-      <div>
-        <h3 className="text-lg font-black text-gray-900">{fixedDriver ? `משימה חדשה עבור ${fixedDriver.name}` : 'משימה חדשה'}</h3>
-        <p className="text-sm text-gray-500">המשימה תופיע אצל הנהג ביום שנבחר (וגם יום לפני, בלשונית &quot;מחר&quot;), והוא יקבל התראה לטלפון</p>
-      </div>
+    <form onSubmit={createTask} className={embedded ? 'space-y-5' : 'space-y-5 border-t border-orange-100 bg-orange-50/40 p-4 sm:p-6'}>
+      {!embedded && (
+        <div>
+          <h3 className="text-lg font-black text-gray-900">{fixedDriver ? `משימה חדשה עבור ${fixedDriver.name}` : 'משימה חדשה'}</h3>
+          <p className="text-sm text-gray-500">המשימה תופיע אצל הנהג ביום שנבחר, והוא יקבל התראה לטלפון</p>
+        </div>
+      )}
 
       {!fixedDriver && (
         <label className="block">
@@ -185,7 +190,7 @@ export default function DriverTaskForm({
 
       <div>
         <span className={label}>סוג משימה</span>
-        <div className="flex gap-2">
+        <div className="flex gap-1 rounded-2xl bg-gray-100 p-1">
           <button type="button" onClick={() => chooseType('pickup')} className={tab(type === 'pickup')}>מסירה</button>
           <button type="button" onClick={() => chooseType('return')} className={tab(type === 'return')}>החזרה</button>
         </div>
@@ -193,7 +198,7 @@ export default function DriverTaskForm({
 
       <div>
         <span className={label}>מתי</span>
-        <div className="mb-2 flex gap-2">
+        <div className="mb-2 flex gap-1 rounded-2xl bg-gray-100 p-1">
           <button type="button" onClick={() => setDate(localDateString(0))} className={tab(date === localDateString(0))}>היום</button>
           <button type="button" onClick={() => setDate(localDateString(1))} className={tab(date === localDateString(1))}>מחר</button>
         </div>
@@ -211,7 +216,7 @@ export default function DriverTaskForm({
 
       <div>
         <span className={label}>{type === 'return' ? 'של איזה לקוח ההחזרה?' : 'הלקוח'}</span>
-        <div className="mb-3 flex gap-2">
+        <div className="mb-3 flex gap-1 rounded-2xl bg-gray-100 p-1">
           <button type="button" onClick={() => setMode('existing')} className={tab(mode === 'existing')}>{type === 'return' ? 'לקוח קיים' : 'הזמנה קיימת'}</button>
           <button type="button" onClick={() => setMode('new')} className={tab(mode === 'new')}>לקוח חדש</button>
         </div>
@@ -224,7 +229,7 @@ export default function DriverTaskForm({
             <input value={bookingSearch} onChange={(event) => setBookingSearch(event.target.value)} placeholder="חיפוש לפי שם לקוח / מספר הזמנה" className={`${field} mb-2`} />
             <div className="max-h-64 space-y-2 overflow-y-auto">
               {filteredBookings.map((booking) => (
-                <button type="button" key={booking.id} onClick={() => setBookingId(booking.id)} className={`min-h-14 w-full rounded-xl border-2 px-3 py-2 text-right text-base ${bookingId === booking.id ? 'border-[#E8743B] bg-orange-50' : 'border-gray-200 bg-white'}`}>
+                <button type="button" key={booking.id} onClick={() => setBookingId(booking.id)} className={`min-h-14 w-full rounded-2xl border px-4 py-2.5 text-right text-base transition ${bookingId === booking.id ? 'border-[#2D5F5F] bg-[#eef6f6] ring-2 ring-[#2D5F5F]/15' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
                   <span className="block font-bold text-gray-900">{booking.customer_name}</span>
                   <span className="block text-sm text-gray-500">{bookingVehicleName(booking)} · #{numericOrderReference(booking.id)}</span>
                 </button>
@@ -245,7 +250,7 @@ export default function DriverTaskForm({
             </label>
             <div className="sm:col-span-2">
               <span className={label}>רכב</span>
-              <div className="mb-2 flex gap-2">
+              <div className="mb-2 flex gap-1 rounded-2xl bg-gray-100 p-1">
                 <button type="button" onClick={() => setVehicleMode('fleet')} className={tab(vehicleMode === 'fleet')}>רכב מהצי</button>
                 <button type="button" onClick={() => setVehicleMode('custom')} className={tab(vehicleMode === 'custom')}>לא ברשימה</button>
               </div>
@@ -301,12 +306,12 @@ export default function DriverTaskForm({
         <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="רחוב, מספר, עיר" className={field} />
       </label>
       <label className="block"><span className={label}>הערות לנהג (לא חובה)</span>
-        <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={2} className="w-full rounded-xl border-2 border-gray-200 bg-white px-3 py-2 text-base" />
+        <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={2} className="w-full rounded-2xl border border-gray-200 bg-gray-50/70 px-4 py-3 text-base focus:border-[#2D5F5F] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5F5F]/10" />
       </label>
       {error && <p className="text-sm font-bold text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button type="submit" disabled={creating} className="min-h-14 flex-[2] rounded-xl bg-[#E8743B] text-base font-black text-white disabled:opacity-50">{creating ? 'יוצר...' : driver ? `הקצאה ל${driver.name}` : 'יצירת משימה'}</button>
-        <button type="button" onClick={onCancel} className="min-h-14 flex-1 rounded-xl border-2 border-gray-200 bg-white text-base font-bold text-gray-600">ביטול</button>
+        <button type="submit" disabled={creating} className="min-h-14 flex-[2] rounded-2xl bg-[#E8743B] text-base font-black text-white shadow-sm shadow-orange-200 transition hover:bg-[#d4632a] disabled:opacity-50">{creating ? 'יוצר...' : driver ? `הקצאה ל${driver.name}` : 'יצירת משימה'}</button>
+        <button type="button" onClick={onCancel} className="min-h-14 flex-1 rounded-2xl bg-gray-100 text-base font-bold text-gray-600 hover:bg-gray-200">ביטול</button>
       </div>
     </form>
   );

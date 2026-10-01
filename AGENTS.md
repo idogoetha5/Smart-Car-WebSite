@@ -36,7 +36,7 @@ Drivers and branch managers use the driver app (`/driver/*`, `src/components/ins
 - Every button/link/input is at least 44x44px (prefer 56px for main actions). Main action = one big full-width button; secondary actions go in a bottom sheet, not a wall of buttons.
 - Text inputs use at least 16px font (`text-base`), so iPhones don't zoom in.
 - Fixed bottom bars and sheets respect `env(safe-area-inset-bottom)`.
-- Branch managers (`/driver/manage`, `/driver/manager-login`, `DriversBoard`, `DriverTaskForm`) use it on **both phone and computer**: it must also look right at 1366px wide (centred, no stretched single-column walls). The audit checks these screens at desktop size too.
+- Branch managers (`/driver/manage/*`, `/driver/manager-login`, `src/components/manager/*`, `DriverTaskForm`) use it on **both phone and computer**: it must also look right at 1366px wide (centred, no stretched single-column walls). The audit checks these screens at desktop size too.
 - Before merging, run the audit and look at the screenshots it saves:
   `npm run dev` then `npm i --no-save playwright && npm run audit:mobile` (screenshots in `scripts/mobile-audit/out/`). It must print "All driver screens pass". When you add a new driver screen, add it to the list in `scripts/mobile-audit/run.mjs`.
 
@@ -46,3 +46,12 @@ Drivers and branch managers use the driver app (`/driver/*`, `src/components/ins
 - Needs env vars on Vercel (Production): `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`mailto:office@smartcar.co.il`). Generate once with `npx web-push generate-vapid-keys`. Never commit them. Changing the keys invalidates every phone's subscription.
 - Without the keys everything still works; notifications are simply off and the opt-in card stays hidden.
 - Table `push_subscriptions` (migration `database/migrations/add-push-subscriptions.sql`). Morning summary cron: `/api/cron/driver-morning`.
+
+## Driver & manager apps: look and feel
+
+- One visual language: page background `#F4F7F7`, white rounded-3xl cards with a hairline ring (`ring-1 ring-black/[0.04]`), teal `#2D5F5F` for selection/secondary actions, orange `#E8743B` only for the main action on a screen, dark teal `#0D2B2B` for headings.
+- Lists are rows inside one white card (`TaskList` + `TaskRow`); details and edits open in a `Sheet` (bottom sheet on a phone, drawer/dialog on a computer) instead of crowding cards with buttons.
+- Feedback with `useToast()` from `src/components/ui/AppToast.tsx`, never `alert()`/`confirm()`/`prompt()`.
+- Never show behind-the-scenes wording to users ("מתעדכן אוטומטית", "רענון", technical states). Data refreshes quietly (SWR `refreshInterval`).
+- Manager app structure: shell `src/components/app/ManagerShell.tsx` (sidebar on a computer, bottom tabs + floating "משימה חדשה" on a phone), data `src/components/manager/ManagerData.tsx`, pages היום / יומן / נהגים / מסמכים under `/driver/manage/*`. The admin "נהגים" page shows the same views as tabs (`ManagerWorkspace`).
+- For a visual check, `BASE=http://localhost:3000 node scripts/mobile-audit/review.mjs` saves phone and computer screenshots of the main screens to `scripts/mobile-audit/out/review/`.

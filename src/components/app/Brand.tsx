@@ -29,3 +29,15 @@ export function BrandHero({ children }: { children: ReactNode }) {
 
 export const brandIconButton =
   'flex h-11 w-11 items-center justify-center rounded-xl text-[#2D5F5F] hover:bg-[#eef6f6] active:bg-[#d9ecec]';
+
+/** Slim top bar for inner driver screens: back on the right, the logo on the left. */
+export function PageBar({ back }: { back: ReactNode }) {
+  return (
+    <header className="sticky top-0 z-30 border-b border-gray-100 bg-white/90 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+      <div className="mx-auto flex h-14 w-full max-w-lg items-center justify-between px-2">
+        {back}
+        <Image src="/images/logo.png" alt="SmartCar" width={96} height={43} className="me-2 h-7 w-auto object-contain" />
+      </div>
+    </header>
+  );
+}

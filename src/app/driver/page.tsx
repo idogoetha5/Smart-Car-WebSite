@@ -3,11 +3,12 @@
 import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR, { preload } from 'swr';
-import { Search, LogOut, RefreshCw, Plus, Navigation, Phone, Pencil, MapPin, MessageCircle, MoreHorizontal, CheckCircle2 } from 'lucide-react';
+import { Search, LogOut, Plus, Navigation, Phone, Pencil, MapPin, MessageCircle, MoreHorizontal, CheckCircle2 } from 'lucide-react';
 import { fetcher } from '@/lib/swr';
 import PendingInspections from '@/components/inspection/PendingInspections';
 import { BrandBar, BrandHero, brandIconButton } from '@/components/app/Brand';
 import PushBell from '@/components/app/PushBell';
+import { greeting, israelDate, longDate } from '@/lib/task-schedule';
 import { arrivedMessage, onTheWayLink, onTheWayMessage, returnReminderMessage, signedCopyMessage } from '@/lib/driver-on-the-way';
 
 interface TaskRow {
@@ -298,6 +299,7 @@ export default function DriverTodayPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
 
+  const [nowMs] = useState(() => Date.now());
   const { data: me } = useSWR<{ role: string; name?: string }>('/api/driver/me', fetcher, { dedupingInterval: 60_000 });
 
   const dateQuery = tab === 'tomorrow' ? 'date=tomorrow' : 'date=today';
@@ -305,11 +307,11 @@ export default function DriverTodayPage() {
     ? (search ? `/api/driver/today?search=${encodeURIComponent(search)}` : null)
     : `/api/driver/today?${dateQuery}`;
 
-  const { data, isLoading, isValidating, mutate } = useSWR<{
+  const { data, isLoading, mutate } = useSWR<{
     pickups?: TaskRow[];
     returns?: TaskRow[];
     results?: TaskRow[];
-  }>(url, fetcher, { keepPreviousData: true, dedupingInterval: 10_000 });
+  }>(url, fetcher, { keepPreviousData: true, dedupingInterval: 10_000, refreshInterval: 60_000, revalidateOnFocus: true });
 
   const openQuickBooking = () => {
     // Start loading the fleet before navigation. The destination uses the
@@ -328,17 +330,14 @@ export default function DriverTodayPage() {
     <div className="min-h-screen pb-10" dir="rtl">
       <BrandBar label="נהגים">
         <PushBell audience="driver" />
-        <button onClick={() => mutate()} className={brandIconButton} aria-label="רענון">
-          <RefreshCw className={`h-5 w-5 ${isValidating ? 'animate-spin' : ''}`} aria-hidden="true" />
-        </button>
         <button onClick={logout} className={brandIconButton} aria-label="יציאה">
           <LogOut className="h-5 w-5" aria-hidden="true" />
         </button>
       </BrandBar>
 
       <BrandHero>
-        <h1 className="text-2xl font-black text-[#0D2B2B]">{me?.name ? `שלום, ${me.name}` : 'היום שלי'}</h1>
-        <p className="mb-4 text-sm text-gray-600">המשימות שלך להיום ולמחר</p>
+        <p className="text-sm font-bold text-[#2D5F5F]/80">{longDate(israelDate(nowMs))}</p>
+        <h1 className="mb-4 text-2xl font-black text-[#0D2B2B]">{greeting(nowMs)}{me?.name ? `, ${me.name}` : ''}</h1>
 
         <button
           onClick={openQuickBooking}

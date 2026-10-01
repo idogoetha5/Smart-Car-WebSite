@@ -1,3 +1,4 @@
+import ManagerShell from '@/components/app/ManagerShell';
 import type { Metadata } from 'next';
 
 // Own title/preview for the branch managers' pages (the link is shared on
@@ -17,5 +18,5 @@ export const metadata: Metadata = {
 };
 
 export default function ManagerSectionLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return <ManagerShell>{children}</ManagerShell>;
 }

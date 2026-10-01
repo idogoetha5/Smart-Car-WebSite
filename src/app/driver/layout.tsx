@@ -43,7 +43,7 @@ export const viewport: Viewport = {
 export default function DriverLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="he" dir="rtl" className={heebo.className}>
-      <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">{children}</body>
+      <body className="min-h-screen bg-[#F4F7F7] text-gray-900 antialiased">{children}</body>
     </html>
   );
 }

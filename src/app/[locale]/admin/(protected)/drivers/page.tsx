@@ -1,5 +1,5 @@
-import DriversBoard from '@/components/drivers/DriversBoard';
+import ManagerWorkspace from '@/components/manager/ManagerWorkspace';
 
 export default function AdminDriversPage() {
-  return <DriversBoard mode="admin" />;
+  return <ManagerWorkspace />;
 }
