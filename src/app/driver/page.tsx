@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR, { preload } from 'swr';
-import { Wrench, Search, LogOut, Plus, Navigation, Phone, Pencil, MapPin, MessageCircle, MoreHorizontal, CheckCircle2 } from 'lucide-react';
+import { Zap, Wrench, Search, LogOut, Plus, Navigation, Phone, Pencil, MapPin, MessageCircle, MoreHorizontal, CheckCircle2 } from 'lucide-react';
 import { fetcher } from '@/lib/swr';
 import PendingInspections from '@/components/inspection/PendingInspections';
 import { BrandBar, BrandHero, brandIconButton } from '@/components/app/Brand';
@@ -15,6 +15,10 @@ interface TaskRow {
   taskId: string;
   taskStatus: 'open' | 'done' | 'cancelled';
   type: 'pickup' | 'return' | 'service';
+  /** "עכשיו" / "תוך שעה" — shown first, in red. */
+  urgent?: boolean;
+  /** Urgent task nobody took yet — "אני לוקח". */
+  claimable?: boolean;
   /** Garage / tyre-shop job: where, why, what to do. */
   service?: { kind: string | null; kindLabel: string; reason: string; details: string | null };
   bookingId: string;
@@ -151,6 +155,26 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
     }
   };
 
+  const [claimError, setClaimError] = useState('');
+  const claim = async () => {
+    setMarking(true);
+    setClaimError('');
+    try {
+      const res = await fetch(`/api/driver/tasks/${encodeURIComponent(row.taskId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ claim: true }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setClaimError(json?.error || 'לא הצלחנו. נסו שוב.');
+      }
+      onChanged();
+    } finally {
+      setMarking(false);
+    }
+  };
+
   const saveAddress = async () => {
     setSaving(true);
     setSaveError('');
@@ -198,13 +222,13 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
     }
   }
   // Address/done edit the driver task — a handover found without one (search) has neither.
-  if (row.taskId) items.push({
+  if (row.taskId && !row.claimable) items.push({
     key: 'addr',
     label: hasAddress ? 'עריכת כתובת' : 'הוספת כתובת לוויז',
     icon: hasAddress ? <Pencil className="h-6 w-6 shrink-0" aria-hidden="true" /> : <MapPin className="h-6 w-6 shrink-0" aria-hidden="true" />,
     onClick: () => setEditing(true),
   });
-  if (!awaiting && row.taskId) items.push({
+  if (!awaiting && row.taskId && !row.claimable) items.push({
     key: 'done',
     label: marking ? 'שומר…' : isDone ? 'ביטול סימון "בוצע"' : 'סמן כבוצע',
     icon: <CheckCircle2 className="h-6 w-6 shrink-0" aria-hidden="true" />,
@@ -215,7 +239,13 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
   const secBtn = 'flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl border-2 text-xs font-black active:scale-95 transition';
 
   return (
-    <div className={`rounded-3xl border p-4 shadow-sm ${isDone ? 'border-green-200 bg-green-50/60' : 'border-gray-100 bg-white'}`}>
+    <div className={`rounded-3xl border p-4 shadow-sm ${isDone ? 'border-green-200 bg-green-50/60' : row.urgent ? 'border-red-200 bg-white ring-2 ring-red-500' : 'border-gray-100 bg-white'}`}>
+      {row.urgent && !isDone && (
+        <p className="mb-2 inline-flex items-center gap-1 rounded-full bg-red-600 px-3 py-1 text-sm font-black text-white">
+          <Zap className="h-4 w-4" aria-hidden="true" />
+          {row.claimable ? 'דחוף — מחכה לנהג' : 'דחוף'}
+        </p>
+      )}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className={`text-lg font-black leading-tight truncate ${isDone ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{row.customerName}</p>
@@ -252,12 +282,25 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
         </div>
       )}
 
-      {!isDone && !row.service && (
+      {row.claimable ? (
+        <div className="mt-3">
+          <button
+            onClick={claim}
+            disabled={marking}
+            className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-red-600 text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50"
+          >
+            <Zap className="h-5 w-5" aria-hidden="true" />
+            {marking ? 'רגע…' : 'אני לוקח את המשימה'}
+          </button>
+          {claimError && <p className="mt-2 text-center text-sm font-bold text-red-600">{claimError}</p>}
+        </div>
+      ) : null}
+      {!row.claimable && !isDone && !row.service && (
         <div className="mt-3 flex">
           <TaskAction row={row} />
         </div>
       )}
-      {row.service && (
+      {!row.claimable && row.service && (
         <div className="mt-3 flex">
           <button
             onClick={toggleDone}
@@ -339,8 +382,16 @@ export default function DriverTodayPage() {
     pickups?: TaskRow[];
     returns?: TaskRow[];
     services?: TaskRow[];
+    open?: TaskRow[];
     results?: TaskRow[];
   }>(url, fetcher, { keepPreviousData: true, dedupingInterval: 10_000, refreshInterval: 60_000, revalidateOnFocus: true });
+
+  // Urgent open tasks go first, in their own section.
+  const isUrgentOpen = (r: TaskRow) => Boolean(r.urgent) && r.taskStatus === 'open';
+  const urgentMine = [...(data?.pickups ?? []), ...(data?.returns ?? []), ...(data?.services ?? [])].filter(isUrgentOpen);
+  const pickups = (data?.pickups ?? []).filter((r) => !isUrgentOpen(r));
+  const returns = (data?.returns ?? []).filter((r) => !isUrgentOpen(r));
+  const services = (data?.services ?? []).filter((r) => !isUrgentOpen(r));
 
   const openQuickBooking = () => {
     // Start loading the fleet before navigation. The destination uses the
@@ -421,13 +472,33 @@ export default function DriverTodayPage() {
           </div>
         ) : (
           <>
+            {(data?.open ?? []).length > 0 && (
+              <section>
+                <h2 className="mb-2 flex items-center gap-1.5 text-sm font-black text-red-600"><Zap className="h-4 w-4" aria-hidden="true" />משימות דחופות פנויות</h2>
+                <div className="space-y-3">
+                  {(data?.open ?? []).map((row) => (
+                    <TaskCard key={`open-${row.taskId}`} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} />
+                  ))}
+                </div>
+              </section>
+            )}
+            {urgentMine.length > 0 && (
+              <section>
+                <h2 className="mb-2 flex items-center gap-1.5 text-sm font-black text-red-600"><Zap className="h-4 w-4" aria-hidden="true" />דחוף</h2>
+                <div className="space-y-3">
+                  {urgentMine.map((row) => (
+                    <TaskCard key={`u-${row.taskId}`} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} isTomorrow={tab === 'tomorrow'} />
+                  ))}
+                </div>
+              </section>
+            )}
             <section>
               <h2 className="text-sm font-black text-[#2D5F5F] mb-2">מסירות</h2>
               <div className="space-y-3">
-                {(data?.pickups ?? []).map((row) => (
+                {pickups.map((row) => (
                   <TaskCard key={row.taskId || `h-${row.bookingId}`} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} isTomorrow={tab === 'tomorrow'} />
                 ))}
-                {!isLoading && (data?.pickups ?? []).length === 0 && (
+                {!isLoading && pickups.length === 0 && (
                   <p className="text-center text-gray-400 py-6 text-sm">אין מסירות</p>
                 )}
               </div>
@@ -435,19 +506,19 @@ export default function DriverTodayPage() {
             <section>
               <h2 className="text-sm font-black text-[#2D5F5F] mb-2">החזרות</h2>
               <div className="space-y-3">
-                {(data?.returns ?? []).map((row) => (
+                {returns.map((row) => (
                   <TaskCard key={row.taskId || `h-${row.bookingId}`} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} isTomorrow={tab === 'tomorrow'} />
                 ))}
-                {!isLoading && (data?.returns ?? []).length === 0 && (
+                {!isLoading && returns.length === 0 && (
                   <p className="text-center text-gray-400 py-6 text-sm">אין החזרות</p>
                 )}
               </div>
             </section>
-            {(data?.services ?? []).length > 0 && (
+            {services.length > 0 && (
               <section>
                 <h2 className="text-sm font-black text-[#5B5BD6] mb-2">{"מוסך / פנצ'רייה"}</h2>
                 <div className="space-y-3">
-                  {(data?.services ?? []).map((row) => (
+                  {services.map((row) => (
                     <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} isTomorrow={tab === 'tomorrow'} />
                   ))}
                 </div>

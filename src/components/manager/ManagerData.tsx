@@ -8,7 +8,7 @@ import type { ManagerDriver, ManagerTask, SignedJob } from './types';
 
 const REFRESH_MS = 60_000;
 
-export type AlertKind = 'late' | 'unassigned' | 'unsigned' | 'damage';
+export type AlertKind = 'urgent' | 'late' | 'unassigned' | 'unsigned' | 'damage';
 
 interface ManagerData {
   isAdmin: boolean;
@@ -82,8 +82,10 @@ export function ManagerDataProvider({ mode, children }: { mode: 'admin' | 'manag
     const late: ManagerTask[] = [];
     const unassigned: ManagerTask[] = [];
     const unsigned: ManagerTask[] = [];
+    const urgent: ManagerTask[] = [];
     for (const task of liveTasks) {
       const { day, time } = taskWhen(task);
+      if (task.urgent && task.status === 'open' && day && day <= today) urgent.push(task);
       if (task.status === 'open' && day && (day < today || (day === today && time !== null && time < clock))) late.push(task);
       else if (task.status === 'open' && !task.assigned_driver_id && day && day <= tomorrow) unassigned.push(task);
       if (task.inspection?.status === 'awaiting_signature') unsigned.push(task);
@@ -91,7 +93,7 @@ export function ManagerDataProvider({ mode, children }: { mode: 'admin' | 'manag
     const damageJobs = signedJobs.filter(
       (j) => j.type === 'return' && j.damageCount > 0 && j.signedAt && now - new Date(j.signedAt).getTime() < 3 * 86_400_000
     );
-    return { late, unassigned, unsigned, damage: [] as ManagerTask[], damageJobs };
+    return { urgent, late, unassigned, unsigned, damage: [] as ManagerTask[], damageJobs };
   }, [liveTasks, signedJobs, now, today, tomorrow]);
 
   const refresh = useCallback(() => {

@@ -6,6 +6,8 @@ import {
   taskCancelledMessage,
   taskRemovedMessage,
   taskRescheduledMessage,
+  urgentAssignedMessage,
+  urgentOpenMessage,
   whenLabel,
   type TaskSummary,
 } from '@/lib/push-messages';
@@ -68,5 +70,12 @@ describe('push messages', () => {
     expect(morningDigestMessage('יוסי', [task(), { type: 'service', customerName: "פנצ'רייה", day: '2026-10-01', time: null, address: null }]).body).toBe(
       'היום יש לך 2 משימות: מסירה אחת ונסיעה אחת למוסך. הראשונה ב־10:00 — דניאל כהן. בהצלחה!'
     );
+  });
+
+  it('urgent tasks say so up front, and open ones ask who can take them', () => {
+    const t = task({ day: '2026-10-01', time: '09:30' });
+    expect(urgentAssignedMessage(t, NOW)).toMatchObject({ title: 'דחוף — מסירה', body: 'דניאל כהן · היום ב־09:30 · הרצל 12, תל אביב' });
+    expect(urgentOpenMessage(t, NOW).title).toBe('משימה דחופה פנויה — מסירה');
+    expect(urgentOpenMessage(t, NOW).body).toContain('"אני לוקח"');
   });
 });
