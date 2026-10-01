@@ -30,6 +30,16 @@ interface DriverTaskFormProps {
   defaultDate?: string;
   /** Inside a sheet/dialog that already has its own title: no heading or tinted frame. */
   embedded?: boolean;
+  /** Open on this kind of task (e.g. 'wash' from a car's card). */
+  defaultType?: 'pickup' | 'return' | 'service' | 'wash';
+  /** Pre-select this fleet car (garage / wash from the vehicles page). */
+  defaultVehicleId?: string;
+  /**
+   * "משימה להיום": a job for the next hours. Opens on "עכשיו", is marked
+   * urgent, and asks who gets it — one driver, or the first to tap "אני לוקח".
+   * A regular "משימה חדשה" has no urgent options at all.
+   */
+  todayTask?: boolean;
   onCancel: () => void;
   onCreated: () => void;
   /** Admin: '/api/admin/tasks'. Branch managers: '/api/driver/manage/tasks'. */
@@ -55,11 +65,19 @@ function localDateTimeIn(minutes: number): { date: string; time: string } {
   return { date: `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`, time: `${pad(at.getHours())}:${pad(at.getMinutes())}` };
 }
 
+type TaskKind = 'pickup' | 'return' | 'service' | 'wash';
+const TYPE_LABELS: Record<TaskKind, string> = { pickup: 'מסירה', return: 'החזרה', service: 'טיפול ברכב', wash: 'שטיפה' };
+
 type WhenPreset = 'now' | '1h' | '2h' | 'today' | 'tomorrow';
-const WHEN_PRESETS: Array<{ key: WhenPreset; text: string }> = [
+/** "משימה להיום": how soon. */
+const TODAY_PRESETS: Array<{ key: WhenPreset; text: string }> = [
   { key: 'now', text: 'עכשיו' },
   { key: '1h', text: 'תוך שעה' },
   { key: '2h', text: 'תוך שעתיים' },
+  { key: 'today', text: 'במהלך היום' },
+];
+/** Regular "משימה חדשה": quick day picks, then any date. */
+const DAY_PRESETS: Array<{ key: WhenPreset; text: string }> = [
   { key: 'today', text: 'היום' },
   { key: 'tomorrow', text: 'מחר' },
 ];
@@ -72,21 +90,25 @@ export default function DriverTaskForm({
   drivers = [],
   defaultDate,
   embedded = false,
+  defaultType = 'pickup',
+  defaultVehicleId = '',
+  todayTask = false,
   onCancel,
   onCreated,
   tasksApi = '/api/admin/tasks',
   bookingsApi = '/api/bookings',
 }: DriverTaskFormProps) {
-  const [mode, setMode] = useState<'new' | 'existing'>('new');
+  const [mode, setMode] = useState<'new' | 'existing'>(defaultType === 'return' ? 'existing' : 'new');
   const [vehicleMode, setVehicleMode] = useState<'fleet' | 'custom'>('fleet');
-  const [type, setType] = useState<'pickup' | 'return' | 'service'>('pickup');
+  const [type, setType] = useState<'pickup' | 'return' | 'service' | 'wash'>(defaultType);
+  const [urgentTo, setUrgentTo] = useState<'driver' | 'first'>('driver');
   const [serviceKind, setServiceKind] = useState<ServiceKind>('garage');
   const [serviceReason, setServiceReason] = useState<ServiceReason>('maintenance');
   const [servicePlace, setServicePlace] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
-  const [vehicleId, setVehicleId] = useState('');
+  const [vehicleId, setVehicleId] = useState(defaultVehicleId);
   const [customVehicleName, setCustomVehicleName] = useState('');
   const [customLicensePlate, setCustomLicensePlate] = useState('');
   const [bookingSearch, setBookingSearch] = useState('');
@@ -94,29 +116,33 @@ export default function DriverTaskForm({
   const [date, setDate] = useState(() => defaultDate || localDateString(0));
   const [pickedDriverId, setPickedDriverId] = useState('');
   const driver = fixedDriver ?? drivers.find((d) => d.id === pickedDriverId) ?? null;
-  const [time, setTime] = useState('');
-  const [urgent, setUrgent] = useState(false);
-  const [preset, setPreset] = useState<WhenPreset | null>(defaultDate && defaultDate !== localDateString(0) ? null : 'today');
+  const [time, setTime] = useState(() => (todayTask ? localDateTimeIn(0).time : ''));
+  const urgent = todayTask;
+  // "משימה חדשה" = handovers and returns; "שטיפה" and "טיפול ברכב" open on their own
+  // and stay that kind; "משימה להיום" can be any of the four.
+  const typeChoices: TaskKind[] = todayTask
+    ? ['pickup', 'return', 'wash', 'service']
+    : defaultType === 'wash' || defaultType === 'service'
+      ? []
+      : ['pickup', 'return'];
+  const [preset, setPreset] = useState<WhenPreset | null>(todayTask ? 'now' : defaultDate && defaultDate !== localDateString(0) ? null : 'today');
 
-  /** "עכשיו" / "תוך שעה" / "תוך שעתיים" set today + a time and mark it urgent; "היום" / "מחר" just the day. */
+  /** "עכשיו" / "תוך שעה" / "תוך שעתיים" set today + a time; "היום" / "מחר" just the day. */
   const applyPreset = (key: WhenPreset) => {
     setPreset(key);
     if (key === 'today' || key === 'tomorrow') {
       setDate(localDateString(key === 'today' ? 0 : 1));
       setTime('');
-      setUrgent(false);
       return;
     }
     const at = localDateTimeIn(key === 'now' ? 0 : key === '1h' ? 60 : 120);
     setDate(at.date);
     setTime(at.time);
-    setUrgent(true);
   };
 
-  const presetChip = (active: boolean, key: WhenPreset) => {
-    const hot = key === 'now' || key === '1h' || key === '2h';
+  const presetChip = (active: boolean) => {
     return `min-h-11 rounded-full px-4 text-sm font-black transition ${
-      active ? (hot ? 'bg-red-600 text-white shadow-sm' : 'bg-[#2D5F5F] text-white shadow-sm') : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:ring-gray-300'
+      active ? 'bg-[#2D5F5F] text-white shadow-sm' : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:ring-gray-300'
     }`;
   };
   const [planReturn, setPlanReturn] = useState(false);
@@ -132,7 +158,9 @@ export default function DriverTaskForm({
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
-  const { items: vehicles } = useApiList<Vehicle>(mode === 'new' && vehicleMode === 'fleet' ? '/api/driver/vehicles' : null);
+  const { items: vehicles } = useApiList<Vehicle>(
+    mode === 'new' && vehicleMode === 'fleet' ? (type === 'service' || type === 'wash' ? '/api/driver/vehicles?all=1' : '/api/driver/vehicles') : null
+  );
   const { items: bookings } = useApiList<BookingOption>(mode === 'existing' ? bookingsApi : null);
 
   const filteredBookings = useMemo(() => {
@@ -151,8 +179,11 @@ export default function DriverTaskForm({
   const createTask = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
-    if (type === 'service') {
+    const broadcast = urgent && urgentTo === 'first';
+    if (urgent && urgentTo === 'driver' && !driver) return setError('יש לבחור נהג, או לבחור "לראשון שלוקח"');
+    if (type === 'service' || type === 'wash') {
       if (!date) return setError('יש לבחור תאריך');
+      if (type === 'wash' && !driver && !broadcast) return setError('יש לבחור נהג לשטיפה');
       if (vehicleMode === 'fleet' && !vehicleId) return setError('יש לבחור רכב');
       if (vehicleMode === 'custom' && !customLicensePlate.trim() && !customVehicleName.trim()) return setError('יש לכתוב מספר רישוי או שם רכב');
       setCreating(true);
@@ -162,8 +193,8 @@ export default function DriverTaskForm({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'service',
-            serviceKind,
-            serviceReason,
+            serviceKind: type === 'wash' ? 'wash' : serviceKind,
+            serviceReason: type === 'wash' ? 'wash' : serviceReason,
             servicePlace: servicePlace.trim() || undefined,
             vehicleId: vehicleMode === 'fleet' ? vehicleId : undefined,
             customVehicleName: vehicleMode === 'custom' ? customVehicleName : undefined,
@@ -172,7 +203,7 @@ export default function DriverTaskForm({
             scheduledTime: time || undefined,
             location: location || undefined,
             notes: notes || undefined,
-            assignedDriverId: driver?.id ?? null,
+            assignedDriverId: broadcast ? null : driver?.id ?? null,
             urgent: urgent || undefined,
           }),
         });
@@ -222,7 +253,7 @@ export default function DriverTaskForm({
           scheduledTime: time || undefined,
           location: location || undefined,
           notes: notes || undefined,
-          assignedDriverId: driver?.id ?? null,
+          assignedDriverId: broadcast ? null : driver?.id ?? null,
           urgent: urgent || undefined,
           returnAt: withReturn ? new Date(`${returnDate}T${returnTime || '12:00'}:00`).toISOString() : undefined,
           returnTime: withReturn && returnTime ? returnTime : undefined,
@@ -239,9 +270,9 @@ export default function DriverTaskForm({
     }
   };
 
-  const chooseType = (next: 'pickup' | 'return' | 'service') => {
+  const chooseType = (next: 'pickup' | 'return' | 'service' | 'wash') => {
     setType(next);
-    if (next === 'service') {
+    if (next === 'service' || next === 'wash') {
       setMode('new');
       return;
     }
@@ -298,57 +329,63 @@ export default function DriverTaskForm({
         </div>
       )}
 
-      {!fixedDriver && (
+      {todayTask && (
+        <div>
+          <span className={label}>למי לשלוח?</span>
+          <div className="flex gap-1 rounded-2xl bg-gray-100 p-1">
+            <button type="button" onClick={() => setUrgentTo('driver')} className={tab(urgentTo === 'driver')}>{fixedDriver ? fixedDriver.name : 'לנהג מסוים'}</button>
+            <button type="button" onClick={() => setUrgentTo('first')} className={tab(urgentTo === 'first')}>לראשון שלוקח</button>
+          </div>
+          <p className="mt-2 text-sm text-gray-600">
+            {urgentTo === 'first'
+              ? 'כל הנהגים יקבלו התראה. הראשון שילחץ "אני לוקח" יקבל את המשימה.'
+              : 'הנהג יקבל התראה מיד, והמשימה תופיע אצלו ראשונה.'}
+          </p>
+        </div>
+      )}
+
+      {!fixedDriver && !(urgent && urgentTo === 'first') && (
         <label className="block">
-          <span className={label}>נהג</span>
+          <span className={label}>{type === 'wash' ? 'איזה נהג?' : 'נהג'}</span>
           <select value={pickedDriverId} onChange={(event) => setPickedDriverId(event.target.value)} className={field}>
-            <option value="">עוד לא — אשייך נהג אחר כך</option>
+            <option value="">{type === 'wash' || todayTask ? 'בחרו נהג' : 'עוד לא — אשייך נהג אחר כך'}</option>
             {drivers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </label>
       )}
 
-      <div>
-        <span className={label}>סוג משימה</span>
-        <div className="flex gap-1 rounded-2xl bg-gray-100 p-1">
-          <button type="button" onClick={() => chooseType('pickup')} className={tab(type === 'pickup')}>מסירה</button>
-          <button type="button" onClick={() => chooseType('return')} className={tab(type === 'return')}>החזרה</button>
-          <button type="button" onClick={() => chooseType('service')} className={tab(type === 'service')}>מוסך</button>
+      {typeChoices.length > 1 && (
+        <div>
+          <span className={label}>סוג משימה</span>
+          <div className={`grid gap-1 rounded-2xl bg-gray-100 p-1 ${typeChoices.length > 2 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'}`}>
+            {typeChoices.map((t) => (
+              <button key={t} type="button" onClick={() => chooseType(t)} className={tab(type === t)}>{TYPE_LABELS[t]}</button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div>
         <span className={label}>מתי</span>
         <div className="mb-2 flex flex-wrap gap-2">
-          {WHEN_PRESETS.map(({ key, text }) => (
-            <button key={key} type="button" onClick={() => applyPreset(key)} className={presetChip(preset === key, key)}>
+          {(todayTask ? TODAY_PRESETS : DAY_PRESETS).map(({ key, text }) => (
+            <button key={key} type="button" onClick={() => applyPreset(key)} className={presetChip(preset === key)}>
               {text}
             </button>
           ))}
         </div>
         <div className="grid grid-cols-2 gap-2">
+          {!todayTask && (
+            <label className="block">
+              <span className={label}>תאריך</span>
+              <input type="date" value={date} min={localDateString(0)} onChange={(event) => { setDate(event.target.value); setPreset(null); }} className={field} required />
+            </label>
+          )}
           <label className="block">
-            <span className={label}>תאריך</span>
-            <input type="date" value={date} min={localDateString(0)} onChange={(event) => { setDate(event.target.value); setPreset(null); }} className={field} required />
-          </label>
-          <label className="block">
-            <span className={label}>שעה (לא חובה)</span>
+            <span className={label}>{todayTask ? 'שעה' : 'שעה (לא חובה)'}</span>
             <input type="time" value={time} onChange={(event) => { setTime(event.target.value); setPreset(null); }} className={field} />
           </label>
         </div>
-        <label className={`mt-3 flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl p-3 transition ${urgent ? 'bg-red-50 ring-1 ring-red-200' : 'bg-gray-50 ring-1 ring-gray-200'}`}>
-          <input type="checkbox" checked={urgent} onChange={(event) => setUrgent(event.target.checked)} className="h-6 w-6 shrink-0 accent-red-600" />
-          <span className="min-w-0">
-            <span className={`block text-base font-black ${urgent ? 'text-red-700' : 'text-gray-800'}`}>משימה דחופה</span>
-            <span className="block text-sm text-gray-600">
-              {urgent
-                ? driver
-                  ? `${driver.name} יקבל התראה דחופה, והמשימה תופיע אצלו ראשונה.`
-                  : 'כל הנהגים יקבלו התראה, והראשון שילחץ "אני לוקח" יקבל את המשימה.'
-                : 'לסמן כשצריך את זה עכשיו או בשעות הקרובות.'}
-            </span>
-          </span>
-        </label>
       </div>
 
       {type === 'service' && (
@@ -356,7 +393,7 @@ export default function DriverTaskForm({
           <div>
             <span className={label}>לאן הרכב נוסע?</span>
             <div className="flex flex-wrap gap-2">
-              {(Object.keys(SERVICE_KINDS) as ServiceKind[]).map((k) => (
+              {(Object.keys(SERVICE_KINDS) as ServiceKind[]).filter((k) => k !== 'wash').map((k) => (
                 <button key={k} type="button" onClick={() => { setServiceKind(k); setServiceReason(DEFAULT_REASON[k]); }} className={chip(serviceKind === k)}>{SERVICE_KINDS[k]}</button>
               ))}
             </div>
@@ -364,7 +401,7 @@ export default function DriverTaskForm({
           <div>
             <span className={label}>סיבה</span>
             <div className="flex flex-wrap gap-2">
-              {(Object.keys(SERVICE_REASONS) as ServiceReason[]).map((r) => (
+              {(Object.keys(SERVICE_REASONS) as ServiceReason[]).filter((r) => r !== 'wash').map((r) => (
                 <button key={r} type="button" onClick={() => setServiceReason(r)} className={chip(serviceReason === r)}>{SERVICE_REASONS[r]}</button>
               ))}
             </div>
@@ -379,7 +416,19 @@ export default function DriverTaskForm({
         </div>
       )}
 
-      {type !== 'service' && (
+      {type === 'wash' && (
+        <div className="space-y-4 rounded-3xl bg-sky-50/60 p-4 ring-1 ring-sky-100">
+          <div>{vehicleBlock}</div>
+          <label className="block"><span className={label}>איפה? (לא חובה)</span>
+            <input value={servicePlace} onChange={(event) => setServicePlace(event.target.value)} placeholder="לדוגמה: שטיפת הדר, או בסניף" className={field} />
+          </label>
+          <label className="block"><span className={label}>הערות (לא חובה)</span>
+            <input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="לדוגמה: גם ניקוי פנים" className={field} />
+          </label>
+        </div>
+      )}
+
+      {type !== 'service' && type !== 'wash' && (
       <div>
         <span className={label}>{type === 'return' ? 'של איזה לקוח ההחזרה?' : 'הלקוח'}</span>
         <div className="mb-3 flex gap-1 rounded-2xl bg-gray-100 p-1">
@@ -442,15 +491,15 @@ export default function DriverTaskForm({
         </div>
       )}
 
-      <label className="block"><span className={label}>{type === 'service' ? 'כתובת המקום — לוויז (לא חובה)' : 'כתובת ללקוח — לוויז (לא חובה)'}</span>
+      <label className="block"><span className={label}>{type === 'service' || type === 'wash' ? 'כתובת המקום — לוויז (לא חובה)' : 'כתובת ללקוח — לוויז (לא חובה)'}</span>
         <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="רחוב, מספר, עיר" className={field} />
       </label>
-      {type !== 'service' && <label className="block"><span className={label}>הערות לנהג (לא חובה)</span>
+      {type !== 'service' && type !== 'wash' && <label className="block"><span className={label}>הערות לנהג (לא חובה)</span>
         <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={2} className="w-full rounded-2xl border border-gray-200 bg-gray-50/70 px-4 py-3 text-base focus:border-[#2D5F5F] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5F5F]/10" />
       </label>}
       {error && <p className="text-sm font-bold text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button type="submit" disabled={creating} className="min-h-14 flex-[2] rounded-2xl bg-[#E8743B] text-base font-black text-white shadow-sm shadow-orange-200 transition hover:bg-[#d4632a] disabled:opacity-50">{creating ? 'יוצר...' : urgent ? (driver ? `שליחה דחופה ל${driver.name}` : 'שליחה דחופה לכל הנהגים') : driver ? `הקצאה ל${driver.name}` : 'יצירת משימה'}</button>
+        <button type="submit" disabled={creating} className="min-h-14 flex-[2] rounded-2xl bg-[#E8743B] text-base font-black text-white shadow-sm shadow-orange-200 transition hover:bg-[#d4632a] disabled:opacity-50">{creating ? 'שולח…' : urgent && urgentTo === 'first' ? 'שליחה לכל הנהגים' : type === 'wash' && driver ? `שליחה לשטיפה עם ${driver.name}` : driver ? `שליחה ל${driver.name}` : 'יצירת משימה'}</button>
         <button type="button" onClick={onCancel} className="min-h-14 flex-1 rounded-2xl bg-gray-100 text-base font-bold text-gray-600 hover:bg-gray-200">ביטול</button>
       </div>
     </form>

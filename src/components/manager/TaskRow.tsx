@@ -29,14 +29,14 @@ export default function TaskRow({ task, showDay = false }: { task: ManagerTask; 
       <div className="w-14 shrink-0 text-center">
         {showDay && <p className="text-[11px] font-bold text-gray-400">{dayLabel(day, now)}</p>}
         <p className={`text-lg font-black tabular-nums leading-tight ${late ? 'text-red-600' : 'text-[#0D2B2B]'}`} dir="ltr">{time ?? '—'}</p>
-        <p className={`mt-0.5 text-xs font-black ${service ? 'text-[#5B5BD6]' : pickup ? 'text-[#E8743B]' : 'text-[#2D5F5F]'}`}>
+        <p className={`mt-0.5 text-xs font-black ${task.service_kind === 'wash' ? 'text-sky-600' : service ? 'text-[#5B5BD6]' : pickup ? 'text-[#E8743B]' : 'text-[#2D5F5F]'}`}>
           {service ? serviceKindLabel(task.service_kind) : pickup ? 'מסירה' : 'החזרה'}
         </p>
       </div>
 
       <div className="min-w-0 flex-1 border-s border-gray-100 ps-3">
         {task.urgent && task.status === 'open' && (
-          <span className="mb-0.5 inline-flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[11px] font-black text-white">
+          <span className="mb-0.5 inline-flex items-center gap-1 text-[11px] font-black text-[#C24E17]">
             <Zap className="h-3 w-3" aria-hidden="true" />
             דחוף
           </span>
@@ -45,7 +45,7 @@ export default function TaskRow({ task, showDay = false }: { task: ManagerTask; 
           {service ? serviceTitle(task.service_kind, task.service_place) : task.booking?.customer_name || 'ללא שם לקוח'}
         </p>
         <p className="flex min-w-0 gap-1 text-sm text-gray-500">
-          {service && <><span className="shrink-0 font-bold text-[#5B5BD6]">{serviceReasonLabel(task.service_reason)}</span><span className="shrink-0" aria-hidden="true">·</span></>}
+          {service && task.service_kind !== 'wash' && <><span className="shrink-0 font-bold text-[#5B5BD6]">{serviceReasonLabel(task.service_reason)}</span><span className="shrink-0" aria-hidden="true">·</span></>}
           <span className="truncate">{bookingVehicleName(car)}</span>
           {plate !== '—' && <><span className="shrink-0" aria-hidden="true">·</span><span className="shrink-0 font-bold text-gray-700" dir="ltr">{plate}</span></>}
         </p>

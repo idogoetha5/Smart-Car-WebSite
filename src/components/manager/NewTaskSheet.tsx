@@ -11,9 +11,16 @@ export default function NewTaskSheet() {
   const toast = useToast();
   const fixed = newTask.driverId ? activeDrivers.find((d) => d.id === newTask.driverId) ?? null : null;
   return (
-    <Sheet open={newTask.open} onClose={closeNewTask} title={fixed ? `משימה חדשה ל${fixed.name}` : 'משימה חדשה'}>
+    <Sheet
+      open={newTask.open}
+      onClose={closeNewTask}
+      title={newTask.today ? 'משימה להיום' : newTask.type === 'wash' ? 'שליחה לשטיפה' : newTask.type === 'service' ? 'טיפול ברכב' : fixed ? `משימה חדשה ל${fixed.name}` : 'משימה חדשה'}
+    >
       <DriverTaskForm
-        key={`${newTask.date ?? ''}-${newTask.driverId ?? ''}-${newTask.open}`}
+        key={`${newTask.date ?? ''}-${newTask.driverId ?? ''}-${newTask.type ?? ''}-${newTask.vehicleId ?? ''}-${newTask.today ? 'today' : ''}-${newTask.open}`}
+        defaultType={newTask.type}
+        defaultVehicleId={newTask.vehicleId}
+        todayTask={newTask.today}
         embedded
         driver={fixed}
         drivers={activeDrivers}
@@ -24,7 +31,7 @@ export default function NewTaskSheet() {
         onCreated={() => {
           closeNewTask();
           refresh();
-          toast('המשימה נוצרה');
+          toast('המשימה נשלחה');
         }}
       />
     </Sheet>

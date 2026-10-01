@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { CalendarDays, FileCheck2, LayoutDashboard, LogOut, Plus, Users } from 'lucide-react';
+import { CalendarDays, Car, FileCheck2, LayoutDashboard, LogOut, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { fetcher } from '@/lib/swr';
 import PushBell from '@/components/app/PushBell';
@@ -14,23 +14,15 @@ import { ToastProvider } from '@/components/ui/AppToast';
 import { ManagerDataProvider, useManager } from '@/components/manager/ManagerData';
 import TaskSheet from '@/components/manager/TaskSheet';
 import NewTaskSheet from '@/components/manager/NewTaskSheet';
+import { PhoneActions, SidebarActions } from '@/components/manager/QuickActions';
 
 const NAV = [
   { href: '/driver/manage', label: 'היום', icon: LayoutDashboard },
   { href: '/driver/manage/calendar', label: 'יומן', icon: CalendarDays },
+  { href: '/driver/manage/vehicles', label: 'רכבים', icon: Car },
   { href: '/driver/manage/drivers', label: 'נהגים', icon: Users },
   { href: '/driver/manage/signed', label: 'מסמכים', icon: FileCheck2 },
 ] as const;
-
-function NewTaskButton({ className }: { className: string }) {
-  const { openNewTask } = useManager();
-  return (
-    <button onClick={() => openNewTask()} className={className}>
-      <Plus className="h-5 w-5" aria-hidden="true" />
-      <span>משימה חדשה</span>
-    </button>
-  );
-}
 
 function NavBadge({ href }: { href: string }) {
   const { alerts } = useManager();
@@ -41,7 +33,7 @@ function NavBadge({ href }: { href: string }) {
 
 /**
  * Frame of the branch-manager app. Computer: a sidebar with the logo, the
- * four pages and "משימה חדשה". Phone: a slim top bar, a bottom tab bar and a
+ * pages and "משימה חדשה". Phone: a slim top bar, a bottom tab bar and a
  * floating "+" button. Holds the shared data, the task sheet and the
  * new-task sheet, so switching pages is instant.
  */
@@ -86,7 +78,7 @@ export default function ManagerShell({ children }: { children: ReactNode }) {
               <Image src="/images/logo.png" alt="SmartCar" width={112} height={50} className="h-9 w-auto object-contain" priority />
               <span className="rounded-full bg-[#eef6f6] px-2.5 py-0.5 text-xs font-black text-[#2D5F5F]">מנהלים</span>
             </div>
-            <NewTaskButton className="mb-6 flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#E8743B] text-base font-black text-white shadow-sm shadow-orange-200 transition hover:bg-[#d4632a]" />
+            <SidebarActions />
             <nav className="flex flex-col gap-1" aria-label="ניווט">
               {NAV.map(({ href, label, icon: Icon }) => {
                 const active = pathname === href;
@@ -136,8 +128,8 @@ export default function ManagerShell({ children }: { children: ReactNode }) {
             <main className="mx-auto w-full max-w-5xl px-4 pb-32 pt-5 sm:px-8 lg:pb-12 lg:pt-8">{children}</main>
           </div>
 
-          {/* Floating "+" (phone) */}
-          <NewTaskButton className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-4 z-30 flex h-14 items-center gap-2 rounded-full bg-[#E8743B] px-5 text-base font-black text-white shadow-lg shadow-orange-300/50 transition active:scale-95 lg:hidden" />
+          {/* Floating "משימה חדשה" with a short menu (phone) */}
+          <PhoneActions />
 
           {/* Tab bar (phone) */}
           <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-gray-100 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden" aria-label="ניווט">

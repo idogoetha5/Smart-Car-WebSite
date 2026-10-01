@@ -82,10 +82,10 @@ export default function TaskSheet() {
       title={
         <div>
           <div className="mb-1 flex flex-wrap items-center gap-1.5">
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-black ${service ? 'bg-indigo-50 text-[#5B5BD6]' : pickup ? 'bg-orange-50 text-[#C24E17]' : 'bg-[#eef6f6] text-[#2D5F5F]'}`}>
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-black ${task.service_kind === 'wash' ? 'bg-sky-50 text-sky-700' : service ? 'bg-indigo-50 text-[#5B5BD6]' : pickup ? 'bg-orange-50 text-[#C24E17]' : 'bg-[#eef6f6] text-[#2D5F5F]'}`}>
               {service ? serviceKindLabel(task.service_kind) : pickup ? 'מסירה' : 'החזרה'}
             </span>
-            {task.urgent && task.status === 'open' && <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-black text-white">דחוף</span>}
+            {task.urgent && task.status === 'open' && <span className="rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-black text-[#C24E17]">דחוף</span>}
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-black ${status.cls}`}>{status.text}</span>
             {task.inspection?.status === 'awaiting_signature' && <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-black text-amber-800">ממתין לחתימה</span>}
           </div>
@@ -153,7 +153,7 @@ export default function TaskSheet() {
 
       {/* Details */}
       <div className="divide-y divide-gray-100">
-        {service && (
+        {service && task.service_kind !== 'wash' && (
           <div className={row}>
             <Wrench className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" aria-hidden="true" />
             <div className="min-w-0 flex-1">
@@ -229,7 +229,7 @@ export default function TaskSheet() {
           </div>
         )}
 
-        {task.notes && !service && (
+        {task.notes && (!service || task.service_kind === 'wash') && (
           <div className={row}>
             <StickyNote className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" aria-hidden="true" />
             <div>

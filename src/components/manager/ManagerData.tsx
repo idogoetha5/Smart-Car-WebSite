@@ -8,6 +8,15 @@ import type { ManagerDriver, ManagerTask, SignedJob } from './types';
 
 const REFRESH_MS = 60_000;
 
+export interface NewTaskOptions {
+  date?: string;
+  driverId?: string;
+  type?: 'pickup' | 'return' | 'service' | 'wash';
+  vehicleId?: string;
+  /** "משימה להיום": urgent, for the next hours, to one driver or the first who takes it. */
+  today?: boolean;
+}
+
 export type AlertKind = 'urgent' | 'late' | 'unassigned' | 'unsigned' | 'damage';
 
 interface ManagerData {
@@ -32,8 +41,8 @@ interface ManagerData {
   patchTask: (task: ManagerTask, body: Record<string, unknown>, success?: string) => Promise<boolean>;
   deleteTask: (task: ManagerTask) => Promise<boolean>;
   mutatePeople: ReturnType<typeof useApiList<ManagerDriver>>['mutate'];
-  openNewTask: (opts?: { date?: string; driverId?: string }) => void;
-  newTask: { open: boolean; date?: string; driverId?: string };
+  openNewTask: (opts?: NewTaskOptions) => void;
+  newTask: { open: boolean } & NewTaskOptions;
   closeNewTask: () => void;
   openTask: (id: string) => void;
   openTaskId: string | null;
@@ -131,7 +140,7 @@ export function ManagerDataProvider({ mode, children }: { mode: 'admin' | 'manag
     [tasksApi, mutateTasks, toast]
   );
 
-  const [newTask, setNewTask] = useState<{ open: boolean; date?: string; driverId?: string }>({ open: false });
+  const [newTask, setNewTask] = useState<{ open: boolean } & NewTaskOptions>({ open: false });
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
 
   const value: ManagerData = {
