@@ -34,7 +34,7 @@ export interface InspectionStatusViewProps {
  * admin inspection detail page and the driver app's status page (which also
  * passes signLink for the QR fallback). No realtime infra exists in this
  * repo, so this polls every 15s while awaiting signature, plus a manual
- * refresh.
+ * status check.
  */
 export default function InspectionStatusView({ apiBase, id, isHe, signLink }: InspectionStatusViewProps) {
   const { data, isLoading, mutate } = useApiItem<{ data: InspectionDetail }>(
@@ -79,7 +79,7 @@ export default function InspectionStatusView({ apiBase, id, isHe, signLink }: In
           <Clock className="w-14 h-14 text-amber-600 mx-auto mb-3" aria-hidden="true" />
         )}
         <h1 className="text-2xl font-black text-gray-900 mb-1">
-          {signed ? (isHe ? 'נחתם ✓ — אפשר למסור מפתח' : 'Signed ✓') : (isHe ? 'ממתין לחתימת הלקוח' : 'Awaiting customer signature')}
+          {signed ? (isHe ? 'הטופס נחתם — אפשר להמשיך' : 'Form signed — ready to continue') : (isHe ? 'ממתינים לחתימת הלקוח' : 'Awaiting customer signature')}
         </h1>
         {signed && inspection.signed_at && (
           <p className="text-sm text-gray-600">
@@ -91,7 +91,7 @@ export default function InspectionStatusView({ apiBase, id, isHe, signLink }: In
       {!signed && qrDataUrl && (
         <div className="mt-5 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm text-center">
           <p className="text-sm font-bold text-gray-700 mb-3">
-            {isHe ? 'אם המייל מתעכב — הלקוח יכול לסרוק כאן' : 'If the email is slow, the customer can scan here'}
+            {isHe ? 'אפשר לסרוק את הקוד ולפתוח את הטופס לחתימה' : 'Scan the code to open the form for signing'}
           </p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={qrDataUrl} alt={isHe ? 'קוד QR לחתימה' : 'Signing QR code'} className="mx-auto" width={220} height={220} />
@@ -111,7 +111,7 @@ export default function InspectionStatusView({ apiBase, id, isHe, signLink }: In
           className="mt-4 w-full min-h-12 flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white font-bold text-gray-700 hover:bg-gray-50"
         >
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          {isHe ? 'רענון' : 'Refresh'}
+          {isHe ? 'בדיקת סטטוס החתימה' : 'Check signature status'}
         </button>
       )}
     </div>

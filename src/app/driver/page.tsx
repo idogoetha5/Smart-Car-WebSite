@@ -68,7 +68,7 @@ function TaskAction({ row }: { row: TaskRow }) {
       onClick={() => router.push(signed ? `/driver/inspection/${row.inspection!.id}` : `/driver/inspection/${row.inspection!.id}/sign`)}
       className={`${base} ${signed ? 'bg-green-100 text-green-700' : 'bg-amber-400 text-gray-900'}`}
     >
-      {signed ? '✓ נחתם — צפייה בטופס' : 'לחתימת הלקוח'}
+      {signed ? 'הטופס נחתם — לצפייה' : 'מעבר לחתימת הלקוח'}
     </button>
   );
 }
@@ -168,7 +168,7 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        setClaimError(json?.error || 'לא הצלחנו. נסו שוב.');
+        setClaimError(json?.error || 'לא הצלחנו להקצות את המשימה. נסו שוב.');
       }
       onChanged();
     } finally {
@@ -186,7 +186,7 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
       setSheet(false);
       onChanged();
     } catch {
-      setSaveError('שמירת הכתובת נכשלה');
+      setSaveError('לא הצלחנו לשמור את הכתובת. נסו שוב.');
     } finally {
       setSaving(false);
     }
@@ -231,7 +231,7 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
   });
   if (!awaiting && row.taskId && !row.claimable) items.push({
     key: 'done',
-    label: marking ? 'שומר…' : isDone ? 'ביטול סימון "בוצע"' : 'סמן כבוצע',
+    label: marking ? 'שומר…' : isDone ? 'החזרה למשימות פתוחות' : 'סימון המשימה כבוצעה',
     icon: <CheckCircle2 className="h-6 w-6 shrink-0" aria-hidden="true" />,
     onClick: toggleDone,
     tone: 'done',
@@ -244,7 +244,7 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
       {row.urgent && !isDone && (
         <p className="mb-1.5 inline-flex items-center gap-1 text-sm font-black text-[#C24E17]">
           <Zap className="h-4 w-4" aria-hidden="true" />
-          {row.claimable ? 'דחוף · מחכה לנהג' : 'דחוף'}
+          {row.claimable ? 'דחוף · ממתין לשיוך' : 'דחוף'}
         </p>
       )}
       <div className="flex items-start justify-between gap-3">
@@ -270,7 +270,7 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
 
       <p className={`mt-2 flex items-center gap-1.5 text-sm truncate ${hasAddress ? 'text-gray-700' : 'text-gray-400'}`}>
         <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
-        <span className="truncate">{hasAddress ? row.location : 'אין כתובת'}</span>
+        <span className="truncate">{hasAddress ? row.location : 'לא הוזנה כתובת'}</span>
       </p>
 
       {row.service && (
@@ -290,7 +290,7 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
             disabled={marking}
             className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#E8743B] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50"
           >
-            {marking ? 'רגע…' : 'אני לוקח את המשימה'}
+            {marking ? 'מקצה את המשימה…' : 'קבלת המשימה'}
           </button>
           {claimError && <p className="mt-2 text-center text-sm font-bold text-red-600">{claimError}</p>}
         </div>
@@ -310,7 +310,7 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
             }`}
           >
             <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-            {isDone ? 'בוצע — לחצו לביטול' : 'סמן כבוצע'}
+            {isDone ? 'המשימה בוצעה' : 'סימון כבוצע'}
           </button>
         </div>
       )}
@@ -324,7 +324,7 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
         ) : row.taskId ? (
           <button type="button" onClick={() => { setEditing(true); setSheet(true); }} className={`${secBtn} border-dashed border-gray-300 text-gray-500`}>
             <MapPin className="h-5 w-5" aria-hidden="true" />
-            הוסף כתובת
+            הוספת כתובת
           </button>
         ) : null}
         {telUrl && (
@@ -335,7 +335,7 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
         )}
         <button type="button" onClick={() => setSheet(true)} className={`${secBtn} border-gray-200 bg-white text-gray-600`}>
           <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
-          {items.length > 2 ? 'וואטסאפ ועוד' : 'עוד'}
+          {items.length > 2 ? 'הודעות ופעולות' : 'פעולות נוספות'}
         </button>
       </div>
 

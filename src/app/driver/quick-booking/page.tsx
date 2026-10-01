@@ -158,10 +158,10 @@ export default function DriverQuickBookingPage() {
         }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.error || 'יצירת ההזמנה נכשלה');
+      if (!res.ok) throw new Error(json?.error || 'לא הצלחנו ליצור את המשימה. נסו שוב.');
       router.push(`/driver/inspection/new?bookingId=${json.bookingId}&type=${type}`);
     } catch (err) {
-      setError((err as Error)?.message || 'משהו השתבש. נסה שוב.');
+      setError((err as Error)?.message || 'לא הצלחנו ליצור את המשימה. בדקו את הפרטים ונסו שוב.');
     } finally {
       setSubmitting(false);
     }
@@ -169,12 +169,12 @@ export default function DriverQuickBookingPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8" dir="rtl">
-      <h1 className="text-2xl font-black text-gray-900 mb-1">משימה חדשה</h1>
-      <p className="text-gray-500 text-base mb-6">מסירה חדשה, או החזרה של לקוח קיים</p>
+      <h1 className="text-2xl font-black text-gray-900 mb-1">בדיקת רכב חדשה</h1>
+      <p className="text-gray-500 text-base mb-6">יצירת בדיקת מסירה או החזרה והחתמת הלקוח</p>
 
       <div className="space-y-5">
         <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <span className="block font-black text-gray-800 mb-3">מה עושים?</span>
+          <span className="block font-black text-gray-800 mb-3">בחרו את סוג הבדיקה</span>
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -245,7 +245,7 @@ export default function DriverQuickBookingPage() {
               רכב מהצי
             </button>
             <button type="button" onClick={() => setVehicleMode('custom')} className={`min-h-12 rounded-xl border-2 text-base font-black ${vehicleMode === 'custom' ? 'border-[#2D5F5F] bg-[#eef6f6] text-[#2D5F5F]' : 'border-gray-200 text-gray-600'}`}>
-              רכב שלא ברשימה
+              רכב שאינו ברשימה
             </button>
           </div>
           {vehicleMode === 'fleet' ? (
@@ -265,7 +265,7 @@ export default function DriverQuickBookingPage() {
               </div>
               {fleetPlateMissing && (
                 <label className="mt-3 block rounded-xl border-2 border-amber-300 bg-amber-50 p-3">
-                  <span className="block text-sm font-bold text-amber-900 mb-1">לרכב הזה אין מספר רישוי במערכת — כתוב אותו</span>
+                  <span className="block text-sm font-bold text-amber-900 mb-1">מספר הרישוי של הרכב חסר במערכת. הזינו אותו כדי להמשיך.</span>
                   <input value={customLicensePlate} onChange={(e) => setCustomLicensePlate(e.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" required className="w-full min-h-12 rounded-xl border-2 border-gray-200 bg-white px-3 text-base" />
                 </label>
               )}
@@ -292,7 +292,7 @@ export default function DriverQuickBookingPage() {
           onClick={handleSubmit}
           className="w-full min-h-14 rounded-xl bg-[#E8743B] hover:bg-[#d4632a] disabled:opacity-40 text-white font-black text-lg"
         >
-          {submitting ? 'יוצר הזמנה...' : 'המשך לבדיקה'}
+          {submitting ? 'יוצר את הבדיקה…' : 'המשך לפרטי הבדיקה'}
         </button>
         </>
         )}

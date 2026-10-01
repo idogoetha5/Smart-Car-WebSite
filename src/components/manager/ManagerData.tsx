@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useApiList } from '@/lib/swr';
 import { byWhen, israelClock, israelDate, taskWhen } from '@/lib/task-schedule';
 import { useToast } from '@/components/ui/AppToast';
+import type { RentalAlert } from '@/lib/rental-alerts';
 import type { ManagerDriver, ManagerTask, SignedJob } from './types';
 
 const REFRESH_MS = 60_000;
@@ -17,7 +18,7 @@ export interface NewTaskOptions {
   today?: boolean;
 }
 
-export type AlertKind = 'urgent' | 'late' | 'unassigned' | 'unsigned' | 'damage';
+export type AlertKind = 'urgent' | 'late' | 'unassigned' | 'unsigned';
 
 interface ManagerData {
   isAdmin: boolean;
@@ -36,7 +37,9 @@ interface ManagerData {
   now: number;
   today: string;
   tomorrow: string;
-  alerts: Record<AlertKind, ManagerTask[]> & { damageJobs: SignedJob[] };
+  alerts: Record<AlertKind, ManagerTask[]>;
+  rentalAlerts: RentalAlert[];
+  setRentalAlertResolved: (alert: RentalAlert, resolved: boolean) => Promise<boolean>;
   refresh: () => void;
   patchTask: (task: ManagerTask, body: Record<string, unknown>, success?: string) => Promise<boolean>;
   deleteTask: (task: ManagerTask) => Promise<boolean>;
@@ -69,6 +72,7 @@ export function ManagerDataProvider({ mode, children }: { mode: 'admin' | 'manag
   const { items: people, isLoading: peopleLoading, mutate: mutatePeople } = useApiList<ManagerDriver>(peopleApi, live);
   const { items: tasks, isLoading: tasksLoading, mutate: mutateTasks } = useApiList<ManagerTask>(tasksApi, live);
   const { items: signedJobs, mutate: mutateSigned } = useApiList<SignedJob>(isAdmin ? '/api/admin/inspections/signed' : '/api/driver/manage/inspections', live);
+  const { items: rentalAlerts, mutate: mutateRentalAlerts } = useApiList<RentalAlert>('/api/driver/manage/rental-alerts', live);
 
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -99,17 +103,33 @@ export function ManagerDataProvider({ mode, children }: { mode: 'admin' | 'manag
       else if (task.status === 'open' && !task.assigned_driver_id && day && day <= tomorrow) unassigned.push(task);
       if (task.inspection?.status === 'awaiting_signature') unsigned.push(task);
     }
-    const damageJobs = signedJobs.filter(
-      (j) => j.type === 'return' && j.damageCount > 0 && j.signedAt && now - new Date(j.signedAt).getTime() < 3 * 86_400_000
-    );
-    return { urgent, late, unassigned, unsigned, damage: [] as ManagerTask[], damageJobs };
-  }, [liveTasks, signedJobs, now, today, tomorrow]);
+    return { urgent, late, unassigned, unsigned };
+  }, [liveTasks, now, today, tomorrow]);
 
   const refresh = useCallback(() => {
     void mutatePeople();
     void mutateTasks();
     void mutateSigned();
-  }, [mutatePeople, mutateTasks, mutateSigned]);
+    void mutateRentalAlerts();
+  }, [mutatePeople, mutateTasks, mutateSigned, mutateRentalAlerts]);
+
+  const setRentalAlertResolved = useCallback(
+    async (alert: RentalAlert, resolved: boolean) => {
+      const res = await fetch(`/api/driver/manage/rental-alerts/${alert.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resolved }),
+      });
+      if (!res.ok) {
+        toast('לא הצלחנו לעדכן את החריגה. נסו שוב.', false);
+        return false;
+      }
+      toast(resolved ? 'החריגה סומנה כטופלה' : 'החריגה הוחזרה לטיפול');
+      void mutateRentalAlerts();
+      return true;
+    },
+    [mutateRentalAlerts, toast]
+  );
 
   const patchTask = useCallback(
     async (task: ManagerTask, body: Record<string, unknown>, success?: string) => {
@@ -161,6 +181,8 @@ export function ManagerDataProvider({ mode, children }: { mode: 'admin' | 'manag
     today,
     tomorrow,
     alerts,
+    rentalAlerts,
+    setRentalAlertResolved,
     refresh,
     patchTask,
     deleteTask,

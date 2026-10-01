@@ -180,7 +180,7 @@ export default function DriverTaskForm({
     event.preventDefault();
     setError('');
     const broadcast = urgent && urgentTo === 'first';
-    if (urgent && urgentTo === 'driver' && !driver) return setError('יש לבחור נהג, או לבחור "לראשון שלוקח"');
+    if (urgent && urgentTo === 'driver' && !driver) return setError('בחרו נהג, או הקצו את המשימה לכל הנהגים');
     if (type === 'service' || type === 'wash') {
       if (!date) return setError('יש לבחור תאריך');
       if (type === 'wash' && !driver && !broadcast) return setError('יש לבחור נהג לשטיפה');
@@ -208,7 +208,7 @@ export default function DriverTaskForm({
           }),
         });
         const json = await response.json().catch(() => ({}));
-        if (!response.ok) return setError(json?.error || 'יצירת המשימה נכשלה');
+        if (!response.ok) return setError(json?.error || 'לא הצלחנו ליצור את המשימה. נסו שוב.');
         onCreated();
       } finally {
         setCreating(false);
@@ -261,7 +261,7 @@ export default function DriverTaskForm({
       });
       const json = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setError(json?.error || 'יצירת המשימה נכשלה');
+        setError(json?.error || 'לא הצלחנו ליצור את המשימה. נסו שוב.');
         return;
       }
       onCreated();
@@ -325,21 +325,21 @@ export default function DriverTaskForm({
       {!embedded && (
         <div>
           <h3 className="text-lg font-black text-gray-900">{fixedDriver ? `משימה חדשה עבור ${fixedDriver.name}` : 'משימה חדשה'}</h3>
-          <p className="text-sm text-gray-500">המשימה תופיע אצל הנהג ביום שנבחר, והוא יקבל התראה לטלפון</p>
+          <p className="text-sm text-gray-500">המשימה תופיע לנהג במועד שנבחר, ותישלח אליו התראה.</p>
         </div>
       )}
 
       {todayTask && (
         <div>
-          <span className={label}>למי לשלוח?</span>
+          <span className={label}>למי להקצות את המשימה?</span>
           <div className="flex gap-1 rounded-2xl bg-gray-100 p-1">
             <button type="button" onClick={() => setUrgentTo('driver')} className={tab(urgentTo === 'driver')}>{fixedDriver ? fixedDriver.name : 'לנהג מסוים'}</button>
-            <button type="button" onClick={() => setUrgentTo('first')} className={tab(urgentTo === 'first')}>לראשון שלוקח</button>
+            <button type="button" onClick={() => setUrgentTo('first')} className={tab(urgentTo === 'first')}>לכל הנהגים</button>
           </div>
           <p className="mt-2 text-sm text-gray-600">
             {urgentTo === 'first'
-              ? 'כל הנהגים יקבלו התראה. הראשון שילחץ "אני לוקח" יקבל את המשימה.'
-              : 'הנהג יקבל התראה מיד, והמשימה תופיע אצלו ראשונה.'}
+              ? 'כל הנהגים יקבלו התראה. המשימה תוקצה לנהג הראשון שיאשר אותה.'
+              : 'הנהג שנבחר יקבל התראה, והמשימה תופיע בראש הרשימה שלו.'}
           </p>
         </div>
       )}
@@ -348,7 +348,7 @@ export default function DriverTaskForm({
         <label className="block">
           <span className={label}>{type === 'wash' ? 'איזה נהג?' : 'נהג'}</span>
           <select value={pickedDriverId} onChange={(event) => setPickedDriverId(event.target.value)} className={field}>
-            <option value="">{type === 'wash' || todayTask ? 'בחרו נהג' : 'עוד לא — אשייך נהג אחר כך'}</option>
+            <option value="">{type === 'wash' || todayTask ? 'בחרו נהג' : 'ללא נהג — ניתן לשייך בהמשך'}</option>
             {drivers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </label>
@@ -391,7 +391,7 @@ export default function DriverTaskForm({
       {type === 'service' && (
         <div className="space-y-5 rounded-3xl bg-indigo-50/50 p-4 ring-1 ring-indigo-100">
           <div>
-            <span className={label}>לאן הרכב נוסע?</span>
+            <span className={label}>יעד הטיפול</span>
             <div className="flex flex-wrap gap-2">
               {(Object.keys(SERVICE_KINDS) as ServiceKind[]).filter((k) => k !== 'wash').map((k) => (
                 <button key={k} type="button" onClick={() => { setServiceKind(k); setServiceReason(DEFAULT_REASON[k]); }} className={chip(serviceKind === k)}>{SERVICE_KINDS[k]}</button>
@@ -406,7 +406,7 @@ export default function DriverTaskForm({
               ))}
             </div>
           </div>
-          <label className="block"><span className={label}>מה צריך לעשות? (לא חובה)</span>
+          <label className="block"><span className={label}>פירוט הטיפול (לא חובה)</span>
             <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={2} placeholder="לדוגמה: נורית מנוע דולקת, רעש בבלמים" className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base focus:border-[#2D5F5F] focus:outline-none focus:ring-4 focus:ring-[#2D5F5F]/10" />
           </label>
           <label className="block"><span className={label}>שם המקום (לא חובה)</span>
@@ -419,7 +419,7 @@ export default function DriverTaskForm({
       {type === 'wash' && (
         <div className="space-y-4 rounded-3xl bg-sky-50/60 p-4 ring-1 ring-sky-100">
           <div>{vehicleBlock}</div>
-          <label className="block"><span className={label}>איפה? (לא חובה)</span>
+          <label className="block"><span className={label}>מקום השטיפה (לא חובה)</span>
             <input value={servicePlace} onChange={(event) => setServicePlace(event.target.value)} placeholder="לדוגמה: שטיפת הדר, או בסניף" className={field} />
           </label>
           <label className="block"><span className={label}>הערות (לא חובה)</span>
@@ -439,7 +439,7 @@ export default function DriverTaskForm({
         {mode === 'existing' ? (
           <div>
             {type === 'return' && (
-              <p className="mb-2 text-sm text-[#2D5F5F]">בחר את ההזמנה שבה הרכב נמסר — כך הנהג יראה באפור את הנזקים שסומנו במסירה.</p>
+              <p className="mb-2 text-sm text-[#2D5F5F]">בחרו את ההזמנה שבה הרכב נמסר. הנזקים שתועדו במסירה יוצגו לנהג באפור, כדי שיסמן רק נזקים חדשים.</p>
             )}
             <input value={bookingSearch} onChange={(event) => setBookingSearch(event.target.value)} placeholder="חיפוש לפי שם לקוח / מספר הזמנה" className={`${field} mb-2`} />
             <div className="max-h-64 space-y-2 overflow-y-auto">
@@ -485,7 +485,7 @@ export default function DriverTaskForm({
                 <span className={label}>שעה (לא חובה)</span>
                 <input type="time" value={returnTime} onChange={(event) => setReturnTime(event.target.value)} className={field} />
               </label>
-              <p className="col-span-2 text-sm text-gray-600">{driver ? `משימת ההחזרה תשויך ל${driver.name}.` : 'משימת ההחזרה תיפתח בלי נהג.'} אפשר להעביר אותה לנהג אחר אחר כך.</p>
+              <p className="col-span-2 text-sm text-gray-600">{driver ? `משימת ההחזרה תשויך ל${driver.name}.` : 'משימת ההחזרה תיווצר ללא נהג.'} ניתן לשנות את השיוך בהמשך.</p>
             </div>
           )}
         </div>
@@ -499,7 +499,7 @@ export default function DriverTaskForm({
       </label>}
       {error && <p className="text-sm font-bold text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button type="submit" disabled={creating} className="min-h-14 flex-[2] rounded-2xl bg-[#E8743B] text-base font-black text-white shadow-sm shadow-orange-200 transition hover:bg-[#d4632a] disabled:opacity-50">{creating ? 'שולח…' : urgent && urgentTo === 'first' ? 'שליחה לכל הנהגים' : type === 'wash' && driver ? `שליחה לשטיפה עם ${driver.name}` : driver ? `שליחה ל${driver.name}` : 'יצירת משימה'}</button>
+        <button type="submit" disabled={creating} className="min-h-14 flex-[2] rounded-2xl bg-[#E8743B] text-base font-black text-white shadow-sm shadow-orange-200 transition hover:bg-[#d4632a] disabled:opacity-50">{creating ? 'יוצר את המשימה…' : urgent && urgentTo === 'first' ? 'הקצאה לכל הנהגים' : type === 'wash' && driver ? `יצירת משימת שטיפה ל${driver.name}` : driver ? `יצירת משימה ל${driver.name}` : 'יצירת משימה'}</button>
         <button type="button" onClick={onCancel} className="min-h-14 flex-1 rounded-2xl bg-gray-100 text-base font-bold text-gray-600 hover:bg-gray-200">ביטול</button>
       </div>
     </form>

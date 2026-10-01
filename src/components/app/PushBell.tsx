@@ -106,7 +106,7 @@ export default function PushBell({ audience }: { audience: 'driver' | 'manager' 
       setState('on');
       setMessage({ ok: true, text: 'ההתראות הופעלו. שלחנו התראת ניסיון.' });
     } catch {
-      setMessage({ ok: false, text: 'לא הצלחנו להפעיל. בדקו שיש אינטרנט ונסו שוב.' });
+      setMessage({ ok: false, text: 'לא הצלחנו להפעיל את ההתראות. בדקו את החיבור לאינטרנט ונסו שוב.' });
     } finally {
       setBusy(false);
     }
@@ -127,7 +127,7 @@ export default function PushBell({ audience }: { audience: 'driver' | 'manager' 
 
   if (state === 'loading' || (state === 'hidden' && !installEvent)) return null;
 
-  const what = audience === 'manager' ? 'על כל טופס שנחתם ועל החזרות עם נזקים חדשים' : 'על משימה חדשה, שינוי מועד או ביטול';
+  const what = audience === 'manager' ? 'כאשר טופס נחתם או מתגלה חריגה בהחזרה' : 'כאשר מתקבלת משימה חדשה או חל שינוי במשימה';
   const needsAction = state === 'off' || state === 'needs-install';
   const Icon = state === 'on' ? BellRing : state === 'denied' ? BellOff : Bell;
   const btn = 'min-h-12 w-full rounded-xl text-base font-black';
@@ -152,22 +152,22 @@ export default function PushBell({ audience }: { audience: 'driver' | 'manager' 
 
             {state === 'on' && (
               <>
-                <p className="text-sm text-gray-600">ההתראות פעילות בטלפון הזה. תקבלו הודעה {what}.</p>
+                <p className="text-sm text-gray-600">ההתראות פעילות במכשיר הזה. תישלח אליכם הודעה {what}.</p>
                 <button onClick={sendTest} disabled={busy} className={`${btn} mt-4 border-2 border-[#B8D8D8] text-[#2D5F5F] disabled:opacity-50`}>שליחת התראת ניסיון</button>
               </>
             )}
             {state === 'off' && (
               <>
-                <p className="text-sm text-gray-600">קבלו הודעה לטלפון {what}.</p>
-                <button onClick={enable} disabled={busy} className={`${btn} mt-4 bg-[#2D5F5F] text-white disabled:opacity-50`}>{busy ? 'מפעיל…' : 'הפעלה'}</button>
+                <p className="text-sm text-gray-600">הפעילו התראות כדי לקבל עדכון {what}.</p>
+                <button onClick={enable} disabled={busy} className={`${btn} mt-4 bg-[#2D5F5F] text-white disabled:opacity-50`}>{busy ? 'מפעיל…' : 'הפעלת התראות'}</button>
               </>
             )}
             {state === 'denied' && (
-              <p className="text-sm text-gray-600">ההתראות חסומות בטלפון. כדי לקבל הודעות {what}, אפשרו התראות ל־SmartCar בהגדרות הטלפון ורעננו את הדף.</p>
+              <p className="text-sm text-gray-600">ההתראות חסומות במכשיר. כדי לקבל עדכונים, אפשרו התראות ל־SmartCar בהגדרות המכשיר ופתחו מחדש את האפליקציה.</p>
             )}
             {state === 'needs-install' && (
               <p className="text-sm text-gray-600">
-                באייפון התראות עובדות רק מהאפליקציה שעל מסך הבית: בספארי לוחצים על כפתור השיתוף ⬆︎, בוחרים &quot;הוספה למסך הבית&quot;, ונכנסים מהאייקון החדש.
+                באייפון ניתן לקבל התראות לאחר הוספת SmartCar למסך הבית: פתחו את תפריט השיתוף בספארי, בחרו &quot;הוספה למסך הבית&quot; ולאחר מכן פתחו את האפליקציה מהסמל החדש.
               </p>
             )}
 

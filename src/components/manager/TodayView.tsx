@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
-import { AlertTriangle, CalendarCheck, Clock3, FileWarning, Search, UserX, X, Zap } from 'lucide-react';
+import { CalendarCheck, Clock3, FileWarning, Search, UserX, X, Zap } from 'lucide-react';
 import { fetcher } from '@/lib/swr';
 import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
 import { numericOrderReference } from '@/lib/order-reference';
@@ -12,7 +12,7 @@ import { useManager, type AlertKind } from './ManagerData';
 import TaskRow, { TaskList } from './TaskRow';
 import { taskCar } from './types';
 import { serviceReasonLabel, serviceTitle } from '@/lib/service-task';
-import DocRow from './DocRow';
+import RentalAlertsPanel from './RentalAlertsPanel';
 
 const DAYS_AHEAD = 14;
 
@@ -63,11 +63,10 @@ export default function TodayView() {
   }, [tasks, query]);
 
   const chips: Array<{ kind: AlertKind; label: string; count: number; icon: typeof Clock3; cls: string }> = [
-    { kind: 'urgent', label: 'דחופות', count: alerts.urgent.length, icon: Zap, cls: 'bg-white text-[#0D2B2B] ring-gray-200' },
-    { kind: 'late', label: 'באיחור', count: alerts.late.length, icon: Clock3, cls: 'bg-red-50 text-red-700 ring-red-100' },
+    { kind: 'urgent', label: 'משימות דחופות', count: alerts.urgent.length, icon: Zap, cls: 'bg-white text-[#0D2B2B] ring-gray-200' },
+    { kind: 'late', label: 'משימות באיחור', count: alerts.late.length, icon: Clock3, cls: 'bg-red-50 text-red-700 ring-red-100' },
     { kind: 'unassigned', label: 'ללא נהג', count: alerts.unassigned.length, icon: UserX, cls: 'bg-amber-50 text-amber-800 ring-amber-100' },
     { kind: 'unsigned', label: 'ממתינים לחתימה', count: alerts.unsigned.length, icon: FileWarning, cls: 'bg-sky-50 text-sky-800 ring-sky-100' },
-    { kind: 'damage', label: 'נזק בהחזרה', count: alerts.damageJobs.length, icon: AlertTriangle, cls: 'bg-red-50 text-red-700 ring-red-100' },
   ];
   const activeChips = chips.filter((c) => c.count > 0);
 
@@ -84,7 +83,7 @@ export default function TodayView() {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="חיפוש לקוח, רכב, טלפון או כתובת"
+          placeholder="חיפוש לפי לקוח, רכב, טלפון או כתובת"
           className="h-13 min-h-12 w-full rounded-full border border-gray-200 bg-white ps-12 pe-12 text-base shadow-sm transition focus:border-[#2D5F5F] focus:outline-none focus:ring-4 focus:ring-[#2D5F5F]/10"
         />
         {query && (
@@ -100,11 +99,12 @@ export default function TodayView() {
           {results.length ? (
             <TaskList>{results.map((t) => <TaskRow key={t.id} task={t} showDay />)}</TaskList>
           ) : (
-            <EmptyState icon={Search} title="לא נמצא" text="נסו שם אחר, מספר רישוי או טלפון." />
+            <EmptyState icon={Search} title="לא נמצאו תוצאות" text="נסו לחפש לפי שם, מספר רישוי, טלפון או כתובת." />
           )}
         </section>
       ) : (
         <>
+          <RentalAlertsPanel />
           {/* Attention */}
           {activeChips.length > 0 && (
             <div className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
@@ -128,11 +128,7 @@ export default function TodayView() {
                 <h2 className="text-lg font-black text-[#0D2B2B]">{chips.find((c) => c.kind === filter)?.label}</h2>
                 <button onClick={() => setFilter(null)} className="min-h-11 rounded-full px-4 text-sm font-bold text-[#2D5F5F] hover:bg-[#eef6f6]">חזרה ליום</button>
               </div>
-              {filter === 'damage' ? (
-                <TaskList>{alerts.damageJobs.map((j) => <DocRow key={j.id} job={j} />)}</TaskList>
-              ) : (
-                <TaskList>{alerts[filter].map((t) => <TaskRow key={t.id} task={t} showDay />)}</TaskList>
-              )}
+              <TaskList>{alerts[filter].map((t) => <TaskRow key={t.id} task={t} showDay />)}</TaskList>
             </section>
           ) : (
             <>

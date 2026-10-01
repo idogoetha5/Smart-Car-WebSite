@@ -95,7 +95,7 @@ export default function TaskSheet() {
       footer={
         task.status === 'done' ? null : confirming ? (
           <div className="flex items-center gap-2">
-            <p className="flex-1 text-sm font-bold text-gray-700">{task.status === 'open' ? 'לבטל את המשימה? הנהג יקבל הודעה.' : 'למחוק לצמיתות?'}</p>
+            <p className="flex-1 text-sm font-bold text-gray-700">{task.status === 'open' ? 'האם לבטל את המשימה? הנהג יקבל על כך הודעה.' : 'האם למחוק את המשימה לצמיתות?'}</p>
             <button
               disabled={busy}
               onClick={() => run(async () => {
@@ -106,9 +106,9 @@ export default function TaskSheet() {
               })}
               className="min-h-11 rounded-2xl bg-red-600 px-5 text-sm font-black text-white disabled:opacity-50"
             >
-              כן
+              {task.status === 'open' ? 'ביטול המשימה' : 'מחיקה לצמיתות'}
             </button>
-            <button onClick={() => setConfirming(false)} className="min-h-11 rounded-2xl bg-gray-100 px-5 text-sm font-bold text-gray-600">לא</button>
+            <button onClick={() => setConfirming(false)} className="min-h-11 rounded-2xl bg-gray-100 px-5 text-sm font-bold text-gray-600">חזרה</button>
           </div>
         ) : (
           <button onClick={() => setConfirming(true)} className="min-h-12 w-full rounded-2xl text-sm font-black text-red-600 hover:bg-red-50">
@@ -271,7 +271,7 @@ export default function TaskSheet() {
               </button>
             )}
           </div>
-          {!task.assigned_driver_id && <p className="mt-2 text-sm text-red-600">עוד לא שויך נהג למשימה הזו.</p>}
+          {!task.assigned_driver_id && <p className="mt-2 text-sm text-red-600">המשימה עדיין לא שויכה לנהג.</p>}
           {task.assigned_driver_id && !activeDrivers.some((d) => d.id === task.assigned_driver_id) && (
             <p className="mt-2 text-sm text-gray-500">משויך ל{driverName(task.assigned_driver_id) || 'נהג לא פעיל'}.</p>
           )}
