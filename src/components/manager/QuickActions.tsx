@@ -55,7 +55,7 @@ export function SidebarActions() {
         משימה חדשה
       </button>
       <p className="mb-2 px-1 text-xs font-bold text-slate-400">פעולות מהירות</p>
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="grid gap-2">
         {QUICK_ACTIONS.map((a) => {
           const Icon = a.icon;
           return (
@@ -63,12 +63,13 @@ export function SidebarActions() {
               key={a.key}
               type="button"
               onClick={() => openNewTask(a.opts)}
-              className="flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-1.5 py-2 text-center text-[11px] font-black leading-tight text-[#0D2B2B] transition hover:border-[#2D5F5F]/30 hover:bg-[#f6fbfb]"
+              className="group flex min-h-14 w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 text-start text-sm font-black text-[#0D2B2B] shadow-sm transition hover:border-[#2D5F5F]/30 hover:bg-[#f6fbfb] hover:shadow-md"
             >
-              <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${a.tone}`}>
-                <Icon className="h-4 w-4" aria-hidden="true" />
+              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${a.tone}`}>
+                <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
               </span>
-              <span>{a.title}</span>
+              <span className="flex-1">{a.title}</span>
+              <ChevronLeft className="h-4 w-4 text-slate-300 transition group-hover:-translate-x-0.5 group-hover:text-[#2D5F5F]" aria-hidden="true" />
             </button>
           );
         })}
