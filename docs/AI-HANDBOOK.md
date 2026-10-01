@@ -93,6 +93,7 @@ Texts in `src/lib/push-messages.ts` (human, polite, short Hebrew; each task type
    - Mobile audit: `npm run dev`, then `npm i --no-save playwright && npm run audit:mobile`. It must print "All driver screens pass the mobile threshold". Add new screens and mocks to `scripts/mobile-audit/run.mjs`, and look at the screenshots.
    - Visual check: `BASE=http://localhost:3000 node scripts/mobile-audit/review.mjs` → `scripts/mobile-audit/out/review/`.
 6. Commit as Ido (`Ido Goetha <ido.goetha5@gmail.com>`). Never commit secrets (`.env*`, VAPID keys, service keys).
+7. There are no extra worktrees anymore; work on branches from clean-main.
 
 ## 5. How to deploy (go live)
 
@@ -120,7 +121,7 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
-- 2026-10-01 — Separate driver/manager sessions (`manager_auth`). Fixes tasks not showing in the driver app after a manager login. Branch `fix/separate-sessions`. No migration.
+- 2026-10-01 — Separate driver/manager sessions (`manager_auth`). Fixes tasks not showing in the driver app after a manager login. Branch `fix/separate-sessions`, merge 828849a. No migration. Deployed.
 - 2026-10-01 — Rental exceptions panel, fleet add/delete with test date and km, copy polish (Codex). Commits 65aad9e, 474da35. Migrations `add-rental-alert-reviews.sql`, `add-vehicle-fleet-details.sql`. Deployed.
 - 2026-10-01 — Wash and car care as their own jobs, "משימה להיום", vehicles page, task-type notifications. Commit 8affa96. Migrations `add-service-tasks.sql`, `add-urgent-tasks.sql`. Deployed.
 - Earlier (Sep 2026): driver app, inspections with signature and PDF, return comparison, manager app v2 (day board, calendar, search, reschedule), Web Push, brand redesign, urgent tasks, garage tasks.
