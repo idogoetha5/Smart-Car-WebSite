@@ -53,5 +53,5 @@ Drivers and branch managers use the driver app (`/driver/*`, `src/components/ins
 - Lists are rows inside one white card (`TaskList` + `TaskRow`); details and edits open in a `Sheet` (bottom sheet on a phone, drawer/dialog on a computer) instead of crowding cards with buttons.
 - Feedback with `useToast()` from `src/components/ui/AppToast.tsx`, never `alert()`/`confirm()`/`prompt()`.
 - Never show behind-the-scenes wording to users ("מתעדכן אוטומטית", "רענון", technical states). Data refreshes quietly (SWR `refreshInterval`).
-- Manager app structure: shell `src/components/app/ManagerShell.tsx` (sidebar on a computer, bottom tabs + floating "משימה חדשה" on a phone), data `src/components/manager/ManagerData.tsx`, pages היום / יומן / נהגים / מסמכים under `/driver/manage/*`. The admin "נהגים" page shows the same views as tabs (`ManagerWorkspace`).
+- Manager app structure: shell `src/components/app/ManagerShell.tsx` (sidebar on a computer, bottom tabs + floating "משימה חדשה" on a phone), data `src/components/manager/ManagerData.tsx`, pages היום / יומן / רכבים / נהגים / מסמכים under `/driver/manage/*`. The admin "נהגים" page shows the same views as tabs (`ManagerWorkspace`).
 - For a visual check, `BASE=http://localhost:3000 node scripts/mobile-audit/review.mjs` saves phone and computer screenshots of the main screens to `scripts/mobile-audit/out/review/`.

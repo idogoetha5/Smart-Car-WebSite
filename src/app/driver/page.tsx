@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR, { preload } from 'swr';
-import { Zap, Wrench, Search, LogOut, Plus, Navigation, Phone, Pencil, MapPin, MessageCircle, MoreHorizontal, CheckCircle2 } from 'lucide-react';
+import { Droplets, Zap, Wrench, Search, LogOut, Plus, Navigation, Phone, Pencil, MapPin, MessageCircle, MoreHorizontal, CheckCircle2 } from 'lucide-react';
 import { fetcher } from '@/lib/swr';
 import PendingInspections from '@/components/inspection/PendingInspections';
 import { BrandBar, BrandHero, brandIconButton } from '@/components/app/Brand';
@@ -129,6 +129,7 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
   const [marking, setMarking] = useState(false);
 
   const awaiting = Boolean(row.awaitingReturn);
+  const isWash = row.service?.kind === 'wash';
   const isDone = row.taskStatus === 'done' && !awaiting;
   const signed = row.inspection?.status === 'signed';
   const time = row.time ? row.time.slice(0, 5) : null;
@@ -239,11 +240,11 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
   const secBtn = 'flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl border-2 text-xs font-black active:scale-95 transition';
 
   return (
-    <div className={`rounded-3xl border p-4 shadow-sm ${isDone ? 'border-green-200 bg-green-50/60' : row.urgent ? 'border-red-200 bg-white ring-2 ring-red-500' : 'border-gray-100 bg-white'}`}>
+    <div className={`rounded-3xl border p-4 shadow-sm ${isDone ? 'border-green-200 bg-green-50/60' : 'border-gray-100 bg-white'}`}>
       {row.urgent && !isDone && (
-        <p className="mb-2 inline-flex items-center gap-1 rounded-full bg-red-600 px-3 py-1 text-sm font-black text-white">
+        <p className="mb-1.5 inline-flex items-center gap-1 text-sm font-black text-[#C24E17]">
           <Zap className="h-4 w-4" aria-hidden="true" />
-          {row.claimable ? 'דחוף — מחכה לנהג' : 'דחוף'}
+          {row.claimable ? 'דחוף · מחכה לנהג' : 'דחוף'}
         </p>
       )}
       <div className="flex items-start justify-between gap-3">
@@ -273,10 +274,10 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
       </p>
 
       {row.service && (
-        <div className="mt-2 rounded-2xl bg-indigo-50/70 px-3 py-2 text-sm">
-          <p className="flex items-center gap-1.5 font-black text-[#5B5BD6]">
-            <Wrench className="h-4 w-4 shrink-0" aria-hidden="true" />
-            {row.service.kindLabel}{row.service.reason ? ` · ${row.service.reason}` : ''}
+        <div className={`mt-2 rounded-2xl px-3 py-2 text-sm ${isWash ? 'bg-sky-50' : 'bg-indigo-50/70'}`}>
+          <p className={`flex items-center gap-1.5 font-black ${isWash ? 'text-sky-700' : 'text-[#5B5BD6]'}`}>
+            {isWash ? <Droplets className="h-4 w-4 shrink-0" aria-hidden="true" /> : <Wrench className="h-4 w-4 shrink-0" aria-hidden="true" />}
+            {isWash ? 'שטיפת רכב' : `${row.service.kindLabel}${row.service.reason ? ` · ${row.service.reason}` : ''}`}
           </p>
           {row.service.details && <p className="mt-0.5 whitespace-pre-line text-gray-700">{row.service.details}</p>}
         </div>
@@ -287,9 +288,8 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
           <button
             onClick={claim}
             disabled={marking}
-            className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-red-600 text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50"
+            className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#E8743B] text-base font-black text-white transition active:scale-[0.98] disabled:opacity-50"
           >
-            <Zap className="h-5 w-5" aria-hidden="true" />
             {marking ? 'רגע…' : 'אני לוקח את המשימה'}
           </button>
           {claimError && <p className="mt-2 text-center text-sm font-bold text-red-600">{claimError}</p>}
@@ -306,7 +306,7 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
             onClick={toggleDone}
             disabled={marking}
             className={`flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl text-base font-black transition active:scale-[0.98] disabled:opacity-50 ${
-              isDone ? 'bg-green-100 text-green-700' : 'bg-[#5B5BD6] text-white'
+              isDone ? 'bg-green-100 text-green-700' : isWash ? 'bg-sky-600 text-white' : 'bg-[#5B5BD6] text-white'
             }`}
           >
             <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
@@ -391,7 +391,8 @@ export default function DriverTodayPage() {
   const urgentMine = [...(data?.pickups ?? []), ...(data?.returns ?? []), ...(data?.services ?? [])].filter(isUrgentOpen);
   const pickups = (data?.pickups ?? []).filter((r) => !isUrgentOpen(r));
   const returns = (data?.returns ?? []).filter((r) => !isUrgentOpen(r));
-  const services = (data?.services ?? []).filter((r) => !isUrgentOpen(r));
+  const services = (data?.services ?? []).filter((r) => !isUrgentOpen(r) && r.service?.kind !== 'wash');
+  const washes = (data?.services ?? []).filter((r) => !isUrgentOpen(r) && r.service?.kind === 'wash');
 
   const openQuickBooking = () => {
     // Start loading the fleet before navigation. The destination uses the
@@ -474,7 +475,7 @@ export default function DriverTodayPage() {
           <>
             {(data?.open ?? []).length > 0 && (
               <section>
-                <h2 className="mb-2 flex items-center gap-1.5 text-sm font-black text-red-600"><Zap className="h-4 w-4" aria-hidden="true" />משימות דחופות פנויות</h2>
+                <h2 className="mb-2 flex items-center gap-1.5 text-sm font-black text-[#2D5F5F]"><Zap className="h-4 w-4 text-[#E8743B]" aria-hidden="true" />דחוף · מי לוקח?</h2>
                 <div className="space-y-3">
                   {(data?.open ?? []).map((row) => (
                     <TaskCard key={`open-${row.taskId}`} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} />
@@ -484,7 +485,7 @@ export default function DriverTodayPage() {
             )}
             {urgentMine.length > 0 && (
               <section>
-                <h2 className="mb-2 flex items-center gap-1.5 text-sm font-black text-red-600"><Zap className="h-4 w-4" aria-hidden="true" />דחוף</h2>
+                <h2 className="mb-2 flex items-center gap-1.5 text-sm font-black text-[#2D5F5F]"><Zap className="h-4 w-4 text-[#E8743B]" aria-hidden="true" />דחוף</h2>
                 <div className="space-y-3">
                   {urgentMine.map((row) => (
                     <TaskCard key={`u-${row.taskId}`} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} isTomorrow={tab === 'tomorrow'} />
@@ -516,9 +517,19 @@ export default function DriverTodayPage() {
             </section>
             {services.length > 0 && (
               <section>
-                <h2 className="text-sm font-black text-[#5B5BD6] mb-2">{"מוסך / פנצ'רייה"}</h2>
+                <h2 className="text-sm font-black text-[#5B5BD6] mb-2">טיפול ברכב</h2>
                 <div className="space-y-3">
                   {services.map((row) => (
+                    <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} isTomorrow={tab === 'tomorrow'} />
+                  ))}
+                </div>
+              </section>
+            )}
+            {washes.length > 0 && (
+              <section>
+                <h2 className="text-sm font-black text-sky-700 mb-2">שטיפות</h2>
+                <div className="space-y-3">
+                  {washes.map((row) => (
                     <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} isTomorrow={tab === 'tomorrow'} />
                   ))}
                 </div>

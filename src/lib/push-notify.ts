@@ -34,6 +34,7 @@ export interface TaskSnapshot {
 
 type Row = {
   id: string;
+  notes?: string | null;
   urgent?: boolean | null;
   type: 'pickup' | 'return' | 'service';
   scheduled_at?: string | null;
@@ -74,6 +75,8 @@ function toSnapshot(row: Row): TaskSnapshot {
       bookingId: null,
       summary: {
         type: 'service',
+        serviceKind: row.service_kind ?? null,
+        note: row.notes ?? null,
         customerName: serviceTitle(row.service_kind, row.service_place),
         reason: serviceReasonLabel(row.service_reason) || null,
         day: row.scheduled_at ? dayFormatter.format(new Date(row.scheduled_at)) : null,
@@ -109,7 +112,7 @@ export async function loadTaskSnapshot(taskId: string): Promise<TaskSnapshot | n
   const { data, error } = await createAdminClient()
     .from('driver_tasks')
     .select(
-      'id, type, status, urgent, assigned_driver_id, booking_id, scheduled_at, scheduled_time, location, service_kind, service_reason, service_place, custom_vehicle_name, custom_license_plate, car:vehicles(make, model, license_plate), booking:bookings(customer_name, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))'
+      'id, type, status, urgent, notes, assigned_driver_id, booking_id, scheduled_at, scheduled_time, location, service_kind, service_reason, service_place, custom_vehicle_name, custom_license_plate, car:vehicles(make, model, license_plate), booking:bookings(customer_name, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))'
     )
     .eq('id', taskId)
     .maybeSingle<Row>();

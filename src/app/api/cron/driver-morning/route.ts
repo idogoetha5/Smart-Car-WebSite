@@ -61,6 +61,7 @@ export async function GET(request: Request) {
     const list = byDriver.get(row.assigned_driver_id) ?? [];
     list.push({
       type: 'service',
+      serviceKind: row.service_kind,
       customerName: serviceTitle(row.service_kind, row.service_place),
       day: israelToday(),
       time: row.scheduled_time ? row.scheduled_time.slice(0, 5) : null,

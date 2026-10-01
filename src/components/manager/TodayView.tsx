@@ -63,7 +63,7 @@ export default function TodayView() {
   }, [tasks, query]);
 
   const chips: Array<{ kind: AlertKind; label: string; count: number; icon: typeof Clock3; cls: string }> = [
-    { kind: 'urgent', label: 'דחופות', count: alerts.urgent.length, icon: Zap, cls: 'bg-red-600 text-white ring-red-600' },
+    { kind: 'urgent', label: 'דחופות', count: alerts.urgent.length, icon: Zap, cls: 'bg-white text-[#0D2B2B] ring-gray-200' },
     { kind: 'late', label: 'באיחור', count: alerts.late.length, icon: Clock3, cls: 'bg-red-50 text-red-700 ring-red-100' },
     { kind: 'unassigned', label: 'ללא נהג', count: alerts.unassigned.length, icon: UserX, cls: 'bg-amber-50 text-amber-800 ring-amber-100' },
     { kind: 'unsigned', label: 'ממתינים לחתימה', count: alerts.unsigned.length, icon: FileWarning, cls: 'bg-sky-50 text-sky-800 ring-sky-100' },
