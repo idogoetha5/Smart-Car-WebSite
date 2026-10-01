@@ -21,11 +21,11 @@ const QUOTES = [
 export default function ManagerQuotesPage() {
   return (
     <div dir="rtl">
-      <h1 className="text-2xl font-black text-[#0D2B2B] sm:text-3xl">הצעות מחיר</h1>
-      <p className="mb-6 mt-1 text-sm text-gray-500">יצירת PDF מקצועי ושליחה ישירה ל-WhatsApp של הלקוח.</p>
+      <h1 className="text-3xl font-extrabold tracking-tight text-[#0D2B2B]">הצעות מחיר</h1>
+      <p className="mb-6 mt-1 text-sm text-slate-500">הפקת הצעות ממותגות ושליחה ישירה ל־WhatsApp של הלקוח</p>
       <div className="grid gap-3 sm:grid-cols-2">
         {QUOTES.map(({ href, title, text, icon: Icon, tone }) => (
-          <Link key={href} href={href} className="group flex min-h-32 items-center gap-4 rounded-3xl bg-white p-5 text-start shadow-sm ring-1 ring-black/[0.04] transition hover:-translate-y-0.5 hover:shadow-md">
+          <Link key={href} href={href} className="group flex min-h-36 items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 text-start shadow-sm transition hover:-translate-y-0.5 hover:border-[#2D5F5F]/25 hover:shadow-md">
             <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${tone}`}>
               <Icon className="h-7 w-7" aria-hidden="true" />
             </span>

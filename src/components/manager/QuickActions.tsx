@@ -46,18 +46,32 @@ function ActionRow({ a, onPick }: { a: Action; onPick: () => void }) {
 export function SidebarActions() {
   const { openNewTask } = useManager();
   return (
-    <div className="mb-6">
+    <div className="mb-5">
       <button
         onClick={() => openNewTask()}
-        className="mb-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#E8743B] text-base font-black text-white shadow-sm shadow-orange-200 transition hover:bg-[#d4632a]"
+        className="mb-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#E8743B] text-sm font-black text-white shadow-sm transition hover:bg-[#d4632a]"
       >
         <Plus className="h-5 w-5" aria-hidden="true" />
         משימה חדשה
       </button>
-      <div className="space-y-2 rounded-2xl bg-gray-50/70 p-2">
-        {QUICK_ACTIONS.map((a) => (
-          <ActionRow key={a.key} a={a} onPick={() => openNewTask(a.opts)} />
-        ))}
+      <p className="mb-2 px-1 text-xs font-bold text-slate-400">פעולות מהירות</p>
+      <div className="grid grid-cols-3 gap-1.5">
+        {QUICK_ACTIONS.map((a) => {
+          const Icon = a.icon;
+          return (
+            <button
+              key={a.key}
+              type="button"
+              onClick={() => openNewTask(a.opts)}
+              className="flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-1.5 py-2 text-center text-[11px] font-black leading-tight text-[#0D2B2B] transition hover:border-[#2D5F5F]/30 hover:bg-[#f6fbfb]"
+            >
+              <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${a.tone}`}>
+                <Icon className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <span>{a.title}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

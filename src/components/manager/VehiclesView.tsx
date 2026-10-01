@@ -237,13 +237,13 @@ export default function VehiclesView() {
     <div>
       <div className="mb-5 flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-[#0D2B2B] sm:text-3xl">רכבים</h1>
-          <p className="text-sm text-gray-500">{cars.length ? `${cars.length} רכבים בצי` : 'הצי של הסניף'}</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#0D2B2B]">רכבים</h1>
+          <p className="mt-1 text-sm text-slate-500">{cars.length ? `${cars.length} רכבים בצי · מצב, תחזוקה וזמינות` : 'הצי של הסניף'}</p>
         </div>
         <button
           type="button"
           onClick={() => { setForm(emptyVehicle()); setFormError(''); setAdding(true); }}
-          className="flex min-h-12 shrink-0 items-center gap-2 rounded-2xl bg-[#E8743B] px-4 text-sm font-black text-white shadow-sm shadow-orange-200 transition hover:bg-[#d4632a] active:scale-[0.98]"
+          className="flex min-h-12 shrink-0 items-center gap-2 rounded-xl bg-[#E8743B] px-5 text-sm font-black text-white shadow-sm transition hover:bg-[#d4632a] active:scale-[0.98]"
         >
           <Plus className="h-5 w-5" aria-hidden="true" />
           הוספת רכב
@@ -257,7 +257,7 @@ export default function VehiclesView() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="חיפוש לפי דגם או מספר רישוי"
-          className="min-h-12 w-full rounded-full border border-gray-200 bg-white ps-12 pe-12 text-base shadow-sm transition focus:border-[#2D5F5F] focus:outline-none focus:ring-4 focus:ring-[#2D5F5F]/10"
+          className="min-h-12 w-full rounded-xl border border-slate-200 bg-white ps-12 pe-12 text-base shadow-sm transition focus:border-[#2D5F5F] focus:outline-none focus:ring-4 focus:ring-[#2D5F5F]/10"
         />
         {query && (
           <button onClick={() => setQuery('')} aria-label="ניקוי" className="absolute top-1/2 end-1 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100">
@@ -273,8 +273,8 @@ export default function VehiclesView() {
             role="tab"
             aria-selected={filter === f.key}
             onClick={() => setFilter(f.key)}
-            className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-black transition ${
-              filter === f.key ? 'bg-[#2D5F5F] text-white' : 'bg-white text-gray-600 ring-1 ring-black/[0.06] hover:text-gray-900'
+            className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border px-4 text-sm font-bold transition ${
+              filter === f.key ? 'border-[#2D5F5F] bg-[#2D5F5F] text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
             }`}
           >
             {f.label}
@@ -294,7 +294,7 @@ export default function VehiclesView() {
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {shown.map((v) => (
-            <li key={v.id} className="relative flex flex-col rounded-3xl bg-white p-4 shadow-sm ring-1 ring-black/[0.04]">
+            <li key={v.id} className="relative flex flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <button
                 type="button"
                 onClick={() => setDeleting(v)}

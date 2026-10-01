@@ -68,30 +68,31 @@ export default function TodayView() {
     { kind: 'unassigned', label: 'ללא נהג', count: alerts.unassigned.length, icon: UserX, cls: 'bg-amber-50 text-amber-800 ring-amber-100' },
     { kind: 'unsigned', label: 'ממתינים לחתימה', count: alerts.unsigned.length, icon: FileWarning, cls: 'bg-sky-50 text-sky-800 ring-sky-100' },
   ];
-  const activeChips = chips.filter((c) => c.count > 0);
-
   const name = me?.name ? `, ${me.name}` : '';
 
   return (
     <div>
-      <p className="text-sm font-bold text-gray-500">{longDate(today)}</p>
-      <h1 className="mb-5 text-2xl font-black text-[#0D2B2B] sm:text-3xl">{greeting(now)}{name}</h1>
-
-      <div className="relative mb-5">
+      <header className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div>
+          <p className="mb-1 text-sm font-semibold text-slate-500">{longDate(today)}</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#0D2B2B] sm:text-4xl">{greeting(now)}{name}</h1>
+        </div>
+        <div className="relative w-full xl:max-w-xl">
         <Search className="pointer-events-none absolute top-1/2 start-4 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden="true" />
         <input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="חיפוש לפי לקוח, רכב, טלפון או כתובת"
-          className="h-13 min-h-12 w-full rounded-full border border-gray-200 bg-white ps-12 pe-12 text-base shadow-sm transition focus:border-[#2D5F5F] focus:outline-none focus:ring-4 focus:ring-[#2D5F5F]/10"
+          className="min-h-12 w-full rounded-xl border border-slate-200 bg-white ps-12 pe-12 text-base shadow-sm transition focus:border-[#2D5F5F] focus:outline-none focus:ring-4 focus:ring-[#2D5F5F]/10"
         />
         {query && (
           <button onClick={() => setQuery('')} aria-label="ניקוי" className="absolute top-1/2 end-1 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100">
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         )}
-      </div>
+        </div>
+      </header>
 
       {query.trim() ? (
         <section>
@@ -104,23 +105,26 @@ export default function TodayView() {
         </section>
       ) : (
         <>
-          <RentalAlertsPanel />
           {/* Attention */}
-          {activeChips.length > 0 && (
-            <div className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
-              {activeChips.map(({ kind, label, count, icon: Icon, cls }) => (
+          <div className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:px-0 xl:grid-cols-4">
+              {chips.map(({ kind, label, count, icon: Icon, cls }) => (
                 <button
                   key={kind}
+                  disabled={!count}
                   onClick={() => setFilter(filter === kind ? null : kind)}
                   aria-pressed={filter === kind}
-                  className={`flex min-h-11 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-black ring-1 transition ${cls} ${filter === kind ? 'ring-2 ring-current' : ''}`}
+                  className={`flex min-h-[68px] min-w-44 shrink-0 items-center gap-3 rounded-2xl border bg-white px-4 text-start shadow-sm transition sm:min-w-0 ${filter === kind ? 'border-[#2D5F5F] ring-2 ring-[#2D5F5F]/10' : 'border-slate-200'} disabled:cursor-default`}
                 >
-                  <Icon className="h-4 w-4" aria-hidden="true" />
-                  <span className="tabular-nums">{count}</span> {label}
+                  <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${cls}`}><Icon className="h-5 w-5" aria-hidden="true" /></span>
+                  <span>
+                    <span className="block text-xl font-extrabold tabular-nums text-[#0D2B2B]">{count}</span>
+                    <span className="block text-xs font-bold text-slate-500">{label}</span>
+                  </span>
                 </button>
               ))}
-            </div>
-          )}
+          </div>
+
+          <RentalAlertsPanel />
 
           {filter ? (
             <section>
@@ -133,7 +137,7 @@ export default function TodayView() {
           ) : (
             <>
               {/* Day strip */}
-              <div className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0" role="tablist" aria-label="בחירת יום">
+              <div className="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0" role="tablist" aria-label="בחירת יום">
                 {days.map((d) => {
                   const { weekday, date } = dayParts(d);
                   const n = countByDay.get(d) ?? 0;
@@ -144,8 +148,8 @@ export default function TodayView() {
                       role="tab"
                       aria-selected={selected}
                       onClick={() => setDay(d)}
-                      className={`flex h-[72px] w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl transition ${
-                        selected ? 'bg-[#2D5F5F] text-white shadow-md shadow-[#2D5F5F]/20' : 'bg-white text-[#0D2B2B] ring-1 ring-black/[0.05] hover:ring-[#B8D8D8]'
+                      className={`flex h-[68px] w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl border transition ${
+                        selected ? 'border-[#2D5F5F] bg-[#2D5F5F] text-white shadow-sm' : 'border-slate-200 bg-white text-[#0D2B2B] hover:border-[#B8D8D8]'
                       }`}
                     >
                       <span className={`text-xs font-bold ${selected ? 'text-white/80' : 'text-gray-400'}`}>{d === today ? 'היום' : weekday}</span>

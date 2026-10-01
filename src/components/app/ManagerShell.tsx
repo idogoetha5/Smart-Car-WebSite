@@ -73,17 +73,17 @@ export default function ManagerShell({ children }: { children: ReactNode }) {
   return (
     <ToastProvider>
       <ManagerDataProvider mode="manager">
-        <div className="min-h-screen bg-[#F4F7F7] lg:flex" dir="rtl">
+        <div className="min-h-screen bg-[#F6F8F8] lg:flex" dir="rtl">
           {/* Sidebar (computer) */}
-          <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-e border-gray-100 bg-white px-4 py-6 lg:flex">
-            <div className="mb-8 flex items-center gap-2 px-2">
+          <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-e border-slate-200/80 bg-white px-3 py-5 lg:flex">
+            <div className="mb-5 flex items-center gap-2 border-b border-slate-100 px-2 pb-5">
               <Link href="/driver/manage" aria-label="חזרה לדף היום" className="flex min-h-11 items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F]">
                 <Image src="/images/logo.png" alt="SmartCar" width={112} height={50} className="h-9 w-auto object-contain" priority />
               </Link>
               <span className="rounded-full bg-[#eef6f6] px-2.5 py-0.5 text-xs font-black text-[#2D5F5F]">מנהלים</span>
             </div>
             <SidebarActions />
-            <nav className="flex flex-col gap-1" aria-label="ניווט">
+            <nav className="flex flex-col gap-0.5" aria-label="ניווט">
               {NAV.map(({ href, label, icon: Icon }) => {
                 const active = href === '/driver/manage' ? pathname === href : pathname.startsWith(href);
                 return (
@@ -91,8 +91,8 @@ export default function ManagerShell({ children }: { children: ReactNode }) {
                     key={href}
                     href={href}
                     aria-current={active ? 'page' : undefined}
-                    className={`flex min-h-12 items-center gap-3 rounded-2xl px-4 text-base font-bold transition ${
-                      active ? 'bg-[#eef6f6] text-[#0D2B2B]' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                    className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold transition ${
+                      active ? 'bg-[#eaf3f3] text-[#123d3d] shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                     }`}
                   >
                     <Icon className={`h-5 w-5 ${active ? 'text-[#2D5F5F]' : ''}`} aria-hidden="true" />
@@ -102,7 +102,7 @@ export default function ManagerShell({ children }: { children: ReactNode }) {
                 );
               })}
             </nav>
-            <div className="mt-auto flex items-center gap-2 rounded-2xl bg-gray-50 p-2">
+            <div className="mt-auto flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-2">
               <Avatar name={name} />
               <span className="min-w-0 flex-1 truncate text-sm font-black text-[#0D2B2B]">{name}</span>
               <PushBell audience="manager" />
@@ -131,7 +131,7 @@ export default function ManagerShell({ children }: { children: ReactNode }) {
               </div>
             </header>
 
-            <main className={`mx-auto w-full px-4 pb-32 pt-5 sm:px-8 lg:pb-12 lg:pt-8 ${quotesPage ? 'max-w-[1500px]' : 'max-w-5xl'}`}>{children}</main>
+            <main className={`mx-auto w-full px-4 pb-32 pt-5 sm:px-8 lg:px-10 lg:pb-12 lg:pt-8 ${quotesPage ? 'max-w-[1500px]' : 'max-w-[1360px]'}`}>{children}</main>
           </div>
 
           {/* Floating "משימה חדשה" with a short menu (phone) */}

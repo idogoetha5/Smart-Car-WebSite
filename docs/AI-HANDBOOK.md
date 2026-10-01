@@ -31,6 +31,7 @@ The owner, Ido, is not technical. He writes in Hebrew and expects work done end 
 
 ### Manager app (`/driver/manage`)
 Shell `src/components/app/ManagerShell.tsx` (sidebar on a computer, bottom tabs + floating "משימה חדשה" on a phone). Shared data in `src/components/manager/ManagerData.tsx` (SWR, refreshes quietly every 60s).
+The manager UI uses one compact product-dashboard language across all pages: a 1360px desktop workspace, restrained white/slate surfaces, teal for navigation/selection, orange only for the primary create action, 16–20px card radii, rectangular search/filter controls, and summary cards before detailed content. Keep the phone layout and 44px targets when changing the desktop UI.
 - **Actions:** "משימה חדשה" (מסירה/החזרה, any date, optional "create the return too"), and three quick actions: **משימה להיום** (urgent, now / within 1h / 2h / during the day; send to one driver or to all, first to take it), **שטיפה** (driver + car, send), **טיפול ברכב** (garage / tyres / test, with a reason). Form: `src/components/admin/DriverTaskForm.tsx` inside `NewTaskSheet`.
 - **היום** (`TodayView`): greeting, global search, "חריגות ונזקים מההשכרה האחרונה" (`RentalAlertsPanel`), alert chips (late, unassigned, awaiting signature, urgent), a 14-day strip and the day's tasks. Tapping a task opens `TaskSheet` (change driver, date/time, address, cancel, delete after cancel, PDF/video).
 - **יומן** (`CalendarView`): month grid and list of all future tasks; create a task on any day.
@@ -123,7 +124,8 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
-- 2026-10-01 — The SmartCar logo in the manager header now links to the manager's "Today" page on phone and desktop. Branch `clean-main`. No migration. Ready to deploy.
+- 2026-10-01 — Redesigned every manager surface (shell, login, today, alerts, calendar, fleet, drivers, documents and quote chooser) with a consistent desktop/mobile product UI. Branch `clean-main`. No migration. Ready to deploy.
+- 2026-10-01 — The SmartCar logo in the manager header now links to the manager's "Today" page on phone and desktop. Commit `33f8491`. No migration. Deployed.
 - 2026-10-01 — Added the exact admin rental and leasing quote builders to the manager app, including branded WhatsApp delivery for both. Branch `clean-main`, commit `0baf851`. No migration. Deployed.
 - 2026-10-01 — Cleanup: removed stale worktree `.worktrees/damage` and leftover bundle/patch files; lint and lint:budget pass locally. Deployed (docs only).
 - 2026-10-01 — Separate driver/manager sessions (`manager_auth`). Fixes tasks not showing in the driver app after a manager login. Branch `fix/separate-sessions`, merge 828849a. No migration. Deployed.

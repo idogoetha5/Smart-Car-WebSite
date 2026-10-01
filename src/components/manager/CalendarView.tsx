@@ -47,16 +47,16 @@ export default function CalendarView() {
     <div>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-[#0D2B2B] sm:text-3xl">יומן</h1>
-          <p className="text-sm text-gray-500">כל המשימות קדימה</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#0D2B2B]">יומן</h1>
+          <p className="mt-1 text-sm text-slate-500">תכנון ומעקב אחר כל משימות הצוות</p>
         </div>
-        <div className="flex gap-1 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-black/[0.04]">
+        <div className="flex gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
           {([['month', 'חודש', CalendarPlus], ['list', 'רשימה', List]] as const).map(([key, text, Icon]) => (
             <button
               key={key}
               onClick={() => setMode(key)}
               aria-pressed={mode === key}
-              className={`flex min-h-11 items-center gap-1.5 rounded-xl px-4 text-sm font-black transition ${mode === key ? 'bg-[#2D5F5F] text-white' : 'text-gray-500 hover:text-gray-800'}`}
+              className={`flex min-h-11 items-center gap-1.5 rounded-lg px-4 text-sm font-bold transition ${mode === key ? 'bg-[#2D5F5F] text-white' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
             >
               <Icon className="h-4 w-4" aria-hidden="true" />
               {text}
@@ -67,7 +67,7 @@ export default function CalendarView() {
 
       {mode === 'month' ? (
         <div className="grid gap-6 xl:grid-cols-[1.25fr_1fr]">
-          <section className="rounded-3xl bg-white p-1 shadow-sm ring-1 ring-black/[0.04] sm:p-4">
+          <section className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:p-5">
             <div className="mb-2 flex items-center justify-between px-1">
               <button onClick={() => shift(-1)} aria-label="החודש הקודם" className="flex h-11 w-11 items-center justify-center rounded-full text-[#2D5F5F] hover:bg-[#eef6f6]">
                 <ChevronRight className="h-5 w-5" aria-hidden="true" />

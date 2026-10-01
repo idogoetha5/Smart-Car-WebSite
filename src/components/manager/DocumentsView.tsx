@@ -23,8 +23,8 @@ export default function DocumentsView() {
 
   return (
     <div>
-      <h1 className="text-2xl font-black text-[#0D2B2B] sm:text-3xl">מסמכים</h1>
-      <p className="mb-5 text-sm text-gray-500">טפסי מסירה והחזרה חתומים</p>
+      <h1 className="text-3xl font-extrabold tracking-tight text-[#0D2B2B]">מסמכים</h1>
+      <p className="mb-5 mt-1 text-sm text-slate-500">כל טפסי המסירה וההחזרה החתומים במקום אחד</p>
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
@@ -34,12 +34,12 @@ export default function DocumentsView() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="לקוח, רכב, נהג או כתובת"
-            className="min-h-12 w-full rounded-full border border-gray-200 bg-white ps-12 pe-4 text-base shadow-sm focus:border-[#2D5F5F] focus:outline-none focus:ring-4 focus:ring-[#2D5F5F]/10"
+            className="min-h-12 w-full rounded-xl border border-slate-200 bg-white ps-12 pe-4 text-base shadow-sm focus:border-[#2D5F5F] focus:outline-none focus:ring-4 focus:ring-[#2D5F5F]/10"
           />
         </div>
-        <div className="flex gap-1 rounded-full bg-white p-1 shadow-sm ring-1 ring-black/[0.04]">
+        <div className="flex gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
           {([['all', 'הכל'], ['pickup', 'מסירות'], ['return', 'החזרות']] as const).map(([key, text]) => (
-            <button key={key} onClick={() => setType(key)} aria-pressed={type === key} className={`min-h-11 flex-1 rounded-full px-4 text-sm font-black transition sm:flex-none ${type === key ? 'bg-[#2D5F5F] text-white' : 'text-gray-500'}`}>
+            <button key={key} onClick={() => setType(key)} aria-pressed={type === key} className={`min-h-11 flex-1 rounded-lg px-4 text-sm font-bold transition sm:flex-none ${type === key ? 'bg-[#2D5F5F] text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
               {text}
             </button>
           ))}

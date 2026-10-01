@@ -79,5 +79,5 @@ export default function TaskRow({ task, showDay = false }: { task: ManagerTask; 
 
 /** White rounded list that holds TaskRows with hairline dividers. */
 export function TaskList({ children }: { children: React.ReactNode }) {
-  return <div className="divide-y divide-gray-100 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/[0.04]">{children}</div>;
+  return <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">{children}</div>;
 }

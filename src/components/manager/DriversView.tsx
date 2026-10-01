@@ -67,17 +67,17 @@ export default function DriversView() {
     <div>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-[#0D2B2B] sm:text-3xl">נהגים</h1>
-          <p className="text-sm text-gray-500">{drivers.filter((d) => d.active).length} נהגים פעילים</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#0D2B2B]">נהגים</h1>
+          <p className="mt-1 text-sm text-slate-500">{drivers.filter((d) => d.active).length} נהגים פעילים · עומס עבודה והתראות</p>
         </div>
-        <button onClick={() => setAdding(true)} className="flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-sm font-black text-[#2D5F5F] shadow-sm ring-1 ring-black/[0.05] hover:bg-[#eef6f6]">
+        <button onClick={() => setAdding(true)} className="flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-[#2D5F5F] shadow-sm hover:bg-[#eef6f6]">
           <UserPlus className="h-4 w-4" aria-hidden="true" />
           הוספת נהג
         </button>
       </div>
 
       {unassigned.length > 0 && (
-        <button onClick={() => setOpenId('unassigned')} className="mb-4 flex w-full items-center gap-3 rounded-3xl bg-amber-50 p-4 text-start ring-1 ring-amber-100 transition hover:bg-amber-100/60">
+        <button onClick={() => setOpenId('unassigned')} className="mb-4 flex w-full items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-start transition hover:bg-amber-100/60">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-amber-700"><UserX className="h-5 w-5" aria-hidden="true" /></span>
           <span className="flex-1">
             <span className="block text-base font-black text-amber-900">{unassigned.length} משימות בלי נהג</span>
@@ -96,7 +96,7 @@ export default function DriversView() {
               <button
                 key={d.id}
                 onClick={() => { setOpenId(d.id); setNewPin(''); }}
-                className={`flex items-center gap-3 rounded-3xl bg-white p-4 text-start shadow-sm ring-1 ring-black/[0.04] transition hover:shadow-md ${d.active ? '' : 'opacity-60'}`}
+                className={`flex min-h-28 items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-start shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${d.active ? '' : 'opacity-60'}`}
               >
                 <Avatar name={d.name} size="lg" />
                 <span className="min-w-0 flex-1">

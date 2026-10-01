@@ -72,20 +72,21 @@ export default function ManagerLoginPage() {
 
   if (!selected) {
     return (
-      <div className="min-h-screen px-4 py-10" dir="rtl">
-        <div className="mb-6 flex flex-col items-center gap-2">
+      <div className="flex min-h-screen items-center justify-center bg-[#F6F8F8] px-4 py-10" dir="rtl">
+        <main className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/40 sm:p-10">
+        <div className="mb-7 flex flex-col items-center gap-2">
           <Image src="/images/logo.png" alt="SmartCar" width={160} height={72} className="h-14 w-auto object-contain" priority />
           <span className="rounded-full bg-[#eef6f6] px-3 py-1 text-sm font-black text-[#2D5F5F]">מנהלים</span>
         </div>
-        <h1 className="text-2xl font-black text-[#0D2B2B] text-center mb-1">כניסה</h1>
-        <p className="text-gray-500 text-center mb-8">בחרו את שמכם</p>
+        <h1 className="mb-1 text-center text-3xl font-extrabold tracking-tight text-[#0D2B2B]">כניסה למנהלים</h1>
+        <p className="mb-8 text-center text-slate-500">בחרו את שמכם כדי להמשיך</p>
         {error && <p className="text-red-600 text-sm text-center mb-4">{error}</p>}
-        <div className="max-w-md mx-auto grid grid-cols-2 gap-3">
+        <div className="mx-auto grid max-w-md grid-cols-2 gap-3">
           {drivers.map((driver) => (
             <button
               key={driver.id}
               onClick={() => setSelected(driver)}
-              className="min-h-20 rounded-2xl border-2 border-gray-200 bg-white font-black text-lg text-gray-800 hover:border-[#2D5F5F] active:border-[#E8743B] shadow-sm transition-colors"
+              className="min-h-20 rounded-xl border border-slate-200 bg-white text-lg font-black text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:border-[#2D5F5F] hover:shadow-md active:border-[#E8743B]"
             >
               {driver.name}
             </button>
@@ -94,12 +95,14 @@ export default function ManagerLoginPage() {
         {drivers.length === 0 && (
           <p className="text-center text-gray-400 mt-8">אין מנהלים פעילים. פנו למשרד.</p>
         )}
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen px-4 py-10 flex flex-col items-center" dir="rtl">
+    <div className="flex min-h-screen items-center justify-center bg-[#F6F8F8] px-4 py-10" dir="rtl">
+      <main className="flex w-full max-w-md flex-col items-center rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/40 sm:p-9">
       <Image src="/images/logo.png" alt="SmartCar" width={128} height={58} className="mb-4 h-11 w-auto object-contain" priority />
       <h1 className="text-2xl font-black text-[#0D2B2B] mb-1">שלום, {selected.name}</h1>
       <button onClick={() => { setSelected(null); setPin(''); setError(''); }} className="text-sm text-[#2D5F5F] font-bold mb-6">
@@ -118,7 +121,7 @@ export default function ManagerLoginPage() {
       {error && <p className="text-red-600 text-sm text-center mb-4">{error}</p>}
 
       {/* Phone-style keypad: 1-2-3 left to right even though the page is RTL. */}
-      <div className="grid grid-cols-3 gap-3 max-w-xs w-full" dir="ltr">
+      <div className="grid w-full max-w-xs grid-cols-3 gap-3" dir="ltr">
         {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
           <button
             key={d}
@@ -155,6 +158,7 @@ export default function ManagerLoginPage() {
           כניסה
         </button>
       </div>
+      </main>
     </div>
   );
 }
