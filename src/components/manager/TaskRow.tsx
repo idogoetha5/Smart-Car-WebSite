@@ -5,13 +5,16 @@ import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
 import { dayLabel, israelClock, taskLocation, taskWhen } from '@/lib/task-schedule';
 import Avatar from '@/components/ui/Avatar';
 import { useManager } from './ManagerData';
-import type { ManagerTask } from './types';
+import { taskCar, type ManagerTask } from './types';
+import { serviceKindLabel, serviceReasonLabel, serviceTitle } from '@/lib/service-task';
 
 /** One task as a tappable row: time · customer, car, address · driver and state. Opens the task sheet. */
 export default function TaskRow({ task, showDay = false }: { task: ManagerTask; showDay?: boolean }) {
   const { openTask, driverName, now, today } = useManager();
   const { day, time } = taskWhen(task);
-  const plate = bookingLicensePlate(task.booking);
+  const car = taskCar(task);
+  const plate = bookingLicensePlate(car);
+  const service = task.type === 'service';
   const location = taskLocation(task);
   const driver = driverName(task.assigned_driver_id);
   const late = task.status === 'open' && day && (day < today || (day === today && time !== null && time < israelClock(now)));
@@ -26,15 +29,18 @@ export default function TaskRow({ task, showDay = false }: { task: ManagerTask; 
       <div className="w-14 shrink-0 text-center">
         {showDay && <p className="text-[11px] font-bold text-gray-400">{dayLabel(day, now)}</p>}
         <p className={`text-lg font-black tabular-nums leading-tight ${late ? 'text-red-600' : 'text-[#0D2B2B]'}`} dir="ltr">{time ?? '—'}</p>
-        <p className={`mt-0.5 text-xs font-black ${pickup ? 'text-[#E8743B]' : 'text-[#2D5F5F]'}`}>{pickup ? 'מסירה' : 'החזרה'}</p>
+        <p className={`mt-0.5 text-xs font-black ${service ? 'text-[#5B5BD6]' : pickup ? 'text-[#E8743B]' : 'text-[#2D5F5F]'}`}>
+          {service ? serviceKindLabel(task.service_kind) : pickup ? 'מסירה' : 'החזרה'}
+        </p>
       </div>
 
       <div className="min-w-0 flex-1 border-s border-gray-100 ps-3">
         <p className={`truncate text-base font-black ${task.status === 'done' ? 'text-gray-400 line-through decoration-gray-300' : 'text-[#0D2B2B]'}`}>
-          {task.booking?.customer_name || 'ללא שם לקוח'}
+          {service ? serviceTitle(task.service_kind, task.service_place) : task.booking?.customer_name || 'ללא שם לקוח'}
         </p>
         <p className="flex min-w-0 gap-1 text-sm text-gray-500">
-          <span className="truncate">{bookingVehicleName(task.booking)}</span>
+          {service && <><span className="shrink-0 font-bold text-[#5B5BD6]">{serviceReasonLabel(task.service_reason)}</span><span className="shrink-0" aria-hidden="true">·</span></>}
+          <span className="truncate">{bookingVehicleName(car)}</span>
           {plate !== '—' && <><span className="shrink-0" aria-hidden="true">·</span><span className="shrink-0 font-bold text-gray-700" dir="ltr">{plate}</span></>}
         </p>
         <p className={`truncate text-sm ${location ? 'text-gray-400' : 'text-gray-300'}`}>{location || 'ללא כתובת'}</p>

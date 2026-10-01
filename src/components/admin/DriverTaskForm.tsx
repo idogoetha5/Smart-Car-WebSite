@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { numericOrderReference } from '@/lib/order-reference';
 import { useApiList } from '@/lib/swr';
 import { bookingVehicleName } from '@/lib/booking-vehicle';
+import { DEFAULT_REASON, SERVICE_KINDS, SERVICE_REASONS, type ServiceKind, type ServiceReason } from '@/lib/service-task';
 
 interface Vehicle {
   id: string;
@@ -60,7 +61,10 @@ export default function DriverTaskForm({
 }: DriverTaskFormProps) {
   const [mode, setMode] = useState<'new' | 'existing'>('new');
   const [vehicleMode, setVehicleMode] = useState<'fleet' | 'custom'>('fleet');
-  const [type, setType] = useState<'pickup' | 'return'>('pickup');
+  const [type, setType] = useState<'pickup' | 'return' | 'service'>('pickup');
+  const [serviceKind, setServiceKind] = useState<ServiceKind>('garage');
+  const [serviceReason, setServiceReason] = useState<ServiceReason>('maintenance');
+  const [servicePlace, setServicePlace] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -105,6 +109,38 @@ export default function DriverTaskForm({
   const createTask = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
+    if (type === 'service') {
+      if (!date) return setError('יש לבחור תאריך');
+      if (vehicleMode === 'fleet' && !vehicleId) return setError('יש לבחור רכב');
+      if (vehicleMode === 'custom' && !customLicensePlate.trim() && !customVehicleName.trim()) return setError('יש לכתוב מספר רישוי או שם רכב');
+      setCreating(true);
+      try {
+        const response = await fetch(tasksApi, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'service',
+            serviceKind,
+            serviceReason,
+            servicePlace: servicePlace.trim() || undefined,
+            vehicleId: vehicleMode === 'fleet' ? vehicleId : undefined,
+            customVehicleName: vehicleMode === 'custom' ? customVehicleName : undefined,
+            customLicensePlate: vehicleMode === 'custom' || fleetPlateMissing ? customLicensePlate : undefined,
+            scheduledAt: new Date(`${date}T${time || '12:00'}:00`).toISOString(),
+            scheduledTime: time || undefined,
+            location: location || undefined,
+            notes: notes || undefined,
+            assignedDriverId: driver?.id ?? null,
+          }),
+        });
+        const json = await response.json().catch(() => ({}));
+        if (!response.ok) return setError(json?.error || 'יצירת המשימה נכשלה');
+        onCreated();
+      } finally {
+        setCreating(false);
+      }
+      return;
+    }
     if (mode === 'existing' && !bookingId) {
       setError(type === 'return' ? 'יש לבחור את ההזמנה של הלקוח (המסירה)' : 'יש לבחור הזמנה קיימת');
       return;
@@ -159,8 +195,12 @@ export default function DriverTaskForm({
     }
   };
 
-  const chooseType = (next: 'pickup' | 'return') => {
+  const chooseType = (next: 'pickup' | 'return' | 'service') => {
     setType(next);
+    if (next === 'service') {
+      setMode('new');
+      return;
+    }
     // A return belongs to the rental where the car was handed over, so the
     // driver sees the handover damage in grey. Default to picking that booking.
     setMode(next === 'return' ? 'existing' : 'new');
@@ -168,6 +208,42 @@ export default function DriverTaskForm({
 
   const tab = (active: boolean) =>
     `min-h-11 flex-1 rounded-xl text-base font-black transition ${active ? 'bg-white text-[#0D2B2B] shadow-sm ring-1 ring-black/5' : 'text-gray-500 hover:text-gray-700'}`;
+
+  const vehicleBlock = (
+    <>
+              <span className={label}>רכב</span>
+              <div className="mb-2 flex gap-1 rounded-2xl bg-gray-100 p-1">
+                <button type="button" onClick={() => setVehicleMode('fleet')} className={tab(vehicleMode === 'fleet')}>רכב מהצי</button>
+                <button type="button" onClick={() => setVehicleMode('custom')} className={tab(vehicleMode === 'custom')}>לא ברשימה</button>
+              </div>
+              {vehicleMode === 'fleet' ? (
+                <select value={vehicleId} onChange={(event) => setVehicleId(event.target.value)} className={field} required>
+                  <option value="">בחר רכב</option>
+                  {vehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.make} {vehicle.model} {vehicle.license_plate ? `— ${vehicle.license_plate}` : ''}</option>)}
+                </select>
+              ) : null}
+              {vehicleMode === 'fleet' && fleetPlateMissing && (
+                <label className="mt-3 block rounded-xl border-2 border-amber-300 bg-amber-50 p-3"><span className={label}>לרכב הזה אין מספר רישוי במערכת (לא חובה)</span>
+                  <input value={customLicensePlate} onChange={(event) => setCustomLicensePlate(event.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" className={field} />
+                </label>
+              )}
+              {vehicleMode === 'custom' ? (
+                <div className="space-y-3">
+                  <label className="block"><span className={label}>מספר רישוי (לא חובה)</span>
+                    <input value={customLicensePlate} onChange={(event) => setCustomLicensePlate(event.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" className={field} />
+                  </label>
+                  <label className="block"><span className={label}>שם הרכב</span>
+                    <input value={customVehicleName} onChange={(event) => setCustomVehicleName(event.target.value)} placeholder="לדוגמה: טויוטה קורולה לבנה" className={field} />
+                  </label>
+                </div>
+              ) : null}
+            
+    </>
+  );
+
+  const chip = (active: boolean) =>
+    `min-h-11 rounded-full px-4 text-sm font-black transition ${active ? 'bg-[#5B5BD6] text-white shadow-sm' : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:ring-gray-300'}`;
+
 
   return (
     <form onSubmit={createTask} className={embedded ? 'space-y-5' : 'space-y-5 border-t border-orange-100 bg-orange-50/40 p-4 sm:p-6'}>
@@ -193,6 +269,7 @@ export default function DriverTaskForm({
         <div className="flex gap-1 rounded-2xl bg-gray-100 p-1">
           <button type="button" onClick={() => chooseType('pickup')} className={tab(type === 'pickup')}>מסירה</button>
           <button type="button" onClick={() => chooseType('return')} className={tab(type === 'return')}>החזרה</button>
+          <button type="button" onClick={() => chooseType('service')} className={tab(type === 'service')}>מוסך</button>
         </div>
       </div>
 
@@ -214,6 +291,35 @@ export default function DriverTaskForm({
         </div>
       </div>
 
+      {type === 'service' && (
+        <div className="space-y-5 rounded-3xl bg-indigo-50/50 p-4 ring-1 ring-indigo-100">
+          <div>
+            <span className={label}>לאן הרכב נוסע?</span>
+            <div className="flex flex-wrap gap-2">
+              {(Object.keys(SERVICE_KINDS) as ServiceKind[]).map((k) => (
+                <button key={k} type="button" onClick={() => { setServiceKind(k); setServiceReason(DEFAULT_REASON[k]); }} className={chip(serviceKind === k)}>{SERVICE_KINDS[k]}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <span className={label}>סיבה</span>
+            <div className="flex flex-wrap gap-2">
+              {(Object.keys(SERVICE_REASONS) as ServiceReason[]).map((r) => (
+                <button key={r} type="button" onClick={() => setServiceReason(r)} className={chip(serviceReason === r)}>{SERVICE_REASONS[r]}</button>
+              ))}
+            </div>
+          </div>
+          <label className="block"><span className={label}>מה צריך לעשות? (לא חובה)</span>
+            <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={2} placeholder="לדוגמה: נורית מנוע דולקת, רעש בבלמים" className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base focus:border-[#2D5F5F] focus:outline-none focus:ring-4 focus:ring-[#2D5F5F]/10" />
+          </label>
+          <label className="block"><span className={label}>שם המקום (לא חובה)</span>
+            <input value={servicePlace} onChange={(event) => setServicePlace(event.target.value)} placeholder="לדוגמה: מוסך יוסי" className={field} />
+          </label>
+          <div>{vehicleBlock}</div>
+        </div>
+      )}
+
+      {type !== 'service' && (
       <div>
         <span className={label}>{type === 'return' ? 'של איזה לקוח ההחזרה?' : 'הלקוח'}</span>
         <div className="mb-3 flex gap-1 rounded-2xl bg-gray-100 p-1">
@@ -248,37 +354,11 @@ export default function DriverTaskForm({
             <label className="block"><span className={label}>אימייל הלקוח</span>
               <input type="email" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} dir="ltr" className={field} required />
             </label>
-            <div className="sm:col-span-2">
-              <span className={label}>רכב</span>
-              <div className="mb-2 flex gap-1 rounded-2xl bg-gray-100 p-1">
-                <button type="button" onClick={() => setVehicleMode('fleet')} className={tab(vehicleMode === 'fleet')}>רכב מהצי</button>
-                <button type="button" onClick={() => setVehicleMode('custom')} className={tab(vehicleMode === 'custom')}>לא ברשימה</button>
-              </div>
-              {vehicleMode === 'fleet' ? (
-                <select value={vehicleId} onChange={(event) => setVehicleId(event.target.value)} className={field} required>
-                  <option value="">בחר רכב</option>
-                  {vehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.make} {vehicle.model} {vehicle.license_plate ? `— ${vehicle.license_plate}` : ''}</option>)}
-                </select>
-              ) : null}
-              {vehicleMode === 'fleet' && fleetPlateMissing && (
-                <label className="mt-3 block rounded-xl border-2 border-amber-300 bg-amber-50 p-3"><span className={label}>לרכב הזה אין מספר רישוי במערכת (לא חובה)</span>
-                  <input value={customLicensePlate} onChange={(event) => setCustomLicensePlate(event.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" className={field} />
-                </label>
-              )}
-              {vehicleMode === 'custom' ? (
-                <div className="space-y-3">
-                  <label className="block"><span className={label}>מספר רישוי (לא חובה)</span>
-                    <input value={customLicensePlate} onChange={(event) => setCustomLicensePlate(event.target.value)} inputMode="numeric" dir="ltr" placeholder="12-345-67" className={field} />
-                  </label>
-                  <label className="block"><span className={label}>שם הרכב</span>
-                    <input value={customVehicleName} onChange={(event) => setCustomVehicleName(event.target.value)} placeholder="לדוגמה: טויוטה קורולה לבנה" className={field} />
-                  </label>
-                </div>
-              ) : null}
-            </div>
+            <div className="sm:col-span-2">{vehicleBlock}</div>
           </div>
         )}
       </div>
+      )}
 
       {type === 'pickup' && (
         <div className={`rounded-2xl border-2 p-3 ${planReturn ? 'border-[#2D5F5F] bg-[#eef6f6]' : 'border-gray-200 bg-white'}`}>
@@ -302,12 +382,12 @@ export default function DriverTaskForm({
         </div>
       )}
 
-      <label className="block"><span className={label}>כתובת ללקוח — לוויז (לא חובה)</span>
+      <label className="block"><span className={label}>{type === 'service' ? 'כתובת המקום — לוויז (לא חובה)' : 'כתובת ללקוח — לוויז (לא חובה)'}</span>
         <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="רחוב, מספר, עיר" className={field} />
       </label>
-      <label className="block"><span className={label}>הערות לנהג (לא חובה)</span>
+      {type !== 'service' && <label className="block"><span className={label}>הערות לנהג (לא חובה)</span>
         <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={2} className="w-full rounded-2xl border border-gray-200 bg-gray-50/70 px-4 py-3 text-base focus:border-[#2D5F5F] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5F5F]/10" />
-      </label>
+      </label>}
       {error && <p className="text-sm font-bold text-red-600">{error}</p>}
       <div className="flex gap-2">
         <button type="submit" disabled={creating} className="min-h-14 flex-[2] rounded-2xl bg-[#E8743B] text-base font-black text-white shadow-sm shadow-orange-200 transition hover:bg-[#d4632a] disabled:opacity-50">{creating ? 'יוצר...' : driver ? `הקצאה ל${driver.name}` : 'יצירת משימה'}</button>

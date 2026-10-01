@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { israelDayRange, israelToday } from '@/lib/israel-day';
 import { morningDigestMessage, type TaskSummary } from '@/lib/push-messages';
 import { sendPushToDrivers } from '@/lib/push';
+import { serviceTitle } from '@/lib/service-task';
 
 /**
  * Daily at ~07:30 Israel (vercel.json): "בוקר טוב" notification to every
@@ -25,12 +26,14 @@ export async function GET(request: Request) {
     booking: { customer_name: string; pickup_time: string | null; return_time: string | null; pickup_location: string | null; dropoff_location: string | null };
   };
 
-  const [pickups, returns, drivers] = await Promise.all([
+  const [pickups, returns, drivers, services] = await Promise.all([
     supabase.from('driver_tasks').select(select).eq('type', 'pickup').eq('status', 'open').not('assigned_driver_id', 'is', null)
       .gte('booking.pickup_date', startISO).lt('booking.pickup_date', endISO).returns<Row[]>(),
     supabase.from('driver_tasks').select(select).eq('type', 'return').eq('status', 'open').not('assigned_driver_id', 'is', null)
       .gte('booking.dropoff_date', startISO).lt('booking.dropoff_date', endISO).returns<Row[]>(),
     supabase.from('drivers').select('id, name').eq('active', true).eq('role', 'driver'),
+    supabase.from('driver_tasks').select('assigned_driver_id, scheduled_time, location, service_kind, service_place').eq('type', 'service').eq('status', 'open')
+      .not('assigned_driver_id', 'is', null).gte('scheduled_at', startISO).lt('scheduled_at', endISO),
   ]);
   if (pickups.error || returns.error || drivers.error) {
     console.error('[cron/driver-morning] lookup failed:', pickups.error?.message ?? returns.error?.message ?? drivers.error?.message);
@@ -49,6 +52,19 @@ export async function GET(request: Request) {
       day: israelToday(),
       time: time ? time.slice(0, 5) : null,
       address: location && location !== 'לא צוין' ? location : null,
+    });
+    byDriver.set(row.assigned_driver_id, list);
+  }
+
+  // Garage jobs (best-effort: before the service-tasks migration this query just errors).
+  for (const row of (services.data ?? []) as Array<{ assigned_driver_id: string; scheduled_time: string | null; location: string | null; service_kind: string | null; service_place: string | null }>) {
+    const list = byDriver.get(row.assigned_driver_id) ?? [];
+    list.push({
+      type: 'service',
+      customerName: serviceTitle(row.service_kind, row.service_place),
+      day: israelToday(),
+      time: row.scheduled_time ? row.scheduled_time.slice(0, 5) : null,
+      address: row.location,
     });
     byDriver.set(row.assigned_driver_id, list);
   }
