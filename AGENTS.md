@@ -42,7 +42,7 @@ Drivers and branch managers use the driver app (`/driver/*`, `src/components/ins
 
 ## Phone notifications (Web Push) for drivers and managers
 
-- Texts live in `src/lib/push-messages.ts` (keep them human, polite and short, in Hebrew); sending in `src/lib/push.ts`; task-change hooks in `src/lib/push-notify.ts`; service worker `public/driver-sw.js`; opt-in card `src/components/app/PushSetup.tsx`.
+- Texts live in `src/lib/push-messages.ts` (keep them human, polite and short, in Hebrew); sending in `src/lib/push.ts`; task-change hooks in `src/lib/push-notify.ts`; service worker `public/driver-sw.js`; opt-in bell in the top bar `src/components/app/PushBell.tsx`.
 - Needs env vars on Vercel (Production): `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`mailto:office@smartcar.co.il`). Generate once with `npx web-push generate-vapid-keys`. Never commit them. Changing the keys invalidates every phone's subscription.
 - Without the keys everything still works; notifications are simply off and the opt-in card stays hidden.
 - Table `push_subscriptions` (migration `database/migrations/add-push-subscriptions.sql`). Morning summary cron: `/api/cron/driver-morning`.

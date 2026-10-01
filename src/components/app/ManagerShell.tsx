@@ -6,8 +6,7 @@ import useSWR from 'swr';
 import { CalendarDays, LayoutList, LogOut } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { fetcher } from '@/lib/swr';
-import InstallHint from '@/components/app/InstallHint';
-import PushSetup from '@/components/app/PushSetup';
+import PushBell from '@/components/app/PushBell';
 import { BrandBar, brandIconButton } from '@/components/app/Brand';
 
 const NAV = [
@@ -50,6 +49,7 @@ export default function ManagerShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen" dir="rtl">
       <BrandBar label="מנהלים">
         {me.name && <span className="hidden text-sm font-bold text-gray-500 sm:inline">שלום, {me.name}</span>}
+        <PushBell audience="manager" />
         <button onClick={logout} className={brandIconButton} aria-label="יציאה">
           <LogOut className="h-5 w-5" aria-hidden="true" />
         </button>
@@ -72,10 +72,6 @@ export default function ManagerShell({ children }: { children: ReactNode }) {
           );
         })}
       </nav>
-      <div className="mx-auto w-full max-w-5xl space-y-3 px-4 pt-3 empty:hidden sm:px-8">
-        <PushSetup audience="manager" />
-        <InstallHint appName="SmartCar מנהלים" />
-      </div>
       {children}
     </div>
   );

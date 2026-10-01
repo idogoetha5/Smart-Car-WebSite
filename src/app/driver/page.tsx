@@ -7,8 +7,7 @@ import { Search, LogOut, RefreshCw, Plus, Navigation, Phone, Pencil, MapPin, Mes
 import { fetcher } from '@/lib/swr';
 import PendingInspections from '@/components/inspection/PendingInspections';
 import { BrandBar, BrandHero, brandIconButton } from '@/components/app/Brand';
-import InstallHint from '@/components/app/InstallHint';
-import PushSetup from '@/components/app/PushSetup';
+import PushBell from '@/components/app/PushBell';
 import { arrivedMessage, onTheWayLink, onTheWayMessage, returnReminderMessage, signedCopyMessage } from '@/lib/driver-on-the-way';
 
 interface TaskRow {
@@ -328,6 +327,7 @@ export default function DriverTodayPage() {
   return (
     <div className="min-h-screen pb-10" dir="rtl">
       <BrandBar label="נהגים">
+        <PushBell audience="driver" />
         <button onClick={() => mutate()} className={brandIconButton} aria-label="רענון">
           <RefreshCw className={`h-5 w-5 ${isValidating ? 'animate-spin' : ''}`} aria-hidden="true" />
         </button>
@@ -380,8 +380,6 @@ export default function DriverTodayPage() {
       <PendingInspections />
 
       <div className="mx-auto max-w-5xl px-4 pt-4 space-y-6 sm:px-8">
-        <PushSetup audience="driver" />
-        <InstallHint appName="SmartCar נהגים" />
         {isLoading && <div className="h-24 animate-pulse rounded-2xl bg-gray-100" />}
 
         {tab === 'search' ? (
