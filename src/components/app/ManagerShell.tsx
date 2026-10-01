@@ -77,7 +77,9 @@ export default function ManagerShell({ children }: { children: ReactNode }) {
           {/* Sidebar (computer) */}
           <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-e border-gray-100 bg-white px-4 py-6 lg:flex">
             <div className="mb-8 flex items-center gap-2 px-2">
-              <Image src="/images/logo.png" alt="SmartCar" width={112} height={50} className="h-9 w-auto object-contain" priority />
+              <Link href="/driver/manage" aria-label="חזרה לדף היום" className="flex min-h-11 items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F]">
+                <Image src="/images/logo.png" alt="SmartCar" width={112} height={50} className="h-9 w-auto object-contain" priority />
+              </Link>
               <span className="rounded-full bg-[#eef6f6] px-2.5 py-0.5 text-xs font-black text-[#2D5F5F]">מנהלים</span>
             </div>
             <SidebarActions />
@@ -115,7 +117,9 @@ export default function ManagerShell({ children }: { children: ReactNode }) {
             <header className="sticky top-0 z-30 border-b border-gray-100 bg-white/90 pt-[env(safe-area-inset-top)] backdrop-blur-md lg:hidden">
               <div className="flex h-14 items-center justify-between px-4">
                 <div className="flex items-center gap-2">
-                  <Image src="/images/logo.png" alt="SmartCar" width={96} height={43} className="h-8 w-auto object-contain" priority />
+                  <Link href="/driver/manage" aria-label="חזרה לדף היום" className="flex min-h-11 items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F]">
+                    <Image src="/images/logo.png" alt="SmartCar" width={96} height={43} className="h-8 w-auto object-contain" priority />
+                  </Link>
                   <span className="rounded-full bg-[#eef6f6] px-2.5 py-0.5 text-xs font-black text-[#2D5F5F]">מנהלים</span>
                 </div>
                 <div className="flex items-center">
