@@ -81,6 +81,8 @@ for(const path of pages){
    await p.getByRole('button',{name:/עוד/}).first().click(); await check('driver_sheet');
    await p.getByText('עריכת כתובת').click(); await check('driver_sheet_edit');
    await p.getByRole('button',{name:'סגור'}).last().click();
+   await p.getByRole('button',{name:'התראות',exact:true}).first().click(); await check('driver_bell');
+   await p.getByRole('button',{name:'סגירה'}).first().click({force:true});
    await p.getByRole('button',{name:'חיפוש',exact:true}).click(); await p.locator('input[type=search]').fill('דני'); await p.keyboard.press('Enter'); await check('driver_search');
  }
  if(path==='/driver/quick-booking'){

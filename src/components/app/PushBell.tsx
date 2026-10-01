@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell, BellOff, BellRing, Download, X } from 'lucide-react';
 import { brandIconButton } from '@/components/app/Brand';
 
@@ -138,7 +139,7 @@ export default function PushBell({ audience }: { audience: 'driver' | 'manager' 
         {needsAction && <span className="absolute top-2 end-2 h-2.5 w-2.5 rounded-full bg-[#E8743B] ring-2 ring-white" aria-hidden="true" />}
       </button>
 
-      {open && (
+      {open && createPortal(
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-start sm:pt-20" dir="rtl" role="dialog" aria-modal="true" aria-label="התראות">
           <button type="button" aria-label="סגירה" onClick={() => setOpen(false)} className="absolute inset-0 bg-black/30" />
           <div className="relative w-full max-w-sm rounded-t-3xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl">
@@ -179,7 +180,9 @@ export default function PushBell({ audience }: { audience: 'driver' | 'manager' 
 
             {message && <p className={`mt-3 text-sm font-bold ${message.ok ? 'text-green-700' : 'text-red-600'}`}>{message.text}</p>}
           </div>
-        </div>
+        </div>,
+        // Portal: the top bar's backdrop blur would otherwise trap this fixed sheet inside the bar.
+        document.body
       )}
     </>
   );
