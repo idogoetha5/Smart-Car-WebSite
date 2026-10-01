@@ -40,10 +40,10 @@ function NavBadge({ href }: { href: string }) {
 export default function ManagerShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { data: me, isLoading } = useSWR<{ role: string; canManage: boolean; name?: string }>('/api/driver/me', fetcher);
+  const { data: me, isLoading } = useSWR<{ role: string; canManage: boolean; name?: string }>('/api/driver/me?as=manager', fetcher);
 
   const logout = async () => {
-    await fetch('/api/driver/login', { method: 'DELETE' });
+    await fetch('/api/driver/login?as=manager', { method: 'DELETE' });
     router.push('/driver/manager-login');
   };
 

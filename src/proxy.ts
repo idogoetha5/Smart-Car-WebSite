@@ -151,7 +151,10 @@ export async function proxy(request: NextRequest) {
     }
 
     if (pathname !== DRIVER_LOGIN_API) {
-      const driverOk = await verifyDriverToken(request.cookies.get('driver_auth')?.value);
+      // Either app's session (driver_auth / manager_auth) — each route re-checks who may do what.
+      const driverOk =
+        (await verifyDriverToken(request.cookies.get('driver_auth')?.value)) ||
+        (await verifyDriverToken(request.cookies.get('manager_auth')?.value));
       if (!driverOk) {
         const adminOk = await verifyAdminToken(request.cookies.get('admin_auth')?.value ?? '');
         if (!adminOk) {
@@ -187,12 +190,17 @@ export async function proxy(request: NextRequest) {
     // sitting on the login page, before a session exists) and must stay
     // reachable, same reasoning as excluding /api/admin/login above.
     if (pathname !== '/driver/login' && pathname !== '/driver/manager-login' && !pathname.startsWith('/driver/manifest')) {
-      const driverOk = await verifyDriverToken(request.cookies.get('driver_auth')?.value);
+      // The manager app runs on the manager session (or an older manager
+      // session kept in driver_auth); the driver app only on the driver session.
+      const isManagerPage = pathname.startsWith('/driver/manage');
+      const driverOk =
+        (await verifyDriverToken(request.cookies.get('driver_auth')?.value)) ||
+        (isManagerPage && (await verifyDriverToken(request.cookies.get('manager_auth')?.value)));
       if (!driverOk) {
         const adminOk = await verifyAdminToken(request.cookies.get('admin_auth')?.value ?? '');
         if (!adminOk) {
           // Branch managers have their own login (names of managers only).
-          const loginPath = pathname.startsWith('/driver/manage') ? '/driver/manager-login' : '/driver/login';
+          const loginPath = isManagerPage ? '/driver/manager-login' : '/driver/login';
           return NextResponse.redirect(new URL(loginPath, request.url));
         }
       }

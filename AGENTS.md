@@ -8,6 +8,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+## Start here: `docs/AI-HANDBOOK.md` (mandatory)
+
+Before working on the driver app or the manager app, read `docs/AI-HANDBOOK.md`. It covers what both apps do, sessions and accounts, the data model, how to check and how to deploy. **After every task, update that file (facts plus a change-log line) in the same commit.** This applies to every AI tool (Claude, Codex, …).
+
 ## NEVER change the customer-form QR codes
 
 The four branch QR codes (herzliya, telaviv, jerusalem, airport) are already printed and physically placed in the branches. They must NEVER be changed or regenerated. This applies to every AI agent and human working here:
