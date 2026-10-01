@@ -11,6 +11,7 @@ import {
   type TaskSummary,
 } from '@/lib/push-messages';
 import { sendPushToDrivers } from '@/lib/push';
+import { serviceReasonLabel, serviceTitle } from '@/lib/service-task';
 
 /**
  * Glue between task changes and phone notifications: loads what a task is
@@ -29,7 +30,16 @@ export interface TaskSnapshot {
 
 type Row = {
   id: string;
-  type: 'pickup' | 'return';
+  type: 'pickup' | 'return' | 'service';
+  scheduled_at?: string | null;
+  scheduled_time?: string | null;
+  location?: string | null;
+  service_kind?: string | null;
+  service_reason?: string | null;
+  service_place?: string | null;
+  custom_vehicle_name?: string | null;
+  custom_license_plate?: string | null;
+  car?: { make: string; model: string; license_plate: string | null } | null;
   status: 'open' | 'done' | 'cancelled';
   assigned_driver_id: string | null;
   booking_id: string | null;
@@ -48,6 +58,25 @@ type Row = {
 };
 
 function toSnapshot(row: Row): TaskSnapshot {
+  if (row.type === 'service') {
+    const car = { vehicle: row.car ?? null, custom_vehicle_name: row.custom_vehicle_name, custom_license_plate: row.custom_license_plate };
+    const plate = bookingLicensePlate(car);
+    return {
+      id: row.id,
+      status: row.status,
+      driverId: row.assigned_driver_id,
+      bookingId: null,
+      summary: {
+        type: 'service',
+        customerName: serviceTitle(row.service_kind, row.service_place),
+        reason: serviceReasonLabel(row.service_reason) || null,
+        day: row.scheduled_at ? dayFormatter.format(new Date(row.scheduled_at)) : null,
+        time: row.scheduled_time ? row.scheduled_time.slice(0, 5) : null,
+        address: row.location || null,
+        vehicle: [bookingVehicleName(car), plate !== '—' ? plate : ''].filter(Boolean).join(' '),
+      },
+    };
+  }
   const b = row.booking;
   const date = row.type === 'pickup' ? b?.pickup_date : b?.dropoff_date;
   const time = row.type === 'pickup' ? b?.pickup_time : b?.return_time;
@@ -73,7 +102,7 @@ export async function loadTaskSnapshot(taskId: string): Promise<TaskSnapshot | n
   const { data, error } = await createAdminClient()
     .from('driver_tasks')
     .select(
-      'id, type, status, assigned_driver_id, booking_id, booking:bookings(customer_name, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))'
+      'id, type, status, assigned_driver_id, booking_id, scheduled_at, scheduled_time, location, service_kind, service_reason, service_place, custom_vehicle_name, custom_license_plate, car:vehicles(make, model, license_plate), booking:bookings(customer_name, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))'
     )
     .eq('id', taskId)
     .maybeSingle<Row>();

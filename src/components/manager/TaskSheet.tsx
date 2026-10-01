@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { CalendarClock, Car, FileText, Hash, MapPin, MessageCircle, Navigation, Phone, StickyNote, Video } from 'lucide-react';
+import { CalendarClock, Car, FileText, Hash, MapPin, MessageCircle, Navigation, Phone, StickyNote, Video, Wrench } from 'lucide-react';
+import { serviceKindLabel, serviceReasonLabel, serviceTitle } from '@/lib/service-task';
+import { taskCar } from './types';
 import Sheet from '@/components/ui/Sheet';
 import Avatar from '@/components/ui/Avatar';
 import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
@@ -35,7 +37,9 @@ export default function TaskSheet() {
 
   const { day, time } = taskWhen(task);
   const location = taskLocation(task);
-  const plate = bookingLicensePlate(task.booking);
+  const service = task.type === 'service';
+  const car = taskCar(task);
+  const plate = bookingLicensePlate(car);
   const phone = task.booking?.customer_phone?.replace(/[^\d+]/g, '') ?? '';
   const waPhone = phone.startsWith('0') ? `972${phone.slice(1)}` : phone.replace('+', '');
   const doc = task.inspection?.status === 'signed' ? signedById.get(task.inspection.id) : undefined;
@@ -78,11 +82,13 @@ export default function TaskSheet() {
       title={
         <div>
           <div className="mb-1 flex flex-wrap items-center gap-1.5">
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-black ${pickup ? 'bg-orange-50 text-[#C24E17]' : 'bg-[#eef6f6] text-[#2D5F5F]'}`}>{pickup ? 'מסירה' : 'החזרה'}</span>
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-black ${service ? 'bg-indigo-50 text-[#5B5BD6]' : pickup ? 'bg-orange-50 text-[#C24E17]' : 'bg-[#eef6f6] text-[#2D5F5F]'}`}>
+              {service ? serviceKindLabel(task.service_kind) : pickup ? 'מסירה' : 'החזרה'}
+            </span>
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-black ${status.cls}`}>{status.text}</span>
             {task.inspection?.status === 'awaiting_signature' && <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-black text-amber-800">ממתין לחתימה</span>}
           </div>
-          <p className="truncate text-xl">{task.booking?.customer_name || 'ללא שם לקוח'}</p>
+          <p className="truncate text-xl">{service ? serviceTitle(task.service_kind, task.service_place) : task.booking?.customer_name || 'ללא שם לקוח'}</p>
         </div>
       }
       footer={
@@ -146,6 +152,16 @@ export default function TaskSheet() {
 
       {/* Details */}
       <div className="divide-y divide-gray-100">
+        {service && (
+          <div className={row}>
+            <Wrench className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-gray-400">סיבה</p>
+              <p className="text-base font-bold text-[#0D2B2B]">{serviceReasonLabel(task.service_reason) || '—'}</p>
+              {task.notes && <p className="mt-1 whitespace-pre-line text-sm text-gray-600">{task.notes}</p>}
+            </div>
+          </div>
+        )}
         <div className={row}>
           <CalendarClock className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" aria-hidden="true" />
           <div className="min-w-0 flex-1">
@@ -196,7 +212,7 @@ export default function TaskSheet() {
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold text-gray-400">רכב</p>
             <p className="flex flex-wrap gap-x-2 text-base font-bold text-[#0D2B2B]">
-              <span>{bookingVehicleName(task.booking)}</span>
+              <span>{bookingVehicleName(car)}</span>
               {plate !== '—' && <span className="font-black text-gray-600" dir="ltr">{plate}</span>}
             </p>
           </div>
@@ -212,7 +228,7 @@ export default function TaskSheet() {
           </div>
         )}
 
-        {task.notes && (
+        {task.notes && !service && (
           <div className={row}>
             <StickyNote className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" aria-hidden="true" />
             <div>

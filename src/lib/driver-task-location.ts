@@ -19,6 +19,18 @@ export async function setTaskLocation(taskId: string, rawLocation: unknown): Pro
   }
   if (!task) return { ok: false, status: 404, error: 'המשימה לא נמצאה' };
 
+  if (task.type === 'service') {
+    const { error: ownError } = await supabase
+      .from('driver_tasks')
+      .update({ location: location === UNSPECIFIED_LOCATION ? null : location })
+      .eq('id', taskId);
+    if (ownError) {
+      console.error('[driver-task-location] service update failed:', ownError.message);
+      return { ok: false, status: 500, error: 'עדכון הכתובת נכשל' };
+    }
+    return { ok: true, status: 200 };
+  }
+
   const column = task.type === 'pickup' ? 'pickup_location' : 'dropoff_location';
   const { error: updateError } = await supabase.from('bookings').update({ [column]: location }).eq('id', task.booking_id);
   if (updateError) {

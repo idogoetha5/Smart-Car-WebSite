@@ -5,6 +5,7 @@
  */
 import { readVehicleInput, resolveVehicle } from '@/lib/custom-vehicle';
 import { inBackground, notifyTaskCreated } from '@/lib/push-notify';
+import { isServiceKind, isServiceReason } from '@/lib/service-task';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { israelDayRange } from '@/lib/israel-day';
@@ -14,11 +15,21 @@ import { isValidEmail, normalizeEmail } from '@/lib/email';
 const UNSPECIFIED_LOCATION = 'לא צוין';
 
 const TASK_SELECT =
-  'id, type, status, notes, created_by, created_at, assigned_driver_id, driver:drivers(id, name), booking:bookings(id, customer_name, customer_phone, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))';
+  'id, type, status, notes, created_by, created_at, assigned_driver_id, scheduled_at, scheduled_time, location, service_kind, service_reason, service_place, custom_vehicle_name, custom_license_plate, car:vehicles(make, model, license_plate), driver:drivers(id, name), booking:bookings(id, customer_name, customer_phone, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))';
 
 interface TaskWithBooking {
   id: string;
-  type: 'pickup' | 'return';
+  type: 'pickup' | 'return' | 'service';
+  /** Service (garage) jobs only — handovers/returns use their booking. */
+  scheduled_at?: string | null;
+  scheduled_time?: string | null;
+  location?: string | null;
+  service_kind?: string | null;
+  service_reason?: string | null;
+  service_place?: string | null;
+  custom_vehicle_name?: string | null;
+  custom_license_plate?: string | null;
+  car?: { make: string; model: string; license_plate: string | null } | null;
   status: 'open' | 'done' | 'cancelled';
   notes: string | null;
   created_by: string | null;
@@ -63,6 +74,10 @@ export async function listDriverTasks(request: NextRequest): Promise<NextRespons
     const start = new Date(startISO).getTime();
     const end = new Date(endISO).getTime();
     tasks = tasks.filter((t) => {
+      if (t.type === 'service') {
+        const ts = t.scheduled_at ? new Date(t.scheduled_at).getTime() : NaN;
+        return ts >= start && ts < end;
+      }
       const booking = t.booking;
       if (!booking) return false;
       const date = t.type === 'pickup' ? booking.pickup_date : booking.dropoff_date;
@@ -108,6 +123,7 @@ export async function listDriverTasks(request: NextRequest): Promise<NextRespons
 export async function createDriverTask(request: NextRequest, createdBy: string): Promise<NextResponse> {
 
   const body = await request.json().catch(() => null);
+  if (body?.type === 'service') return createServiceTask(body, createdBy);
   const type = body?.type === 'pickup' || body?.type === 'return' ? body.type : null;
   if (!type) {
     return NextResponse.json({ error: 'יש לבחור סוג משימה' }, { status: 400 });
@@ -248,4 +264,56 @@ export async function createDriverTask(request: NextRequest, createdBy: string):
   inBackground(() => notifyTaskCreated(task.id, returnTaskId));
 
   return NextResponse.json({ taskId: task.id, bookingId, returnTaskId }, { status: 201 });
+}
+
+/**
+ * Garage / tyre-shop job: a car taken somewhere on a day, with a reason. No
+ * rental, no customer, no inspection — the driver marks it done.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function createServiceTask(body: any, createdBy: string): Promise<NextResponse> {
+  const kind = body?.serviceKind;
+  const reason = body?.serviceReason;
+  if (!isServiceKind(kind)) return NextResponse.json({ error: 'יש לבחור לאן הרכב נוסע' }, { status: 400 });
+  if (!isServiceReason(reason)) return NextResponse.json({ error: 'יש לבחור סיבה' }, { status: 400 });
+  const scheduledAt = body?.scheduledAt ? new Date(String(body.scheduledAt)) : null;
+  if (!scheduledAt || Number.isNaN(scheduledAt.getTime())) return NextResponse.json({ error: 'יש לבחור תאריך' }, { status: 400 });
+  const scheduledTime = typeof body?.scheduledTime === 'string' && /^\d{2}:\d{2}$/.test(body.scheduledTime) ? body.scheduledTime : null;
+
+  const supabase = createAdminClient();
+  const vehicle = await resolveVehicle(supabase, readVehicleInput(body), { requirePlate: false });
+  if (!vehicle.ok) return NextResponse.json({ error: vehicle.error }, { status: vehicle.status });
+
+  const { data: task, error } = await supabase
+    .from('driver_tasks')
+    .insert({
+      type: 'service',
+      booking_id: null,
+      assigned_driver_id: body?.assignedDriverId ? String(body.assignedDriverId).trim() : null,
+      notes: body?.notes ? String(body.notes).trim().slice(0, 1000) : null,
+      created_by: createdBy,
+      vehicle_id: vehicle.vehicleId,
+      custom_vehicle_name: vehicle.customVehicleName,
+      custom_license_plate: vehicle.customLicensePlate,
+      scheduled_at: scheduledAt.toISOString(),
+      scheduled_time: scheduledTime,
+      location: body?.location ? String(body.location).trim().slice(0, 200) : null,
+      service_kind: kind,
+      service_reason: reason,
+      service_place: body?.servicePlace ? String(body.servicePlace).trim().slice(0, 120) : null,
+    })
+    .select('id')
+    .single();
+
+  if (error || !task) {
+    console.error('[admin/tasks] service task insert failed:', error?.message);
+    const missingMigration = /service_kind|scheduled_at|driver_tasks_type_check|null value in column "booking_id"/.test(error?.message ?? '');
+    return NextResponse.json(
+      { error: missingMigration ? 'יש לעדכן את מסד הנתונים לפני הוספת משימות מוסך' : 'יצירת המשימה נכשלה' },
+      { status: 500 }
+    );
+  }
+
+  inBackground(() => notifyTaskCreated(task.id));
+  return NextResponse.json({ taskId: task.id }, { status: 201 });
 }

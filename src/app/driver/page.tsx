@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR, { preload } from 'swr';
-import { Search, LogOut, Plus, Navigation, Phone, Pencil, MapPin, MessageCircle, MoreHorizontal, CheckCircle2 } from 'lucide-react';
+import { Wrench, Search, LogOut, Plus, Navigation, Phone, Pencil, MapPin, MessageCircle, MoreHorizontal, CheckCircle2 } from 'lucide-react';
 import { fetcher } from '@/lib/swr';
 import PendingInspections from '@/components/inspection/PendingInspections';
 import { BrandBar, BrandHero, brandIconButton } from '@/components/app/Brand';
@@ -14,7 +14,9 @@ import { arrivedMessage, onTheWayLink, onTheWayMessage, returnReminderMessage, s
 interface TaskRow {
   taskId: string;
   taskStatus: 'open' | 'done' | 'cancelled';
-  type: 'pickup' | 'return';
+  type: 'pickup' | 'return' | 'service';
+  /** Garage / tyre-shop job: where, why, what to do. */
+  service?: { kind: string | null; kindLabel: string; reason: string; details: string | null };
   bookingId: string;
   bookingNumber: string;
   customerName: string;
@@ -168,10 +170,12 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
   // Build the sheet: only the messages that make sense right now, most relevant first.
   const wa = <MessageCircle className="h-6 w-6 shrink-0" aria-hidden="true" />;
   const items: SheetItem[] = [];
-  if (row.customerPhone) {
+  // Customer messages exist only for handovers/returns (a garage job has no customer).
+  const msgType = row.type === 'service' ? 'pickup' : row.type;
+  if (row.customerPhone && row.type !== 'service') {
     const phone = row.customerPhone;
     if (signed && row.inspection?.pdfUrl) {
-      const href = onTheWayLink(phone, signedCopyMessage({ customerName: row.customerName, type: row.type, pdfUrl: row.inspection.pdfUrl }));
+      const href = onTheWayLink(phone, signedCopyMessage({ customerName: row.customerName, type: msgType, pdfUrl: row.inspection.pdfUrl }));
       if (href) items.push({ key: 'copy', label: 'וואטסאפ: שלח את הטופס החתום', icon: wa, href, tone: 'whatsapp' });
     }
     if (isTomorrow && row.type === 'return' && !isDone && !signed) {
@@ -187,8 +191,8 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
       if (href) items.push({ key: 'remind', label: 'וואטסאפ: תזכורת לאיסוף מחר', icon: wa, href, tone: 'whatsapp' });
     }
     if (!isDone && !signed && !isTomorrow) {
-      const onTheWay = onTheWayLink(phone, onTheWayMessage({ customerName: row.customerName, driverName, vehicleName: row.vehicleName, type: row.type }));
-      const arrived = onTheWayLink(phone, arrivedMessage({ customerName: row.customerName, driverName, type: row.type }));
+      const onTheWay = onTheWayLink(phone, onTheWayMessage({ customerName: row.customerName, driverName, vehicleName: row.vehicleName, type: msgType }));
+      const arrived = onTheWayLink(phone, arrivedMessage({ customerName: row.customerName, driverName, type: msgType }));
       if (onTheWay) items.push({ key: 'otw', label: 'וואטסאפ: אני בדרך', icon: wa, href: onTheWay, tone: 'whatsapp' });
       if (arrived) items.push({ key: 'arr', label: 'וואטסאפ: הגעתי', icon: wa, href: arrived, tone: 'whatsapp' });
     }
@@ -238,9 +242,33 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
         <span className="truncate">{hasAddress ? row.location : 'אין כתובת'}</span>
       </p>
 
-      {!isDone && (
+      {row.service && (
+        <div className="mt-2 rounded-2xl bg-indigo-50/70 px-3 py-2 text-sm">
+          <p className="flex items-center gap-1.5 font-black text-[#5B5BD6]">
+            <Wrench className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {row.service.kindLabel}{row.service.reason ? ` · ${row.service.reason}` : ''}
+          </p>
+          {row.service.details && <p className="mt-0.5 whitespace-pre-line text-gray-700">{row.service.details}</p>}
+        </div>
+      )}
+
+      {!isDone && !row.service && (
         <div className="mt-3 flex">
           <TaskAction row={row} />
+        </div>
+      )}
+      {row.service && (
+        <div className="mt-3 flex">
+          <button
+            onClick={toggleDone}
+            disabled={marking}
+            className={`flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl text-base font-black transition active:scale-[0.98] disabled:opacity-50 ${
+              isDone ? 'bg-green-100 text-green-700' : 'bg-[#5B5BD6] text-white'
+            }`}
+          >
+            <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+            {isDone ? 'בוצע — לחצו לביטול' : 'סמן כבוצע'}
+          </button>
         </div>
       )}
 
@@ -269,7 +297,7 @@ function TaskCard({ row, onChanged, driverName, isTomorrow = false }: { row: Tas
       </div>
 
       {sheet && (
-        <ActionSheet title={`${row.customerName} · #${row.bookingNumber}`} items={editing ? [] : items} onClose={() => { setSheet(false); setEditing(false); }}>
+        <ActionSheet title={row.service ? `${row.customerName} · ${row.vehicleName}` : `${row.customerName} · #${row.bookingNumber}`} items={editing ? [] : items} onClose={() => { setSheet(false); setEditing(false); }}>
           {editing && (
             <div className="space-y-2 pb-2">
               <input
@@ -310,6 +338,7 @@ export default function DriverTodayPage() {
   const { data, isLoading, mutate } = useSWR<{
     pickups?: TaskRow[];
     returns?: TaskRow[];
+    services?: TaskRow[];
     results?: TaskRow[];
   }>(url, fetcher, { keepPreviousData: true, dedupingInterval: 10_000, refreshInterval: 60_000, revalidateOnFocus: true });
 
@@ -414,6 +443,16 @@ export default function DriverTodayPage() {
                 )}
               </div>
             </section>
+            {(data?.services ?? []).length > 0 && (
+              <section>
+                <h2 className="text-sm font-black text-[#5B5BD6] mb-2">{"מוסך / פנצ'רייה"}</h2>
+                <div className="space-y-3">
+                  {(data?.services ?? []).map((row) => (
+                    <TaskCard key={row.taskId} row={row} onChanged={() => mutate()} driverName={me?.name ?? ''} isTomorrow={tab === 'tomorrow'} />
+                  ))}
+                </div>
+              </section>
+            )}
           </>
         )}
       </div>

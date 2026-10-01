@@ -13,7 +13,9 @@ export interface PushMessage {
 }
 
 export interface TaskSummary {
-  type: 'pickup' | 'return';
+  type: 'pickup' | 'return' | 'service';
+  /** Service jobs: "טיפול תקופתי", "תקלה"… */
+  reason?: string | null;
   customerName: string;
   /** YYYY-MM-DD, Israel. */
   day: string | null;
@@ -33,11 +35,14 @@ function israelDay(now: Date, offsetDays = 0): string {
   return dayFormatter.format(new Date(now.getTime() + offsetDays * 86_400_000));
 }
 
-const typeWord = (type: TaskSummary['type']) => (type === 'pickup' ? 'מסירה' : 'החזרה');
-const customer = (t: TaskSummary) => t.customerName.trim() || 'לקוח';
+const typeWord = (type: TaskSummary['type']) => (type === 'pickup' ? 'מסירה' : type === 'return' ? 'החזרה' : 'מוסך');
+const customer = (t: TaskSummary) => t.customerName.trim() || (t.type === 'service' ? 'מוסך' : 'לקוח');
+/** Title word: "מסירה" / "החזרה", or the garage's name for a service job. */
+const headline = (t: TaskSummary) => (t.type === 'service' ? customer(t) : typeWord(t.type));
 
 /** "המסירה לדניאל כהן" / "ההחזרה של דניאל כהן". */
 function taskPhrase(t: TaskSummary): string {
+  if (t.type === 'service') return `הנסיעה ל${customer(t)}${t.vehicle ? ` עם ${t.vehicle}` : ''}`;
   return t.type === 'pickup' ? `המסירה ל${customer(t)}` : `ההחזרה של ${customer(t)}`;
 }
 
@@ -58,6 +63,11 @@ export function whenLabel(day: string | null, time: string | null, now: Date, wi
 }
 
 function details(t: TaskSummary, now: Date): string {
+  if (t.type === 'service') {
+    // "טיפול תקופתי · Toyota Corolla 12-345-67 · מחר ב־10:00 · מוסך יוסי, הרצל 3"
+    const where = [customer(t), t.address].filter(Boolean).join(', ');
+    return [t.reason, t.vehicle, whenLabel(t.day, t.time, now), where].filter(Boolean).join(' · ');
+  }
   return [customer(t), whenLabel(t.day, t.time, now), t.address].filter(Boolean).join(' · ');
 }
 
@@ -66,14 +76,14 @@ function details(t: TaskSummary, now: Date): string {
 export function taskAssignedMessage(t: TaskSummary, now: Date, plannedReturn?: { day: string | null; time: string | null } | null): PushMessage {
   const returnLine = plannedReturn ? `\nהחזרה: ${whenLabel(plannedReturn.day, plannedReturn.time, now)}` : '';
   return {
-    title: `משימה חדשה — ${typeWord(t.type)}`,
+    title: `משימה חדשה — ${headline(t)}`,
     body: `${details(t, now)}${returnLine}`,
     url: DRIVER_URL,
   };
 }
 
 export function taskMovedToYouMessage(t: TaskSummary, now: Date): PushMessage {
-  return { title: `משימה הועברה אליך — ${typeWord(t.type)}`, body: details(t, now), url: DRIVER_URL };
+  return { title: `משימה הועברה אליך — ${headline(t)}`, body: details(t, now), url: DRIVER_URL };
 }
 
 export function taskRemovedMessage(t: TaskSummary, now: Date): PushMessage {
@@ -97,7 +107,7 @@ export function taskCancelledMessage(t: TaskSummary, now: Date): PushMessage {
 export function taskRescheduledMessage(t: TaskSummary, now: Date): PushMessage {
   const when = whenLabel(t.day, t.time, now, true);
   return {
-    title: `שינוי מועד — ${typeWord(t.type)}`,
+    title: `שינוי מועד — ${headline(t)}`,
     body: `${taskPhrase(t)} נקבעה ${when}.${t.address ? ` הכתובת: ${t.address}.` : ''}`,
     url: DRIVER_URL,
   };
@@ -113,12 +123,14 @@ export function taskAddressMessage(t: TaskSummary): PushMessage {
 
 export function morningDigestMessage(name: string, tasks: TaskSummary[]): PushMessage {
   const pickups = tasks.filter((t) => t.type === 'pickup').length;
-  const returns = tasks.length - pickups;
+  const returns = tasks.filter((t) => t.type === 'return').length;
+  const services = tasks.length - pickups - returns;
   const parts = [
     pickups ? (pickups === 1 ? 'מסירה אחת' : `${pickups} מסירות`) : '',
     returns ? (returns === 1 ? 'החזרה אחת' : `${returns} החזרות`) : '',
+    services ? (services === 1 ? 'נסיעה אחת למוסך' : `${services} נסיעות למוסך`) : '',
   ].filter(Boolean);
-  const count = tasks.length === 1 ? `היום יש לך ${parts[0]}.` : `היום יש לך ${tasks.length} משימות: ${parts.join(' ו')}.`;
+  const count = tasks.length === 1 ? `היום יש לך ${parts[0]}.` : `היום יש לך ${tasks.length} משימות: ${parts.slice(0, -1).join(', ')}${parts.length > 1 ? ' ו' : ''}${parts[parts.length - 1]}.`;
   const first = [...tasks].sort((a, b) => (a.time ?? '99:99').localeCompare(b.time ?? '99:99'))[0];
   const firstLine = first?.time ? ` הראשונה ב־${first.time} — ${customer(first)}.` : '';
   return {

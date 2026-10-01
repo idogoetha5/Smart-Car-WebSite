@@ -57,4 +57,16 @@ describe('push messages', () => {
     expect(inspectionSignedMessage({ type: 'return', customerName: 'דניאל כהן', vehicle: 'Toyota', newDamageCount: 2 }).title).toBe('החזרה עם 2 נזקים חדשים');
     expect(inspectionSignedMessage({ type: 'return', customerName: 'דניאל כהן', vehicle: 'Toyota', newDamageCount: 0 }).body).toBe('דניאל כהן · Toyota · ללא נזקים חדשים');
   });
+
+  it('garage jobs name the place, the reason and the car', () => {
+    const m = taskAssignedMessage(
+      { type: 'service', customerName: 'מוסך יוסי', reason: 'טיפול תקופתי', vehicle: 'Toyota Corolla 12-345-67', day: '2026-10-02', time: '08:00', address: 'הרצל 3, חולון' },
+      NOW
+    );
+    expect(m.title).toBe('משימה חדשה — מוסך יוסי');
+    expect(m.body).toBe('טיפול תקופתי · Toyota Corolla 12-345-67 · מחר ב־08:00 · מוסך יוסי, הרצל 3, חולון');
+    expect(morningDigestMessage('יוסי', [task(), { type: 'service', customerName: "פנצ'רייה", day: '2026-10-01', time: null, address: null }]).body).toBe(
+      'היום יש לך 2 משימות: מסירה אחת ונסיעה אחת למוסך. הראשונה ב־10:00 — דניאל כהן. בהצלחה!'
+    );
+  });
 });

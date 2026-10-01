@@ -10,6 +10,8 @@ import { byWhen, dayParts, greeting, israelDate, longDate, taskLocation, taskWhe
 import EmptyState from '@/components/ui/EmptyState';
 import { useManager, type AlertKind } from './ManagerData';
 import TaskRow, { TaskList } from './TaskRow';
+import { taskCar } from './types';
+import { serviceReasonLabel, serviceTitle } from '@/lib/service-task';
 import DocRow from './DocRow';
 
 const DAYS_AHEAD = 14;
@@ -41,6 +43,11 @@ export default function TodayView() {
     const digits = needle.replace(/\D/g, '');
     return tasks
       .filter((t) => {
+        if (t.type === 'service') {
+          const car = taskCar(t);
+          return [serviceTitle(t.service_kind, t.service_place), serviceReasonLabel(t.service_reason), taskLocation(t), bookingVehicleName(car), t.notes ?? '']
+            .some((v) => v.toLowerCase().includes(needle)) || (digits.length >= 3 && bookingLicensePlate(car).replace(/\D/g, '').includes(digits));
+        }
         const b = t.booking;
         if (!b) return false;
         return (

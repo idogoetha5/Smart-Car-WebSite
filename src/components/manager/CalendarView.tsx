@@ -85,7 +85,8 @@ export default function CalendarView() {
                 if (!d) return <div key={`e${i}`} />;
                 const list = byDay.get(d) ?? [];
                 const pickups = list.filter((t) => t.type === 'pickup').length;
-                const returns = list.length - pickups;
+                const services = list.filter((t) => t.type === 'service').length;
+                const returns = list.length - pickups - services;
                 const noDriver = list.some((t) => t.status === 'open' && !t.assigned_driver_id);
                 const isSel = d === day;
                 const isToday = d === today;
@@ -105,10 +106,12 @@ export default function CalendarView() {
                         <span className="flex gap-0.5 sm:hidden" aria-hidden="true">
                           {pickups > 0 && <span className={`h-1.5 w-1.5 rounded-full ${isSel ? 'bg-white' : 'bg-[#E8743B]'}`} />}
                           {returns > 0 && <span className={`h-1.5 w-1.5 rounded-full ${isSel ? 'bg-white/70' : 'bg-[#2D5F5F]'}`} />}
+                          {services > 0 && <span className={`h-1.5 w-1.5 rounded-full ${isSel ? 'bg-white/50' : 'bg-[#5B5BD6]'}`} />}
                         </span>
                         <span className="hidden flex-col gap-0.5 text-start text-[11px] font-bold leading-4 sm:flex">
                           {pickups > 0 && <span className={`truncate rounded-md px-1.5 ${isSel ? 'bg-white/15' : 'bg-orange-50 text-[#C24E17]'}`}>{pickups} מסירות</span>}
                           {returns > 0 && <span className={`truncate rounded-md px-1.5 ${isSel ? 'bg-white/15' : 'bg-[#eef6f6] text-[#2D5F5F]'}`}>{returns} החזרות</span>}
+                          {services > 0 && <span className={`truncate rounded-md px-1.5 ${isSel ? 'bg-white/15' : 'bg-indigo-50 text-[#5B5BD6]'}`}>{services} מוסך</span>}
                         </span>
                       </>
                     )}
@@ -120,6 +123,7 @@ export default function CalendarView() {
             <div className="mt-3 flex flex-wrap gap-4 px-2 text-xs text-gray-500">
               <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#E8743B]" />מסירה</span>
               <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#2D5F5F]" />החזרה</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#5B5BD6]" />מוסך</span>
               <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-500" />בלי נהג</span>
             </div>
           </section>

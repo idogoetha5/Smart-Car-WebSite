@@ -6,6 +6,7 @@ import { formatLocationForDriver, navigationQueryFor } from '@/lib/location-disp
 import { createInspectionToken } from '@/lib/inspection-link';
 import { numericOrderReference } from '@/lib/order-reference';
 import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
+import { serviceKindLabel, serviceReasonLabel, serviceTitle } from '@/lib/service-task';
 import { searchHandovers } from '@/lib/inspection-previous';
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.smartcar.co.il';
@@ -101,6 +102,51 @@ function shapeTask(task: TaskRow, inspections: Map<string, InspectionSlot>, awai
     inspection: booking ? inspections.get(`${booking.id}:${task.type}`) ?? null : null,
     /** Search only: a completed handover whose return hasn't been done yet. */
     awaitingReturn,
+  };
+}
+
+const SERVICE_SELECT =
+  'id, type, status, updated_at, notes, scheduled_at, scheduled_time, location, service_kind, service_reason, service_place, custom_vehicle_name, custom_license_plate, car:vehicles(make, model, license_plate)';
+
+interface ServiceRow {
+  id: string;
+  status: 'open' | 'done' | 'cancelled';
+  updated_at: string | null;
+  notes: string | null;
+  scheduled_at: string;
+  scheduled_time: string | null;
+  location: string | null;
+  service_kind: string | null;
+  service_reason: string | null;
+  service_place: string | null;
+  custom_vehicle_name: string | null;
+  custom_license_plate: string | null;
+  car: { make: string; model: string; license_plate: string | null } | null;
+}
+
+function shapeService(t: ServiceRow) {
+  const carSource = { vehicle: t.car, custom_vehicle_name: t.custom_vehicle_name, custom_license_plate: t.custom_license_plate };
+  return {
+    taskId: t.id,
+    taskStatus: t.status,
+    type: 'service' as const,
+    bookingId: '',
+    bookingNumber: '',
+    customerName: serviceTitle(t.service_kind, t.service_place),
+    vehicleName: bookingVehicleName(carSource),
+    licensePlate: bookingLicensePlate(carSource),
+    location: t.location ?? '',
+    navQuery: t.location ? navigationQueryFor(t.location) : undefined,
+    customerPhone: '',
+    time: t.scheduled_time,
+    date: t.scheduled_at,
+    inspection: null,
+    service: {
+      kind: t.service_kind,
+      kindLabel: serviceKindLabel(t.service_kind),
+      reason: serviceReasonLabel(t.service_reason),
+      details: t.notes,
+    },
   };
 }
 
@@ -269,7 +315,24 @@ export async function GET(request: NextRequest) {
       return ta.localeCompare(tb);
     });
 
+  // Garage / tyre-shop jobs for the day (no rental — their own day, time, car and address).
+  let serviceQuery = supabase
+    .from('driver_tasks')
+    .select(SERVICE_SELECT)
+    .eq('type', 'service')
+    .neq('status', 'cancelled')
+    .gte('scheduled_at', startISO)
+    .lt('scheduled_at', endISO);
+  if (driverId) serviceQuery = serviceQuery.eq('assigned_driver_id', driverId);
+  const serviceResult = await serviceQuery.returns<ServiceRow[]>();
+  if (serviceResult.error) console.error('[driver/today] service lookup failed:', serviceResult.error.message);
+  const services = (serviceResult.data ?? [])
+    .filter((t) => t.status !== 'done' || !t.updated_at || Date.now() - new Date(t.updated_at).getTime() < DONE_VISIBLE_MS)
+    .map(shapeService)
+    .sort((a, b) => (a.time ?? '99:99').localeCompare(b.time ?? '99:99'));
+
   return NextResponse.json({
+    services,
     date: dateParam,
     pickups: sortByTime(pickups).map((t) => shapeTask(t, inspections)),
     returns: sortByTime(returns).map((t) => shapeTask(t, inspections)),

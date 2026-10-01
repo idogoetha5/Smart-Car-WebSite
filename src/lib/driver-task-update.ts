@@ -18,6 +18,26 @@ async function rescheduleTask(
     console.error('[driver-task-update] task lookup failed:', error.message);
     return { ok: false, status: 500, error: 'שגיאת שרת' };
   }
+  if (task?.type === 'service') {
+    // Garage jobs keep their own day/time on the task.
+    const own: Record<string, unknown> = {};
+    if (typeof scheduledAt === 'string' && scheduledAt) {
+      const when = new Date(scheduledAt);
+      if (Number.isNaN(when.getTime())) return { ok: false, status: 400, error: 'תאריך לא תקין' };
+      own.scheduled_at = when.toISOString();
+    }
+    if (typeof scheduledTime === 'string') {
+      if (scheduledTime && !/^\d{2}:\d{2}$/.test(scheduledTime)) return { ok: false, status: 400, error: 'שעה לא תקינה' };
+      own.scheduled_time = scheduledTime || null;
+    }
+    if (Object.keys(own).length === 0) return { ok: true };
+    const { error: ownError } = await supabase.from('driver_tasks').update(own).eq('id', id);
+    if (ownError) {
+      console.error('[driver-task-update] service reschedule failed:', ownError.message);
+      return { ok: false, status: 500, error: 'עדכון המועד נכשל' };
+    }
+    return { ok: true };
+  }
   if (!task?.booking_id) return { ok: false, status: 404, error: 'המשימה לא נמצאה' };
 
   const isPickup = task.type === 'pickup';

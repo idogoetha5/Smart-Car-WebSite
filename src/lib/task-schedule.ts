@@ -8,7 +8,11 @@ const clockFormatter = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusa
 const hourFormatter = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem', hour: 'numeric', hour12: false });
 
 export interface ScheduledTask {
-  type: 'pickup' | 'return';
+  type: 'pickup' | 'return' | 'service';
+  /** Service (garage) jobs carry their own day, time and address. */
+  scheduled_at?: string | null;
+  scheduled_time?: string | null;
+  location?: string | null;
   booking: {
     pickup_date: string;
     dropoff_date: string;
@@ -34,6 +38,13 @@ export function israelHour(now: number): number {
 }
 
 export function taskWhen(task: ScheduledTask): { day: string; time: string | null } {
+  if (task.type === 'service') {
+    const at = task.scheduled_at;
+    return {
+      day: at && !Number.isNaN(new Date(at).getTime()) ? dayFormatter.format(new Date(at)) : '',
+      time: task.scheduled_time ? task.scheduled_time.slice(0, 5) : null,
+    };
+  }
   const date = task.type === 'pickup' ? task.booking?.pickup_date : task.booking?.dropoff_date;
   const rawTime = task.type === 'pickup' ? task.booking?.pickup_time : task.booking?.return_time;
   const day = date && !Number.isNaN(new Date(date).getTime()) ? dayFormatter.format(new Date(date)) : '';
@@ -41,6 +52,7 @@ export function taskWhen(task: ScheduledTask): { day: string; time: string | nul
 }
 
 export function taskLocation(task: ScheduledTask): string {
+  if (task.type === 'service') return task.location?.trim() ?? '';
   const location = task.type === 'pickup' ? task.booking?.pickup_location : task.booking?.dropoff_location;
   return location && location !== 'לא צוין' ? location : '';
 }
