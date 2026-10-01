@@ -18,6 +18,7 @@ const TASK_FETCH_LIMIT = 500;
 
 interface TaskRow {
   id: string;
+  urgent?: boolean;
   type: 'pickup' | 'return';
   status: 'open' | 'done' | 'cancelled';
   updated_at?: string | null;
@@ -80,7 +81,7 @@ function isVisible(task: TaskRow): boolean {
   return Number.isNaN(doneAt) || Date.now() - doneAt < DONE_VISIBLE_MS;
 }
 
-function shapeTask(task: TaskRow, inspections: Map<string, InspectionSlot>, awaitingReturn = false) {
+function shapeTask(task: TaskRow, inspections: Map<string, InspectionSlot>, awaitingReturn = false, claimable = false) {
   const booking = task.booking;
   const time = task.type === 'pickup' ? booking?.pickup_time : booking?.return_time;
   const location = task.type === 'pickup' ? booking?.pickup_location : booking?.dropoff_location;
@@ -102,14 +103,18 @@ function shapeTask(task: TaskRow, inspections: Map<string, InspectionSlot>, awai
     inspection: booking ? inspections.get(`${booking.id}:${task.type}`) ?? null : null,
     /** Search only: a completed handover whose return hasn't been done yet. */
     awaitingReturn,
+    urgent: Boolean(task.urgent),
+    /** Open urgent task with no driver yet — this driver can take it. */
+    claimable,
   };
 }
 
 const SERVICE_SELECT =
-  'id, type, status, updated_at, notes, scheduled_at, scheduled_time, location, service_kind, service_reason, service_place, custom_vehicle_name, custom_license_plate, car:vehicles(make, model, license_plate)';
+  'id, type, status, urgent, updated_at, notes, scheduled_at, scheduled_time, location, service_kind, service_reason, service_place, custom_vehicle_name, custom_license_plate, car:vehicles(make, model, license_plate)';
 
 interface ServiceRow {
   id: string;
+  urgent?: boolean;
   status: 'open' | 'done' | 'cancelled';
   updated_at: string | null;
   notes: string | null;
@@ -124,10 +129,12 @@ interface ServiceRow {
   car: { make: string; model: string; license_plate: string | null } | null;
 }
 
-function shapeService(t: ServiceRow) {
+function shapeService(t: ServiceRow, claimable = false) {
   const carSource = { vehicle: t.car, custom_vehicle_name: t.custom_vehicle_name, custom_license_plate: t.custom_license_plate };
   return {
     taskId: t.id,
+    urgent: Boolean(t.urgent),
+    claimable,
     taskStatus: t.status,
     type: 'service' as const,
     bookingId: '',
@@ -151,7 +158,7 @@ function shapeService(t: ServiceRow) {
 }
 
 const TASK_SELECT_INNER =
-  'id, type, status, updated_at, assigned_driver_id, booking:bookings!inner(id, customer_name, customer_phone, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))';
+  'id, type, status, urgent, updated_at, assigned_driver_id, booking:bookings!inner(id, customer_name, customer_phone, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))';
 
 /**
  * "היום שלי" — only tasks assigned to the logged-in driver (an admin
@@ -264,6 +271,8 @@ export async function GET(request: NextRequest) {
         date: h.signedAt,
         inspection: { id: h.inspectionId, status: 'signed' as const },
         awaitingReturn: true,
+        urgent: false,
+        claimable: false,
       });
     }
     return NextResponse.json({ results });
@@ -328,10 +337,30 @@ export async function GET(request: NextRequest) {
   if (serviceResult.error) console.error('[driver/today] service lookup failed:', serviceResult.error.message);
   const services = (serviceResult.data ?? [])
     .filter((t) => t.status !== 'done' || !t.updated_at || Date.now() - new Date(t.updated_at).getTime() < DONE_VISIBLE_MS)
-    .map(shapeService)
+    .map((t) => shapeService(t))
     .sort((a, b) => (a.time ?? '99:99').localeCompare(b.time ?? '99:99'));
 
+  // Open urgent tasks nobody took yet (any type) — offered to every driver for the day.
+  let open: Array<ReturnType<typeof shapeTask> | ReturnType<typeof shapeService>> = [];
+  if (driverId) {
+    const [openPickups, openReturns, openServices] = await Promise.all([
+      supabase.from('driver_tasks').select(TASK_SELECT_INNER).eq('type', 'pickup').eq('status', 'open').eq('urgent', true).is('assigned_driver_id', null)
+        .gte('booking.pickup_date', startISO).lt('booking.pickup_date', endISO).returns<TaskRow[]>(),
+      supabase.from('driver_tasks').select(TASK_SELECT_INNER).eq('type', 'return').eq('status', 'open').eq('urgent', true).is('assigned_driver_id', null)
+        .gte('booking.dropoff_date', startISO).lt('booking.dropoff_date', endISO).returns<TaskRow[]>(),
+      supabase.from('driver_tasks').select(SERVICE_SELECT).eq('type', 'service').eq('status', 'open').eq('urgent', true).is('assigned_driver_id', null)
+        .gte('scheduled_at', startISO).lt('scheduled_at', endISO).returns<ServiceRow[]>(),
+    ]);
+    const openTasks = [...(openPickups.data ?? []), ...(openReturns.data ?? [])];
+    const openInspections = await inspectionMapFor(openTasks.map((t) => t.booking!.id));
+    open = [
+      ...openTasks.map((t) => shapeTask(t, openInspections, false, true)),
+      ...(openServices.data ?? []).map((t) => shapeService(t, true)),
+    ];
+  }
+
   return NextResponse.json({
+    open,
     services,
     date: dateParam,
     pickups: sortByTime(pickups).map((t) => shapeTask(t, inspections)),

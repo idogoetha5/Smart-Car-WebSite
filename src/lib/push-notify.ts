@@ -8,9 +8,12 @@ import {
   taskMovedToYouMessage,
   taskRemovedMessage,
   taskRescheduledMessage,
+  urgentAssignedMessage,
+  urgentClaimedMessage,
+  urgentOpenMessage,
   type TaskSummary,
 } from '@/lib/push-messages';
-import { sendPushToDrivers } from '@/lib/push';
+import { sendPushToDrivers, sendPushToManagers } from '@/lib/push';
 import { serviceReasonLabel, serviceTitle } from '@/lib/service-task';
 
 /**
@@ -22,6 +25,7 @@ const dayFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusale
 
 export interface TaskSnapshot {
   id: string;
+  urgent: boolean;
   status: 'open' | 'done' | 'cancelled';
   driverId: string | null;
   summary: TaskSummary;
@@ -30,6 +34,7 @@ export interface TaskSnapshot {
 
 type Row = {
   id: string;
+  urgent?: boolean | null;
   type: 'pickup' | 'return' | 'service';
   scheduled_at?: string | null;
   scheduled_time?: string | null;
@@ -63,6 +68,7 @@ function toSnapshot(row: Row): TaskSnapshot {
     const plate = bookingLicensePlate(car);
     return {
       id: row.id,
+      urgent: Boolean(row.urgent),
       status: row.status,
       driverId: row.assigned_driver_id,
       bookingId: null,
@@ -84,6 +90,7 @@ function toSnapshot(row: Row): TaskSnapshot {
   const plate = bookingLicensePlate(b);
   return {
     id: row.id,
+    urgent: Boolean(row.urgent),
     status: row.status,
     driverId: row.assigned_driver_id,
     bookingId: row.booking_id,
@@ -102,7 +109,7 @@ export async function loadTaskSnapshot(taskId: string): Promise<TaskSnapshot | n
   const { data, error } = await createAdminClient()
     .from('driver_tasks')
     .select(
-      'id, type, status, assigned_driver_id, booking_id, scheduled_at, scheduled_time, location, service_kind, service_reason, service_place, custom_vehicle_name, custom_license_plate, car:vehicles(make, model, license_plate), booking:bookings(customer_name, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))'
+      'id, type, status, urgent, assigned_driver_id, booking_id, scheduled_at, scheduled_time, location, service_kind, service_reason, service_place, custom_vehicle_name, custom_license_plate, car:vehicles(make, model, license_plate), booking:bookings(customer_name, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))'
     )
     .eq('id', taskId)
     .maybeSingle<Row>();
@@ -116,7 +123,18 @@ export async function loadTaskSnapshot(taskId: string): Promise<TaskSnapshot | n
 /** A new task was created and assigned (optionally with its return planned). */
 export async function notifyTaskCreated(taskId: string, returnTaskId?: string | null): Promise<void> {
   const task = await loadTaskSnapshot(taskId);
-  if (!task?.driverId) return;
+  if (!task) return;
+  if (task.urgent) {
+    if (task.driverId) {
+      await sendPushToDrivers([task.driverId], urgentAssignedMessage(task.summary, new Date()));
+    } else {
+      // Nobody chosen: offer it to every active driver.
+      const { data } = await createAdminClient().from('drivers').select('id').eq('active', true).eq('role', 'driver');
+      await sendPushToDrivers((data ?? []).map((d) => d.id), urgentOpenMessage(task.summary, new Date()));
+    }
+    return;
+  }
+  if (!task.driverId) return;
   const ret = returnTaskId ? await loadTaskSnapshot(returnTaskId) : null;
   const now = new Date();
   await sendPushToDrivers([task.driverId], taskAssignedMessage(task.summary, now, ret ? { day: ret.summary.day, time: ret.summary.time } : null));
@@ -166,4 +184,11 @@ export function inBackground(job: () => Promise<void>): void {
   } catch {
     void run();
   }
+}
+
+/** A driver took an open urgent task — tell the managers. */
+export async function notifyUrgentClaimed(taskId: string, driverName: string): Promise<void> {
+  const task = await loadTaskSnapshot(taskId);
+  if (!task) return;
+  await sendPushToManagers(urgentClaimedMessage(task.summary, driverName, new Date()));
 }

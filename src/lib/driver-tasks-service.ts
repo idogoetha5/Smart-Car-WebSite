@@ -15,10 +15,11 @@ import { isValidEmail, normalizeEmail } from '@/lib/email';
 const UNSPECIFIED_LOCATION = 'לא צוין';
 
 const TASK_SELECT =
-  'id, type, status, notes, created_by, created_at, assigned_driver_id, scheduled_at, scheduled_time, location, service_kind, service_reason, service_place, custom_vehicle_name, custom_license_plate, car:vehicles(make, model, license_plate), driver:drivers(id, name), booking:bookings(id, customer_name, customer_phone, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))';
+  'id, type, status, urgent, notes, created_by, created_at, assigned_driver_id, scheduled_at, scheduled_time, location, service_kind, service_reason, service_place, custom_vehicle_name, custom_license_plate, car:vehicles(make, model, license_plate), driver:drivers(id, name), booking:bookings(id, customer_name, customer_phone, pickup_date, dropoff_date, pickup_time, return_time, pickup_location, dropoff_location, custom_vehicle_name, custom_license_plate, vehicle:vehicles(make, model, license_plate))';
 
 interface TaskWithBooking {
   id: string;
+  urgent?: boolean;
   type: 'pickup' | 'return' | 'service';
   /** Service (garage) jobs only — handovers/returns use their booking. */
   scheduled_at?: string | null;
@@ -230,6 +231,7 @@ export async function createDriverTask(request: NextRequest, createdBy: string):
     .insert({
       booking_id: bookingId,
       type,
+      ...(body?.urgent === true ? { urgent: true } : {}),
       assigned_driver_id: assignedDriverId,
       notes,
       created_by: createdBy,
@@ -289,6 +291,7 @@ async function createServiceTask(body: any, createdBy: string): Promise<NextResp
     .insert({
       type: 'service',
       booking_id: null,
+      ...(body?.urgent === true ? { urgent: true } : {}),
       assigned_driver_id: body?.assignedDriverId ? String(body.assignedDriverId).trim() : null,
       notes: body?.notes ? String(body.notes).trim().slice(0, 1000) : null,
       created_by: createdBy,

@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCircle, CheckCircle2, Clock3, FileCheck2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock3, FileCheck2, Zap } from 'lucide-react';
 import { bookingLicensePlate, bookingVehicleName } from '@/lib/booking-vehicle';
 import { dayLabel, israelClock, taskLocation, taskWhen } from '@/lib/task-schedule';
 import Avatar from '@/components/ui/Avatar';
@@ -35,6 +35,12 @@ export default function TaskRow({ task, showDay = false }: { task: ManagerTask; 
       </div>
 
       <div className="min-w-0 flex-1 border-s border-gray-100 ps-3">
+        {task.urgent && task.status === 'open' && (
+          <span className="mb-0.5 inline-flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[11px] font-black text-white">
+            <Zap className="h-3 w-3" aria-hidden="true" />
+            דחוף
+          </span>
+        )}
         <p className={`truncate text-base font-black ${task.status === 'done' ? 'text-gray-400 line-through decoration-gray-300' : 'text-[#0D2B2B]'}`}>
           {service ? serviceTitle(task.service_kind, task.service_place) : task.booking?.customer_name || 'ללא שם לקוח'}
         </p>

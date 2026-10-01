@@ -46,6 +46,24 @@ function localDateString(offsetDays: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/** Date (YYYY-MM-DD) and time (HH:MM, rounded up to 5 minutes) `minutes` from now, device time. */
+function localDateTimeIn(minutes: number): { date: string; time: string } {
+  const at = new Date();
+  at.setMinutes(at.getMinutes() + minutes);
+  at.setMinutes(Math.ceil(at.getMinutes() / 5) * 5, 0, 0);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return { date: `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`, time: `${pad(at.getHours())}:${pad(at.getMinutes())}` };
+}
+
+type WhenPreset = 'now' | '1h' | '2h' | 'today' | 'tomorrow';
+const WHEN_PRESETS: Array<{ key: WhenPreset; text: string }> = [
+  { key: 'now', text: 'עכשיו' },
+  { key: '1h', text: 'תוך שעה' },
+  { key: '2h', text: 'תוך שעתיים' },
+  { key: 'today', text: 'היום' },
+  { key: 'tomorrow', text: 'מחר' },
+];
+
 const field = 'min-h-12 w-full rounded-2xl border border-gray-200 bg-gray-50/70 px-4 text-base transition focus:border-[#2D5F5F] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#2D5F5F]/10';
 const label = 'mb-1.5 block text-sm font-bold text-gray-700';
 
@@ -77,6 +95,30 @@ export default function DriverTaskForm({
   const [pickedDriverId, setPickedDriverId] = useState('');
   const driver = fixedDriver ?? drivers.find((d) => d.id === pickedDriverId) ?? null;
   const [time, setTime] = useState('');
+  const [urgent, setUrgent] = useState(false);
+  const [preset, setPreset] = useState<WhenPreset | null>(defaultDate && defaultDate !== localDateString(0) ? null : 'today');
+
+  /** "עכשיו" / "תוך שעה" / "תוך שעתיים" set today + a time and mark it urgent; "היום" / "מחר" just the day. */
+  const applyPreset = (key: WhenPreset) => {
+    setPreset(key);
+    if (key === 'today' || key === 'tomorrow') {
+      setDate(localDateString(key === 'today' ? 0 : 1));
+      setTime('');
+      setUrgent(false);
+      return;
+    }
+    const at = localDateTimeIn(key === 'now' ? 0 : key === '1h' ? 60 : 120);
+    setDate(at.date);
+    setTime(at.time);
+    setUrgent(true);
+  };
+
+  const presetChip = (active: boolean, key: WhenPreset) => {
+    const hot = key === 'now' || key === '1h' || key === '2h';
+    return `min-h-11 rounded-full px-4 text-sm font-black transition ${
+      active ? (hot ? 'bg-red-600 text-white shadow-sm' : 'bg-[#2D5F5F] text-white shadow-sm') : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:ring-gray-300'
+    }`;
+  };
   const [planReturn, setPlanReturn] = useState(false);
   const [returnDate, setReturnDate] = useState(() => {
     const base = new Date(`${defaultDate || localDateString(0)}T12:00:00`);
@@ -131,6 +173,7 @@ export default function DriverTaskForm({
             location: location || undefined,
             notes: notes || undefined,
             assignedDriverId: driver?.id ?? null,
+            urgent: urgent || undefined,
           }),
         });
         const json = await response.json().catch(() => ({}));
@@ -180,6 +223,7 @@ export default function DriverTaskForm({
           location: location || undefined,
           notes: notes || undefined,
           assignedDriverId: driver?.id ?? null,
+          urgent: urgent || undefined,
           returnAt: withReturn ? new Date(`${returnDate}T${returnTime || '12:00'}:00`).toISOString() : undefined,
           returnTime: withReturn && returnTime ? returnTime : undefined,
         }),
@@ -275,20 +319,36 @@ export default function DriverTaskForm({
 
       <div>
         <span className={label}>מתי</span>
-        <div className="mb-2 flex gap-1 rounded-2xl bg-gray-100 p-1">
-          <button type="button" onClick={() => setDate(localDateString(0))} className={tab(date === localDateString(0))}>היום</button>
-          <button type="button" onClick={() => setDate(localDateString(1))} className={tab(date === localDateString(1))}>מחר</button>
+        <div className="mb-2 flex flex-wrap gap-2">
+          {WHEN_PRESETS.map(({ key, text }) => (
+            <button key={key} type="button" onClick={() => applyPreset(key)} className={presetChip(preset === key, key)}>
+              {text}
+            </button>
+          ))}
         </div>
         <div className="grid grid-cols-2 gap-2">
           <label className="block">
             <span className={label}>תאריך</span>
-            <input type="date" value={date} min={localDateString(0)} onChange={(event) => setDate(event.target.value)} className={field} required />
+            <input type="date" value={date} min={localDateString(0)} onChange={(event) => { setDate(event.target.value); setPreset(null); }} className={field} required />
           </label>
           <label className="block">
             <span className={label}>שעה (לא חובה)</span>
-            <input type="time" value={time} onChange={(event) => setTime(event.target.value)} className={field} />
+            <input type="time" value={time} onChange={(event) => { setTime(event.target.value); setPreset(null); }} className={field} />
           </label>
         </div>
+        <label className={`mt-3 flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl p-3 transition ${urgent ? 'bg-red-50 ring-1 ring-red-200' : 'bg-gray-50 ring-1 ring-gray-200'}`}>
+          <input type="checkbox" checked={urgent} onChange={(event) => setUrgent(event.target.checked)} className="h-6 w-6 shrink-0 accent-red-600" />
+          <span className="min-w-0">
+            <span className={`block text-base font-black ${urgent ? 'text-red-700' : 'text-gray-800'}`}>משימה דחופה</span>
+            <span className="block text-sm text-gray-600">
+              {urgent
+                ? driver
+                  ? `${driver.name} יקבל התראה דחופה, והמשימה תופיע אצלו ראשונה.`
+                  : 'כל הנהגים יקבלו התראה, והראשון שילחץ "אני לוקח" יקבל את המשימה.'
+                : 'לסמן כשצריך את זה עכשיו או בשעות הקרובות.'}
+            </span>
+          </span>
+        </label>
       </div>
 
       {type === 'service' && (
@@ -390,7 +450,7 @@ export default function DriverTaskForm({
       </label>}
       {error && <p className="text-sm font-bold text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button type="submit" disabled={creating} className="min-h-14 flex-[2] rounded-2xl bg-[#E8743B] text-base font-black text-white shadow-sm shadow-orange-200 transition hover:bg-[#d4632a] disabled:opacity-50">{creating ? 'יוצר...' : driver ? `הקצאה ל${driver.name}` : 'יצירת משימה'}</button>
+        <button type="submit" disabled={creating} className="min-h-14 flex-[2] rounded-2xl bg-[#E8743B] text-base font-black text-white shadow-sm shadow-orange-200 transition hover:bg-[#d4632a] disabled:opacity-50">{creating ? 'יוצר...' : urgent ? (driver ? `שליחה דחופה ל${driver.name}` : 'שליחה דחופה לכל הנהגים') : driver ? `הקצאה ל${driver.name}` : 'יצירת משימה'}</button>
         <button type="button" onClick={onCancel} className="min-h-14 flex-1 rounded-2xl bg-gray-100 text-base font-bold text-gray-600 hover:bg-gray-200">ביטול</button>
       </div>
     </form>

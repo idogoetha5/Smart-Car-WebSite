@@ -82,6 +82,35 @@ export function taskAssignedMessage(t: TaskSummary, now: Date, plannedReturn?: {
   };
 }
 
+/** Urgent task assigned to one driver — "do it now / by HH:MM". */
+export function urgentAssignedMessage(t: TaskSummary, now: Date): PushMessage {
+  return {
+    title: `דחוף — ${headline(t)}`,
+    body: details(t, now),
+    url: DRIVER_URL,
+    tag: 'urgent',
+  };
+}
+
+/** Urgent task without a driver — offered to everyone, first to take it gets it. */
+export function urgentOpenMessage(t: TaskSummary, now: Date): PushMessage {
+  return {
+    title: `משימה דחופה פנויה — ${headline(t)}`,
+    body: `${details(t, now)}\nמי יכול לקחת? פתחו את האפליקציה ולחצו "אני לוקח".`,
+    url: DRIVER_URL,
+    tag: 'urgent-open',
+  };
+}
+
+/** Managers: a driver took an open urgent task. */
+export function urgentClaimedMessage(t: TaskSummary, driverName: string, now: Date): PushMessage {
+  return {
+    title: `${driverName || 'נהג'} לקח את המשימה הדחופה`,
+    body: details(t, now),
+    url: '/driver/manage',
+  };
+}
+
 export function taskMovedToYouMessage(t: TaskSummary, now: Date): PushMessage {
   return { title: `משימה הועברה אליך — ${headline(t)}`, body: details(t, now), url: DRIVER_URL };
 }

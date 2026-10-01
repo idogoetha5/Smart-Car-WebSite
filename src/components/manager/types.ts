@@ -25,6 +25,8 @@ export interface SignedJob {
 
 export interface ManagerTask {
   id: string;
+  /** "עכשיו" / "תוך שעה" — highlighted everywhere; offered to all drivers when unassigned. */
+  urgent?: boolean;
   type: 'pickup' | 'return' | 'service';
   /** Service (garage / tyre shop) jobs — no booking, their own car, day and place. */
   scheduled_at?: string | null;
