@@ -351,7 +351,7 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
             {(isHe ? [
               { icon: '🪪', title: 'תעודת זהות / דרכון', detail: 'ישראלי: ת"ז. תייר: דרכון תקף.' },
               // The blanket "24 months of seniority" requirement contradicted
-              // the approved policy that rental is available from age 18,
+              // the approved policy that rental is available from age 21,
               // including drivers within their first two years.
               { icon: '🚗', title: 'רישיון נהיגה מקורי בתוקף', detail: 'חייב להיות תקף לכל תקופת ההשכרה ולכל נהג שיירשם בחוזה.' },
               { icon: '💳', title: 'כרטיס אשראי על שמך', detail: 'לחיוב הפיקדון. כרטיסי דביט אינם מתקבלים. ויזה, מאסטרקארד מתקבלים.' },

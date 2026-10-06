@@ -55,8 +55,8 @@ export const ANSWERS: Record<ServiceKnowledgeTopic, LocalisedAnswer> = {
   },
   age_licence: {
     topic: 'age_licence', href: '/terms', linkLabelHe: 'לתנאי הזכאות', linkLabelEn: 'Eligibility terms',
-    he: 'אפשר לשכור מגיל 18, גם לפני שנתיים ותק רישיון. הרישיון חייב להיות בתוקף, והזכאות בפועל תלויה בכיסוי הביטוחי ובקבוצת הרכב — התנאים יאושרו לפני ההזמנה.',
-    en: 'Rental is available from age 18, including drivers with under two years’ licence experience. The licence must remain valid; actual eligibility depends on the insurance cover and vehicle group, and is confirmed before booking.',
+    he: 'אפשר לשכור מגיל 21, גם לפני שנתיים ותק רישיון. הרישיון חייב להיות בתוקף, והזכאות בפועל תלויה בכיסוי הביטוחי ובקבוצת הרכב — התנאים יאושרו לפני ההזמנה.',
+    en: 'Rental is available from age 21, including drivers with under two years’ licence experience. The licence must remain valid; actual eligibility depends on the insurance cover and vehicle group, and is confirmed before booking.',
   },
   different_location: {
     topic: 'different_location', href: '/terms', linkLabelHe: 'לתנאי ההשכרה', linkLabelEn: 'Rental terms',

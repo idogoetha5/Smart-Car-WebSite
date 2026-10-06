@@ -14,7 +14,7 @@ The owner, Ido, is not technical. He writes in Hebrew and expects work done end 
 
 | Part | URL | Who | Notes |
 |---|---|---|---|
-| Public website + booking | `/he`, `/en`, ... | Customers | next-intl, locale-prefixed. |
+| Public website + booking | `/he`, `/en`, ... | Customers | next-intl, locale-prefixed. Minimum rental age is 21; the Hebrew and English terms, FAQ, guide, new-driver service page, and automated service knowledge state this consistently. |
 | Admin | `/he/admin/*` | Office (Ido, Daniel) | `admin_auth` cookie. The "נהגים" page shows the manager views as tabs (`ManagerWorkspace`). |
 | **Driver app** | `/driver/*` | Drivers, on phones only | PWA, no app store. Login: name + 4-digit PIN. |
 | **Manager app** | `/driver/manage/*` (`/manager` redirects here) | Branch managers, on phone **and** computer | PWA. Login: `/driver/manager-login`, names of managers + 4-digit PIN. |
@@ -124,6 +124,7 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
+- 2026-10-06 — Set the public rental minimum age to 21 in Hebrew and English terms, FAQ, guide, new-driver service page, and automated service knowledge. Branch `clean-main`. No migration. Deployed to production.
 - 2026-10-01 — Redesigned every manager surface (shell, login, today, alerts, calendar, fleet, drivers, documents and quote chooser) with a consistent desktop/mobile product UI, plus prominent full-width quick-action buttons and a final interaction polish for sheets, empty states, toasts, focus states and mobile navigation. Commits `017aef4`, `741eabc`, `ea50c0a`. Brand palette preserved; no workflow, feature or automation change. No migration. Deployed and verified live.
 - 2026-10-01 — The SmartCar logo in the manager header now links to the manager's "Today" page on phone and desktop. Commit `33f8491`. No migration. Deployed.
 - 2026-10-01 — Added the exact admin rental and leasing quote builders to the manager app, including branded WhatsApp delivery for both. Branch `clean-main`, commit `0baf851`. No migration. Deployed.

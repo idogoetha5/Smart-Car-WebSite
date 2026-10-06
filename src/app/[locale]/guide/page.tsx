@@ -116,7 +116,7 @@ export default async function GuidePage({ params }: { params: Promise<{ locale: 
       bodyHe: (
         <>
           <p>
-            השכרה זמינה מגיל 18, גם לנהגים חדשים. נדרש רישיון נהיגה בתוקף, רישום מראש בחוזה ההשכרה וכיסוי ביטוחי מתאים. לנהג חדש או צעיר עשויה לחול תוספת, בהתאם לגיל וותק הרישיון.
+            השכרה זמינה מגיל 21, גם לנהגים חדשים. נדרש רישיון נהיגה בתוקף, רישום מראש בחוזה ההשכרה וכיסוי ביטוחי מתאים. לנהג חדש או צעיר עשויה לחול תוספת, בהתאם לגיל וותק הרישיון.
           </p>
           <p>
             <Link href={`/${locale}/services/new-driver`} className="text-[#2D5F5F] font-semibold hover:underline">
@@ -128,7 +128,7 @@ export default async function GuidePage({ params }: { params: Promise<{ locale: 
       bodyEn: (
         <>
           <p>
-            Rental is available from age 18, including new drivers. A valid driving licence, advance registration in the rental agreement and suitable insurance coverage are required. A new or young driver surcharge may apply, depending on age and licence history.
+            Rental is available from age 21, including new drivers. A valid driving licence, advance registration in the rental agreement and suitable insurance coverage are required. A new or young driver surcharge may apply, depending on age and licence history.
           </p>
           <p>
             <Link href={`/${locale}/services/new-driver`} className="text-[#2D5F5F] font-semibold hover:underline">
