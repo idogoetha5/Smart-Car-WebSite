@@ -23,7 +23,7 @@ The owner, Ido, is not technical. He writes in Hebrew and expects work done end 
 Client-side Sentry is initialized in `instrumentation-client.ts`. Its `beforeSend` handler in `src/lib/sentry-scrub.ts` removes customer data from URLs and drops the exact Talisman browser-extension onboarding error; other application errors are still reported.
 
 ### Scheduled backups
-GitHub schedules `.github/workflows/backup.yml` from the repository default branch `main`. That workflow checks out `clean-main` and runs `scripts/backups/run-backups.sh`; its script path must also be correct in the copy of the workflow on `main`. Database backups are encrypted and uploaded to Google Drive daily, and vehicle-image storage backups run on Sundays.
+GitHub schedules `.github/workflows/backup.yml` from the repository default branch `main`. That workflow checks out `clean-main` and runs `scripts/backups/run-backups.sh`; its script path must also be correct in the copy of the workflow on `main`. Database backups are encrypted and uploaded to Google Drive daily, and vehicle-image storage backups run on Sundays. New backups use the dedicated `SmartCar Backups` Google OAuth client with the `drive.file` scope and the `smartcar-backups-personal` Drive folder; the repository secret `RCLONE_CONFIG` holds that rclone remote. Older archives remain in the original `smartcar-backups` folder and can be accessed in Drive or through the previous rclone configuration.
 
 ### Driver app (`/driver`)
 - **היום / מחר / חיפוש** tabs (`src/app/driver/page.tsx`, data from `GET /api/driver/today?date=today|tomorrow` or `?search=`).
@@ -130,6 +130,7 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
+- 2026-10-07 — Prepared a dedicated Google Drive OAuth client with limited `drive.file` access and moved new backups to `smartcar-backups-personal`. Branch `clean-main`. No migration. Deployment pending verification.
 - 2026-10-07 — Fixed the scheduled backup script path on the repository default branch `main` (commit `cf649d4`); manually verified database and storage backup in [run #83](https://github.com/idogoetha5/Smart-Car-WebSite/actions/runs/37595847840). No migration. Deployed.
 - 2026-10-07 — Filter the Talisman browser extension onboarding error from client-side Sentry events; application errors remain reported. No migration. Deployed to production.
 - 2026-10-06 — Set the public rental minimum age to 21 in Hebrew and English terms, FAQ, guide, new-driver service page, and automated service knowledge. Branch `clean-main`. No migration. Deployed to production.

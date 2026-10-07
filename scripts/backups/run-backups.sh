@@ -34,7 +34,7 @@ SUPABASE_DB_URL="$(cat "$DB_URL_FILE")"
 export SUPABASE_URL="https://iovpoxmdsgsstaduggvb.supabase.co"
 export BACKUP_PASSPHRASE_FILE="$PASS_FILE"
 export RCLONE_REMOTE="gdrive"
-export R2_BUCKET="smartcar-backups"
+export R2_BUCKET="smartcar-backups-personal"
 export BACKUP_DIR="${HOME}/.smartcar-backups"
 
 if [[ "$MODE" == "db" || "$MODE" == "all" ]]; then
