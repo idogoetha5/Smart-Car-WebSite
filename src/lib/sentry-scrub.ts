@@ -27,6 +27,16 @@ export function stripUrl(url: string): string {
   }
 }
 
+const TALISMAN_EXTENSION_ERROR = 'Talisman extension has not been configured yet. Please continue with onboarding.';
+
+/** Ignore the Talisman browser extension's onboarding error, never application errors. */
+export function scrubBrowserEvent(event: ErrorEvent): ErrorEvent | null {
+  const extensionError = event.message === TALISMAN_EXTENSION_ERROR ||
+    event.exception?.values?.some((value) => value.value === TALISMAN_EXTENSION_ERROR);
+  if (extensionError) return null;
+  return scrubEvent(event);
+}
+
 export function scrubEvent(event: ErrorEvent): ErrorEvent {
   if (event.request) {
     if (event.request.url) event.request.url = stripUrl(event.request.url);

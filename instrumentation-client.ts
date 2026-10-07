@@ -6,7 +6,7 @@
  * monitoring was silently inert even after the DSN was set.
  */
 import * as Sentry from '@sentry/nextjs';
-import { scrubEvent } from '@/lib/sentry-scrub';
+import { scrubBrowserEvent } from '@/lib/sentry-scrub';
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -18,7 +18,7 @@ Sentry.init({
   // Defaults to false in v10; pinned explicitly so an SDK upgrade cannot
   // quietly start attaching IPs, cookies and headers.
   sendDefaultPii: false,
-  beforeSend: scrubEvent,
+  beforeSend: scrubBrowserEvent,
 });
 
 // Required for navigation spans in the App Router.

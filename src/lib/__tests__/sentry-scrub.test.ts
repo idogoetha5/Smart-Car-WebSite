@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { ErrorEvent } from '@sentry/nextjs';
-import { scrubEvent, stripUrl } from '../sentry-scrub';
+import { scrubBrowserEvent, scrubEvent, stripUrl } from '../sentry-scrub';
 
 /**
  * These import the real scrubber the Sentry configs pass to beforeSend, so a
@@ -96,5 +96,22 @@ describe('scrubEvent', () => {
 
   it('does not throw on an event with no request or breadcrumbs', () => {
     expect(() => scrubEvent({} as ErrorEvent)).not.toThrow();
+  });
+});
+
+describe('scrubBrowserEvent', () => {
+  it('drops the known Talisman browser-extension onboarding error', () => {
+    const event = {
+      exception: { values: [{ value: 'Talisman extension has not been configured yet. Please continue with onboarding.' }] },
+    } as ErrorEvent;
+    expect(scrubBrowserEvent(event)).toBeNull();
+  });
+
+  it('keeps and scrubs application errors', () => {
+    const event = {
+      exception: { values: [{ value: 'Rental request failed' }] },
+      request: { url: 'https://www.smartcar.co.il/he/rental?email=a%40b.com' },
+    } as ErrorEvent;
+    expect(scrubBrowserEvent(event)?.request?.url).toBe('https://www.smartcar.co.il/he/rental');
   });
 });

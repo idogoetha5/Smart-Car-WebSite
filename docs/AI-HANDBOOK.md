@@ -19,6 +19,9 @@ The owner, Ido, is not technical. He writes in Hebrew and expects work done end 
 | **Driver app** | `/driver/*` | Drivers, on phones only | PWA, no app store. Login: name + 4-digit PIN. |
 | **Manager app** | `/driver/manage/*` (`/manager` redirects here) | Branch managers, on phone **and** computer | PWA. Login: `/driver/manager-login`, names of managers + 4-digit PIN. |
 
+### Monitoring
+Client-side Sentry is initialized in `instrumentation-client.ts`. Its `beforeSend` handler in `src/lib/sentry-scrub.ts` removes customer data from URLs and drops the exact Talisman browser-extension onboarding error; other application errors are still reported.
+
 ### Driver app (`/driver`)
 - **היום / מחר / חיפוש** tabs (`src/app/driver/page.tsx`, data from `GET /api/driver/today?date=today|tomorrow` or `?search=`).
 - Sections: "דחוף · מי לוקח?" (open urgent jobs, first to tap "אני לוקח את המשימה" gets it, atomic claim, 409 if taken), דחוף, מסירות, החזרות, טיפול ברכב, שטיפות.
@@ -124,6 +127,7 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
+- 2026-10-07 — Filter the Talisman browser extension onboarding error from client-side Sentry events; application errors remain reported. No migration. Deployed to production.
 - 2026-10-06 — Set the public rental minimum age to 21 in Hebrew and English terms, FAQ, guide, new-driver service page, and automated service knowledge. Branch `clean-main`. No migration. Deployed to production.
 - 2026-10-01 — Redesigned every manager surface (shell, login, today, alerts, calendar, fleet, drivers, documents and quote chooser) with a consistent desktop/mobile product UI, plus prominent full-width quick-action buttons and a final interaction polish for sheets, empty states, toasts, focus states and mobile navigation. Commits `017aef4`, `741eabc`, `ea50c0a`. Brand palette preserved; no workflow, feature or automation change. No migration. Deployed and verified live.
 - 2026-10-01 — The SmartCar logo in the manager header now links to the manager's "Today" page on phone and desktop. Commit `33f8491`. No migration. Deployed.
