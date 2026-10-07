@@ -1,6 +1,6 @@
 name: Scheduled backups
 
-# Runs the DB + Storage backups (scripts/run-backups.sh) on GitHub's
+# Runs the DB + Storage backups (scripts/backups/run-backups.sh) on GitHub's
 # infrastructure instead of Ido's personal Mac. A laptop that gets closed
 # at night is not a reliable place to run an unattended 03:00 job — cron
 # there only fires if the machine happens to be awake. GitHub Actions runs
@@ -98,4 +98,4 @@ jobs:
         # exist (see the comment on that step).
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: bash scripts/run-backups.sh ${{ steps.mode.outputs.mode }}
+        run: bash scripts/backups/run-backups.sh ${{ steps.mode.outputs.mode }}
