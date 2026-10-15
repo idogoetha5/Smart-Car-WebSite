@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWhatsAppFlowReply, type FlowState, type WhatsAppFlowStore } from '@/lib/whatsapp-flow';
+import { interpretWhatsAppMessage } from '@/lib/whatsapp-gemini';
+import { checkRateLimit } from '@/lib/ratelimit';
 
 export const runtime = 'nodejs';
 
@@ -44,6 +46,7 @@ function simulationStore(sessionId: string, initialState: FlowState | null) {
       const { getWhatsAppRentalQuotes } = await import('@/lib/whatsapp-rental-quotes');
       return getWhatsAppRentalQuotes(st.vehiclePreference, st.pickupDate!, st.dropoffDate!);
     },
+    interpretMessage: interpretWhatsAppMessage,
     currentState: () => state,
   } satisfies WhatsAppFlowStore & { currentState: () => FlowState | null };
 }
@@ -57,6 +60,14 @@ export async function POST(request: NextRequest) {
   const message = payload?.message?.trim() ?? '';
   if (!/^[a-zA-Z0-9_-]{12,80}$/.test(sessionId) || !message || message.length > 1000) {
     return NextResponse.json({ error: 'Invalid simulation message' }, { status: 400 });
+  }
+  const address = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const [visitorLimit, sessionLimit] = await Promise.all([
+    checkRateLimit(`whatsapp-simulator:visitor:${address}`, 60, 60 * 60_000),
+    checkRateLimit(`whatsapp-simulator:session:${sessionId}`, 20, 10 * 60_000),
+  ]);
+  if (!visitorLimit.success || !sessionLimit.success) {
+    return NextResponse.json({ error: 'Too many simulation messages' }, { status: 429 });
   }
 
   const initialState = payload?.state && ['menu', 'rental_dates', 'rental_times', 'rental_locations', 'rental_vehicle', 'rental_name', 'rental_email', 'rental_confirm'].includes(payload.state.step)

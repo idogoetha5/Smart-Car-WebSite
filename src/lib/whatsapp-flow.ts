@@ -9,6 +9,7 @@ import { getSmartCarServiceAnswer } from '@/lib/smartcar-service-knowledge';
 import { composeServiceResponse, detectConversationMood } from '@/lib/service-response';
 import { consultativeSalesReply } from '@/lib/consultative-sales';
 import { getCarsForSale, type CarForSale } from '@/lib/cars-for-sale';
+import { interpretWhatsAppMessage, type WhatsAppInterpretation } from '@/lib/whatsapp-gemini';
 import {
   classifyCommercialIntent,
   commercialIntentQuestion,
@@ -81,6 +82,7 @@ export interface WhatsAppFlowStore {
   getCarsForSale?(): Promise<CarForSale[]>;
   recordLanguageCandidate?(candidate: { phrase: string; field: 'vehicle' | 'time' | 'location'; proposedValue?: string }): Promise<void>;
   resolveApprovedVariant?(phrase: string, field: 'vehicle'): Promise<string | null>;
+  interpretMessage?(message: string, step: FlowStep | null): Promise<WhatsAppInterpretation | null>;
 }
 
 export type WhatsAppInitialRoute = 'accident' | 'breakdown' | 'rental' | 'existing_booking_lookup' | 'existing_customer' | 'new_customer';
@@ -772,7 +774,15 @@ function learnableField(step: FlowStep): 'vehicle' | 'time' | 'location' | null 
  * conservative: an unclear sentence remains in the current step and can be
  * handed to a person, rather than silently becoming wrong booking data.
  */
-function extractRentalDetails(body: string, current: FlowState): Partial<FlowState> {
+function supportedGeminiField(body: string, value: string, evidence: string): string | null {
+  const clean = value.trim();
+  const source = evidence.trim();
+  if (!clean || !source || clean.length > 100 || source.length > 120) return null;
+  const message = body.toLocaleLowerCase();
+  return message.includes(source.toLocaleLowerCase()) && source.toLocaleLowerCase().includes(clean.toLocaleLowerCase()) ? clean : null;
+}
+
+function extractRentalDetails(body: string, current: FlowState, interpretation?: WhatsAppInterpretation | null): Partial<FlowState> {
   const extracted: Partial<FlowState> = {};
   const dates = parseDateCandidates(body);
   if (dates.length >= 2) {
@@ -825,6 +835,17 @@ function extractRentalDetails(body: string, current: FlowState): Partial<FlowSta
   if (locations) Object.assign(extracted, locations);
   const vehiclePreference = parseVehiclePreference(body);
   if (vehiclePreference) extracted.vehiclePreference = vehiclePreference;
+  if (interpretation) {
+    const pickupLocation = supportedGeminiField(body, interpretation.pickupLocation, interpretation.pickupEvidence);
+    const dropoffLocation = supportedGeminiField(body, interpretation.dropoffLocation, interpretation.dropoffEvidence);
+    if (pickupLocation && !current.pickupLocation) extracted.pickupLocation = pickupLocation;
+    if (dropoffLocation && !current.dropoffLocation) extracted.dropoffLocation = dropoffLocation;
+    const vehicleEvidence = interpretation.vehicleEvidence.trim();
+    if (!vehiclePreference && interpretation.vehiclePreference && vehicleEvidence
+      && body.toLocaleLowerCase().includes(vehicleEvidence.toLocaleLowerCase())) {
+      extracted.vehiclePreference = interpretation.vehiclePreference;
+    }
+  }
   Object.assign(extracted, parseTripNeeds(body));
   const emailMatch = body.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
   const email = emailMatch ? validEmail(emailMatch[0]) : validEmail(body);
@@ -964,6 +985,7 @@ const persistentStore: WhatsAppFlowStore = {
   getCarsForSale,
   recordLanguageCandidate,
   resolveApprovedVariant,
+  interpretMessage: interpretWhatsAppMessage,
 };
 
 function quotePrompt(quotes: WhatsAppRentalQuote[], locale: FlowLocale) {
@@ -986,8 +1008,8 @@ function quotePrompt(quotes: WhatsAppRentalQuote[], locale: FlowLocale) {
       ]);
 }
 
-async function continueRental(phone: string, body: string, current: FlowState, locale: FlowLocale, booking: BookingSummary | null, store: WhatsAppFlowStore): Promise<WhatsAppFlowResult | null> {
-  const extracted = extractRentalDetails(body, current);
+async function continueRental(phone: string, body: string, current: FlowState, locale: FlowLocale, booking: BookingSummary | null, store: WhatsAppFlowStore, interpretation?: WhatsAppInterpretation | null): Promise<WhatsAppFlowResult | null> {
+  const extracted = extractRentalDetails(body, current, interpretation);
 
   if (!Object.keys(extracted).length) {
     if (current.step === 'rental_times' && isVagueTimeReply(body)) {
@@ -1151,7 +1173,19 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     };
   }
 
-  const initialRoute = classifyWhatsAppInitialRoute(body, Boolean(booking));
+  let initialRoute = classifyWhatsAppInitialRoute(body, Boolean(booking));
+  // Gemini reads ordinary free text, while fixed menu choices, final consent,
+  // emergencies and human takeover remain under application control.
+  const interpretation = !existingState?.handedOff && !isMenuCommand(body) && !/^\s*\d\s*$/.test(body)
+    && existingState?.step !== 'rental_name' && existingState?.step !== 'rental_email'
+    && initialRoute !== 'accident' && initialRoute !== 'breakdown'
+    ? await store.interpretMessage?.(body, existingState?.step ?? null) ?? null
+    : null;
+  if (interpretation && (initialRoute === 'new_customer' || initialRoute === 'existing_customer')) {
+    if (interpretation.intent === 'accident' || interpretation.intent === 'breakdown') initialRoute = interpretation.intent;
+    if (interpretation.intent === 'rental') initialRoute = 'rental';
+    if (interpretation.intent === 'existing_booking') initialRoute = 'existing_booking_lookup';
+  }
 
   if (input === 'english' || input === 'עברית' || input === 'hebrew') {
     const state = existingState ? { ...existingState, locale, handedOff: false } : { step: 'menu' as const, locale };
@@ -1267,16 +1301,8 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     return {
       handled: true,
       reply: locale === 'en'
-        ? pickRandom([
-            `I’m sorry this happened. Safety first: if there is immediate danger or anyone is hurt, contact emergency services now.\n\nOnly if it is safe, stop in a safe place, use hazard lights, and move away from traffic where possible.\n\nThen call SmartCar: ${OFFICE_PHONE}. A representative is taking over — you do not need to repeat the details already shared.`,
-            `Oh no, I'm so sorry! Please make sure everyone is safe first. If there are injuries, call emergency services immediately.\n\nIf you're safe, pull over, turn on your hazard lights, and call us at ${OFFICE_PHONE}. An agent is stepping in to help right now.`,
-            `I'm really sorry to hear that. Your safety is the priority—call emergency services if anyone is hurt.\n\nOnce you are in a safe spot away from traffic, please call our emergency line at ${OFFICE_PHONE}. I've already alerted our team with your details.`
-          ])
-        : pickRandom([
-            `מצטערים שזה קרה. קודם כול בטיחות: אם יש סכנה מיידית או נפגעים, פנו עכשיו לגורמי החירום.\n\nרק אם בטוח לעשות זאת, עצרו במקום בטוח, הפעילו אורות אזהרה והתרחקו מהתנועה ככל האפשר.\n\nאחר כך התקשרו ל־SmartCar: ${OFFICE_PHONE}. נציג מטפל בפנייה — אין צורך לחזור על הפרטים שכבר כתבתם.`,
-            `אוי, אני ממש מצטער לשמוע! קודם כל הבטיחות שלכם: אם יש נפגעים התקשרו מיד לכוחות ההצלה (100/101).\n\nאם הכול בסדר, רדו לשוליים בזהירות, הפעילו וינקרים והתקשרו אלינו ל־${OFFICE_PHONE}. נציג שלנו משתלט על השיחה עכשיו ויעזור לכם.`,
-            `מצטערים מאוד על החוויה. בבקשה ודאו שכולם בריאים ושלמים ואם צריך הזמינו אמבולנס או משטרה.\n\nברגע שאתם במקום בטוח, חייגו למוקד שלנו: ${OFFICE_PHONE}. צוות החירום שלנו כבר קיבל את ההודעה ומוכן לעזור.`
-          ]),
+        ? `I’m sorry this happened. Safety first: if there is immediate danger or anyone is hurt, contact emergency services now.\n\nOnly if it is safe, stop in a safe place, use hazard lights, and move away from traffic where possible.\n\nCall SmartCar: ${OFFICE_PHONE}. We will review the details you have shared.`
+        : `מצטערים שזה קרה. קודם כול בטיחות: אם יש סכנה מיידית או נפגעים, פנו עכשיו לגורמי החירום.\n\nרק אם בטוח לעשות זאת, עצרו במקום בטוח, הפעילו אורות אזהרה והתרחקו מהתנועה ככל האפשר.\n\nהתקשרו ל־SmartCar: ${OFFICE_PHONE}. נבדוק את הפרטים שכבר כתבתם.`,
       escalate: true,
       escalateReason: 'תאונה מדווחת',
     };
@@ -1287,16 +1313,8 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     return {
       handled: true,
       reply: locale === 'en'
-        ? pickRandom([
-            `I’m sorry you’re stuck. If the vehicle is unsafe or traffic is a risk, do not keep driving; contact emergency services if there is immediate danger.\n\nOnly if safe, stop in a safe place and use hazard lights. Call SmartCar now: ${OFFICE_PHONE}. A representative is taking over, with the details already shared.`,
-            `Sorry to hear about the car trouble! Please pull over safely and turn on your hazards.\n\nCall our support line at ${OFFICE_PHONE} and a human agent will organize roadside assistance for you right away.`,
-            `That's frustrating, I'm sorry! Make sure you are safely off the road. I've flagged this to a representative—please call ${OFFICE_PHONE} so we can get help to you as quickly as possible.`
-          ])
-        : pickRandom([
-            `מצטערים שנתקעתם. אם הרכב אינו בטוח או שיש סיכון מהתנועה, אל תמשיכו לנסוע; במקרה של סכנה מיידית פנו לגורמי החירום.\n\nרק אם בטוח, עצרו במקום בטוח והפעילו אורות אזהרה. התקשרו עכשיו ל־SmartCar: ${OFFICE_PHONE}. נציג מטפל בפנייה עם הפרטים שכבר כתבתם.`,
-            `אוי לא, איזה באסה להיתקע ככה! בבקשה תעצרו בצד במקום בטוח והפעילו אורות אזהרה.\n\nאני מעביר את הקריאה מיד לצוות הטכני. חייגו אלינו ל־${OFFICE_PHONE} כדי שנוכל לשלוח אליכם חילוץ או גרר.`,
-            `מצטער לשמוע שיש תקלה ברכב. אם אתם על כביש מהיר, צאו מהרכב מעבר למעקה הבטיחות.\n\nהעברתי את הפנייה לנציג, התקשרו אלינו למוקד ${OFFICE_PHONE} ונדאג לעזור לכם כמה שיותר מהר.`
-          ]),
+        ? `I’m sorry you’re stuck. If the vehicle is unsafe or traffic is a risk, do not keep driving; contact emergency services if there is immediate danger.\n\nOnly if safe, stop in a safe place and use hazard lights. Call SmartCar now: ${OFFICE_PHONE}. We will review the details you have shared.`
+        : `מצטערים שנתקעתם. אם הרכב אינו בטוח או שיש סיכון מהתנועה, אל תמשיכו לנסוע; במקרה של סכנה מיידית פנו לגורמי החירום.\n\nרק אם בטוח, עצרו במקום בטוח והפעילו אורות אזהרה. התקשרו עכשיו ל־SmartCar: ${OFFICE_PHONE}. נבדוק את הפרטים שכבר כתבתם.`,
       escalate: true,
       escalateReason: 'פנצ׳ר או תקלה בדרך',
     };
@@ -1316,10 +1334,37 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     };
   }
 
+  // A direct request for a person must not be answered as a sales or policy FAQ.
+  const validStructuredEmail = existingState?.step === 'rental_email' && Boolean(validEmail(body));
+  const collectingNewRental = Boolean(existingState) && isRentalStep(existingState!.step);
+  if (interpretation?.intent === 'representative' && !validStructuredEmail) {
+    await store.saveState(phone, handoffState(existingState, locale));
+    const mood = detectConversationMood(body);
+    return {
+      handled: true,
+      reply: composeServiceResponse({
+        locale, input: body, state: existingState, kind: mood === 'angry' ? 'complaint' : 'handoff',
+        answer: locale === 'en'
+          ? 'I have passed this to the SmartCar team with the details already shared, so you will not need to repeat yourself.'
+          : 'העברתי את הפנייה לצוות SmartCar עם הפרטים שכבר שיתפתם, כך שלא תצטרכו לחזור עליהם.',
+        nextStep: locale === 'en' ? 'If you have it, send the booking reference here.' : 'אם יש מספר הזמנה, אפשר לשלוח אותו כאן.',
+      }),
+      escalate: true,
+      escalateReason: handoffSummary(existingState, 'בקשה לדבר עם נציג או טיפול חריג'),
+    };
+  }
+
   // Keep the four commercial intents separate. A customer who says only
   // “car” receives one short disambiguation question; buying a listed car
   // enters the verified catalogue flow and never falls into rental intake.
-  const commercialIntent = classifyCommercialIntent(body);
+  const mayUseGeminiCommercial = (initialRoute === 'new_customer' || initialRoute === 'existing_customer')
+    && !isRentalStep(existingState?.step ?? 'menu');
+  const commercialIntent = classifyCommercialIntent(body) === 'none' && mayUseGeminiCommercial
+    ? interpretation?.intent === 'leasing' ? 'leasing'
+      : interpretation?.intent === 'sell_car' ? 'sell_own_car'
+        : interpretation?.intent === 'buy_car' ? 'car_sale'
+          : 'none'
+    : classifyCommercialIntent(body);
   if (!existingState?.handedOff && existingState?.leasing?.kind === 'unknown') {
     const kind = leasingKindFrom(body);
     if (!kind) return { handled: true, reply: leasingTypeQuestion(locale) };
@@ -1355,7 +1400,7 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     await store.saveState(phone, state);
     return { handled: true, reply: commercialIntentQuestion(locale) };
   }
-  if (!existingState?.handedOff && isCarSaleConversation(body, existingState?.carSale)) {
+  if (!existingState?.handedOff && (isCarSaleConversation(body, existingState?.carSale) || (mayUseGeminiCommercial && interpretation?.intent === 'buy_car'))) {
     let cars: CarForSale[];
     try {
       cars = await (store.getCarsForSale?.() ?? getCarsForSale());
@@ -1387,6 +1432,15 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
   // their mandatory human handoff.
   if (initialRoute !== 'rental' && !isRentalStep(existingState?.step ?? 'menu')) {
     const answer = knowledgeReply(body, locale, existingState);
+    if (answer) return answer;
+  }
+
+  if (!existingState && interpretation?.intent === 'policy') {
+    const answer = serviceReply('policy', locale, booking);
+    if (answer) return answer;
+  }
+  if (!existingState && interpretation?.intent === 'delivery_return') {
+    const answer = serviceReply('delivery_return', locale, booking);
     if (answer) return answer;
   }
 
@@ -1474,8 +1528,6 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     };
   }
 
-  const validStructuredEmail = existingState?.step === 'rental_email' && Boolean(validEmail(body));
-  const collectingNewRental = Boolean(existingState) && isRentalStep(existingState!.step);
   if (requiresHumanHandoff(body, collectingNewRental) && !validStructuredEmail) {
     await store.saveState(phone, handoffState(existingState, locale));
     const mood = detectConversationMood(body);
@@ -1525,7 +1577,7 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     }
     if (input === '1' || initialRoute === 'rental') {
       const state: FlowState = { step: 'rental_dates', locale };
-      const progressed = await continueRental(phone, body, state, locale, booking, store);
+      const progressed = await continueRental(phone, body, state, locale, booking, store, interpretation);
       if (progressed) return progressed;
       await store.saveState(phone, state);
       return { handled: true, reply: datesPrompt(locale) };
@@ -1568,7 +1620,7 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
         }),
       };
     }
-    const progressed = await continueRental(phone, body, existingState, locale, booking, store);
+    const progressed = await continueRental(phone, body, existingState, locale, booking, store, interpretation);
     if (progressed) return progressed;
   }
 

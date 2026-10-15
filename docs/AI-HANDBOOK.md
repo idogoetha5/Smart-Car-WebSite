@@ -119,6 +119,7 @@ Texts in `src/lib/push-messages.ts` (human, polite, short Hebrew; each task type
 - A lawyer should review the handover and return declarations.
 - Push on one phone that is both a driver and a manager: the phone's subscription belongs to whichever app last turned notifications on.
 - Old data: booking for "Ido Goetha" has `dropoff_date` before `pickup_date` (test data).
+- WhatsApp bot: YCloud has an API key but no WhatsApp account or webhook endpoint as of 15 Oct 2026. Vercel Production has Gemini configured for OCR, but no WhatsApp transport variables. `src/lib/whatsapp-gemini.ts` classifies ordinary bot messages and supplies evidence-backed rental fields; emergency, consent, quotes and booking actions remain deterministic. Before connecting the live number, verify a deployed simulator call to Gemini, configure YCloud Coexistence and the signed webhook, and verify alert delivery. See `docs/whatsapp-bot/WHATSAPP_BOT_STATUS.md`.
 
 ---
 
@@ -130,6 +131,7 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
+- 2026-10-15 — Audited WhatsApp integrations; added bounded Gemini intent extraction with deterministic fallback, safer webhook validation and group filtering, simulator limits and disclosure, and regression tests. Branch `fix/whatsapp-gemini-audit`. No migration. Vercel Preview built and Gemini routing verified; production and real WhatsApp delivery remain unverified.
 - 2026-10-07 — Published the dedicated Google Drive OAuth client with limited `drive.file` access and moved new backups to `smartcar-backups-personal`. Updated the GitHub Actions secret and local rclone configuration. Verified a full backup in [run #84](https://github.com/idogoetha5/Smart-Car-WebSite/actions/runs/37609302421): encrypted database dump and 429 vehicle images (430 stored objects including manifest). Older archives preserved. Branch `clean-main`. No migration. Deployed.
 - 2026-10-07 — Fixed the scheduled backup script path on the repository default branch `main` (commit `cf649d4`); manually verified database and storage backup in [run #83](https://github.com/idogoetha5/Smart-Car-WebSite/actions/runs/37595847840). No migration. Deployed.
 - 2026-10-07 — Filter the Talisman browser extension onboarding error from client-side Sentry events; application errors remain reported. No migration. Deployed to production.

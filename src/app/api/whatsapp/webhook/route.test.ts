@@ -104,6 +104,29 @@ afterEach(() => {
 });
 
 describe('local WhatsApp webhook boundary', () => {
+  it('refuses requests while no transport is configured', async () => {
+    delete process.env.WHATSAPP_TRANSPORT;
+    const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
+    const response = await POST(metaRequest(signature));
+    expect(response.status).toBe(401);
+    expect(mocks.log).not.toHaveBeenCalled();
+  });
+
+  it('rejects malformed signed JSON without touching the database', async () => {
+    process.env.WHATSAPP_TRANSPORT = '360dialog';
+    process.env.WHATSAPP_WEBHOOK_SECRET = 'local-dialog-secret';
+    const response = await POST(dialogRequest('local-dialog-secret', '{bad'));
+    expect(response.status).toBe(400);
+    expect(mocks.log).not.toHaveBeenCalled();
+  });
+
+  it('does not mistake a logging failure for a duplicate message', async () => {
+    mocks.log.mockRejectedValueOnce(new Error('database unavailable'));
+    const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
+    await expect(POST(metaRequest(signature))).rejects.toThrow('database unavailable');
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+
   it('accepts a valid Meta signature and runs the deterministic flow', async () => {
     const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
     const response = await POST(metaRequest(signature));
@@ -212,6 +235,22 @@ describe('local WhatsApp webhook boundary', () => {
       source: 'customer_inbound',
       waMessageId: 'wamid.ycloud-inbound-1',
     }));
+  });
+
+  it('ignores a signed YCloud group message', async () => {
+    process.env.WHATSAPP_TRANSPORT = 'ycloud';
+    process.env.WHATSAPP_YCLOUD_WEBHOOK_SECRET = 'local-ycloud-secret';
+    const groupPayload = JSON.stringify({
+      type: 'whatsapp.inbound_message.received',
+      whatsappInboundMessage: {
+        wamid: 'wamid.group-1', from: '+972501234567', to: '+97299509757',
+        groupId: 'group-1', type: 'text', text: { body: 'שלום לקבוצה' },
+      },
+    });
+    const response = await POST(ycloudRequest(groupPayload));
+    expect(response.status).toBe(200);
+    expect(mocks.log).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
   });
 
   it('rejects an invalid YCloud signature before processing a message', async () => {

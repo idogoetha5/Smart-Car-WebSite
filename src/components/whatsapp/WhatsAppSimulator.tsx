@@ -149,7 +149,7 @@ export default function WhatsAppSimulator() {
         </section>
 
         <section className="h-[min(66vh,580px)] min-h-[430px] space-y-3 overflow-y-auto overscroll-contain bg-[#efeae2] p-4" aria-live="polite" aria-busy={sending} aria-label="שיחת WhatsApp לדוגמה" role="log">
-          <div className="mx-auto w-fit rounded-full border border-[#075e54]/10 bg-white/90 px-3 py-1.5 text-center text-xs font-medium text-slate-600 shadow-sm">סביבת ניסיון בלבד — לא נשלחת הודעה ל־WhatsApp ולא נשמרים פרטים</div>
+          <div className="mx-auto w-fit max-w-full rounded-xl border border-[#075e54]/10 bg-white/90 px-3 py-2 text-center text-xs font-medium text-slate-600 shadow-sm">סביבת ניסיון בלבד — לא נשלחת הודעה ל־WhatsApp ולא נוצרת הזמנה. הודעות חופשיות עשויות להישלח ל־Google Gemini להבנת הבקשה; השתמשו בפרטים מומצאים.</div>
           <div className="mx-auto w-fit rounded-md bg-[#d7e6e1]/70 px-2.5 py-1 text-[11px] font-medium text-slate-500">היום</div>
           {messages.map((message, index) => (
             <div key={`${index}-${message.from}`} className={`flex ${message.from === 'customer' ? 'justify-start' : 'justify-end'}`}>
@@ -173,7 +173,7 @@ export default function WhatsAppSimulator() {
                     key={`${option.label}-${option.message}`}
                     type="button"
                     onClick={() => send(undefined, option.message, option.label)}
-                    className="rounded-full border border-[#25d366]/70 bg-white px-3.5 py-2 text-sm font-semibold text-[#075e54] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#e8fff0] focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+                    className="min-h-11 rounded-full border border-[#25d366]/70 bg-white px-3.5 py-2 text-sm font-semibold text-[#075e54] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#e8fff0] focus:outline-none focus:ring-2 focus:ring-[#25d366]"
                   >
                     {option.label}
                   </button>
@@ -185,7 +185,7 @@ export default function WhatsAppSimulator() {
         </section>
 
         <form onSubmit={send} className="flex items-center gap-2 border-t border-black/5 bg-[#f0f2f5] p-3" dir="rtl" aria-label="שליחת הודעה לסימולציה">
-          <input value={draft} onChange={(event) => setDraft(event.target.value)} disabled={sending} placeholder={flowState?.locale === 'en' ? 'Type a message to SmartCar' : 'כתבו הודעה ל־SmartCar'} className="min-w-0 flex-1 rounded-full border-0 bg-white px-4 py-3 text-sm text-slate-900 outline-none ring-1 ring-black/10 transition placeholder:text-slate-400 focus:ring-2 focus:ring-[#25d366] disabled:cursor-not-allowed disabled:bg-slate-100" />
+          <input value={draft} onChange={(event) => setDraft(event.target.value)} disabled={sending} placeholder={flowState?.locale === 'en' ? 'Type a message to SmartCar' : 'כתבו הודעה ל־SmartCar'} className="min-w-0 flex-1 rounded-full border-0 bg-white px-4 py-3 text-base text-slate-900 outline-none ring-1 ring-black/10 transition placeholder:text-slate-400 focus:ring-2 focus:ring-[#25d366] disabled:cursor-not-allowed disabled:bg-slate-100" />
           <button type="submit" disabled={!draft.trim() || sending} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#25d366] text-white shadow-sm transition hover:bg-[#1fbd5b] focus:outline-none focus:ring-2 focus:ring-[#075e54] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40" aria-label="שליחה">
             <Send className="h-5 w-5" aria-hidden="true" />
           </button>

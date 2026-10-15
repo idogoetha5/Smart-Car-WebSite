@@ -37,6 +37,7 @@ interface InboundMessage {
   id?: string;
   text?: { body?: string };
   type?: string;
+  groupId?: string;
 }
 
 interface WebhookChange {
@@ -138,7 +139,8 @@ function verifyYCloudWebhook(request: NextRequest, rawBody: string): boolean {
 async function verifyWebhook(request: NextRequest, rawBody: string): Promise<boolean> {
   if (process.env.WHATSAPP_TRANSPORT === 'ycloud') return verifyYCloudWebhook(request, rawBody);
   if (process.env.WHATSAPP_TRANSPORT === '360dialog') return verify360dialogWebhook(request);
-  return verifyMetaSignature(rawBody, request.headers.get('x-hub-signature-256'));
+  if (process.env.WHATSAPP_TRANSPORT === 'meta_direct') return verifyMetaSignature(rawBody, request.headers.get('x-hub-signature-256'));
+  return false;
 }
 
 /** Coexistence-only: a reply Daniel sent from the WhatsApp Business App. */
@@ -149,6 +151,9 @@ async function handleEcho(msg: InboundMessage) {
 }
 
 async function handleCustomerMessage(msg: InboundMessage, botEnabled: boolean) {
+  // Coexistence can deliver group messages. Never answer a participant in a
+  // private chat or log group content as a customer enquiry.
+  if (msg.groupId) return;
   const phone = normalizeWhatsAppSender(msg.from ?? '');
   if (!phone) return;
   const body = messageBody(msg);
@@ -254,7 +259,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'invalid signature' }, { status: 401 });
   }
 
-  const payload = JSON.parse(rawBody || 'null');
+  let payload: unknown;
+  try {
+    payload = JSON.parse(rawBody || 'null');
+  } catch {
+    return NextResponse.json({ error: 'invalid JSON' }, { status: 400 });
+  }
   if (!payload) return NextResponse.json({ ok: true });
 
   const supabase = createAdminClient();

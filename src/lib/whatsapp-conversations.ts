@@ -43,7 +43,9 @@ export async function logWhatsAppMessage(params: {
 
   if (error) {
     console.error('[whatsapp][ALERT] failed to log message:', error.message);
-    return false;
+    // Returning false here made a database outage indistinguishable from a
+    // provider retry, silently discarding genuine customer messages.
+    throw new Error('[whatsapp] failed to persist message');
   }
   // ignoreDuplicates: an empty result means the wa_message_id already existed —
   // this delivery is a provider retry of one we already processed.

@@ -1,5 +1,15 @@
 # WhatsApp Bot Status & Handover
 
+## Audit on 15 Oct 2026
+
+- YCloud console is accessible, but **WhatsApp accounts has no account** and **Developers → Webhooks has no endpoint**. An API key exists; its value was not revealed or copied.
+- Vercel Production has `GEMINI_API_KEY`, but no `WHATSAPP_TRANSPORT`, `WHATSAPP_YCLOUD_API_KEY`, `WHATSAPP_BUSINESS_PHONE`, or `WHATSAPP_YCLOUD_WEBHOOK_SECRET`. The real WhatsApp number therefore does not send messages to this bot. Twilio SMS alert settings are absent too.
+- The bot now uses Gemini only for bounded intent classification and evidence-backed rental fields. Fixed menu choices, emergencies, final consent, prices, availability and persistence remain controlled by application code. If Gemini fails, the deterministic flow continues. Names, email collection and messages containing an email or phone number are not sent to Gemini.
+- The webhook refuses an unset transport, rejects malformed JSON, ignores group messages, and surfaces database logging failures instead of silently discarding messages. The public simulator has visitor and session rate limits. Safety replies no longer claim that staff has already been alerted before delivery is verified.
+- Local checks: TypeScript, 699 tests, ESLint and lint budget pass. A Vercel Preview build succeeded, and the protected preview simulator used the configured Gemini key to route "אפשר אוטו לחופשה?" into rental intake. Accident, human handoff and policy replies were checked on the same preview. Real WhatsApp delivery still requires completed YCloud onboarding.
+- Remaining delivery caveat: a provider send failure after inbound logging is not durably reprocessed on retry. Before enabling a real number, add a delivery state/outbox or another recoverable processing mechanism and verify it with YCloud test events. Staff SMS alerting requires Twilio configuration and a real test SMS. The public demo now tells visitors that free-text messages may go to Gemini and asks for fictional details.
+
+
 ## Latest session (Aug 29, 2026) — bot conversation bugs FIXED, deployed to production
 
 The "doesn't send a quote" bug from Aug 21 (below) is **resolved** — the diagnosis in that
@@ -46,7 +56,7 @@ and `/api/admin/rental-quote-whatsapp` call `renderRentalQuotePdf` too and are *
 
 ## Daniel's WhatsApp-inbox PIN trial (Aug 29, 2026)
 
-Added a scoped 4-digit PIN login (`WHATSAPP_INBOX_PIN` env var, currently `2708`) so
+Added a scoped 4-digit PIN login (`WHATSAPP_INBOX_PIN` env var) so
 Daniel can view/reply to real WhatsApp conversations at
 `https://smartcar.co.il/he/admin/inbox-login` without needing the full admin
 password+TOTP or a Vercel account. Implementation: `signInboxToken`/`verifyInboxToken` in

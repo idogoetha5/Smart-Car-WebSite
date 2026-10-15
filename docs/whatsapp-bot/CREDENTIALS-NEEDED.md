@@ -1,6 +1,6 @@
 # WhatsApp Bot — Credentials Needed
 
-**Status: YCloud Coexistence is the selected onboarding path.** It keeps the business number in the WhatsApp Business App on the owner's phone while the SmartCar bot works through the official API. The bot is prepared for YCloud locally, but **do not create a WhatsApp channel or touch 09-9509757 until the final local checks are complete.**
+**Status on 15 Oct 2026: YCloud Coexistence is the selected onboarding path.** It keeps the business number in the WhatsApp Business App on the owner's phone while the SmartCar bot works through the official API. The code has local tests, but the real YCloud channel is not yet connected. Complete the live preview and delivery checks before connecting 09-9509757.
 
 The YCloud account is ready. We will first perform the complete local test suite. Then, if a spare WhatsApp Business number is available, use it for the live connection rehearsal before connecting the business number.
 
@@ -12,7 +12,7 @@ The existing number should be connected only through the **WhatsApp Business App
 
 ## Chosen path: YCloud Coexistence (free plan, owner keeps the phone app)
 
-YCloud is an official Meta WhatsApp Business Solution Provider. Its free plan supports the API and webhooks; standard replies during a customer-initiated service window are free. Meta may charge for approved proactive template messages later—this bot does not send those in Phase 1.
+YCloud is an official Meta WhatsApp Business Solution Provider. The account currently shows a Free plan, but its dashboard says that from 1 Oct 2026 service messages are billed at Utility rates after 1,000 free service messages per phone number per month. Check current charges in YCloud before enabling a real number.
 
 When the local test checklist is complete:
 
