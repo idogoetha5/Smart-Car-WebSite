@@ -20,7 +20,7 @@ When the local test checklist is complete:
 2. Select **WhatsApp Business App Coexistence** (not a new API number).
 3. The owner opens the existing WhatsApp Business App on the primary phone and scans the QR code shown by YCloud.
 4. Choose chat sharing so both customer replies and the owner's replies are synchronized. The owner keeps using the app normally.
-5. In YCloud Developers → Webhooks, create an endpoint at `https://<domain>/api/whatsapp/webhook` and subscribe only to:
+5. In YCloud Developers → Webhooks, create an endpoint at the canonical URL `https://www.smartcar.co.il/api/whatsapp/webhook` (the non-`www` host redirects) and subscribe only to:
    - `whatsapp.inbound_message.received`
    - `whatsapp.smb.message.echoes`
    - `whatsapp.message.updated`

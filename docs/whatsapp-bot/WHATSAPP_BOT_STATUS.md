@@ -104,7 +104,7 @@ document — Ido confirmed it is **"סמארט קאר 2008 בע"מ"**) → click
 5. After onboarding, YCloud gives a `waba_id`/`phone_number_id`/API key. Set in Vercel:
    `WHATSAPP_TRANSPORT=ycloud`, `WHATSAPP_YCLOUD_API_KEY`, `WHATSAPP_BUSINESS_PHONE`,
    `WHATSAPP_YCLOUD_WEBHOOK_SECRET`. Register webhook URL
-   `https://smartcar.co.il/api/whatsapp/webhook` in YCloud's dashboard.
+   `https://www.smartcar.co.il/api/whatsapp/webhook` in YCloud's dashboard; the non-`www` host redirects.
 6. Daniel must open the WhatsApp Business App at least once every 13 days to keep the
    Coexistence sync alive.
 
