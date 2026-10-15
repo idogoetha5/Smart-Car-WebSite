@@ -2,6 +2,10 @@
 
 ## Audit on 15 Oct 2026
 
+- **Decision after Ido's review:** Daniel will see and test the public simulator before any Meta/YCloud connection of his business number. The Meta signup window was opened only to inspect the steps, then closed without entering a number, accepting terms, scanning a QR code, or linking an account. Do not resume onboarding without Daniel's final approval.
+- Review link for Daniel: `https://www.smartcar.co.il/he/whatsapp-demo`. It is a simulation; it does not send WhatsApp messages or attach his phone. Use invented customer details. Try a natural rental request, an existing booking, "נציג", an accident/breakdown, and an English message. The real phone handoff, echo webhook, and SMS alert require a connected test/live account and cannot be proven in this simulator.
+- When Daniel approves, YCloud's current guide offers **Connect by QR code**, which does not require a Facebook login or Meta business portfolio during onboarding. The alternative **Connect with Facebook** does require a Facebook account, company registration documents and website for business verification. We reached the QR-code path's Meta screen asking for the existing WhatsApp Business number, then stopped. Both paths retain the Business app. Use the QR path if Daniel prefers to keep answering on his phone. The phone app must be version 2.24.17+; Daniel authorizes the link by scanning the QR code from that app and chooses whether to sync chat history. See https://docs.ycloud.com/en/documentation/channels/whatsapp-accounts-management/coexistence/onboard-whatsapp-business-app.
+- Expected handoff: incoming customer text arrives through YCloud; the SmartCar bot answers routine requests. A request for a person or an emergency produces an escalation, and Daniel can reply in his existing WhatsApp Business app. With the `whatsapp.smb.message.echoes` webhook subscribed, his app reply is logged as `human_reply` and silences the bot in that customer's conversation for 24 hours (except a new emergency safety reply). YCloud documents mirroring messages in both directions. A real echo test is required before live activation.
 - YCloud console is accessible, but **WhatsApp accounts has no account** and **Developers → Webhooks has no endpoint**. An API key exists; its value was not revealed or copied.
 - Vercel Production has `GEMINI_API_KEY`, but no `WHATSAPP_TRANSPORT`, `WHATSAPP_YCLOUD_API_KEY`, `WHATSAPP_BUSINESS_PHONE`, or `WHATSAPP_YCLOUD_WEBHOOK_SECRET`. The real WhatsApp number therefore does not send messages to this bot. Twilio SMS alert settings are absent too.
 - The bot now uses Gemini only for bounded intent classification and evidence-backed rental fields. Fixed menu choices, emergencies, final consent, prices, availability and persistence remain controlled by application code. If Gemini fails, the deterministic flow continues. Names, email collection and messages containing an email or phone number are not sent to Gemini.
@@ -78,35 +82,35 @@ related env var are unset in Vercel production, so nothing is connected at all.
 
 **Status:** Ido has a YCloud account (company: "smartcar", Free plan) and is logged into
 the console. Navigated to WhatsApp accounts → "WhatsApp Business APP Coexistence" → "Get
-started" → confirmed prerequisites (business name must exactly match the registration
-document — Ido confirmed it is **"סמארט קאר 2008 בע"מ"**) → clicked "I'm ready to start 🚀".
+started". The current Meta popup supports both Facebook and WhatsApp Business/QR
+onboarding. We opened the latter only to inspect its first screen, then closed it.
+Daniel must review the simulator and approve before any number is connected.
 
-**Blocked exactly here, for two reasons:**
-1. The button opens a Facebook/Meta OAuth popup. A programmatic/automated click did not
-   trigger it (popup blocked or rejected as untrusted) — **this step needs Ido to click
-   the button himself**, a real human gesture, then log into Facebook/Meta Business
-   Manager himself (no AI tool should ever be given his Facebook password).
-2. **Daniel is currently unavailable, and the flow needs him twice**: his Facebook
-   account/access (likely needed for WhatsApp Business Manager permissions on this
-   number), and later his physical phone to scan a QR code from the WhatsApp Business App
-   itself to authorize the Coexistence link and history sync.
+**Blocked exactly here:** Daniel has not approved linking his number. The faster QR
+onboarding path does not require Facebook login or a Meta business portfolio during
+the connection, but it does require his WhatsApp Business app and his explicit phone
+authorization. Do not submit the number or accept Meta/YCloud terms for him.
 
 **Next session, resume by:**
-1. Confirm Daniel is available (both his Facebook login and his phone with WhatsApp
-   Business installed, version 2.24.17+).
-2. Go to `https://www.ycloud.com/console/#/app/dashboard/createChannel/whatsapp-business-app`
+1. Let Daniel test `https://www.smartcar.co.il/he/whatsapp-demo` and collect his feedback.
+   Fix any problems he finds, then wait for his final approval to link the number.
+2. Confirm Daniel is available with his primary phone and WhatsApp Business version
+   2.24.17+.
+3. Go to `https://www.ycloud.com/console/#/app/dashboard/createChannel/whatsapp-business-app`
    (or navigate WhatsApp accounts → Coexistence → Get started again).
-3. Ido clicks "I'm ready to start 🚀" himself; completes the Meta business-info screen
-   with business name **סמארט קאר 2008 בע"מ** and the website (smartcar.co.il).
-4. When it asks to scan a QR code, Daniel scans it from his WhatsApp Business App (must
+4. Choose **Continue with WhatsApp Business** / QR connection. Enter the existing
+   business number and complete the business-info screen with the registered legal
+   name and `https://www.smartcar.co.il`. Daniel reviews and accepts the terms.
+5. When it asks to scan a QR code, Daniel scans it from his WhatsApp Business App (must
    stay open during the process). Confirmed by official docs: this does **not** delete
    anything — chats/contacts stay in the app; up to 6 months of history syncs over.
-5. After onboarding, YCloud gives a `waba_id`/`phone_number_id`/API key. Set in Vercel:
+6. After onboarding, YCloud gives a `waba_id`/`phone_number_id`/API key. Set in Vercel:
    `WHATSAPP_TRANSPORT=ycloud`, `WHATSAPP_YCLOUD_API_KEY`, `WHATSAPP_BUSINESS_PHONE`,
    `WHATSAPP_YCLOUD_WEBHOOK_SECRET`. Register webhook URL
    `https://www.smartcar.co.il/api/whatsapp/webhook` in YCloud's dashboard; the non-`www` host redirects.
-6. Daniel must open the WhatsApp Business App at least once every 13 days to keep the
-   Coexistence sync alive.
+7. Test real inbound, app echo, handoff silence, SMS alert and send failure recovery
+   before turning on automatic replies for customers. Keep the Business app active;
+   YCloud says inactivity or signing into a different device can unlink Coexistence.
 
 ---
 

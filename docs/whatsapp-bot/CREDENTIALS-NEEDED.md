@@ -2,6 +2,8 @@
 
 **Status on 15 Oct 2026: YCloud Coexistence is the selected onboarding path.** It keeps the business number in the WhatsApp Business App on the owner's phone while the SmartCar bot works through the official API. The code has local tests, but the real YCloud channel is not yet connected. Complete the live preview and delivery checks before connecting 09-9509757.
 
+**Daniel reviews first:** `https://www.smartcar.co.il/he/whatsapp-demo` is a public simulation with fictional details. It does not connect the business number or send WhatsApp messages. Do not start Meta signup, register a webhook, or enable the transport until Daniel gives final approval. The Meta popup was closed before any number, terms acceptance, or QR authorization.
+
 The YCloud account is ready. We will first perform the complete local test suite. Then, if a spare WhatsApp Business number is available, use it for the live connection rehearsal before connecting the business number.
 
 The existing number should be connected only through the **WhatsApp Business App Coexistence** option—never the ordinary API-number migration option.
@@ -16,10 +18,10 @@ YCloud is an official Meta WhatsApp Business Solution Provider. The account curr
 
 When the local test checklist is complete:
 
-1. In YCloud, select **Create Channel**.
-2. Select **WhatsApp Business App Coexistence** (not a new API number).
-3. The owner opens the existing WhatsApp Business App on the primary phone and scans the QR code shown by YCloud.
-4. Choose chat sharing so both customer replies and the owner's replies are synchronized. The owner keeps using the app normally.
+1. After Daniel approves, in YCloud select **Create Channel** → **WhatsApp Business App Coexistence** → **Get started**.
+2. Choose **Continue with WhatsApp Business** / the QR connection path. According to YCloud's [current guide](https://docs.ycloud.com/en/documentation/channels/whatsapp-accounts-management/coexistence/onboard-whatsapp-business-app), this path does not require Facebook login or a Meta business portfolio during connection. The separate Facebook path does. Enter the existing Business App number, the exact registered legal business name, and `https://www.smartcar.co.il`; Daniel reviews and accepts the displayed terms.
+3. Daniel opens the existing WhatsApp Business App (version 2.24.17 or newer) on the primary phone and scans the QR code shown by Meta/YCloud to authorize the link.
+4. Daniel chooses whether to share up to six months of chat history, and keeps the app open until synchronization finishes. He continues answering customers in that app. His phone replies are mirrored to the API as `whatsapp.smb.message.echoes`; after a representative reply, SmartCar's bot pauses that customer's conversation for 24 hours, except a new emergency safety reply. Verify this with a real message before enabling customer traffic.
 5. In YCloud Developers → Webhooks, create an endpoint at the canonical URL `https://www.smartcar.co.il/api/whatsapp/webhook` (the non-`www` host redirects) and subscribe only to:
    - `whatsapp.inbound_message.received`
    - `whatsapp.smb.message.echoes`
@@ -33,7 +35,7 @@ When the local test checklist is complete:
 | `WHATSAPP_BUSINESS_PHONE` | The connected business number, e.g. `+97299509757` |
 | `WHATSAPP_YCLOUD_WEBHOOK_SECRET` | The secret generated for the YCloud webhook endpoint |
 
-After the scan, keep the WhatsApp Business App installed and open it at least once every two weeks. The owner can respond from the phone at any time; YCloud emits `whatsapp.smb.message.echoes`, and the bot automatically pauses that customer conversation for 24 hours (except a new accident/breakdown safety message).
+After the scan, keep the WhatsApp Business App installed and active. YCloud says prolonged app inactivity or signing into a different device can unlink Coexistence. The bot cannot notify Daniel of a handoff by SMS until the Twilio settings below are configured and a real SMS has been received. Also resolve the webhook's send-failure retry caveat in `WHATSAPP_BOT_STATUS.md` before enabling the business number.
 
 ---
 
