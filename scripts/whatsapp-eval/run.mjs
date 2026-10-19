@@ -6,6 +6,7 @@
  *
  *   BASE=https://www.smartcar.co.il node scripts/whatsapp-eval/run.mjs
  *   LIMIT=200 TOPIC=deposit node scripts/whatsapp-eval/run.mjs
+ *   BANK=large SAMPLE=5 node scripts/whatsapp-eval/run.mjs   (5 per category from the 100,000 bank)
  *
  * The public simulator is rate limited per visitor, so a full run of the
  * bank takes a while; the script waits and retries on HTTP 429. Results go to
@@ -21,7 +22,10 @@ const limit = Number(process.env.LIMIT || 0);
 const topic = process.env.TOPIC;
 const sample = Number(process.env.SAMPLE || 0);
 
-let bank = JSON.parse(readFileSync(join(here, 'questions.json'), 'utf8'));
+// BANK=large draws from the 100,000-message bank (bank.mjs) instead of questions.json.
+let bank = process.env.BANK === 'large'
+  ? (await import('./bank.mjs')).buildBank(100_000).map((m) => ({ ...m, topic: m.category, expect: { escalate: m.expect.escalate, step: undefined } }))
+  : JSON.parse(readFileSync(join(here, 'questions.json'), 'utf8'));
 if (topic) bank = bank.filter((q) => q.topic === topic);
 if (sample) {
   // A few questions from every topic, for a quick health check.
