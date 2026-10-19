@@ -3,7 +3,7 @@ export const metadata = { robots: { index: false, follow: false } };
 
 
 import { getTranslations } from 'next-intl/server';
-import { ArrowLeft, CalendarCheck, Car, FileText, MessageCircle, Plus, Table2, TrendingUp } from 'lucide-react';
+import { ArrowLeft, CalendarCheck, Car, ExternalLink, FileText, MessageCircle, Plus, Table2, TrendingUp } from 'lucide-react';
 import StatsCard from '@/components/admin/StatsCard';
 import Link from 'next/link';
 
@@ -140,25 +140,25 @@ export default async function AdminDashboard({
                   <Table2 className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-black tracking-wide text-[#2D5F5F]">{locale === 'he' ? 'מוכן לחיבור' : 'READY TO CONNECT'}</p>
-                  <h2 className="mt-1 text-xl font-black text-[#0D2B2B]">{locale === 'he' ? 'לידים וטלפונים ב-Google Sheets' : 'Leads & phone numbers in Google Sheets'}</h2>
+                  <p className="text-xs font-black tracking-wide text-[#2D5F5F]">{locale === 'he' ? 'מרכז לידים' : 'LEADS CENTRE'}</p>
+                  <h2 className="mt-1 text-xl font-black text-[#0D2B2B]">{locale === 'he' ? 'לידים ומספרי טלפון' : 'Leads & phone numbers'}</h2>
                   <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-slate-500">
                     {locale === 'he'
-                      ? 'כאן יחובר גיליון העסק: הזמנות, פניות צור קשר ופרטי לקוחות — מסודרים במקום אחד.'
-                      : 'This is where the business sheet will collect bookings, contact requests and customer details in one place.'}
+                      ? 'כל הפניות מרוכזות בגיליון העסק: השכרה, ליסינג, צור קשר ומספרי טלפון — מסודר במקום אחד.'
+                      : 'All leads are organised in the business sheet: rentals, leasing, contact requests and phone numbers.'}
                   </p>
                 </div>
               </div>
-              <span className="w-fit rounded-full border border-[#B8D8D8] bg-[#F4FAFA] px-3 py-1.5 text-xs font-black text-[#2D5F5F]">
-                {locale === 'he' ? 'ממתין לגיליון העסק' : 'Waiting for business sheet'}
+              <span className="w-fit rounded-full border border-[#B8D8D8] bg-[#E5F3F3] px-3 py-1.5 text-xs font-black text-[#1F5A56]">
+                {locale === 'he' ? 'מוכן לעבודה' : 'Ready to use'}
               </span>
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
               {[
-                locale === 'he' ? 'הזמנות חדשות' : 'New bookings',
+                locale === 'he' ? 'הזמנות' : 'Bookings',
                 locale === 'he' ? 'פניות צור קשר' : 'Contact requests',
-                locale === 'he' ? 'מספרי טלפון' : 'Phone numbers',
+                locale === 'he' ? 'ליסינג וטלפונים' : 'Leasing & phone numbers',
               ].map((item) => (
                 <div key={item} className="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm font-black text-[#0D2B2B]">
                   <span className="block h-2 w-2 rounded-full bg-[#E8743B]" />
@@ -167,10 +167,21 @@ export default async function AdminDashboard({
               ))}
             </div>
 
+            <Link
+              href="https://docs.google.com/spreadsheets/d/1Ve0QjN471GdNno0mxfRkHmigozjRoBdoOr84PFNZH04/edit"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#2D5F5F] px-5 text-sm font-black text-white shadow-[0_10px_20px_rgba(45,95,95,0.22)] transition hover:bg-[#1F4C4C] active:scale-[0.98]"
+            >
+              <Table2 className="h-5 w-5" />
+              {locale === 'he' ? 'פתיחת גיליון הלידים' : 'Open leads sheet'}
+              <ExternalLink className="h-4 w-4" />
+            </Link>
+
             <p className="mt-5 border-t border-[#E5F0F0] pt-4 text-xs font-semibold leading-5 text-slate-400">
               {locale === 'he'
-                ? 'אין חיבור פעיל עדיין, ולכן שום מידע של לקוחות אינו נשלח ל-Google.'
-                : 'No connection is active yet, so no customer information is being sent to Google.'}
+                ? 'הגיליון נקי מרשומות בדיקה ומכיל פניות לקוחות בלבד. ההזמנות עצמן נשארות מנוהלות כאן בממשק.'
+                : 'The sheet excludes test entries and contains customer leads only. Bookings remain managed here in the office dashboard.'}
             </p>
           </div>
         </section>

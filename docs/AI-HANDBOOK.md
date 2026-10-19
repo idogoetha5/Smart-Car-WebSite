@@ -148,6 +148,7 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
+- 2026-10-19 — Replaced the inactive Google Sheets placeholder on the secured office dashboard with the live leads centre and a direct, labelled link to the SmartCar leads sheet. The dashboard makes clear that the sheet is for filtered customer leads while bookings continue to be managed in the office UI. No migration. Pending deployment.
 - 2026-10-19 — Clarified booking-management actions on phone and desktop with purpose-specific colour treatments: green for WhatsApp, orange for handover inspection, teal for return inspection and approval, and red for refusal. Actions and underlying booking workflows are unchanged. No migration. Deployed to Vercel Production (commit `9ebd260`).
 - 2026-10-19 — Kept the office-dashboard add-to-home-screen capability, but removed the visible install button and explanatory prompt from the dashboard. The network-only worker and public manifest remain in place; no private data is cached. No migration. Pending deployment.
 - 2026-10-19 — Redesigned the secured office dashboard as a focused daily-action screen: operational header, primary rental-quote action, calmer statistics, direct quick actions and a clearer recent-booking list alongside a calendar-month chart. The chart now states that it measures bookings created per day and renders the actual 28–31 days of the selected month. No workflow or data change. Deployed to Vercel Production.
