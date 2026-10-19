@@ -522,13 +522,13 @@ function confirmationPrompt(state: FlowState, locale: FlowLocale) {
   return `${rentalConfirmationIntro(state, locale)}\n\nתאריכים: ${formatDate(state.pickupDate!)} עד ${formatDate(state.dropoffDate!)}\nשעות: ${state.pickupTime} עד ${state.returnTime}\nאיסוף: ${state.pickupLocation}\nהחזרה: ${state.dropoffLocation}\nרכב: ${vehicle}${needs ? `\nצרכים: ${needs}` : ''}\nשם: ${state.customerName}\nמייל: ${state.customerEmail}\n\nזוהי בקשת השכרה ולא אישור זמינות, מחיר או רכב מסוים. נציג SmartCar יבדוק את הצי המלא וישלח אישור סופי בכתב.\n\n${consent.text}\n${base}/he/terms\n${base}/he/privacy\n\nכתבו אני מאשר/ת לשליחה, או תפריט להתחלה מחדש.`;
 }
 
-function promptForState(state: FlowState, locale: FlowLocale, booking: BookingSummary | null) {
-  if (state.step === 'rental_dates') return rentalServicePrompt(state, locale, datesPrompt(locale, state.pickupDate));
-  if (state.step === 'rental_times') return rentalServicePrompt(state, locale, timesPrompt(locale, state.pickupTime, state.returnTime));
-  if (state.step === 'rental_locations') return rentalServicePrompt(state, locale, locationsPrompt(locale, state.pickupLocation, state.dropoffLocation));
-  if (state.step === 'rental_vehicle') return rentalServicePrompt(state, locale, vehiclePrompt(locale));
-  if (state.step === 'rental_name') return rentalServicePrompt(state, locale, namePrompt(locale));
-  if (state.step === 'rental_email') return rentalServicePrompt(state, locale, emailPrompt(locale));
+function promptForState(state: FlowState, locale: FlowLocale, booking: BookingSummary | null, previous?: FlowState | null) {
+  if (state.step === 'rental_dates') return rentalServicePrompt(state, locale, datesPrompt(locale, state.pickupDate), previous);
+  if (state.step === 'rental_times') return rentalServicePrompt(state, locale, timesPrompt(locale, state.pickupTime, state.returnTime), previous);
+  if (state.step === 'rental_locations') return rentalServicePrompt(state, locale, locationsPrompt(locale, state.pickupLocation, state.dropoffLocation), previous);
+  if (state.step === 'rental_vehicle') return rentalServicePrompt(state, locale, vehiclePrompt(locale), previous);
+  if (state.step === 'rental_name') return rentalServicePrompt(state, locale, namePrompt(locale), previous);
+  if (state.step === 'rental_email') return rentalServicePrompt(state, locale, emailPrompt(locale), previous);
   if (state.step === 'rental_confirm') return confirmationPrompt({ ...state, locale }, locale);
   return menuFor(booking, locale);
 }
@@ -1078,7 +1078,7 @@ async function continueRental(phone: string, body: string, current: FlowState, l
     }
   }
   const acknowledgement = interpretation?.acknowledgement ? `${interpretation.acknowledgement}\n\n` : '';
-  return { handled: true, reply: `${acknowledgement}${suggestions}${promptForState(state, locale, booking)}` };
+  return { handled: true, reply: `${acknowledgement}${suggestions}${promptForState(state, locale, booking, current)}` };
 }
 
 function handoffState(state: FlowState | null, locale: FlowLocale): FlowState {
@@ -1377,7 +1377,9 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
   // A direct request for a person must not be answered as a sales or policy FAQ.
   const validStructuredEmail = existingState?.step === 'rental_email' && Boolean(validEmail(body));
   const collectingNewRental = Boolean(existingState) && isRentalStep(existingState!.step);
-  if (interpretation?.intent === 'representative' && !validStructuredEmail) {
+  // Small talk such as "מה קורה" is never a reason to hand the chat to a person.
+  const smallTalk = /^\s*(?:היי+|הי|שלום|אהלן|הלו|מה קורה|מה נשמע|מה המצב|מה איתך|בוקר טוב|ערב טוב|hi|hello|hey|what'?s up|how are you)[\s!?.,🙂😊👋]*$/i.test(body);
+  if (interpretation?.intent === 'representative' && !validStructuredEmail && !smallTalk) {
     await store.saveState(phone, handoffState(existingState, locale));
     const mood = detectConversationMood(body);
     return {
@@ -1655,7 +1657,7 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
           answer: sales.play.response,
           nextStep: sales.play.mustHandoff
             ? sales.play.nextAction
-            : promptForState(advisoryState, locale, booking),
+            : promptForState(advisoryState, locale, booking, existingState),
           subject: sales.play.reflection,
         }),
       };
@@ -1666,7 +1668,7 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     // talk). Answer it in plain words and repeat the one missing detail,
     // instead of claiming the message was not understood.
     if (interpretation?.acknowledgement && interpretation.intent !== 'representative') {
-      return { handled: true, reply: `${interpretation.acknowledgement}\n\n${promptForState({ ...existingState, locale }, locale, booking)}` };
+      return { handled: true, reply: `${interpretation.acknowledgement}\n\n${promptForState({ ...existingState, locale }, locale, booking, existingState)}` };
     }
   }
 
