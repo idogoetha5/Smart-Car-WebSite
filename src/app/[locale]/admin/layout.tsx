@@ -9,6 +9,9 @@
  */
 export const metadata = {
   robots: { index: false, follow: false },
+  manifest: '/admin-manifest.webmanifest',
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'SmartCar ניהול' },
+  icons: { apple: '/apple-icon.png' },
 };
 
 export default function AdminAreaLayout({ children }: { children: React.ReactNode }) {

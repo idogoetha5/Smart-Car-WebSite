@@ -1,4 +1,5 @@
 import AdminSidebar from '@/components/layout/AdminSidebar';
+import AdminAppSetup from '@/components/admin/AdminAppSetup';
 
 export default function AdminLayout({
   children,
@@ -9,6 +10,7 @@ export default function AdminLayout({
     // `flex-col` below md so the compact bar sits above the content rather
     // than beside it; `md:flex-row` restores the desktop rail.
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+      <AdminAppSetup />
       <AdminSidebar />
       {/* min-w-0 is the whole fix for the sideways scroll: without it a flex
           child refuses to shrink below the width of its widest content, so
