@@ -21,7 +21,8 @@ afterEach(() => {
 const interpretation = {
   intent: 'rental', vehiclePreference: 'SUV', vehicleEvidence: 'SUV',
   pickupLocation: 'הרצליה', pickupEvidence: 'הרצליה',
-  dropoffLocation: 'נתבג', dropoffEvidence: 'נתבג',
+  dropoffLocation: 'נתבג', dropoffEvidence: 'נתבג', pickupDate: '', dropoffDate: '', pickupTime: '', returnTime: '',
+  passengers: 0, acknowledgement: '',
 };
 
 describe('Gemini WhatsApp interpreter', () => {
