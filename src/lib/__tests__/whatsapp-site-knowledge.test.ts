@@ -26,6 +26,8 @@ describe('model reply guard', () => {
     expect(safeAcknowledgement('הפיקדון הוא ₪700', knowledge)).toBe('');
     expect(safeAcknowledgement('ראו https://example.com', knowledge)).toBe('');
     expect(safeAcknowledgement('ההזמנה אושרה!', knowledge)).toBe('');
+    expect(safeAcknowledgement('ראו https://smartcar.co.il.evil.example/he/terms', knowledge)).toBe('');
+    expect(safeAcknowledgement('ראו https://www.smartcar.co.il/invented-payment', knowledge)).toBe('');
   });
 });
 
@@ -39,5 +41,6 @@ describe('knowledge retrieval', () => {
     expect(forAge.length).toBeLessThan(text.length);
     const forDeposit = relevantKnowledge(text, 'כמה הפיקדון?');
     expect(forDeposit).toContain('1,000');
+    expect(relevantKnowledge(text, 'insurance exclusions CDW', 4000).length).toBeLessThanOrEqual(4000);
   });
 });

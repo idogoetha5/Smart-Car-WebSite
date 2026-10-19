@@ -9,7 +9,7 @@ describe('consultative sales plays', () => {
   });
 
   it.each([
-    ['יקר לי', 'he'], ['I will think about it', 'en'], ['מתחרה הציע פחות', 'he'], ['not sure which car', 'en'], ['משפחה תינוק מזוודות', 'he'], ['luxury car', 'en'], ['נסיעה ארוכה', 'he'], ['airport pickup', 'en'], ['נהג צעיר', 'he'], ['deposit', 'en'], ['ביטוח', 'he'], ['fuel', 'en'], ['קילומטרים', 'he'], ['change extend', 'en'], ['אין רכב זמין', 'he'], ['discount please', 'en'], ['לקוח חוזר', 'he'], ['business company', 'en'], ['דחוף לחוץ', 'he'], ['I do not trust this', 'en'], ['לא עונה', 'he'], ['availability uncertain', 'en'], ['אני מאשר', 'he'], ['mixed details', 'en'], ['אחשוב על זה', 'he'],
+    ['יקר לי', 'he'], ['I will think about it', 'en'], ['מתחרה הציע פחות', 'he'], ['not sure which car', 'en'], ['משפחה תינוק מזוודות', 'he'], ['luxury car', 'en'], ['נסיעה ארוכה', 'he'], ['airport pickup', 'en'], ['נהג צעיר', 'he'], ['deposit', 'en'], ['ביטוח', 'he'], ['fuel', 'en'], ['קילומטרים', 'he'], ['change extend', 'en'], ['אין רכב זמין', 'he'], ['discount please', 'en'], ['לקוח חוזר', 'he'], ['business company', 'en'], ['דחוף לחוץ', 'he'], ['I do not trust this', 'en'], ['נדבר בהמשך', 'he'], ['availability uncertain', 'en'], ['אני מאשר', 'he'], ['mixed details', 'en'], ['אחשוב על זה', 'he'],
   ] as const)('gives one safe next action for: %s', (input, locale) => {
     const sale = consultativeSalesReply(input, locale);
     expect(sale?.reply).toContain(sale?.play.nextAction ?? '');

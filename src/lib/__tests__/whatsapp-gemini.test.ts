@@ -31,7 +31,7 @@ describe('Gemini WhatsApp interpreter', () => {
       candidates: [{ content: { parts: [{ text: JSON.stringify(interpretation) }] } }],
     }), { status: 200 }));
 
-    await expect(interpretWhatsAppMessage('צריך SUV מהרצליה ולהחזיר בנתבג', 'menu')).resolves.toEqual({ ...interpretation, rawAcknowledgement: '' });
+    await expect(interpretWhatsAppMessage('צריך SUV מהרצליה ולהחזיר בנתבג', 'menu')).resolves.toEqual({ ...interpretation, source: 'gemini', rawAcknowledgement: '' });
     const [url, options] = vi.mocked(fetch).mock.calls[0];
     expect(url).toContain('/models/gemini-3.5-flash-lite:generateContent');
     expect(options?.headers).toEqual(expect.objectContaining({ 'x-goog-api-key': 'test-key' }));
@@ -47,6 +47,26 @@ describe('Gemini WhatsApp interpreter', () => {
     await interpretWhatsAppMessage('הטלפון שלי 0501234567', 'menu');
     delete process.env.GEMINI_API_KEY;
     await interpretWhatsAppMessage('רוצה רכב', 'menu');
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('answers a published business question locally when no key is configured', async () => {
+    delete process.env.GEMINI_API_KEY;
+    const result = await interpretWhatsAppMessage('אפשר לעשן ברכב?', 'menu');
+    expect(result?.acknowledgement).toContain('₪500');
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('keeps a precise address out of the provider context', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(interpretation) }] } }] })));
+    await interpretWhatsAppMessage('מה מדיניות הדלק?', 'rental_vehicle', { pickupLocation: 'רחוב הבדיקה 73 הרצליה', locale: 'he' });
+    const body = String(vi.mocked(fetch).mock.calls[0][1]?.body);
+    expect(body).not.toContain('רחוב הבדיקה');
+    expect(body).toContain('Herzliya');
+  });
+
+  it('does not send an address supplied inline to the provider', async () => {
+    await interpretWhatsAppMessage('איסוף ברחוב הבדיקה 73', 'rental_locations');
     expect(fetch).not.toHaveBeenCalled();
   });
 

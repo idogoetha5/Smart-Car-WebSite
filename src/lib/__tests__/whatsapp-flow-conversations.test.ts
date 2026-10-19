@@ -342,7 +342,7 @@ describe('Eight required local SmartCar conversations', () => {
     const state = mockDb.states.get(PHONE)?.state;
     expect(state).toMatchObject({
       pickupDate: '2026-09-10', dropoffDate: '2026-09-14', pickupTime: '09:00', returnTime: '18:00',
-      pickupLocation: 'הרצליה', dropoffLocation: 'נתבג', vehiclePreference: 'LUXURY', customerEmail: 'ido@example.com',
+      pickupLocation: 'הרצליה', dropoffLocation: 'נתב״ג', vehiclePreference: 'LUXURY', customerEmail: 'ido@example.com',
     });
   });
 
@@ -467,9 +467,9 @@ describe('Eight required local SmartCar conversations', () => {
       createRentalRequest: async () => null,
       recordLanguageCandidate: async (candidate: { phrase: string; field: string }) => { candidates.push(candidate); },
     };
-    await getWhatsAppFlowReply(PHONE, 'luxery', store);
+    await getWhatsAppFlowReply(PHONE, 'zorbex', store);
     await getWhatsAppFlowReply(PHONE, 'john@example.com booking 123456', store);
-    expect(candidates).toEqual([{ phrase: 'luxery', field: 'vehicle' }]);
+    expect(candidates).toEqual([{ phrase: 'zorbex', field: 'vehicle' }]);
   });
 
   it('never creates a learning candidate from emergency wording', async () => {
@@ -490,9 +490,9 @@ describe('Eight required local SmartCar conversations', () => {
     const store = {
       activeBooking: async () => null, loadState: async () => state,
       saveState: async (_phone: string, value: typeof state) => { state = value; }, createRentalRequest: async () => null,
-      resolveApprovedVariant: async (phrase: string) => phrase === 'luxery' ? 'LUXURY' : null,
+      resolveApprovedVariant: async (phrase: string) => phrase === 'zorbex' ? 'LUXURY' : null,
     };
-    const result = await getWhatsAppFlowReply(PHONE, 'luxery', store);
+    const result = await getWhatsAppFlowReply(PHONE, 'zorbex', store);
     expect(result.reply).toContain('Who should I put');
     expect(state).toMatchObject({ vehiclePreference: 'LUXURY', step: 'rental_name' });
   });
