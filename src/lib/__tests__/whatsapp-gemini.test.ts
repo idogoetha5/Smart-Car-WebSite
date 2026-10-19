@@ -31,7 +31,7 @@ describe('Gemini WhatsApp interpreter', () => {
       candidates: [{ content: { parts: [{ text: JSON.stringify(interpretation) }] } }],
     }), { status: 200 }));
 
-    await expect(interpretWhatsAppMessage('צריך SUV מהרצליה ולהחזיר בנתבג', 'menu')).resolves.toEqual(interpretation);
+    await expect(interpretWhatsAppMessage('צריך SUV מהרצליה ולהחזיר בנתבג', 'menu')).resolves.toEqual({ ...interpretation, rawAcknowledgement: '' });
     const [url, options] = vi.mocked(fetch).mock.calls[0];
     expect(url).toContain('/models/gemini-3.5-flash-lite:generateContent');
     expect(options?.headers).toEqual(expect.objectContaining({ 'x-goog-api-key': 'test-key' }));
