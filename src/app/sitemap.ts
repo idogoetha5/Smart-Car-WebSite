@@ -13,19 +13,21 @@ const baseUrl =
 // page's content actually changes.
 const STATIC_CONTENT_LAST_MODIFIED = new Date('2026-07-28T00:00:00Z');
 const BRANCH_PAGE_LAST_MODIFIED = new Date('2026-08-04T00:00:00Z');
+const TEL_AVIV_BRANCH_LAST_MODIFIED = new Date('2026-10-19T00:00:00Z');
+const NATIONWIDE_RENTAL_LAST_MODIFIED = new Date('2026-10-19T00:00:00Z');
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/he`,
-      lastModified: STATIC_CONTENT_LAST_MODIFIED,
+      lastModified: NATIONWIDE_RENTAL_LAST_MODIFIED,
       changeFrequency: 'daily',
       priority: 1.0,
       alternates: {
         languages: { he: `${baseUrl}/he`, en: `${baseUrl}/en` },
       },
     },
-    { url: `${baseUrl}/en`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'daily', priority: 1.0 },
+    { url: `${baseUrl}/en`, lastModified: NATIONWIDE_RENTAL_LAST_MODIFIED, changeFrequency: 'daily', priority: 1.0 },
     { url: `${baseUrl}/he/catalog`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'daily', priority: 0.9 },
     { url: `${baseUrl}/en/catalog`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'daily', priority: 0.9 },
     { url: `${baseUrl}/he/rental`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.8 },
@@ -36,14 +38,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/en/contact`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${baseUrl}/he/cars-for-sale`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'daily', priority: 0.8 },
     { url: `${baseUrl}/en/cars-for-sale`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'daily', priority: 0.8 },
-    { url: `${baseUrl}/he/branches`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${baseUrl}/en/branches`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${baseUrl}/he/branches`, lastModified: NATIONWIDE_RENTAL_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${baseUrl}/en/branches`, lastModified: NATIONWIDE_RENTAL_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.8 },
     // Dedicated per-branch landing pages, added 2026-08-04 for city-specific
     // organic search ("השכרת רכב <city>") — higher priority than the /branches
     // index since these are the pages meant to actually rank.
     ...BRANCHES.flatMap((b) => [
-      { url: `${baseUrl}/he/branches/${b.id}`, lastModified: BRANCH_PAGE_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.7 },
-      { url: `${baseUrl}/en/branches/${b.id}`, lastModified: BRANCH_PAGE_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.7 },
+      {
+        url: `${baseUrl}/he/branches/${b.id}`,
+        lastModified: b.id === 'telaviv' ? TEL_AVIV_BRANCH_LAST_MODIFIED : BRANCH_PAGE_LAST_MODIFIED,
+        changeFrequency: b.id === 'telaviv' ? 'weekly' as const : 'monthly' as const,
+        priority: b.id === 'telaviv' ? 0.85 : 0.7,
+      },
+      {
+        url: `${baseUrl}/en/branches/${b.id}`,
+        lastModified: b.id === 'telaviv' ? TEL_AVIV_BRANCH_LAST_MODIFIED : BRANCH_PAGE_LAST_MODIFIED,
+        changeFrequency: b.id === 'telaviv' ? 'weekly' as const : 'monthly' as const,
+        priority: b.id === 'telaviv' ? 0.85 : 0.7,
+      },
     ]),
     { url: `${baseUrl}/he/about`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/en/about`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.5 },

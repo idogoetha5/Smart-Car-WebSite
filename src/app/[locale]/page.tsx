@@ -22,7 +22,7 @@ export async function generateMetadata({
     // carries the brand.
     title: {
       absolute: isHe
-        ? 'SmartCar | השכרת רכב עד הבית, בכל הארץ'
+        ? 'השכרת רכב בישראל עם מסירה עד הבית | SmartCar'
         : 'SmartCar | Car Rental Delivered Across Israel',
     },
     description: isHe
@@ -129,6 +129,10 @@ export default async function HomePage({
       addressCountry: 'IL',
     },
     hasMap: mapsUrl(herzliya),
+    areaServed: {
+      '@type': 'Country',
+      name: 'Israel',
+    },
     sameAs: ['https://wa.me/97299509757', FACEBOOK_PAGE_URL],
   };
 

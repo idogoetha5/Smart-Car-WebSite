@@ -51,7 +51,7 @@ const CONTENT: Record<BranchId, { metaHe: string; metaEn: string; bodyHe: string
       'Driving through the Old City and downtown Jerusalem\'s narrow streets isn\'t simple, which is why our branch on King David Street, near the Mamilla complex and the city\'s central hotels (the King David Hotel, Citadel and YMCA), sits somewhere you can reach Route 1 and the main highways without fighting the city-center traffic. Car rental in Jerusalem works for city residents, business visitors heading to the government and institutional district, tourists and pilgrims continuing on to the Dead Sea or the north, and students who need a car for a short stretch. The same wide fleet and personal service you\'ll find at every SmartCar branch is here too.',
   },
   airport: {
-    metaHe: 'השכרת רכב בנתב"ג עם משלוח לטרמינל 24/7 — לתיירים, ישראלים חוזרים מחו"ל ואנשי עסקים.',
+    metaHe: 'השכרת רכב בנתב"ג (נמל התעופה בן גוריון) עם משלוח לטרמינל 24/7 — לתיירים, ישראלים חוזרים מחו"ל ואנשי עסקים.',
     metaEn: 'Car rental at Ben Gurion Airport with 24/7 terminal delivery — for tourists, returning residents and business travelers.',
     bodyHe:
       'נוחתים בנתב"ג ורוצים להתחיל לנסוע בלי לעמוד בתור למונית או לאוטובוס? שירות המשלוח שלנו לנמל התעופה עובד 24/7 — הרכב מגיע אליכם לטרמינל, ומהרגע הזה יש גישה מהירה לכבישים הראשיים לכל הארץ. השכרת רכב בנתב"ג מתאימה לתיירים שמגיעים לישראל בפעם הראשונה, לישראלים שחוזרים מחו"ל בלי רכב בבית, ולנוסעי עסקים שצריכים לזוז מהר — עם צי רכבים רחב מקומפקטי ועד יוקרה, ושירות אישי שמלווה את SmartCar כבר משנת 2003. אפשר גם לאסוף רכב מכל מקום בארץ ולהחזיר אותו כאן בנתב"ג, וכמובן גם לאסוף ולהחזיר בנתב"ג לכל אורך הטיול — נוח מאוד אם אתם צריכים רכב גדול כבר מהנחיתה ועד היום שאתם עוזבים.',
@@ -90,6 +90,34 @@ export default async function BranchDetailPage({
   const city = isHe ? DISPLAY_CITY[branch.id].he : DISPLAY_CITY[branch.id].en;
   const content = CONTENT[branch.id];
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
+  const locationQuestion = branch.id === 'airport'
+    ? (isHe ? 'איך מקבלים רכב בנתב״ג?' : 'How do I receive a vehicle at Ben Gurion Airport?')
+    : (isHe ? `איפה נמצא סניף SmartCar ב${city}?` : `Where is the SmartCar ${city} branch?`);
+  const locationAnswer = branch.id === 'airport'
+    ? (isHe
+      ? 'שירות המסירה מתואם מראש אל נמל התעופה בן גוריון. נציג SmartCar מאשר את נקודת המפגש ואת פרטי המסירה בכתב לפני ההשכרה.'
+      : 'Delivery is arranged in advance at Ben Gurion Airport. A SmartCar representative confirms the meeting point and delivery details in writing before the rental.')
+    : (isHe
+      ? `הסניף נמצא ב${branch.streetHe}, ${branch.cityHe}.`
+      : `The branch is at ${branch.streetEn}, ${branch.cityEn}.`);
+  const locationFaq = [
+    {
+      question: locationQuestion,
+      answer: locationAnswer,
+    },
+    {
+      question: isHe ? `איזה רכב אפשר לשכור ב${city}?` : `Which vehicles can I rent in ${city}?`,
+      answer: isHe
+        ? 'אפשר לשלוח בקשה לרכב קומפקטי, משפחתי, פנאי, מסחרי או יוקרה. הנציג בודק את הצי המלא ומאשר את הרכב או קבוצת הרכב הזמינה לפני ההשכרה.'
+        : 'You can request a compact, family, SUV, commercial or luxury vehicle. A representative checks the full fleet and confirms the available vehicle or group before the rental.',
+    },
+    {
+      question: isHe ? 'אפשר לאסוף ולהחזיר במקומות שונים?' : 'Can I collect and return at different locations?',
+      answer: isHe
+        ? 'כן, אפשר לתאם איסוף והחזרה בסניפים או בכתובות שונות בארץ. השירות והמחיר נקבעים לפי הכתובת, השעה והזמינות.'
+        : 'Yes. Collection and return can be coordinated at branches or different addresses across Israel. The service and price depend on the address, time and availability.',
+    },
+  ];
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -106,6 +134,10 @@ export default async function BranchDetailPage({
       addressCountry: 'IL',
     },
     hasMap: mapsUrl(branch),
+    areaServed: {
+      '@type': 'City',
+      name: isHe ? branch.cityHe : branch.cityEn,
+    },
   };
 
   const breadcrumbJsonLd = {
@@ -150,6 +182,20 @@ export default async function BranchDetailPage({
         <p className="text-gray-700 text-lg leading-relaxed mb-8 text-start">
           {isHe ? content.bodyHe : content.bodyEn}
         </p>
+
+        <section className="mb-8" aria-labelledby="branch-rental-faq">
+            <h2 id="branch-rental-faq" className="text-2xl font-bold text-[#0D2B2B] mb-4">
+              {isHe ? `השכרת רכב ב${city} — שאלות נפוצות` : `Car rental in ${city} — common questions`}
+            </h2>
+            <div className="space-y-4">
+              {locationFaq.map((item) => (
+                <div key={item.question} className="rounded-2xl bg-white p-5 shadow-sm">
+                  <h3 className="font-bold text-[#0D2B2B] mb-1">{item.question}</h3>
+                  <p className="text-gray-700 leading-relaxed">{item.answer}</p>
+                </div>
+              ))}
+            </div>
+          </section>
 
         <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
           <div className="flex items-start gap-2 mb-3">

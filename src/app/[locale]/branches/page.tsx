@@ -13,7 +13,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const isHe = locale === 'he';
   return {
-    title: { absolute: isHe ? 'סניפי SmartCar' : 'SmartCar Branches' },
+    title: { absolute: isHe ? 'השכרת רכב בישראל – סניפים ומסירה | SmartCar' : 'SmartCar Car Rental Branches' },
     description: isHe
       ? 'סניפים בהרצליה, תל אביב, ירושלים ונתב"ג, ומסירה בתיאום מראש בכל הארץ.'
       : 'SmartCar has 4 branches across Israel: Herzliya, Tel Aviv, Jerusalem and Ben Gurion Airport. Visit us or book a car delivered straight to you.',
@@ -99,7 +99,7 @@ export default async function BranchesPage({
       {/* Hero */}
       <div className="bg-[#0D2B2B] py-16 text-center">
         <h1 className="text-4xl font-bold text-white mb-2">
-          {isHe ? 'הסניפים שלנו' : 'Our Locations'}
+          {isHe ? 'השכרת רכב בישראל – סניפים ומסירה' : 'Car rental in Israel — branches and delivery'}
         </h1>
         <p className="text-[#B8D8D8]">
           {isHe
