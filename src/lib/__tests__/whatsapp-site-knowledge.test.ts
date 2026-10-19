@@ -28,3 +28,16 @@ describe('model reply guard', () => {
     expect(safeAcknowledgement('ההזמנה אושרה!', knowledge)).toBe('');
   });
 });
+
+describe('knowledge retrieval', () => {
+  it('sends the contact details plus the passages that answer the question', async () => {
+    const { relevantKnowledge } = await import('@/lib/whatsapp-site-knowledge');
+    const text = await getSiteKnowledge();
+    const forAge = relevantKnowledge(text, 'מאיזה גיל אפשר לשכור?');
+    expect(forAge).toContain('09-9509757');
+    expect(forAge).toContain('21');
+    expect(forAge.length).toBeLessThan(text.length);
+    const forDeposit = relevantKnowledge(text, 'כמה הפיקדון?');
+    expect(forDeposit).toContain('1,000');
+  });
+});
