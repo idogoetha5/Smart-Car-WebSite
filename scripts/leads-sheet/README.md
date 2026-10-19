@@ -17,15 +17,21 @@ The feed reconciles all four source tables, with pagination, and fails the whole
 response if any source cannot be read. Name filtering lives in `src/lib/lead-export.ts`.
 Rows are appended once using `source:id` keys in column G and a hidden
 `_smartcar_sync` ledger. Existing customer cells and manual columns are never
-overwritten. Keep row 4 headers and the hidden G key column intact. A row manually
+overwritten. Keep the headers and the hidden G key column intact. The script
+finds the header within the first 20 rows, so removing an introductory row is safe. A row manually
 deleted after a successful sync stays deleted because its key remains in the
-ledger. Formula-looking customer strings are escaped before writing.
+ledger. The ledger seeds the original import through 2026-10-19 18:23 Israel time,
+so owner deletions made before activation also stay deleted. Formula-looking
+customer strings are escaped before writing. Last-success time is a note on A1;
+it does not replace the owner's title or overwrite a header row.
 
 This is an append-only site-to-sheet integration. Editing the sheet does not
 modify bookings. A customer making another request creates a separate lead;
 multiple requests from one phone are retained intentionally.
 
-Until the trigger has been verified live, keep the existing office CSV cron.
-After verification remove only its `vercel.json` cron entry. Per-request office
-and customer emails remain enabled. The Tel Aviv customer-form sheet uses its
-own script, secrets and outbox and is independent.
+Activated on 2026-10-19: Google permissions granted by the owner, two live runs
+succeeded with zero duplicate additions, and one time trigger was verified. The
+periodic office CSV cron entry is removed from `vercel.json`; the route remains
+available for a deliberate manual fallback. Per-request office and customer
+emails remain enabled. The Tel Aviv customer-form sheet uses its own script,
+secrets and outbox and is independent.

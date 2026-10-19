@@ -144,13 +144,13 @@ export default async function AdminDashboard({
                   <h2 className="mt-1 text-xl font-black text-[#0D2B2B]">{locale === 'he' ? 'לידים ומספרי טלפון' : 'Leads & phone numbers'}</h2>
                   <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-slate-500">
                     {locale === 'he'
-                      ? 'כל הפניות מרוכזות בגיליון העסק: השכרה, ליסינג, צור קשר ומספרי טלפון — מסודר במקום אחד.'
-                      : 'All leads are organised in the business sheet: rentals, leasing, contact requests and phone numbers.'}
+                      ? 'פניות חדשות מהאתר נוספות לגיליון כל 5 דקות: השכרה, ליסינג, צור קשר ו־WhatsApp. עריכות שלך בגיליון נשמרות.'
+                      : 'New rental, leasing, contact and WhatsApp leads are added to the sheet every 5 minutes. Your edits in the sheet are preserved.'}
                   </p>
                 </div>
               </div>
               <span className="w-fit rounded-full border border-[#B8D8D8] bg-[#E5F3F3] px-3 py-1.5 text-xs font-black text-[#1F5A56]">
-                {locale === 'he' ? 'מוכן לעבודה' : 'Ready to use'}
+                {locale === 'he' ? 'הסנכרון פעיל' : 'Sync active'}
               </span>
             </div>
 
