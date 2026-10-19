@@ -1670,6 +1670,17 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     if (interpretation?.acknowledgement && interpretation.intent !== 'representative') {
       return { handled: true, reply: `${interpretation.acknowledgement}\n\n${promptForState({ ...existingState, locale }, locale, booking, existingState)}` };
     }
+    // Without a model answer, still answer a question instead of claiming
+    // the customer's reply could not be read.
+    const repeat = promptForState({ ...existingState, locale }, locale, booking, existingState);
+    if (/סניף|branch/i.test(body)) {
+      return { handled: true, reply: `${locale === 'en' ? 'SmartCar has branches in Herzliya, Tel Aviv, Jerusalem and Ben Gurion Airport, and we can also deliver to an address in Israel by arrangement.' : 'יש לנו סניפים בהרצליה, תל אביב, ירושלים ונתב״ג, ואפשר גם לתאם מסירה לכתובת בארץ.'}\n\n${repeat}` };
+    }
+    const knowledge = knowledgeReply(body, locale, existingState);
+    if (knowledge?.reply) return { handled: true, reply: `${knowledge.reply}\n\n${repeat}` };
+    if (/[?？]\s*$/.test(body)) {
+      return { handled: true, reply: `${locale === 'en' ? 'Good question — a SmartCar representative will confirm that with you.' : 'שאלה טובה — נציג SmartCar יאשר לכם את זה.'}\n\n${repeat}` };
+    }
   }
 
   if (existingState.step === 'rental_dates') {
