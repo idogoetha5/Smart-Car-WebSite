@@ -22,7 +22,10 @@ const InterpretationSchema = z.object({
   acknowledgement: z.string().default(''),
 });
 
-export type WhatsAppInterpretation = z.infer<typeof InterpretationSchema>;
+export type WhatsAppInterpretation = z.infer<typeof InterpretationSchema> & {
+  /** The model's reply before the guard, kept only for the public simulator's diagnostics. */
+  rawAcknowledgement?: string;
+};
 
 /** Facts the bot already holds, so the model can resolve "the day after" or "same place". */
 export interface WhatsAppInterpretationContext {
@@ -145,7 +148,7 @@ export async function interpretWhatsAppMessage(message: string, step: string | n
       console.error('[whatsapp-gemini] invalid structured response');
       return null;
     }
-    return { ...result.data, acknowledgement: safeAcknowledgement(result.data.acknowledgement, `${knowledge}\n${message}\n${JSON.stringify(known)}\n${JSON.stringify(today)}`) };
+    return { ...result.data, rawAcknowledgement: result.data.acknowledgement, acknowledgement: safeAcknowledgement(result.data.acknowledgement, `${knowledge}\n${message}\n${JSON.stringify(known)}\n${JSON.stringify(today)}`) };
   } catch (error) {
     console.error('[whatsapp-gemini] unavailable:', error instanceof Error ? error.name : 'unknown error');
     return null;

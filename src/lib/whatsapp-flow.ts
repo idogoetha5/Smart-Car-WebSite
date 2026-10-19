@@ -1484,7 +1484,7 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
   // Hebrew letters are not "word" characters for \b, so boundaries are spelled out.
   const asksQuestion = /[?？]/.test(body)
     || /(?:^|[\s,.!])(?:מה|איך|כמה|האם|איפה|היכן|מתי|עד מתי|למה|עולה|יש לכם|יש לך|אפשר|מותר|צריך|מאיזה|איזה|אילו|באיזה|what|how|where|when|why|which|do you|can i|is there|are there)(?=$|[\s,.!?])/i.test(body);
-  if (interpretation?.acknowledgement && asksQuestion && ['policy', 'delivery_return', 'unknown'].includes(interpretation.intent)
+  if (interpretation?.acknowledgement && ['policy', 'delivery_return', 'unknown'].includes(interpretation.intent)
     && initialRoute !== 'rental' && !isRentalStep(existingState?.step ?? 'menu')) {
     if (!existingState) await store.saveState(phone, { step: 'menu', locale });
     return {
@@ -1653,7 +1653,8 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
       const progressed = await continueRental(phone, body, state, locale, booking, store, interpretation);
       if (progressed) return progressed;
       await store.saveState(phone, state);
-      return { handled: true, reply: datesPrompt(locale) };
+      // "Can a new driver rent?" starts a rental and still gets its answer.
+      return { handled: true, reply: `${interpretation?.acknowledgement ? `${interpretation.acknowledgement}\n\n` : ''}${datesPrompt(locale)}` };
     }
     if (initialRoute === 'existing_booking_lookup') return { handled: true, reply: booking ? existingCustomerMenu(booking, locale) : locale === 'en' ? 'We could not find an active booking linked to this number. Type representative and our team will help.' : 'לא זיהינו הזמנה פעילה לפי המספר הזה. כתבו "נציג" ונעזור לכם לאתר את ההזמנה.' };
     if (input.includes('ליסינג') || input.includes('מכירה') || /leasing|buy|purchase|cars? for sale/.test(input)) return { handled: true, reply: locale === 'en' ? 'SmartCar offers private and business leasing, as well as selected vehicles for sale. Tell us whether you are interested in private leasing, business leasing, or purchasing a vehicle, and we will guide you.' : 'SmartCar מציעה ליסינג פרטי ועסקי וגם רכבים נבחרים למכירה. כתבו לנו מה מעניין אתכם — ליסינג פרטי, ליסינג לעסק או רכב לרכישה — ונכוון אתכם.' };
