@@ -128,7 +128,7 @@ describe('Eight required local SmartCar conversations', () => {
     expect(flow.first.reply).toContain('ברוכים הבאים');
     expect(flow.datesQuestion.reply).toContain('מתי נוח לך לאסוף');
     expect(flow.locationsQuestion.reply).toContain('מאיפה הכי נוח לך');
-    expect(flow.vehicleQuestion.reply).toContain('איזה רכב יעשה לך');
+    expect(flow.vehicleQuestion.reply).toContain('איזה רכב מתאים');
     expect(flow.nameQuestion.reply).toContain('על שם מי');
     expect(flow.emailQuestion.reply).toContain('כתובת מייל');
     expect(flow.confirmation.reply).toContain('אני מאשר/ת');
@@ -276,7 +276,7 @@ describe('Eight required local SmartCar conversations', () => {
     expect(locations.reply).toContain('מאיפה הכי נוח לך');
     expect(locations.reply).not.toContain('באילו שעות');
     const vehicle = await getWhatsAppFlowReply(PHONE, 'איסוף בהרצליה והחזרה בנתבג');
-    expect(vehicle.reply).toContain('איזה רכב יעשה לך');
+    expect(vehicle.reply).toContain('איזה רכב מתאים');
     const name = await getWhatsAppFlowReply(PHONE, 'ג׳יפון');
     expect(name.reply).toContain('על שם מי');
   });

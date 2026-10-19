@@ -52,6 +52,20 @@ describe('Gemini interpretation inside the WhatsApp flow', () => {
     expect(result.reply?.match(/\?/g)).toHaveLength(1);
   });
 
+  it('sends Gemini\u2019s whole reply when it asks exactly what the booking needs next', async () => {
+    const reply = 'בכיף, נסדר לך רכב 🚗 מאיזה תאריך צריך אותו?';
+    const { store } = makeStore({ intent: 'rental', ...emptyFields, acknowledgement: 'בכיף, נסדר לך רכב 🚗', reply, asks: 'pickup_date' });
+    const result = await getWhatsAppFlowReply('972501234567', 'השכרת רכב', store);
+    expect(result.reply).toBe(reply);
+  });
+
+  it('falls back to one question of its own when Gemini asks for the wrong thing', async () => {
+    const { store } = makeStore({ intent: 'rental', ...emptyFields, acknowledgement: 'מעולה.', reply: 'מעולה. באיזו שעה ומאיפה?', asks: 'places' });
+    const result = await getWhatsAppFlowReply('972501234567', 'השכרת רכב', store);
+    expect(result.reply).not.toContain('באיזו שעה');
+    expect(result.reply?.match(/\?/g)).toHaveLength(1);
+  });
+
   it('keeps a deterministic safety route when Gemini is unavailable', async () => {
     const { store, interpretMessage } = makeStore(null);
     const result = await getWhatsAppFlowReply('972501234567', 'יש תאונה', store);
