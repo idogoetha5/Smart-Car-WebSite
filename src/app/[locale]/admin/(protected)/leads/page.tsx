@@ -380,8 +380,8 @@ function LeadWorkspace({
           פתיחת הגיליון
         </a>
       </header>
-      <div className="mb-4 grid gap-3 sm:grid-cols-2">
-        <label className="relative">
+      <div className="mb-4 grid grid-cols-[minmax(0,1fr)_7rem] gap-3 sm:grid-cols-2">
+        <label className="relative min-w-0">
           <span className="sr-only">
             חיפוש לפי שם, טלפון, אימייל או תוכן הפנייה
           </span>
@@ -390,11 +390,11 @@ function LeadWorkspace({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="שם, טלפון, אימייל או תוכן…"
+            placeholder="שם, טלפון או אימייל…"
             className="min-h-12 w-full rounded-2xl border border-[#D5E5DF] bg-white pe-11 ps-4 text-base shadow-sm outline-none transition focus:border-[#2D5F5F] focus:ring-4 focus:ring-[#2D5F5F]/10"
           />
         </label>
-        <label>
+        <label className="min-w-0">
           <span className="sr-only">מקור הפנייה</span>
           <select
             value={source}
@@ -403,7 +403,7 @@ function LeadWorkspace({
               setDueOnly(false);
               if (e.target.value !== "צור קשר") setNewOnly(false);
             }}
-            className="min-h-12 w-full rounded-2xl border border-[#D5E5DF] bg-white px-3 text-base shadow-sm outline-none focus:border-[#2D5F5F] focus:ring-4 focus:ring-[#2D5F5F]/10"
+            className="min-h-12 w-full min-w-0 rounded-2xl border border-[#D5E5DF] bg-white px-2 text-base shadow-sm outline-none focus:border-[#2D5F5F] focus:ring-4 focus:ring-[#2D5F5F]/10 sm:px-3"
           >
             <option value="">כל המקורות</option>
             {["צור קשר", "השכרה", "ליסינג", "וואטסאפ"].map((label) => (
