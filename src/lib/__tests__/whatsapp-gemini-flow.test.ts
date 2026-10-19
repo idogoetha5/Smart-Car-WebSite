@@ -125,3 +125,26 @@ describe('questions answered from the website', () => {
     expect(result.escalate).toBeFalsy();
   });
 });
+
+describe('Gemini answers win over keyword routing', () => {
+  it('answers "how can I call you?" instead of handing off', async () => {
+    const { store, state } = makeStore({ intent: 'representative', ...emptyFields, acknowledgement: 'אפשר להתקשר אלינו ל־09-9509757.' });
+    const result = await getWhatsAppFlowReply('972501234567', 'איך אפשר להתקשר אליכם?', store);
+    expect(result.escalate).toBeFalsy();
+    expect(result.reply).toContain('09-9509757');
+    expect(state()?.handedOff).toBeFalsy();
+  });
+
+  it('answers a leasing-length question and offers a representative', async () => {
+    const { store } = makeStore({ intent: 'leasing', ...emptyFields, acknowledgement: 'תקופות הליסינג הן 12 עד 60 חודשים.' });
+    const result = await getWhatsAppFlowReply('972501234567', 'לכמה זמן אפשר ליסינג?', store);
+    expect(result.reply).toContain('12 עד 60');
+    expect(result.reply).toContain('הצעת ליסינג');
+  });
+
+  it('still hands off when a person is asked for explicitly', async () => {
+    const { store } = makeStore({ intent: 'representative', ...emptyFields, acknowledgement: 'בשמחה.' });
+    const result = await getWhatsAppFlowReply('972501234567', 'אפשר לדבר עם נציג?', store);
+    expect(result.escalate).toBe(true);
+  });
+});
