@@ -33,6 +33,13 @@ const EXTRAS_LABELS_HE: Record<string, string> = {
   driver:    'נהג נוסף',
 };
 
+const EXTRAS_LABELS_EN: Record<string, string> = {
+  insurance: 'Damage-excess reduction or waiver',
+  highway6:  'Highway 6 and tunnels package',
+  baby_seat: 'Child safety seat',
+  driver:    'Additional driver',
+};
+
 
 /** Marketing attribution only — never PII, and length-capped. */
 function sanitizeAttribution(raw: unknown): Record<string, string> | null {
@@ -268,6 +275,14 @@ function formatDateHe(dateStr: string): string {
   });
 }
 
+function formatDateEn(dateStr: string): string {
+  const datePart = String(dateStr).split('T')[0];
+  const [year, month, day] = datePart.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'long', year: 'numeric',
+  });
+}
+
 /**
  * Mirrors getRentalMileageAllowance() in BookingForm.tsx and the tiers
  * published on /terms — 1–7 days: 200 km/day; 8–30 days: 220 km/day;
@@ -303,21 +318,22 @@ async function sendRequestReceivedEmail({
   totalDays: number;
 }): Promise<boolean> {
   const orderId = numericOrderReference(String(booking.id));
+  const isEnglish = booking.consent_locale === 'en';
   // The year is deliberately left off the customer's copy — customers found
   // it confusing next to the model name. Staff still get it, since it's
   // relevant when matching against the full fleet.
   const vehicleNameCustomer = `${vehicle.make} ${vehicle.model}`;
   const vehicleNameOffice = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
-  const startDate = formatDateHe(booking.pickup_date);
-  const endDate = formatDateHe(booking.dropoff_date);
+  const startDate = isEnglish ? formatDateEn(booking.pickup_date) : formatDateHe(booking.pickup_date);
+  const endDate = isEnglish ? formatDateEn(booking.dropoff_date) : formatDateHe(booking.dropoff_date);
   const pickupLocation = formatLocationForCustomer(booking.pickup_location);
   const returnLocation = formatLocationForCustomer(booking.dropoff_location || booking.pickup_location);
   const extrasText = Array.isArray(booking.extras) && booking.extras.length > 0
-    ? booking.extras.map((e: string) => EXTRAS_LABELS_HE[e] ?? e).join(', ')
-    : 'ללא';
+    ? booking.extras.map((e: string) => (isEnglish ? EXTRAS_LABELS_EN : EXTRAS_LABELS_HE)[e] ?? e).join(', ')
+    : isEnglish ? 'None' : 'ללא';
   const totalPriceText = booking.total_price
-    ? `₪${Number(booking.total_price).toLocaleString()} (מחיר משוער)`
-    : 'יימסר על ידי נציג';
+    ? `₪${Number(booking.total_price).toLocaleString(isEnglish ? 'en-US' : 'he-IL')} ${isEnglish ? '(estimated price)' : '(מחיר משוער)'}`
+    : isEnglish ? 'A representative will confirm the price' : 'יימסר על ידי נציג';
 
   const sharedParams = {
     order_id:         orderId,
@@ -344,7 +360,9 @@ async function sendRequestReceivedEmail({
       event: 'booking_request_received',
       // One receipt per booking, whatever happens upstream.
       idempotencyKey: `booking_request_received:${booking.id}`,
-      templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
+      templateId: isEnglish
+        ? process.env.NEXT_PUBLIC_EMAILJS_EN_TEMPLATE_ID ?? process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID
+        : process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
       params: {
         ...sharedParams,
         to_email:     booking.customer_email,
@@ -352,8 +370,10 @@ async function sendRequestReceivedEmail({
         vehicle_name: vehicleNameCustomer,
         start_date:   startDate,
         end_date:     endDate,
-        heading:      'תודה, הבקשה שלך אצלנו',
-        intro_text:   'תודה שבחרת ב-SmartCar! הבקשה שלך התקבלה אצלנו בהצלחה. נציג מהצוות שלנו כבר עובר על הפרטים וייצור איתך קשר בהקדם כדי להתקדם בתהליך ההשכרה.',
+        heading:      isEnglish ? 'Thank you — we received your request' : 'תודה, הבקשה שלך אצלנו',
+        intro_text:   isEnglish
+          ? 'Thank you for choosing SmartCar. Your request was received successfully. A member of our team is reviewing the details and will contact you shortly to continue the rental process.'
+          : 'תודה שבחרת ב-SmartCar! הבקשה שלך התקבלה אצלנו בהצלחה. נציג מהצוות שלנו כבר עובר על הפרטים וייצור איתך קשר בהקדם כדי להתקדם בתהליך ההשכרה.',
         // Rows/notice marked office_only are hidden for the customer;
         // customer_only stays visible. Values still required even when
         // hidden — the template has no notion of "leave this field blank".

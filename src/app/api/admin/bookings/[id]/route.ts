@@ -25,12 +25,22 @@ const EXTRAS_LABELS_HE: Record<string, string> = {
   driver:    '👤 נהג נוסף',
 };
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
+const EXTRAS_LABELS_EN: Record<string, string> = {
+  insurance: 'Damage-excess reduction or waiver',
+  highway6:  'Highway 6 and tunnels package',
+  baby_seat: 'Child safety seat',
+  driver:    'Additional driver',
+};
+
+function formatDate(dateStr: string, locale: 'he' | 'en'): string {
+  const [year, month, day] = String(dateStr).split('T')[0].split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString(locale === 'en' ? 'en-GB' : 'he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function whatsappDepositLink(orderId: string): string {
-  const text = `שלום, אני רוצה לשלם מקדמה עבור ההזמנה שלי מספר #${orderId}`;
+function whatsappDepositLink(orderId: string, locale: 'he' | 'en'): string {
+  const text = locale === 'en'
+    ? `Hello, I would like to pay the deposit for booking #${orderId}`
+    : `שלום, אני רוצה לשלם מקדמה עבור ההזמנה שלי מספר #${orderId}`;
   return `https://wa.me/97299509757?text=${encodeURIComponent(text)}`;
 }
 
@@ -48,6 +58,7 @@ interface ConfirmableBooking {
   dropoff_location: string;
   total_price?: number | string | null;
   extras?: string[] | null;
+  consent_locale?: string | null;
   vehicle?: { make?: string; model?: string } | null;
 }
 
@@ -64,18 +75,23 @@ async function sendConfirmationEmail(booking: ConfirmableBooking): Promise<boole
     return true;
   }
 
+  const locale = booking.consent_locale === 'en' ? 'en' : 'he';
+  const isEnglish = locale === 'en';
+  const orderId = numericOrderReference(String(booking.id));
   const result = await sendTemplateEmail({
     event: 'booking_confirmed',
     idempotencyKey: key,
-    templateId: process.env.NEXT_PUBLIC_EMAILJS_CONFIRMATION_TEMPLATE_ID,
+    templateId: isEnglish
+      ? process.env.NEXT_PUBLIC_EMAILJS_CONFIRMATION_EN_TEMPLATE_ID ?? process.env.NEXT_PUBLIC_EMAILJS_CONFIRMATION_TEMPLATE_ID
+      : process.env.NEXT_PUBLIC_EMAILJS_CONFIRMATION_TEMPLATE_ID,
     params: {
           to_email:          booking.customer_email,
           to_name:           booking.customer_name,
-          order_id:          numericOrderReference(String(booking.id)),
-          booking_type:      'השכרה',
+          order_id:          orderId,
+          booking_type:      isEnglish ? 'rental' : 'השכרה',
           vehicle_name:      `${booking.vehicle?.make ?? ''} ${booking.vehicle?.model ?? ''}`.trim(),
-          start_date:        formatDate(booking.pickup_date),
-          end_date:          formatDate(booking.dropoff_date),
+          start_date:        formatDate(booking.pickup_date, locale),
+          end_date:          formatDate(booking.dropoff_date, locale),
           // The confirmation template was missing collection and return
           // times, so a customer could not tell when to be there.
           pickup_time:       booking.pickup_time || '09:00',
@@ -83,13 +99,13 @@ async function sendConfirmationEmail(booking: ConfirmableBooking): Promise<boole
           pickup_location:   formatLocationForCustomer(booking.pickup_location),
           return_location:   formatLocationForCustomer(booking.dropoff_location),
           customer_phone:    booking.customer_phone,
-          total_price:       booking.total_price ? `₪${Number(booking.total_price).toLocaleString()}` : '-',
+          total_price:       booking.total_price ? `₪${Number(booking.total_price).toLocaleString(isEnglish ? 'en-US' : 'he-IL')}` : '-',
           extras:            Array.isArray(booking.extras) && booking.extras.length > 0
-                                ? booking.extras.map((e: string) => EXTRAS_LABELS_HE[e] ?? e).join(', ')
-                                : 'ללא',
-          down_payment:      booking.total_price ? `₪${Math.round(Number(booking.total_price) * 0.05).toLocaleString()}` : '-',
-          payment_link:      whatsappDepositLink(numericOrderReference(String(booking.id))),
-          payment_link_text: whatsappDepositLink(numericOrderReference(String(booking.id))),
+                                ? booking.extras.map((e: string) => (isEnglish ? EXTRAS_LABELS_EN : EXTRAS_LABELS_HE)[e] ?? e).join(', ')
+                                : isEnglish ? 'None' : 'ללא',
+          down_payment:      booking.total_price ? `₪${Math.round(Number(booking.total_price) * 0.05).toLocaleString(isEnglish ? 'en-US' : 'he-IL')}` : '-',
+          payment_link:      whatsappDepositLink(orderId, locale),
+          payment_link_text: whatsappDepositLink(orderId, locale),
       bcc_email:         'office@smartcar.co.il',
       logo_url:          LOGO_URL,
     },

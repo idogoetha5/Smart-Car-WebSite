@@ -120,6 +120,9 @@ ADMIN_PASSWORD_HASH=your_bcrypt_hash   # bcrypt hash של סיסמת האדמי�
 # EmailJS
 NEXT_PUBLIC_EMAILJS_SERVICE_ID=service_xxxxxxx
 NEXT_PUBLIC_EMAILJS_TEMPLATE_ID=template_xxxxxxx   # מייל "הזמנה התקבלה"
+NEXT_PUBLIC_EMAILJS_EN_TEMPLATE_ID=template_xxxxxxx # English "booking request received" email
+NEXT_PUBLIC_EMAILJS_CONFIRMATION_TEMPLATE_ID=template_xxxxxxx # מייל "הזמנה אושרה"
+NEXT_PUBLIC_EMAILJS_CONFIRMATION_EN_TEMPLATE_ID=template_xxxxxxx # English "booking confirmed" email
 NEXT_PUBLIC_EMAILJS_PUBLIC_KEY=your_public_key
 EMAILJS_PRIVATE_KEY=your_private_key               # לשליחה server-side (צור קשר)
 
