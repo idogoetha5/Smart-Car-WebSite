@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Clock3, Search, Table2 } from "lucide-react";
 import AdminSheet from "@/components/admin/AdminSheet";
@@ -12,6 +12,8 @@ import {
   followupDue,
   israelDateTimeInput,
   israelInputToIso,
+  isNewContactLead,
+  leadInboxView,
   type AdminLead,
   type ContactFollowup,
 } from "@/lib/admin-leads";
@@ -282,13 +284,42 @@ function LeadPanel({
 }
 
 export default function AdminLeadsPage() {
+  return (
+    <Suspense
+      fallback={<p className="p-8 text-center text-slate-500">טוען פניות…</p>}
+    >
+      <LeadsFromSearch />
+    </Suspense>
+  );
+}
+
+function LeadsFromSearch() {
+  const search = useSearchParams();
+  const view = leadInboxView(search);
+  return (
+    <LeadWorkspace
+      key={`${view.source}:${view.newOnly}`}
+      initialSource={view.source}
+      initialNewOnly={view.newOnly}
+    />
+  );
+}
+
+function LeadWorkspace({
+  initialSource,
+  initialNewOnly,
+}: {
+  initialSource: string;
+  initialNewOnly: boolean;
+}) {
   const { locale = "he" } = useParams<{ locale: string }>();
   const { items, isLoading, error, mutate } = useApiList<AdminLead>(
     "/api/admin/leads",
     { refreshInterval: 30_000, revalidateOnFocus: true },
   );
   const [query, setQuery] = useState("");
-  const [source, setSource] = useState("");
+  const [source, setSource] = useState(initialSource);
+  const [newOnly, setNewOnly] = useState(initialNewOnly);
   const [dueOnly, setDueOnly] = useState(false);
   const [selected, setSelected] = useState<AdminLead | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -307,6 +338,7 @@ export default function AdminLeadsPage() {
     return items.filter(
       (lead) =>
         (!source || lead.source === source) &&
+        (!newOnly || isNewContactLead(lead)) &&
         (!dueOnly || followupDue(lead, now)) &&
         (!q ||
           `${lead.name} ${lead.email} ${lead.details}`
@@ -315,7 +347,7 @@ export default function AdminLeadsPage() {
           (digits.length >= 4 &&
             lead.phone.replace(/\D/g, "").includes(digits))),
     );
-  }, [items, query, source, dueOnly, now]);
+  }, [items, query, source, dueOnly, newOnly, now]);
   const due = items.filter((lead) => followupDue(lead, now)).length;
   return (
     <main dir="rtl" className="mx-auto max-w-6xl p-4 sm:p-8">
@@ -357,6 +389,7 @@ export default function AdminLeadsPage() {
             onChange={(e) => {
               setSource(e.target.value);
               setDueOnly(false);
+              if (e.target.value !== "צור קשר") setNewOnly(false);
             }}
             className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-base"
           >
@@ -367,18 +400,33 @@ export default function AdminLeadsPage() {
           </select>
         </label>
       </div>
-      <button
-        type="button"
-        aria-pressed={dueOnly}
-        onClick={() => {
-          setDueOnly(!dueOnly);
-          setSource(dueOnly ? "" : "צור קשר");
-        }}
-        className={`mb-5 flex min-h-11 items-center gap-2 rounded-xl border px-4 text-sm font-bold ${dueOnly ? "border-[#2D5F5F] bg-[#2D5F5F] text-white" : "border-amber-200 bg-amber-50 text-amber-900"}`}
-      >
-        <Clock3 className="h-4 w-4" />
-        לחזור ללקוח · {due}
-      </button>
+      <div className="mb-5 flex flex-wrap gap-2">
+        <button
+          type="button"
+          aria-pressed={newOnly}
+          onClick={() => {
+            setNewOnly(!newOnly);
+            setDueOnly(false);
+            setSource("צור קשר");
+          }}
+          className={`flex min-h-11 items-center gap-2 rounded-xl border px-4 text-sm font-bold ${newOnly ? "border-[#2D5F5F] bg-[#2D5F5F] text-white" : "border-[#B8D8D8] bg-[#EAF4F4] text-[#1F5A56]"}`}
+        >
+          חדשות לטיפול · {items.filter(isNewContactLead).length}
+        </button>
+        <button
+          type="button"
+          aria-pressed={dueOnly}
+          onClick={() => {
+            setDueOnly(!dueOnly);
+            setNewOnly(false);
+            setSource(dueOnly ? "" : "צור קשר");
+          }}
+          className={`flex min-h-11 items-center gap-2 rounded-xl border px-4 text-sm font-bold ${dueOnly ? "border-[#2D5F5F] bg-[#2D5F5F] text-white" : "border-amber-200 bg-amber-50 text-amber-900"}`}
+        >
+          <Clock3 className="h-4 w-4" />
+          לחזור ללקוח · {due}
+        </button>
+      </div>
       {error && (
         <div
           role="alert"

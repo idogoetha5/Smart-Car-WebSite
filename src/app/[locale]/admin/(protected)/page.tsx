@@ -5,6 +5,7 @@ export const metadata = { robots: { index: false, follow: false } };
 import { getTranslations } from 'next-intl/server';
 import { ArrowLeft, CalendarCheck, Car, ExternalLink, FileText, MessageCircle, Plus, Table2, TrendingUp } from 'lucide-react';
 import StatsCard from '@/components/admin/StatsCard';
+import ContactLeadAction from '@/components/admin/ContactLeadAction';
 import Link from 'next/link';
 import BookingStatusBadge from '@/components/ui/BookingStatusBadge';
 import { numericOrderReference } from '@/lib/order-reference';
@@ -174,7 +175,7 @@ export default async function AdminDashboard({
                 locale === 'he' ? 'הזמנות' : 'Bookings',
                 locale === 'he' ? 'פניות צור קשר' : 'Contact requests',
                 locale === 'he' ? 'ליסינג וטלפונים' : 'Leasing & phone numbers',
-              ].map((item) => (
+              ].map((item, index) => index === 1 ? <ContactLeadAction key="contact" locale={locale} /> : (
                 <div key={item} className="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm font-black text-[#0D2B2B]">
                   <span className="block h-2 w-2 rounded-full bg-[#E8743B]" />
                   <span className="mt-2 block">{item}</span>

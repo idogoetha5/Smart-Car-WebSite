@@ -18,6 +18,20 @@ export interface ContactFollowup {
 export interface AdminLead extends LeadExportRow {
   followup: ContactFollowup | null;
 }
+export function isNewContactLead(lead: AdminLead): boolean {
+  return (
+    lead.key.startsWith("contact:") &&
+    (!lead.followup || lead.followup.status === "NEW")
+  );
+}
+
+export function leadInboxView(params: { get: (key: string) => string | null }) {
+  const contact = params.get("source") === "contact";
+  return {
+    source: contact ? "צור קשר" : "",
+    newOnly: contact && params.get("status") === "NEW",
+  };
+}
 export const DEFAULT_FOLLOWUP: ContactFollowup = {
   status: "NEW",
   assignee: "",
