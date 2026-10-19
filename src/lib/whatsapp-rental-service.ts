@@ -16,10 +16,12 @@ const label = (full: FlowState, locale: Locale, previous?: FlowState | null) => 
 };
 
 export function rentalServicePrompt(state: FlowState, locale: Locale, question: string, previous?: FlowState | null) {
-  // The dates question already names the pickup date it is asking after.
-  const summary = state.step === 'rental_dates' ? '' : label(state, locale, previous);
-  if (locale === 'en') return `${summary ? `I’ve noted ${summary}. ` : ''}${question}`;
-  return `${summary ? `רשמתי: ${summary}. ` : ''}${question}`;
+  // Confirm what this message added only when it added several details at
+  // once; a single detail is already named in the question itself.
+  const added = previous ? (['pickupDate', 'dropoffDate', 'pickupLocation', 'dropoffLocation'] as Field[]).filter((field) => state[field] && state[field] !== previous[field]).length : 0;
+  const summary = state.step === 'rental_dates' || added < 2 ? '' : label(state, locale, previous);
+  if (locale === 'en') return `${summary ? `Got it — ${summary} ✅\n\n` : ''}${question}`;
+  return `${summary ? `סגור — ${summary} ✅\n\n` : ''}${question}`;
 }
 
 export function rentalConfirmationIntro(state: FlowState, locale: Locale) {

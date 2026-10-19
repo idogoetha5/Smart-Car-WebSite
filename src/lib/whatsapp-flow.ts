@@ -11,7 +11,7 @@ import { consultativeSalesReply } from '@/lib/consultative-sales';
 import { getCarsForSale, type CarForSale } from '@/lib/cars-for-sale';
 import { closeEnough, repairCustomerText } from '@/lib/whatsapp-typing';
 import { INTENT_KEYWORDS, VEHICLE_WORDS, WANT_WORDS } from '@/lib/whatsapp-vocabulary';
-import { interpretWhatsAppMessage, type WhatsAppInterpretation, type WhatsAppInterpretationContext } from '@/lib/whatsapp-gemini';
+import { interpretWhatsAppMessage, type WhatsAppAsk, type WhatsAppInterpretation, type WhatsAppInterpretationContext } from '@/lib/whatsapp-gemini';
 import {
   classifyCommercialIntent,
   commercialIntentQuestion,
@@ -478,18 +478,18 @@ function locationsPrompt(locale: FlowLocale, pickupLocation?: string, dropoffLoc
   if (pickupLocation && !dropoffLocation) {
     return locale === 'en'
       ? pickRandom([
-          `Got it, pickup from ${pickupLocation}. Where would you like to return it?`,
+          `Done, pickup from ${pickupLocation} 📍 Returning it there too, or somewhere else?`,
           `Pickup is set for ${pickupLocation}. And where will you be dropping it off?`
         ])
       : pickRandom([
-          `מעולה, רשמתי איסוף מ-${pickupLocation}. לאן תרצו להחזיר את הרכב?`,
+          `מעולה, איסוף מ${pickupLocation} 📍 להחזיר לשם או למקום אחר?`,
           `הבנתי, האיסוף מ-${pickupLocation}. היכן תרצו לבצע את ההחזרה?`
         ]);
   }
   if (!pickupLocation && dropoffLocation) {
     return locale === 'en'
       ? `Got it, return to ${dropoffLocation}. And where would you like to pick it up?`
-      : `מעולה, רשמתי החזרה ב-${dropoffLocation}. ומאיפה תרצו לאסוף את הרכב?`;
+      : `מעולה, החזרה ב${dropoffLocation} 📍 ומאיפה נוח לך לאסוף את הרכב?`;
   }
   return locale === 'en'
     ? pickRandom([
@@ -544,7 +544,7 @@ function vehiclePrompt(locale: FlowLocale) {
         `Great. What type of car suits your needs best? Let me know if you need child seats or extra space.${optionsEn}`
       ])
     : pickRandom([
-        `סבבה. איזה רכב יעשה לך את הנסיעה הכי נוחה? ספר/י לי גם כמה אתם ואם יש מזוודות או כיסא לילד — ואכוון אותך בדיוק.${optionsHe}`,
+        `ואיזה רכב מתאים לנסיעה? 🚗 כמה אתם, ויש מזוודות או כיסא לילד? ככה אכוון אותך בדיוק.${optionsHe}`,
         `נהדר. איזה סוג רכב אתם מחפשים? תרגישו חופשי לפרט על כמות נוסעים, ציוד או צרכים מיוחדים.${optionsHe}`,
         `מצוין. איזה רכב יתאים לכם בדיוק? כדאי גם לציין מזוודות, מספר אנשים או בקשות לכיסא תינוק.${optionsHe}`
       ]);
@@ -977,6 +977,55 @@ function plausibleGeminiTime(value: string | undefined): string | null {
   return match ? `${match[1].padStart(2, '0')}:${match[2]}` : null;
 }
 
+const WEEKDAYS: Array<[RegExp, number]> = [
+  [/(?:יום\s*)?ראשון|sunday/i, 0], [/(?:יום\s*)?שני(?!ם|ה|י\s*ימים)|monday/i, 1], [/(?:יום\s*)?שלישי|tuesday/i, 2], [/(?:יום\s*)?רביעי|wednesday/i, 3],
+  [/(?:יום\s*)?חמישי|thursday/i, 4], [/(?:יום\s*)?שישי|friday/i, 5], [/(?:יום\s*)?שבת|saturday/i, 6],
+];
+
+function addDays(iso: string, days: number) {
+  const date = new Date(`${iso}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+/** "עוד שבוע", "בעוד 3 ימים", "in a week", "ביום חמישי", "לסופ״ש": a date counted from `from` (today, or the pickup day). */
+function relativeDate(body: string, from: string, allowDuration: boolean): string | null {
+  const text = normalized(body);
+  const ahead = text.match(/(?:^|\s)ב?עוד\s+(\d+\s*ימים|יומיים|שבועיים|שבוע|חודש)|in\s+(?:a|one|\d+)\s*(days?|weeks?|month)/);
+  if (ahead || (allowDuration && /שבוע|שבועיים|יומיים|חודש|\d+\s*(?:ימים|days)|week|month/.test(text))) {
+    const unit = ahead?.[1] ?? ahead?.[2] ?? text;
+    const n = Number((unit.match(/\d+/) ?? text.match(/in\s+(\d+)/) ?? [])[0] ?? 1);
+    const days = /שבועיים/.test(unit) ? 14 : /שבוע|week/.test(unit) ? 7 * (/\d/.test(unit) ? n : 1) : /חודש|month/.test(unit) ? 30 : /יומיים/.test(unit) ? 2 : /ימים|day/.test(unit) ? n : 0;
+    if (days > 0) return addDays(from, days);
+  }
+  for (const [pattern, weekday] of WEEKDAYS) {
+    if (!pattern.test(text)) continue;
+    const start = new Date(`${from}T00:00:00Z`).getUTCDay();
+    let diff = (weekday - start + 7) % 7;
+    if (diff === 0 && allowDuration) diff = 7;
+    if (/הבא|next/.test(text) && diff < 7 && !allowDuration && diff !== 0) diff += 0;
+    return addDays(from, diff);
+  }
+  return null;
+}
+
+/** Known places in a message, in order. */
+function knownPlacesIn(input: string): string[] {
+  const text = input.toLowerCase();
+  const found: Array<{ name: string; at: number }> = [];
+  for (const { name, spelling, pattern } of PLACE_PATTERNS) {
+    if (!text.includes(spelling)) continue;
+    pattern.lastIndex = 0;
+    for (const match of text.matchAll(pattern)) {
+      const at = (match.index ?? 0) + match[0].indexOf(match[1]);
+      if (!found.some((f) => f.name === name)) found.push({ name, at });
+    }
+  }
+  return found.sort((a, b) => a.at - b.at).map((f) => f.name);
+}
+
+const SAME_PLACE = /(?:^|\s)(?:ל|ב|גם\s+ל?)?שם(?:\s|$|[.!])|אותו (?:מקום|סניף)|אותה כתובת|באותו|לאותו|כנ״ל|same(?: place| location| branch)?|there(?: too| as well)?|back there/i;
+
 function extractRentalDetails(body: string, current: FlowState, interpretation?: WhatsAppInterpretation | null): Partial<FlowState> {
   const extracted: Partial<FlowState> = {};
   const dates = parseDateCandidates(body);
@@ -991,6 +1040,17 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
     }
   }
 
+  // "עוד שבוע", "ביום חמישי": a pickup date counted from today.
+  if (!current.pickupDate && !extracted.pickupDate && current.step === 'rental_dates') {
+    const date = relativeDate(body, todayInIsrael(), false);
+    if (date) extracted.pickupDate = date;
+  }
+  // "עד יום שישי" once the pickup day is known.
+  if (current.pickupDate && !extracted.dropoffDate && !dates.length && /עד|until|till|return|להחזיר|החזרה/i.test(body)) {
+    const weekdayOnly = !/שבוע|שבועיים|יומיים|חודש|ימים|days?|weeks?|month/i.test(body);
+    const date = weekdayOnly ? relativeDate(body, current.pickupDate, true) : null;
+    if (date && date > current.pickupDate) extracted.dropoffDate = date;
+  }
   // Parse durations if pickup date is already known
   if (current.pickupDate && !extracted.dropoffDate) {
     let days = 0;
@@ -1028,6 +1088,22 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
 
   const locations = parseLocations(body);
   if (locations) Object.assign(extracted, locations);
+  else {
+    // One place at a time, the way people answer on WhatsApp: "הרצליה", "להחזיר בנתבג", "לאותו מקום".
+    const places = knownPlacesIn(body);
+    const saysReturn = /להחזיר|החזרה|ולהחזיר|מחזיר|return|drop ?off|bring (?:it )?back/i.test(body);
+    const saysPickup = /לאסוף|איסוף|אאסוף|pick ?up|collect/i.test(body);
+    if (places.length === 1) {
+      const [place] = places;
+      if (saysReturn && !saysPickup) { if (!current.dropoffLocation) extracted.dropoffLocation = place; }
+      else if (!current.pickupLocation) extracted.pickupLocation = place;
+      else if (!current.dropoffLocation) extracted.dropoffLocation = place;
+    }
+    if (!places.length && current.step === 'rental_locations' && (SAME_PLACE.test(body) || (current.pickupLocation && /^(?:כן|כן כן|yes|yep|yeah|בטח|ברור|סבבה|אוקיי?|ok)[\s!.🙂👍]*$/i.test(body.trim())))) {
+      if (current.pickupLocation && !current.dropoffLocation) extracted.dropoffLocation = current.pickupLocation;
+      else if (current.dropoffLocation && !current.pickupLocation) extracted.pickupLocation = current.dropoffLocation;
+    }
+  }
   const vehiclePreference = parseVehiclePreference(body);
   if (vehiclePreference) extracted.vehiclePreference = vehiclePreference;
   if (interpretation) {
@@ -1134,6 +1210,36 @@ function withoutQuestions(acknowledgement: string | undefined) {
 const leadIn = (acknowledgement: string | undefined) => { const text = withoutQuestions(acknowledgement); return text ? `${text}\n\n` : ''; };
 /** An answer plus our follow-up question, unless the answer already ends by asking something. */
 const answerWithFollowUp = (answer: string, followUp: string) => (/\?\s*\p{Extended_Pictographic}*\uFE0F?\s*$/u.test(answer.trim()) ? answer : `${answer}\n\n${followUp}`);
+
+/** What the booking needs next, in the same terms Gemini uses for the question its reply ends with. */
+function expectedAsk(state: FlowState): WhatsAppAsk | 'confirm' | null {
+  switch (state.step) {
+    case 'rental_dates': return state.pickupDate ? 'return_date' : 'pickup_date';
+    case 'rental_locations': return !state.pickupLocation && !state.dropoffLocation ? 'places' : state.pickupLocation ? 'return_place' : 'pickup_place';
+    case 'rental_vehicle': return 'vehicle';
+    case 'rental_name': return 'name';
+    case 'rental_email': return 'email';
+    case 'rental_confirm': return 'confirm';
+    default: return null;
+  }
+}
+
+/**
+ * One voice per message. Gemini's whole reply is sent when it ends by asking
+ * exactly what the booking needs next; otherwise the customer gets the answer
+ * (without its own questions) followed by our single question.
+ */
+function rentalReply(interpretation: WhatsAppInterpretation | null | undefined, state: FlowState, locale: FlowLocale, booking: BookingSummary | null, previous?: FlowState | null, answer?: string) {
+  const ask = expectedAsk(state);
+  if (interpretation?.reply && ask && ask !== 'confirm' && interpretation.asks === ask) return interpretation.reply;
+  return `${leadIn(answer ?? interpretation?.acknowledgement)}${promptForState({ ...state, locale }, locale, booking, previous)}`;
+}
+
+/** Outside a booking: Gemini's whole reply when it has one, else the answer plus our follow-up. */
+function conversationalReply(interpretation: WhatsAppInterpretation, followUp: string) {
+  if (interpretation.reply && (interpretation.asks === 'nothing' || interpretation.asks === 'other')) return interpretation.reply;
+  return answerWithFollowUp(interpretation.acknowledgement, followUp);
+}
 
 const NOT_A_NAME = /^(?:(?:תודה(?: רבה)?|סבבה|אחלה|אוקיי?|אוקי|בסדר|כן|לא|אולי|רגע|שנייה|יופי|מעולה|הבנתי|נכון|ברור|טוב|היי|שלום|ok|okay|thanks|thank you|yes|no|sure|fine|great|cool)[\s!.,]*)+[\s!.,\p{Extended_Pictographic}\uFE0F]*$|^[\s!.,\p{Extended_Pictographic}\uFE0F]+$/iu;
 
@@ -1284,8 +1390,8 @@ async function continueRental(phone: string, body: string, current: FlowState, l
       // catalogue is temporarily unavailable.
     }
   }
-  const acknowledgement = leadIn(interpretation?.acknowledgement);
-  return { handled: true, reply: `${acknowledgement}${suggestions}${promptForState(state, locale, booking, current)}` };
+  if (suggestions) return { handled: true, reply: `${leadIn(interpretation?.acknowledgement)}${suggestions}${promptForState(state, locale, booking, current)}` };
+  return { handled: true, reply: rentalReply(interpretation, state, locale, booking, current) };
 }
 
 function handoffState(state: FlowState | null, locale: FlowLocale): FlowState {
@@ -1383,7 +1489,7 @@ export async function getWhatsAppFlowReply(phone: string, rawBody: string, store
     const history = [
       ...(current.history ?? previous?.history ?? []),
       { from: 'customer' as const, text: rawBody.slice(0, 500), step: previous?.step },
-      { from: 'bot' as const, text: result.reply.slice(0, 500) },
+      { from: 'bot' as const, text: result.reply.slice(0, 500), step: current.step },
     ].slice(-HISTORY_LENGTH);
     await store.saveState(phone, { ...current, history });
   }
@@ -1485,9 +1591,10 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       dropoffLocation: existingState.dropoffLocation, vehiclePreference: existingState.vehiclePreference, passengers: existingState.passengers,
       // Names, emails and phone numbers stay out of what Gemini sees.
       recent: (Array.isArray(existingState.history) ? existingState.history.slice(-HISTORY_LENGTH) : [])
-        .filter((entry) => entry.from === 'bot' || (entry.step !== 'rental_name' && entry.step !== 'rental_email' && !/@|(?:\+972|0)[\d\s()-]{8,}/.test(entry.text)))
+        .filter((entry) => !['rental_name', 'rental_email', 'rental_confirm'].includes(entry.step ?? '') && !/@|(?:\+972|0)[\d\s()-]{8,}/.test(entry.text))
         .map(({ from, text }) => ({ from, text: text.slice(0, 300) })),
       knowledgeTopic: existingState.knowledgeTopic,
+      haveName: Boolean(existingState.customerName), haveEmail: Boolean(existingState.customerEmail),
     } : null)?.catch(() => null) ?? null
     : null;
   const businessTopic = asksQuestion ? getBusinessKnowledgeResponse(body, locale, existingState?.knowledgeTopic)?.topic : undefined;
@@ -1667,7 +1774,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     const followUp = interpretation.intent === 'leasing'
       ? (locale === 'en' ? 'Would you like a representative to prepare a leasing offer for you?' : 'רוצים שנציג יכין לכם הצעת ליסינג?')
       : (locale === 'en' ? 'Anything else I can help with, or shall we start a rental request?' : 'אפשר לעזור במשהו נוסף, או שנתחיל בקשת השכרה?');
-    return { handled: true, reply: answerWithFollowUp(interpretation.acknowledgement, followUp) };
+    return { handled: true, reply: conversationalReply(interpretation, followUp) };
   }
 
   // A disputed charge needs account-level review. Give ownership first rather
@@ -1793,7 +1900,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     if (!existingState) await store.saveState(phone, { step: 'menu', locale, knowledgeTopic: businessTopic });
     return {
       handled: true,
-      reply: answerWithFollowUp(interpretation.acknowledgement, locale === 'en' ? 'Anything else I can help with, or shall we start a rental request?' : 'אפשר לעזור במשהו נוסף, או שנתחיל בקשת השכרה?'),
+      reply: conversationalReply(interpretation, locale === 'en' ? 'Anything else I can help with, or shall we start a rental request?' : 'אפשר לעזור במשהו נוסף, או שנתחיל בקשת השכרה?'),
     };
   }
 
@@ -1961,12 +2068,13 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       if (progressed) return progressed;
       await store.saveState(phone, state);
       // "Can a new driver rent?" starts a rental and still gets its answer.
-      return { handled: true, reply: `${leadIn(interpretation?.acknowledgement)}${datesPrompt(locale)}` };
+      return { handled: true, reply: rentalReply(interpretation, state, locale, booking, null) };
     }
     if (initialRoute === 'existing_booking_lookup') return { handled: true, reply: booking ? existingCustomerMenu(booking, locale) : locale === 'en' ? 'We could not find an active booking linked to this number. Type representative and our team will help.' : 'לא זיהינו הזמנה פעילה לפי המספר הזה. כתבו "נציג" ונעזור לכם לאתר את ההזמנה.' };
     if (input.includes('ליסינג') || input.includes('מכירה') || /leasing|buy|purchase|cars? for sale/.test(input)) return { handled: true, reply: locale === 'en' ? 'SmartCar offers private and business leasing, as well as selected vehicles for sale. Tell us whether you are interested in private leasing, business leasing, or purchasing a vehicle, and we will guide you.' : 'SmartCar מציעה ליסינג פרטי ועסקי וגם רכבים נבחרים למכירה. כתבו לנו מה מעניין אתכם — ליסינג פרטי, ליסינג לעסק או רכב לרכישה — ונכוון אתכם.' };
     if (input.includes('סניף') || input.includes('מסיר') || input.includes('החזר') || /branch|delivery|return/.test(input)) return { handled: true, reply: locale === 'en' ? 'SmartCar has branches in Herzliya, Tel Aviv, Jerusalem, and Ben Gurion Airport. Delivery and collection at an address in Israel can also be arranged in advance, subject to availability.' : 'לרשותכם סניפים בהרצליה, תל אביב, ירושלים ונתב״ג. אפשר גם לתאם מסירה והחזרה בכתובת שנוחה לכם ברחבי הארץ, בכפוף לתיאום מראש ולזמינות.' };
     await store.saveState(phone, { step: 'menu', locale });
+    if (interpretation?.reply && interpretation.source === 'gemini' && !booking && (interpretation.asks === 'nothing' || interpretation.asks === 'other')) return { handled: true, reply: interpretation.reply };
     return { handled: true, reply: `${leadIn(interpretation?.acknowledgement)}${menuFor(booking, locale)}` };
   }
 
@@ -1982,7 +2090,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     // deposit?") gets the published answer, then the same next question.
     if (asksQuestion && !Object.keys(extractRentalDetails(body, existingState, interpretation)).length) {
       const answer = interpretation?.acknowledgement || knowledgeReply(body, locale, existingState)?.reply;
-      if (answer) return { handled: true, reply: `${answer}\n\n${promptForState({ ...existingState, locale }, locale, booking, existingState)}` };
+      if (answer) return { handled: true, reply: rentalReply(interpretation, existingState, locale, booking, existingState, answer) };
     }
     const sales = existingState.step === 'rental_vehicle'
       ? null
@@ -2012,8 +2120,8 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     // The message held no new rental detail (a question, a concern, small
     // talk). Answer it in plain words and repeat the one missing detail,
     // instead of claiming the message was not understood.
-    if (withoutQuestions(interpretation?.acknowledgement) && interpretation?.intent !== 'representative') {
-      return { handled: true, reply: `${leadIn(interpretation?.acknowledgement)}${promptForState({ ...existingState, locale }, locale, booking, existingState)}` };
+    if ((interpretation?.reply || withoutQuestions(interpretation?.acknowledgement)) && interpretation?.intent !== 'representative') {
+      return { handled: true, reply: rentalReply(interpretation, existingState, locale, booking, existingState) };
     }
     // "סבבה", "👍", "תודה" between questions: acknowledge warmly and keep going.
     if (isAcknowledgement(body)) {
