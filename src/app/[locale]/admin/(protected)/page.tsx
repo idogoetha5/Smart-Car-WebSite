@@ -3,7 +3,7 @@ export const metadata = { robots: { index: false, follow: false } };
 
 
 import { getTranslations } from 'next-intl/server';
-import { ArrowLeft, CalendarCheck, Car, FileText, MessageCircle, Plus, Table2, TrendingUp } from 'lucide-react';
+import { ArrowLeft, CalendarCheck, Car, ExternalLink, FileText, MessageCircle, Plus, Table2, TrendingUp } from 'lucide-react';
 import StatsCard from '@/components/admin/StatsCard';
 import Link from 'next/link';
 import BookingStatusBadge from '@/components/ui/BookingStatusBadge';
@@ -182,14 +182,25 @@ export default async function AdminDashboard({
               ))}
             </div>
 
-            <Link
-              href={`/${locale}/admin/leads`}
-              className="mt-5 inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#2D5F5F] px-5 text-sm font-black text-white shadow-[0_10px_20px_rgba(45,95,95,0.22)] transition hover:bg-[#1F4C4C] active:scale-[0.98]"
-            >
-              <Table2 className="h-5 w-5" />
-              {locale === 'he' ? 'פתיחת הפניות בממשק' : 'Open leads workspace'}
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <Link
+                href={`/${locale}/admin/leads`}
+                className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-[#2D5F5F] px-4 py-3 text-center text-sm font-black text-white shadow-[0_10px_20px_rgba(45,95,95,0.22)] transition hover:bg-[#1F4C4C] active:scale-[0.98]"
+              >
+                <MessageCircle aria-hidden="true" className="h-5 w-5 shrink-0" />
+                {locale === 'he' ? 'פניות ולידים בממשק' : 'Leads workspace'}
+              </Link>
+              <a
+                href="https://docs.google.com/spreadsheets/d/1Ve0QjN471GdNno0mxfRkHmigozjRoBdoOr84PFNZH04/edit"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-[#B8D8D8] bg-[#EAF4F4] px-4 py-3 text-center text-sm font-black text-[#1F5A56] transition hover:bg-[#DCEDED] active:scale-[0.98]"
+              >
+                <Table2 aria-hidden="true" className="h-5 w-5 shrink-0" />
+                {locale === 'he' ? 'פתיחת גיליון Google Sheets' : 'Open Google Sheets'}
+                <ExternalLink aria-hidden="true" className="h-4 w-4 shrink-0" />
+              </a>
+            </div>
 
             <p className="mt-5 border-t border-[#E5F0F0] pt-4 text-xs font-semibold leading-5 text-slate-400">
               {locale === 'he'
