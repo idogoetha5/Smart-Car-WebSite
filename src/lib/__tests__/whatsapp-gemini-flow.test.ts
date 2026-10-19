@@ -68,7 +68,7 @@ describe('Gemini understanding of free-form rental messages', () => {
       acknowledgement: 'שישה אנשים זה בדיוק בשביל רכב 7 מקומות.',
     });
     const result = await getWhatsAppFlowReply('972501234567', 'היי אני צריך רכב לסופש הבא משהו גדול ל6 אנשים', store);
-    expect(state()).toMatchObject({ pickupDate: inDays(4), dropoffDate: inDays(6), passengers: 6, vehiclePreference: 'VAN', step: 'rental_times' });
+    expect(state()).toMatchObject({ pickupDate: inDays(4), dropoffDate: inDays(6), passengers: 6, vehiclePreference: 'VAN', step: 'rental_locations' });
     expect(result.reply).toContain('שישה אנשים זה בדיוק');
     expect(result.reply).not.toContain('בשמחה, נמצא את הרכב');
   });
@@ -94,5 +94,34 @@ describe('model acknowledgement guard', () => {
     expect(safeAcknowledgement('זה יעלה בערך 300 ₪ ליום')).toBe('');
     expect(safeAcknowledgement('ראו https://example.com')).toBe('');
     expect(safeAcknowledgement('נשמע כמו טיול משפחתי מעולה.')).toBe('נשמע כמו טיול משפחתי מעולה.');
+  });
+});
+
+describe('small talk', () => {
+  it('never hands "מה קורה" to a representative, even if the model says so', async () => {
+    const { store, state } = makeStore({ intent: 'representative', ...emptyFields, acknowledgement: 'הכול טוב, תודה!' });
+    const result = await getWhatsAppFlowReply('972501234567', 'מה קורה', store);
+    expect(result.escalate).toBeFalsy();
+    expect(state()?.handedOff).toBeFalsy();
+    expect(result.reply).toContain('הכול טוב');
+  });
+});
+
+describe('questions without a model answer', () => {
+  it('answers a branches question during rental intake', async () => {
+    const { store } = makeStore({ intent: 'unknown', ...emptyFields });
+    await store.saveState('972501234567', { step: 'rental_locations', locale: 'he', pickupDate: '2099-01-01', dropoffDate: '2099-01-05' });
+    const result = await getWhatsAppFlowReply('972501234567', 'איזה סניפים?', store);
+    expect(result.reply).toContain('סניפים');
+    expect(result.reply).not.toContain('לא זיהיתי');
+  });
+});
+
+describe('questions answered from the website', () => {
+  it('answers a general question with the model reply instead of a menu', async () => {
+    const { store } = makeStore({ intent: 'policy', ...emptyFields, acknowledgement: 'הפיקדון תלוי בקטגוריה, החל מ־₪1,000 לרכב כלכלי.' });
+    const result = await getWhatsAppFlowReply('972501234567', 'כמה הפיקדון?', store);
+    expect(result.reply).toContain('₪1,000');
+    expect(result.escalate).toBeFalsy();
   });
 });

@@ -98,14 +98,13 @@ function addExistingBooking() {
 async function completeNewRental(language: 'he' | 'en') {
   const first = await getWhatsAppFlowReply(PHONE, language === 'he' ? 'שלום' : 'Hello');
   const datesQuestion = await getWhatsAppFlowReply(PHONE, '1');
-  const timesQuestion = await getWhatsAppFlowReply(PHONE, language === 'he' ? '12/09/2026 עד 16/09/2026' : '12/09/2026 to 16/09/2026');
-  const locationsQuestion = await getWhatsAppFlowReply(PHONE, '09:00 | 18:00');
+  const locationsQuestion = await getWhatsAppFlowReply(PHONE, language === 'he' ? '12/09/2026 עד 16/09/2026' : '12/09/2026 to 16/09/2026');
   const vehicleQuestion = await getWhatsAppFlowReply(PHONE, language === 'he' ? 'הרצליה | נתב״ג' : 'Tel Aviv | Ben Gurion Airport');
   const nameQuestion = await getWhatsAppFlowReply(PHONE, '3');
   const emailQuestion = await getWhatsAppFlowReply(PHONE, language === 'he' ? 'ישראל ישראלי' : 'John Smith');
   const confirmation = await getWhatsAppFlowReply(PHONE, 'agent@example.com');
   const completion = await getWhatsAppFlowReply(PHONE, language === 'he' ? 'אני מאשר' : 'I confirm');
-  return { first, datesQuestion, timesQuestion, locationsQuestion, vehicleQuestion, nameQuestion, emailQuestion, confirmation, completion };
+  return { first, datesQuestion, locationsQuestion, vehicleQuestion, nameQuestion, emailQuestion, confirmation, completion };
 }
 
 beforeEach(() => {
@@ -128,7 +127,6 @@ describe('Eight required local SmartCar conversations', () => {
     const flow = await completeNewRental('he');
     expect(flow.first.reply).toContain('ברוכים הבאים');
     expect(flow.datesQuestion.reply).toContain('מתי נוח לך לאסוף');
-    expect(flow.timesQuestion.reply).toContain('באילו שעות הכי נוח לך');
     expect(flow.locationsQuestion.reply).toContain('מאיפה הכי נוח לך');
     expect(flow.vehicleQuestion.reply).toContain('איזה רכב יעשה לך');
     expect(flow.nameQuestion.reply).toContain('על שם מי');
@@ -137,14 +135,13 @@ describe('Eight required local SmartCar conversations', () => {
     expect(flow.completion.reply).toContain('בקשת ההשכרה התקבלה');
     expect(flow.completion.escalate).toBe(true);
     expect(mockDb.rentalRequests).toHaveLength(1);
-    expect(mockDb.rentalRequests[0]).toMatchObject({ locale: 'he', status: 'PENDING', pickup_time: '09:00', return_time: '18:00', consent_source: 'whatsapp' });
+    expect(mockDb.rentalRequests[0]).toMatchObject({ locale: 'he', status: 'PENDING', pickup_time: '09:00', return_time: '09:00', consent_source: 'whatsapp' });
   });
 
   it('2. English customer — new rental', async () => {
     const flow = await completeNewRental('en');
     expect(flow.first.reply).toContain('Welcome to SmartCar');
     expect(flow.datesQuestion.reply).toContain('When would you like to pick it up');
-    expect(flow.timesQuestion.reply).toContain('times work best for you');
     expect(flow.locationsQuestion.reply).toContain('most convenient for you');
     expect(flow.vehicleQuestion.reply).toContain('what kind of car');
     expect(flow.nameQuestion.reply).toContain('Who should I put');
@@ -153,7 +150,7 @@ describe('Eight required local SmartCar conversations', () => {
     expect(flow.completion.reply).toContain('rental request has been received');
     expect(flow.completion.escalate).toBe(true);
     expect(mockDb.rentalRequests).toHaveLength(1);
-    expect(mockDb.rentalRequests[0]).toMatchObject({ locale: 'en', status: 'PENDING', pickup_time: '09:00', return_time: '18:00', consent_source: 'whatsapp' });
+    expect(mockDb.rentalRequests[0]).toMatchObject({ locale: 'en', status: 'PENDING', pickup_time: '09:00', return_time: '09:00', consent_source: 'whatsapp' });
   });
 
   it('3. Israeli customer — existing booking', async () => {
@@ -275,10 +272,9 @@ describe('Eight required local SmartCar conversations', () => {
     await getWhatsAppFlowReply(PHONE, 'אני מחפש רכב לסוף השבוע');
     const returnDate = await getWhatsAppFlowReply(PHONE, '10 בדצמבר');
     expect(returnDate.reply).toContain('מתי נוח לך להחזיר');
-    const times = await getWhatsAppFlowReply(PHONE, '15 בדצמבר');
-    expect(times.reply).toContain('באילו שעות הכי נוח לך');
-    const locations = await getWhatsAppFlowReply(PHONE, 'איסוף בתשע בבוקר והחזרה בשש בערב');
+    const locations = await getWhatsAppFlowReply(PHONE, '15 בדצמבר');
     expect(locations.reply).toContain('מאיפה הכי נוח לך');
+    expect(locations.reply).not.toContain('באילו שעות');
     const vehicle = await getWhatsAppFlowReply(PHONE, 'איסוף בהרצליה והחזרה בנתבג');
     expect(vehicle.reply).toContain('איזה רכב יעשה לך');
     const name = await getWhatsAppFlowReply(PHONE, 'ג׳יפון');
@@ -289,9 +285,7 @@ describe('Eight required local SmartCar conversations', () => {
     await getWhatsAppFlowReply(PHONE, 'I need a car');
     const returnDate = await getWhatsAppFlowReply(PHONE, 'December tenth');
     expect(returnDate.reply).toContain('When would you like to return');
-    const times = await getWhatsAppFlowReply(PHONE, 'December 16th');
-    expect(times.reply).toContain('times work best for you');
-    const locations = await getWhatsAppFlowReply(PHONE, 'pick up at nine am and return at six pm');
+    const locations = await getWhatsAppFlowReply(PHONE, 'December 16th');
     expect(locations.reply).toContain('most convenient for you');
     const vehicle = await getWhatsAppFlowReply(PHONE, 'pick up from Tel Aviv and drop off at Ben Gurion Airport');
     expect(vehicle.reply).toContain('what kind of car');
@@ -318,27 +312,21 @@ describe('Eight required local SmartCar conversations', () => {
     expect(source).not.toContain('gemini-router');
   });
 
-  it('asks for one precise time at a time and preserves context when the answer is vague', async () => {
-    await getWhatsAppFlowReply(PHONE, 'אני צריך רכב 10/09/2026 עד 14/09/2026');
+  it('never stops to ask for pickup or return times, but keeps times the customer volunteers', async () => {
+    const afterDates = await getWhatsAppFlowReply(PHONE, 'אני צריך רכב 10/09/2026 עד 14/09/2026');
+    expect(afterDates.reply).toContain('מאיפה הכי נוח לך');
+    expect(afterDates.reply).not.toMatch(/באילו שעות|באיזו שעה/);
+    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ step: 'rental_locations' });
 
-    const vaguePickup = await getWhatsAppFlowReply(PHONE, 'בבוקר');
-    expect(vaguePickup.reply).toContain('באיזו שעה לרשום את האיסוף');
-    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ step: 'rental_times' });
-    expect(mockDb.states.get(PHONE)?.state).not.toHaveProperty('pickupTime');
+    mockDb.states.clear();
+    await getWhatsAppFlowReply(PHONE, 'אני צריך רכב 10/09/2026 עד 14/09/2026, איסוף ב-08:00');
+    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ pickupTime: '08:00', step: 'rental_locations' });
+  });
 
-    const pickup = await getWhatsAppFlowReply(PHONE, '08:00');
-    expect(pickup.reply).toContain('באיזו שעה תרצו להחזיר');
-    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ pickupTime: '08:00', step: 'rental_times' });
-
-    const same = await getWhatsAppFlowReply(PHONE, 'גם');
-    expect(same.reply).toContain('איסוף ב־08:00');
-    expect(same.reply).toContain('באיזו שעה');
-    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ pickupTime: '08:00', step: 'rental_times' });
-    expect(mockDb.states.get(PHONE)?.state).not.toHaveProperty('returnTime');
-
-    const returnTime = await getWhatsAppFlowReply(PHONE, '18:00');
-    expect(returnTime.reply).toContain('מאיפה הכי נוח לך');
-    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ pickupTime: '08:00', returnTime: '18:00', step: 'rental_locations' });
+  it('moves a conversation saved at the old times step on to the next real step', async () => {
+    mockDb.states.set(PHONE, { state: { step: 'rental_times', locale: 'he', pickupDate: '2026-09-10', dropoffDate: '2026-09-14' }, updated_at: new Date().toISOString() });
+    const result = await getWhatsAppFlowReply(PHONE, 'מה עכשיו?');
+    expect(result.reply).not.toMatch(/באילו שעות|לא זיהיתי את שתי השעות/);
   });
 
   it('retains a requested SUV for a young driver without inventing an age policy or replacing it', async () => {
@@ -404,7 +392,7 @@ describe('Eight required local SmartCar conversations', () => {
     const result = await getWhatsAppFlowReply(PHONE, 'כבר כתבתי לכם את התאריכים, למה אתם שוב שואלים?');
     expect(result.escalate).not.toBe(true);
     expect(result.reply).toContain('איסוף 2026-09-10');
-    expect(result.reply).toContain('באילו שעות');
+    expect(result.reply).toContain('מאיפה הכי נוח לך');
   });
 
   it('handles a baby and late-arrival request warmly with one next question', async () => {
