@@ -66,7 +66,7 @@ export default function AdminSheet({
   onClose: () => void;
   title: string;
   description?: string;
-  children: ReactNode;
+  children?: ReactNode;
   footer?: ReactNode;
   busy?: boolean;
   alert?: boolean;
@@ -107,15 +107,15 @@ export default function AdminSheet({
           style={viewportStyle}
           className="fixed inset-x-0 bottom-[var(--office-sheet-bottom,0px)] z-50 flex max-h-[min(92dvh,var(--office-sheet-height,92dvh))] flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl focus:outline-none sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-[var(--office-sheet-top,5vh)] sm:max-h-[min(90dvh,var(--office-sheet-height,90dvh))] sm:w-[min(640px,94vw)] sm:-translate-x-1/2 sm:rounded-3xl"
         >
-          <header className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
+          <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[#30564F] bg-[#0D2B2B] px-5 py-4">
             <div className="min-w-0">
-              <Dialog.Title className="break-words text-lg font-black text-[#0D2B2B] [overflow-wrap:anywhere] sm:text-xl">
+              <Dialog.Title className="break-words text-lg font-black text-white [overflow-wrap:anywhere] sm:text-xl">
                 {title}
               </Dialog.Title>
               {description && (
                 <Dialog.Description
                   id={descriptionId}
-                  className="mt-1 break-words text-sm leading-6 text-slate-500"
+                  className="mt-1 break-words text-sm leading-6 text-[#C5DDD6]"
                 >
                   {description}
                 </Dialog.Description>
@@ -124,7 +124,7 @@ export default function AdminSheet({
             <Dialog.Close
               disabled={busy}
               aria-label="סגירה"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-600 disabled:opacity-40"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white disabled:opacity-40"
             >
               <X className="h-5 w-5" />
             </Dialog.Close>
@@ -133,7 +133,7 @@ export default function AdminSheet({
             {children}
           </div>
           {footer && (
-            <footer className="shrink-0 border-t border-slate-100 bg-white px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <footer className="shrink-0 border-t border-[#D9E8E2] bg-[#F4F8F6] px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               {footer}
             </footer>
           )}

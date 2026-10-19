@@ -147,12 +147,12 @@ export default async function AdminDashboard({
       </section>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.75fr)]">
-        <section className="relative overflow-hidden rounded-3xl border border-[#D7E8E8] bg-white p-5 shadow-[0_8px_24px_rgba(13,43,43,0.05)] sm:p-7">
-          <div className="absolute -end-16 -top-16 h-40 w-40 rounded-full bg-[#E5F3F3] blur-2xl" />
+        <section className="relative overflow-hidden rounded-3xl border border-[#CFE2D8] bg-[#F9FCFA] p-5 shadow-[0_12px_32px_rgba(13,43,43,0.06)] sm:p-7">
+          <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[#2D5F5F]" />
           <div className="relative">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-start gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#E5F3F3] text-[#2D5F5F]">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0D2B2B] text-[#CDE6DA] shadow-sm">
                   <Table2 className="h-6 w-6" />
                 </div>
                 <div>
@@ -176,8 +176,8 @@ export default async function AdminDashboard({
                 locale === 'he' ? 'פניות צור קשר' : 'Contact requests',
                 locale === 'he' ? 'ליסינג וטלפונים' : 'Leasing & phone numbers',
               ].map((item, index) => index === 1 ? <ContactLeadAction key="contact" locale={locale} /> : (
-                <div key={item} className="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm font-black text-[#0D2B2B]">
-                  <span className="block h-2 w-2 rounded-full bg-[#E8743B]" />
+                <div key={item} className="rounded-2xl border border-[#D9E8E2] bg-white px-4 py-3 text-sm font-black text-[#0D2B2B]">
+                  <span aria-hidden="true" className="block h-2 w-2 rounded-full bg-[#2D5F5F]" />
                   <span className="mt-2 block">{item}</span>
                 </div>
               ))}

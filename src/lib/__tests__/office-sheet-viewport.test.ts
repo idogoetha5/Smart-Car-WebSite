@@ -81,11 +81,11 @@ it("reacts to keyboard opening/scrolling/closing without remounting or losing ty
           onClose: () => {},
           title: "פנייה לבדיקה",
           footer: createElement("button", null, "שמירה"),
-          children: createElement("input", {
-            defaultValue: "טקסט שלא נשמר עדיין",
-            "aria-label": "הערה",
-          }),
         },
+        createElement("input", {
+          defaultValue: "טקסט שלא נשמר עדיין",
+          "aria-label": "הערה",
+        }),
       ),
     ),
   );

@@ -157,15 +157,15 @@ export default function AdminBookingsPage() {
 
   return (
     <div className="p-4 sm:p-8" dir="rtl">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-[#345E58] bg-[#0D2B2B] p-5 text-white shadow-[0_16px_36px_rgba(13,43,43,0.12)] sm:p-7">
         <div>
-          <h1 className="text-3xl font-black text-gray-900">ניהול הזמנות</h1>
-          <p className="text-gray-500 mt-1">{filtered.length} / {officeBookings.length} הזמנות</p>
+          <h1 className="text-2xl font-black text-white sm:text-3xl">ניהול הזמנות</h1>
+          <p className="mt-2 text-sm text-[#C5DDD6]">{filtered.length} / {officeBookings.length} הזמנות</p>
         </div>
         <button
           onClick={() => mutateBookings()}
           disabled={refreshing}
-          className="flex min-h-11 items-center gap-2 rounded-xl border border-[#B8D8D8] bg-white px-4 py-2 text-sm font-bold text-[#2D5F5F] shadow-sm transition hover:bg-[#F4FAFA] disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-11 items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           רענן
@@ -203,7 +203,7 @@ export default function AdminBookingsPage() {
         <button type="button" onClick={() => setFiltersOpen(true)} className="flex min-h-11 items-center gap-2 rounded-xl border border-[#B8D8D8] bg-white px-3 text-sm font-bold text-[#2D5F5F]"><SlidersHorizontal className="h-4 w-4" />סינון{(statusFilter && statusFilter !== 'PENDING') || dateFrom || dateTo ? ' •' : ''}</button>
       </div>
       {loadError && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">לא הצלחנו לעדכן את רשימת ההזמנות. {bookings.length ? 'הנתונים האחרונים נשארו מוצגים.' : 'בדקו את החיבור או התחברו מחדש.'}<button type="button" onClick={() => mutateBookings()} className="ms-2 min-h-11 underline">ניסיון נוסף</button></div>}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="overflow-hidden rounded-3xl border border-[#D9E8E2] bg-white shadow-[0_8px_24px_rgba(13,43,43,0.05)]">
         {filtered.length === 0 ? (
           <p className="text-center text-gray-400 py-12">
             {loadError ? 'הרשימה אינה זמינה כרגע' : officeBookings.length === 0 ? 'אין הזמנות עדיין' : 'לא נמצאו תוצאות לסינון שנבחר'}
@@ -226,7 +226,7 @@ export default function AdminBookingsPage() {
                     </div>
                     <BookingStatusBadge status={b.status} locale={locale} size="md" variant="admin" />
                   </div>
-                  <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-3.5 text-sm text-slate-600">
+                  <div className="mt-3 rounded-2xl border border-[#DCE9E2] bg-[#F1F7F3] p-3.5 text-sm leading-6 text-[#526862]">
                     <p><span className="font-bold text-slate-800">איסוף:</span> {formatDate(b.pickup_date)} {b.pickup_time || ''}</p>
                     <p className="mt-1"><span className="font-bold text-slate-800">החזרה:</span> {formatDate(b.dropoff_date)} {b.return_time || ''}</p>
                     <p className="mt-1 font-black text-[#0D2B2B]">{formatPrice(b.total_price)}</p>

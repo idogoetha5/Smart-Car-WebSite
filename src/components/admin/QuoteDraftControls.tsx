@@ -15,11 +15,13 @@ export default function QuoteDraftControls({
   const [open, setOpen] = useState(false);
   return (
     <>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-[#D5E5DF] bg-[#EDF5F1] p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p
           role={storageError ? "status" : undefined}
           className={
-            storageError ? "font-bold text-amber-800" : "text-slate-500"
+            storageError
+              ? "font-bold text-amber-800"
+              : "font-medium leading-6 text-[#345E52]"
           }
         >
           {storageError
@@ -33,7 +35,7 @@ export default function QuoteDraftControls({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="min-h-11 rounded-xl border border-[#B8D8D8] bg-white px-3 font-bold text-[#2D5F5F]"
+          className="min-h-11 shrink-0 rounded-xl border border-[#B8D8D8] bg-white px-4 font-bold text-[#2D5F5F] shadow-sm transition hover:bg-[#F9FCFA] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2D5F5F]"
         >
           {english ? "New quotation" : "הצעה חדשה"}
         </button>

@@ -20,18 +20,18 @@ export default function ContactLeadAction({ locale }: { locale: string }) {
   return (
     <Link
       href={`/${locale}/admin/leads?source=contact${ready && count > 0 ? "&status=NEW" : ""}`}
-      className="order-first col-span-2 flex min-h-28 min-w-0 flex-col rounded-2xl border border-[#B8D8D8] bg-[#EAF4F4] px-4 py-3 text-sm text-[#0D2B2B] transition hover:bg-[#DCEDED] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2D5F5F] sm:order-none sm:col-span-1"
+      className="order-first col-span-2 flex min-h-28 min-w-0 flex-col rounded-3xl border border-[#345E58] bg-[linear-gradient(135deg,#255B55,#0D2B2B)] p-4 text-sm text-white shadow-[0_12px_28px_rgba(13,43,43,0.16)] transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2D5F5F] sm:order-none sm:col-span-1"
     >
       <span className="flex items-center justify-between gap-2 font-black">
         {he ? "פניות צור קשר" : "Contact enquiries"}
         {ready && count > 0 && (
-          <span className="rounded-full bg-[#2D5F5F] px-2.5 py-0.5 text-white">
+          <span className="rounded-full border border-white/20 bg-white/15 px-2.5 py-0.5 text-white">
             {count}
           </span>
         )}
       </span>
       <span
-        className="mt-2 text-xs font-semibold leading-5 text-[#2D5F5F]"
+        className="mt-2 text-sm font-medium leading-6 text-[#D5EAE4]"
         aria-live="polite"
       >
         {error
@@ -50,7 +50,7 @@ export default function ContactLeadAction({ locale }: { locale: string }) {
                 ? "אין פניות חדשות שממתינות לטיפול"
                 : "No new enquiries waiting"}
       </span>
-      <span className="mt-3 flex items-center justify-between gap-2 font-black">
+      <span className="mt-4 flex min-h-11 items-center justify-between gap-2 rounded-xl bg-white px-3 py-2 font-black text-[#16443E]">
         {ready && count > 0
           ? he
             ? "לטיפול בפניות"

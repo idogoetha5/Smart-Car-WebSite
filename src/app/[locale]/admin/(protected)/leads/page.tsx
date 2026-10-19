@@ -3,7 +3,13 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Clock3, Search, Table2 } from "lucide-react";
+import {
+  ChevronLeft,
+  Clock3,
+  MessageCircle,
+  Search,
+  Table2,
+} from "lucide-react";
 import AdminSheet from "@/components/admin/AdminSheet";
 import { useToast } from "@/components/ui/AppToast";
 import { useApiList } from "@/lib/swr";
@@ -188,8 +194,11 @@ function LeadPanel({
           </Link>
         )}
         {contact && (
-          <section className="mt-6 space-y-4 border-t border-slate-100 pt-5">
-            <h3 className="font-black text-[#0D2B2B]">טיפול בפניית צור קשר</h3>
+          <section className="mt-6 space-y-4 border-t border-[#D9E8E2] pt-5">
+            <h3 className="flex items-center gap-2 font-black text-[#16443E]">
+              <MessageCircle aria-hidden="true" className="h-5 w-5" />
+              טיפול בפניית צור קשר
+            </h3>
             <label className="block text-sm font-bold text-slate-700">
               מצב הפנייה
               <select
@@ -351,21 +360,24 @@ function LeadWorkspace({
   const due = items.filter((lead) => followupDue(lead, now)).length;
   return (
     <main dir="rtl" className="mx-auto max-w-6xl p-4 sm:p-8">
-      <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-black text-[#0D2B2B]">פניות ולידים</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            כל הפניות במקום אחד · מעקב אישי כרגע לפניות צור קשר בלבד
+      <header className="mb-6 flex flex-col gap-5 rounded-3xl border border-[#345E58] bg-[linear-gradient(135deg,#255B55,#0D2B2B)] p-5 text-white shadow-[0_16px_36px_rgba(13,43,43,0.14)] sm:flex-row sm:items-center sm:justify-between sm:p-7">
+        <div className="min-w-0">
+          <p className="mb-2 text-xs font-bold tracking-wide text-[#C5DDD6]">
+            SMARTCAR · קשרי לקוחות
+          </p>
+          <h1 className="text-3xl font-black tracking-tight">פניות ולידים</h1>
+          <p className="mt-2 max-w-lg text-sm leading-6 text-[#D5EAE4]">
+            כל הפניות במקום אחד. טיפול ומעקב אישי בפניות צור קשר.
           </p>
         </div>
         <a
           href="https://docs.google.com/spreadsheets/d/1Ve0QjN471GdNno0mxfRkHmigozjRoBdoOr84PFNZH04/edit"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex min-h-11 items-center gap-2 rounded-xl border border-[#B8D8D8] bg-white px-3 text-sm font-bold text-[#2D5F5F]"
+          className="flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-4 text-sm font-bold text-white transition hover:bg-white/20"
         >
           <Table2 className="h-4 w-4" />
-          הגיליון
+          פתיחת הגיליון
         </a>
       </header>
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
@@ -379,7 +391,7 @@ function LeadWorkspace({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="שם, טלפון, אימייל או תוכן…"
-            className="min-h-12 w-full rounded-xl border border-slate-200 bg-white pe-11 ps-4 text-base"
+            className="min-h-12 w-full rounded-2xl border border-[#D5E5DF] bg-white pe-11 ps-4 text-base shadow-sm outline-none transition focus:border-[#2D5F5F] focus:ring-4 focus:ring-[#2D5F5F]/10"
           />
         </label>
         <label>
@@ -391,7 +403,7 @@ function LeadWorkspace({
               setDueOnly(false);
               if (e.target.value !== "צור קשר") setNewOnly(false);
             }}
-            className="min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-base"
+            className="min-h-12 w-full rounded-2xl border border-[#D5E5DF] bg-white px-3 text-base shadow-sm outline-none focus:border-[#2D5F5F] focus:ring-4 focus:ring-[#2D5F5F]/10"
           >
             <option value="">כל המקורות</option>
             {["צור קשר", "השכרה", "ליסינג", "וואטסאפ"].map((label) => (
@@ -454,31 +466,31 @@ function LeadWorkspace({
                 type="button"
                 key={lead.key}
                 onClick={() => setSelected(lead)}
-              className="min-h-14 min-w-0 rounded-2xl border border-slate-200 bg-white p-4 text-start shadow-sm transition hover:border-[#B8D8D8]"
+                className="group min-h-14 min-w-0 rounded-3xl border border-[#D9E8E2] border-s-4 border-s-[#2D5F5F] bg-white p-5 text-start shadow-[0_6px_20px_rgba(13,43,43,0.045)] transition hover:border-[#8BB8A9] hover:shadow-[0_10px_28px_rgba(13,43,43,0.08)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2D5F5F]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="min-w-0 break-words text-lg font-black text-[#0D2B2B]">
                     {lead.name}
                   </h2>
-                  <span className="shrink-0 rounded-full bg-[#EAF4F4] px-2.5 py-1 text-xs font-bold text-[#1F5A56]">
+                  <span className="shrink-0 rounded-lg border border-[#D9E8E2] bg-[#EDF5F1] px-2.5 py-1 text-xs font-bold text-[#1F5A56]">
                     {lead.source}
                   </span>
                 </div>
                 <p
                   dir="ltr"
-                  className="mt-2 break-all text-end text-sm font-bold text-[#2D5F5F]"
+                  className="mt-3 break-all text-end text-sm font-bold text-[#2D5F5F]"
                 >
                   {lead.phone || lead.email || "פרטי קשר לא צוינו"}
                 </p>
                 {lead.details && (
                   <p
                     dir="auto"
-                    className="mt-2 line-clamp-2 break-words text-sm leading-6 text-slate-600 [overflow-wrap:anywhere]"
+                    className="mt-3 line-clamp-2 break-words text-base leading-7 text-[#526862] [overflow-wrap:anywhere]"
                   >
                     {lead.details}
                   </p>
                 )}
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#E9F0EC] pt-3 text-xs text-[#637A76]">
                   <span>{date(lead.createdAt)}</span>
                   {lead.followup && (
                     <span className="font-bold text-[#2D5F5F]">
@@ -493,7 +505,10 @@ function LeadWorkspace({
                       הגיע מועד החזרה
                     </span>
                   )}
-                  <ChevronLeft className="ms-auto h-4 w-4" />
+                  <ChevronLeft
+                    aria-hidden="true"
+                    className="ms-auto h-7 w-7 rounded-lg bg-[#EAF4EE] p-1 text-[#2D5F5F] transition group-hover:bg-[#DCECE3]"
+                  />
                 </div>
               </button>
             ))}
