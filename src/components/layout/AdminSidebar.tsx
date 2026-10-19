@@ -7,11 +7,13 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Car,
   CalendarCheck,
+  Download,
   FileText,
   History,
   LayoutDashboard,
   LogOut,
   Menu,
+  MoreHorizontal,
   Tag,
   Percent,
   Star,
@@ -22,6 +24,49 @@ import {
   Users,
   X,
 } from 'lucide-react';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+}
+
+function AdminInstallButton() {
+  const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showIosHelp, setShowIosHelp] = useState(false);
+
+  useEffect(() => {
+    const onPrompt = (event: Event) => {
+      event.preventDefault();
+      setPrompt(event as BeforeInstallPromptEvent);
+    };
+    window.addEventListener('beforeinstallprompt', onPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', onPrompt);
+  }, []);
+
+  const install = async () => {
+    if (prompt) {
+      await prompt.prompt();
+      setPrompt(null);
+    } else {
+      setShowIosHelp(true);
+    }
+  };
+
+  return (
+    <>
+      <button type="button" onClick={install} className="flex min-h-11 items-center gap-1.5 rounded-xl px-2.5 text-xs font-black text-[#DDEEEE] hover:bg-white/10" aria-label="התקנה כאפליקציה">
+        <Download className="h-4 w-4" aria-hidden="true" />
+        אפליקציה
+      </button>
+      {showIosHelp && !prompt && (
+        <div className="fixed inset-x-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-[60] rounded-2xl border border-[#B8D8D8] bg-white p-4 text-right shadow-2xl md:hidden" role="status">
+          <button type="button" onClick={() => setShowIosHelp(false)} className="absolute start-2 top-2 flex h-9 w-9 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100" aria-label="סגירה"><X className="h-4 w-4" /></button>
+          <p className="pe-8 text-sm font-black text-[#0D2B2B]">התקנה במסך הבית</p>
+          <p className="mt-1 text-sm leading-6 text-gray-600">בספארי לחצו על שיתוף, בחרו ״הוספה למסך הבית״, ואז פתחו את SmartCar מהסמל החדש.</p>
+        </div>
+      )}
+    </>
+  );
+}
 
 /**
  * Admin navigation.
@@ -86,33 +131,28 @@ export default function AdminSidebar() {
     router.push(`/${locale}/admin/login`);
   };
 
+  // This is the office's daily flow. Keep the exact order on desktop and in
+  // the phone drawer so switching devices never means relearning the app.
   const links = [
     { href: `/${locale}/admin`, label: 'Dashboard', icon: LayoutDashboard },
-    { href: `/${locale}/admin/vehicles`, label: t('manage_vehicles'), icon: Car },
-    { href: `/${locale}/admin/pricing`, label: isHe ? 'מחירי רכבים' : 'Vehicle pricing', icon: Percent },
     { href: `/${locale}/admin/bookings`, label: t('manage_bookings'), icon: CalendarCheck },
-    { href: `/${locale}/admin/inbox`, label: isHe ? 'וואטסאפ' : 'WhatsApp inbox', icon: MessagesSquare },
+    { href: `/${locale}/admin/rental-quotes`, label: isHe ? 'הצעת מחיר להשכרה' : 'Rental quotation', icon: MessageCircle },
+    { href: `/${locale}/admin/quotes`, label: isHe ? 'הצעת מחיר לליסינג' : 'Leasing quotation', icon: Send },
+    { href: `/${locale}/admin/vehicles`, label: t('manage_vehicles'), icon: Car },
+    { href: `/${locale}/admin/pricing`, label: isHe ? 'מחירי רכבים' : 'Vehicle pricing', icon: Percent, childOf: 'vehicles' },
+    { href: `/${locale}/admin/cars-for-sale`, label: isHe ? 'ניהול רכבים למכירה' : 'Cars for sale', icon: Tag },
     { href: `/${locale}/admin/leasing-requests`, label: t('manage_leasing'), icon: FileText },
+    { href: `/${locale}/admin/inbox`, label: isHe ? 'וואטסאפ' : 'WhatsApp inbox', icon: MessagesSquare },
     { href: `/${locale}/admin/customer-details`, label: isHe ? 'טפסי לקוחות' : 'Customer forms', icon: ClipboardList },
     { href: `/${locale}/admin/drivers`, label: isHe ? 'נהגים' : 'Drivers', icon: Users },
-    { href: `/${locale}/admin/cars-for-sale`, label: isHe ? 'ניהול רכבים למכירה' : 'Cars for sale', icon: Tag },
     { href: `/${locale}/admin/reviews`, label: isHe ? 'ביקורות' : 'Reviews', icon: Star },
-    {
-      href: `/${locale}/admin/quotes`,
-      label: isHe ? 'הצעת מחיר ליסינג' : 'Leasing quotation',
-      icon: Send,
-    },
-    {
-      href: `/${locale}/admin/rental-quotes`,
-      label: isHe ? 'הצעת מחיר להשכרה' : 'Rental quotation',
-      icon: MessageCircle,
-    },
-    {
-      href: `/${locale}/admin/quote-history`,
-      label: isHe ? 'היסטוריית הצעות מחיר ליסינג' : 'Leasing quote history',
-      icon: History,
-    },
+    { href: `/${locale}/admin/quote-history`, label: isHe ? 'היסטוריית הצעות מחיר ליסינג' : 'Leasing quote history', icon: History },
   ];
+  const mobileMainLinks = links.filter((link) => [
+    `/${locale}/admin`,
+    `/${locale}/admin/bookings`,
+    `/${locale}/admin/rental-quotes`,
+  ].includes(link.href));
 
   const nav = (
     <>
@@ -129,8 +169,10 @@ export default function AdminSidebar() {
               // that would be a setState inside an effect, which is the very
               // pattern this codebase just finished removing.
               onClick={() => setOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                isActive ? 'bg-blue-600 text-white' : 'hover:bg-gray-800 hover:text-white'
+              className={`flex min-h-11 items-center gap-3 rounded-lg py-3 pe-4 text-sm font-medium transition-colors ${
+                link.childOf ? 'me-4 border-e border-gray-700 ps-4 text-xs' : 'ps-4'
+              } ${
+                isActive ? 'bg-[#2D5F5F] text-white' : 'hover:bg-gray-800 hover:text-white'
               }`}
             >
               <Icon className="w-4 h-4 shrink-0" aria-hidden="true" />
@@ -175,18 +217,42 @@ export default function AdminSidebar() {
           <Car className="w-5 h-5 text-blue-400 shrink-0" aria-hidden="true" />
           <span className="truncate">SmartCar Admin</span>
         </div>
-        <button
-          ref={triggerRef}
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label={isHe ? 'פתיחת תפריט ניהול' : 'Open admin menu'}
-          aria-expanded={open}
-          aria-controls="admin-drawer"
-          className="flex items-center justify-center w-11 h-11 -me-2 rounded-lg hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-        >
-          <Menu className="w-6 h-6" aria-hidden="true" />
-        </button>
+        <div className="flex items-center gap-1">
+          <AdminInstallButton />
+          <button
+            ref={triggerRef}
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label={isHe ? 'פתיחת תפריט ניהול' : 'Open admin menu'}
+            aria-expanded={open}
+            aria-controls="admin-drawer"
+            className="flex items-center justify-center w-11 h-11 -me-2 rounded-lg hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+          >
+            <Menu className="w-6 h-6" aria-hidden="true" />
+          </button>
+        </div>
       </div>
+
+      {/* Phone navigation stays deliberately short; every secondary screen is
+          one tap away in “more”, instead of shrinking thirteen choices into
+          an unreadable bar. */}
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(13,43,43,0.10)] backdrop-blur md:hidden" aria-label={isHe ? 'ניווט ראשי' : 'Main navigation'}>
+        {mobileMainLinks.map((link) => {
+          const Icon = link.icon;
+          const active = pathname === link.href;
+          const label = link.href.endsWith('/admin') ? (isHe ? 'ראשי' : 'Home') : link.label;
+          return (
+            <Link key={link.href} href={link.href} aria-current={active ? 'page' : undefined} className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-black ${active ? 'text-[#2D5F5F]' : 'text-slate-400'}`}>
+              <Icon className="h-5 w-5" aria-hidden="true" />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
+        <button type="button" onClick={() => setOpen(true)} className="flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-black text-slate-400" aria-expanded={open} aria-controls="admin-drawer">
+          <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
+          <span>{isHe ? 'עוד' : 'More'}</span>
+        </button>
+      </nav>
 
       {open && (
         <div className="md:hidden fixed inset-0 z-50">

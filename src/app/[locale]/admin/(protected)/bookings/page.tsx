@@ -177,7 +177,39 @@ export default function AdminBookingsPage() {
             {bookings.length === 0 ? 'אין הזמנות עדיין' : 'לא נמצאו תוצאות'}
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Phone cards: key booking facts and decisions stay in one vertical
+              view. The denser table remains for computer use. */}
+          <div className="divide-y divide-gray-100 sm:hidden">
+            {filtered.map((b) => {
+              const pending = b.status === 'pending' || b.status === 'PENDING';
+              const vehicle = b.vehicle ? `${b.vehicle.make} ${b.vehicle.model}` : b.vehicle_id?.slice(0, 8);
+              return (
+                <article key={b.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="truncate text-lg font-black text-[#0D2B2B]">{b.customer_name || 'לא צוין'}</h2>
+                      <p className="mt-0.5 text-sm font-bold text-[#2D5F5F]">{vehicle || 'רכב לא צוין'}</p>
+                    </div>
+                    <BookingStatusBadge status={b.status} locale={locale} size="md" variant="admin" />
+                  </div>
+                  <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+                    <p><span className="font-bold text-slate-800">איסוף:</span> {formatDate(b.pickup_date)} {b.pickup_time || ''}</p>
+                    <p className="mt-1"><span className="font-bold text-slate-800">החזרה:</span> {formatDate(b.dropoff_date)} {b.return_time || ''}</p>
+                    <p className="mt-1 font-black text-[#0D2B2B]">{formatPrice(b.total_price)}</p>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {pending && <button onClick={() => handleStatusChange(b.id, 'confirmed', b)} className="min-h-14 rounded-xl bg-[#2D5F5F] px-3 text-base font-black text-white active:scale-[0.98]">אישור הזמנה</button>}
+                    {pending && <button onClick={() => handleStatusChange(b.id, 'cancelled', b)} className="min-h-14 rounded-xl border border-red-200 bg-red-50 px-3 text-base font-black text-red-700 active:scale-[0.98]">סירוב</button>}
+                    {waLink(b.customer_phone) && <a href={waLink(b.customer_phone)!} target="_blank" rel="noopener noreferrer" className="col-span-2 flex min-h-12 items-center justify-center rounded-xl bg-[#eef6f6] text-sm font-black text-[#2D5F5F]">פתיחת WhatsApp עם הלקוח</a>}
+                    <a href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=pickup`} className="flex min-h-11 items-center justify-center rounded-xl border border-slate-200 text-sm font-bold text-slate-700">בדיקת מסירה</a>
+                    <a href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=return`} className="flex min-h-11 items-center justify-center rounded-xl border border-slate-200 text-sm font-bold text-slate-700">בדיקת החזרה</a>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full text-sm text-right">
               <thead className="bg-gray-50 text-gray-500 border-b border-gray-100">
                 <tr>
@@ -307,6 +339,7 @@ export default function AdminBookingsPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

@@ -22,6 +22,9 @@ The owner, Ido, is not technical. He writes in Hebrew and expects work done end 
 ### Monitoring
 Client-side Sentry is initialized in `instrumentation-client.ts`. Its `beforeSend` handler in `src/lib/sentry-scrub.ts` removes customer data from URLs and drops the exact Talisman browser-extension onboarding error; other application errors are still reported.
 
+### Office dashboard on a phone
+`/he/admin` is installable from the phone browser as “SmartCar ניהול”. Its public manifest and worker routes are explicitly excluded from locale routing; its service worker (`public/admin-sw.js`) is deliberately network-only, enabling the app-style launch without caching any private booking or customer data. The phone navigation exposes Home, Bookings and rental quotations permanently; every other office tool is under “עוד”, to keep the dashboard uncluttered. Core lists use phone cards instead of a horizontally-scrolling desktop table, so their important actions stay in the same view.
+
 ### Scheduled backups
 GitHub schedules `.github/workflows/backup.yml` from the repository default branch `main`. That workflow checks out `clean-main` and runs `scripts/backups/run-backups.sh`; its script path must also be correct in the copy of the workflow on `main`. Database backups are encrypted and uploaded to Google Drive daily, and vehicle-image storage backups run on Sundays. New backups use the dedicated `SmartCar Backups` Google OAuth client with the `drive.file` scope and the `smartcar-backups-personal` Drive folder; the repository secret `RCLONE_CONFIG` holds that rclone remote. Older archives remain in the original `smartcar-backups` folder and can be accessed in Drive. The previous rclone configuration is retained locally for temporary legacy access; its shared OAuth client may stop working after the announced retirement.
 
@@ -141,6 +144,7 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
+- 2026-10-19 — Made the secured office dashboard (`/he/admin`) installable as a phone app and simplified its mobile navigation to Home, Bookings, rental quotation and “More”. The install worker is network-only and does not cache private office data. Bookings, vehicle management and leasing requests now use phone cards with their main actions in view. No migration. Pending deployment.
 - 2026-10-19 — Declared the SmartCar favicon files explicitly in metadata and regenerated them from the unchanged official SmartCar logo on a light background, so search results can display it clearly at small sizes. No migration. Deployed to Vercel Production.
 - 2026-10-19 — WhatsApp bot answers any question from the whole published site (live page text + approved sources), with a guard against invented numbers or links; no longer asks for pickup/return times; small talk never hands off; policy questions about cancelling or changing are answered instead of escalated; "smoking"/"keys" questions no longer trigger roadside help. Added a ~2,400-question bank and runner. No migration.
 - 2026-10-19 — WhatsApp bot: Gemini now extracts all rental details from free text (relative dates, times, group size → 7-seat category) and adds a short natural reply to side questions instead of "I did not recognise that"; removed the doubled opening line. The demo page is full-screen and usable on a phone. No migration.

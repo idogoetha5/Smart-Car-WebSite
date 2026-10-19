@@ -176,7 +176,7 @@ export default function AdminVehiclesPage() {
       {/* Add / Edit Modal */}
       {isOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto text-right shadow-2xl">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto text-right shadow-2xl">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-bold">
                 {editVehicle ? `ערוך — ${editVehicle.make} ${editVehicle.model}` : 'הוסף רכב חדש'}
@@ -196,7 +196,7 @@ export default function AdminVehiclesPage() {
                     placeholder={f.placeholder}
                     value={form[f.key] as string | number}
                     onChange={e => set(f.key, f.type === 'number' ? Number(e.target.value) : e.target.value)}
-                    className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
+                    className="w-full min-h-11 p-3 border border-gray-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
                   />
                 </div>
               ))}
@@ -208,7 +208,7 @@ export default function AdminVehiclesPage() {
                   <select
                     value={form[f.key] as string}
                     onChange={e => set(f.key, e.target.value)}
-                    className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] bg-white"
+                    className="w-full min-h-11 p-3 border border-gray-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] bg-white"
                   >
                     {f.options.map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
@@ -216,42 +216,42 @@ export default function AdminVehiclesPage() {
               ))}
 
               {/* Image URL */}
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label className="text-xs text-gray-600 block mb-1">קישור לתמונה</label>
                 <input
                   type="text"
                   placeholder="https://…supabase.co/storage/v1/object/public/vehicles/…"
                   value={imageUrl}
                   onChange={e => setImageUrl(e.target.value)}
-                  className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
+                  className="w-full min-h-11 p-3 border border-gray-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
                 />
               </div>
 
               {/* Description HE */}
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label className="text-xs text-gray-600 block mb-1">תיאור (עברית)</label>
                 <textarea
                   rows={2}
                   value={form.description_he}
                   onChange={e => set('description_he', e.target.value)}
-                  className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] resize-none"
+                  className="w-full p-3 border border-gray-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] resize-none"
                 />
               </div>
 
               {/* Description EN */}
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label className="text-xs text-gray-600 block mb-1">תיאור (אנגלית)</label>
                 <textarea
                   rows={2}
                   value={form.description_en}
                   onChange={e => set('description_en', e.target.value)}
-                  className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] resize-none"
+                  className="w-full p-3 border border-gray-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] resize-none"
                   dir="ltr"
                 />
               </div>
 
               {/* Checkboxes */}
-              <div className="col-span-2 flex items-center gap-6">
+              <div className="sm:col-span-2 flex flex-wrap items-center gap-4">
                 <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                   <input
                     type="checkbox"
@@ -273,7 +273,7 @@ export default function AdminVehiclesPage() {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-5">
+            <div className="sticky bottom-0 -mx-4 mt-5 flex gap-3 border-t border-gray-100 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:border-0 sm:p-0">
               <button
                 onClick={handleSave}
                 disabled={saving || !form.make || !form.model}
@@ -313,7 +313,28 @@ export default function AdminVehiclesPage() {
             {vehicles.length === 0 ? 'אין רכבים עדיין' : 'לא נמצאו תוצאות'}
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="divide-y divide-gray-100 sm:hidden">
+            {filtered.map((v) => (
+              <article key={v.id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-black text-[#0D2B2B]">{v.make} {v.model}</h2>
+                    <p className="mt-0.5 text-sm text-gray-500">{v.year} · {v.category} · {v.color_he || v.color || 'ללא צבע'}</p>
+                  </div>
+                  <button onClick={() => handleToggle(v.id, v.is_available)} className={`min-h-10 rounded-full px-3 text-sm font-bold ${v.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    {v.is_available ? 'פנוי' : 'תפוס'}
+                  </button>
+                </div>
+                <p className="mt-3 text-lg font-black text-[#2D5F5F]">₪{v.price_per_day} <span className="text-sm font-medium text-gray-500">ליום</span></p>
+                <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+                  <button onClick={() => openEdit(v)} className="min-h-12 rounded-xl bg-[#2D5F5F] px-4 text-sm font-black text-white">עריכת רכב</button>
+                  <button onClick={() => handleDelete(v.id, `${v.make} ${v.model}`)} aria-label={`מחיקת ${v.make} ${v.model}`} className="min-h-12 rounded-xl border border-red-200 px-4 text-red-700"><Trash2 className="h-5 w-5" /></button>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full text-sm text-right">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
@@ -368,6 +389,7 @@ export default function AdminVehiclesPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
         );

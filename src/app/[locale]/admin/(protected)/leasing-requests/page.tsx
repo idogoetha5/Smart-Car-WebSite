@@ -96,7 +96,44 @@ export default function AdminLeasingPage() {
         {requests.length === 0 ? (
           <p className="text-center text-gray-400 py-12">אין פניות ליסינג עדיין</p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="divide-y divide-gray-100 sm:hidden">
+            {requests.map((r) => {
+              const phone = r.customer_phone ?? r.customerPhone ?? '';
+              const statusKey = (r.status ?? 'PENDING') as LeasingStatus;
+              const statusConf = STATUS_CONFIG[statusKey] ?? STATUS_CONFIG.PENDING;
+              const name = r.customer_name ?? r.customerName ?? 'לקוח';
+              const vehicle = r.vehicle ? `${r.vehicle.make} ${r.vehicle.model}` : (r.vehicle_id ? r.vehicle_id.slice(0, 8) : 'לא צוין');
+              return (
+                <article key={r.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="truncate text-lg font-black text-[#0D2B2B]">{name}</h2>
+                      <p className="mt-0.5 text-sm font-bold text-[#2D5F5F]">{vehicle}</p>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-bold ${statusConf.cls}`}>{statusConf.label}</span>
+                  </div>
+                  <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+                    <p><span className="font-bold text-slate-800">נשלח:</span> {formatDate(r.created_at ?? r.createdAt ?? '')}</p>
+                    {(r.duration_months || r.durationMonths) && <p className="mt-1"><span className="font-bold text-slate-800">תקופה:</span> {r.duration_months ?? r.durationMonths} חודשים</p>}
+                    {r.notes && <p className="mt-2 border-t border-slate-200 pt-2 leading-6">{r.notes}</p>}
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {phone && <a href={`tel:${phone}`} className="flex min-h-12 items-center justify-center rounded-xl border border-[#2D5F5F] text-sm font-black text-[#2D5F5F]">התקשרות</a>}
+                    {phone && <a href={waLink(phone)} target="_blank" rel="noopener noreferrer" className="flex min-h-12 items-center justify-center rounded-xl bg-[#25D366] text-sm font-black text-white">WhatsApp</a>}
+                    <label className="col-span-2 text-sm font-bold text-slate-700">
+                      סטטוס פנייה
+                      <select value={statusKey in STATUS_CONFIG ? statusKey : 'PENDING'} onChange={e => handleStatusChange(r.id, e.target.value as LeasingStatus)} className="mt-1.5 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-base font-bold text-[#0D2B2B]">
+                        {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    </label>
+                    <button onClick={() => handleDelete(r.id, name)} className="col-span-2 min-h-11 rounded-xl text-sm font-bold text-red-600">מחיקת פנייה</button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full text-sm text-right">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
@@ -191,6 +228,7 @@ export default function AdminLeasingPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>
