@@ -12,7 +12,10 @@ const baseUrl =
 // the static content was last meaningfully edited; bump it when a static
 // page's content actually changes.
 const STATIC_CONTENT_LAST_MODIFIED = new Date('2026-07-28T00:00:00Z');
-const BRANCH_PAGE_LAST_MODIFIED = new Date('2026-08-04T00:00:00Z');
+// The branch-page copy and structured data are shared across every branch.
+// Keep each branch entry fresh when that shared content changes, so crawlers
+// have an accurate signal that the location pages should be revisited.
+const BRANCH_PAGE_LAST_MODIFIED = new Date('2026-10-19T00:00:00Z');
 const TEL_AVIV_BRANCH_LAST_MODIFIED = new Date('2026-10-19T00:00:00Z');
 const NATIONWIDE_RENTAL_LAST_MODIFIED = new Date('2026-10-19T00:00:00Z');
 
