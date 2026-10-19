@@ -5,6 +5,7 @@ import {
   verifyRentalQuoteLinkToken,
 } from '@/lib/quote-link';
 import { createAdminClient } from '@/lib/supabase/server';
+import { isQuoteShortToken, resolveQuoteShortToken } from '@/lib/quote-short-link';
 
 export const runtime = 'nodejs';
 
@@ -13,9 +14,8 @@ export const runtime = 'nodejs';
  *
  * The token is the entire authorisation: it is verified here, the PDF is read
  * from the private `quote-pdfs` bucket with the service role, and the bytes are
- * streamed straight back. The bucket itself is never made public and no row is
- * written anywhere — a link resolves to a storage path derived from the signed
- * quote number.
+ * streamed straight back. The bucket stays private. New opaque aliases resolve
+ * through a server-only mapping; legacy signed links need no lookup.
  */
 
 function message(hebrew: string, english: string, status: number) {
@@ -50,7 +50,16 @@ export async function GET(
   }
 
   const { token } = await context.params;
-  const link = verifyRentalQuoteLinkToken(token);
+  let signedToken: string | null = token;
+  if (isQuoteShortToken(token)) {
+    try {
+      signedToken = await resolveQuoteShortToken(token);
+    } catch {
+      return message('לא ניתן לפתוח את המסמך כרגע. נסו שוב בעוד רגע.',
+        'The document could not be opened right now. Please try again shortly.', 503);
+    }
+  }
+  const link = verifyRentalQuoteLinkToken(signedToken);
 
   if (!link.valid) {
     if (link.reason === 'expired') {

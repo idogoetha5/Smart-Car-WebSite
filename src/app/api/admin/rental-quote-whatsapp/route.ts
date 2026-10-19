@@ -14,6 +14,7 @@ import {
 import { renderRentalQuotePdf } from '@/lib/rental-quote-server';
 import { validRentalQuoteData } from '@/lib/rental-quote-validation';
 import { createAdminClient } from '@/lib/supabase/server';
+import { shortenQuoteToken } from '@/lib/quote-short-link';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
       });
     if (uploadError) throw uploadError;
 
-    const link = rentalQuoteShortLink(publicOrigin(request), token);
+    const link = rentalQuoteShortLink(publicOrigin(request), await shortenQuoteToken(token));
 
     return NextResponse.json(
       {

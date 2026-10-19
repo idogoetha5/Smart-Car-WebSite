@@ -6,6 +6,7 @@ import { normalizeWhatsAppPhone } from '@/lib/rental-quote';
 import type { QuoteData } from '@/lib/quote-pdf';
 import { renderQuotePdf } from '@/lib/quote-pdf-server';
 import { createAdminClient } from '@/lib/supabase/server';
+import { shortenQuoteToken } from '@/lib/quote-short-link';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
     });
     if (error) throw error;
 
-    const documentUrl = rentalQuoteShortLink(publicOrigin(request), token);
+    const documentUrl = rentalQuoteShortLink(publicOrigin(request), await shortenQuoteToken(token));
     return NextResponse.json(
       {
         ok: true,
