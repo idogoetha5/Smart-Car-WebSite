@@ -128,7 +128,7 @@ export default function AdminBookingsPage() {
   };
 
   const isDecided = (status: string) =>
-    ['confirmed', 'cancelled', 'cancelled_by_customer',
+    ['confirmed', 'rejected', 'REJECTED', 'cancelled', 'cancelled_by_customer',
      'CONFIRMED', 'CANCELLED', 'CANCELLED_BY_CUSTOMER',
      'completed', 'COMPLETED'].includes(status ?? '');
 
@@ -212,7 +212,7 @@ export default function AdminBookingsPage() {
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2.5">
                     {pending && <button onClick={() => handleStatusChange(b.id, 'confirmed', b)} className="min-h-14 rounded-2xl bg-gradient-to-bl from-[#3A7A7A] to-[#164443] px-3 text-base font-black text-white shadow-[0_8px_18px_rgba(22,68,67,0.24)] transition active:scale-[0.98]">אישור הזמנה</button>}
-                    {pending && <button onClick={() => handleStatusChange(b.id, 'cancelled', b)} className="min-h-14 rounded-2xl border border-red-200 bg-gradient-to-bl from-red-50 to-[#FFF8F7] px-3 text-base font-black text-red-700 shadow-sm transition hover:border-red-300 hover:bg-red-100 active:scale-[0.98]">סירוב</button>}
+                    {pending && <button onClick={() => handleStatusChange(b.id, 'rejected', b)} className="min-h-14 rounded-2xl border border-red-200 bg-gradient-to-bl from-red-50 to-[#FFF8F7] px-3 text-base font-black text-red-700 shadow-sm transition hover:border-red-300 hover:bg-red-100 active:scale-[0.98]">סירוב</button>}
                     {waLink(b.customer_phone) && <a href={waLink(b.customer_phone)!} target="_blank" rel="noopener noreferrer" className="col-span-2 flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-bl from-[#2ACB69] to-[#128C4A] text-sm font-black text-white shadow-[0_8px_18px_rgba(18,140,74,0.22)] transition hover:brightness-105 active:scale-[0.99]">פתיחת WhatsApp עם הלקוח</a>}
                     <a href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=pickup`} className="flex min-h-11 items-center justify-center rounded-2xl border border-[#F4C7A8] bg-[#FFF4EC] text-sm font-black text-[#B94C18] shadow-sm transition hover:bg-[#FFE7D7] active:scale-[0.99]">בדיקת מסירה</a>
                     <a href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=return`} className="flex min-h-11 items-center justify-center rounded-2xl border border-[#B8D8D8] bg-[#EAF4F4] text-sm font-black text-[#1F5A56] shadow-sm transition hover:bg-[#D9ECEC] active:scale-[0.99]">בדיקת החזרה</a>
@@ -340,7 +340,7 @@ export default function AdminBookingsPage() {
                               ✅ אשר
                             </button>
                             <button
-                              onClick={() => handleStatusChange(b.id, 'cancelled', b)}
+                              onClick={() => handleStatusChange(b.id, 'rejected', b)}
                               className="rounded-lg bg-gradient-to-bl from-[#F36A64] to-[#C9342D] px-3 py-1.5 text-xs font-bold text-white shadow-[0_5px_12px_rgba(201,52,45,0.18)] transition hover:brightness-105"
                             >
                               ❌ סרב

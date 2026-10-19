@@ -114,6 +114,7 @@ export async function PATCH(
 
   const ALLOWED: Record<string, string> = {
     pending: 'PENDING', confirmed: 'CONFIRMED',
+    rejected: 'REJECTED', REJECTED: 'REJECTED',
     cancelled: 'CANCELLED', active: 'ACTIVE', completed: 'COMPLETED',
     cancelled_by_customer: 'CANCELLED_BY_CUSTOMER',
     PENDING: 'PENDING', CONFIRMED: 'CONFIRMED',

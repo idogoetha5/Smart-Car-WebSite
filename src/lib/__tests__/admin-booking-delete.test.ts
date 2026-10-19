@@ -15,7 +15,7 @@ vi.mock('@/lib/swr', () => ({
 }));
 
 describe('admin booking delete controls', () => {
-  it.each(['confirmed', 'CONFIRMED', 'cancelled', 'CANCELLED', 'cancelled_by_customer', 'CANCELLED_BY_CUSTOMER', 'completed', 'COMPLETED'])(
+  it.each(['confirmed', 'CONFIRMED', 'rejected', 'REJECTED', 'cancelled', 'CANCELLED', 'cancelled_by_customer', 'CANCELLED_BY_CUSTOMER', 'completed', 'COMPLETED'])(
     'exposes labelled phone and desktop delete actions for %s', (status) => {
       fixture.status = status;
       const html = renderToStaticMarkup(createElement(AdminBookingsPage));

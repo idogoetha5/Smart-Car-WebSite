@@ -92,8 +92,8 @@ const ADMIN_MAP: Record<string, StatusDef> = {
     Icon: Flag,
   },
   CANCELLED: {
-    heLabel: 'בוטל ע״י הלקוח',
-    enLabel: 'Cancelled by customer',
+    heLabel: 'בוטל',
+    enLabel: 'Cancelled',
     className: 'bg-red-100 text-red-600',
     Icon: XCircle,
   },

@@ -94,5 +94,7 @@ export type BookingStatus =
   | 'CONFIRMED'
   | 'ACTIVE'
   | 'COMPLETED'
+  | 'REJECTED'
+  | 'CANCELLED_BY_CUSTOMER'
   | 'CANCELLED';
 export type LeasingStatus = 'PENDING' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED';
