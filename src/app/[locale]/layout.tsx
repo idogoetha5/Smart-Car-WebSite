@@ -58,6 +58,11 @@ export async function generateMetadata({
       card: 'summary_large_image',
       images: ['/images/og-image.png'],
     },
+    icons: {
+      icon: [{ url: '/icon.png', sizes: '512x512', type: 'image/png' }],
+      shortcut: '/favicon.ico',
+      apple: '/apple-icon.png',
+    },
   };
 }
 
