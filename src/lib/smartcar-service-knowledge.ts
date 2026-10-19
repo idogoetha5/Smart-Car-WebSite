@@ -80,13 +80,15 @@ export const ANSWERS: Record<ServiceKnowledgeTopic, LocalisedAnswer> = {
   },
   opening_hours: {
     topic: 'opening_hours', href: '/contact', linkLabelHe: 'שעות פתיחה באתר', linkLabelEn: 'Opening hours',
-    he: 'שעות הפעילות הרגילות שלנו הן ראשון עד חמישי מ-08:00 עד 18:00, ושישי מ-08:00 עד 13:00. נתב"ג פועל 24/7 להזמנות מתואמות מראש.',
-    en: 'Our standard operating hours are Sunday to Thursday, 08:00 to 18:00, and Friday from 08:00 to 13:00. Ben Gurion Airport operates 24/7 for pre-coordinated bookings.',
+    // Owner-confirmed hours (see branches/page.tsx): Sun–Thu 08:00–18:00, Fridays and holiday eves 08:30–14:00.
+    he: 'הסניפים בהרצליה, תל אביב וירושלים פתוחים בימים ראשון עד חמישי בין 08:00 ל־18:00, ובימי שישי וערבי חג בין 08:30 ל־14:00. בשבת הסניפים סגורים. בנתב"ג פועל שירות מסירה 24/7 בתיאום מראש.',
+    en: 'Our Herzliya, Tel Aviv and Jerusalem branches are open Sunday to Thursday, 08:00–18:00, and on Fridays and holiday eves 08:30–14:00. Branches are closed on Saturday. Ben Gurion Airport delivery runs 24/7 by prior arrangement.',
   },
   branches: {
     topic: 'branches', href: '/contact', linkLabelHe: 'לכל הסניפים', linkLabelEn: 'All branches',
-    he: 'יש לנו סניפים בפריסה ארצית: נתב"ג (24/7), תל אביב, ירושלים, חיפה ואילת. ניתן לתאם איסוף והחזרה בין סניפים, או הזמנה מיוחדת לכתובת בתיאום מראש.',
-    en: 'We have nationwide branches: Ben Gurion Airport (24/7), Tel Aviv, Jerusalem, Haifa, and Eilat. You can coordinate pickup and return between branches, or special delivery to an address in advance.',
+    // Must match src/lib/branches.ts (owner-confirmed). There is no branch in Haifa or Eilat; those areas are served by delivery.
+    he: 'הסניפים שלנו: הרצליה (רמת ים 122), תל אביב (הירקון 112), ירושלים (המלך דוד 8), ושירות מסירה בנתב"ג 24/7. אפשר לאסוף ולהחזיר בסניפים שונים, או לתאם מסירה והחזרה בכתובת בכל הארץ בתיאום מראש.',
+    en: 'Our branches: Herzliya (Ramat Yam 122), Tel Aviv (HaYarkon 112), Jerusalem (King David 8), and 24/7 delivery at Ben Gurion Airport. You can pick up and return at different branches, or arrange delivery and collection at an address anywhere in Israel in advance.',
   }
 };
 
@@ -101,7 +103,7 @@ const TOPIC_PATTERNS: Array<[ServiceKnowledgeTopic, RegExp]> = [
   ['age_licence', /גיל|ותק רישיון|נהג חדש|רישיון|minimum age|licen[cs]e experience|young driver/i],
   ['different_location', /מקום אחר|החזרה אחרת|איסוף אחר|שדה תעופה|נתבג|one way|different location|airport|drop.?off/i],
   ['insurance', /ביטוח|כיסוי|השתתפות עצמית|insurance|cover(?:age)?|waiver|excess/i],
-  ['opening_hours', /מתי פתוח|שעות פתיחה|מתי סוגרים|פתוחים בשבת|מתי עובדים|opening hours|open on|when do you close/i],
+  ['opening_hours', /מתי פתוח|שעות פתיחה|שעות הפעילות|שעות פעילות|מתי סוגרים|פתוחים|עד מתי אתם|מתי עובדים|opening hours|open on|when do you close|when are you open/i],
   ['branches', /איפה אתם|איפה יש סניפים|באיזו עיר|כתובות|סניפים|סניף שלכם|branches|locations|where are you located/i],
 ];
 

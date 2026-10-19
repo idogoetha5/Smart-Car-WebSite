@@ -51,7 +51,9 @@ export function composeServiceResponse(params: {
   subject?: string;
 }) {
   const mood = detectConversationMood(params.input);
-  const intro = acknowledgement(mood, params.kind, params.locale, params.subject);
+  // Many published answers already open warmly ("שאלה חשובה.", "בשמחה."); never stack two openers.
+  const answerOpens = /^(?:שאלה (?:חשובה|טובה)|בשמחה|כן|בטח|הבנתי|important question|good question|of course|happy to|yes|sure)\b|^(?:שאלה (?:חשובה|טובה)|בשמחה|כן|בטח|הבנתי)[.,!—\s]/i.test(params.answer ?? '');
+  const intro = answerOpens && mood !== 'angry' && mood !== 'pressed' ? '' : acknowledgement(mood, params.kind, params.locale, params.subject);
   const context = (mood === 'angry' || mood === 'pressed') ? contextSummary(params.state, params.locale) : '';
   return [intro, context, params.answer, params.nextStep].filter(Boolean).join(' ');
 }

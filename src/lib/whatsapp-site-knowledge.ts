@@ -3,6 +3,7 @@ import { LEASING_DURATIONS, MILEAGE_PACKAGES, OFFICE_EMAIL, OFFICE_PHONE } from 
 import { DELIVERY_CITIES } from '@/lib/delivery-cities';
 import { FAQ_HE } from '@/lib/faq-data';
 import { ANSWERS } from '@/lib/smartcar-service-knowledge';
+import { BUSINESS_KNOWLEDGE } from '@/lib/whatsapp-business-knowledge';
 
 /**
  * Everything the WhatsApp bot may say about SmartCar.
@@ -13,20 +14,24 @@ import { ANSWERS } from '@/lib/smartcar-service-knowledge';
  * a page reaches the bot without a code change.
  */
 
-const PAGES = [
-  '/he', '/he/terms', '/he/insurance', '/he/leasing', '/he/about', '/he/guide', '/he/contact', '/he/branches', '/he/cars-for-sale', '/he/rental',
-  ...['business', 'new-driver', 'leasing', 'hourly', 'commercial', 'daily', 'monthly', 'sale'].map((type) => `/he/services/${type}`),
+export const KNOWLEDGE_PATHS = [
+  '', '/terms', '/insurance', '/leasing', '/about', '/guide', '/contact', '/branches', '/cars-for-sale', '/rental', '/privacy', '/accessibility', '/cookies',
+  ...BRANCHES.map((b) => `/branches/${b.id}`),
+  ...DELIVERY_CITIES.map((city) => `/delivery/${city.slug}`),
+  ...['business', 'new-driver', 'leasing', 'hourly', 'commercial', 'daily', 'monthly', 'sale'].map((type) => `/services/${type}`),
 ];
-const PAGE_LIMIT = 14000;
+const PAGES = ['he', 'en'].flatMap((locale) => KNOWLEDGE_PATHS.map((path) => `/${locale}${path}`));
+const PAGE_LIMIT = 80000;
 const CACHE_MS = 30 * 60_000;
 
 let cache: { text: string; at: number } | null = null;
 let pending: Promise<string> | null = null;
+const lastPages = new Map<string, { text: string; at: number }>();
 
 function staticKnowledge() {
-  const branches = BRANCHES.map((b) => `- ${b.nameHe}: ${b.streetHe}, ${b.cityHe}. טלפון ${b.phone}.`).join('\n');
+  const branches = BRANCHES.map((b) => `- ${b.nameHe}: ${b.streetHe}, ${b.cityHe}. ${b.nameEn}: ${b.streetEn}, ${b.cityEn}. טלפון / Phone ${b.phone}.`).join('\n');
   const faq = FAQ_HE.map((item) => `ש: ${item.q}\nת: ${item.a}`).join('\n\n');
-  const answers = Object.values(ANSWERS).map((answer) => `- ${answer.he}`).join('\n');
+  const answers = [...Object.values(ANSWERS), ...BUSINESS_KNOWLEDGE].map((answer) => `- ${answer.he}\n${answer.en}`).join('\n');
   const delivery = DELIVERY_CITIES.map((city) => `- ${city.nameHe}: ${city.bodyHe}`).join('\n');
   return `# פרטי קשר
 טלפון המשרד: ${OFFICE_PHONE}. מייל: ${OFFICE_EMAIL}. אתר: https://www.smartcar.co.il
@@ -67,14 +72,21 @@ export function pageText(html: string): string {
 
 async function livePages(): Promise<string> {
   const base = (process.env.WHATSAPP_KNOWLEDGE_BASE_URL || 'https://www.smartcar.co.il').replace(/\/$/, '');
-  const pages = await Promise.all(PAGES.map(async (path) => {
+  const pages: string[] = [];
+  // Bounded concurrency: do not issue dozens of simultaneous site requests.
+  let index = 0;
+  await Promise.all(Array.from({ length: 6 }, async () => {
+    while (index < PAGES.length) {
+      const path = PAGES[index++];
+      let text = '';
     try {
       const response = await fetch(`${base}${path}`, { signal: AbortSignal.timeout(6000), headers: { 'User-Agent': 'SmartCar-WhatsApp-Knowledge' } });
-      if (!response.ok) return '';
-      const text = pageText(await response.text());
-      return text ? `# עמוד באתר ${path}\n${text}` : '';
-    } catch {
-      return '';
+      if (response.ok) text = pageText(await response.text());
+      if (text.length > 100) lastPages.set(path, { text, at: Date.now() });
+    } catch { /* Keep the last successful page through a temporary outage. */ }
+      const previous = lastPages.get(path);
+      if (!text && previous && Date.now() - previous.at < 24 * 60 * 60_000) text = previous.text;
+      if (text) pages.push(`# עמוד באתר ${path}\n${text}`);
     }
   }));
   return pages.filter(Boolean).join('\n\n');
@@ -93,7 +105,12 @@ export async function getSiteKnowledge(): Promise<string> {
       return text;
     })
     .finally(() => { pending = null; });
-  return pending;
+  // Site refresh is best-effort. The first message must not wait for every
+  // translated page or for a slow/unavailable public website.
+  return Promise.race([pending, new Promise<string>((resolve) => {
+    const timer = setTimeout(() => resolve(cache && Date.now() - cache.at < 24 * 60 * 60_000 ? cache.text : fixed), 1800);
+    timer.unref?.();
+  })]);
 }
 
 // ---------------------------------------------------------------------------
@@ -164,7 +181,9 @@ export function knowledgeChunks(text: string): string[] {
 /** The core contact details plus the passages that best match the message. */
 export function relevantKnowledge(text: string, message: string, budget = 6000): string {
   const chunks = knowledgeChunks(text);
-  const core = chunks.filter((chunk) => CORE_HEADINGS.some((heading) => chunk.startsWith(heading)));
+  // Contacts are always useful. The long policy/FAQ bank must compete by
+  // relevance instead of being appended in full to every greeting.
+  const core = chunks.filter((chunk) => CORE_HEADINGS.slice(0, 2).some((heading) => chunk.startsWith(heading)));
   const words = tokens(message);
   const wanted = new Set(words.flatMap((word) => [word, ...(SYNONYMS[word] ?? [])].flatMap((w) => tokens(w))));
   const scored = chunks
@@ -178,7 +197,7 @@ export function relevantKnowledge(text: string, message: string, budget = 6000):
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score);
   const picked = [...core];
-  let size = 0;
+  let size = core.join('\n\n').length;
   for (const { chunk } of scored) {
     if (size + chunk.length > budget) continue;
     picked.push(chunk);
