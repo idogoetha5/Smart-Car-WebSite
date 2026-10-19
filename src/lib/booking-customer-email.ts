@@ -29,8 +29,20 @@ export interface BookingCustomerEmailParams {
   paymentLink?: string;
 }
 
-function row(label: string, value: string): string {
-  return `<tr><td style="padding:10px 0;color:#5B6B6B;font-size:14px;">${escapeHtml(label)}</td><td style="padding:10px 0;text-align:right;font-weight:700;font-size:15px;color:#0D2B2B;">${escapeHtml(value)}</td></tr>`;
+function row(
+  label: string,
+  value: string,
+  options: { english: boolean; valueDirection?: 'ltr' | 'rtl' },
+): string {
+  const labelAlign = options.english ? 'left' : 'right';
+  const valueAlign = options.english ? 'right' : 'left';
+  const valueDirection = options.valueDirection ?? (options.english ? 'ltr' : 'rtl');
+  return `<tr>
+    <td width="38%" style="padding:11px 0;color:#5B6B6B;font-size:14px;text-align:${labelAlign};vertical-align:top;">${escapeHtml(label)}</td>
+    <td width="62%" style="padding:11px 0;text-align:${valueAlign};font-weight:700;font-size:15px;color:#0D2B2B;vertical-align:top;">
+      <bdi dir="${valueDirection}" style="unicode-bidi:isolate;">${escapeHtml(value)}</bdi>
+    </td>
+  </tr>`;
 }
 
 /** Sends a polished booking message in the exact language used for the booking. */
@@ -52,14 +64,15 @@ export async function sendBookingCustomerEmail(
     : (english
       ? 'Great news — your booking has been confirmed. We look forward to welcoming you to SmartCar.'
       : 'בשורות טובות — ההזמנה שלך אושרה. אנחנו מחכים לקבל את פניך ב-SmartCar.');
+  const rowOptions = { english };
   const rows = [
-    row(english ? 'Booking number' : 'מספר הזמנה', `#${params.orderId}`),
-    row(english ? 'Vehicle' : 'רכב', params.vehicleName),
-    row(english ? 'Pickup' : 'איסוף', `${params.startDate} · ${params.pickupLocation}`),
-    row(english ? 'Return' : 'החזרה', `${params.endDate} · ${params.returnLocation}`),
-    row(english ? 'Estimated total' : 'סה״כ משוער', params.totalPrice),
-    ...(params.extras ? [row(english ? 'Extras' : 'תוספות', params.extras)] : []),
-    ...(!request && params.downPayment ? [row(english ? 'Deposit due' : 'מקדמה לתשלום', params.downPayment)] : []),
+    row(english ? 'Booking number' : 'מספר הזמנה', `#${params.orderId}`, { ...rowOptions, valueDirection: 'ltr' }),
+    row(english ? 'Vehicle' : 'רכב', params.vehicleName, { ...rowOptions, valueDirection: 'ltr' }),
+    row(english ? 'Pickup' : 'איסוף', `${params.startDate} · ${params.pickupLocation}`, rowOptions),
+    row(english ? 'Return' : 'החזרה', `${params.endDate} · ${params.returnLocation}`, rowOptions),
+    row(english ? 'Estimated total' : 'מחיר משוער כולל', params.totalPrice, { ...rowOptions, valueDirection: 'ltr' }),
+    ...(params.extras ? [row(english ? 'Extras' : 'תוספות', params.extras, rowOptions)] : []),
+    ...(!request && params.downPayment ? [row(english ? 'Deposit due' : 'מקדמה לתשלום', params.downPayment, { ...rowOptions, valueDirection: 'ltr' })] : []),
   ].join('');
   const notice = request
     ? (english
@@ -82,7 +95,7 @@ export async function sendBookingCustomerEmail(
           <h1 style="font-size:25px;line-height:1.2;margin:0 0 14px;color:#0D2B2B;">${heading}</h1>
           <p style="font-size:16px;line-height:1.65;margin:0 0 11px;">${greeting}</p>
           <p style="font-size:16px;line-height:1.65;margin:0 0 21px;">${intro}</p>
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border-top:1px solid #DCE7E7;border-bottom:1px solid #DCE7E7;">${rows}</table>
+          <table role="presentation" dir="${direction}" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border-top:1px solid #DCE7E7;border-bottom:1px solid #DCE7E7;">${rows}</table>
           ${cta}
           <div style="margin-top:24px;padding:14px 16px;background:#FFF7F1;border:1px solid #F2C7AC;border-radius:10px;font-size:13px;line-height:1.55;color:#5B4638;">${notice}</div>
           <p style="font-size:14px;line-height:1.6;margin:24px 0 0;color:#526363;">${english ? 'We are here for anything you need.' : 'אנחנו כאן לכל שאלה ונשמח לעזור לאורך כל הדרך.'}</p>
