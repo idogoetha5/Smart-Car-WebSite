@@ -201,9 +201,9 @@ export default function AdminBookingsPage() {
                   <div className="mt-3 grid grid-cols-2 gap-2.5">
                     {pending && <button onClick={() => handleStatusChange(b.id, 'confirmed', b)} className="min-h-14 rounded-2xl bg-gradient-to-bl from-[#3A7A7A] to-[#164443] px-3 text-base font-black text-white shadow-[0_8px_18px_rgba(22,68,67,0.24)] transition active:scale-[0.98]">אישור הזמנה</button>}
                     {pending && <button onClick={() => handleStatusChange(b.id, 'cancelled', b)} className="min-h-14 rounded-2xl border border-red-200 bg-gradient-to-bl from-red-50 to-[#FFF8F7] px-3 text-base font-black text-red-700 shadow-sm transition hover:border-red-300 hover:bg-red-100 active:scale-[0.98]">סירוב</button>}
-                    {waLink(b.customer_phone) && <a href={waLink(b.customer_phone)!} target="_blank" rel="noopener noreferrer" className="col-span-2 flex min-h-12 items-center justify-center rounded-2xl border border-[#B8D8D8] bg-[#EAF4F4] text-sm font-black text-[#1F5A56] shadow-sm transition hover:bg-[#D9ECEC] active:scale-[0.99]">פתיחת WhatsApp עם הלקוח</a>}
-                    <a href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=pickup`} className="flex min-h-11 items-center justify-center rounded-2xl border border-[#D5E8E8] bg-white text-sm font-black text-[#285C5A] shadow-sm transition hover:border-[#9DC9C5] hover:bg-[#F4FAFA]">בדיקת מסירה</a>
-                    <a href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=return`} className="flex min-h-11 items-center justify-center rounded-2xl border border-[#D5E8E8] bg-white text-sm font-black text-[#285C5A] shadow-sm transition hover:border-[#9DC9C5] hover:bg-[#F4FAFA]">בדיקת החזרה</a>
+                    {waLink(b.customer_phone) && <a href={waLink(b.customer_phone)!} target="_blank" rel="noopener noreferrer" className="col-span-2 flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-bl from-[#2ACB69] to-[#128C4A] text-sm font-black text-white shadow-[0_8px_18px_rgba(18,140,74,0.22)] transition hover:brightness-105 active:scale-[0.99]">פתיחת WhatsApp עם הלקוח</a>}
+                    <a href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=pickup`} className="flex min-h-11 items-center justify-center rounded-2xl border border-[#F4C7A8] bg-[#FFF4EC] text-sm font-black text-[#B94C18] shadow-sm transition hover:bg-[#FFE7D7] active:scale-[0.99]">בדיקת מסירה</a>
+                    <a href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=return`} className="flex min-h-11 items-center justify-center rounded-2xl border border-[#B8D8D8] bg-[#EAF4F4] text-sm font-black text-[#1F5A56] shadow-sm transition hover:bg-[#D9ECEC] active:scale-[0.99]">בדיקת החזרה</a>
                   </div>
                 </article>
               );
@@ -242,7 +242,7 @@ export default function AdminBookingsPage() {
                           href={waLink(b.customer_phone)!}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-green-600 hover:text-green-700 font-medium mt-0.5 inline-block"
+                          className="mt-1 inline-flex items-center rounded-lg bg-[#E8FFF0] px-2 py-1 text-xs font-bold text-[#128C4A] transition hover:bg-[#D4F8E1]"
                         >
                           💬 וואטסאפ
                         </a>
@@ -296,13 +296,13 @@ export default function AdminBookingsPage() {
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <a
                           href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=pickup`}
-                          className="bg-[#eef6f6] hover:bg-[#d9ecec] text-[#2D5F5F] px-3 py-1 rounded-lg text-xs font-bold transition-colors whitespace-nowrap"
+                          className="rounded-lg border border-[#F4C7A8] bg-[#FFF4EC] px-3 py-1.5 text-xs font-bold text-[#B94C18] shadow-sm transition-colors hover:bg-[#FFE7D7] whitespace-nowrap"
                         >
                           🚗 בדיקת מסירה
                         </a>
                         <a
                           href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=return`}
-                          className="bg-[#eef6f6] hover:bg-[#d9ecec] text-[#2D5F5F] px-3 py-1 rounded-lg text-xs font-bold transition-colors whitespace-nowrap"
+                          className="rounded-lg border border-[#B8D8D8] bg-[#EAF4F4] px-3 py-1.5 text-xs font-bold text-[#1F5A56] shadow-sm transition-colors hover:bg-[#D9ECEC] whitespace-nowrap"
                         >
                           🔁 בדיקת החזרה
                         </a>
@@ -310,13 +310,13 @@ export default function AdminBookingsPage() {
                           <>
                             <button
                               onClick={() => handleStatusChange(b.id, 'confirmed', b)}
-                              className="rounded-lg bg-[#2D5F5F] px-3 py-1 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#1A3A3A]"
+                              className="rounded-lg bg-gradient-to-bl from-[#3A7A7A] to-[#164443] px-3 py-1.5 text-xs font-bold text-white shadow-[0_5px_12px_rgba(22,68,67,0.2)] transition hover:brightness-110"
                             >
                               ✅ אשר
                             </button>
                             <button
                               onClick={() => handleStatusChange(b.id, 'cancelled', b)}
-                              className="rounded-lg bg-red-500 px-3 py-1 text-xs font-bold text-white shadow-sm transition-colors hover:bg-red-600"
+                              className="rounded-lg bg-gradient-to-bl from-[#F36A64] to-[#C9342D] px-3 py-1.5 text-xs font-bold text-white shadow-[0_5px_12px_rgba(201,52,45,0.18)] transition hover:brightness-105"
                             >
                               ❌ סרב
                             </button>
