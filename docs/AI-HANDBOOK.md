@@ -74,6 +74,15 @@ Texts in `src/lib/push-messages.ts` (human, polite, short Hebrew; each task type
 - **Known bug (fixed 1 Oct 2026):** both apps used one cookie, so logging in to the manager app logged the phone out of the driver role. The driver app then showed no tasks ("assigned task doesn't appear"). Don't merge the cookies again.
 - Claude Code / AI agents never type PINs on the live site. Ask Ido to log in himself.
 
+## Customer booking and email delivery — read before changing booking code
+
+- The public booking form is `src/components/booking/BookingForm.tsx`; it submits to `POST /api/bookings`. The server recalculates availability, rental days and price, writes the booking, then sends the messages. Do not trust price, availability, dates or locale values from the browser without server-side validation.
+- The booking stores the language in `bookings.consent_locale`: `he` for Hebrew and `en` for English. This is the source of truth for every customer message sent later, including the manager's confirmation email.
+- Customer email layout is in `src/lib/booking-customer-email.ts` and goes through **Resend**. It contains the unchanged official logo, branded Hebrew/English copy, rental details and correct direction (`rtl` / `ltr`). `RESEND_API_KEY` must exist on Vercel Production. Keep the text warm, professional and short; escape every dynamic value before inserting it into HTML.
+- A new request sends the customer the “request received” email and sends the office notification through the existing EmailJS outbox (`src/lib/email-delivery.ts`). The office alert is intentionally separate and remains EmailJS.
+- An admin transition to `CONFIRMED` in `src/app/api/admin/bookings/[id]/route.ts` sends a one-time Resend confirmation using an idempotency key. Its WhatsApp button deliberately says “Continue your booking & arrange the deposit on WhatsApp” / “להמשך ההזמנה ותשלום המקדמה ב‑WhatsApp”. It opens `wa.me` with a prepared message containing the booking number. There is no hosted card-payment page yet; do not imply that a card payment is completed.
+- For a real end-to-end email test, use an address explicitly approved by Ido, make one clearly labelled test request in each language through Chrome, and confirm the received subject, direction, language, branding and WhatsApp link. A test request creates a real `PENDING` booking; do not silently delete, confirm or alter it afterward.
+
 ---
 
 ## 3. Data model (Supabase, project "Smart Car", free plan; do not upgrade it)
@@ -131,8 +140,9 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
-- 2026-10-19 — Declared the SmartCar favicon files explicitly in metadata and regenerated them from the unchanged official SmartCar logo on a light background, so search results can display it clearly at small sizes. No migration. Not deployed.
+- 2026-10-19 — Declared the SmartCar favicon files explicitly in metadata and regenerated them from the unchanged official SmartCar logo on a light background, so search results can display it clearly at small sizes. No migration. Deployed to Vercel Production.
 - 2026-10-19 — Customer booking-received and booking-confirmed messages are now sent by Resend from server-rendered, branded Hebrew or English layouts based on the stored booking language (`consent_locale`); the confirmation has the correct WhatsApp deposit link. The office request copy remains on EmailJS. No migration. Deployed to Vercel Production.
+- 2026-10-19 — Expanded the root README and this handbook into an operational map for people and future AI maintainers: booking and email ownership, source-of-truth language, safe real-email testing, production deployment/rollback, and required checks. No migration. Deployed to Vercel Production.
 - 2026-10-15 — Audited WhatsApp integrations; added bounded Gemini intent extraction with deterministic fallback, safer webhook validation and group filtering, simulator limits and disclosure, and regression tests. Commit `02c932a`. No migration. Deployed to Vercel Production; Gemini routing and an unset-transport webhook rejection verified live. Real WhatsApp delivery remains unverified pending YCloud onboarding.
 - 2026-10-15 — Documented Daniel's review gate and the current YCloud QR Coexistence steps, including phone-based human takeover and the remaining retry/alert checks. No code or migration; Meta and YCloud number remain unconnected.
 - 2026-10-07 — Published the dedicated Google Drive OAuth client with limited `drive.file` access and moved new backups to `smartcar-backups-personal`. Updated the GitHub Actions secret and local rclone configuration. Verified a full backup in [run #84](https://github.com/idogoetha5/Smart-Car-WebSite/actions/runs/37609302421): encrypted database dump and 429 vehicle images (430 stored objects including manifest). Older archives preserved. Branch `clean-main`. No migration. Deployed.

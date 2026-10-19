@@ -45,7 +45,8 @@ SmartCar הוא אתר השכרת רכב ישראלי המציע:
 | Styling | Tailwind CSS v4, Framer Motion |
 | Database | [Supabase](https://supabase.com/) (PostgreSQL) |
 | Auth | Supabase Auth OTP (email) + HMAC-SHA256 admin cookie |
-| Email | [EmailJS](https://www.emailjs.com/) (client-side + REST API) |
+| Customer booking email | [Resend](https://resend.com/) — branded server-rendered Hebrew/English messages |
+| Internal office notifications | [EmailJS](https://www.emailjs.com/) — request details sent to the office |
 | Rate Limiting | [Upstash Redis](https://upstash.com/) |
 | Anti-bot | [Cloudflare Turnstile](https://www.cloudflare.com/products/turnstile/) |
 | i18n | [next-intl v4](https://next-intl-docs.vercel.app/) |
@@ -76,7 +77,7 @@ SmartCar הוא אתר השכרת רכב ישראלי המציע:
 
 ### פאנל ניהול (`/[locale]/admin`)
 
-- **הזמנות** — אישור / דחייה + שליחת מייל אוטומטי ללקוח (EmailJS `template_d6xkjjo`)
+- **הזמנות** — אישור / דחייה + שליחת מייל אוטומטי וממותג ללקוח דרך Resend
 - **רכבים** — הוספה, עריכה, מחיקה, העלאת תמונות
 - **ביקורות** — אישור / דחייה
 - **בקשות ליסינג** — ניהול פניות
@@ -243,6 +244,49 @@ vercel --prod
 ```
 
 הגדר את כל משתני הסביבה ב-Vercel Dashboard → Project → Settings → Environment Variables.
+
+## מדריך עבודה תפעולי — לאנשים ולבינות מלאכותיות
+
+### מה חייבים לקרוא לפני שינוי
+
+1. `AGENTS.md` — כללי בטיחות, במיוחד ברקודי ה־QR שאסור לגעת בהם.
+2. `docs/AI-HANDBOOK.md` — מפת האתר, האפליקציות, הנתונים, בדיקות ופרסום.
+3. מסמך ייעודי רק אם משנים תחום רלוונטי: למשל `docs/whatsapp-bot/WHATSAPP_BOT_STATUS.md` לבוט או `docs/handover/HANDOVER.md` למסירות רכב.
+
+הקובץ `docs/AI-HANDBOOK.md` הוא מקור האמת לעבודה עתידית: אחרי כל שינוי בהתנהגות, נתונים, סביבה או דרך הפרסום מעדכנים אותו ומוסיפים שורה ליומן השינויים באותו commit.
+
+### מפת עבודה מהירה
+
+| רוצים לשנות | מתחילים כאן | הערה חשובה |
+|---|---|---|
+| אתר לקוחות, תרגומים או הזמנה | `src/app/[locale]`, `src/components/booking`, `messages/he.json`, `messages/en.json` | תמיד שומרים על עברית RTL ואנגלית LTR. |
+| מיילי הזמנה ללקוח | `src/lib/booking-customer-email.ts` | Resend שולח הודעה מעוצבת בשפת ההזמנה. אין ליצור תבניות נוספות ב־EmailJS למיילי לקוחות. |
+| הודעה פנימית לצוות על הזמנה חדשה | `src/app/api/bookings/route.ts`, `src/lib/email-delivery.ts` | נשאר ב־EmailJS. |
+| אישור הזמנה ותשלום מקדמה | `src/app/api/admin/bookings/[id]/route.ts` | הכפתור מפנה ל־WhatsApp עם מספר ההזמנה. אין עדיין דף תשלום מקוון. |
+| פאנל מנהל / נהגים | `src/app/driver`, `src/components/manager`, `src/components/inspection` | קודם קוראים את פרקי הנהגים והמנהלים ב־AI handbook. |
+| בסיס נתונים | `database/migrations` | כותבים migration שניתן להריץ שוב ומריצים בפרודקשן לפני קוד שתלוי בו. |
+| עיצוב / מותג | `public/images/logo.png`, `src/app/icon.png`, `src/app/favicon.ico` | הלוגו הרשמי לא משתנה. Google מציג favicon קטן בלבד. |
+
+### סדר עבודה בטוח
+
+1. עובדים מהענף `clean-main`, בודקים קודם `git status` ושומרים על שינויים קיימים.
+2. משנים רק את מה שנדרש; לא מוחקים קבצים, migrations, QR או נתוני אמת ללא אישור מפורש.
+3. מריצים לפחות `npx tsc --noEmit`. לשינוי רחב מריצים גם `npm run lint`, `npm run lint:budget` ו־`npm test`.
+4. בשינוי למסכי נהג/מנהל מריצים גם את ביקורת המובייל המתוארת ב־`AGENTS.md` ובודקים את התמונות שנוצרו.
+5. מעדכנים את `docs/AI-HANDBOOK.md`, מבצעים commit בשם `Ido Goetha <ido.goetha5@gmail.com>`, ודוחפים ל־`clean-main`.
+6. Vercel מפרסם אוטומטית. בודקים שהפריסה האחרונה היא `Ready`, ואז בודקים את הזרימה החיה הרלוונטית.
+
+### מיילי הזמנה — התנהגות נוכחית
+
+בעת שליחת טופס הזמנה, האתר שומר את שפת הטופס ב־`consent_locale`. הלקוח מקבל מיד מ־Resend מייל “בקשה התקבלה” בעברית או באנגלית, עם הלוגו המקורי, פרטי רכב, תאריכים, מקומות ומחיר. הצוות מקבל במקביל פירוט פנימי דרך EmailJS. כאשר מנהל מאשר הזמנה, הלקוח מקבל מ־Resend מייל אישור באותה שפה, כולל כפתור “להמשך ההזמנה ותשלום המקדמה ב־WhatsApp”; הקישור פותח WhatsApp עם הודעה מוכנה ומספר ההזמנה. הסכומים ותאריכי ההזמנה מחושבים בצד השרת — אין לסמוך על ערכים שמגיעים מהדפדפן.
+
+### פרסום, בדיקה ושחזור
+
+- פרסום רגיל: `git push origin clean-main`. Vercel מפעיל פריסת Production אוטומטית.
+- אימות פרסום: `npx vercel ls smartcar --yes`; מצב הפריסה החדשה חייב להיות `Ready`.
+- אם פריסה נכשלת, בודקים קודם את לוג הבנייה ב־Vercel ומתקנים את הסיבה במקום לבצע פריסה עוקפת.
+- החזרה לאחור: משתמשים בפריסה קודמת מוכנה של Vercel או יוצרים commit מתקן; לא משתמשים ב־`git reset --hard` על עבודה קיימת.
+- לעולם לא מדפיסים או מכניסים לקוד מפתחות, סיסמאות, PINs או קובצי `.env`.
 
 ---
 
