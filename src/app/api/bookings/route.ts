@@ -332,7 +332,10 @@ async function sendRequestReceivedEmail({
   const extrasText = Array.isArray(booking.extras) && booking.extras.length > 0
     ? booking.extras.map((e: string) => (isEnglish ? EXTRAS_LABELS_EN : EXTRAS_LABELS_HE)[e] ?? e).join(', ')
     : isEnglish ? 'None' : 'ללא';
-  const totalPriceText = booking.total_price
+  const customerTotalPrice = booking.total_price
+    ? `₪${Number(booking.total_price).toLocaleString(isEnglish ? 'en-US' : 'he-IL')}`
+    : isEnglish ? 'A representative will confirm the price' : 'יימסר על ידי נציג';
+  const officeTotalPrice = booking.total_price
     ? `₪${Number(booking.total_price).toLocaleString(isEnglish ? 'en-US' : 'he-IL')} ${isEnglish ? '(estimated price)' : '(מחיר משוער)'}`
     : isEnglish ? 'A representative will confirm the price' : 'יימסר על ידי נציג';
 
@@ -346,7 +349,7 @@ async function sendRequestReceivedEmail({
     pickup_location:   pickupLocation,
     return_location:   returnLocation,
     customer_phone:    booking.customer_phone,
-    total_price:       totalPriceText,
+    total_price:       officeTotalPrice,
     logo_url:          LOGO_URL,
   };
   // Staff need the exact collection/return time to plan handover, so the
@@ -369,7 +372,7 @@ async function sendRequestReceivedEmail({
       endDate,
       pickupLocation,
       returnLocation,
-      totalPrice: totalPriceText,
+      totalPrice: customerTotalPrice,
       extras: extrasText,
     }),
     sendTemplateEmail({

@@ -29,20 +29,23 @@ export interface BookingCustomerEmailParams {
   paymentLink?: string;
 }
 
-function row(
+function englishRow(
   label: string,
   value: string,
-  options: { english: boolean; valueDirection?: 'ltr' | 'rtl' },
+  valueDirection: 'ltr' | 'rtl' = 'ltr',
 ): string {
-  const labelAlign = options.english ? 'left' : 'right';
-  const valueAlign = options.english ? 'right' : 'left';
-  const valueDirection = options.valueDirection ?? (options.english ? 'ltr' : 'rtl');
   return `<tr>
-    <td width="38%" style="padding:11px 0;color:#5B6B6B;font-size:14px;text-align:${labelAlign};vertical-align:top;">${escapeHtml(label)}</td>
-    <td width="62%" style="padding:11px 0;text-align:${valueAlign};font-weight:700;font-size:15px;color:#0D2B2B;vertical-align:top;">
+    <td width="38%" style="padding:11px 0;color:#5B6B6B;font-size:14px;text-align:left;vertical-align:top;">${escapeHtml(label)}</td>
+    <td width="62%" style="padding:11px 0;text-align:right;font-weight:700;font-size:15px;color:#0D2B2B;vertical-align:top;">
       <bdi dir="${valueDirection}" style="unicode-bidi:isolate;">${escapeHtml(value)}</bdi>
     </td>
   </tr>`;
+}
+
+/** Hebrew gets a deliberately single-column summary: bilingual values never fight in two columns. */
+function hebrewRow(label: string, values: Array<{ text: string; direction: 'ltr' | 'rtl' }>): string {
+  const valueLines = values.map(({ text, direction }) => `<div dir="${direction}" style="unicode-bidi:isolate;margin-top:4px;font-weight:700;font-size:17px;line-height:1.35;color:#0D2B2B;text-align:right;">${escapeHtml(text)}</div>`).join('');
+  return `<tr><td style="padding:13px 0;border-bottom:1px solid #E2ECEC;text-align:right;"><div style="color:#6B7B7B;font-size:13px;font-weight:700;">${escapeHtml(label)}</div>${valueLines}</td></tr>`;
 }
 
 /** Sends a polished booking message in the exact language used for the booking. */
@@ -64,16 +67,31 @@ export async function sendBookingCustomerEmail(
     : (english
       ? 'Great news — your booking has been confirmed. We look forward to welcoming you to SmartCar.'
       : 'בשורות טובות — ההזמנה שלך אושרה. אנחנו מחכים לקבל את פניך ב-SmartCar.');
-  const rowOptions = { english };
-  const rows = [
-    row(english ? 'Booking number' : 'מספר הזמנה', `#${params.orderId}`, { ...rowOptions, valueDirection: 'ltr' }),
-    row(english ? 'Vehicle' : 'רכב', params.vehicleName, { ...rowOptions, valueDirection: 'ltr' }),
-    row(english ? 'Pickup' : 'איסוף', `${params.startDate} · ${params.pickupLocation}`, rowOptions),
-    row(english ? 'Return' : 'החזרה', `${params.endDate} · ${params.returnLocation}`, rowOptions),
-    row(english ? 'Estimated total' : 'מחיר משוער כולל', params.totalPrice, { ...rowOptions, valueDirection: 'ltr' }),
-    ...(params.extras ? [row(english ? 'Extras' : 'תוספות', params.extras, rowOptions)] : []),
-    ...(!request && params.downPayment ? [row(english ? 'Deposit due' : 'מקדמה לתשלום', params.downPayment, { ...rowOptions, valueDirection: 'ltr' })] : []),
-  ].join('');
+  const rows = english
+    ? [
+      englishRow('Booking number', `#${params.orderId}`),
+      englishRow('Vehicle', params.vehicleName),
+      englishRow('Pickup', `${params.startDate} · ${params.pickupLocation}`),
+      englishRow('Return', `${params.endDate} · ${params.returnLocation}`),
+      englishRow('Estimated total', params.totalPrice),
+      ...(params.extras ? [englishRow('Extras', params.extras)] : []),
+      ...(!request && params.downPayment ? [englishRow('Deposit due', params.downPayment)] : []),
+    ].join('')
+    : [
+      hebrewRow('מספר הזמנה', [{ text: `#${params.orderId}`, direction: 'ltr' }]),
+      hebrewRow('רכב', [{ text: params.vehicleName, direction: 'ltr' }]),
+      hebrewRow('איסוף', [
+        { text: params.startDate, direction: 'rtl' },
+        { text: params.pickupLocation, direction: 'ltr' },
+      ]),
+      hebrewRow('החזרה', [
+        { text: params.endDate, direction: 'rtl' },
+        { text: params.returnLocation, direction: 'ltr' },
+      ]),
+      hebrewRow('מחיר משוער כולל', [{ text: params.totalPrice, direction: 'ltr' }]),
+      ...(params.extras ? [hebrewRow('תוספות', [{ text: params.extras, direction: 'rtl' }])] : []),
+      ...(!request && params.downPayment ? [hebrewRow('מקדמה לתשלום', [{ text: params.downPayment, direction: 'ltr' }])] : []),
+    ].join('');
   const notice = request
     ? (english
       ? 'This email confirms that we received your request. The vehicle is reserved only after a written confirmation from SmartCar.'
