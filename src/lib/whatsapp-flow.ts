@@ -1126,6 +1126,15 @@ async function saveState(phone: string, state: FlowState | null) {
 }
 
 /** Words customers send between questions; none of them is a name. */
+/** Gemini's reply without its own questions: the chat asks the next question itself, so the customer never gets two at once. */
+function withoutQuestions(acknowledgement: string | undefined) {
+  if (!acknowledgement) return '';
+  return acknowledgement.split(/(?<=[.!?…])\s+/).filter((sentence) => !/\?\s*\p{Extended_Pictographic}*\uFE0F?\s*$/u.test(sentence)).join(' ').trim();
+}
+const leadIn = (acknowledgement: string | undefined) => { const text = withoutQuestions(acknowledgement); return text ? `${text}\n\n` : ''; };
+/** An answer plus our follow-up question, unless the answer already ends by asking something. */
+const answerWithFollowUp = (answer: string, followUp: string) => (/\?\s*\p{Extended_Pictographic}*\uFE0F?\s*$/u.test(answer.trim()) ? answer : `${answer}\n\n${followUp}`);
+
 const NOT_A_NAME = /^(?:(?:תודה(?: רבה)?|סבבה|אחלה|אוקיי?|אוקי|בסדר|כן|לא|אולי|רגע|שנייה|יופי|מעולה|הבנתי|נכון|ברור|טוב|היי|שלום|ok|okay|thanks|thank you|yes|no|sure|fine|great|cool)[\s!.,]*)+[\s!.,\p{Extended_Pictographic}\uFE0F]*$|^[\s!.,\p{Extended_Pictographic}\uFE0F]+$/iu;
 
 /** "סבבה", "👍", "מעולה תודה": the customer is acknowledging, not answering the question. */
@@ -1275,7 +1284,7 @@ async function continueRental(phone: string, body: string, current: FlowState, l
       // catalogue is temporarily unavailable.
     }
   }
-  const acknowledgement = interpretation?.acknowledgement ? `${interpretation.acknowledgement}\n\n` : '';
+  const acknowledgement = leadIn(interpretation?.acknowledgement);
   return { handled: true, reply: `${acknowledgement}${suggestions}${promptForState(state, locale, booking, current)}` };
 }
 
@@ -1658,7 +1667,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     const followUp = interpretation.intent === 'leasing'
       ? (locale === 'en' ? 'Would you like a representative to prepare a leasing offer for you?' : 'רוצים שנציג יכין לכם הצעת ליסינג?')
       : (locale === 'en' ? 'Anything else I can help with, or shall we start a rental request?' : 'אפשר לעזור במשהו נוסף, או שנתחיל בקשת השכרה?');
-    return { handled: true, reply: `${interpretation.acknowledgement}\n\n${followUp}` };
+    return { handled: true, reply: answerWithFollowUp(interpretation.acknowledgement, followUp) };
   }
 
   // A disputed charge needs account-level review. Give ownership first rather
@@ -1784,7 +1793,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     if (!existingState) await store.saveState(phone, { step: 'menu', locale, knowledgeTopic: businessTopic });
     return {
       handled: true,
-      reply: `${interpretation.acknowledgement}\n\n${locale === 'en' ? 'Anything else I can help with, or shall we start a rental request?' : 'אפשר לעזור במשהו נוסף, או שנתחיל בקשת השכרה?'}`,
+      reply: answerWithFollowUp(interpretation.acknowledgement, locale === 'en' ? 'Anything else I can help with, or shall we start a rental request?' : 'אפשר לעזור במשהו נוסף, או שנתחיל בקשת השכרה?'),
     };
   }
 
@@ -1952,13 +1961,13 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       if (progressed) return progressed;
       await store.saveState(phone, state);
       // "Can a new driver rent?" starts a rental and still gets its answer.
-      return { handled: true, reply: `${interpretation?.acknowledgement ? `${interpretation.acknowledgement}\n\n` : ''}${datesPrompt(locale)}` };
+      return { handled: true, reply: `${leadIn(interpretation?.acknowledgement)}${datesPrompt(locale)}` };
     }
     if (initialRoute === 'existing_booking_lookup') return { handled: true, reply: booking ? existingCustomerMenu(booking, locale) : locale === 'en' ? 'We could not find an active booking linked to this number. Type representative and our team will help.' : 'לא זיהינו הזמנה פעילה לפי המספר הזה. כתבו "נציג" ונעזור לכם לאתר את ההזמנה.' };
     if (input.includes('ליסינג') || input.includes('מכירה') || /leasing|buy|purchase|cars? for sale/.test(input)) return { handled: true, reply: locale === 'en' ? 'SmartCar offers private and business leasing, as well as selected vehicles for sale. Tell us whether you are interested in private leasing, business leasing, or purchasing a vehicle, and we will guide you.' : 'SmartCar מציעה ליסינג פרטי ועסקי וגם רכבים נבחרים למכירה. כתבו לנו מה מעניין אתכם — ליסינג פרטי, ליסינג לעסק או רכב לרכישה — ונכוון אתכם.' };
     if (input.includes('סניף') || input.includes('מסיר') || input.includes('החזר') || /branch|delivery|return/.test(input)) return { handled: true, reply: locale === 'en' ? 'SmartCar has branches in Herzliya, Tel Aviv, Jerusalem, and Ben Gurion Airport. Delivery and collection at an address in Israel can also be arranged in advance, subject to availability.' : 'לרשותכם סניפים בהרצליה, תל אביב, ירושלים ונתב״ג. אפשר גם לתאם מסירה והחזרה בכתובת שנוחה לכם ברחבי הארץ, בכפוף לתיאום מראש ולזמינות.' };
     await store.saveState(phone, { step: 'menu', locale });
-    return { handled: true, reply: `${interpretation?.acknowledgement ? `${interpretation.acknowledgement}\n\n` : ''}${menuFor(booking, locale)}` };
+    return { handled: true, reply: `${leadIn(interpretation?.acknowledgement)}${menuFor(booking, locale)}` };
   }
 
   // A customer may provide any missing facts in any order, including in one
@@ -2003,13 +2012,13 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     // The message held no new rental detail (a question, a concern, small
     // talk). Answer it in plain words and repeat the one missing detail,
     // instead of claiming the message was not understood.
-    if (interpretation?.acknowledgement && interpretation.intent !== 'representative') {
-      return { handled: true, reply: `${interpretation.acknowledgement}\n\n${promptForState({ ...existingState, locale }, locale, booking, existingState)}` };
+    if (withoutQuestions(interpretation?.acknowledgement) && interpretation?.intent !== 'representative') {
+      return { handled: true, reply: `${leadIn(interpretation?.acknowledgement)}${promptForState({ ...existingState, locale }, locale, booking, existingState)}` };
     }
     // "סבבה", "👍", "תודה" between questions: acknowledge warmly and keep going.
     if (isAcknowledgement(body)) {
       const nudge = locale === 'en' ? pickRandom(['Great 🙂', 'Perfect.', 'Got it.']) : pickRandom(['מעולה 🙂', 'סגור.', 'יופי.']);
-      return { handled: true, reply: `${interpretation?.acknowledgement && !/^(?:שלום|היי)/.test(interpretation.acknowledgement) ? interpretation.acknowledgement : nudge}\n\n${promptForState({ ...existingState, locale }, locale, booking, existingState)}` };
+      return { handled: true, reply: `${withoutQuestions(interpretation?.acknowledgement) && !/^(?:שלום|היי)/.test(interpretation?.acknowledgement ?? '') ? withoutQuestions(interpretation?.acknowledgement) : nudge}\n\n${promptForState({ ...existingState, locale }, locale, booking, existingState)}` };
     }
     // Without a model answer, still answer a question instead of claiming
     // the customer's reply could not be read.
