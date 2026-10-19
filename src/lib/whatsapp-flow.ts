@@ -190,9 +190,9 @@ export function requiresHumanHandoff(input: string, duringActiveRentalCollection
   const text = input.toLowerCase();
   if (/עו[״"']ד/.test(text)) return true;
   if (duringActiveRentalCollection) {
-    return /נציג|נציגת|אנושי|בנאדם|בן אדם|לדבר עם|שיחה עם|תאונה|נזק|דפיקה ברכב|שריטה|שפשוף|מכה ברכב|פגיעה|חירום|דחוף|הצילו|תעזרו לי|תביעה|עורך דין|עורכת דין|משפטי|כועס|זועם|מתוסכל|מעצבן|שירות גרוע|תלונה|אכזבה|\b(?:representative|human|agent|legal|lawyer|sue|angry|mad|frustrated|upset|complaint|terrible|awful)\b|speak to|talk to|customer service/.test(normalized(input));
+    return /נציג|נציגת|אנושי|בנאדם|בן אדם|לדבר עם|שיחה עם|יחזור אלי|יחזרו אלי|שיחזרו|תחזרו אלי|תתקשרו אלי|call me back|callback|תאונה|נזק|דפיקה ברכב|שריטה|שפשוף|מכה ברכב|פגיעה|חירום|דחוף|הצילו|תעזרו לי|תביעה|עורך דין|עורכת דין|משפטי|כועס|זועם|מתוסכל|מעצבן|שירות גרוע|תלונה|אכזבה|\b(?:representative|human|agent|legal|lawyer|sue|angry|mad|frustrated|upset|complaint|terrible|awful)\b|speak to|talk to|customer service/.test(normalized(input));
   }
-  return /נציג|נציגת|אנושי|בנאדם|בן אדם|לדבר עם|שיחה עם|תאונה|נזק|דפיקה ברכב|שריטה|שפשוף|מכה ברכב|פגיעה|חירום|דחוף|הצילו|תעזרו לי|החזר כספי|כסף בחזרה|זיכוי|פיצוי|חיוב|תביעה|עורך דין|עורכת דין|משפטי|כועס|זועם|מתוסכל|מעצבן|שירות גרוע|תלונה|אכזבה|ביטול|לבטל|שינוי|לשנות|הארכ|להאריך|איחור|מאחר|אני אאחר|\b(?:representative|human|agent|person|someone|refund|money back|charge|charged|legal|lawyer|sue|angry|mad|frustrated|upset|cancel|cancellation|change|modify|amend|extend|extension|late|delayed|complaint|terrible|awful)\b|speak to|talk to|customer service/.test(normalized(input));
+  return /נציג|נציגת|אנושי|בנאדם|בן אדם|לדבר עם|שיחה עם|יחזור אלי|יחזרו אלי|שיחזרו|תחזרו אלי|תתקשרו אלי|call me back|callback|תאונה|נזק|דפיקה ברכב|שריטה|שפשוף|מכה ברכב|פגיעה|חירום|דחוף|הצילו|תעזרו לי|החזר כספי|כסף בחזרה|זיכוי|פיצוי|חיוב|תביעה|עורך דין|עורכת דין|משפטי|כועס|זועם|מתוסכל|מעצבן|שירות גרוע|תלונה|אכזבה|ביטול|לבטל|שינוי|לשנות|הארכ|להאריך|איחור|מאחר|אני אאחר|\b(?:representative|human|agent|person|someone|refund|money back|charge|charged|legal|lawyer|sue|angry|mad|frustrated|upset|cancel|cancellation|change|modify|amend|extend|extension|late|delayed|complaint|terrible|awful)\b|speak to|talk to|customer service/.test(normalized(input));
 }
 
 /**
@@ -203,10 +203,10 @@ export function classifyWhatsAppInitialRoute(input: string, hasActiveBooking: bo
   const text = normalized(input);
   if (/הצילו|עזרה דחוף|סכנה|לא בטוח(?! איזה (?:רכב|אוטו))|(?:^|\s)אש(?:\s|$)|אמבולנס|משטרה|פצוע|תאונה|התנגשות|התנגשתי|נכנסו בי|נפגע|פגיעה ברכב|דפקו לי את הרכב|עשיתי תאונה|רכב פגע בי|התהפכתי|accident|crash|collision|car accident|hit (?:(?:my|a) )?car|help me|emergency|danger|ambulance|police|injured|fire/.test(text)) return 'accident';
   if (hasApproximateKeyword(text, ['תאונה', 'התנגשות', 'accident', 'collision'])) return 'accident';
-  if (/פנצ[׳']?ר|פנצר|תקר|צמיג|גלגל|תקלה|נתקעתי|תקוע|גרירה|גרר|לא מניע|לא מתניע|נורת אזהרה|עשן|ריח דלק|מצבר|מפתח|נעול|האוטו לא זז|בעיה במנוע|רעש מוזר|flat tire|flat tyre|flat|puncture|blowout|breakdown|dead battery|car stopped|i am stuck|im stuck|stranded|tow|wont start|won't start|warning light|smoke|fuel smell|locked out|lost key|engine issue|strange noise/.test(text)) return 'breakdown';
+  if (/פנצ[׳']?ר|פנצר|תקר|צמיג|גלגל|תקלה|נתקעתי|תקוע|גרירה|גרר|לא מניע|לא מתניע|נורת אזהרה|(?:יוצא|יש|רואה|יוצאת) עשן|עשן (?:יוצא|מה)|ריח דלק|מצבר|איבדתי (?:את )?(?:ה)?מפתח|ננעל|נעול|התקלקל|התקלקלה|מקולקל|האוטו לא זז|בעיה במנוע|רעש מוזר|flat tire|flat tyre|flat|puncture|blowout|breakdown|dead battery|car stopped|i am stuck|im stuck|stranded|tow|wont start|won't start|warning light|smoke (?:is )?coming|smoke from|there is smoke|broke down|broken down|fuel smell|locked out|lost key|engine issue|strange noise/.test(text)) return 'breakdown';
   if (hasApproximateKeyword(text, ['פנצר', 'תקלה', 'מצבר', 'breakdown', 'puncture', 'battery'])) return 'breakdown';
   if (/הזמנה קיימת|יש לי הזמנה|סטטוס הזמנה|מספר הזמנה|כבר הזמנתי|ההזמנה שלי|איפה ההזמנה|לגבי ההזמנה|הזמנתי אצלכם|existing booking|my booking|booking status|booking (?:number|confirmation)|reservation|already booked|where is my booking|about my reservation/.test(text)) return 'existing_booking_lookup';
-  if (/השכר|להשכיר|רכב חדש|רכב ל(?:סופש|סוף שבוע|יומיים|שבוע|חודש)|הזמ|אני רוצה רכב|צריך (?:רכב|אוטו|מכונית)|מחפש (?:רכב|אוטו)|לקחת רכב|אפשר רכב|מעוניין ברכב|rent|rental|hire (?:a )?car|car hire|need .*\b(?:car|suv|vehicle)\b|looking for .*\b(?:car|suv|vehicle)\b|\b(?:family|luxury|premium) (?:car|suv|vehicle)\b|book.*car|get a car|want a car/.test(text)) return 'rental';
+  if (/השכר|להשכיר|רכב חדש|רכב ל(?:סופש|סוף שבוע|יומיים|שבוע|חודש)|הזמ|אני רוצה רכב|צריך (?:רכב|אוטו|מכונית)|מחפש (?:רכב|אוטו)|לקחת רכב|אפשר רכב|רכב פנוי|רכבים פנויים|מעוניין ברכב|rent|rental|hire (?:a )?car|car hire|need .*\b(?:car|suv|vehicle)\b|looking for .*\b(?:car|suv|vehicle)\b|\b(?:family|luxury|premium) (?:car|suv|vehicle)\b|book.*car|get a car|want a car/.test(text)) return 'rental';
   if (hasApproximateKeyword(text, ['השכרה', 'לשכור', 'rental', 'rent'])) return 'rental';
   return hasActiveBooking ? 'existing_customer' : 'new_customer';
 }
@@ -518,8 +518,8 @@ function confirmationPrompt(state: FlowState, locale: FlowLocale) {
   const needs = [state.passengers && (locale === 'en' ? `${state.passengers} passengers` : `${state.passengers} נוסעים`), state.luggage && (locale === 'en' ? `${state.luggage} bags` : `${state.luggage} מזוודות`), state.childSeats && (locale === 'en' ? `${state.childSeats} child seats` : `${state.childSeats} כיסאות ילדים`), state.tripNeeds].filter(Boolean).join(', ');
   const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://smartcar.co.il';
   const consent = termsConsent(locale);
-  if (locale === 'en') return `${rentalConfirmationIntro(state, locale)}\n\nDates: ${formatDate(state.pickupDate!)} to ${formatDate(state.dropoffDate!)}\nTimes: ${state.pickupTime} to ${state.returnTime}\nPickup: ${state.pickupLocation}\nReturn: ${state.dropoffLocation}\nVehicle: ${vehicle}${needs ? `\nTrip needs: ${needs}` : ''}\nName: ${state.customerName}\nEmail: ${state.customerEmail}\n\nThis is a rental request, not a confirmation of availability, price, or a specific vehicle. A SmartCar representative will review the full fleet and provide final written confirmation.\n\n${consent.text}\n${base}/en/terms\n${base}/en/privacy\n\nReply I confirm to submit, or menu to start again.`;
-  return `${rentalConfirmationIntro(state, locale)}\n\nתאריכים: ${formatDate(state.pickupDate!)} עד ${formatDate(state.dropoffDate!)}\nשעות: ${state.pickupTime} עד ${state.returnTime}\nאיסוף: ${state.pickupLocation}\nהחזרה: ${state.dropoffLocation}\nרכב: ${vehicle}${needs ? `\nצרכים: ${needs}` : ''}\nשם: ${state.customerName}\nמייל: ${state.customerEmail}\n\nזוהי בקשת השכרה ולא אישור זמינות, מחיר או רכב מסוים. נציג SmartCar יבדוק את הצי המלא וישלח אישור סופי בכתב.\n\n${consent.text}\n${base}/he/terms\n${base}/he/privacy\n\nכתבו אני מאשר/ת לשליחה, או תפריט להתחלה מחדש.`;
+  if (locale === 'en') return `${rentalConfirmationIntro(state, locale)}\n\nDates: ${formatDate(state.pickupDate!)} to ${formatDate(state.dropoffDate!)}${state.pickupTime ? `\nTimes: ${state.pickupTime}${state.returnTime ? ` to ${state.returnTime}` : ''}` : ''}\nPickup: ${state.pickupLocation}\nReturn: ${state.dropoffLocation}\nVehicle: ${vehicle}${needs ? `\nTrip needs: ${needs}` : ''}\nName: ${state.customerName}\nEmail: ${state.customerEmail}\n\nThis is a rental request, not a confirmation of availability, price, or a specific vehicle. A SmartCar representative will review the full fleet and provide final written confirmation.\n\n${consent.text}\n${base}/en/terms\n${base}/en/privacy\n\nReply I confirm to submit, or menu to start again.`;
+  return `${rentalConfirmationIntro(state, locale)}\n\nתאריכים: ${formatDate(state.pickupDate!)} עד ${formatDate(state.dropoffDate!)}${state.pickupTime ? `\nשעות: ${state.pickupTime}${state.returnTime ? ` עד ${state.returnTime}` : ''}` : ''}\nאיסוף: ${state.pickupLocation}\nהחזרה: ${state.dropoffLocation}\nרכב: ${vehicle}${needs ? `\nצרכים: ${needs}` : ''}\nשם: ${state.customerName}\nמייל: ${state.customerEmail}\n\nזוהי בקשת השכרה ולא אישור זמינות, מחיר או רכב מסוים. נציג SmartCar יבדוק את הצי המלא וישלח אישור סופי בכתב.\n\n${consent.text}\n${base}/he/terms\n${base}/he/privacy\n\nכתבו אני מאשר/ת לשליחה, או תפריט להתחלה מחדש.`;
 }
 
 function promptForState(state: FlowState, locale: FlowLocale, booking: BookingSummary | null, previous?: FlowState | null) {
@@ -743,7 +743,8 @@ function explicitName(input: string) {
 
 function rentalStepFor(state: FlowState): FlowStep {
   if (!state.pickupDate || !state.dropoffDate) return 'rental_dates';
-  if (!state.pickupTime || !state.returnTime) return 'rental_times';
+  // Times are optional: a representative coordinates the exact hour, so the
+  // bot never stops to ask for it. Times the customer volunteers are kept.
   if (!state.pickupLocation || !state.dropoffLocation) return 'rental_locations';
   if (!state.vehiclePreference) return 'rental_vehicle';
   if (!state.customerName) return 'rental_name';
@@ -966,8 +967,10 @@ async function createRentalRequest(phone: string, state: FlowState, locale: Flow
       customer_email: state.customerEmail,
       pickup_date: state.pickupDate,
       dropoff_date: state.dropoffDate,
-      pickup_time: state.pickupTime,
-      return_time: state.returnTime,
+      // The table predates optional times and requires a value; the trip
+      // needs below say when the customer gave none.
+      pickup_time: state.pickupTime || '09:00',
+      return_time: state.returnTime || state.pickupTime || '09:00',
       pickup_location: state.pickupLocation,
       dropoff_location: state.dropoffLocation,
       vehicle_preference: state.vehiclePreference,
@@ -976,6 +979,7 @@ async function createRentalRequest(phone: string, state: FlowState, locale: Flow
         state.luggage && `${state.luggage} luggage`,
         state.childSeats && `${state.childSeats} child seats`,
         state.tripNeeds,
+        !state.pickupTime && 'times not given — coordinate with the customer',
       ].filter(Boolean).join(', ') || null,
       locale,
       status: 'PENDING',
@@ -1155,6 +1159,8 @@ function knowledgeReply(input: string, locale: FlowLocale, state?: FlowState | n
 export async function getWhatsAppFlowReply(phone: string, body: string, store: WhatsAppFlowStore = persistentStore): Promise<WhatsAppFlowResult> {
   const input = normalized(body);
   const [booking, existingState] = await Promise.all([store.activeBooking(phone), store.loadState(phone)]);
+  // Conversations saved while the bot still asked for times continue from the next real step.
+  if (existingState?.step === 'rental_times') existingState.step = rentalStepFor(existingState);
   const locale = detectWhatsAppLocale(body, existingState?.locale);
 
   // The final "send the request" step is a plain yes/no gate. It stays
@@ -1472,6 +1478,21 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
   // avoids making customers ask a representative about information already
   // stated in the terms, while the accident/breakdown safety paths above keep
   // their mandatory human handoff.
+  // A question about SmartCar is answered by Gemini from the published
+  // website (see whatsapp-site-knowledge.ts); the reply is checked so every
+  // number and link in it comes from the site.
+  // Hebrew letters are not "word" characters for \b, so boundaries are spelled out.
+  const asksQuestion = /[?？]/.test(body)
+    || /(?:^|[\s,.!])(?:מה|איך|כמה|האם|איפה|היכן|מתי|עד מתי|למה|עולה|יש לכם|יש לך|אפשר|מותר|צריך|מאיזה|איזה|אילו|באיזה|what|how|where|when|why|which|do you|can i|is there|are there)(?=$|[\s,.!?])/i.test(body);
+  if (interpretation?.acknowledgement && asksQuestion && ['policy', 'delivery_return', 'unknown'].includes(interpretation.intent)
+    && initialRoute !== 'rental' && !isRentalStep(existingState?.step ?? 'menu')) {
+    if (!existingState) await store.saveState(phone, { step: 'menu', locale });
+    return {
+      handled: true,
+      reply: `${interpretation.acknowledgement}\n\n${locale === 'en' ? 'Anything else I can help with, or shall we start a rental request?' : 'אפשר לעזור במשהו נוסף, או שנתחיל בקשת השכרה?'}`,
+    };
+  }
+
   if (initialRoute !== 'rental' && !isRentalStep(existingState?.step ?? 'menu')) {
     const answer = knowledgeReply(body, locale, existingState);
     if (answer) return answer;
@@ -1570,7 +1591,17 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     };
   }
 
-  if (requiresHumanHandoff(body, collectingNewRental) && !validStructuredEmail) {
+  // "Can I cancel?" or "until when can I change dates?" is a question about the
+  // published policy, not a request to cancel a booking: answer it.
+  const personRequested = /נציג|אנושי|בן ?אדם|בנאדם|יחזור|representative|human|person|someone|call me/i.test(body);
+  const policyQuestion = asksQuestion && !booking && !personRequested
+    && /ביטול|לבטל|לשנות|שינוי|להאריך|הארכ|cancel|change|extend/i.test(body)
+    && !/חיוב|חויב|כועס|תלונה|charge|angry|complaint/i.test(body);
+  if (policyQuestion) {
+    const policy = knowledgeReply(locale === 'en' ? 'cancellation policy' : 'מדיניות ביטול', locale, existingState);
+    if (policy) return policy;
+  }
+  if (requiresHumanHandoff(body, collectingNewRental) && !validStructuredEmail && !policyQuestion) {
     await store.saveState(phone, handoffState(existingState, locale));
     const mood = detectConversationMood(body);
     return {

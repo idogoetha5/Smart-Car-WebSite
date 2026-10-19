@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { getSiteKnowledge } from '@/lib/whatsapp-site-knowledge';
 
 const MODEL = process.env.WHATSAPP_GEMINI_MODEL || 'gemini-3.5-flash-lite';
 
@@ -69,9 +70,8 @@ Rental details. Fill a field only when the customer stated it or it follows unam
 - vehiclePreference: ECONOMY_COMPACT (small, cheap, economical), SEDAN (family car, regular), SUV (crossover, jeep, high car), VAN (6 or more people, 7 seats, minivan, large group), LUXURY (premium, luxury), ALL (customer wants help choosing). Six or more travellers means VAN. Put the exact words that justify it in vehicleEvidence.
 - passengers: number of travellers if stated ("אנחנו 6", "for a family of five"), else 0.
 
-acknowledgement: write in the customer's language (Hebrew unless they wrote English), one or two short, natural sentences, the way a friendly professional agent replies on WhatsApp. Respond to what the customer actually said: their need, their concern, or the question they asked. Do not list the dates, times or places back (the app summarises them), do not greet again, and do not ask a question (the app asks the next question). When the customer greets you or makes small talk, greet back warmly in one short sentence. When they ask a question, always answer it within the facts below. Leave it empty only when the message is purely a detail the app already records.
-You may only use these facts: SmartCar has branches in Herzliya, Tel Aviv, Jerusalem and Ben Gurion Airport; delivery and collection at an address in Israel can be arranged in advance, subject to availability; once dates and a car type are known the chat shows price estimates from the catalogue; a SmartCar representative confirms availability and the final price in writing. Never state a price, fee, deposit, insurance term, age rule, availability or policy, and never say a booking is made or confirmed. If the customer asks about something outside these facts, say a representative will confirm it.
-Never include a phone number, email address, link, or the customer's name.`;
+acknowledgement: this is your reply to the customer, written in their language (Hebrew unless they wrote English), the way an expert, warm SmartCar agent replies on WhatsApp: natural, confident, short (one to four sentences). You are the SmartCar expert: answer every question fully and precisely from the KNOWLEDGE below — branches and addresses, opening hours, phone, deposit, insurance, excess, age and licence rules, documents, fuel, mileage, cancellation, delivery, leasing, cars for sale, payment, anything the website says. When the customer greets you or makes small talk, reply warmly. Do not list back the rental dates, times or places the app records, and do not ask the next booking question (the app adds it). Leave it empty only when the message is purely a booking detail with nothing to answer.
+Use only facts that appear in the KNOWLEDGE; never invent a fact, number, price, rule or promise. If the KNOWLEDGE does not cover the question, say honestly that a SmartCar representative will confirm it. Never quote a daily rental price for specific dates (the chat shows catalogue estimates once dates and a car type are known), never confirm availability, and never say a booking is made or confirmed. You may give the office phone, email, branch addresses and smartcar.co.il page links from the KNOWLEDGE. Never include the customer's own name, phone or email.`;
 
 function israelToday() {
   const now = new Date();
@@ -80,11 +80,23 @@ function israelToday() {
   return { today, weekday };
 }
 
-/** Removes anything in a model sentence that the application must own: prices, links and contact details. */
-export function safeAcknowledgement(text: string): string {
-  const clean = text.replace(/\s+/g, ' ').trim();
-  if (!clean || clean.length > 320) return '';
-  if (/₪|\$|€|ש["״]ח|שקל|\bnis\b|\busd\b|https?:|www\.|@|\d{6,}|הוזמן|הזמנתך אושרה|booking is confirmed|is booked/i.test(clean)) return '';
+/**
+ * Guards the model's reply: every number, link and email in it must come from
+ * the published knowledge (or the customer's own message), so the bot cannot
+ * make up a price, a phone number or a page.
+ */
+export function safeAcknowledgement(text: string, allowed = ''): string {
+  const clean = text.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  if (!clean || clean.length > 700) return '';
+  if (/הוזמן|הזמנתך אושרה|ההזמנה אושרה|booking is confirmed|is booked/i.test(clean)) return '';
+  const source = allowed.replace(/[\s,]/g, '');
+  for (const number of clean.match(/\d[\d,.:\-]*\d|\d/g) ?? []) {
+    if (!source.includes(number.replace(/[,]/g, ''))) return '';
+  }
+  for (const link of clean.match(/https?:\/\/\S+|www\.\S+|\S+@\S+/gi) ?? []) {
+    const bare = link.replace(/[).,!?״"]+$/, '');
+    if (!/smartcar\.co\.il/i.test(bare) || !allowed.includes(bare.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0])) return '';
+  }
   return clean;
 }
 
@@ -102,16 +114,19 @@ export async function interpretWhatsAppMessage(message: string, step: string | n
     pickupLocation: context.pickupLocation, dropoffLocation: context.dropoffLocation, vehiclePreference: context.vehiclePreference, passengers: context.passengers,
   }).filter(([, value]) => value !== undefined && value !== '')) : {};
 
+  const knowledge = await getSiteKnowledge();
+  const today = israelToday();
+
   try {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(MODEL)}:generateContent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-        contents: [{ role: 'user', parts: [{ text: JSON.stringify({ ...israelToday(), step, known, message }) }] }],
+        systemInstruction: { parts: [{ text: `${SYSTEM_INSTRUCTION}\n\nKNOWLEDGE (the published SmartCar website):\n${knowledge}` }] },
+        contents: [{ role: 'user', parts: [{ text: JSON.stringify({ ...today, step, known, message }) }] }],
         generationConfig: {
           temperature: 0.2,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 1500,
           responseFormat: { text: { mimeType: 'APPLICATION_JSON', schema: SCHEMA } },
         },
       }),
@@ -130,7 +145,7 @@ export async function interpretWhatsAppMessage(message: string, step: string | n
       console.error('[whatsapp-gemini] invalid structured response');
       return null;
     }
-    return { ...result.data, acknowledgement: safeAcknowledgement(result.data.acknowledgement) };
+    return { ...result.data, acknowledgement: safeAcknowledgement(result.data.acknowledgement, `${knowledge}\n${message}\n${JSON.stringify(known)}\n${JSON.stringify(today)}`) };
   } catch (error) {
     console.error('[whatsapp-gemini] unavailable:', error instanceof Error ? error.name : 'unknown error');
     return null;

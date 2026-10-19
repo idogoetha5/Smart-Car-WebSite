@@ -1,0 +1,97 @@
+import { BRANCHES } from '@/lib/branches';
+import { LEASING_DURATIONS, MILEAGE_PACKAGES, OFFICE_EMAIL, OFFICE_PHONE } from '@/lib/constants';
+import { DELIVERY_CITIES } from '@/lib/delivery-cities';
+import { FAQ_HE } from '@/lib/faq-data';
+import { ANSWERS } from '@/lib/smartcar-service-knowledge';
+
+/**
+ * Everything the WhatsApp bot may say about SmartCar.
+ *
+ * The approved structured sources (branches, FAQ, service answers) are always
+ * included. On top of them the published Hebrew pages are read from the live
+ * site and cached, so whatever the website says, the bot knows, and an edit to
+ * a page reaches the bot without a code change.
+ */
+
+const PAGES = [
+  '/he', '/he/terms', '/he/insurance', '/he/leasing', '/he/about', '/he/guide', '/he/contact', '/he/branches', '/he/cars-for-sale', '/he/rental',
+  ...['business', 'new-driver', 'leasing', 'hourly', 'commercial', 'daily', 'monthly', 'sale'].map((type) => `/he/services/${type}`),
+];
+const PAGE_LIMIT = 14000;
+const CACHE_MS = 30 * 60_000;
+
+let cache: { text: string; at: number } | null = null;
+let pending: Promise<string> | null = null;
+
+function staticKnowledge() {
+  const branches = BRANCHES.map((b) => `- ${b.nameHe}: ${b.streetHe}, ${b.cityHe}. טלפון ${b.phone}.`).join('\n');
+  const faq = FAQ_HE.map((item) => `ש: ${item.q}\nת: ${item.a}`).join('\n\n');
+  const answers = Object.values(ANSWERS).map((answer) => `- ${answer.he}`).join('\n');
+  const delivery = DELIVERY_CITIES.map((city) => `- ${city.nameHe}: ${city.bodyHe}`).join('\n');
+  return `# פרטי קשר
+טלפון המשרד: ${OFFICE_PHONE}. מייל: ${OFFICE_EMAIL}. אתר: https://www.smartcar.co.il
+
+# סניפים
+${branches}
+
+# שאלות נפוצות
+${faq}
+
+# תשובות שירות מאושרות
+${answers}
+
+# מסירה עד הבית (ערים ואזורים ללא סניף)
+${delivery}
+
+# ליסינג
+תקופות ליסינג אפשריות (בחודשים): ${LEASING_DURATIONS.join(', ')}. חבילות קילומטראז׳ שנתיות: ${MILEAGE_PACKAGES.map((km) => km.toLocaleString('en-US')).join(', ')} ק״מ.
+
+# קטגוריות רכב להשכרה
+רכב קטן וחסכוני, רכב משפחתי, קרוסאובר / SUV, 7 מקומות ומעלה (ואן), רכב יוקרתי, רכב חשמלי, קבריולט.`;
+}
+
+/** Reads the visible text of a page's <main>, without markup, scripts or styles. */
+export function pageText(html: string): string {
+  const main = html.match(/<main[\s\S]*?<\/main>/i)?.[0] ?? html;
+  return main
+    .replace(/<(script|style|noscript|svg)[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<br\s*\/?>|<\/(p|li|h[1-6]|div|tr|section)>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\s*\n\s*/g, '\n')
+    .replace(/\n{2,}/g, '\n')
+    .trim()
+    .slice(0, PAGE_LIMIT);
+}
+
+async function livePages(): Promise<string> {
+  const base = (process.env.WHATSAPP_KNOWLEDGE_BASE_URL || 'https://www.smartcar.co.il').replace(/\/$/, '');
+  const pages = await Promise.all(PAGES.map(async (path) => {
+    try {
+      const response = await fetch(`${base}${path}`, { signal: AbortSignal.timeout(6000), headers: { 'User-Agent': 'SmartCar-WhatsApp-Knowledge' } });
+      if (!response.ok) return '';
+      const text = pageText(await response.text());
+      return text ? `# עמוד באתר ${path}\n${text}` : '';
+    } catch {
+      return '';
+    }
+  }));
+  return pages.filter(Boolean).join('\n\n');
+}
+
+/** The full knowledge text. Never throws; falls back to the approved static sources. */
+export async function getSiteKnowledge(): Promise<string> {
+  const fixed = staticKnowledge();
+  if (process.env.VITEST || process.env.NODE_ENV === 'test') return fixed;
+  if (cache && Date.now() - cache.at < CACHE_MS) return cache.text;
+  pending ??= livePages()
+    .then((live) => {
+      const text = live ? `${fixed}\n\n${live}` : fixed;
+      // Do not hold on to a failed read for half an hour.
+      if (live) cache = { text, at: Date.now() };
+      return text;
+    })
+    .finally(() => { pending = null; });
+  return pending;
+}
