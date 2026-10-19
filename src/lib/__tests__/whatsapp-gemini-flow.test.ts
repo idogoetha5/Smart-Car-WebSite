@@ -44,6 +44,14 @@ describe('Gemini interpretation inside the WhatsApp flow', () => {
     expect(state()).toMatchObject({ handedOff: true });
   });
 
+  it('never asks two questions at once: the Gemini question is dropped when the chat asks the next one', async () => {
+    const { store } = makeStore({ intent: 'rental', ...emptyFields, acknowledgement: 'אין בעיה, בשמחה נסדר לך רכב. איפה תרצה לאסוף אותו?' });
+    const result = await getWhatsAppFlowReply('972501234567', 'אפשר אוטו לחופשה?', store);
+    expect(result.reply).toContain('אין בעיה, בשמחה נסדר לך רכב.');
+    expect(result.reply).not.toContain('איפה תרצה לאסוף');
+    expect(result.reply.match(/\?/g)).toHaveLength(1);
+  });
+
   it('keeps a deterministic safety route when Gemini is unavailable', async () => {
     const { store, interpretMessage } = makeStore(null);
     const result = await getWhatsAppFlowReply('972501234567', 'יש תאונה', store);
