@@ -186,6 +186,11 @@ function isMenuCommand(input: string) {
  * booking to modify (handled elsewhere via hasActiveBooking), but here they
  * were derailing new-request collection into a handoff on ordinary phrasing.
  */
+/** "מה קורה", "hi", "how are you": a greeting, never a reason to hand off or to search the site. */
+function smallTalkOnly(body: string) {
+  return /^\s*(?:היי+|הי|שלום|אהלן|הלו|מה קורה|מה נשמע|מה המצב|מה איתך|בוקר טוב|ערב טוב|hi|hello|hey|what'?s up|how are you)[\s!?.,🙂😊👋]*$/i.test(body);
+}
+
 export function requiresHumanHandoff(input: string, duringActiveRentalCollection = false) {
   const text = input.toLowerCase();
   if (/עו[״"']ד/.test(text)) return true;
@@ -1216,6 +1221,10 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
   }
 
   let initialRoute = classifyWhatsAppInitialRoute(body, Boolean(booking));
+  // Hebrew letters are not "word" characters for \b, so boundaries are spelled out.
+  const asksQuestion = /[?？]/.test(body)
+    || /(?:^|[\s,.!])(?:מה|איך|כמה|האם|איפה|היכן|מתי|עד מתי|למה|עולה|יש לכם|יש לך|אפשר|מותר|צריך|מאיזה|איזה|אילו|באיזה|what|how|where|when|why|which|do you|can i|is there|are there)(?=$|[\s,.!?])/i.test(body);
+  const personRequested = /נציג|אנושי|בן ?אדם|בנאדם|יחזור|representative|human|person|someone|call me/i.test(body);
   // Gemini reads ordinary free text, while fixed menu choices, final consent,
   // emergencies and human takeover remain under application control.
   const interpretation = !existingState?.handedOff && !isMenuCommand(body) && !/^\s*\d\s*$/.test(body)
@@ -1366,6 +1375,23 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     };
   }
 
+  // A question Gemini could answer from the published site is answered here,
+  // before keyword routing can turn "how do I call you?" into a handoff or
+  // "for how long is leasing?" into a menu. Emergencies were handled above;
+  // an explicit request for a person, a rental in progress, an existing
+  // booking and the cars-for-sale catalogue keep their own paths.
+  if (interpretation?.acknowledgement && asksQuestion && !personRequested && !smallTalkOnly(body)
+    && !['accident', 'breakdown', 'existing_booking', 'buy_car', 'sell_car'].includes(interpretation.intent)
+    && !(interpretation.intent === 'rental' && !existingState)
+    && !isRentalStep(existingState?.step ?? 'menu') && !existingState?.handedOff && !booking
+    && !/חיוב|חויב|תלונה|כועס|charge|complaint|angry/i.test(body)) {
+    if (!existingState) await store.saveState(phone, { step: 'menu', locale });
+    const followUp = interpretation.intent === 'leasing'
+      ? (locale === 'en' ? 'Would you like a representative to prepare a leasing offer for you?' : 'רוצים שנציג יכין לכם הצעת ליסינג?')
+      : (locale === 'en' ? 'Anything else I can help with, or shall we start a rental request?' : 'אפשר לעזור במשהו נוסף, או שנתחיל בקשת השכרה?');
+    return { handled: true, reply: `${interpretation.acknowledgement}\n\n${followUp}` };
+  }
+
   // A disputed charge needs account-level review. Give ownership first rather
   // than quoting a general policy as though it resolved the individual case.
   if (/חיוב|חויב|charge|charged|damage charge|fuel charge/i.test(input) && /הזוי|לא מקבל|לא מסכים|כועס|מתוסכל|ridiculous|do not accept|unacceptable|angry|frustrated/i.test(input)) {
@@ -1384,7 +1410,7 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
   const validStructuredEmail = existingState?.step === 'rental_email' && Boolean(validEmail(body));
   const collectingNewRental = Boolean(existingState) && isRentalStep(existingState!.step);
   // Small talk such as "מה קורה" is never a reason to hand the chat to a person.
-  const smallTalk = /^\s*(?:היי+|הי|שלום|אהלן|הלו|מה קורה|מה נשמע|מה המצב|מה איתך|בוקר טוב|ערב טוב|hi|hello|hey|what'?s up|how are you)[\s!?.,🙂😊👋]*$/i.test(body);
+  const smallTalk = smallTalkOnly(body);
   if (interpretation?.intent === 'representative' && !validStructuredEmail && !smallTalk) {
     await store.saveState(phone, handoffState(existingState, locale));
     const mood = detectConversationMood(body);
@@ -1481,9 +1507,6 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
   // A question about SmartCar is answered by Gemini from the published
   // website (see whatsapp-site-knowledge.ts); the reply is checked so every
   // number and link in it comes from the site.
-  // Hebrew letters are not "word" characters for \b, so boundaries are spelled out.
-  const asksQuestion = /[?？]/.test(body)
-    || /(?:^|[\s,.!])(?:מה|איך|כמה|האם|איפה|היכן|מתי|עד מתי|למה|עולה|יש לכם|יש לך|אפשר|מותר|צריך|מאיזה|איזה|אילו|באיזה|what|how|where|when|why|which|do you|can i|is there|are there)(?=$|[\s,.!?])/i.test(body);
   // Gemini's reading wins over keyword routing here: "from what age can I
   // rent?" mentions renting but is a question about the rules.
   if (interpretation?.acknowledgement && ['policy', 'delivery_return', 'unknown'].includes(interpretation.intent)
@@ -1595,7 +1618,6 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
 
   // "Can I cancel?" or "until when can I change dates?" is a question about the
   // published policy, not a request to cancel a booking: answer it.
-  const personRequested = /נציג|אנושי|בן ?אדם|בנאדם|יחזור|representative|human|person|someone|call me/i.test(body);
   const policyQuestion = asksQuestion && !booking && !personRequested
     && /ביטול|לבטל|לשנות|שינוי|להאריך|הארכ|cancel|change|extend/i.test(body)
     && !/חיוב|חויב|כועס|תלונה|charge|angry|complaint/i.test(body);
