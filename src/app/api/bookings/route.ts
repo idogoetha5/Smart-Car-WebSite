@@ -14,6 +14,7 @@ import { normalizeEmail } from '@/lib/email';
 import { sendTemplateEmail } from '@/lib/email-delivery';
 import { formatLocationForCustomer } from '@/lib/location-display';
 import { numericOrderReference } from '@/lib/order-reference';
+import { sendBookingCustomerEmail } from '@/lib/booking-customer-email';
 import { normalizeWhatsAppPhone } from '@/lib/rental-quote';
 import { isoToday } from '@/lib/rental-quote';
 import type { Vehicle } from '@/types';
@@ -356,32 +357,20 @@ async function sendRequestReceivedEmail({
   // Both recipients are independent — sent concurrently so the customer's
   // response time isn't doubled by a second sequential EmailJS round trip.
   const [{ ok }, officeResult] = await Promise.all([
-    sendTemplateEmail({
-      event: 'booking_request_received',
-      // One receipt per booking, whatever happens upstream.
+    sendBookingCustomerEmail({
+      kind: 'request_received',
       idempotencyKey: `booking_request_received:${booking.id}`,
-      templateId: isEnglish
-        ? process.env.NEXT_PUBLIC_EMAILJS_EN_TEMPLATE_ID ?? process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID
-        : process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
-      params: {
-        ...sharedParams,
-        to_email:     booking.customer_email,
-        to_name:      booking.customer_name,
-        vehicle_name: vehicleNameCustomer,
-        start_date:   startDate,
-        end_date:     endDate,
-        heading:      isEnglish ? 'Thank you — we received your request' : 'תודה, הבקשה שלך אצלנו',
-        intro_text:   isEnglish
-          ? 'Thank you for choosing SmartCar. Your request was received successfully. A member of our team is reviewing the details and will contact you shortly to continue the rental process.'
-          : 'תודה שבחרת ב-SmartCar! הבקשה שלך התקבלה אצלנו בהצלחה. נציג מהצוות שלנו כבר עובר על הפרטים וייצור איתך קשר בהקדם כדי להתקדם בתהליך ההשכרה.',
-        // Rows/notice marked office_only are hidden for the customer;
-        // customer_only stays visible. Values still required even when
-        // hidden — the template has no notion of "leave this field blank".
-        office_only:   'display:none',
-        customer_only: '',
-        customer_name: '', customer_email: '', id_number: '', total_days: '',
-        mileage_allowance: '', extras: '', additional_driver: '', notes: '',
-      },
+      locale: isEnglish ? 'en' : 'he',
+      toEmail: booking.customer_email,
+      customerName: booking.customer_name,
+      orderId,
+      vehicleName: vehicleNameCustomer,
+      startDate,
+      endDate,
+      pickupLocation,
+      returnLocation,
+      totalPrice: totalPriceText,
+      extras: extrasText,
     }),
     sendTemplateEmail({
       event: 'booking_request_received',

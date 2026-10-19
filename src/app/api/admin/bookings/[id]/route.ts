@@ -3,11 +3,10 @@ import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/server';
 import { deleteBookingCascade } from '@/lib/booking-delete';
 import { verifyAdminToken } from '@/lib/admin-auth';
-import { alreadyDelivered, sendTemplateEmail } from '@/lib/email-delivery';
+import { alreadyDelivered } from '@/lib/email-delivery';
 import { formatLocationForCustomer } from '@/lib/location-display';
 import { numericOrderReference } from '@/lib/order-reference';
-
-const LOGO_URL = 'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/logo.png';
+import { sendBookingCustomerEmail } from '@/lib/booking-customer-email';
 
 // TEMPORARY (2026-07-20): there is no working online payment link yet.
 // HYP_TERMINAL/HYP_PASSP/HYP_REFERER exist in Vercel (Hyp/YaadPay clearing
@@ -78,37 +77,24 @@ async function sendConfirmationEmail(booking: ConfirmableBooking): Promise<boole
   const locale = booking.consent_locale === 'en' ? 'en' : 'he';
   const isEnglish = locale === 'en';
   const orderId = numericOrderReference(String(booking.id));
-  const result = await sendTemplateEmail({
-    event: 'booking_confirmed',
+  const result = await sendBookingCustomerEmail({
+    kind: 'confirmed',
     idempotencyKey: key,
-    templateId: isEnglish
-      ? process.env.NEXT_PUBLIC_EMAILJS_CONFIRMATION_EN_TEMPLATE_ID ?? process.env.NEXT_PUBLIC_EMAILJS_CONFIRMATION_TEMPLATE_ID
-      : process.env.NEXT_PUBLIC_EMAILJS_CONFIRMATION_TEMPLATE_ID,
-    params: {
-          to_email:          booking.customer_email,
-          to_name:           booking.customer_name,
-          order_id:          orderId,
-          booking_type:      isEnglish ? 'rental' : 'השכרה',
-          vehicle_name:      `${booking.vehicle?.make ?? ''} ${booking.vehicle?.model ?? ''}`.trim(),
-          start_date:        formatDate(booking.pickup_date, locale),
-          end_date:          formatDate(booking.dropoff_date, locale),
-          // The confirmation template was missing collection and return
-          // times, so a customer could not tell when to be there.
-          pickup_time:       booking.pickup_time || '09:00',
-          return_time:       booking.return_time || '09:00',
-          pickup_location:   formatLocationForCustomer(booking.pickup_location),
-          return_location:   formatLocationForCustomer(booking.dropoff_location),
-          customer_phone:    booking.customer_phone,
-          total_price:       booking.total_price ? `₪${Number(booking.total_price).toLocaleString(isEnglish ? 'en-US' : 'he-IL')}` : '-',
-          extras:            Array.isArray(booking.extras) && booking.extras.length > 0
-                                ? booking.extras.map((e: string) => (isEnglish ? EXTRAS_LABELS_EN : EXTRAS_LABELS_HE)[e] ?? e).join(', ')
-                                : isEnglish ? 'None' : 'ללא',
-          down_payment:      booking.total_price ? `₪${Math.round(Number(booking.total_price) * 0.05).toLocaleString(isEnglish ? 'en-US' : 'he-IL')}` : '-',
-          payment_link:      whatsappDepositLink(orderId, locale),
-          payment_link_text: whatsappDepositLink(orderId, locale),
-      bcc_email:         'office@smartcar.co.il',
-      logo_url:          LOGO_URL,
-    },
+    locale,
+    toEmail: booking.customer_email,
+    customerName: booking.customer_name,
+    orderId,
+    vehicleName: `${booking.vehicle?.make ?? ''} ${booking.vehicle?.model ?? ''}`.trim(),
+    startDate: formatDate(booking.pickup_date, locale),
+    endDate: formatDate(booking.dropoff_date, locale),
+    pickupLocation: formatLocationForCustomer(booking.pickup_location),
+    returnLocation: formatLocationForCustomer(booking.dropoff_location),
+    totalPrice: booking.total_price ? `₪${Number(booking.total_price).toLocaleString(isEnglish ? 'en-US' : 'he-IL')}` : '-',
+    extras: Array.isArray(booking.extras) && booking.extras.length > 0
+      ? booking.extras.map((e: string) => (isEnglish ? EXTRAS_LABELS_EN : EXTRAS_LABELS_HE)[e] ?? e).join(', ')
+      : isEnglish ? 'None' : 'ללא',
+    downPayment: booking.total_price ? `₪${Math.round(Number(booking.total_price) * 0.05).toLocaleString(isEnglish ? 'en-US' : 'he-IL')}` : '-',
+    paymentLink: whatsappDepositLink(orderId, locale),
   });
 
   return result.ok;
