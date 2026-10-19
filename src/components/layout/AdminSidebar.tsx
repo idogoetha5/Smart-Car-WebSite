@@ -15,7 +15,6 @@ import {
   Menu,
   MoreHorizontal,
   Tag,
-  Percent,
   Star,
   Send,
   MessageCircle,
@@ -139,7 +138,6 @@ export default function AdminSidebar() {
     { href: `/${locale}/admin/rental-quotes`, label: isHe ? 'הצעת מחיר להשכרה' : 'Rental quotation', icon: MessageCircle },
     { href: `/${locale}/admin/quotes`, label: isHe ? 'הצעת מחיר לליסינג' : 'Leasing quotation', icon: Send },
     { href: `/${locale}/admin/vehicles`, label: t('manage_vehicles'), icon: Car },
-    { href: `/${locale}/admin/pricing`, label: isHe ? 'מחירי רכבים' : 'Vehicle pricing', icon: Percent, childOf: 'vehicles' },
     { href: `/${locale}/admin/cars-for-sale`, label: isHe ? 'ניהול רכבים למכירה' : 'Cars for sale', icon: Tag },
     { href: `/${locale}/admin/leasing-requests`, label: t('manage_leasing'), icon: FileText },
     { href: `/${locale}/admin/inbox`, label: isHe ? 'וואטסאפ' : 'WhatsApp inbox', icon: MessagesSquare },
@@ -156,7 +154,7 @@ export default function AdminSidebar() {
 
   const nav = (
     <>
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {links.map((link) => {
           const Icon = link.icon;
           const isActive = pathname === link.href;
@@ -169,13 +167,11 @@ export default function AdminSidebar() {
               // that would be a setState inside an effect, which is the very
               // pattern this codebase just finished removing.
               onClick={() => setOpen(false)}
-              className={`flex min-h-11 items-center gap-3 rounded-lg py-3 pe-4 text-sm font-medium transition-colors ${
-                link.childOf ? 'me-4 border-e border-gray-700 ps-4 text-xs' : 'ps-4'
-              } ${
+              className={`flex min-h-14 items-center gap-3 rounded-xl py-3 pe-4 ps-4 text-base font-bold transition-colors ${
                 isActive ? 'bg-[#2D5F5F] text-white' : 'hover:bg-gray-800 hover:text-white'
               }`}
             >
-              <Icon className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
               <span className="min-w-0 truncate">{link.label}</span>
             </Link>
           );
@@ -185,7 +181,7 @@ export default function AdminSidebar() {
       <div className="p-4 border-t border-gray-800">
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-sm font-medium hover:bg-gray-800 hover:text-white transition-colors"
+          className="flex min-h-14 items-center gap-3 rounded-xl px-4 py-3 text-base font-bold w-full hover:bg-gray-800 hover:text-white transition-colors"
         >
           <LogOut className="w-4 h-4 shrink-0" aria-hidden="true" />
           {isHe ? 'התנתק' : 'Logout'}
@@ -213,10 +209,6 @@ export default function AdminSidebar() {
         className="md:hidden sticky top-0 z-30 flex items-center justify-between gap-3 bg-gray-900 text-white px-4 py-3"
         style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
       >
-        <div className="flex items-center gap-2 font-bold min-w-0">
-          <Car className="w-5 h-5 text-blue-400 shrink-0" aria-hidden="true" />
-          <span className="truncate">SmartCar Admin</span>
-        </div>
         <div className="flex items-center gap-1">
           <AdminInstallButton />
           <button
@@ -230,6 +222,10 @@ export default function AdminSidebar() {
           >
             <Menu className="w-6 h-6" aria-hidden="true" />
           </button>
+        </div>
+        <div className="flex items-center gap-2 font-black text-lg min-w-0">
+          <Car className="w-6 h-6 text-blue-400 shrink-0" aria-hidden="true" />
+          <span className="truncate">SmartCar Admin</span>
         </div>
       </div>
 

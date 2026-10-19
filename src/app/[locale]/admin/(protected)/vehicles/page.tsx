@@ -3,7 +3,9 @@
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { HttpError, fetcher } from '@/lib/swr';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import { Pencil, Trash2, X } from 'lucide-react';
 
 const CATEGORIES = ['MINI', 'ECONOMY', 'COMPACT', 'SEDAN', 'CROSSOVER', 'SUV', 'LUXURY', 'VAN', 'COMMERCIAL', 'ELECTRIC'];
@@ -37,6 +39,7 @@ export default function AdminVehiclesPage() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const router = useRouter();
+  const locale = useLocale();
 
   // This route answers with a bare array rather than the `{ data }` envelope
   // the rest of the admin API uses, so it takes the plain fetcher.
@@ -160,17 +163,22 @@ export default function AdminVehiclesPage() {
 
   return (
     <div className="p-4 sm:p-8" dir="rtl">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-start justify-between gap-3 mb-8">
         <div>
           <h1 className="text-3xl font-black text-gray-900">ניהול רכבים</h1>
           <p className="text-gray-500 mt-1">{vehicles.length} רכבים</p>
         </div>
-        <button
-          onClick={openAdd}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#E8743B] text-white font-semibold rounded-xl hover:bg-orange-600 transition-colors"
-        >
-          + הוסף רכב
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Link href={`/${locale}/admin/pricing`} className="flex min-h-11 items-center justify-center rounded-xl border border-[#2D5F5F] px-4 text-sm font-black text-[#2D5F5F] hover:bg-[#eef6f6]">
+            מחירי רכבים
+          </Link>
+          <button
+            onClick={openAdd}
+            className="flex min-h-11 items-center justify-center gap-2 px-5 bg-[#E8743B] text-white font-semibold rounded-xl hover:bg-orange-600 transition-colors"
+          >
+            + הוסף רכב
+          </button>
+        </div>
       </div>
 
       {/* Add / Edit Modal */}
