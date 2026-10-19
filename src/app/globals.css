@@ -75,6 +75,36 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* The office app uses the dashboard's deep SmartCar green as its common
+   visual anchor. This is scoped to admin only: customer-facing pages retain
+   their own conversion-focused presentation. */
+.smartcar-admin {
+  background:
+    radial-gradient(circle at 88% 0%, rgb(184 216 216 / 28%), transparent 27rem),
+    linear-gradient(180deg, #f7fbfb 0%, #f8fafc 25rem, #f9fafb 100%);
+  color: #0D2B2B;
+}
+
+.smartcar-admin > .flex-1 {
+  background: linear-gradient(180deg, rgb(255 255 255 / 45%), transparent 22rem);
+}
+
+.smartcar-admin ::selection {
+  background: #B8D8D8;
+  color: #0D2B2B;
+}
+
+.smartcar-admin :focus-visible {
+  outline: 3px solid rgb(45 95 95 / 24%);
+  outline-offset: 2px;
+}
+
+.smartcar-admin input,
+.smartcar-admin select,
+.smartcar-admin textarea {
+  accent-color: #2D5F5F;
+}
+
 .manager-app ::selection {
   background: #B8D8D8;
   color: #0D2B2B;

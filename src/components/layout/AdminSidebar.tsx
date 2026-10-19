@@ -124,7 +124,7 @@ export default function AdminSidebar() {
               // pattern this codebase just finished removing.
               onClick={() => setOpen(false)}
               className={`flex min-h-14 items-center gap-3 rounded-xl py-3 pe-4 ps-4 text-base font-bold transition-colors ${
-                isActive ? 'bg-[#2D5F5F] text-white' : 'hover:bg-gray-800 hover:text-white'
+                isActive ? 'bg-[#2D5F5F] text-white shadow-[0_8px_20px_rgba(45,95,95,0.24)]' : 'hover:bg-[#1A3A3A] hover:text-white'
               }`}
             >
               <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
@@ -137,7 +137,7 @@ export default function AdminSidebar() {
       <div className="p-4 border-t border-gray-800">
         <button
           onClick={handleLogout}
-          className="flex min-h-14 items-center gap-3 rounded-xl px-4 py-3 text-base font-bold w-full hover:bg-gray-800 hover:text-white transition-colors"
+          className="flex min-h-14 w-full items-center gap-3 rounded-xl px-4 py-3 text-base font-bold transition-colors hover:bg-[#1A3A3A] hover:text-white"
         >
           <LogOut className="w-4 h-4 shrink-0" aria-hidden="true" />
           {isHe ? 'התנתק' : 'Logout'}
@@ -149,10 +149,10 @@ export default function AdminSidebar() {
   return (
     <>
       {/* Desktop rail — unchanged */}
-      <aside className="hidden md:flex w-64 shrink-0 bg-gray-900 text-gray-300 min-h-screen flex-col">
-        <div className="p-6 border-b border-gray-800">
-          <div className="flex items-center gap-2 text-white font-bold text-lg">
-            <Car className="w-6 h-6 text-blue-400" aria-hidden="true" />
+      <aside className="hidden min-h-screen w-64 shrink-0 flex-col bg-[#0D2B2B] text-[#D5E8E8] md:flex">
+        <div className="border-b border-white/10 p-6">
+          <div className="flex items-center gap-2 text-lg font-black text-white">
+            <Car className="h-6 w-6 text-[#B8D8D8]" aria-hidden="true" />
             SmartCar Admin
           </div>
         </div>
@@ -162,7 +162,7 @@ export default function AdminSidebar() {
       {/* Compact bar, small screens only. Sticky so the menu stays reachable
           after scrolling a long list, and padded for the iPhone notch. */}
       <div
-        className="md:hidden sticky top-0 z-30 flex items-center justify-between gap-3 bg-gray-900 text-white px-4 py-3"
+        className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-[#0D2B2B] px-4 py-3 text-white shadow-[0_6px_20px_rgba(13,43,43,0.14)] md:hidden"
         style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
       >
         <div className="flex items-center gap-1">
@@ -173,13 +173,13 @@ export default function AdminSidebar() {
             aria-label={isHe ? 'פתיחת תפריט ניהול' : 'Open admin menu'}
             aria-expanded={open}
             aria-controls="admin-drawer"
-            className="flex items-center justify-center w-11 h-11 -me-2 rounded-lg hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+            className="-me-2 flex h-11 w-11 items-center justify-center rounded-xl hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8D8D8]"
           >
             <Menu className="w-6 h-6" aria-hidden="true" />
           </button>
         </div>
-        <div className="flex items-center gap-2 font-black text-lg min-w-0">
-          <Car className="w-6 h-6 text-blue-400 shrink-0" aria-hidden="true" />
+        <div className="flex min-w-0 items-center gap-2 text-lg font-black">
+          <Car className="h-6 w-6 shrink-0 text-[#B8D8D8]" aria-hidden="true" />
           <span className="truncate">SmartCar Admin</span>
         </div>
       </div>
@@ -222,11 +222,11 @@ export default function AdminSidebar() {
             aria-label={isHe ? 'תפריט ניהול' : 'Admin menu'}
             // Logical inset: opens from the right in Hebrew and the left in
             // English without needing two sets of classes.
-            className="absolute inset-y-0 start-0 w-[min(18rem,85vw)] max-w-full bg-gray-900 text-gray-300 flex flex-col shadow-2xl"
+            className="absolute inset-y-0 start-0 flex w-[min(18rem,85vw)] max-w-full flex-col bg-[#0D2B2B] text-[#D5E8E8] shadow-2xl"
           >
-            <div className="flex items-center justify-between gap-2 p-4 border-b border-gray-800">
-              <div className="flex items-center gap-2 text-white font-bold min-w-0">
-                <Car className="w-5 h-5 text-blue-400 shrink-0" aria-hidden="true" />
+            <div className="flex items-center justify-between gap-2 border-b border-white/10 p-4">
+              <div className="flex min-w-0 items-center gap-2 font-black text-white">
+                <Car className="h-5 w-5 shrink-0 text-[#B8D8D8]" aria-hidden="true" />
                 <span className="truncate">SmartCar Admin</span>
               </div>
               <button
@@ -234,7 +234,7 @@ export default function AdminSidebar() {
                 type="button"
                 onClick={() => { setOpen(false); triggerRef.current?.focus(); }}
                 aria-label={isHe ? 'סגירת תפריט' : 'Close menu'}
-                className="flex items-center justify-center w-11 h-11 -me-2 rounded-lg hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                className="-me-2 flex h-11 w-11 items-center justify-center rounded-xl hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B8D8D8]"
               >
                 <X className="w-6 h-6" aria-hidden="true" />
               </button>

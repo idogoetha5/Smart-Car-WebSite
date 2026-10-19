@@ -3,9 +3,8 @@ export const metadata = { robots: { index: false, follow: false } };
 
 
 import { getTranslations } from 'next-intl/server';
-import { ArrowLeft, CalendarCheck, Car, FileText, MessageCircle, Plus, TrendingUp } from 'lucide-react';
+import { ArrowLeft, CalendarCheck, Car, FileText, MessageCircle, Plus, Table2, TrendingUp } from 'lucide-react';
 import StatsCard from '@/components/admin/StatsCard';
-import DashboardChart from '@/components/admin/DashboardChart';
 import Link from 'next/link';
 
 async function getAdminStats() {
@@ -132,7 +131,49 @@ export default async function AdminDashboard({
       </section>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.75fr)]">
-        <DashboardChart locale={locale} />
+        <section className="relative overflow-hidden rounded-3xl border border-[#D7E8E8] bg-white p-5 shadow-[0_8px_24px_rgba(13,43,43,0.05)] sm:p-7">
+          <div className="absolute -end-16 -top-16 h-40 w-40 rounded-full bg-[#E5F3F3] blur-2xl" />
+          <div className="relative">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#E5F3F3] text-[#2D5F5F]">
+                  <Table2 className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-black tracking-wide text-[#2D5F5F]">{locale === 'he' ? 'מוכן לחיבור' : 'READY TO CONNECT'}</p>
+                  <h2 className="mt-1 text-xl font-black text-[#0D2B2B]">{locale === 'he' ? 'לידים וטלפונים ב-Google Sheets' : 'Leads & phone numbers in Google Sheets'}</h2>
+                  <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-slate-500">
+                    {locale === 'he'
+                      ? 'כאן יחובר גיליון העסק: הזמנות, פניות צור קשר ופרטי לקוחות — מסודרים במקום אחד.'
+                      : 'This is where the business sheet will collect bookings, contact requests and customer details in one place.'}
+                  </p>
+                </div>
+              </div>
+              <span className="w-fit rounded-full border border-[#B8D8D8] bg-[#F4FAFA] px-3 py-1.5 text-xs font-black text-[#2D5F5F]">
+                {locale === 'he' ? 'ממתין לגיליון העסק' : 'Waiting for business sheet'}
+              </span>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {[
+                locale === 'he' ? 'הזמנות חדשות' : 'New bookings',
+                locale === 'he' ? 'פניות צור קשר' : 'Contact requests',
+                locale === 'he' ? 'מספרי טלפון' : 'Phone numbers',
+              ].map((item) => (
+                <div key={item} className="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm font-black text-[#0D2B2B]">
+                  <span className="block h-2 w-2 rounded-full bg-[#E8743B]" />
+                  <span className="mt-2 block">{item}</span>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-5 border-t border-[#E5F0F0] pt-4 text-xs font-semibold leading-5 text-slate-400">
+              {locale === 'he'
+                ? 'אין חיבור פעיל עדיין, ולכן שום מידע של לקוחות אינו נשלח ל-Google.'
+                : 'No connection is active yet, so no customer information is being sent to Google.'}
+            </p>
+          </div>
+        </section>
 
       <section className="bg-white rounded-3xl shadow-[0_8px_24px_rgba(13,43,43,0.05)] border border-slate-100 p-4 sm:p-6 xl:mb-8">
         <div className="flex items-center justify-between mb-5">

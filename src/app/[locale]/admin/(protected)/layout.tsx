@@ -9,7 +9,7 @@ export default function AdminLayout({
   return (
     // `flex-col` below md so the compact bar sits above the content rather
     // than beside it; `md:flex-row` restores the desktop rail.
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+    <div className="smartcar-admin flex min-h-screen flex-col md:flex-row">
       <AdminAppSetup />
       <AdminSidebar />
       {/* min-w-0 is the whole fix for the sideways scroll: without it a flex
