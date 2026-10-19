@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useApiList } from '@/lib/swr';
 import { useParams } from 'next/navigation';
 import { Search, Trash2, RefreshCw } from 'lucide-react';
@@ -40,6 +40,8 @@ export default function AdminBookingsPage() {
   const locale = (params?.locale as string) || 'he';
   const [searchCustomer, setSearchCustomer] = useState('');
   const [searchCar, setSearchCar] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deletionInFlight = useRef(false);
 
   const {
     items: bookings,
@@ -105,14 +107,24 @@ export default function AdminBookingsPage() {
   };
 
   const handleDelete = async (id: string, customerName: string) => {
+    if (deletionInFlight.current) return;
     if (!window.confirm(`למחוק לצמיתות את ההזמנה של ${customerName}?\nיימחקו גם משימות הנהג ובדיקות הרכב של ההזמנה (סרטונים, תמונות ומסמכים חתומים).\nפעולה זו אינה ניתנת לביטול.`)) return;
-    const res = await fetch(`/api/admin/bookings/${id}`, { method: 'DELETE' });
-    if (!res.ok) {
-      const json = await res.json().catch(() => ({}));
-      alert(json?.error || 'שגיאה במחיקה');
-      return;
+    deletionInFlight.current = true;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/admin/bookings/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        alert(json?.error || 'שגיאה במחיקה. ההזמנה לא הוסרה מהרשימה.');
+        return;
+      }
+      await mutateBookings(curr => (curr ?? []).filter(b => b.id !== id), { revalidate: false });
+    } catch {
+      alert('לא ניתן להשלים את המחיקה. בדקו את החיבור ונסו שוב.');
+    } finally {
+      deletionInFlight.current = false;
+      setDeletingId(null);
     }
-    mutateBookings(curr => (curr ?? []).filter(b => b.id !== id), { revalidate: false });
   };
 
   const isDecided = (status: string) =>
@@ -204,6 +216,19 @@ export default function AdminBookingsPage() {
                     {waLink(b.customer_phone) && <a href={waLink(b.customer_phone)!} target="_blank" rel="noopener noreferrer" className="col-span-2 flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-bl from-[#2ACB69] to-[#128C4A] text-sm font-black text-white shadow-[0_8px_18px_rgba(18,140,74,0.22)] transition hover:brightness-105 active:scale-[0.99]">פתיחת WhatsApp עם הלקוח</a>}
                     <a href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=pickup`} className="flex min-h-11 items-center justify-center rounded-2xl border border-[#F4C7A8] bg-[#FFF4EC] text-sm font-black text-[#B94C18] shadow-sm transition hover:bg-[#FFE7D7] active:scale-[0.99]">בדיקת מסירה</a>
                     <a href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=return`} className="flex min-h-11 items-center justify-center rounded-2xl border border-[#B8D8D8] bg-[#EAF4F4] text-sm font-black text-[#1F5A56] shadow-sm transition hover:bg-[#D9ECEC] active:scale-[0.99]">בדיקת החזרה</a>
+                    {isDecided(b.status) && (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(b.id, b.customer_name || 'לקוח')}
+                        disabled={deletingId !== null}
+                        aria-label={`מחיקת ההזמנה של ${b.customer_name || 'לקוח'}`}
+                        aria-busy={deletingId === b.id}
+                        className="col-span-2 mt-1 flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 text-base font-bold text-red-700 transition hover:bg-red-100 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        {deletingId === b.id ? 'מוחק הזמנה…' : 'מחיקת הזמנה'}
+                      </button>
+                    )}
                   </div>
                 </article>
               );
@@ -325,11 +350,16 @@ export default function AdminBookingsPage() {
                         {/* Issue 8: delete only for decided orders */}
                         {isDecided(b.status) && (
                           <button
+                            type="button"
                             onClick={() => handleDelete(b.id, b.customer_name || 'לקוח')}
+                            disabled={deletingId !== null}
+                            aria-label={`מחיקת ההזמנה של ${b.customer_name || 'לקוח'}`}
+                            aria-busy={deletingId === b.id}
                             title="מחק הזמנה"
-                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 text-xs font-bold text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" aria-hidden="true" />
+                            {deletingId === b.id ? 'מוחק…' : 'מחיקה'}
                           </button>
                         )}
                       </div>
