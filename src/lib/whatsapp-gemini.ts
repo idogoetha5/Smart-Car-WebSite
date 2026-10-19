@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getSiteKnowledge } from '@/lib/whatsapp-site-knowledge';
+import { getSiteKnowledge, relevantKnowledge } from '@/lib/whatsapp-site-knowledge';
 
 const MODEL = process.env.WHATSAPP_GEMINI_MODEL || 'gemini-3.5-flash-lite';
 
@@ -119,22 +119,29 @@ export async function interpretWhatsAppMessage(message: string, step: string | n
 
   const knowledge = await getSiteKnowledge();
   const today = israelToday();
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: `${SYSTEM_INSTRUCTION}\n\nKNOWLEDGE (from the published SmartCar website):\n${relevantKnowledge(knowledge, message)}` }] },
+    contents: [{ role: 'user', parts: [{ text: JSON.stringify({ ...today, step, known, message }) }] }],
+    generationConfig: {
+      temperature: 0.2,
+      maxOutputTokens: 1500,
+      responseFormat: { text: { mimeType: 'APPLICATION_JSON', schema: SCHEMA } },
+    },
+  });
+  const call = () => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(MODEL)}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body,
+    signal: AbortSignal.timeout(12000),
+  });
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(MODEL)}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: `${SYSTEM_INSTRUCTION}\n\nKNOWLEDGE (the published SmartCar website):\n${knowledge}` }] },
-        contents: [{ role: 'user', parts: [{ text: JSON.stringify({ ...today, step, known, message }) }] }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 1500,
-          responseFormat: { text: { mimeType: 'APPLICATION_JSON', schema: SCHEMA } },
-        },
-      }),
-      signal: AbortSignal.timeout(12000),
-    });
+    let response = await call();
+    // A busy model gets one more chance before the bot falls back to its fixed replies.
+    if (response.status === 429 || response.status === 503) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      response = await call();
+    }
     if (!response.ok) {
       const failure = await response.json().catch(() => null) as { error?: { status?: string; message?: string } } | null;
       const detail = process.env.VERCEL_ENV === 'preview' ? ` ${failure?.error?.message?.slice(0, 240) ?? ''}` : '';

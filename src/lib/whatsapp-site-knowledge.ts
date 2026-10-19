@@ -95,3 +95,84 @@ export async function getSiteKnowledge(): Promise<string> {
     .finally(() => { pending = null; });
   return pending;
 }
+
+// ---------------------------------------------------------------------------
+// Retrieval: send Gemini only the parts of the site that matter for this
+// message. The whole site on every message used up the model's per-minute
+// token allowance after a dozen messages; a focused extract keeps answers
+// precise and the bot available.
+
+const CORE_HEADINGS = ['# פרטי קשר', '# סניפים'];
+const HE_PREFIXES = /^(?:וכש|שכ|וב|ול|וה|ומ|כש|ב|ל|ה|ו|מ|ש|כ)(?=[֐-׿]{3,})/;
+const STOP = new Set(['של', 'את', 'עם', 'על', 'יש', 'אם', 'גם', 'או', 'זה', 'זו', 'אני', 'אתם', 'לכם', 'שלכם', 'מה', 'איך', 'כמה', 'האם', 'אפשר', 'רוצה', 'צריך', 'תודה', 'בבקשה', 'היי', 'שלום', 'the', 'a', 'an', 'is', 'are', 'do', 'you', 'i', 'to', 'of', 'and', 'can', 'my', 'for', 'in', 'what', 'how']);
+
+/** Same-meaning words customers use for the site's own terms. */
+const SYNONYMS: Record<string, string[]> = {
+  סניף: ['סניפים', 'כתובת', 'ממוקם', 'branch'], גיל: ['21', 'צעיר', 'צעירים'], חדש: ['ותק', 'שנתיים'],
+  פיקדון: ['בטחון', 'ערבון', 'deposit'], דביט: ['אשראי', 'כרטיס'], מזומן: ['אשראי', 'תשלום'],
+  ביטוח: ['השתתפות', 'כיסוי'], ביטול: ['לבטל', 'ביטולים', 'החזר'], לבטל: ['ביטול'], לשנות: ['שינוי', 'תאריכים'],
+  דלק: ['מיכל', 'מלא'], מיכל: ['דלק'], קילומטר: ['ק״מ', 'ק"מ', 'קילומטראז׳'], קילומטרים: ['ק״מ', 'ק"מ'],
+  לעשן: ['עישון'], עישון: ['לעשן'], ירדן: ['גבול', 'מחוץ'], 'חו״ל': ['גבול', 'מחוץ'], טאבה: ['גבול'],
+  תייר: ['בינלאומי', 'תושב חוץ'], מסמכים: ['רישיון', 'דרכון', 'תעודת'], נהג: ['נוסף'],
+  משלוח: ['מסירה', 'הבית'], הבית: ['מסירה'], אובר: ['uber', 'מוניות', 'שכר'], וולט: ['bolt', 'שכר'],
+  דוח: ['דוחות', 'קנס', 'קנסות'], דוחות: ['קנסות'], שעות: ['פעילות', '08:00'], פתוחים: ['פעילות', 'שעות'],
+  ליסינג: ['חודשים', 'קילומטראז׳'], למכירה: ['מכירה', 'מכירת'], חברה: ['2003', 'סיפור'], קיימים: ['2003'],
+};
+
+function tokens(text: string): string[] {
+  return text.toLowerCase()
+    .replace(/[֑-ׇ]/g, '')
+    .replace(/[^\p{L}\p{N}״"'׳:]+/gu, ' ')
+    .split(' ')
+    .map((word) => word.replace(/^["'׳״]+|["'׳״]+$/g, ''))
+    .filter((word) => word.length > 1 && !STOP.has(word))
+    .flatMap((word) => {
+      const bare = word.replace(HE_PREFIXES, '');
+      return bare !== word ? [word, bare] : [word];
+    });
+}
+
+/** Splits the knowledge into small passages, each labelled with its section heading. */
+export function knowledgeChunks(text: string): string[] {
+  const chunks: string[] = [];
+  let heading = '';
+  let current: string[] = [];
+  const flush = () => {
+    if (current.length) chunks.push(`${heading}\n${current.join('\n')}`.trim());
+    current = [];
+  };
+  for (const line of text.split('\n')) {
+    if (line.startsWith('# ')) { flush(); heading = line; continue; }
+    if (!line.trim()) { if (current.join('\n').length > 300) flush(); continue; }
+    current.push(line);
+    if (current.join('\n').length > 700) flush();
+  }
+  flush();
+  return chunks;
+}
+
+/** The core contact details plus the passages that best match the message. */
+export function relevantKnowledge(text: string, message: string, budget = 7000): string {
+  const chunks = knowledgeChunks(text);
+  const core = chunks.filter((chunk) => CORE_HEADINGS.some((heading) => chunk.startsWith(heading)));
+  const words = tokens(message);
+  const wanted = new Set(words.flatMap((word) => [word, ...(SYNONYMS[word] ?? [])].flatMap((w) => tokens(w))));
+  const scored = chunks
+    .filter((chunk) => !core.includes(chunk))
+    .map((chunk) => {
+      const own = new Set(tokens(chunk));
+      let score = 0;
+      for (const word of wanted) if (own.has(word)) score += word.length > 3 ? 2 : 1;
+      return { chunk, score };
+    })
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score);
+  const picked = [...core];
+  let size = picked.join('\n\n').length;
+  for (const { chunk } of scored) {
+    if (size + chunk.length > budget) continue;
+    picked.push(chunk);
+    size += chunk.length;
+  }
+  return picked.join('\n\n');
+}
