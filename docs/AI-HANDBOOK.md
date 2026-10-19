@@ -27,6 +27,8 @@ Client-side Sentry is initialized in `instrumentation-client.ts`. Its `beforeSen
 
 `מחירי רכבים` is intentionally not a primary navigation destination. It opens from the action area of `ניהול רכבים`, because seasonal prices and overrides are part of fleet management.
 
+The office dashboard is a daily-action surface: it has an at-a-glance dark header with the main rental-quote action, compact operational statistics, quick links for bookings/quotes/WhatsApp/fleet, and a recent-booking summary beside the bookings chart. The chart is calendar-month based: it shows booking records created per actual day in the selected month, including all 28–31 days as applicable. Preserve that information order and definition when changing the dashboard.
+
 ### Scheduled backups
 GitHub schedules `.github/workflows/backup.yml` from the repository default branch `main`. That workflow checks out `clean-main` and runs `scripts/backups/run-backups.sh`; its script path must also be correct in the copy of the workflow on `main`. Database backups are encrypted and uploaded to Google Drive daily, and vehicle-image storage backups run on Sundays. New backups use the dedicated `SmartCar Backups` Google OAuth client with the `drive.file` scope and the `smartcar-backups-personal` Drive folder; the repository secret `RCLONE_CONFIG` holds that rclone remote. Older archives remain in the original `smartcar-backups` folder and can be accessed in Drive. The previous rclone configuration is retained locally for temporary legacy access; its shared OAuth client may stop working after the announced retirement.
 
@@ -146,6 +148,7 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
+- 2026-10-19 — Redesigned the secured office dashboard as a focused daily-action screen: operational header, primary rental-quote action, calmer statistics, direct quick actions and a clearer recent-booking list alongside a calendar-month chart. The chart now states that it measures bookings created per day and renders the actual 28–31 days of the selected month. No workflow or data change. Pending deployment.
 - 2026-10-19 — Refined the office admin navigation: larger, higher-contrast touch targets; the phone header puts the menu control before the SmartCar Admin title; and vehicle pricing was removed from the sidebar and made an in-context action inside vehicle management. No migration. Pending deployment.
 - 2026-10-19 — Made the secured office dashboard (`/he/admin`) installable as a phone app and simplified its mobile navigation to Home, Bookings, rental quotation and “More”. The install worker is network-only and does not cache private office data. Bookings, vehicle management and leasing requests now use phone cards with their main actions in view. No migration. Deployed to Vercel Production.
 - 2026-10-19 — Declared the SmartCar favicon files explicitly in metadata and regenerated them from the unchanged official SmartCar logo on a light background, so search results can display it clearly at small sizes. No migration. Deployed to Vercel Production.
