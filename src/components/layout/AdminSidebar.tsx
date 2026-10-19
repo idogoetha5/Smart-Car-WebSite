@@ -7,7 +7,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Car,
   CalendarCheck,
-  Download,
   FileText,
   History,
   LayoutDashboard,
@@ -23,49 +22,6 @@ import {
   Users,
   X,
 } from 'lucide-react';
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-}
-
-function AdminInstallButton() {
-  const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showIosHelp, setShowIosHelp] = useState(false);
-
-  useEffect(() => {
-    const onPrompt = (event: Event) => {
-      event.preventDefault();
-      setPrompt(event as BeforeInstallPromptEvent);
-    };
-    window.addEventListener('beforeinstallprompt', onPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', onPrompt);
-  }, []);
-
-  const install = async () => {
-    if (prompt) {
-      await prompt.prompt();
-      setPrompt(null);
-    } else {
-      setShowIosHelp(true);
-    }
-  };
-
-  return (
-    <>
-      <button type="button" onClick={install} className="flex min-h-11 items-center gap-1.5 rounded-xl px-2.5 text-xs font-black text-[#DDEEEE] hover:bg-white/10" aria-label="התקנה כאפליקציה">
-        <Download className="h-4 w-4" aria-hidden="true" />
-        אפליקציה
-      </button>
-      {showIosHelp && !prompt && (
-        <div className="fixed inset-x-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-[60] rounded-2xl border border-[#B8D8D8] bg-white p-4 text-right shadow-2xl md:hidden" role="status">
-          <button type="button" onClick={() => setShowIosHelp(false)} className="absolute start-2 top-2 flex h-9 w-9 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100" aria-label="סגירה"><X className="h-4 w-4" /></button>
-          <p className="pe-8 text-sm font-black text-[#0D2B2B]">התקנה במסך הבית</p>
-          <p className="mt-1 text-sm leading-6 text-gray-600">בספארי לחצו על שיתוף, בחרו ״הוספה למסך הבית״, ואז פתחו את SmartCar מהסמל החדש.</p>
-        </div>
-      )}
-    </>
-  );
-}
 
 /**
  * Admin navigation.
@@ -210,7 +166,6 @@ export default function AdminSidebar() {
         style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
       >
         <div className="flex items-center gap-1">
-          <AdminInstallButton />
           <button
             ref={triggerRef}
             type="button"

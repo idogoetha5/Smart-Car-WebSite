@@ -23,7 +23,7 @@ The owner, Ido, is not technical. He writes in Hebrew and expects work done end 
 Client-side Sentry is initialized in `instrumentation-client.ts`. Its `beforeSend` handler in `src/lib/sentry-scrub.ts` removes customer data from URLs and drops the exact Talisman browser-extension onboarding error; other application errors are still reported.
 
 ### Office dashboard on a phone
-`/he/admin` is installable from the phone browser as “SmartCar ניהול”. Its public manifest and worker routes are explicitly excluded from locale routing; its service worker (`public/admin-sw.js`) is deliberately network-only, enabling the app-style launch without caching any private booking or customer data. The phone navigation exposes Home, Bookings and rental quotations permanently; every other office tool is under “עוד”, to keep the dashboard uncluttered. Core lists use phone cards instead of a horizontally-scrolling desktop table, so their important actions stay in the same view.
+`/he/admin` is a responsive browser-based office dashboard. The phone navigation exposes Home, Bookings and rental quotations permanently; every other office tool is under “עוד”, to keep the dashboard uncluttered. Core lists use phone cards instead of a horizontally-scrolling desktop table, so their important actions stay in the same view.
 
 `מחירי רכבים` is intentionally not a primary navigation destination. It opens from the action area of `ניהול רכבים`, because seasonal prices and overrides are part of fleet management.
 
@@ -148,6 +148,7 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
+- 2026-10-19 — Removed the office-dashboard add-to-home-screen/PWA controls, manifest and service worker. The office dashboard remains a responsive browser interface only. No migration. Pending deployment.
 - 2026-10-19 — Redesigned the secured office dashboard as a focused daily-action screen: operational header, primary rental-quote action, calmer statistics, direct quick actions and a clearer recent-booking list alongside a calendar-month chart. The chart now states that it measures bookings created per day and renders the actual 28–31 days of the selected month. No workflow or data change. Pending deployment.
 - 2026-10-19 — Refined the office admin navigation: larger, higher-contrast touch targets; the phone header puts the menu control before the SmartCar Admin title; and vehicle pricing was removed from the sidebar and made an in-context action inside vehicle management. No migration. Pending deployment.
 - 2026-10-19 — Made the secured office dashboard (`/he/admin`) installable as a phone app and simplified its mobile navigation to Home, Bookings, rental quotation and “More”. The install worker is network-only and does not cache private office data. Bookings, vehicle management and leasing requests now use phone cards with their main actions in view. No migration. Deployed to Vercel Production.
