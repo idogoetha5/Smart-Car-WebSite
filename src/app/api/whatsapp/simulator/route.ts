@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWhatsAppFlowReply, type FlowState, type WhatsAppFlowStore } from '@/lib/whatsapp-flow';
-import { interpretWhatsAppMessage } from '@/lib/whatsapp-gemini';
+import { interpretWhatsAppMessage, type WhatsAppInterpretation } from '@/lib/whatsapp-gemini';
 import { checkRateLimit } from '@/lib/ratelimit';
 
 export const runtime = 'nodejs';
@@ -34,6 +34,7 @@ function quickReplies(state: FlowState | null | undefined, reply: string): Quick
 
 function simulationStore(sessionId: string, initialState: FlowState | null) {
   let state = initialState;
+  let understood: WhatsAppInterpretation | null = null;
   return {
     isSimulation: true,
     activeBooking: async () => null,
@@ -46,9 +47,13 @@ function simulationStore(sessionId: string, initialState: FlowState | null) {
       const { getWhatsAppRentalQuotes } = await import('@/lib/whatsapp-rental-quotes');
       return getWhatsAppRentalQuotes(st.vehiclePreference, st.pickupDate!, st.dropoffDate!);
     },
-    interpretMessage: interpretWhatsAppMessage,
+    interpretMessage: async (...args) => {
+      understood = await interpretWhatsAppMessage(...args);
+      return understood;
+    },
     currentState: () => state,
-  } satisfies WhatsAppFlowStore & { currentState: () => FlowState | null };
+    understood: () => understood,
+  } satisfies WhatsAppFlowStore & { currentState: () => FlowState | null; understood: () => WhatsAppInterpretation | null };
 }
 
 export async function POST(request: NextRequest) {
@@ -63,7 +68,7 @@ export async function POST(request: NextRequest) {
   }
   const address = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const [visitorLimit, sessionLimit] = await Promise.all([
-    checkRateLimit(`whatsapp-simulator:visitor:${address}`, 60, 60 * 60_000),
+    checkRateLimit(`whatsapp-simulator:visitor:${address}`, 200, 60 * 60_000),
     checkRateLimit(`whatsapp-simulator:session:${sessionId}`, 20, 10 * 60_000),
   ]);
   if (!visitorLimit.success || !sessionLimit.success) {
@@ -80,5 +85,7 @@ export async function POST(request: NextRequest) {
     escalated: Boolean(result.escalate),
     quickReplies: quickReplies(state, result.reply ?? ''),
     state,
+    // What the model understood, so a tester can see why the bot answered as it did.
+    understood: request.headers.get('x-smartcar-debug') === '1' ? store.understood() : undefined,
   });
 }

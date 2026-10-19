@@ -27,7 +27,7 @@ describe('public WhatsApp simulator limits', () => {
     mocks.limit.mockResolvedValueOnce({ success: false }).mockResolvedValueOnce({ success: true });
     const response = await POST(request());
     expect(response.status).toBe(429);
-    expect(mocks.limit).toHaveBeenCalledWith('whatsapp-simulator:visitor:192.0.2.10', 60, 60 * 60_000);
+    expect(mocks.limit).toHaveBeenCalledWith('whatsapp-simulator:visitor:192.0.2.10', 200, 60 * 60_000);
     expect(mocks.limit).toHaveBeenCalledWith('whatsapp-simulator:session:testsession123', 20, 10 * 60_000);
     expect(mocks.flow).not.toHaveBeenCalled();
   });
@@ -36,7 +36,10 @@ describe('public WhatsApp simulator limits', () => {
     const response = await POST(request());
     expect(response.status).toBe(200);
     expect(mocks.flow).toHaveBeenCalledWith('simulation-testsession123', 'שלום', expect.objectContaining({
-      isSimulation: true, interpretMessage: mocks.interpret,
+      isSimulation: true, interpretMessage: expect.any(Function),
     }));
+    const store = mocks.flow.mock.calls[0][2] as { interpretMessage: (message: string, step: null) => Promise<unknown> };
+    await store.interpretMessage('שלום', null);
+    expect(mocks.interpret).toHaveBeenCalledWith('שלום', null);
   });
 });
