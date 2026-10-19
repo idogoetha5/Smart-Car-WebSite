@@ -85,7 +85,7 @@ export default function AdminLeasingPage() {
         </div>
         <button
           onClick={() => mutateRequests()}
-          className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+          className="flex min-h-11 items-center gap-2 rounded-xl border border-[#B8D8D8] bg-white px-4 py-2 text-sm font-bold text-[#2D5F5F] shadow-sm transition hover:bg-[#F4FAFA]"
         >
           <RefreshCw className="w-4 h-4" />
           רענן
@@ -113,17 +113,17 @@ export default function AdminLeasingPage() {
                     </div>
                     <span className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-bold ${statusConf.cls}`}>{statusConf.label}</span>
                   </div>
-                  <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+                  <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-3.5 text-sm text-slate-600">
                     <p><span className="font-bold text-slate-800">נשלח:</span> {formatDate(r.created_at ?? r.createdAt ?? '')}</p>
                     {(r.duration_months || r.durationMonths) && <p className="mt-1"><span className="font-bold text-slate-800">תקופה:</span> {r.duration_months ?? r.durationMonths} חודשים</p>}
                     {r.notes && <p className="mt-2 border-t border-slate-200 pt-2 leading-6">{r.notes}</p>}
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    {phone && <a href={`tel:${phone}`} className="flex min-h-12 items-center justify-center rounded-xl border border-[#2D5F5F] text-sm font-black text-[#2D5F5F]">התקשרות</a>}
-                    {phone && <a href={waLink(phone)} target="_blank" rel="noopener noreferrer" className="flex min-h-12 items-center justify-center rounded-xl bg-[#25D366] text-sm font-black text-white">WhatsApp</a>}
+                  <div className="mt-3 grid grid-cols-2 gap-2.5">
+                    {phone && <a href={`tel:${phone}`} className="flex min-h-12 items-center justify-center rounded-2xl border border-[#B8D8D8] bg-white text-sm font-black text-[#2D5F5F] shadow-sm transition hover:bg-[#F4FAFA]">התקשרות</a>}
+                    {phone && <a href={waLink(phone)} target="_blank" rel="noopener noreferrer" className="flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-bl from-[#2ACB69] to-[#128C4A] text-sm font-black text-white shadow-[0_8px_18px_rgba(18,140,74,0.22)] transition active:scale-[0.98]">WhatsApp</a>}
                     <label className="col-span-2 text-sm font-bold text-slate-700">
                       סטטוס פנייה
-                      <select value={statusKey in STATUS_CONFIG ? statusKey : 'PENDING'} onChange={e => handleStatusChange(r.id, e.target.value as LeasingStatus)} className="mt-1.5 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-base font-bold text-[#0D2B2B]">
+                      <select value={statusKey in STATUS_CONFIG ? statusKey : 'PENDING'} onChange={e => handleStatusChange(r.id, e.target.value as LeasingStatus)} className="mt-1.5 min-h-12 w-full rounded-2xl border border-[#D5E8E8] bg-white px-3 text-base font-bold text-[#0D2B2B] shadow-sm">
                         {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                     </label>

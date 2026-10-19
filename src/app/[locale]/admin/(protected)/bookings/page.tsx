@@ -140,7 +140,7 @@ export default function AdminBookingsPage() {
         <button
           onClick={() => mutateBookings()}
           disabled={refreshing}
-          className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex min-h-11 items-center gap-2 rounded-xl border border-[#B8D8D8] bg-white px-4 py-2 text-sm font-bold text-[#2D5F5F] shadow-sm transition hover:bg-[#F4FAFA] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           רענן
@@ -193,17 +193,17 @@ export default function AdminBookingsPage() {
                     </div>
                     <BookingStatusBadge status={b.status} locale={locale} size="md" variant="admin" />
                   </div>
-                  <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+                  <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-3.5 text-sm text-slate-600">
                     <p><span className="font-bold text-slate-800">איסוף:</span> {formatDate(b.pickup_date)} {b.pickup_time || ''}</p>
                     <p className="mt-1"><span className="font-bold text-slate-800">החזרה:</span> {formatDate(b.dropoff_date)} {b.return_time || ''}</p>
                     <p className="mt-1 font-black text-[#0D2B2B]">{formatPrice(b.total_price)}</p>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    {pending && <button onClick={() => handleStatusChange(b.id, 'confirmed', b)} className="min-h-14 rounded-xl bg-[#2D5F5F] px-3 text-base font-black text-white active:scale-[0.98]">אישור הזמנה</button>}
-                    {pending && <button onClick={() => handleStatusChange(b.id, 'cancelled', b)} className="min-h-14 rounded-xl border border-red-200 bg-red-50 px-3 text-base font-black text-red-700 active:scale-[0.98]">סירוב</button>}
-                    {waLink(b.customer_phone) && <a href={waLink(b.customer_phone)!} target="_blank" rel="noopener noreferrer" className="col-span-2 flex min-h-12 items-center justify-center rounded-xl bg-[#eef6f6] text-sm font-black text-[#2D5F5F]">פתיחת WhatsApp עם הלקוח</a>}
-                    <a href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=pickup`} className="flex min-h-11 items-center justify-center rounded-xl border border-slate-200 text-sm font-bold text-slate-700">בדיקת מסירה</a>
-                    <a href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=return`} className="flex min-h-11 items-center justify-center rounded-xl border border-slate-200 text-sm font-bold text-slate-700">בדיקת החזרה</a>
+                  <div className="mt-3 grid grid-cols-2 gap-2.5">
+                    {pending && <button onClick={() => handleStatusChange(b.id, 'confirmed', b)} className="min-h-14 rounded-2xl bg-gradient-to-bl from-[#3A7A7A] to-[#164443] px-3 text-base font-black text-white shadow-[0_8px_18px_rgba(22,68,67,0.24)] transition active:scale-[0.98]">אישור הזמנה</button>}
+                    {pending && <button onClick={() => handleStatusChange(b.id, 'cancelled', b)} className="min-h-14 rounded-2xl border border-red-200 bg-gradient-to-bl from-red-50 to-[#FFF8F7] px-3 text-base font-black text-red-700 shadow-sm transition hover:border-red-300 hover:bg-red-100 active:scale-[0.98]">סירוב</button>}
+                    {waLink(b.customer_phone) && <a href={waLink(b.customer_phone)!} target="_blank" rel="noopener noreferrer" className="col-span-2 flex min-h-12 items-center justify-center rounded-2xl border border-[#B8D8D8] bg-[#EAF4F4] text-sm font-black text-[#1F5A56] shadow-sm transition hover:bg-[#D9ECEC] active:scale-[0.99]">פתיחת WhatsApp עם הלקוח</a>}
+                    <a href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=pickup`} className="flex min-h-11 items-center justify-center rounded-2xl border border-[#D5E8E8] bg-white text-sm font-black text-[#285C5A] shadow-sm transition hover:border-[#9DC9C5] hover:bg-[#F4FAFA]">בדיקת מסירה</a>
+                    <a href={`/${locale}/admin/inspections/new?bookingId=${b.id}&type=return`} className="flex min-h-11 items-center justify-center rounded-2xl border border-[#D5E8E8] bg-white text-sm font-black text-[#285C5A] shadow-sm transition hover:border-[#9DC9C5] hover:bg-[#F4FAFA]">בדיקת החזרה</a>
                   </div>
                 </article>
               );
@@ -310,13 +310,13 @@ export default function AdminBookingsPage() {
                           <>
                             <button
                               onClick={() => handleStatusChange(b.id, 'confirmed', b)}
-                              className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg text-xs font-medium transition-colors"
+                              className="rounded-lg bg-[#2D5F5F] px-3 py-1 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#1A3A3A]"
                             >
                               ✅ אשר
                             </button>
                             <button
                               onClick={() => handleStatusChange(b.id, 'cancelled', b)}
-                              className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-medium transition-colors"
+                              className="rounded-lg bg-red-500 px-3 py-1 text-xs font-bold text-white shadow-sm transition-colors hover:bg-red-600"
                             >
                               ❌ סרב
                             </button>
