@@ -9,7 +9,7 @@ import { getSmartCarServiceAnswer } from '@/lib/smartcar-service-knowledge';
 import { composeServiceResponse, detectConversationMood } from '@/lib/service-response';
 import { consultativeSalesReply } from '@/lib/consultative-sales';
 import { getCarsForSale, type CarForSale } from '@/lib/cars-for-sale';
-import { interpretWhatsAppMessage, type WhatsAppInterpretation } from '@/lib/whatsapp-gemini';
+import { interpretWhatsAppMessage, type WhatsAppInterpretation, type WhatsAppInterpretationContext } from '@/lib/whatsapp-gemini';
 import {
   classifyCommercialIntent,
   commercialIntentQuestion,
@@ -82,7 +82,7 @@ export interface WhatsAppFlowStore {
   getCarsForSale?(): Promise<CarForSale[]>;
   recordLanguageCandidate?(candidate: { phrase: string; field: 'vehicle' | 'time' | 'location'; proposedValue?: string }): Promise<void>;
   resolveApprovedVariant?(phrase: string, field: 'vehicle'): Promise<string | null>;
-  interpretMessage?(message: string, step: FlowStep | null): Promise<WhatsAppInterpretation | null>;
+  interpretMessage?(message: string, step: FlowStep | null, context?: WhatsAppInterpretationContext | null): Promise<WhatsAppInterpretation | null>;
 }
 
 export type WhatsAppInitialRoute = 'accident' | 'breakdown' | 'rental' | 'existing_booking_lookup' | 'existing_customer' | 'new_customer';
@@ -779,7 +779,23 @@ function supportedGeminiField(body: string, value: string, evidence: string): st
   const source = evidence.trim();
   if (!clean || !source || clean.length > 100 || source.length > 120) return null;
   const message = body.toLocaleLowerCase();
-  return message.includes(source.toLocaleLowerCase()) && source.toLocaleLowerCase().includes(clean.toLocaleLowerCase()) ? clean : null;
+  return message.includes(source.toLocaleLowerCase()) ? clean : null;
+}
+
+/** A model-resolved date is used only when it is a real calendar date from today up to 18 months ahead. */
+function plausibleGeminiDate(value: string | undefined): string | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) return null;
+  const today = todayInIsrael();
+  const limit = new Date(`${today}T00:00:00Z`);
+  limit.setUTCDate(limit.getUTCDate() + 548);
+  return value >= today && value <= limit.toISOString().slice(0, 10) ? value : null;
+}
+
+function plausibleGeminiTime(value: string | undefined): string | null {
+  const match = value?.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  return match ? `${match[1].padStart(2, '0')}:${match[2]}` : null;
 }
 
 function extractRentalDetails(body: string, current: FlowState, interpretation?: WhatsAppInterpretation | null): Partial<FlowState> {
@@ -847,6 +863,25 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
     }
   }
   Object.assign(extracted, parseTripNeeds(body));
+  if (interpretation) {
+    // Gemini resolves wording the local parser cannot ("next weekend",
+    // "Thursday", "for four days"). Local parsing wins when it found a value.
+    const pickupDate = plausibleGeminiDate(interpretation.pickupDate);
+    const dropoffDate = plausibleGeminiDate(interpretation.dropoffDate);
+    if (!extracted.pickupDate && !current.pickupDate && pickupDate && (!dropoffDate || dropoffDate >= pickupDate)) extracted.pickupDate = pickupDate;
+    const pickupForReturn = extracted.pickupDate ?? current.pickupDate;
+    if (!extracted.dropoffDate && !current.dropoffDate && dropoffDate && pickupForReturn && dropoffDate >= pickupForReturn) extracted.dropoffDate = dropoffDate;
+    const pickupTime = plausibleGeminiTime(interpretation.pickupTime);
+    const returnTime = plausibleGeminiTime(interpretation.returnTime);
+    if (!extracted.pickupTime && !current.pickupTime && pickupTime) extracted.pickupTime = pickupTime;
+    if (!extracted.returnTime && !current.returnTime && returnTime) {
+      const start = extracted.pickupTime ?? current.pickupTime;
+      const pickupDay = extracted.pickupDate ?? current.pickupDate;
+      const returnDay = extracted.dropoffDate ?? current.dropoffDate;
+      if (!start || !pickupDay || pickupDay !== returnDay || returnTime > start) extracted.returnTime = returnTime;
+    }
+    if (!extracted.passengers && !current.passengers && interpretation.passengers > 0 && interpretation.passengers <= 20) extracted.passengers = interpretation.passengers;
+  }
   const emailMatch = body.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
   const email = emailMatch ? validEmail(emailMatch[0]) : validEmail(body);
   if (email) extracted.customerEmail = email;
@@ -1042,7 +1077,8 @@ async function continueRental(phone: string, body: string, current: FlowState, l
       // catalogue is temporarily unavailable.
     }
   }
-  return { handled: true, reply: `${suggestions}${promptForState(state, locale, booking)}` };
+  const acknowledgement = interpretation?.acknowledgement ? `${interpretation.acknowledgement}\n\n` : '';
+  return { handled: true, reply: `${acknowledgement}${suggestions}${promptForState(state, locale, booking)}` };
 }
 
 function handoffState(state: FlowState | null, locale: FlowLocale): FlowState {
@@ -1179,7 +1215,11 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
   const interpretation = !existingState?.handedOff && !isMenuCommand(body) && !/^\s*\d\s*$/.test(body)
     && existingState?.step !== 'rental_name' && existingState?.step !== 'rental_email'
     && initialRoute !== 'accident' && initialRoute !== 'breakdown'
-    ? await store.interpretMessage?.(body, existingState?.step ?? null) ?? null
+    ? await store.interpretMessage?.(body, existingState?.step ?? null, existingState ? {
+      locale: existingState.locale, pickupDate: existingState.pickupDate, dropoffDate: existingState.dropoffDate,
+      pickupTime: existingState.pickupTime, returnTime: existingState.returnTime, pickupLocation: existingState.pickupLocation,
+      dropoffLocation: existingState.dropoffLocation, vehiclePreference: existingState.vehiclePreference, passengers: existingState.passengers,
+    } : null) ?? null
     : null;
   if (interpretation && (initialRoute === 'new_customer' || initialRoute === 'existing_customer')) {
     if (interpretation.intent === 'accident' || interpretation.intent === 'breakdown') initialRoute = interpretation.intent;
@@ -1586,7 +1626,7 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     if (input.includes('ליסינג') || input.includes('מכירה') || /leasing|buy|purchase|cars? for sale/.test(input)) return { handled: true, reply: locale === 'en' ? 'SmartCar offers private and business leasing, as well as selected vehicles for sale. Tell us whether you are interested in private leasing, business leasing, or purchasing a vehicle, and we will guide you.' : 'SmartCar מציעה ליסינג פרטי ועסקי וגם רכבים נבחרים למכירה. כתבו לנו מה מעניין אתכם — ליסינג פרטי, ליסינג לעסק או רכב לרכישה — ונכוון אתכם.' };
     if (input.includes('סניף') || input.includes('מסיר') || input.includes('החזר') || /branch|delivery|return/.test(input)) return { handled: true, reply: locale === 'en' ? 'SmartCar has branches in Herzliya, Tel Aviv, Jerusalem, and Ben Gurion Airport. Delivery and collection at an address in Israel can also be arranged in advance, subject to availability.' : 'לרשותכם סניפים בהרצליה, תל אביב, ירושלים ונתב״ג. אפשר גם לתאם מסירה והחזרה בכתובת שנוחה לכם ברחבי הארץ, בכפוף לתיאום מראש ולזמינות.' };
     await store.saveState(phone, { step: 'menu', locale });
-    return { handled: true, reply: menuFor(booking, locale) };
+    return { handled: true, reply: `${interpretation?.acknowledgement ? `${interpretation.acknowledgement}\n\n` : ''}${menuFor(booking, locale)}` };
   }
 
   // A customer may provide any missing facts in any order, including in one
@@ -1622,6 +1662,12 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
     }
     const progressed = await continueRental(phone, body, existingState, locale, booking, store, interpretation);
     if (progressed) return progressed;
+    // The message held no new rental detail (a question, a concern, small
+    // talk). Answer it in plain words and repeat the one missing detail,
+    // instead of claiming the message was not understood.
+    if (interpretation?.acknowledgement && interpretation.intent !== 'representative') {
+      return { handled: true, reply: `${interpretation.acknowledgement}\n\n${promptForState({ ...existingState, locale }, locale, booking)}` };
+    }
   }
 
   if (existingState.step === 'rental_dates') {
