@@ -1484,8 +1484,10 @@ export async function getWhatsAppFlowReply(phone: string, body: string, store: W
   // Hebrew letters are not "word" characters for \b, so boundaries are spelled out.
   const asksQuestion = /[?？]/.test(body)
     || /(?:^|[\s,.!])(?:מה|איך|כמה|האם|איפה|היכן|מתי|עד מתי|למה|עולה|יש לכם|יש לך|אפשר|מותר|צריך|מאיזה|איזה|אילו|באיזה|what|how|where|when|why|which|do you|can i|is there|are there)(?=$|[\s,.!?])/i.test(body);
+  // Gemini's reading wins over keyword routing here: "from what age can I
+  // rent?" mentions renting but is a question about the rules.
   if (interpretation?.acknowledgement && ['policy', 'delivery_return', 'unknown'].includes(interpretation.intent)
-    && initialRoute !== 'rental' && !isRentalStep(existingState?.step ?? 'menu')) {
+    && !isRentalStep(existingState?.step ?? 'menu')) {
     if (!existingState) await store.saveState(phone, { step: 'menu', locale });
     return {
       handled: true,
