@@ -102,7 +102,8 @@ export async function getSiteKnowledge(): Promise<string> {
 // token allowance after a dozen messages; a focused extract keeps answers
 // precise and the bot available.
 
-const CORE_HEADINGS = ['# פרטי קשר', '# סניפים'];
+// The most-asked answers travel with every message; page passages are added by relevance.
+const CORE_HEADINGS = ['# פרטי קשר', '# סניפים', '# שאלות נפוצות', '# תשובות שירות מאושרות'];
 const HE_PREFIXES = /^(?:וכש|שכ|וב|ול|וה|ומ|כש|ב|ל|ה|ו|מ|ש|כ)(?=[֐-׿]{3,})/;
 const STOP = new Set(['של', 'את', 'עם', 'על', 'יש', 'אם', 'גם', 'או', 'זה', 'זו', 'אני', 'אתם', 'לכם', 'שלכם', 'מה', 'איך', 'כמה', 'האם', 'אפשר', 'רוצה', 'צריך', 'תודה', 'בבקשה', 'היי', 'שלום', 'the', 'a', 'an', 'is', 'are', 'do', 'you', 'i', 'to', 'of', 'and', 'can', 'my', 'for', 'in', 'what', 'how']);
 
@@ -161,7 +162,7 @@ export function knowledgeChunks(text: string): string[] {
 }
 
 /** The core contact details plus the passages that best match the message. */
-export function relevantKnowledge(text: string, message: string, budget = 7000): string {
+export function relevantKnowledge(text: string, message: string, budget = 6000): string {
   const chunks = knowledgeChunks(text);
   const core = chunks.filter((chunk) => CORE_HEADINGS.some((heading) => chunk.startsWith(heading)));
   const words = tokens(message);
@@ -177,7 +178,7 @@ export function relevantKnowledge(text: string, message: string, budget = 7000):
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score);
   const picked = [...core];
-  let size = picked.join('\n\n').length;
+  let size = 0;
   for (const { chunk } of scored) {
     if (size + chunk.length > budget) continue;
     picked.push(chunk);
