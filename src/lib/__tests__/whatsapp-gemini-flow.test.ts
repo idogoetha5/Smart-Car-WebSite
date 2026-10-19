@@ -49,7 +49,7 @@ describe('Gemini interpretation inside the WhatsApp flow', () => {
     const result = await getWhatsAppFlowReply('972501234567', 'אפשר אוטו לחופשה?', store);
     expect(result.reply).toContain('אין בעיה, בשמחה נסדר לך רכב.');
     expect(result.reply).not.toContain('איפה תרצה לאסוף');
-    expect(result.reply.match(/\?/g)).toHaveLength(1);
+    expect(result.reply?.match(/\?/g)).toHaveLength(1);
   });
 
   it('keeps a deterministic safety route when Gemini is unavailable', async () => {
