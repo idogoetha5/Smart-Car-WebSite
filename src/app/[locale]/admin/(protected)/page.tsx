@@ -170,7 +170,7 @@ export default async function AdminDashboard({
               </span>
             </div>
 
-            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {[
                 locale === 'he' ? 'הזמנות' : 'Bookings',
                 locale === 'he' ? 'פניות צור קשר' : 'Contact requests',

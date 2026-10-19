@@ -2,7 +2,54 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { useId, useRef, type ReactNode } from "react";
+import {
+  useCallback,
+  useId,
+  useRef,
+  useSyncExternalStore,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
+import { officeSheetViewport } from "@/lib/office-sheet-viewport";
+
+const serverViewport = () => "";
+function useSheetViewport(open: boolean): CSSProperties | undefined {
+  const subscribe = useCallback(
+    (changed: () => void) => {
+      if (!open || !window.visualViewport) return () => {};
+      const viewport = window.visualViewport;
+      viewport.addEventListener("resize", changed);
+      viewport.addEventListener("scroll", changed);
+      window.addEventListener("resize", changed);
+      return () => {
+        viewport.removeEventListener("resize", changed);
+        viewport.removeEventListener("scroll", changed);
+        window.removeEventListener("resize", changed);
+      };
+    },
+    [open],
+  );
+  const snapshot = useCallback(() => {
+    const viewport = window.visualViewport;
+    return open && viewport
+      ? `${viewport.height},${viewport.offsetTop},${viewport.scale},${window.innerHeight}`
+      : "";
+  }, [open]);
+  const value = useSyncExternalStore(subscribe, snapshot, serverViewport);
+  if (!value) return undefined;
+  const [height, offsetTop, scale, layoutHeight] = value.split(",").map(Number);
+  const geometry = officeSheetViewport(
+    { height, offsetTop, scale },
+    layoutHeight,
+  );
+  return geometry
+    ? ({
+        "--office-sheet-height": `${geometry.height}px`,
+        "--office-sheet-bottom": `${geometry.bottom}px`,
+        "--office-sheet-top": `${geometry.top}px`,
+      } as CSSProperties)
+    : undefined;
+}
 
 /** Office-only sheet: focus trapping/return and inert background are handled by Radix. */
 export default function AdminSheet({
@@ -26,6 +73,7 @@ export default function AdminSheet({
 }) {
   const descriptionId = useId();
   const returnFocus = useRef<HTMLElement | null>(null);
+  const viewportStyle = useSheetViewport(open);
   return (
     <Dialog.Root
       open={open}
@@ -56,17 +104,18 @@ export default function AdminSheet({
           onInteractOutside={(e) => {
             if (busy) e.preventDefault();
           }}
-          className="fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl focus:outline-none sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-[5vh] sm:max-h-[90dvh] sm:w-[min(640px,94vw)] sm:-translate-x-1/2 sm:rounded-3xl"
+          style={viewportStyle}
+          className="fixed inset-x-0 bottom-[var(--office-sheet-bottom,0px)] z-50 flex max-h-[min(92dvh,var(--office-sheet-height,92dvh))] flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl focus:outline-none sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-[var(--office-sheet-top,5vh)] sm:max-h-[min(90dvh,var(--office-sheet-height,90dvh))] sm:w-[min(640px,94vw)] sm:-translate-x-1/2 sm:rounded-3xl"
         >
           <header className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
             <div className="min-w-0">
-              <Dialog.Title className="text-xl font-black text-[#0D2B2B]">
+              <Dialog.Title className="break-words text-lg font-black text-[#0D2B2B] [overflow-wrap:anywhere] sm:text-xl">
                 {title}
               </Dialog.Title>
               {description && (
                 <Dialog.Description
                   id={descriptionId}
-                  className="mt-1 text-sm leading-6 text-slate-500"
+                  className="mt-1 break-words text-sm leading-6 text-slate-500"
                 >
                   {description}
                 </Dialog.Description>
@@ -80,7 +129,7 @@ export default function AdminSheet({
               <X className="h-5 w-5" />
             </Dialog.Close>
           </header>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain scroll-py-4 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
             {children}
           </div>
           {footer && (

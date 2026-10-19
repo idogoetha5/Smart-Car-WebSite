@@ -20,7 +20,7 @@ export default function ContactLeadAction({ locale }: { locale: string }) {
   return (
     <Link
       href={`/${locale}/admin/leads?source=contact${ready && count > 0 ? "&status=NEW" : ""}`}
-      className="flex min-h-28 flex-col rounded-2xl border border-[#B8D8D8] bg-[#EAF4F4] px-4 py-3 text-sm text-[#0D2B2B] transition hover:bg-[#DCEDED] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2D5F5F]"
+      className="order-first col-span-2 flex min-h-28 min-w-0 flex-col rounded-2xl border border-[#B8D8D8] bg-[#EAF4F4] px-4 py-3 text-sm text-[#0D2B2B] transition hover:bg-[#DCEDED] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2D5F5F] sm:order-none sm:col-span-1"
     >
       <span className="flex items-center justify-between gap-2 font-black">
         {he ? "פניות צור קשר" : "Contact enquiries"}

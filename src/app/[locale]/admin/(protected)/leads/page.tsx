@@ -126,7 +126,7 @@ function LeadPanel({
                 type="button"
                 onClick={save}
                 disabled={busy || !dirty}
-                className="min-h-12 w-full rounded-xl bg-[#2D5F5F] font-black text-white disabled:opacity-40"
+                className="min-h-14 w-full rounded-xl bg-[#2D5F5F] font-black text-white disabled:opacity-40"
               >
                 {busy ? "שומר…" : "שמירת פרטי טיפול"}
               </button>
@@ -236,7 +236,7 @@ function LeadPanel({
                 onChange={(e) => setNote(e.target.value)}
                 maxLength={5000}
                 rows={4}
-                className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-base"
+                className="mt-2 w-full min-w-0 resize-y rounded-xl border border-slate-200 p-3 text-base"
               />
             </label>
             <p className="text-xs text-slate-500">
@@ -454,7 +454,7 @@ function LeadWorkspace({
                 type="button"
                 key={lead.key}
                 onClick={() => setSelected(lead)}
-                className="rounded-2xl border border-slate-200 bg-white p-4 text-start shadow-sm transition hover:border-[#B8D8D8]"
+              className="min-h-14 min-w-0 rounded-2xl border border-slate-200 bg-white p-4 text-start shadow-sm transition hover:border-[#B8D8D8]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="min-w-0 break-words text-lg font-black text-[#0D2B2B]">
@@ -466,14 +466,14 @@ function LeadWorkspace({
                 </div>
                 <p
                   dir="ltr"
-                  className="mt-2 text-end text-sm font-bold text-[#2D5F5F]"
+                  className="mt-2 break-all text-end text-sm font-bold text-[#2D5F5F]"
                 >
                   {lead.phone || lead.email || "פרטי קשר לא צוינו"}
                 </p>
                 {lead.details && (
                   <p
                     dir="auto"
-                    className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600"
+                    className="mt-2 line-clamp-2 break-words text-sm leading-6 text-slate-600 [overflow-wrap:anywhere]"
                   >
                     {lead.details}
                   </p>
