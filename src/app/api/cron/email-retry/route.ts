@@ -7,6 +7,7 @@ import {
 } from "@/lib/email-delivery";
 import { retryPendingCustomerSheetSync } from "@/lib/customer-sheet";
 import { retryPendingInspectionOfficeEmails } from "@/lib/inspection-office-email";
+import { retryPendingBookingCustomerEmails } from "@/lib/booking-customer-email";
 
 /**
  * Sweeps the email outbox (see database/migrations/add-email-outbox-table.sql) for
@@ -151,6 +152,13 @@ export async function GET(request: Request) {
     console.error("[inspection-office-email][cron] retry sweep failed:", officeError);
   }
 
+  let bookingCustomerEmails = { swept: 0, delivered: 0, dead: 0, pending: 0 };
+  try {
+    bookingCustomerEmails = await retryPendingBookingCustomerEmails();
+  } catch (bookingEmailError) {
+    console.error("[booking-email][cron] retry sweep failed:", bookingEmailError);
+  }
+
   return NextResponse.json({
     success: true,
     swept: rows?.length ?? 0,
@@ -159,5 +167,6 @@ export async function GET(request: Request) {
     stillPending,
     customerSheets,
     inspectionOfficeEmails,
+    bookingCustomerEmails,
   });
 }
