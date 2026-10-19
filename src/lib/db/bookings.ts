@@ -56,6 +56,13 @@ export async function getActiveBookingsCount(): Promise<number> {
   return count ?? 0;
 }
 
+export async function getPendingBookingsCount(): Promise<number> {
+  const { count, error } = await createAdminClient().from('bookings')
+    .select('*', { count: 'exact', head: true }).or(FIELD_JOB_FILTER).eq('status', 'PENDING');
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function getRecentBookings(limit = 5): Promise<Booking[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase

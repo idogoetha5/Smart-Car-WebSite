@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
+import { useState, useEffect, useMemo, useRef, useLayoutEffect, useCallback } from 'react';
+import { leasingDraftSchema } from '@/lib/quote-drafts';
+import { useQuoteDraft } from '@/lib/use-quote-draft';
+import QuoteDraftControls from '@/components/admin/QuoteDraftControls';
 import { Plus, Trash2, Download, MessageCircle, Send } from 'lucide-react';
 
 const A4_W = 794;
@@ -58,14 +61,14 @@ export default function AdminQuotesPage() {
 
 export function LeasingQuoteBuilder({ loginUrl = '/he/admin/login' }: { loginUrl?: string }) {
   // Stable for the whole builder session — every save/PDF/send while editing
-  // this one draft reuses it, so they update the same row. A fresh page load
-  // (a genuinely new quotation) always gets a fresh id, even if the display
-  // number below happens to repeat or the customer email is identical to an
+  // this one draft reuses it, so they update the same row. Office draft restore
+  // preserves this id across reloads; explicitly starting a new quotation gets
+  // a fresh id, even if the display number or customer email is identical to an
   // earlier quote. See src/lib/quote-history.ts for why this must never be
   // the display number or the customer's email.
-  const [quoteId] = useState(() => crypto.randomUUID());
-  const [quoteNumber] = useState(generateQuoteNumber());
-  const [date] = useState(todayIL());
+  const [quoteId, setQuoteId] = useState(() => crypto.randomUUID());
+  const [quoteNumber, setQuoteNumber] = useState(generateQuoteNumber());
+  const [date, setDate] = useState(todayIL());
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -135,6 +138,16 @@ export function LeasingQuoteBuilder({ loginUrl = '/he/admin/login' }: { loginUrl
     footerNote: footerNote.trim() || undefined,
     isBinding,
   }), [quoteId, quoteNumber, date, customerName, customerPhone, customerEmail, companyName, companyId, vehicles, language, includedTerms, additionalTerms, footerNote, isBinding]);
+
+  const restoreDraft = useCallback((saved: QuoteData) => {
+    setQuoteId(saved.id); setQuoteNumber(saved.quoteNumber); setDate(saved.date);
+    setCustomerName(saved.customerName); setCustomerPhone(saved.customerPhone ?? ''); setCustomerEmail(saved.customerEmail);
+    setCompanyName(saved.companyName); setCompanyId(saved.companyId); setLanguage(saved.language ?? 'he');
+    setVehicles(saved.vehicles); setIncludedTerms((saved.includedTerms ?? []).join('\n'));
+    setAdditionalTerms((saved.additionalTerms ?? []).join('\n')); setFooterNote(saved.footerNote ?? ''); setIsBinding(saved.isBinding ?? false);
+  }, []);
+  const officeDraft = !loginUrl.startsWith('/driver/');
+  const draft = useQuoteDraft('leasing', quoteData, leasingDraftSchema, restoreDraft, officeDraft);
 
   // Stable shell (fonts + styles) rendered once so the iframe never reloads;
   // the body is written live on every edit for an instant, flicker-free preview.
@@ -352,6 +365,7 @@ export function LeasingQuoteBuilder({ loginUrl = '/he/admin/login' }: { loginUrl
         </div>
       </div>
 
+      {officeDraft && <QuoteDraftControls onDiscard={draft.discard} storageError={draft.storageError} />}
       {error && (
         <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>
       )}

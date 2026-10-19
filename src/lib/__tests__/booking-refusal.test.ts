@@ -17,7 +17,7 @@ vi.mock('@/lib/booking-customer-email', () => ({ sendBookingCustomerEmail: vi.fn
 
 beforeEach(() => {
   mocks.authorized = true;
-  mocks.update.mockReset().mockReturnValue({ eq: async () => ({ error: null }) });
+  mocks.update.mockReset().mockReturnValue({ eq: () => ({ eq: () => ({ select: async () => ({ data: [{ id: 'fixture' }], error: null }) }) }) });
 });
 
 describe('booking cancellation attribution', () => {

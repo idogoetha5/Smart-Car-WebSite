@@ -177,6 +177,12 @@ export async function PATCH(
         console.error('[admin/bookings] unexpected approve_booking result:', outcome?.result);
         return NextResponse.json({ error: 'שגיאה בבדיקת זמינות, נסה שוב' }, { status: 503 });
     }
+  } else if (dbStatus === 'REJECTED') {
+    // Do not overwrite a concurrent approval or a customer's cancellation.
+    const { data: changed, error: rejectError } = await supabase.from('bookings')
+      .update({ status: dbStatus }).eq('id', id).eq('status', 'PENDING').select('id');
+    if (rejectError) return NextResponse.json({ error: 'לא ניתן לסרב להזמנה כרגע. נסו שוב.' }, { status: 500 });
+    if (!changed?.length) return NextResponse.json({ error: 'מצב ההזמנה השתנה. יש לרענן ולבדוק לפני הפעולה.' }, { status: 409 });
   } else {
     const { error: updateError } = await supabase
       .from('bookings')

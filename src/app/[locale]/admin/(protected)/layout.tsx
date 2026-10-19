@@ -1,5 +1,6 @@
 import AdminSidebar from '@/components/layout/AdminSidebar';
 import AdminAppSetup from '@/components/admin/AdminAppSetup';
+import { ToastProvider } from '@/components/ui/AppToast';
 
 export default function AdminLayout({
   children,
@@ -16,8 +17,8 @@ export default function AdminLayout({
           child refuses to shrink below the width of its widest content, so
           one wide table pushed the entire page off-screen. `max-w-full`
           keeps that true even when a child sets its own width. */}
-      <div className="flex-1 min-w-0 w-full max-w-full overflow-x-hidden pb-[calc(4.5rem+env(safe-area-inset-bottom))] text-base [&_input]:text-base [&_select]:text-base [&_textarea]:text-base md:pb-0 sm:[&_input]:text-sm sm:[&_select]:text-sm sm:[&_textarea]:text-sm">
-        {children}
+      <div className="flex-1 min-w-0 w-full max-w-full overflow-x-hidden pb-[calc(4.5rem+env(safe-area-inset-bottom))] text-base [&_input]:text-base [&_select]:text-base [&_textarea]:text-base md:pb-0">
+        <ToastProvider>{children}</ToastProvider>
       </div>
     </div>
   );

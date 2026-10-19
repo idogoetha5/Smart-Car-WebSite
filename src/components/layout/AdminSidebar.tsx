@@ -4,6 +4,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { clearOfficeDrafts } from '@/lib/quote-drafts';
+import { clearBookingContext } from '@/lib/use-booking-context';
 import {
   Car,
   CalendarCheck,
@@ -20,6 +22,7 @@ import {
   MessagesSquare,
   ClipboardList,
   Users,
+  Table2,
   X,
 } from 'lucide-react';
 
@@ -82,7 +85,10 @@ export default function AdminSidebar() {
   }, [open]);
 
   const handleLogout = async () => {
-    await fetch('/api/admin/login', { method: 'DELETE' });
+    const response = await fetch('/api/admin/login', { method: 'DELETE' });
+    if (!response.ok) return;
+    try { clearOfficeDrafts(localStorage); } catch { /* Storage may be disabled on a private browser. */ }
+    clearBookingContext();
     router.push(`/${locale}/admin/login`);
   };
 
@@ -97,6 +103,7 @@ export default function AdminSidebar() {
     { href: `/${locale}/admin/cars-for-sale`, label: isHe ? 'ניהול רכבים למכירה' : 'Cars for sale', icon: Tag },
     { href: `/${locale}/admin/leasing-requests`, label: t('manage_leasing'), icon: FileText },
     { href: `/${locale}/admin/inbox`, label: isHe ? 'וואטסאפ' : 'WhatsApp inbox', icon: MessagesSquare },
+    { href: `/${locale}/admin/leads`, label: isHe ? 'פניות ולידים' : 'Leads & enquiries', icon: Table2 },
     { href: `/${locale}/admin/customer-details`, label: isHe ? 'טפסי לקוחות' : 'Customer forms', icon: ClipboardList },
     { href: `/${locale}/admin/drivers`, label: isHe ? 'נהגים' : 'Drivers', icon: Users },
     { href: `/${locale}/admin/reviews`, label: isHe ? 'ביקורות' : 'Reviews', icon: Star },

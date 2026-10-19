@@ -9,6 +9,7 @@ import {
 import { useLocale } from 'next-intl';
 import {
   useEffect,
+  useCallback,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -33,6 +34,9 @@ import {
   type RentalQuoteVehicle,
   type VatMode,
 } from '@/lib/rental-quote';
+import { rentalDraftSchema } from '@/lib/quote-drafts';
+import { useQuoteDraft } from '@/lib/use-quote-draft';
+import QuoteDraftControls from '@/components/admin/QuoteDraftControls';
 
 const A4_WIDTH = 794;
 const A4_HEIGHT = 1123;
@@ -277,7 +281,8 @@ export function RentalQuoteBuilder({
   const t = TEXT[isHe ? 'he' : 'en'];
   const today = useMemo(() => isoToday(), []);
 
-  const [quoteNumber] = useState(() => rentalQuoteNumber());
+  const [quoteNumber, setQuoteNumber] = useState(() => rentalQuoteNumber());
+  const [quoteDate, setQuoteDate] = useState(today);
   const [quoteLocale, setQuoteLocale] = useState<RentalQuoteLocale>(
     isHe ? 'he' : 'en'
   );
@@ -346,7 +351,7 @@ export function RentalQuoteBuilder({
   const quoteData: RentalQuoteData = useMemo(
     () => ({
       quoteNumber,
-      date: today,
+      date: quoteDate,
       validUntil,
       locale: quoteLocale,
       documentMode,
@@ -373,7 +378,7 @@ export function RentalQuoteBuilder({
     }),
     [
       quoteNumber,
-      today,
+      quoteDate,
       validUntil,
       quoteLocale,
       documentMode,
@@ -399,6 +404,19 @@ export function RentalQuoteBuilder({
       notes,
     ]
   );
+
+  const restoreDraft = useCallback((saved: RentalQuoteData) => {
+    setQuoteNumber(saved.quoteNumber); setQuoteDate(saved.date); setValidUntil(saved.validUntil);
+    setQuoteLocale(saved.locale); setDocumentMode(saved.documentMode);
+    setCustomerName(saved.customerName); setCustomerPhone(saved.customerPhone); setCustomerEmail(saved.customerEmail);
+    setPickupDate(saved.pickupDate); setReturnDate(saved.returnDate); setPickupTime(saved.pickupTime); setReturnTime(saved.returnTime);
+    setPickupLocation(saved.pickupLocation); setReturnLocation(saved.returnLocation); setVehicles(saved.vehicles); setExtras(saved.extras);
+    setDeliveryFee(saved.deliveryFee); setDiscount(saved.discount); setVatMode(saved.vatMode);
+    setMileageAllowance(saved.mileageAllowance); setInsuranceCoverage(saved.insuranceCoverage);
+    setDeposit(saved.deposit); setDeductible(saved.deductible); setFuelPolicy(saved.fuelPolicy); setNotes(saved.notes);
+  }, []);
+  const officeDraft = !loginUrl.startsWith('/driver/');
+  const draft = useQuoteDraft('rental', quoteData, rentalDraftSchema, restoreDraft, officeDraft);
 
   const totals = useMemo(
     () => calculateRentalQuoteTotals(quoteData),
@@ -671,6 +689,7 @@ export function RentalQuoteBuilder({
         </div>
       </header>
 
+      {officeDraft && <QuoteDraftControls onDiscard={draft.discard} storageError={draft.storageError} english={!isHe} />}
       {error ? (
         <div
           role="alert"

@@ -3,24 +3,27 @@ export const metadata = { robots: { index: false, follow: false } };
 
 
 import { getTranslations } from 'next-intl/server';
-import { ArrowLeft, CalendarCheck, Car, ExternalLink, FileText, MessageCircle, Plus, Table2, TrendingUp } from 'lucide-react';
+import { ArrowLeft, CalendarCheck, Car, FileText, MessageCircle, Plus, Table2, TrendingUp } from 'lucide-react';
 import StatsCard from '@/components/admin/StatsCard';
 import Link from 'next/link';
+import BookingStatusBadge from '@/components/ui/BookingStatusBadge';
+import { numericOrderReference } from '@/lib/order-reference';
 
 async function getAdminStats() {
   try {
     const { getVehicles } = await import('@/lib/db/vehicles');
-    const { getActiveBookingsCount, getRecentBookings, getMonthlyRevenue } =
+    const { getActiveBookingsCount, getPendingBookingsCount, getRecentBookings, getMonthlyRevenue } =
       await import('@/lib/db/bookings');
     const { getPendingLeasingCount } = await import('@/lib/db/leasing');
 
-    const [vehicles, activeBookings, pendingLeasing, monthlyRevenue, recentBookings] =
+    const [vehicles, activeBookings, pendingLeasing, monthlyRevenue, recentBookings, pendingBookings] =
       await Promise.all([
         getVehicles(),
         getActiveBookingsCount(),
         getPendingLeasingCount(),
         getMonthlyRevenue(),
         getRecentBookings(5),
+        getPendingBookingsCount(),
       ]);
 
     return {
@@ -29,6 +32,8 @@ async function getAdminStats() {
       pendingLeasing,
       monthlyRevenue,
       recentBookings,
+      pendingBookings,
+      loadFailed: false,
     };
   } catch {
     return {
@@ -37,6 +42,8 @@ async function getAdminStats() {
       pendingLeasing: 0,
       monthlyRevenue: 0,
       recentBookings: [],
+      pendingBookings: 0,
+      loadFailed: true,
     };
   }
 }
@@ -68,32 +75,40 @@ export default async function AdminDashboard({
       </section>
 
       {/* Stats Grid */}
+      {stats.loadFailed && <p role="alert" className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">{locale === 'he' ? 'נתוני לוח הבקרה אינם זמינים כרגע. אפשר להמשיך לעבוד דרך דפי הניהול.' : 'Dashboard figures are temporarily unavailable. You can still use the management pages.'}</p>}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4 mb-8">
         <StatsCard
-          title={t('total_vehicles')}
-          value={stats.totalVehicles}
+          title={locale === 'he' ? 'דגמים בקטלוג' : 'Catalogue models'}
+          value={stats.loadFailed ? '—' : stats.totalVehicles}
+          href={`/${locale}/admin/vehicles`}
           icon={Car}
           color="blue"
         />
         <StatsCard
-          title={t('active_bookings')}
-          value={stats.activeBookings}
+          title={locale === 'he' ? 'הזמנות פתוחות' : 'Open bookings'}
+          value={stats.loadFailed ? '—' : stats.activeBookings}
+          trend={locale === 'he' ? 'ממתינות, מאושרות ופעילות' : 'Pending, confirmed and active'}
+          href={`/${locale}/admin/bookings`}
           icon={CalendarCheck}
           color="green"
         />
         <StatsCard
           title={t('pending_leasing')}
-          value={stats.pendingLeasing}
+          value={stats.loadFailed ? '—' : stats.pendingLeasing}
+          href={`/${locale}/admin/leasing-requests`}
           icon={FileText}
           color="yellow"
         />
         <StatsCard
-          title={t('monthly_revenue')}
-          value={`₪${stats.monthlyRevenue.toLocaleString()}`}
+          title={locale === 'he' ? 'שווי הזמנות החודש' : 'Monthly booking value'}
+          value={stats.loadFailed ? '—' : `₪${stats.monthlyRevenue.toLocaleString()}`}
+          trend={locale === 'he' ? 'מאושרות ומעלה · לא גבייה בפועל' : 'Confirmed or later · not payments collected'}
           icon={TrendingUp}
           color="purple"
         />
       </div>
+
+      {!stats.loadFailed && stats.pendingBookings > 0 && <Link href={`/${locale}/admin/bookings?status=PENDING`} className="mb-6 flex min-h-14 items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 font-bold text-amber-900"><span>{locale === 'he' ? `${stats.pendingBookings} הזמנות ממתינות לאישור` : `${stats.pendingBookings} bookings await approval`}</span><ArrowLeft className="h-5 w-5 shrink-0" /></Link>}
 
       <section className="mb-8">
         <div className="mb-3 flex items-center justify-between">
@@ -168,14 +183,12 @@ export default async function AdminDashboard({
             </div>
 
             <Link
-              href="https://docs.google.com/spreadsheets/d/1Ve0QjN471GdNno0mxfRkHmigozjRoBdoOr84PFNZH04/edit"
-              target="_blank"
-              rel="noopener noreferrer"
+              href={`/${locale}/admin/leads`}
               className="mt-5 inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#2D5F5F] px-5 text-sm font-black text-white shadow-[0_10px_20px_rgba(45,95,95,0.22)] transition hover:bg-[#1F4C4C] active:scale-[0.98]"
             >
               <Table2 className="h-5 w-5" />
-              {locale === 'he' ? 'פתיחת גיליון הלידים' : 'Open leads sheet'}
-              <ExternalLink className="h-4 w-4" />
+              {locale === 'he' ? 'פתיחת הפניות בממשק' : 'Open leads workspace'}
+              <ArrowLeft className="h-4 w-4" />
             </Link>
 
             <p className="mt-5 border-t border-[#E5F0F0] pt-4 text-xs font-semibold leading-5 text-slate-400">
@@ -202,9 +215,9 @@ export default async function AdminDashboard({
           <div className="divide-y divide-gray-50">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {stats.recentBookings.map((b: any) => (
-              <div key={b.id} className="flex items-center justify-between gap-3 py-3.5 text-sm first:pt-0">
+              <Link key={b.id} href={`/${locale}/admin/bookings?booking=${encodeURIComponent(b.id)}`} className="flex items-center justify-between gap-3 rounded-xl py-3.5 text-sm first:pt-0 hover:bg-slate-50">
                 <div className="min-w-0">
-                  <p className="truncate font-black text-[#0D2B2B]">{b.customerName ?? '—'}</p>
+                  <p className="truncate font-black text-[#0D2B2B]">{b.customerName ?? '—'} <bdi className="text-xs text-slate-400">#{numericOrderReference(b.id)}</bdi></p>
                   <p className="mt-0.5 truncate text-xs font-semibold text-slate-400">
                     {b.vehicle ? `${b.vehicle.make} ${b.vehicle.model}` : '—'} ·{' '}
                     {b.pickupDate ? new Date(b.pickupDate).toLocaleDateString('he-IL') : ''}
@@ -212,9 +225,9 @@ export default async function AdminDashboard({
                 </div>
                 <div className="shrink-0 text-end">
                   <p className="font-black text-[#2D5F5F]">₪{Number(b.totalPrice ?? 0).toLocaleString()}</p>
-                  <p className="mt-1 text-[11px] font-bold text-slate-400">{b.status}</p>
+                  <div className="mt-1"><BookingStatusBadge status={b.status} locale={locale} variant="admin" /></div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         ) : (

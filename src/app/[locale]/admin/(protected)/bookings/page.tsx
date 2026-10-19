@@ -1,32 +1,38 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useApiList } from '@/lib/swr';
 import { useParams } from 'next/navigation';
-import { Search, Trash2, RefreshCw } from 'lucide-react';
+import { Search, Trash2, RefreshCw, SlidersHorizontal, ChevronLeft, Phone, MessageCircle } from 'lucide-react';
 import BookingStatusBadge from '@/components/ui/BookingStatusBadge';
+import AdminSheet from '@/components/admin/AdminSheet';
+import BookingDetails from '@/components/admin/BookingDetails';
+import { useToast } from '@/components/ui/AppToast';
+import { approvalResultMessage, filterAdminBookings, isOfficeBooking, type AdminBooking, type BookingFilters } from '@/lib/admin-bookings';
+import { numericOrderReference } from '@/lib/order-reference';
+import { useBookingContext } from '@/lib/use-booking-context';
 
-function formatDate(val: string) {
+function formatDate(val?: string) {
   if (!val) return 'לא צוין';
   const d = new Date(val);
   if (isNaN(d.getTime())) return 'לא צוין';
   return d.toLocaleDateString('he-IL');
 }
 
-function formatDateTime(val: string) {
+function formatDateTime(val?: string) {
   if (!val) return null;
   const d = new Date(val);
   if (isNaN(d.getTime())) return null;
   return `${d.toLocaleDateString('he-IL')} ${d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
-function formatPrice(price: number) {
+function formatPrice(price?: number) {
   if (!price || isNaN(price)) return '—';
   return `₪${price.toLocaleString()}`;
 }
 
 
-function waLink(phone: string): string | null {
+function waLink(phone?: string): string | null {
   if (!phone) return null;
   const digits = phone.replace(/\D/g, '');
   if (digits.length < 9) return null;
@@ -40,89 +46,96 @@ export default function AdminBookingsPage() {
   const locale = (params?.locale as string) || 'he';
   const [searchCustomer, setSearchCustomer] = useState('');
   const [searchCar, setSearchCar] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [dateField, setDateField] = useState<BookingFilters['dateField']>('pickup_date');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ id: string; name: string; status: string } | null>(null);
+  const [actingId, setActingId] = useState<string | null>(null);
+  const actionInFlight = useRef(false);
+  const toast = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const deletionInFlight = useRef(false);
 
   const {
     items: bookings,
     isLoading: loading,
     isValidating: refreshing,
+    error: loadError,
     mutate: mutateBookings,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } = useApiList<any>('/api/bookings');
-
-  const filtered = useMemo(() => {
-    const cust = searchCustomer.toLowerCase();
-    const car = searchCar.toLowerCase();
-    return bookings.filter(b => {
-      // Driver-app field jobs aren't reservations (placeholder dates/prices);
-      // they live under נהגים → עבודות שבוצעו ונחתמו.
-      if (b.source === 'driver' || b.source === 'phone') return false;
-      if (cust) {
-        const name = (b.customer_name ?? '').toLowerCase();
-        const email = (b.customer_email ?? '').toLowerCase();
-        if (!name.includes(cust) && !email.includes(cust)) return false;
-      }
-      if (car) {
-        const vehicleStr = b.vehicle
-          ? `${b.vehicle.make} ${b.vehicle.model}`.toLowerCase()
-          : '';
-        if (!vehicleStr.includes(car)) return false;
-      }
-      return true;
-    });
-  }, [bookings, searchCustomer, searchCar]);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleStatusChange = async (bookingId: string, status: string, booking: any) => {
-    const customerName = booking.customer_name || booking.name || 'הלקוח';
-    const msg = status === 'confirmed'
-      ? `לאשר הזמנה של ${customerName}?`
-      : `לסרב להזמנה של ${customerName}?`;
-    if (!window.confirm(msg)) return;
-
-    const res = await fetch(`/api/admin/bookings/${bookingId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      alert('שגיאה: ' + (data?.error || 'נסה שנית'));
-      return;
-    }
-
-    // Applied locally without a refetch: the PATCH already returned the new
-    // status, so re-reading the whole list would only cost a round trip.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mutateBookings(curr => (curr ?? []).map((b: any) => b.id === bookingId ? { ...b, status } : b), { revalidate: false });
-
-    // Confirmation email is sent server-side by the PATCH route above
-    // (sendConfirmationEmail in api/admin/bookings/[id]/route.ts) — do not
-    // also send one from here. This used to fire a second email with a
-    // different hardcoded template every time an admin confirmed a
-    // booking, so customers could get two different-looking confirmations.
-    alert(status === 'confirmed' ? '✅ הזמנה אושרה ומייל אישור נשלח ללקוח' : '❌ הזמנה סורבה');
+  } = useApiList<AdminBooking>('/api/bookings', { refreshInterval: 30_000, revalidateOnFocus: true });
+  const context = useMemo(() => ({ query: searchCustomer, car: searchCar, status: statusFilter, dateField, from: dateFrom, to: dateTo }), [searchCustomer, searchCar, statusFilter, dateField, dateFrom, dateTo]);
+  const restoreContext = useCallback((saved: BookingFilters) => {
+    setSearchCustomer(saved.query); setSearchCar(saved.car); setStatusFilter(saved.status);
+    setDateField(saved.dateField); setDateFrom(saved.from); setDateTo(saved.to);
+    const booking = new URLSearchParams(window.location.search).get('booking');
+    if (booking && /^[A-Za-z0-9_-]{1,150}$/.test(booking)) setSelectedId(booking);
+  }, []);
+  useBookingContext(context, restoreContext, loading);
+  useEffect(() => {
+    const onPop = () => setSelectedId(new URLSearchParams(window.location.search).get('booking'));
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  const openBooking = (id: string) => {
+    setSelectedId(id);
+    const url = new URL(window.location.href);
+    url.searchParams.set('booking', id);
+    window.history.pushState(null, '', url);
+  };
+  const closeBooking = () => {
+    setSelectedId(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('booking');
+    window.history.replaceState(null, '', url);
   };
 
-  const handleDelete = async (id: string, customerName: string) => {
-    if (deletionInFlight.current) return;
-    if (!window.confirm(`למחוק לצמיתות את ההזמנה של ${customerName}?\nיימחקו גם משימות הנהג ובדיקות הרכב של ההזמנה (סרטונים, תמונות ומסמכים חתומים).\nפעולה זו אינה ניתנת לביטול.`)) return;
-    deletionInFlight.current = true;
-    setDeletingId(id);
+  const filtered = useMemo(() => {
+    return filterAdminBookings(bookings, { query: searchCustomer, car: searchCar, status: statusFilter, dateField, from: dateFrom, to: dateTo });
+  }, [bookings, searchCustomer, searchCar, statusFilter, dateField, dateFrom, dateTo]);
+  const officeBookings = bookings.filter(isOfficeBooking);
+  const selectedBooking = bookings.find(b => b.id === selectedId);
+
+  const handleStatusChange = (id: string, status: string, booking: AdminBooking) => {
+    if (!actionInFlight.current) setPendingAction({ id, status, name: booking.customer_name || 'הלקוח' });
+  };
+
+  const handleDelete = (id: string, name: string) => {
+    if (!actionInFlight.current) setPendingAction({ id, name, status: 'delete' });
+  };
+  const performAction = async () => {
+    if (!pendingAction || actionInFlight.current) return;
+    const { id, status } = pendingAction;
+    const deleting = status === 'delete';
+    actionInFlight.current = true;
+    setActingId(id);
+    if (deleting) setDeletingId(id);
     try {
-      const res = await fetch(`/api/admin/bookings/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/bookings/${id}`, deleting ? { method: 'DELETE' } : {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
+      });
+      const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        alert(json?.error || 'שגיאה במחיקה. ההזמנה לא הוסרה מהרשימה.');
+        toast(body.error || 'הפעולה לא הושלמה. נסו שוב.', false);
         return;
       }
-      await mutateBookings(curr => (curr ?? []).filter(b => b.id !== id), { revalidate: false });
+      await mutateBookings(curr => deleting ? (curr ?? []).filter(b => b.id !== id)
+        : (curr ?? []).map(b => b.id === id ? { ...b, status: body.booking?.status ?? status } : b), { revalidate: false });
+      if (deleting) {
+        closeBooking();
+        toast('ההזמנה נמחקה');
+      } else {
+        const message = approvalResultMessage(status, body.confirmationEmailed);
+        toast(message.text, message.ok);
+      }
+      setPendingAction(null);
     } catch {
-      alert('לא ניתן להשלים את המחיקה. בדקו את החיבור ונסו שוב.');
+      toast('הפעולה לא הושלמה עקב בעיית חיבור. בדקו את המצב לפני ניסיון נוסף.', false);
+      void mutateBookings().catch(() => undefined);
     } finally {
-      deletionInFlight.current = false;
+      actionInFlight.current = false;
+      setActingId(null);
       setDeletingId(null);
     }
   };
@@ -147,7 +160,7 @@ export default function AdminBookingsPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-black text-gray-900">ניהול הזמנות</h1>
-          <p className="text-gray-500 mt-1">{filtered.length} / {bookings.length} הזמנות</p>
+          <p className="text-gray-500 mt-1">{filtered.length} / {officeBookings.length} הזמנות</p>
         </div>
         <button
           onClick={() => mutateBookings()}
@@ -167,7 +180,8 @@ export default function AdminBookingsPage() {
             type="text"
             value={searchCustomer}
             onChange={e => setSearchCustomer(e.target.value)}
-            placeholder="חיפוש לפי שם לקוח / אימייל..."
+            placeholder="שם, טלפון, אימייל או מספר הזמנה…"
+            aria-label="חיפוש הזמנה לפי פרטי לקוח או מספר הזמנה"
             className="w-full pe-10 ps-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] bg-white"
           />
         </div>
@@ -183,10 +197,16 @@ export default function AdminBookingsPage() {
         </div>
       </div>
 
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => setStatusFilter('')} aria-pressed={!statusFilter} className={`min-h-11 rounded-xl border px-4 text-sm font-bold ${!statusFilter ? 'border-[#2D5F5F] bg-[#2D5F5F] text-white' : 'border-slate-200 bg-white text-slate-600'}`}>הכול</button>
+        <button type="button" onClick={() => setStatusFilter('PENDING')} aria-pressed={statusFilter === 'PENDING'} className={`min-h-11 rounded-xl border px-4 text-sm font-bold ${statusFilter === 'PENDING' ? 'border-[#2D5F5F] bg-[#2D5F5F] text-white' : 'border-slate-200 bg-white text-slate-600'}`}>ממתינות לאישור <span className="ms-1">{officeBookings.filter(b => b.status?.toUpperCase() === 'PENDING').length}</span></button>
+        <button type="button" onClick={() => setFiltersOpen(true)} className="flex min-h-11 items-center gap-2 rounded-xl border border-[#B8D8D8] bg-white px-3 text-sm font-bold text-[#2D5F5F]"><SlidersHorizontal className="h-4 w-4" />סינון{(statusFilter && statusFilter !== 'PENDING') || dateFrom || dateTo ? ' •' : ''}</button>
+      </div>
+      {loadError && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">לא הצלחנו לעדכן את רשימת ההזמנות. {bookings.length ? 'הנתונים האחרונים נשארו מוצגים.' : 'בדקו את החיבור או התחברו מחדש.'}<button type="button" onClick={() => mutateBookings()} className="ms-2 min-h-11 underline">ניסיון נוסף</button></div>}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {filtered.length === 0 ? (
           <p className="text-center text-gray-400 py-12">
-            {bookings.length === 0 ? 'אין הזמנות עדיין' : 'לא נמצאו תוצאות'}
+            {loadError ? 'הרשימה אינה זמינה כרגע' : officeBookings.length === 0 ? 'אין הזמנות עדיין' : 'לא נמצאו תוצאות לסינון שנבחר'}
           </p>
         ) : (
           <>
@@ -198,10 +218,11 @@ export default function AdminBookingsPage() {
               const vehicle = b.vehicle ? `${b.vehicle.make} ${b.vehicle.model}` : b.vehicle_id?.slice(0, 8);
               return (
                 <article key={b.id} className="p-4">
+                  <button type="button" onClick={() => openBooking(b.id)} aria-label={`פתיחת כל פרטי ההזמנה של ${b.customer_name || 'לקוח'}`} className="block w-full rounded-xl text-start outline-offset-4 focus-visible:outline-2 focus-visible:outline-[#2D5F5F]">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h2 className="truncate text-lg font-black text-[#0D2B2B]">{b.customer_name || 'לא צוין'}</h2>
-                      <p className="mt-0.5 text-sm font-bold text-[#2D5F5F]">{vehicle || 'רכב לא צוין'}</p>
+                      <h2 className="break-words text-lg font-black text-[#0D2B2B]">{b.customer_name || 'לא צוין'}</h2>
+                      <p className="mt-0.5 flex items-center gap-1 text-sm font-bold text-[#2D5F5F]"><bdi>{vehicle || 'רכב לא צוין'}</bdi><ChevronLeft className="h-4 w-4 shrink-0" aria-hidden="true" /></p>
                     </div>
                     <BookingStatusBadge status={b.status} locale={locale} size="md" variant="admin" />
                   </div>
@@ -210,6 +231,7 @@ export default function AdminBookingsPage() {
                     <p className="mt-1"><span className="font-bold text-slate-800">החזרה:</span> {formatDate(b.dropoff_date)} {b.return_time || ''}</p>
                     <p className="mt-1 font-black text-[#0D2B2B]">{formatPrice(b.total_price)}</p>
                   </div>
+                  </button>
                   <div className="mt-3 grid grid-cols-2 gap-2.5">
                     {pending && <button onClick={() => handleStatusChange(b.id, 'confirmed', b)} className="min-h-14 rounded-2xl bg-gradient-to-bl from-[#3A7A7A] to-[#164443] px-3 text-base font-black text-white shadow-[0_8px_18px_rgba(22,68,67,0.24)] transition active:scale-[0.98]">אישור הזמנה</button>}
                     {pending && <button onClick={() => handleStatusChange(b.id, 'rejected', b)} className="min-h-14 rounded-2xl border border-red-200 bg-gradient-to-bl from-red-50 to-[#FFF8F7] px-3 text-base font-black text-red-700 shadow-sm transition hover:border-red-300 hover:bg-red-100 active:scale-[0.98]">סירוב</button>}
@@ -252,7 +274,7 @@ export default function AdminBookingsPage() {
                 {filtered.map((b) => (
                   <tr key={b.id} className="hover:bg-gray-50 transition-colors">
                     <td className="p-4">
-                      <div className="font-medium text-gray-900">{b.customer_name || 'לא צוין'}</div>
+                      <button type="button" onClick={() => openBooking(b.id)} className="min-h-11 text-start font-bold text-[#2D5F5F] underline-offset-4 hover:underline">{b.customer_name || 'לא צוין'}</button>
                       <div className="text-gray-400 text-xs">{b.customer_email}</div>
                       {b.source === 'driver' && (
                         <span className="mt-1 inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap">
@@ -372,6 +394,28 @@ export default function AdminBookingsPage() {
           </>
         )}
       </div>
+      <AdminSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} title="סינון הזמנות" description="בחרו סטטוס ותקופה. סוג התאריך מציין בדיוק לפי מה מסננים." footer={<div className="flex gap-2"><button type="button" onClick={() => { setStatusFilter(''); setDateFrom(''); setDateTo(''); }} className="min-h-12 flex-1 rounded-xl border border-slate-200 font-bold">ניקוי סינון</button><button type="button" disabled={!!dateFrom && !!dateTo && dateTo < dateFrom} onClick={() => setFiltersOpen(false)} className="min-h-12 flex-1 rounded-xl bg-[#2D5F5F] font-bold text-white disabled:opacity-40">הצגת הזמנות</button></div>}>
+        <div className="space-y-4">
+          <label className="block text-sm font-bold text-slate-700">סטטוס<select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-base">{[['', 'כל הסטטוסים'], ['PENDING', 'ממתינה לאישור'], ['CONFIRMED', 'אושרה'], ['ACTIVE', 'פעילה'], ['COMPLETED', 'הושלמה'], ['REJECTED', 'סורבה'], ['CANCELLED_BY_CUSTOMER', 'בוטלה על ידי הלקוח'], ['CANCELLED', 'בוטלה']].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+          <label className="block text-sm font-bold text-slate-700">לפי איזה תאריך?<select value={dateField} onChange={e => setDateField(e.target.value as BookingFilters['dateField'])} className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-base"><option value="pickup_date">תאריך איסוף</option><option value="dropoff_date">תאריך החזרה</option><option value="created_at">תאריך קבלת ההזמנה</option></select></label>
+          <label className="block text-sm font-bold text-slate-700">מתאריך<input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="mt-2 min-h-12 w-full min-w-0 rounded-xl border border-slate-200 px-3 text-base" /></label>
+          <label className="block text-sm font-bold text-slate-700">עד תאריך<input type="date" value={dateTo} min={dateFrom || undefined} onChange={e => setDateTo(e.target.value)} className="mt-2 min-h-12 w-full min-w-0 rounded-xl border border-slate-200 px-3 text-base" /></label>
+          {dateFrom && dateTo && dateTo < dateFrom && <p role="alert" className="text-sm text-red-700">תאריך הסיום חייב להיות לאחר תאריך ההתחלה.</p>}
+        </div>
+      </AdminSheet>
+      <AdminSheet open={!!selectedBooking} onClose={closeBooking} title={selectedBooking ? `פרטי הזמנה #${numericOrderReference(selectedBooking.id)}` : 'פרטי הזמנה'} footer={selectedBooking && <div className="space-y-2">
+        {selectedBooking.status?.toUpperCase() === 'PENDING' && <div className="grid grid-cols-2 gap-2"><button type="button" disabled={!!actingId} onClick={() => handleStatusChange(selectedBooking.id, 'confirmed', selectedBooking)} className="min-h-12 rounded-xl bg-[#2D5F5F] font-black text-white disabled:opacity-40">אישור הזמנה</button><button type="button" disabled={!!actingId} onClick={() => handleStatusChange(selectedBooking.id, 'rejected', selectedBooking)} className="min-h-12 rounded-xl border border-red-200 bg-red-50 font-bold text-red-700 disabled:opacity-40">סירוב</button></div>}
+        <div className="flex gap-2">
+          {waLink(selectedBooking.customer_phone) && <a href={waLink(selectedBooking.customer_phone)!} target="_blank" rel="noopener noreferrer" className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#128C4A] font-bold text-white"><MessageCircle className="h-4 w-4" />WhatsApp</a>}
+          {selectedBooking.customer_phone && <a href={`tel:${selectedBooking.customer_phone.replace(/[^+\d]/g, '')}`} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border border-[#B8D8D8] bg-[#EAF4F4] font-bold text-[#1F5A56]"><Phone className="h-4 w-4" />התקשרות</a>}
+        </div>
+      </div>}>
+        {selectedBooking && <><BookingDetails booking={selectedBooking} /><div className="mt-5 grid grid-cols-2 gap-2"><a href={`/${locale}/admin/inspections/new?bookingId=${selectedBooking.id}&type=pickup`} className="flex min-h-12 items-center justify-center rounded-xl bg-orange-50 text-sm font-bold text-orange-800">בדיקת מסירה</a><a href={`/${locale}/admin/inspections/new?bookingId=${selectedBooking.id}&type=return`} className="flex min-h-12 items-center justify-center rounded-xl bg-[#EAF4F4] text-sm font-bold text-[#1F5A56]">בדיקת החזרה</a></div>
+        {isDecided(selectedBooking.status) && <button type="button" disabled={!!actingId} onClick={() => handleDelete(selectedBooking.id, selectedBooking.customer_name || 'לקוח')} className="mt-4 min-h-12 w-full rounded-xl border border-red-200 text-sm font-bold text-red-700 disabled:opacity-40">מחיקת הזמנה</button>}</>}
+      </AdminSheet>
+      <AdminSheet open={!!pendingAction} onClose={() => setPendingAction(null)} busy={!!actingId} alert title={pendingAction?.status === 'delete' ? 'מחיקת הזמנה לצמיתות' : pendingAction?.status === 'confirmed' ? 'אישור הזמנה' : 'סירוב להזמנה'} description={pendingAction ? `הזמנה של ${pendingAction.name} · #${numericOrderReference(pendingAction.id)}` : undefined} footer={<div className="grid grid-cols-2 gap-2"><button type="button" disabled={!!actingId} onClick={() => setPendingAction(null)} className="min-h-12 rounded-xl border border-slate-200 font-bold disabled:opacity-40">חזרה</button><button type="button" disabled={!!actingId} onClick={performAction} className={`min-h-12 rounded-xl font-black text-white disabled:opacity-50 ${pendingAction?.status === 'confirmed' ? 'bg-[#2D5F5F]' : 'bg-red-700'}`}>{actingId ? 'מבצע…' : pendingAction?.status === 'delete' ? 'מחיקה לצמיתות' : pendingAction?.status === 'confirmed' ? 'אישור ההזמנה' : 'סירוב להזמנה'}</button></div>}>
+        <p className="text-base leading-7 text-slate-700">{pendingAction?.status === 'delete' ? 'יימחקו גם משימות הנהג ובדיקות הרכב המשויכות להזמנה, כולל סרטונים, תמונות ומסמכים חתומים. פעולה זו אינה ניתנת לביטול.' : pendingAction?.status === 'confirmed' ? 'הזמינות תיבדק שוב לפני האישור. לאחר האישור תתבצע שליחת מייל ללקוח בשפת ההזמנה.' : 'ההזמנה תסומן כסורבה על ידי המשרד. פעולה זו אינה ביטול על ידי הלקוח.'}</p>
+      </AdminSheet>
     </div>
   );
 }

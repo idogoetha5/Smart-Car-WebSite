@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import type { LucideIcon } from 'lucide-react';
+import Link from 'next/link';
 
 interface StatsCardProps {
   title: string;
@@ -7,6 +8,7 @@ interface StatsCardProps {
   icon: LucideIcon;
   color?: 'blue' | 'green' | 'yellow' | 'purple';
   trend?: string;
+  href?: string;
 }
 
 const colorMap = {
@@ -22,9 +24,10 @@ export default function StatsCard({
   icon: Icon,
   color = 'blue',
   trend,
+  href,
 }: StatsCardProps) {
   const c = colorMap[color];
-  return (
+  const content = (
     <div className={cn('min-h-32 bg-white rounded-2xl border p-4 sm:p-5 shadow-[0_8px_24px_rgba(13,43,43,0.05)]', c.border)}>
       <div className="flex items-start justify-between">
         <div>
@@ -38,4 +41,5 @@ export default function StatsCard({
       </div>
     </div>
   );
+  return href ? <Link href={href} className="block rounded-2xl outline-offset-4 transition hover:brightness-[0.98] focus-visible:outline-2 focus-visible:outline-[#2D5F5F]">{content}</Link> : content;
 }
