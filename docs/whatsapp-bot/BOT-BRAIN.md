@@ -21,6 +21,8 @@ The owner wants a natural, bilingual business representative, not a menu-only bo
 
 ## One voice per message
 
+- `inOneVoice` in `whatsapp-flow.ts` is the last step for every reply: the flow decides state, safety and hand-offs, and the text the customer reads is Gemini's when Gemini read the message (see exceptions in the handbook change log). A mismatch between Gemini's closing question and the next booking detail triggers one `composeOneMessage` call (an extra Gemini request only in that case).
+
 - Gemini returns `reply` (the whole WhatsApp message) and `asks` (what its closing question asks: pickup_date, return_date, places, pickup_place, return_place, vehicle, name, email, nothing, other). `rentalReply` in `whatsapp-flow.ts` sends `reply` unchanged only when `asks` equals the next missing booking detail (`expectedAsk`); otherwise it sends Gemini's answer without its questions plus one fixed question. Outside a booking `conversationalReply` uses `reply` when it asks nothing or a general question.
 - `guardedReply` (whatsapp-gemini.ts) drops a reply with a number, link or email not in the knowledge/customer message/known dates, any question about pickup/return times, or more than one question mark.
 - The fixed questions are the fallback when Gemini is unavailable or disagrees with the flow. They confirm several details at once only when one message added several ("סגור — …").
