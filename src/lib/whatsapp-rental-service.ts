@@ -33,7 +33,6 @@ export function rentalServicePrompt(state: FlowState, locale: Locale, question: 
   return `${summary ? `סגור — ${summary} ✅\n\n` : ''}${question}`;
 }
 
-export function rentalConfirmationIntro(state: FlowState, locale: Locale) {
-  const summary = label(state, locale);
-  return locale === 'en' ? `I’ve noted ${summary}. Please review the request below.` : `רשמתי: ${summary}. אפשר לבדוק את פרטי הבקשה:`;
+export function rentalConfirmationIntro(_state: FlowState, locale: Locale) {
+  return locale === 'en' ? 'Almost there 🙌 Here’s the summary — take a quick look that everything is right:' : 'כמעט סיימנו 🙌 הנה הסיכום, תעיף מבט שהכל נכון:';
 }

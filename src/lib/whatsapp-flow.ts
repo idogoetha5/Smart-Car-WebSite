@@ -1115,6 +1115,14 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
     const returnStated = /להחזיר|החזרה|ולהחזיר|נחזיר|אחזיר|מחזיר|return|drop ?off|back/i.test(body) || SAME_PLACE.test(body);
     const sameEvidence = interpretation.dropoffEvidence.trim() && interpretation.dropoffEvidence.trim() === interpretation.pickupEvidence.trim();
     if (dropoffLocation && !current.dropoffLocation && (returnStated || !sameEvidence)) extracted.dropoffLocation = dropoffLocation;
+    // Places are recorded the same way whoever read them: "Herzliya" from Gemini is "הרצליה".
+    for (const field of ['pickupLocation', 'dropoffLocation'] as const) {
+      const known = extracted[field] ? knownPlacesIn(String(extracted[field])) : [];
+      if (known.length === 1) extracted[field] = known[0];
+    }
+    // "לאותו מקום" copies the pickup place exactly.
+    const pickupKnown = extracted.pickupLocation ?? current.pickupLocation;
+    if (!current.dropoffLocation && pickupKnown && SAME_PLACE.test(body) && !knownPlacesIn(body).length) extracted.dropoffLocation = pickupKnown;
     const vehicleEvidence = interpretation.vehicleEvidence.trim();
     if (!vehiclePreference && interpretation.vehiclePreference && vehicleEvidence
       && body.toLocaleLowerCase().includes(vehicleEvidence.toLocaleLowerCase())) {
@@ -1479,7 +1487,7 @@ function knowledgeReply(input: string, locale: FlowLocale, state?: FlowState | n
 }
 
 /** Handles the complete deterministic SmartCar service flow. */
-const HISTORY_LENGTH = 8;
+const HISTORY_LENGTH = 14;
 
 /**
  * Answers one customer message and keeps the last few messages of the
@@ -1526,7 +1534,13 @@ export async function getWhatsAppFlowReply(phone: string, rawBody: string, store
  */
 async function inOneVoice(result: WhatsAppFlowResult, understood: WhatsAppInterpretation | null, current: FlowState | null, previous: FlowState | null, message: string): Promise<WhatsAppFlowResult> {
   const reply = understood?.reply?.trim();
-  if (!reply || understood?.source !== 'gemini' || !result.reply || result.escalate || !current || current.handedOff) return result;
+  if (!reply || understood?.source !== 'gemini' || !result.reply || !current) return result;
+  // A hand-off to a person is said in Gemini's warmer words when Gemini itself asked for the person
+  // and its reply says the team takes over. Emergencies always keep the fixed safety wording.
+  if (result.escalate || current.handedOff) {
+    const personHandoff = understood.intent === 'representative' && /נציג|צוות|מישהו מ|team|representative|someone/i.test(reply);
+    return personHandoff && !/גורמי החירום|emergency/i.test(result.reply) ? { ...result, reply } : result;
+  }
   if (current.step === 'rental_confirm' || current.carSale || current.leasing || current.lastQuestion) return result;
   if (/₪[\d,]+/.test(result.reply) && /\/rental\//.test(result.reply)) return result;
   const locale = current.locale ?? 'he';
@@ -1534,6 +1548,13 @@ async function inOneVoice(result: WhatsAppFlowResult, understood: WhatsAppInterp
   const ask = expectedAsk(current);
   if (!ask || ask === 'confirm') return result;
   if (understood?.asks === ask && (reply.match(/[?？]/g) ?? []).length <= 1) return { ...result, reply };
+  // The customer asked something or just talked, without adding a booking detail: answer like a person
+  // and let the booking pick up again on the next message, instead of pushing the form every time.
+  const fields = ['pickupDate', 'dropoffDate', 'pickupLocation', 'dropoffLocation', 'vehiclePreference', 'passengers'] as const;
+  const addedDetail = previous && isRentalStep(previous.step) ? fields.some((field) => current[field] !== previous[field]) : true;
+  const lastBot = [...(previous?.history ?? [])].reverse().find((entry) => entry.from === 'bot')?.text ?? '';
+  const askedJustBefore = /[?？]\s*$/.test(lastBot.trim());
+  if (!addedDetail && (understood?.asks === 'other' || understood?.asks === 'nothing' || !askedJustBefore)) return { ...result, reply };
   const question = promptForState(current, locale, null, previous);
   const combined = await composeOneMessage({ message, draft: reply, question, locale });
   return combined ? { ...result, reply: combined } : result;
@@ -1635,7 +1656,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       // Names, emails and phone numbers stay out of what Gemini sees.
       recent: (Array.isArray(existingState.history) ? existingState.history.slice(-HISTORY_LENGTH) : [])
         .filter((entry) => !['rental_name', 'rental_email', 'rental_confirm'].includes(entry.step ?? '') && !/@|(?:\+972|0)[\d\s()-]{8,}/.test(entry.text))
-        .map(({ from, text }) => ({ from, text: text.slice(0, 300) })),
+        .map(({ from, text }) => ({ from, text: text.slice(0, 500) })),
       knowledgeTopic: existingState.knowledgeTopic,
       haveName: Boolean(existingState.customerName), haveEmail: Boolean(existingState.customerEmail),
     } : null)?.catch(() => null) ?? null
@@ -2120,7 +2141,12 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
 
   // Once the conversation is with a person, never resume the form silently.
   // A conscious menu/language command above is the customer-controlled reset.
-  if (existingState?.handedOff) return { handled: true, escalate: true, escalateReason: 'שיחה כבר הועברה לנציג' };
+  if (existingState?.handedOff) {
+    // A person is taking over. Confirm once that the message reached them, then stay quiet.
+    const lastBot = [...(existingState.history ?? [])].reverse().find((entry) => entry.from === 'bot')?.text ?? '';
+    const noted = locale === 'en' ? 'Got it, I’ve added this for the team 🙏' : 'קיבלתי, הוספתי את זה לצוות 🙏';
+    return { handled: true, escalate: true, escalateReason: 'שיחה כבר הועברה לנציג', ...(lastBot === noted ? {} : { reply: noted }) };
+  }
 
   if (!existingState) {
     if (/תינוק|ילד|baby|child/.test(input) && /נוחת|נחיתה|landing|land at|airport/.test(input)) {
@@ -2270,8 +2296,11 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       // A question or a "thanks" between steps is answered, then the name is asked for again.
       const answer = asksQuestion ? knowledgeReply(body, locale, existingState)?.reply : null;
       if (answer) return { handled: true, reply: `${answer}\n\n${namePrompt(locale)}` };
-      if (smallTalkOnly(body) || NOT_A_NAME.test(body.trim()) || asksQuestion) return { handled: true, reply: namePrompt(locale) };
-      return { handled: true, reply: locale === 'en' ? 'Please enter a valid full name, without a link.' : 'כתבו בבקשה שם מלא תקין, ללא קישור.' };
+      if (smallTalkOnly(body) || NOT_A_NAME.test(body.trim()) || NOT_NAME_WORDS.test(body)) {
+        return { handled: true, reply: locale === 'en' ? 'Sure 🙂 What full name should I put the request under?' : 'בכיף 🙂 על איזה שם מלא לרשום את הבקשה?' };
+      }
+      if (asksQuestion) return { handled: true, reply: namePrompt(locale) };
+      return { handled: true, reply: locale === 'en' ? 'Just need a full name for the request (first and last) 🙂' : 'רק צריך שם מלא לבקשה — פרטי ומשפחה 🙂' };
     }
     await store.saveState(phone, { ...existingState, customerName, step: 'rental_email' });
     return { handled: true, reply: emailPrompt(locale) };
@@ -2284,7 +2313,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       if (answer) return { handled: true, reply: `${answer}\n\n${emailPrompt(locale)}` };
       if (smallTalkOnly(body) || NOT_A_NAME.test(body.trim()) || asksQuestion) return { handled: true, reply: emailPrompt(locale) };
     }
-    if (!customerEmail) return { handled: true, reply: locale === 'en' ? 'That email address does not look valid. Please enter it again, for example: name@example.com' : 'כתובת המייל אינה נראית תקינה. כתבו אותה שוב, לדוגמה: name@example.com' };
+    if (!customerEmail) return { handled: true, reply: locale === 'en' ? 'Hmm, that email looks a bit off — could you send it again? (like name@example.com)' : 'נראה לי שנפלה טעות קטנה במייל — תשלח שוב? (למשל name@example.com)' };
     const completed = { ...existingState, customerEmail, step: 'rental_confirm' as const };
     await store.saveState(phone, completed);
     return { handled: true, reply: confirmationPrompt(completed, locale) };
