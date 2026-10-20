@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { Pencil, Trash2, X } from 'lucide-react';
+import VehicleImageUpload from '@/components/admin/VehicleImageUpload';
 
 const CATEGORIES = ['MINI', 'ECONOMY', 'COMPACT', 'SEDAN', 'CROSSOVER', 'SUV', 'LUXURY', 'VAN', 'COMMERCIAL', 'ELECTRIC'];
 const FUEL_TYPES = ['GASOLINE', 'DIESEL', 'ELECTRIC', 'HYBRID'];
@@ -37,6 +38,8 @@ export default function AdminVehiclesPage() {
   const [form, setForm] = useState<VehicleForm>({ ...EMPTY_VEHICLE });
   const [imageUrl, setImageUrl] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [search, setSearch] = useState('');
   const router = useRouter();
   const locale = useLocale();
@@ -57,6 +60,7 @@ export default function AdminVehiclesPage() {
   const vehicles = useMemo(() => (Array.isArray(data) ? data : []), [data]);
 
   const openEdit = (v: Vehicle) => {
+    setSaveError('');
     setEditVehicle(v);
     setForm({
       make: v.make ?? '',
@@ -84,13 +88,14 @@ export default function AdminVehiclesPage() {
   };
 
   const openAdd = () => {
+    setSaveError('');
     setEditVehicle(null);
     setForm({ ...EMPTY_VEHICLE });
     setImageUrl('');
     setShowAddForm(true);
   };
 
-  const closeModal = () => { setShowAddForm(false); setEditVehicle(null); };
+  const closeModal = () => { if (!uploading && !saving) { setShowAddForm(false); setEditVehicle(null); } };
 
   const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`למחוק את ${name}?`)) return;
@@ -108,24 +113,28 @@ export default function AdminVehiclesPage() {
   };
 
   const handleSave = async () => {
+    if (saving || uploading) return;
     setSaving(true);
-    const payload = { ...form, image_urls: imageUrl ? [imageUrl] : form.image_urls };
-    if (editVehicle) {
-      await fetch(`/api/admin/vehicles/${editVehicle.id}`, {
-        method: 'PATCH',
+    setSaveError('');
+    const payload = { ...form, image_urls: imageUrl ? [imageUrl, ...form.image_urls.slice(1)] : form.image_urls.slice(1) };
+    try {
+      const response = await fetch(editVehicle ? `/api/admin/vehicles/${editVehicle.id}` : '/api/admin/vehicles', {
+        method: editVehicle ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-    } else {
-      await fetch('/api/admin/vehicles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || 'שמירת הרכב נכשלה. נסה שוב.');
+      }
+      setShowAddForm(false);
+      setEditVehicle(null);
+      void refetchVehicles();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'שמירת הרכב נכשלה. נסה שוב.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    closeModal();
-    refetchVehicles();
   };
 
   const set = (key: keyof VehicleForm, value: string | number | boolean) =>
@@ -163,7 +172,7 @@ export default function AdminVehiclesPage() {
 
   return (
     <div className="p-4 sm:p-8" dir="rtl">
-      <div className="flex items-start justify-between gap-3 mb-8">
+      <div className="mb-6 flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-start">
         <div>
           <h1 className="text-3xl font-black text-gray-900">ניהול רכבים</h1>
           <p className="text-gray-500 mt-1">{vehicles.length} רכבים</p>
@@ -184,17 +193,18 @@ export default function AdminVehiclesPage() {
       {/* Add / Edit Modal */}
       {isOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-4 sm:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto text-right shadow-2xl">
+          <div role="dialog" aria-modal="true" aria-label={editVehicle ? 'עריכת רכב' : 'הוספת רכב'} className="bg-white rounded-2xl p-4 sm:p-6 w-full max-w-2xl max-h-[90dvh] overflow-y-auto text-right shadow-2xl">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-bold">
                 {editVehicle ? `ערוך — ${editVehicle.make} ${editVehicle.model}` : 'הוסף רכב חדש'}
               </h2>
-              <button onClick={closeModal} className="p-1 text-gray-400 hover:text-gray-700">
+              <button onClick={closeModal} disabled={uploading || saving} aria-label="סגירה" className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-40">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2"><VehicleImageUpload value={imageUrl} onChange={setImageUrl} onBusyChange={setUploading} disabled={saving} /></div>
               {/* Text / number fields */}
               {textFields.map(f => (
                 <div key={f.key}>
@@ -222,18 +232,6 @@ export default function AdminVehiclesPage() {
                   </select>
                 </div>
               ))}
-
-              {/* Image URL */}
-              <div className="sm:col-span-2">
-                <label className="text-xs text-gray-600 block mb-1">קישור לתמונה</label>
-                <input
-                  type="text"
-                  placeholder="https://…supabase.co/storage/v1/object/public/vehicles/…"
-                  value={imageUrl}
-                  onChange={e => setImageUrl(e.target.value)}
-                  className="w-full min-h-11 p-3 border border-gray-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
-                />
-              </div>
 
               {/* Description HE */}
               <div className="sm:col-span-2">
@@ -281,16 +279,18 @@ export default function AdminVehiclesPage() {
               </div>
             </div>
 
+            {saveError && <p role="alert" className="mt-4 text-sm text-red-700">{saveError}</p>}
             <div className="sticky bottom-0 -mx-4 mt-5 flex gap-3 border-t border-gray-100 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:mx-0 sm:border-0 sm:p-0">
               <button
                 onClick={handleSave}
-                disabled={saving || !form.make || !form.model}
+                disabled={saving || uploading || !form.make || !form.model}
                 className="flex-1 bg-[#E8743B] disabled:opacity-50 text-white py-2.5 rounded-xl font-bold text-sm"
               >
                 {saving ? 'שומר...' : (editVehicle ? 'עדכן רכב' : 'שמור רכב')}
               </button>
               <button
                 onClick={closeModal}
+                disabled={saving || uploading}
                 className="flex-1 border border-gray-200 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50"
               >
                 ביטול

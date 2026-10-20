@@ -105,6 +105,29 @@ body {
   accent-color: #2D5F5F;
 }
 
+@media (max-width: 639px) {
+  .smartcar-admin button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .smartcar-admin input:not([type='checkbox']):not([type='radio']),
+  .smartcar-admin select,
+  .smartcar-admin textarea {
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .smartcar-admin h1,
+  .smartcar-admin h2,
+  .smartcar-admin h3,
+  .smartcar-admin p {
+    overflow-wrap: anywhere;
+  }
+}
+
 .manager-app ::selection {
   background: #B8D8D8;
   color: #0D2B2B;

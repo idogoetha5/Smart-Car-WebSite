@@ -1,9 +1,14 @@
 'use client';
+/* eslint-disable @next/next/no-img-element -- inventory images are dynamic admin-managed URLs. */
 
 import {
+  Check,
+  ChevronDown,
   Download,
+  Eye,
   MessageCircle,
   Plus,
+  Search,
   Trash2,
 } from 'lucide-react';
 import { useLocale } from 'next-intl';
@@ -109,6 +114,10 @@ const TEXT = {
     removeVehicle: 'הסרת רכב',
     removeExtra: 'הסרת תוספת',
     inventory: 'בחירה ממאגר הרכבים (אופציונלי)',
+    chooseFromInventory: 'בחירה מהמאגר',
+    manualEntry: 'הזנה ידנית',
+    searchVehicle: 'חיפוש רכב במאגר',
+    noVehiclesFound: 'לא נמצאו רכבים מתאימים',
     manual: '— רכב שאינו כלול בצי (הזנה ידנית) —',
     vehicleName: 'שם הרכב',
     year: 'שנת דגם',
@@ -200,6 +209,10 @@ const TEXT = {
     removeVehicle: 'Remove vehicle',
     removeExtra: 'Remove extra',
     inventory: 'Choose from vehicle inventory (optional)',
+    chooseFromInventory: 'Choose from inventory',
+    manualEntry: 'Manual entry',
+    searchVehicle: 'Search inventory',
+    noVehiclesFound: 'No matching vehicles found',
     manual: '— Vehicle not in the fleet (manual entry) —',
     vehicleName: 'Vehicle name',
     year: 'Model year',
@@ -322,6 +335,11 @@ export function RentalQuoteBuilder({
   const [inventory, setInventory] = useState<InventoryVehicle[]>([]);
   const [busy, setBusy] = useState<'pdf' | 'whatsapp' | null>(null);
   const [error, setError] = useState('');
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [mobileStep, setMobileStep] = useState(1);
+  const [vehiclePickerIndex, setVehiclePickerIndex] = useState<number | null>(null);
+  const [inventorySearch, setInventorySearch] = useState('');
+  const [inventorySelection, setInventorySelection] = useState<Record<number, string>>({});
   const previewWrapRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [previewScale, setPreviewScale] = useState(0.5);
@@ -470,6 +488,7 @@ export function RentalQuoteBuilder({
     // and its year by hand — a car SmartCar sources for a specific customer is
     // not in the inventory at all.
     if (vehicleId === MANUAL_VEHICLE) {
+      setInventorySelection((current) => ({ ...current, [index]: MANUAL_VEHICLE }));
       updateVehicle(index, {
         name: '',
         year: '',
@@ -487,6 +506,7 @@ export function RentalQuoteBuilder({
       (vehicle) => vehicle.id === vehicleId
     );
     if (!inventoryVehicle) return;
+    setInventorySelection((current) => ({ ...current, [index]: vehicleId }));
     updateVehicle(index, {
       name: `${inventoryVehicle.make} ${inventoryVehicle.model}`,
       year: String(inventoryVehicle.year ?? ''),
@@ -660,14 +680,33 @@ export function RentalQuoteBuilder({
     }
   };
 
+  const changeMobileStep = (step: number) => {
+    setMobileStep(step);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const customerReady = Boolean(customerName.trim() && customerPhone.trim());
+  const rentalReady = Boolean(pickupDate && returnDate && returnDate >= pickupDate && pickupLocation.trim() && returnLocation.trim());
+  const vehicleReady = vehicles.some((vehicle) => vehicle.name.trim());
+  const mobileSteps = [
+    { number: 1, label: isHe ? 'לקוח ונסיעה' : 'Customer & trip', done: customerReady && rentalReady },
+    { number: 2, label: isHe ? 'בחירת רכב' : 'Vehicle', done: vehicleReady },
+    { number: 3, label: isHe ? 'תוספות ותנאים' : 'Extras & terms', done: Boolean(insuranceCoverage.trim()) },
+    { number: 4, label: isHe ? 'בדיקה ושליחה' : 'Review & send', done: false },
+  ];
+
   return (
     <main
-      className="mx-auto max-w-[1500px] p-3 sm:p-5"
+      className="mx-auto max-w-[1500px] p-3 pb-40 sm:p-5 sm:pb-40 lg:pb-5"
       dir={isHe ? 'rtl' : 'ltr'}
     >
-      <header className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <h1 className="text-2xl font-black text-gray-900">{t.pageTitle}</h1>
-        <div className="flex flex-col gap-2 sm:flex-row">
+      <header className="mb-4 overflow-hidden rounded-3xl bg-[#0D2B2B] px-5 py-5 text-white shadow-[0_16px_36px_rgba(13,43,43,0.16)] lg:flex lg:items-center lg:justify-between">
+        <div>
+          <p className="text-xs font-black tracking-wide text-[#B8D8D8]">SmartCar · {isHe ? 'מרכז הצעות' : 'QUOTE DESK'}</p>
+          <h1 className="mt-1 text-2xl font-black tracking-tight">{t.pageTitle}</h1>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-[#D5E8E8]"><span className="rounded-full bg-white/10 px-3 py-1.5">#{quoteNumber}</span><span className="rounded-full bg-white/10 px-3 py-1.5">{totals.days} {t.rentalDays}</span><span className="rounded-full bg-[#2D5F5F] px-3 py-1.5">₪{money(totals.total, adminLocale)}</span></div>
+        </div>
+        <div className="mt-4 hidden gap-2 lg:flex">
           <button
             type="button"
             onClick={handleDownload}
@@ -699,14 +738,24 @@ export function RentalQuoteBuilder({
         </div>
       ) : null}
 
+      <nav aria-label={isHe ? 'שלבי הכנת ההצעה' : 'Quote steps'} className="mb-4 rounded-3xl border border-[#CFE2D8] bg-white p-2 shadow-sm lg:hidden">
+        <div className="grid grid-cols-4 gap-1" dir={isHe ? 'rtl' : 'ltr'}>
+          {mobileSteps.map((step) => {
+            const active = mobileStep === step.number;
+            return <button key={step.number} type="button" onClick={() => changeMobileStep(step.number)} aria-current={active ? 'step' : undefined} className={`flex min-h-16 flex-col items-center justify-center rounded-2xl px-1 text-center transition-colors ${active ? 'bg-[#0D2B2B] text-white shadow-sm' : 'text-[#476965] hover:bg-[#F1F7F3]'}`}><span className={`mb-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${active ? 'bg-white text-[#0D2B2B]' : step.done ? 'bg-[#2D5F5F] text-white' : 'bg-[#EAF4F4] text-[#2D5F5F]'}`}>{step.done && !active ? <Check className="h-3 w-3" aria-hidden="true" /> : step.number}</span><span className="text-[10px] font-black leading-3">{step.label}</span></button>;
+          })}
+        </div>
+      </nav>
+
       <div className="grid items-start gap-4 lg:grid-cols-2">
         {/* Preview — a true A4 page scaled to the column, sticky on desktop so
             the document stays in view while the form below is filled. */}
         {/* min-w-0: without it the grid column cannot shrink below the scaled
             A4 box, and on a phone the box keeps the page wider than the
             viewport instead of the box scaling down to the column. */}
-        <aside className="min-w-0 lg:sticky lg:top-4">
-          <div className="rounded-2xl bg-gray-200/70 p-2 sm:p-3">
+        <aside className={`order-2 min-w-0 ${mobileStep === 4 ? 'block' : 'hidden'} lg:order-1 lg:block lg:sticky lg:top-4`}>
+          <button type="button" onClick={() => setPreviewOpen(current => !current)} className="mb-3 flex min-h-12 w-full items-center justify-between rounded-2xl border border-[#CFE2D8] bg-[#F1F7F3] px-4 text-sm font-black text-[#1F5A56] lg:hidden"><span className="flex items-center gap-2"><Eye className="h-4 w-4" />{t.preview}</span><ChevronDown className={`h-4 w-4 transition-transform ${previewOpen ? 'rotate-180' : ''}`} /></button>
+          <div className={`${previewOpen ? 'block' : 'hidden'} rounded-2xl bg-gray-200/70 p-2 sm:p-3 lg:block`}>
             <div ref={previewWrapRef} className="w-full">
               <div
                 dir="ltr"
@@ -737,7 +786,7 @@ export function RentalQuoteBuilder({
           </div>
         </aside>
 
-        <div className="flex min-w-0 flex-col gap-3 lg:max-h-[calc(100vh-7rem)]">
+        <div className="order-1 flex min-w-0 flex-col gap-3 lg:order-2 lg:max-h-[calc(100vh-7rem)]">
           <section className="rounded-2xl bg-[#0d2b2b] p-3 text-white">
             <h2 className="mb-2 text-sm font-black">{t.priceSummary}</h2>
             <dl className="grid grid-cols-3 gap-x-3 gap-y-2 text-sm">
@@ -769,10 +818,11 @@ export function RentalQuoteBuilder({
           {/* Only the sections scroll: the totals strip above stays in view,
               so the price is never hidden while the form is being filled. */}
           <div className="min-w-0 space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pe-1">
-            <Section title={t.quoteDetails}>
+            <div className={mobileStep === 1 ? 'block lg:contents' : 'hidden lg:contents'}>
+            <Section id="quote-details" title={t.quoteDetails}>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                <Field label={t.quoteNumber} value={quoteNumber} readOnly />
-                <Field label={t.quoteDate} value={today} type="date" readOnly />
+                <div className="hidden sm:block"><Field label={t.quoteNumber} value={quoteNumber} readOnly /></div>
+                <div className="hidden sm:block"><Field label={t.quoteDate} value={today} type="date" readOnly /></div>
                 <Field
                   label={t.validUntil}
                   value={validUntil}
@@ -819,7 +869,7 @@ export function RentalQuoteBuilder({
               </label>
             </Section>
 
-            <Section title={t.customer}>
+            <Section id="customer" title={t.customer}>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 <Field
                   label={t.customerName}
@@ -845,7 +895,7 @@ export function RentalQuoteBuilder({
               </div>
             </Section>
 
-            <Section title={t.rental}>
+            <Section id="rental" title={t.rental}>
               <datalist id="smartcar-branches">
                 {BRANCHES.map((branch) => (
                   <option
@@ -911,8 +961,9 @@ export function RentalQuoteBuilder({
                 />
               </div>
             </Section>
+            </div>
 
-            <section aria-labelledby="rental-vehicles-heading">
+            <section id="rental-vehicles" aria-labelledby="rental-vehicles-heading" className={`${mobileStep === 2 ? 'block' : 'hidden'} scroll-mt-3 lg:block`}>
               <div className="mb-2 flex items-center justify-between gap-3">
                 <h2
                   id="rental-vehicles-heading"
@@ -964,7 +1015,58 @@ export function RentalQuoteBuilder({
                       ) : null}
                     </div>
 
-                    <label className="mb-2.5 block">
+                    <div className="mb-3 sm:hidden">
+                      <div className="grid grid-cols-2 gap-2 rounded-2xl bg-[#EEF6F2] p-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setVehiclePickerIndex((current) => current === index ? null : index);
+                            setInventorySearch('');
+                          }}
+                          className={`min-h-11 rounded-xl px-2 text-sm font-black transition-colors ${vehiclePickerIndex === index || (inventorySelection[index] && inventorySelection[index] !== MANUAL_VEHICLE) ? 'bg-[#0D2B2B] text-white shadow-sm' : 'text-[#1F5A56]'}`}
+                        >
+                          {t.chooseFromInventory}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setVehiclePickerIndex(null);
+                            fillVehicleFromInventory(index, MANUAL_VEHICLE);
+                          }}
+                          className={`min-h-11 rounded-xl px-2 text-sm font-black transition-colors ${vehiclePickerIndex !== index && (!inventorySelection[index] || inventorySelection[index] === MANUAL_VEHICLE) ? 'bg-white text-[#0D2B2B] shadow-sm' : 'text-[#1F5A56]'}`}
+                        >
+                          {t.manualEntry}
+                        </button>
+                      </div>
+
+                      {vehiclePickerIndex === index ? (
+                        <div className="mt-2 rounded-2xl border border-[#CFE2D8] bg-[#F9FCFA] p-2">
+                          <label className="relative block">
+                            <span className="sr-only">{t.searchVehicle}</span>
+                            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#2D5F5F]" aria-hidden="true" />
+                            <input
+                              value={inventorySearch}
+                              onChange={(event) => setInventorySearch(event.target.value)}
+                              placeholder={t.searchVehicle}
+                              className="min-h-11 w-full rounded-xl border border-[#B8D8D8] bg-white py-2 pe-3 ps-9 text-base outline-none focus:ring-2 focus:ring-[#2D5F5F]"
+                            />
+                          </label>
+                          <div className="mt-2 max-h-72 space-y-2 overflow-y-auto pe-0.5">
+                            {inventory.filter((item) => `${item.make} ${item.model} ${item.category} ${item.year}`.toLocaleLowerCase().includes(inventorySearch.trim().toLocaleLowerCase())).map((item) => {
+                              const selected = vehicle.name === `${item.make} ${item.model}` && vehicle.year === String(item.year);
+                              return <button key={item.id} type="button" onClick={() => { fillVehicleFromInventory(index, item.id); setVehiclePickerIndex(null); }} className={`flex min-h-16 w-full items-center gap-3 rounded-xl border p-2 text-start transition-colors ${selected ? 'border-[#2D5F5F] bg-[#E5F3F3]' : 'border-slate-200 bg-white'}`}>
+                                {item.image_urls?.[0] ? <img src={item.image_urls[0]} alt="" className="h-12 w-16 shrink-0 rounded-lg object-cover" /> : <span className="flex h-12 w-16 shrink-0 items-center justify-center rounded-lg bg-[#DDEDEC] text-xl text-[#2D5F5F]">🚗</span>}
+                                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-black text-[#0D2B2B]">{item.make} {item.model}</span><span className="mt-0.5 block text-xs font-semibold text-slate-500">{item.category || '—'} · {item.year}</span></span>
+                                <span className="shrink-0 text-sm font-black text-[#1F5A56]">₪{money(Number(item.price_per_day) || 0, adminLocale)}</span>
+                              </button>;
+                            })}
+                            {!inventory.filter((item) => `${item.make} ${item.model} ${item.category} ${item.year}`.toLocaleLowerCase().includes(inventorySearch.trim().toLocaleLowerCase())).length ? <p className="px-3 py-6 text-center text-sm font-bold text-slate-500">{t.noVehiclesFound}</p> : null}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <label className="mb-2.5 hidden sm:block">
                       <span className="mb-1 block text-xs font-medium text-gray-600">
                         {t.inventory}
                       </span>
@@ -1098,20 +1200,21 @@ export function RentalQuoteBuilder({
                         inputMode="numeric"
                         min="1"
                       />
-                      <Field
+                      <div className="hidden sm:block"><Field
                         label={t.imageUrl}
                         value={vehicle.imageUrl}
                         onChange={(value) =>
                           updateVehicle(index, { imageUrl: value })
                         }
                         dir="ltr"
-                      />
+                      /></div>
                     </div>
                   </div>
                 ))}
               </div>
             </section>
 
+            <div className={mobileStep === 3 ? 'block lg:contents' : 'hidden lg:contents'}>
             <section aria-labelledby="rental-extras-heading">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <h2
@@ -1169,7 +1272,7 @@ export function RentalQuoteBuilder({
                         </button>
                       ) : null}
                     </div>
-                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                    {extra.selected ? <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                       <Field
                         label={t.extraNameHe}
                         value={extra.labelHe}
@@ -1224,13 +1327,13 @@ export function RentalQuoteBuilder({
                           <option value="flat">{t.flat}</option>
                         </select>
                       </label>
-                    </div>
+                    </div> : null}
                   </div>
                 ))}
               </div>
             </section>
 
-            <Section title={t.termsAndPrice}>
+            <Section id="rental-terms" title={t.termsAndPrice}>
               <datalist id="rental-insurance-options">
                 {INSURANCE_SUGGESTIONS[quoteLocale].map((option) => (
                   <option key={option} value={option} />
@@ -1313,7 +1416,22 @@ export function RentalQuoteBuilder({
                 </label>
               </div>
             </Section>
+            </div>
           </div>
+        </div>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-[#CFE2D8] bg-white/95 px-3 py-3 shadow-[0_-10px_30px_rgba(13,43,43,0.12)] backdrop-blur md:bottom-0 md:start-64 lg:hidden" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+        <div className="mx-auto flex max-w-xl gap-2">
+          {mobileStep < 4 ? (
+            <button type="button" onClick={() => changeMobileStep(mobileStep + 1)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#0D2B2B] text-sm font-black text-white shadow-[0_10px_20px_rgba(13,43,43,0.2)]">
+              {isHe ? `המשך: ${mobileSteps[mobileStep].label}` : `Continue: ${mobileSteps[mobileStep].label}`}
+              <ChevronDown className="h-4 w-4 -rotate-90" aria-hidden="true" />
+            </button>
+          ) : <>
+            <button type="button" onClick={handleDownload} disabled={busy !== null} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-[#B8D8D8] bg-white text-sm font-black text-[#1F5A56] disabled:opacity-50"><Download className="h-4 w-4" />{busy === 'pdf' ? t.downloading : t.download}</button>
+            <button type="button" onClick={handleWhatsApp} disabled={busy !== null} className="flex min-h-12 flex-[1.25] items-center justify-center gap-2 rounded-2xl bg-[#17a857] text-sm font-black text-white shadow-[0_10px_20px_rgba(23,168,87,0.24)] disabled:opacity-50"><MessageCircle className="h-5 w-5" />{busy === 'whatsapp' ? t.preparingWhatsapp : t.whatsapp}</button>
+          </>}
         </div>
       </div>
     </main>
@@ -1321,14 +1439,16 @@ export function RentalQuoteBuilder({
 }
 
 function Section({
+  id,
   title,
   children,
 }: {
+  id?: string;
   title: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+    <section id={id} className="scroll-mt-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
       <h2 className="mb-2 font-black text-gray-900">{title}</h2>
       {children}
     </section>

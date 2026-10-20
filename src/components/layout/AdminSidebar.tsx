@@ -107,7 +107,7 @@ export default function AdminSidebar() {
     { href: `/${locale}/admin/customer-details`, label: isHe ? 'טפסי לקוחות' : 'Customer forms', icon: ClipboardList },
     { href: `/${locale}/admin/drivers`, label: isHe ? 'נהגים' : 'Drivers', icon: Users },
     { href: `/${locale}/admin/reviews`, label: isHe ? 'ביקורות' : 'Reviews', icon: Star },
-    { href: `/${locale}/admin/quote-history`, label: isHe ? 'היסטוריית הצעות מחיר ליסינג' : 'Leasing quote history', icon: History },
+    { href: `/${locale}/admin/quote-history`, label: isHe ? 'היסטוריית הצעות מחיר' : 'Quote history', icon: History },
   ];
   const mobileMainLinks = links.filter((link) => [
     `/${locale}/admin`,
@@ -196,19 +196,19 @@ export default function AdminSidebar() {
           an unreadable bar. */}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(13,43,43,0.10)] backdrop-blur md:hidden" aria-label={isHe ? 'ניווט ראשי' : 'Main navigation'}>
         {mobileMainLinks.map((link) => {
-          const Icon = link.icon;
+          const Icon = link.href.endsWith('/rental-quotes') ? FileText : link.icon;
           const active = pathname === link.href;
-          const label = link.href.endsWith('/admin') ? (isHe ? 'ראשי' : 'Home') : link.label;
+          const label = link.href.endsWith('/admin') ? (isHe ? 'ראשי' : 'Home') : link.href.endsWith('/bookings') ? (isHe ? 'הזמנות' : 'Bookings') : (isHe ? 'הצעת השכרה' : 'Rental quote');
           return (
-            <Link key={link.href} href={link.href} aria-current={active ? 'page' : undefined} className={`flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-black ${active ? 'text-[#2D5F5F]' : 'text-slate-400'}`}>
-              <Icon className="h-5 w-5" aria-hidden="true" />
-              <span>{label}</span>
+            <Link key={link.href} href={link.href} aria-current={active ? 'page' : undefined} className={`flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-[#2D5F5F] ${active ? 'text-[#0D2B2B]' : 'text-slate-500'}`}>
+              <span className={`flex h-8 w-12 items-center justify-center rounded-xl ${active ? 'bg-[#e8f1f1] text-[#2D5F5F]' : ''}`}><Icon className="h-5 w-5" aria-hidden="true" /></span>
+              <span className="whitespace-nowrap">{label}</span>
             </Link>
           );
         })}
-        <button type="button" onClick={() => setOpen(true)} className="flex min-h-16 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-black text-slate-400" aria-expanded={open} aria-controls="admin-drawer">
-          <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
-          <span>{isHe ? 'עוד' : 'More'}</span>
+        <button type="button" onClick={() => setOpen(true)} className="flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-bold text-slate-500" aria-label={isHe ? 'כל כלי הניהול' : 'All admin tools'} aria-expanded={open} aria-controls="admin-drawer">
+          <span className="flex h-8 w-12 items-center justify-center"><MoreHorizontal className="h-5 w-5" aria-hidden="true" /></span>
+          <span>{isHe ? 'כל הכלים' : 'All tools'}</span>
         </button>
       </nav>
 

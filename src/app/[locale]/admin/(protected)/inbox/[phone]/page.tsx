@@ -76,20 +76,20 @@ export default function AdminInboxThreadPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.25rem)] md:h-screen bg-gray-50">
+    <div className="flex h-[calc(100dvh-8.75rem-env(safe-area-inset-bottom))] flex-col bg-gray-50 md:h-dvh">
       <header className="sticky top-0 z-20 flex items-center gap-2 bg-white border-b px-3 py-3">
         <button
           type="button"
           onClick={() => router.push(`/${locale}/admin/inbox`)}
           aria-label="חזרה לרשימת השיחות"
-          className="flex items-center justify-center w-9 h-9 -ms-1 rounded-lg hover:bg-gray-100"
+          className="flex h-11 w-11 shrink-0 items-center justify-center -ms-1 rounded-lg hover:bg-gray-100"
         >
           <ArrowRight className="w-5 h-5" aria-hidden="true" />
         </button>
         <h1 className="font-bold text-gray-900" dir="ltr">{phone ? formatPhone(phone) : ''}</h1>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-2">
+      <div className="flex min-h-0 flex-1 overflow-y-auto px-3 py-4 flex-col gap-2">
         {isLoading && <p className="text-gray-500 text-sm">טוען...</p>}
         {messages.map((m) => (
           <div key={m.id} className={`max-w-[85%] rounded-2xl px-4 py-2 flex flex-col ${BUBBLE_STYLE[m.source]}`}>
@@ -116,7 +116,7 @@ export default function AdminInboxThreadPage() {
           }}
           rows={1}
           placeholder="הקלד תשובה..."
-          className="flex-1 resize-none rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 max-h-32"
+          className="min-h-11 min-w-0 flex-1 resize-none rounded-xl border border-gray-300 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] max-h-32"
         />
         <button
           type="button"

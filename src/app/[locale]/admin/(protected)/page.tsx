@@ -6,9 +6,11 @@ import { getTranslations } from 'next-intl/server';
 import { ArrowLeft, CalendarCheck, Car, ExternalLink, FileText, MessageCircle, Plus, Table2, TrendingUp } from 'lucide-react';
 import StatsCard from '@/components/admin/StatsCard';
 import ContactLeadAction from '@/components/admin/ContactLeadAction';
+import SearchConsolePanel from '@/components/admin/SearchConsolePanel';
 import Link from 'next/link';
 import BookingStatusBadge from '@/components/ui/BookingStatusBadge';
 import { numericOrderReference } from '@/lib/order-reference';
+import { getSearchConsoleOverview } from '@/lib/search-console';
 
 async function getAdminStats() {
   try {
@@ -17,7 +19,7 @@ async function getAdminStats() {
       await import('@/lib/db/bookings');
     const { getPendingLeasingCount } = await import('@/lib/db/leasing');
 
-    const [vehicles, activeBookings, pendingLeasing, monthlyRevenue, recentBookings, pendingBookings] =
+    const [vehicles, activeBookings, pendingLeasing, monthlyRevenue, recentBookings, pendingBookings, searchConsole] =
       await Promise.all([
         getVehicles(),
         getActiveBookingsCount(),
@@ -25,6 +27,7 @@ async function getAdminStats() {
         getMonthlyRevenue(),
         getRecentBookings(5),
         getPendingBookingsCount(),
+        getSearchConsoleOverview(),
       ]);
 
     return {
@@ -34,6 +37,7 @@ async function getAdminStats() {
       monthlyRevenue,
       recentBookings,
       pendingBookings,
+      searchConsole,
       loadFailed: false,
     };
   } catch {
@@ -44,6 +48,7 @@ async function getAdminStats() {
       monthlyRevenue: 0,
       recentBookings: [],
       pendingBookings: 0,
+      searchConsole: null,
       loadFailed: true,
     };
   }
@@ -109,42 +114,9 @@ export default async function AdminDashboard({
         />
       </div>
 
-      {!stats.loadFailed && stats.pendingBookings > 0 && <Link href={`/${locale}/admin/bookings?status=PENDING`} className="mb-6 flex min-h-14 items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 font-bold text-amber-900"><span>{locale === 'he' ? `${stats.pendingBookings} הזמנות ממתינות לאישור` : `${stats.pendingBookings} bookings await approval`}</span><ArrowLeft className="h-5 w-5 shrink-0" /></Link>}
+      <SearchConsolePanel data={stats.searchConsole} locale={locale} />
 
-      <section className="mb-8">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-black text-[#0D2B2B]">{locale === 'he' ? 'פעולות מהירות' : 'Quick actions'}</h2>
-          <span className="text-sm font-bold text-slate-400">{locale === 'he' ? 'ליום עבודה מהיר' : 'For a faster workday'}</span>
-        </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          {
-            href: `/${locale}/admin/bookings`, label: t('manage_bookings'), icon: CalendarCheck,
-          },
-          {
-            href: `/${locale}/admin/rental-quotes`, label: locale === 'he' ? 'הצעת מחיר' : 'Rental quote', icon: FileText,
-          },
-          {
-            href: `/${locale}/admin/inbox`, label: 'WhatsApp', icon: MessageCircle,
-          },
-          {
-            href: `/${locale}/admin/vehicles`, label: t('manage_vehicles'), icon: Car,
-          },
-        ].map((action) => {
-          const Icon = action.icon;
-          return (
-            <Link
-              key={action.href}
-              href={action.href}
-              className="group flex min-h-28 flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 text-[#0D2B2B] shadow-[0_8px_24px_rgba(13,43,43,0.05)] transition-all hover:-translate-y-0.5 hover:border-[#B8D8D8] hover:shadow-[0_12px_28px_rgba(13,43,43,0.10)]"
-            >
-              <Icon className="h-6 w-6 text-[#2D5F5F]" />
-              <span className="flex w-full items-center justify-between gap-2 text-sm font-black"><span>{action.label}</span><ArrowLeft className="h-4 w-4 text-slate-400 transition-transform group-hover:-translate-x-1" /></span>
-            </Link>
-          );
-        })}
-      </div>
-      </section>
+      {!stats.loadFailed && stats.pendingBookings > 0 && <Link href={`/${locale}/admin/bookings?status=PENDING`} className="mb-6 flex min-h-14 items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 font-bold text-amber-900"><span>{locale === 'he' ? `${stats.pendingBookings} הזמנות ממתינות לאישור` : `${stats.pendingBookings} bookings await approval`}</span><ArrowLeft className="h-5 w-5 shrink-0" /></Link>}
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.75fr)]">
         <section className="relative overflow-hidden rounded-3xl border border-[#CFE2D8] bg-[#F9FCFA] p-5 shadow-[0_12px_32px_rgba(13,43,43,0.06)] sm:p-7">

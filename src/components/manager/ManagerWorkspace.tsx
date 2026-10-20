@@ -28,14 +28,14 @@ function Inner() {
   return (
     <div className="mx-auto w-full max-w-5xl p-4 sm:p-8" dir="rtl">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex max-w-full gap-1 overflow-x-auto rounded-2xl bg-white p-1 shadow-sm ring-1 ring-black/[0.04]" role="tablist">
+        <div className="grid w-full grid-cols-5 gap-1 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-black/[0.04] sm:flex sm:w-auto" role="tablist">
           {TABS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
               role="tab"
               aria-selected={tab === key}
               onClick={() => setTab(key)}
-              className={`flex min-h-11 items-center gap-2 rounded-xl px-4 text-sm font-black transition ${tab === key ? 'bg-[#2D5F5F] text-white' : 'text-gray-500 hover:text-gray-800'}`}
+              className={`flex min-h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-black transition sm:min-h-11 sm:flex-row sm:gap-2 sm:px-4 sm:text-sm ${tab === key ? 'bg-[#2D5F5F] text-white' : 'text-gray-500 hover:text-gray-800'}`}
             >
               <Icon className="h-4 w-4" aria-hidden="true" />
               {label}

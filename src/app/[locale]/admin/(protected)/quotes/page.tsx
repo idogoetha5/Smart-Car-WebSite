@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef, useLayoutEffect, useCallback } fr
 import { leasingDraftSchema } from '@/lib/quote-drafts';
 import { useQuoteDraft } from '@/lib/use-quote-draft';
 import QuoteDraftControls from '@/components/admin/QuoteDraftControls';
-import { Plus, Trash2, Download, MessageCircle, Send } from 'lucide-react';
+import { Plus, Trash2, Download, Eye, ChevronDown, MessageCircle, Send } from 'lucide-react';
 
 const A4_W = 794;
 const A4_H = 1123;
@@ -77,6 +77,7 @@ export function LeasingQuoteBuilder({ loginUrl = '/he/admin/login' }: { loginUrl
   const [language, setLanguage] = useState<'he' | 'en'>('he');
   const [vehicles, setVehicles] = useState<QuoteVehicle[]>([emptyVehicle()]);
   const [inventory, setInventory] = useState<InventoryVehicle[]>([]);
+  const [previewOpen, setPreviewOpen] = useState(false);
   
   const [includedTerms, setIncludedTerms] = useState(DEFAULT_INCLUDED_HE);
   const [additionalTerms, setAdditionalTerms] = useState(DEFAULT_TERMS_HE);
@@ -326,7 +327,7 @@ export function LeasingQuoteBuilder({ loginUrl = '/he/admin/login' }: { loginUrl
   };
 
   return (
-    <div className="mx-auto max-w-[1400px] p-0 sm:p-4 lg:p-8" dir="rtl">
+    <div className="mx-auto max-w-[1400px] p-3 sm:p-4 lg:p-8" dir="rtl">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-gray-900">הצעת מחיר ליסינג</h1>
         <div className="grid grid-cols-2 gap-2 sm:flex">
@@ -379,7 +380,9 @@ export function LeasingQuoteBuilder({ loginUrl = '/he/admin/login' }: { loginUrl
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Preview — true A4 page scaled to fit the panel, so the whole quote
             is always visible and updates live as the form is edited. */}
-        <div className="lg:sticky lg:top-6 rounded-xl bg-gray-200/60 p-4">
+        <div className="order-2 min-w-0 lg:order-1 lg:sticky lg:top-6">
+          <button type="button" onClick={() => setPreviewOpen((current) => !current)} aria-expanded={previewOpen} className="mb-3 flex min-h-12 w-full items-center justify-between gap-2 rounded-2xl border border-[#B8D8D8] bg-white px-4 text-sm font-bold text-[#1F5A56] lg:hidden"><span className="flex items-center gap-2"><Eye className="h-4 w-4" />תצוגה מקדימה</span><ChevronDown className={`h-4 w-4 ${previewOpen ? 'rotate-180' : ''}`} /></button>
+          <div className={`${previewOpen ? 'block' : 'hidden'} rounded-xl bg-gray-200/60 p-3 lg:block`}>
           <div ref={previewWrapRef} className="w-full">
             <div
               dir="ltr"
@@ -404,10 +407,11 @@ export function LeasingQuoteBuilder({ loginUrl = '/he/admin/login' }: { loginUrl
               />
             </div>
           </div>
+          </div>
         </div>
 
         {/* Right: form */}
-        <div className="space-y-5 lg:max-h-[80vh] lg:overflow-y-auto lg:pe-1">
+        <div className="order-1 min-w-0 space-y-5 lg:order-2 lg:max-h-[80vh] lg:overflow-y-auto lg:pe-1">
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <h2 className="font-bold text-gray-900 mb-3">פרטי הצעה</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

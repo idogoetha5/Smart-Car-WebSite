@@ -99,7 +99,7 @@ export default function AdminReviewsPage() {
 
   return (
     <div className="p-4 sm:p-8" dir="rtl">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black text-gray-900">
             {locale === 'he' ? 'ניהול ביקורות' : 'Reviews Management'}
@@ -127,7 +127,7 @@ export default function AdminReviewsPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-gray-200 pb-0">
+      <div className="mb-6 grid grid-cols-3 gap-1 border-b border-gray-200 pb-0 sm:flex sm:gap-2">
         {([
           { key: 'pending', labelHe: `ממתינות (${pendingCount})`, labelEn: `Pending (${pendingCount})` },
           { key: 'approved', labelHe: `מאושרות (${reviews.filter(r => r.approved).length})`, labelEn: `Approved (${reviews.filter(r => r.approved).length})` },
@@ -136,7 +136,7 @@ export default function AdminReviewsPage() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors -mb-px ${
+            className={`min-h-11 px-1 py-2 text-xs font-medium rounded-t-lg border-b-2 transition-colors -mb-px sm:px-4 sm:text-sm ${
               tab === t.key
                 ? 'border-[#E8743B] text-[#E8743B]'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -156,7 +156,7 @@ export default function AdminReviewsPage() {
           <div className="divide-y divide-gray-50">
             {filtered.map(r => (
               <div key={r.id} className={`p-5 hover:bg-gray-50 transition-colors ${!r.approved ? 'bg-amber-50/30' : ''}`}>
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1 flex-wrap">
                       <span className="font-bold text-gray-900">{r.name}</span>

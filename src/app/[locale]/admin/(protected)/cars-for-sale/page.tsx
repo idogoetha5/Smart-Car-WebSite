@@ -5,6 +5,7 @@ import { useApiList } from '@/lib/swr';
 import { useLocale } from 'next-intl';
 import Image from 'next/image';
 import { Plus, Trash2, Car } from 'lucide-react';
+import VehicleImageUpload from '@/components/admin/VehicleImageUpload';
 
 interface CarForSale {
   id: string;
@@ -35,6 +36,7 @@ export default function AdminCarsForSalePage() {
   const isHe = locale === 'he';
 
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [actionError, setActionError] = useState('');
@@ -54,6 +56,7 @@ export default function AdminCarsForSalePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (uploading || saving) return;
     setActionError('');
     setSaving(true);
     try {
@@ -96,15 +99,14 @@ export default function AdminCarsForSalePage() {
     { key: 'price',     label: isHe ? 'מחיר (₪)' : 'Price (₪)', required: true,  type: 'number' },
     { key: 'km',        label: isHe ? 'ק"מ' : 'KM',          required: false, type: 'number' },
     { key: 'color',     label: isHe ? 'צבע' : 'Color',       required: false, type: 'text' },
-    { key: 'image_url', label: isHe ? 'קישור תמונה' : 'Image URL', required: false, type: 'url' },
   ];
 
   return (
     <div className="p-4 sm:p-8" dir={isHe ? 'rtl' : 'ltr'}>
-      <div className="flex items-center justify-between mb-8">
+      <div className="mb-6 flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 flex items-center gap-3">
-            <Car className="w-8 h-8 text-[#E8743B]" />
+          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 flex items-center gap-3">
+            <Car className="w-8 h-8 shrink-0 text-[#E8743B]" />
             {isHe ? 'ניהול רכבים למכירה' : 'Manage Cars for Sale'}
           </h1>
           <p className="text-gray-500 mt-1">
@@ -112,6 +114,7 @@ export default function AdminCarsForSalePage() {
           </p>
         </div>
         <button
+          disabled={uploading || saving}
           onClick={() => { setShowForm(!showForm); setActionError(''); }}
           className="flex items-center gap-2 px-5 py-2.5 bg-[#E8743B] text-white font-bold rounded-xl hover:bg-[#d4622a] transition-colors"
         >
@@ -137,6 +140,7 @@ export default function AdminCarsForSalePage() {
             {isHe ? 'הוסף רכב למכירה' : 'Add Car for Sale'}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <VehicleImageUpload value={form.image_url} onChange={(url) => setForm(prev => ({ ...prev, image_url: url }))} onBusyChange={setUploading} isHe={isHe} disabled={saving} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {fields.map(f => (
                 <div key={f.key}>
@@ -167,13 +171,14 @@ export default function AdminCarsForSalePage() {
             <div className="flex gap-3">
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || uploading}
                 className="px-6 py-2.5 bg-[#2D5F5F] text-white font-bold rounded-xl hover:bg-[#1A3A3A] transition-colors disabled:opacity-60"
               >
                 {saving ? '...' : (isHe ? 'שמור' : 'Save')}
               </button>
               <button
                 type="button"
+                disabled={saving || uploading}
                 onClick={() => { setShowForm(false); setForm(EMPTY_FORM); setActionError(''); }}
                 className="px-6 py-2.5 border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors"
               >

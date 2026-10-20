@@ -420,7 +420,31 @@ export default function AdminPricingPage() {
         {seasons.length === 0 ? (
           <p className="text-center text-gray-400 py-12">אין עונות עדיין</p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="divide-y divide-gray-100 sm:hidden">
+            {seasons.map(s => (
+              <article key={s.id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="break-words font-black text-[#0D2B2B]">{s.nameHe}</h3>
+                    <p className="mt-1 text-sm text-slate-500" dir="ltr">{s.startDate.slice(5)} – {s.endDate.slice(5)}</p>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${s.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    {s.isActive ? 'פעיל' : 'לא פעיל'}
+                  </span>
+                </div>
+                <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                  <div><dt className="text-xs text-slate-400">מחיר ברירת מחדל</dt><dd className="mt-1 font-bold text-[#2D5F5F]">{seasonDefaultLabel(s)}</dd></div>
+                  <div><dt className="text-xs text-slate-400">עדיפות</dt><dd className="mt-1 font-bold text-slate-700">{s.priority}</dd></div>
+                </dl>
+                <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+                  <button type="button" onClick={() => openEditSeason(s)} className="min-h-11 rounded-xl bg-[#2D5F5F] px-4 text-sm font-bold text-white">עריכת עונה</button>
+                  <button type="button" onClick={() => handleDeleteSeason(s.id, s.nameHe)} aria-label={`מחיקת עונה ${s.nameHe}`} className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-100 text-red-600"><Trash2 className="h-4 w-4" /></button>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full text-sm text-right">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
@@ -461,6 +485,7 @@ export default function AdminPricingPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
@@ -504,7 +529,24 @@ export default function AdminPricingPage() {
             <h3 className="font-bold text-gray-900">{vehicleLabel(selectedVehicleId)}</h3>
             <button onClick={clearVehicleSelection} className="text-sm text-gray-400 hover:text-gray-700">נקה בחירה ✕</button>
           </div>
-          <div className="overflow-x-auto">
+          <div className="space-y-3 sm:hidden">
+            {seasons.map(s => {
+              const edit = seasonEdits[s.id] ?? { type: 'default' as const, value: '' };
+              return (
+                <section key={s.id} className="rounded-2xl border border-slate-100 p-4">
+                  <div className="mb-3"><h4 className="font-black text-[#0D2B2B]">{s.nameHe}</h4><p className="mt-1 text-xs text-slate-400">ברירת מחדל: {seasonDefaultLabel(s)}</p></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <select value={edit.type} onChange={e => { const type = e.target.value as SeasonEditType; setSeasonEdits(prev => ({ ...prev, [s.id]: { type, value: type === 'default' ? '' : prev[s.id]?.value ?? '' } })); }} className="min-h-11 rounded-xl border border-gray-200 bg-white px-2 text-sm">
+                      <option value="default">ברירת מחדל</option><option value="fixed">מחיר קבוע</option><option value="percent">אחוז מותאם</option>
+                    </select>
+                    {edit.type === 'default' ? <div className="flex min-h-11 items-center rounded-xl bg-slate-50 px-3 text-sm text-slate-400">ללא התאמה</div> : <input type="number" inputMode="decimal" value={edit.value} onChange={e => setSeasonEdits(prev => ({ ...prev, [s.id]: { ...edit, value: e.target.value } }))} placeholder={edit.type === 'fixed' ? '₪ ליום' : '%'} className="min-h-11 rounded-xl border border-gray-200 px-3 text-base" />}
+                  </div>
+                  <button type="button" onClick={() => handleSaveSeasonOverride(s.id)} disabled={savingSeasonId === s.id || (edit.type !== 'default' && edit.value === '')} className="mt-3 min-h-11 w-full rounded-xl bg-[#E8743B] text-sm font-bold text-white disabled:opacity-50">{savingSeasonId === s.id ? 'שומר...' : 'שמור התאמה'}</button>
+                </section>
+              );
+            })}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full text-sm text-right">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
@@ -641,7 +683,19 @@ export default function AdminPricingPage() {
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-10">
-              <div className="overflow-x-auto">
+              <div className="space-y-3 p-3 sm:hidden">
+                {tableVehicles.map((v: Vehicle) => {
+                  const edit = rowEdits[v.id] ?? { type: 'default' as const, value: '' };
+                  const finalPrice = priceForSeason({ id: v.id, pricePerDay: v.price_per_day ?? 0 }, tableSeason, overrides);
+                  return <article key={v.id} className="rounded-2xl border border-slate-100 p-4">
+                    <label className="flex items-start justify-between gap-3"><span><span className="block font-black text-[#0D2B2B]">{v.make} {v.model}</span><span className="mt-1 block text-xs text-slate-400" dir="ltr">{v.year} · {vehicleNumber(v)}</span></span><input type="checkbox" checked={checkedVehicleIds.has(v.id)} onChange={() => toggleChecked(v.id)} className="mt-1 h-5 w-5 rounded" aria-label={`בחירת ${v.make} ${v.model}`} /></label>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-sm"><div className="rounded-xl bg-slate-50 p-2"><span className="block text-xs text-slate-400">מחיר רגיל</span><b>₪{v.price_per_day}</b></div><div className="rounded-xl bg-[#EAF4F4] p-2"><span className="block text-xs text-[#2D5F5F]">מחיר בעונה</span><b>₪{finalPrice}</b></div></div>
+                    <div className="mt-3 grid grid-cols-2 gap-2"><select value={edit.type} onChange={e => { const type = e.target.value as SeasonEditType; setRowEdits(prev => ({ ...prev, [v.id]: { type, value: type === 'default' ? '' : prev[v.id]?.value ?? '' } })); }} className="min-h-11 rounded-xl border border-gray-200 bg-white px-2 text-sm"><option value="default">ברירת מחדל</option><option value="fixed">מחיר קבוע</option><option value="percent">אחוז מותאם</option></select>{edit.type === 'default' ? <div className="flex min-h-11 items-center rounded-xl bg-slate-50 px-3 text-sm text-slate-400">ללא התאמה</div> : <input type="number" inputMode="decimal" value={edit.value} onChange={e => setRowEdits(prev => ({ ...prev, [v.id]: { ...edit, value: e.target.value } }))} placeholder={edit.type === 'fixed' ? '₪ ליום' : '%'} className="min-h-11 rounded-xl border border-gray-200 px-3 text-base" />}</div>
+                    <button type="button" onClick={() => handleSaveRow(v.id)} disabled={rowSavingId === v.id || (edit.type !== 'default' && edit.value === '')} className="mt-3 min-h-11 w-full rounded-xl bg-[#E8743B] text-sm font-bold text-white disabled:opacity-50">{rowSavingId === v.id ? 'שומר...' : 'שמור לרכב זה'}</button>
+                  </article>;
+                })}
+              </div>
+              <div className="hidden overflow-x-auto sm:block">
                 <table className="w-full text-sm text-right">
                   <thead className="bg-gray-50 border-b border-gray-100">
                     <tr>
@@ -730,7 +784,11 @@ export default function AdminPricingPage() {
         {overrides.length === 0 ? (
           <p className="text-center text-gray-400 py-12">אין התאמות אישיות עדיין</p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="divide-y divide-gray-100 sm:hidden">
+            {overrides.map(o => <article key={o.id} className="p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="break-words font-black text-[#0D2B2B]">{vehicleLabel(o.vehicleId)}</h3><p className="mt-1 text-sm text-slate-500">{seasonLabel(o.seasonId)}</p></div><b className="shrink-0 text-[#2D5F5F]">{o.fixedPrice != null ? `₪${o.fixedPrice}/יום` : `${o.adjustmentPercent! > 0 ? '+' : ''}${o.adjustmentPercent}%`}</b></div><div className="mt-4 grid grid-cols-[1fr_auto] gap-2"><button type="button" onClick={() => { selectVehicle(o.vehicleId); vehiclePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className="min-h-11 rounded-xl bg-[#2D5F5F] text-sm font-bold text-white">עריכת התאמה</button><button type="button" onClick={() => handleDeleteOverride(o)} aria-label={`מחיקת התאמה ל-${vehicleLabel(o.vehicleId)}`} className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-100 text-red-600"><Trash2 className="h-4 w-4" /></button></div></article>)}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="w-full text-sm text-right">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
@@ -767,6 +825,7 @@ export default function AdminPricingPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>
