@@ -79,9 +79,9 @@ describe('Gemini WhatsApp interpreter', () => {
 });
 
 describe('guardedReply', () => {
-  it('drops a reply that asks for times or asks two questions', () => {
+  it('drops a reply that asks for times, keeps small talk with two questions', () => {
     expect(guardedReply('סגור, מחר 👌 באיזו שעה נוח לך לאסוף?', '')).toBe('');
-    expect(guardedReply('מעולה. מאיפה לאסוף? ולאן להחזיר?', '')).toBe('');
+    expect(guardedReply('היי! מה נשמע? אפשר לעזור במשהו?', '')).toBe('היי! מה נשמע? אפשר לעזור במשהו?');
     expect(guardedReply('סגור, מ־26/10 👌 עד מתי צריך את הרכב?', '26/10')).toBe('סגור, מ־26/10 👌 עד מתי צריך את הרכב?');
   });
 });
