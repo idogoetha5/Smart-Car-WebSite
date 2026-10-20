@@ -4,7 +4,7 @@ import { normalizeWhatsAppPhone } from '@/lib/rental-quote';
 import { normalizeEmail } from '@/lib/email';
 import { termsConsent } from '@/lib/consent';
 import { getWhatsAppRentalQuotes, type WhatsAppRentalQuote } from '@/lib/whatsapp-rental-quotes';
-import { rentalConfirmationIntro, rentalServicePrompt } from '@/lib/whatsapp-rental-service';
+import { placeName, rentalConfirmationIntro, rentalServicePrompt } from '@/lib/whatsapp-rental-service';
 import { getBusinessKnowledgeResponse } from '@/lib/whatsapp-business-knowledge';
 import { composeServiceResponse, detectConversationMood } from '@/lib/service-response';
 import { consultativeSalesReply } from '@/lib/consultative-sales';
@@ -478,8 +478,8 @@ function locationsPrompt(locale: FlowLocale, pickupLocation?: string, dropoffLoc
   if (pickupLocation && !dropoffLocation) {
     return locale === 'en'
       ? pickRandom([
-          `Done, pickup from ${pickupLocation} 📍 Returning it there too, or somewhere else?`,
-          `Pickup is set for ${pickupLocation}. And where will you be dropping it off?`
+          `Done, pickup from ${placeName(pickupLocation, locale)} 📍 Returning it there too, or somewhere else?`,
+          `Pickup is set for ${placeName(pickupLocation, locale)}. And where will you be dropping it off?`
         ])
       : pickRandom([
           `מעולה, איסוף מ${pickupLocation} 📍 להחזיר לשם או למקום אחר?`,
@@ -488,7 +488,7 @@ function locationsPrompt(locale: FlowLocale, pickupLocation?: string, dropoffLoc
   }
   if (!pickupLocation && dropoffLocation) {
     return locale === 'en'
-      ? `Got it, return to ${dropoffLocation}. And where would you like to pick it up?`
+      ? `Got it, return to ${placeName(dropoffLocation, locale)}. And where would you like to pick it up?`
       : `מעולה, החזרה ב${dropoffLocation} 📍 ומאיפה נוח לך לאסוף את הרכב?`;
   }
   return locale === 'en'
@@ -591,7 +591,7 @@ function confirmationPrompt(state: FlowState, locale: FlowLocale) {
   const needs = [state.passengers && (locale === 'en' ? `${state.passengers} passengers` : `${state.passengers} נוסעים`), state.luggage && (locale === 'en' ? `${state.luggage} bags` : `${state.luggage} מזוודות`), state.childSeats && (locale === 'en' ? `${state.childSeats} child seats` : `${state.childSeats} כיסאות ילדים`), state.tripNeeds].filter(Boolean).join(', ');
   const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://smartcar.co.il';
   const consent = termsConsent(locale);
-  if (locale === 'en') return `${rentalConfirmationIntro(state, locale)}\n\nDates: ${formatDate(state.pickupDate!)} to ${formatDate(state.dropoffDate!)}${state.pickupTime ? `\nTimes: ${state.pickupTime}${state.returnTime ? ` to ${state.returnTime}` : ''}` : ''}\nPickup: ${state.pickupLocation}\nReturn: ${state.dropoffLocation}\nVehicle: ${vehicle}${needs ? `\nTrip needs: ${needs}` : ''}\nName: ${state.customerName}\nEmail: ${state.customerEmail}\n\nThis is a rental request, not a confirmation of availability, price, or a specific vehicle. A SmartCar representative will review the full fleet and provide final written confirmation.\n\n${consent.text}\n${base}/en/terms\n${base}/en/privacy\n\nReply I confirm to submit, or menu to start again.`;
+  if (locale === 'en') return `${rentalConfirmationIntro(state, locale)}\n\nDates: ${formatDate(state.pickupDate!)} to ${formatDate(state.dropoffDate!)}${state.pickupTime ? `\nTimes: ${state.pickupTime}${state.returnTime ? ` to ${state.returnTime}` : ''}` : ''}\nPickup: ${placeName(state.pickupLocation, locale)}\nReturn: ${placeName(state.dropoffLocation, locale)}\nVehicle: ${vehicle}${needs ? `\nTrip needs: ${needs}` : ''}\nName: ${state.customerName}\nEmail: ${state.customerEmail}\n\nThis is a rental request, not a confirmation of availability, price, or a specific vehicle. A SmartCar representative will review the full fleet and provide final written confirmation.\n\n${consent.text}\n${base}/en/terms\n${base}/en/privacy\n\nReply I confirm to submit, or menu to start again.`;
   return `${rentalConfirmationIntro(state, locale)}\n\nתאריכים: ${formatDate(state.pickupDate!)} עד ${formatDate(state.dropoffDate!)}${state.pickupTime ? `\nשעות: ${state.pickupTime}${state.returnTime ? ` עד ${state.returnTime}` : ''}` : ''}\nאיסוף: ${state.pickupLocation}\nהחזרה: ${state.dropoffLocation}\nרכב: ${vehicle}${needs ? `\nצרכים: ${needs}` : ''}\nשם: ${state.customerName}\nמייל: ${state.customerEmail}\n\nזוהי בקשת השכרה ולא אישור זמינות, מחיר או רכב מסוים. נציג SmartCar יבדוק את הצי המלא וישלח אישור סופי בכתב.\n\n${consent.text}\n${base}/he/terms\n${base}/he/privacy\n\nכתבו אני מאשר/ת לשליחה, או תפריט להתחלה מחדש.`;
 }
 
@@ -1110,7 +1110,10 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
     const pickupLocation = supportedGeminiField(body, interpretation.pickupLocation, interpretation.pickupEvidence);
     const dropoffLocation = supportedGeminiField(body, interpretation.dropoffLocation, interpretation.dropoffEvidence);
     if (pickupLocation && !current.pickupLocation) extracted.pickupLocation = pickupLocation;
-    if (dropoffLocation && !current.dropoffLocation) extracted.dropoffLocation = dropoffLocation;
+    // "הרצליה" alone is where to pick up; the return place is asked, not assumed.
+    const returnStated = /להחזיר|החזרה|ולהחזיר|נחזיר|אחזיר|מחזיר|return|drop ?off|back/i.test(body) || SAME_PLACE.test(body);
+    const sameEvidence = interpretation.dropoffEvidence.trim() && interpretation.dropoffEvidence.trim() === interpretation.pickupEvidence.trim();
+    if (dropoffLocation && !current.dropoffLocation && (returnStated || !sameEvidence)) extracted.dropoffLocation = dropoffLocation;
     const vehicleEvidence = interpretation.vehicleEvidence.trim();
     if (!vehiclePreference && interpretation.vehiclePreference && vehicleEvidence
       && body.toLocaleLowerCase().includes(vehicleEvidence.toLocaleLowerCase())) {
@@ -1337,6 +1340,8 @@ const persistentStore: WhatsAppFlowStore = {
 };
 
 function quotePrompt(quotes: WhatsAppRentalQuote[], locale: FlowLocale) {
+  // One line per model: three identical Corollas read like a glitch.
+  quotes = quotes.filter((quote, index) => quotes.findIndex((other) => other.title === quote.title) === index);
   if (!quotes.length) return '';
   const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://smartcar.co.il';
   const options = quotes.map((quote) => {
@@ -1611,6 +1616,14 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     if (interpretation.intent === 'accident' || interpretation.intent === 'breakdown') initialRoute = interpretation.intent;
     if (interpretation.intent === 'rental') initialRoute = 'rental';
     if (interpretation.intent === 'existing_booking') initialRoute = 'existing_booking_lookup';
+  }
+  // Gemini already treats the message as the start of a booking ("צריך אוטו לסופ״ש מנתב״ג"):
+  // its closing question asks for a booking detail. Start the rental instead of a menu.
+  if (interpretation?.source === 'gemini' && !isRentalStep(existingState?.step ?? 'menu') && !existingState?.handedOff
+    && initialRoute !== 'accident' && initialRoute !== 'breakdown' && initialRoute !== 'existing_booking_lookup'
+    && ['rental', 'delivery_return', 'unknown'].includes(interpretation.intent)
+    && ['pickup_date', 'return_date', 'places', 'pickup_place', 'return_place', 'vehicle'].includes(interpretation.asks ?? '')) {
+    initialRoute = 'rental';
   }
 
   if (input === 'english' || input === 'עברית' || input === 'hebrew') {
@@ -2095,7 +2108,8 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     const sales = existingState.step === 'rental_vehicle'
       ? null
       : consultativeSalesReply(body, locale, existingState);
-    if (sales) {
+    // A scripted sales line is only for a hesitation Gemini could not answer; a hand-off always wins.
+    if (sales && (sales.play.mustHandoff || !interpretation?.reply)) {
       const extracted = extractRentalDetails(body, existingState);
       const advisoryState: FlowState = Object.keys(extracted).length
         ? { ...existingState, ...extracted, locale, step: rentalStepFor({ ...existingState, ...extracted, locale }) }
@@ -2223,14 +2237,22 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // Keep recognising service intent instead of forcing them back to a number.
   if (existingState.step === 'menu') {
     if (initialRoute === 'rental') {
-      await store.saveState(phone, { step: 'rental_dates', locale });
-      return { handled: true, reply: datesPrompt(locale) };
+      // Keep whatever the opening message already said ("לסופ״ש מנתב״ג").
+      const state: FlowState = { step: 'rental_dates', locale };
+      const progressed = await continueRental(phone, body, state, locale, booking, store, interpretation);
+      if (progressed) return progressed;
+      await store.saveState(phone, state);
+      return { handled: true, reply: rentalReply(interpretation, state, locale, booking, null) };
     }
     if (initialRoute === 'existing_booking_lookup') {
       return { handled: true, reply: booking ? existingCustomerMenu(booking, locale) : locale === 'en' ? 'We could not find an active booking linked to this number. Type representative and our team will help.' : 'לא זיהינו הזמנה פעילה לפי המספר הזה. כתבו "נציג" ונעזור לכם לאתר את ההזמנה.' };
     }
     if (/ליסינג|מכירה|leasing|purchase|buy|cars? for sale/.test(input)) return { handled: true, reply: locale === 'en' ? 'SmartCar offers private and business leasing, as well as selected vehicles for sale. Tell us what interests you, and we will guide you.' : 'SmartCar מציעה ליסינג פרטי ועסקי וגם רכבים נבחרים למכירה. כתבו לנו מה מעניין אתכם — ליסינג פרטי, ליסינג לעסק או רכב לרכישה — ונכוון אתכם.' };
     if (/סניף|מסירה|החזרה|branch|delivery|return/.test(input)) return { handled: true, reply: locale === 'en' ? 'SmartCar has branches in Herzliya, Tel Aviv, Jerusalem, and Ben Gurion Airport. Delivery and collection at an address in Israel can also be arranged in advance, subject to availability.' : 'לרשותכם סניפים בהרצליה, תל אביב, ירושלים ונתב״ג. אפשר גם לתאם מסירה והחזרה בכתובת שנוחה לכם ברחבי הארץ, בכפוף לתיאום מראש ולזמינות.' };
+    // Small talk or a remark after the menu ("מה קורה", "תודה"): a human answer, not the menu again.
+    if (interpretation?.source === 'gemini' && interpretation.reply && (interpretation.asks === 'other' || interpretation.asks === 'nothing')) {
+      return { handled: true, reply: interpretation.reply };
+    }
   }
 
   if (booking) {
