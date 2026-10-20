@@ -1613,7 +1613,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       handled: true,
       reply: locale === 'en'
         ? 'I am SmartCar’s digital assistant. I can answer questions and prepare a rental request, and a SmartCar representative can take over at any point — just write “representative”.'
-        : 'אני העוזר הדיגיטלי של SmartCar. אפשר לשאול אותי כל שאלה או להתחיל בקשת השכרה, ובכל שלב אפשר לכתוב "נציג" ונציג אנושי ימשיך איתכם.',
+        : 'כן 🙂 אני העוזר הדיגיטלי של SmartCar — עונה על שאלות ומסדר בקשות השכרה. אם תעדיף בן אדם, תכתוב "נציג" ומישהו מהצוות ימשיך איתך.',
     };
   }
 
@@ -1813,7 +1813,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       handled: true,
       reply: locale === 'en'
         ? 'I am SmartCar’s digital assistant. I can answer questions and prepare a rental request, and a SmartCar representative confirms every booking. If you would like a person, just write representative.'
-        : 'אני העוזר הדיגיטלי של SmartCar. אני עונה על שאלות ומכין בקשות השכרה, ונציג SmartCar מאשר כל הזמנה. אם תרצו לדבר עם נציג, כתבו "נציג".',
+        : 'כן 🙂 אני העוזר הדיגיטלי של SmartCar — עונה על שאלות ומכין בקשות השכרה, ונציג מהצוות מאשר כל הזמנה. אם תעדיף בן אדם, תכתוב "נציג".',
     };
   }
 
