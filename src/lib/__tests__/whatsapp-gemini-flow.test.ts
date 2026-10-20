@@ -66,6 +66,22 @@ describe('Gemini interpretation inside the WhatsApp flow', () => {
     expect(result.reply?.match(/\?/g)).toHaveLength(1);
   });
 
+  it('starts the booking from the menu when Gemini already asks a booking question, keeping the place', async () => {
+    const { store, state } = makeStore({ intent: 'unknown', ...emptyFields, pickupLocation: 'נתב״ג', pickupEvidence: 'מנתב״ג', reply: 'סגור, מנתב״ג ✈️ מתי לאסוף?', asks: 'pickup_date', source: 'gemini' });
+    await store.saveState('972501234567', { step: 'menu', locale: 'he' });
+    const result = await getWhatsAppFlowReply('972501234567', 'צריך אוטו מנתב״ג', store);
+    expect(state()).toMatchObject({ step: 'rental_dates', pickupLocation: 'נתב״ג' });
+    expect(result.reply).toBe('סגור, מנתב״ג ✈️ מתי לאסוף?');
+  });
+
+  it('does not assume the return place from a single place name', async () => {
+    const { store, state } = makeStore({ intent: 'rental', ...emptyFields, pickupLocation: 'הרצליה', pickupEvidence: 'הרצליה', dropoffLocation: 'הרצליה', dropoffEvidence: 'הרצליה', source: 'gemini' });
+    await store.saveState('972501234567', { step: 'rental_locations', locale: 'he', pickupDate: '2030-01-10', dropoffDate: '2030-01-12' });
+    await getWhatsAppFlowReply('972501234567', 'הרצליה', store);
+    expect(state()).toMatchObject({ step: 'rental_locations', pickupLocation: 'הרצליה' });
+    expect(state()?.dropoffLocation).toBeUndefined();
+  });
+
   it('keeps a deterministic safety route when Gemini is unavailable', async () => {
     const { store, interpretMessage } = makeStore(null);
     const result = await getWhatsAppFlowReply('972501234567', 'יש תאונה', store);
