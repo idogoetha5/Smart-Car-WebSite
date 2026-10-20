@@ -309,6 +309,19 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
   const locale = useLocale();
   const router = useRouter();
   const isHe = locale === 'he';
+  const [step, setStep] = useState(0);
+  const [stepMessage, setStepMessage] = useState('');
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
+  const stepNavRef = useRef<HTMLElement>(null);
+  const stepNames = isHe ? ['פרטי ההשכרה', 'פרטים אישיים', 'תוספות וסיכום'] : ['Rental details', 'Your details', 'Extras & review'];
+  const changeStep = (next: number) => {
+    setStep(next);
+    setStepMessage('');
+    requestAnimationFrame(() => {
+      stepNavRef.current?.scrollIntoView({ block: 'start', behavior: 'auto' });
+      stepHeadingRef.current?.focus({ preventScroll: true });
+    });
+  };
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
@@ -377,6 +390,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
     handleSubmit,
     watch,
     setValue,
+    trigger,
     formState: { errors },
   } = useForm<BookingInput>({
     resolver: zodResolver(bookingSchema),
@@ -464,6 +478,21 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
       : Math.min(couponState.value, preDiscountTotal)
     : 0;
   const grandTotal = preDiscountTotal - couponDiscount;
+  const airportSelected = pickupLocation === 'airport' || dropoffLocation === 'airport';
+  const airportNotice = isHe
+    ? '* איסוף או החזרה בנתב״ג כרוכים בתוספת תשלום שאינה כלולה במחיר המשוער. סכום התוספת ייקבע עם הנציג.'
+    : '* Ben Gurion Airport pickup or return costs extra and is not included in the estimate. The surcharge will be agreed with your representative.';
+  const nextStep = async () => {
+    const fields: (keyof BookingInput)[] = step === 0
+      ? ['pickupDate', 'dropoffDate', 'pickupLocation', 'dropoffLocation']
+      : ['customerName', 'customerEmail', 'customerPhone', 'customerIdNumber'];
+    const valid = await trigger(fields, { shouldFocus: true });
+    if (!valid || (step === 0 && totalDays <= 0)) {
+      setStepMessage(isHe ? 'יש להשלים את השדות המסומנים כדי להמשיך.' : 'Complete the highlighted fields to continue.');
+      return;
+    }
+    changeStep(Math.min(step + 1, 2));
+  };
 
   const onSubmit = async (data: BookingInput) => {
     if (submittingRef.current) return;
@@ -568,22 +597,53 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form
+      noValidate
+      onSubmit={(event) => {
+        if (step < 2) { event.preventDefault(); void nextStep(); return; }
+        void handleSubmit(onSubmit, (invalid) => {
+          if (invalid.pickupDate || invalid.dropoffDate || invalid.pickupLocation || invalid.dropoffLocation) changeStep(0);
+          else if (invalid.customerName || invalid.customerEmail || invalid.customerPhone || invalid.customerIdNumber) changeStep(1);
+          setStepMessage(isHe ? 'יש להשלים את השדות המסומנים לפני שליחת הבקשה.' : 'Complete the highlighted fields before sending your request.');
+        })(event);
+      }}
+      className="space-y-5 [&_input:not([type=checkbox])]:min-h-12 [&_input:not([type=checkbox])]:text-base [&_select]:min-h-12 [&_select]:text-base [&_textarea]:text-base"
+    >
       <input type="hidden" {...register('vehicleId')} />
       {/* Honeypot — hidden from real users, bots fill it */}
       <input ref={honeypotRef} type="text" name="_website" tabIndex={-1} autoComplete="off" style={{ display: 'none' }} aria-hidden="true" />
 
       {/* Draft indicator */}
-      <div className="flex items-center justify-between text-xs text-gray-600 h-4">
+      <div className="flex min-h-11 items-center justify-between text-xs text-gray-600">
         <span className={`transition-opacity duration-500 ${draftSaved ? 'opacity-100' : 'opacity-0'}`}>
           {isHe ? '✓ טיוטה נשמרה' : '✓ Draft saved'}
         </span>
         {savedDraft && (
-          <button type="button" onClick={clearDraft} className="text-gray-600 hover:text-red-400 transition-colors underline">
+          <button type="button" onClick={clearDraft} className="min-h-11 px-2 text-gray-600 hover:text-red-400 transition-colors underline">
             {isHe ? 'נקה טיוטה' : 'Clear draft'}
           </button>
         )}
       </div>
+      <nav ref={stepNavRef} aria-label={isHe ? 'שלבי בקשת ההשכרה' : 'Rental request steps'} className="scroll-mt-24 grid grid-cols-3 gap-2">
+        {stepNames.map((name, i) => (
+          <button key={name} type="button" disabled={i > step || isSubmitting} onClick={() => changeStep(i)} aria-current={i === step ? 'step' : undefined} className={`min-h-14 rounded-xl border px-1 py-2 text-xs font-medium focus-visible:outline-2 focus-visible:outline-[#2D5F5F] ${i === step ? 'border-[#2D5F5F] bg-[#eef6f6] text-[#0D2B2B]' : 'border-gray-200 text-gray-600 disabled:opacity-60'}`}>
+            <span className="mb-1 block text-sm font-bold" aria-hidden="true">{i < step ? '✓' : i + 1}</span>{name}
+          </button>
+        ))}
+      </nav>
+      <h3 ref={stepHeadingRef} tabIndex={-1} className="scroll-mt-6 text-lg font-bold text-[#0D2B2B] outline-none">{stepNames[step]}</h3>
+      {stepMessage && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{stepMessage}</p>}
+      {totalDays > 0 && step !== 2 && (
+        <div className="rounded-xl border border-[#B8D8D8] bg-[#eef6f6] p-4" aria-live="polite">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-[#0D2B2B]">{isHe ? 'מחיר משוער בלבד' : 'Estimate only'}</span>
+            <span className="text-xl font-bold tabular-nums text-[#0D2B2B]">₪{grandTotal.toLocaleString()}</span>
+          </div>
+          <p className="mt-2 text-sm font-semibold text-[#0D2B2B]">{isHe ? 'זה אינו המחיר הסופי. המחיר הסופי והתנאים יאושרו בכתב על ידי הנציג.' : 'This is not the final price. Your representative will confirm the final price and terms in writing.'}</p>
+        </div>
+      )}
+      {/* Keep sections mounted so navigating backwards never loses form values. */}
+      <section hidden={step !== 0} aria-label={stepNames[0]} className="space-y-5">
       {/* The timestamped amber banner that used to sit here is gone. It was a
           second, louder announcement of something the line above already
           says, and a date and time is not information the customer needs to
@@ -592,15 +652,15 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           restored values are still explained and still removable. */}
 
       {(!pickupDate || !dropoffDate) ? (
-        <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 text-center animate-pulse">
-          <p className="text-red-700 font-bold">
-            {isHe ? '⚠️ יש לבחור תאריכים לצפייה במחיר הסופי' : '⚠️ Select dates to see final price'}
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+          <p className="text-gray-700 text-sm">
+            {isHe ? 'בחרו תאריכים לקבלת מחיר משוער בלבד — לא מחיר סופי.' : 'Select dates for an estimate only — not a final price.'}
           </p>
         </div>
       ) : (
-        <div className="bg-green-50 border-2 border-green-400 rounded-xl p-4 text-center">
-          <p className="text-green-600 font-bold">
-            {isHe ? '✓ תאריכים נבחרו - צפה במחיר למטה' : '✓ Dates selected — see price below'}
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+          <p className="text-gray-700 text-sm">
+            {isHe ? 'בחרו שעות ומיקומים להמשך הבקשה.' : 'Choose pickup and return times and locations to continue.'}
           </p>
         </div>
       )}
@@ -609,7 +669,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
         {/* Pickup date */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{t('pickup_date')}</label>
-          <div className={`h-10 rounded-lg border-2 px-3 flex items-center ${errors.pickupDate ? 'border-red-400' : 'border-gray-200'}`}>
+          <div className={`min-h-12 rounded-lg border-2 px-3 flex items-center [&_button]:min-h-11 [&_button_span]:text-base ${errors.pickupDate ? 'border-red-400' : 'border-gray-200'}`}>
             <DatePickerInput
               fieldLabel={t('pickup_date')}
               value={pickupDate}
@@ -630,7 +690,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
         {/* Return date */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{t('dropoff_date')}</label>
-          <div className={`h-10 rounded-lg border-2 px-3 flex items-center ${errors.dropoffDate ? 'border-red-400' : 'border-gray-200'}`}>
+          <div className={`min-h-12 rounded-lg border-2 px-3 flex items-center [&_button]:min-h-11 [&_button_span]:text-base ${errors.dropoffDate ? 'border-red-400' : 'border-gray-200'}`}>
             <DatePickerInput
               fieldLabel={t('dropoff_date')}
               value={dropoffDate}
@@ -693,6 +753,8 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
         />
       </div>
 
+      {airportSelected && step === 0 && <p role="note" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-relaxed text-amber-950">{airportNotice}</p>}
+
       {pickupDate && dropoffDate && totalDays > 0 && (
         <AvailabilityChecker
           vehicleId={vehicle.id}
@@ -701,6 +763,9 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           onResult={(available) => setAvailabilityUnmatched(available === false)}
         />
       )}
+
+      </section>
+      <section hidden={step !== 1} aria-label={stepNames[1]} className="space-y-5">
 
       <div className="border-t border-gray-100 pt-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">
@@ -766,10 +831,18 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
         />
       </div>
 
+      </section>
+      <section hidden={step !== 2} aria-label={stepNames[2]} className="space-y-5">
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+        <p className="font-semibold text-[#0D2B2B]">{vehicle.make} {vehicle.model}</p>
+        <p>{isHe ? 'איסוף' : 'Pickup'}: {pickupDate} · {pickupTime} · {(isHe ? BRANCHES : BRANCHES_EN).find(b => b.value === pickupLocation)?.label ?? pickupLocation}</p>
+        <p>{isHe ? 'החזרה' : 'Return'}: {dropoffDate} · {returnTime} · {(isHe ? BRANCHES : BRANCHES_EN).find(b => b.value === dropoffLocation)?.label ?? dropoffLocation}</p>
+        <button type="button" onClick={() => changeStep(0)} className="mt-1 min-h-11 font-semibold text-[#2D5F5F] underline">{isHe ? 'עריכת פרטי ההשכרה' : 'Edit rental details'}</button>
+      </div>
       {/* Extras upsell */}
       {totalDays > 0 && (
         <div className="border-2 border-[#2D5F5F] rounded-2xl p-5 text-start">
-          <h3 className="font-bold text-lg mb-3">🎁 {isHe ? 'שדרג את הנסיעה שלך' : 'Upgrade your ride'}</h3>
+          <h3 className="font-bold text-lg mb-3">{isHe ? 'תוספות לבחירה · לא חובה' : 'Optional extras'}</h3>
           <div className="grid grid-cols-1 gap-2.5">
             {EXTRAS.map(extra => (
               <label
@@ -790,7 +863,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
                   className="sr-only"
                 />
                 <div className="flex-1 text-start">
-                  <div className="flex items-center gap-2 justify-start">
+                  <div className="flex flex-wrap items-center gap-2 justify-start">
                     <span className="font-semibold">{extra.icon} {isHe ? extra.name : (extra as { nameEn?: string }).nameEn ?? extra.name}</span>
                     {extra.popular && (
                       <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">{isHe ? 'פופולרי' : 'Popular'}</span>
@@ -858,7 +931,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
               // "קוד בלעדי" / "members-only" implied a club scheme that does
               // not exist. Coupon logic and discount values are unchanged.
               placeholder={isHe ? 'הזינו קוד קופון' : 'Enter a coupon code'}
-              className={`flex-1 h-10 rounded-lg border-2 px-3 text-sm uppercase tracking-widest outline-none transition-colors ${
+              className={`min-w-0 flex-1 h-12 rounded-lg border-2 px-3 text-base uppercase tracking-widest outline-none transition-colors ${
                 couponState.status === 'valid'   ? 'border-green-500 bg-green-50 text-green-700' :
                 couponState.status === 'invalid' ? 'border-red-400 bg-red-50'                    :
                 'border-gray-200 focus:border-[#2D5F5F]'
@@ -868,7 +941,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
               type="button"
               onClick={validateCoupon}
               disabled={couponState.status === 'loading' || !couponCode.trim()}
-              className="px-4 h-10 rounded-lg bg-[#2D5F5F] text-white text-sm font-bold hover:bg-[#1A3A3A] disabled:opacity-40 transition-colors"
+              className="px-4 h-12 rounded-lg bg-[#2D5F5F] text-white text-sm font-bold hover:bg-[#1A3A3A] disabled:opacity-40 transition-colors"
             >
               {couponState.status === 'loading' ? '...' : (isHe ? 'אשר' : 'Apply')}
             </button>
@@ -918,9 +991,10 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
             </div>
           )}
           <div className="flex justify-between font-bold text-lg border-t border-[#B8D8D8] pt-2">
-            <span>{isHe ? 'מחיר משוער' : 'Estimated price'}</span>
+            <span>{isHe ? 'מחיר משוער בלבד' : 'Estimate only'}</span>
             <span className="text-[#B64916]">₪{grandTotal.toLocaleString()}</span>
           </div>
+          <p className="rounded-lg border border-[#B8D8D8] bg-white p-3 text-sm font-bold text-[#0D2B2B]">{isHe ? 'זה אינו המחיר הסופי. נציג יאשר בכתב את המחיר הסופי והתנאים.' : 'This is not the final price. A representative will confirm the final price and terms in writing.'}</p>
           <p className="text-xs text-gray-600 text-center pt-1">
             {isHe
               ? `כולל מע"מ 18% • עד ${getRentalMileageAllowance(totalDays).toLocaleString()} ק"מ • דלק מלא`
@@ -936,16 +1010,18 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
 
       {/* ── Turnstile anti-bot ─────────────────────────── */}
       <div className="flex justify-center">
+        {step === 2 && (
         <TurnstileWidget
           onSuccess={(token) => { setTurnstileToken(token); setTurnstileFailed(false); }}
           onError={() => { setTurnstileToken(null); setTurnstileFailed(true); }}
           onExpire={() => setTurnstileToken(null)}
         />
+        )}
       </div>
 
       {/* ── Consent checkboxes ─────────────────────────── */}
       <div className="space-y-3 pt-2">
-        <label className="flex items-start gap-3 cursor-pointer group">
+        <label className="flex min-h-12 items-start gap-3 cursor-pointer group py-2">
           <input
             type="checkbox"
             {...register('agreeTerms')}
@@ -975,7 +1051,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           <p className="text-xs text-red-700 me-7">{errors.agreeTerms.message}</p>
         )}
 
-        <label className="flex items-start gap-3 cursor-pointer group">
+        <label className="flex min-h-12 items-start gap-3 cursor-pointer group py-2">
           <input
             type="checkbox"
             {...register('marketingConsent')}
@@ -1003,7 +1079,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
       <Button
         type="submit"
         size="lg"
-        className="w-full"
+        className="w-full min-h-14"
         disabled={isSubmitting || totalDays <= 0 || (!turnstileToken && !turnstileFailed)}
       >
         {isSubmitting ? (
@@ -1016,6 +1092,12 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
           </span>
         ) : t('submit')}
       </Button>
+      </section>
+
+      <div className="flex gap-3 border-t border-gray-100 pt-4">
+        {step > 0 && <button type="button" disabled={isSubmitting} onClick={() => changeStep(step - 1)} className="min-h-14 rounded-xl border border-gray-300 px-5 text-sm font-semibold text-[#0D2B2B] disabled:opacity-50">{isHe ? 'חזרה' : 'Back'}</button>}
+        {step < 2 && <Button type="button" size="lg" onClick={() => { void nextStep(); }} className="min-h-14 flex-1">{isHe ? (step === 0 ? 'המשך לפרטים אישיים' : 'המשך לתוספות וסיכום') : (step === 0 ? 'Continue to your details' : 'Continue to extras & review')}</Button>}
+      </div>
 
       {toast && (
         <Toast

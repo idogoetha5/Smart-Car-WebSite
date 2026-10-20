@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, type PointerEvent, type KeyboardEvent } from 'react';
 import { useLocale } from 'next-intl';
 import Image from 'next/image';
 
@@ -25,9 +25,62 @@ export default function VehicleGallery({ images, alt }: Props) {
   // English page too — the alt text, the group name and each thumbnail.
   const isHe = useLocale() === 'he';
   const [active, setActive] = useState(0);
+  const [expanded, setExpanded] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const gesture = useRef<{ x: number; y: number } | null>(null);
+  const swiped = useRef(false);
+  const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
   // Tracked per URL rather than per index, so switching thumbnails cannot
   // carry a previous image's failure over to a working one.
   const [failed, setFailed] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!expanded || !dialog) return;
+    const previousOverflow = document.body.style.overflow;
+    dialog.showModal();
+    document.body.style.overflow = 'hidden';
+    closeRef.current?.focus();
+    return () => {
+      dialog.close();
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [expanded]);
+
+  const select = (index: number) => {
+    const next = (index + images.length) % images.length;
+    setActive(next);
+    // Scroll only the strip, never move the whole document when swiping.
+    const thumb = thumbnailRefs.current[next];
+    if (thumb?.parentElement) {
+      const strip = thumb.parentElement;
+      const bounds = strip.getBoundingClientRect();
+      const target = thumb.getBoundingClientRect();
+      if (target.left < bounds.left) strip.scrollBy({ left: target.left - bounds.left });
+      else if (target.right > bounds.right) strip.scrollBy({ left: target.right - bounds.right });
+    }
+  };
+  const startGesture = (event: PointerEvent<HTMLElement>) => {
+    if (event.pointerType === 'mouse') return;
+    gesture.current = { x: event.clientX, y: event.clientY };
+    swiped.current = false;
+  };
+  const endGesture = (event: PointerEvent<HTMLElement>) => {
+    const start = gesture.current;
+    gesture.current = null;
+    if (!start) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.abs(dx) < 45 || Math.abs(dx) <= Math.abs(dy) * 1.3) return;
+    swiped.current = true;
+    select(active + ((isHe ? dx > 0 : dx < 0) ? 1 : -1));
+  };
+  const handleArrows = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    select(active + ((isHe ? event.key === 'ArrowLeft' : event.key === 'ArrowRight') ? 1 : -1));
+  };
 
   if (!images.length) {
     return (
@@ -37,7 +90,8 @@ export default function VehicleGallery({ images, alt }: Props) {
     );
   }
 
-  const current = images[active];
+  const index = active % images.length;
+  const current = images[index];
   const currentFailed = failed[current];
 
   return (
@@ -54,7 +108,25 @@ export default function VehicleGallery({ images, alt }: Props) {
       <div
         className="aspect-video bg-[#eef6f6] rounded-2xl overflow-hidden mb-3 relative"
         aria-live="polite"
+        onPointerDown={startGesture}
+        onPointerUp={endGesture}
+        onPointerCancel={() => { gesture.current = null; }}
+        onKeyDown={handleArrows}
+        style={{ touchAction: 'pan-y pinch-zoom' }}
       >
+        <button
+          type="button"
+          aria-label={isHe ? 'הגדלת תמונת הרכב למסך מלא' : 'Open vehicle image full screen'}
+          onClick={() => {
+            if (swiped.current) { swiped.current = false; return; }
+            setExpanded(true);
+          }}
+          className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-[#2D5F5F]"
+        >
+          <span className="absolute top-2 end-2 rounded-full bg-white/95 px-3 py-2 text-xs font-medium text-[#0D2B2B] shadow-sm">
+            {isHe ? '⤢ הגדלה' : '⤢ Enlarge'}
+          </span>
+        </button>
         {currentFailed ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[#2D5F5F]">
             <CarPlaceholder className="w-28 h-16" />
@@ -65,8 +137,8 @@ export default function VehicleGallery({ images, alt }: Props) {
             key={current}
             src={current}
             alt={isHe
-              ? `${alt} — תמונה ${active + 1} מתוך ${images.length}`
-              : `${alt} — image ${active + 1} of ${images.length}`}
+              ? `${alt} — תמונה ${index + 1} מתוך ${images.length}`
+              : `${alt} — image ${index + 1} of ${images.length}`}
             fill
             priority={active === 0}
             // object-contain keeps the whole vehicle visible; the modest
@@ -79,6 +151,11 @@ export default function VehicleGallery({ images, alt }: Props) {
         )}
       </div>
 
+      <div className="flex items-center justify-between gap-2 mb-2 text-xs text-gray-600">
+        <span>{isHe ? 'החליקו בין התמונות · לחצו להגדלה' : 'Swipe to browse · tap to enlarge'}</span>
+        <span dir="ltr" className="shrink-0 tabular-nums" aria-hidden="true">{index + 1} / {images.length}</span>
+      </div>
+
       {/* Thumbnails */}
       {images.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label={isHe ? 'תמונות הרכב' : 'Vehicle images'}>
@@ -86,15 +163,16 @@ export default function VehicleGallery({ images, alt }: Props) {
             <button
               key={src}
               type="button"
-              onClick={() => setActive(i)}
+              ref={(node) => { thumbnailRefs.current[i] = node; }}
+              onClick={() => select(i)}
               aria-label={isHe
                 ? `הצגת תמונה ${i + 1} מתוך ${images.length}`
                 : `Show image ${i + 1} of ${images.length}`}
               // A button that selects one of a set reports its state with
               // aria-pressed; aria-current is for navigation.
-              aria-pressed={i === active}
+              aria-pressed={i === index}
               className={`flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-all relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F] focus-visible:ring-offset-2 ${
-                i === active ? 'border-[#B64916]' : 'border-transparent opacity-60 hover:opacity-100'
+                i === index ? 'border-[#B64916]' : 'border-transparent opacity-60 hover:opacity-100'
               }`}
             >
               {failed[src] ? (
@@ -115,6 +193,43 @@ export default function VehicleGallery({ images, alt }: Props) {
           ))}
         </div>
       )}
+
+      <dialog
+        ref={dialogRef}
+        aria-label={isHe ? `תמונות ${alt} במסך מלא` : `${alt} full-screen gallery`}
+        onClose={() => setExpanded(false)}
+        onKeyDown={handleArrows}
+        className="fixed inset-0 m-0 h-dvh max-h-none w-full max-w-none bg-[#0D2B2B] p-0 text-white backdrop:bg-black/80"
+      >
+        {expanded && (
+          <div className="flex h-full min-h-0 flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+            <div className="flex shrink-0 items-center justify-between gap-3 p-3 sm:px-6">
+              <p className="min-w-0 text-sm font-medium">{alt}</p>
+              <button ref={closeRef} type="button" onClick={() => setExpanded(false)} className="min-h-12 min-w-12 shrink-0 rounded-full border border-white/30 px-4 text-sm focus-visible:outline-2 focus-visible:outline-white">
+                {isHe ? 'סגירה ✕' : 'Close ✕'}
+              </button>
+            </div>
+            <div
+              className="relative min-h-0 flex-1"
+              style={{ touchAction: 'pan-y pinch-zoom' }}
+              onPointerDown={startGesture}
+              onPointerUp={endGesture}
+              onPointerCancel={() => { gesture.current = null; }}
+            >
+              {currentFailed ? (
+                <div className="absolute inset-0 flex items-center justify-center">{isHe ? 'תמונה לא זמינה' : 'Image unavailable'}</div>
+              ) : (
+                <Image src={current} alt={`${alt} — ${index + 1} / ${images.length}`} fill sizes="100vw" className="object-contain p-2 sm:p-6" onError={() => setFailed(prev => ({ ...prev, [current]: true }))} />
+              )}
+            </div>
+            <div className="flex shrink-0 items-center justify-between gap-4 p-3 sm:px-6">
+              <button type="button" disabled={images.length < 2} onClick={() => select(active - 1)} className="min-h-12 min-w-20 rounded-xl border border-white/30 px-4 disabled:opacity-40">{isHe ? 'הקודמת' : 'Previous'}</button>
+              <p dir="ltr" aria-live="polite" className="text-sm tabular-nums">{index + 1} / {images.length}</p>
+              <button type="button" disabled={images.length < 2} onClick={() => select(active + 1)} className="min-h-12 min-w-20 rounded-xl border border-white/30 px-4 disabled:opacity-40">{isHe ? 'הבאה' : 'Next'}</button>
+            </div>
+          </div>
+        )}
+      </dialog>
     </div>
   );
 }

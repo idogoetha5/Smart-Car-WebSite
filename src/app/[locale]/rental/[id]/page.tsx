@@ -117,15 +117,15 @@ export default async function RentalDetailPage({
           and needs the way back to the listing they came from. */}
       <BackToVehicles locale={locale} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        {/* Vehicle Info — shown below form on mobile, beside it on desktop.
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
+        {/* Compact vehicle preview first on mobile, beside the form on desktop.
             Desktop order is deliberately locale-conditional, not just
             "order-1": `order` places items along the grid's own reading
             direction, so a fixed order-1/order-2 pair renders mirrored
             between rtl and ltr. We want the photo on the physical left and
             the form on the physical right in both languages, so Hebrew
             gets the swapped order values needed to land there too. */}
-        <div className={`min-w-0 order-2 ${locale === 'he' ? 'lg:order-2' : 'lg:order-1'}`}>
+        <div className={`min-w-0 order-1 ${locale === 'he' ? 'lg:order-2' : 'lg:order-1'}`}>
           <VehicleGallery
             images={vehicle.imageUrls ?? []}
             alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
@@ -139,11 +139,11 @@ export default async function RentalDetailPage({
               : 'Image for illustration. Final confirmation applies to the vehicle group or model confirmed in writing.'}
           </p>
 
-          <h1 className="text-3xl font-black text-gray-900 mb-2">
+          <h1 className="text-2xl lg:text-3xl font-black text-gray-900 mb-2">
             {vehicle.make} {vehicle.model}
           </h1>
 
-          <div className="flex flex-wrap gap-4 my-5 text-sm text-gray-600">
+          <div className="flex flex-wrap gap-x-4 gap-y-2 my-3 lg:my-5 text-sm text-gray-600">
             <div className="flex items-center gap-1.5">
               <Users className="w-4 h-4 text-[#2D5F5F]" />
               <span>{vehicle.seats} {locale === 'he' ? 'מושבים' : 'seats'}</span>
@@ -192,14 +192,14 @@ export default async function RentalDetailPage({
 
         </div>
 
-        {/* Booking Form — shown first on mobile, beside vehicle info on desktop */}
-        <div className={`min-w-0 order-1 ${locale === 'he' ? 'lg:order-1' : 'lg:order-2'}`}>
+        {/* Short staged request below the preview; desktop position unchanged. */}
+        <div className={`min-w-0 order-2 ${locale === 'he' ? 'lg:order-1' : 'lg:order-2'}`}>
           {/* The form is always shown. The online catalogue holds only part
               of the fleet, so it cannot conclude that no vehicle exists —
               the previous "הרכב תפוס" panel replaced the form with a dead
               end and left the customer no way to ask. Staff check the full
               fleet and confirm in writing. */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-6">
               {/* Name comes from the loaded vehicle record, so the heading
                   always matches the car actually being requested. */}

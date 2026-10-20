@@ -51,7 +51,15 @@ const DatePickerInput = forwardRef<DatePickerHandle, DatePickerInputProps>(funct
     let left = r.left;
     if (left + calW > window.innerWidth - 8) left = Math.max(8, r.right - calW);
     if (left < 8) left = 8;
-    setCalPos({ top: r.bottom + 6, left });
+    // On a phone, a trigger near the bottom must not put the calendar
+    // below the visible screen. Prefer above when there is room.
+    const calendarHeight = Math.min(360, window.innerHeight - 16);
+    const top = window.innerHeight - r.bottom >= calendarHeight + 8
+      ? r.bottom + 6
+      : r.top >= calendarHeight + 8
+        ? r.top - calendarHeight - 6
+        : Math.max(8, window.innerHeight - calendarHeight - 8);
+    setCalPos({ top, left });
     setOpen(true);
   };
 
@@ -150,7 +158,7 @@ const DatePickerInput = forwardRef<DatePickerHandle, DatePickerInputProps>(funct
           // still live while a popup covers it.
           aria-modal="true"
           aria-label={isHe ? 'בחירת תאריך' : 'Choose a date'}
-          className="fixed z-[9999] bg-white rounded-2xl shadow-2xl border border-gray-200 p-1"
+          className="fixed z-[9999] max-h-[calc(100dvh-16px)] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-gray-200 p-1"
           style={{ top: calPos.top, left: calPos.left }}
         >
           <DayPicker
