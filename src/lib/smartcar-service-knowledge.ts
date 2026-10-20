@@ -103,7 +103,7 @@ const TOPIC_PATTERNS: Array<[ServiceKnowledgeTopic, RegExp]> = [
   ['age_licence', /גיל|ותק רישיון|נהג חדש|רישיון|minimum age|licen[cs]e experience|young driver/i],
   ['different_location', /מקום אחר|החזרה אחרת|איסוף אחר|שדה תעופה|נתבג|one way|different location|airport|drop.?off/i],
   ['insurance', /ביטוח|כיסוי|השתתפות עצמית|insurance|cover(?:age)?|waiver|excess/i],
-  ['opening_hours', /מתי פתוח|שעות פתיחה|שעות הפעילות|שעות פעילות|מתי סוגרים|פתוחים|עד מתי אתם|מתי עובדים|opening hours|open on|when do you close|when are you open/i],
+  ['opening_hours', /מתי (?:אתם )?פתוח|שעות ה?פתיחה|שעות ה?פעילות|באיזה שעות|עד איזה שעה|עד איזו שעה|מתי נפתחים|מתי סוגרים|פתוחים|עד מתי אתם|מתי עובדים|opening hours|open on|when do you close|when are you open/i],
   ['branches', /איפה אתם|איפה יש סניפים|באיזו עיר|כתובות|סניפים|סניף שלכם|branches|locations|where are you located/i],
 ];
 

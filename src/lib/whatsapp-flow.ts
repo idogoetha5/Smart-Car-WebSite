@@ -10,6 +10,8 @@ import { composeServiceResponse, detectConversationMood } from '@/lib/service-re
 import { consultativeSalesReply } from '@/lib/consultative-sales';
 import { getCarsForSale, type CarForSale } from '@/lib/cars-for-sale';
 import { closeEnough, repairCustomerText } from '@/lib/whatsapp-typing';
+import { bookingQuestion, detectSituation, humanLine, type BookingAsk } from '@/lib/whatsapp-replies';
+import { brainDates, brainPassengers, brainPlaces, brainSamePlace, brainVehicle } from '@/lib/whatsapp-brain';
 import { INTENT_KEYWORDS, VEHICLE_WORDS, WANT_WORDS } from '@/lib/whatsapp-vocabulary';
 import { composeOneMessage, interpretWhatsAppMessage, type WhatsAppAsk, type WhatsAppInterpretation, type WhatsAppInterpretationContext } from '@/lib/whatsapp-gemini';
 import {
@@ -194,6 +196,8 @@ export function requiresHumanHandoff(input: string, duringActiveRentalCollection
   const text = input.toLowerCase();
   // "What if I get a scratch?" is a question about the rules, answered from the site.
   if (isHypothetical(text) && !/נציג|בן ?אדם|בנאדם|representative|human|call me|תתקשרו|תחזרו/.test(text)) return false;
+  // "אחזור אליך ביום ראשון", "I'll get back to you": the customer will come back — not a request for a call.
+  if (/(?:^|\s)(?:אני )?אחזור (?:אלי|לך|אליכ)|נחזור אליכ|i'?ll (?:get back|come back|text you back)|will get back to you/i.test(text) && !/נציג|representative|תתקשרו|call me/.test(text)) return false;
   // Misspelled requests for a person or a refund still reach a person.
   if (hasApproximateKeyword(input, ['נציג', 'תתקשרו', 'יחזור', 'שיחזרו', 'מנהל', 'חייבתם', 'חייבו', 'מלוכלך', 'תלונה', 'גרוע', 'כועס', 'כועסת', 'אתבע', 'תקין', 'חיוב', 'בסדר מה', 'מנהל', 'בן אדם', 'בנאדם', 'החזר כספי', 'לא בסדר', 'לא עונה', 'representative', 'refund', 'charged', 'terrible', 'callback', 'call me back', 'complaint'])) return true;
   if (/call\s*me|תעבירו אותי|תחזרו אלי|החז\S{0,2}\s*כספי|כסף בחזרה|מח+כה כבר|מחכים כבר|לא\s*תקי|(?:^|\s)[כק]ו?עס|ת?\S?בע\s*אתכם|לא בס?ד?ר מה/i.test(input)) return true;
@@ -249,10 +253,13 @@ export function intentFromKeywords(input: string): 'accident' | 'breakdown' | 'c
 
 /** "צריך אוטו", "רוצה ג׳יפ לחתונה", "need a car": wanting a vehicle without buy/lease wording is a rental, even misspelled. */
 function wantsCar(text: string) {
-  if (/לקנות|קניי?ה|רכישה|לרכוש|ליסינג|למכור|מוכר|\bbuy|purchase|\blease\b|leasing|\bsell|להחזיר|מחזיר|החזרת|\breturn/i.test(text)) return false;
+  if (/לקנות|קניי?ה|רכישה|לרכוש|ליסינג|למכור|מוכר|מכירה|יד שני|תאונ|תקלה|נתקע|פנצ'?ר|\bbuy|purchase|\blease\b|leasing|\bsell|להחזיר|מחזיר|החזרת|\breturn/i.test(text)) return false;
   const want = /צר?י?י?[כך]|צריכ|רוצ|רצה|מחפ[שס]|להזמין|להמזין|מזמין|לשכור|לשוכר|לכסור|פנוי|פנויים|זמין|need|want|looking|book|available/i.test(text) || hasApproximateKeyword(text, ['צריך', 'רוצה', 'מחפש', 'להזמין', 'לשכור', 'need', 'want', 'looking']);
   const vehicle = /ר[כקחב][בכ]|רכ(?:\s|$)|אוטו|מכונית|ג[׳']?[יי]פ|גיפ|ג׳יפון|יוקרה|משפחתי|\d\s*מקומות|\bcars?\b|\bcarr|\bauto\b|\bsuv\b|\bvan\b|jeep|vehicle/i.test(text);
   if (want && vehicle) return true;
+  // "קיה פיקנטו", "משהו כמו טויוטה קורולה", "אנחנו זוג": a car model or a group size is a rental.
+  const car = brainVehicle(text);
+  if ((car && car !== 'ALL') || brainPassengers(text)) return true;
   // "אני מתכנן טיול לצפון", "looking for something for our vacation": a trip is a rental too.
   if ((want || /מתכנ|planning|plan a/i.test(text)) && /טיול|חופש|נופש|נסיעה ל|trip|vacation|holiday/i.test(text)) return true;
   const words = text.split(/[^\u0590-\u05ffa-z0-9]+/i).filter(Boolean).map((word) => word.replace(STRIP_PREFIX, ''));
@@ -884,7 +891,8 @@ function parseVehiclePreference(input: string) {
     const hit = VEHICLE_WORD_CATEGORY.find(([keyword]) => closeEnough(word, keyword));
     if (hit) return hit[1];
   }
-  return undefined;
+  // Car models and everyday descriptions from the brain ("קיה פיקנטו", "משהו מפנק", "אוטו לכל המשפחה").
+  return brainVehicle(input) ?? undefined;
 }
 
 function parseVehicleWords(text: string) {
@@ -903,7 +911,7 @@ function parseTripNeeds(input: string): Pick<FlowState, 'passengers' | 'luggage'
     const match = text.match(pattern);
     return match ? Number(match[1]) : undefined;
   };
-  const passengers = countFor(/\b(\d{1,2})\s*(?:נוסע(?:ים|ות)?|אנשים|חבר[הי]ם|מבוגרים|people|passengers?|adults?|persons?|guys?)\b/i);
+  const passengers = countFor(/\b(\d{1,2})\s*(?:נוסע(?:ים|ות)?|אנשים|חבר[הי]ם|מבוגרים|people|passengers?|adults?|persons?|guys?)\b/i) ?? brainPassengers(input) ?? undefined;
   const luggage = countFor(/\b(\d{1,2})\s*(?:מזווד(?:ה|ות)|תיק(?:ים)?|טרולי|מטען|bags?|suitcases?|luggage|baggage|backpacks?)\b/i);
   const childSeats = countFor(/\b(\d{1,2})\s*(?:כיסאות? (?:ילדים|בטיחות|תינוק)|בוסטר(?:ים)?|סלקל|child ?seats?|baby ?seats?|boosters?)\b/i);
   const children = /ילדים|תינוק|פעוט|kids?|children|baby|toddler/.test(text);
@@ -1040,7 +1048,10 @@ function knownPlacesIn(input: string): string[] {
       if (!found.some((f) => f.name === name)) found.push({ name, at });
     }
   }
-  return found.sort((a, b) => a.at - b.at).map((f) => f.name);
+  const local = found.sort((a, b) => a.at - b.at).map((f) => f.name);
+  // The brain knows hundreds more towns and neighbourhoods ("רמת אביב", "כפר יונה", "Ein Bokek").
+  const extra = brainPlaces(input).filter((name) => !local.includes(name) && !KNOWN_PLACES.some((spellings) => spellings.includes(name)));
+  return [...local, ...extra];
 }
 
 const SAME_PLACE = /(?:^|\s)(?:ל|ב|גם\s+ל?)?שם(?:\s|$|[.!])|אותו (?:מקום|סניף)|אותה כתובת|באותו|לאותו|כנ״ל|same(?: place| location| branch)?|there(?: too| as well)?|back there/i;
@@ -1064,6 +1075,12 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
     const date = relativeDate(body, todayInIsrael(), false);
     if (date) extracted.pickupDate = date;
   }
+  // "בחנוכה", "בפסח", "בעוד שבועיים", "לשבוע", "לסופ״ש ארוך": the brain's date phrases.
+  if (!extracted.pickupDate && !extracted.dropoffDate) {
+    const fromBrain = brainDates(body, todayInIsrael(), current.pickupDate);
+    if (fromBrain.pickupDate && !current.pickupDate) extracted.pickupDate = fromBrain.pickupDate;
+    if (fromBrain.dropoffDate && !current.dropoffDate && (fromBrain.pickupDate || current.pickupDate)) extracted.dropoffDate = fromBrain.dropoffDate;
+  }
   // "עד יום שישי" once the pickup day is known.
   if (current.pickupDate && !extracted.dropoffDate && !dates.length && /עד|until|till|return|להחזיר|החזרה/i.test(body)) {
     const weekdayOnly = !/שבוע|שבועיים|יומיים|חודש|ימים|days?|weeks?|month/i.test(body);
@@ -1071,7 +1088,8 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
     if (date && date > current.pickupDate) extracted.dropoffDate = date;
   }
   // Parse durations if pickup date is already known
-  if (current.pickupDate && !extracted.dropoffDate) {
+  const pickupKnown = current.pickupDate ?? (dates.length < 2 ? extracted.pickupDate : undefined);
+  if (pickupKnown && !extracted.dropoffDate && (current.pickupDate || /(?:ל|for|ל-)\s*(?:\d+\s*)?(?:חודש|שבוע|שבועיים|יומיים|ימים|days?|weeks?|month)/i.test(body))) {
     let days = 0;
     if (/חודש|month/i.test(body)) days = 30;
     else if (/שבועיים|two weeks|fortnight/i.test(body)) days = 14;
@@ -1083,7 +1101,7 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
     }
     
     if (days > 0) {
-      const date = new Date(`${current.pickupDate}T00:00:00Z`);
+      const date = new Date(`${pickupKnown}T00:00:00Z`);
       date.setUTCDate(date.getUTCDate() + days);
       extracted.dropoffDate = date.toISOString().slice(0, 10);
     }
@@ -1118,7 +1136,7 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
       else if (!current.pickupLocation) extracted.pickupLocation = place;
       else if (!current.dropoffLocation) extracted.dropoffLocation = place;
     }
-    if (!places.length && current.step === 'rental_locations' && (SAME_PLACE.test(body) || (current.pickupLocation && /^(?:כן|כן כן|yes|yep|yeah|בטח|ברור|סבבה|אוקיי?|ok)[\s!.🙂👍]*$/i.test(body.trim())))) {
+    if (!places.length && (current.step === 'rental_locations' || (current.pickupLocation && (SAME_PLACE.test(body) || brainSamePlace(body)))) && (SAME_PLACE.test(body) || brainSamePlace(body) || (current.pickupLocation && /^(?:כן|כן כן|yes|yep|yeah|בטח|ברור|סבבה|אוקיי?|ok)[\s!.🙂👍]*$/i.test(body.trim())))) {
       if (current.pickupLocation && !current.dropoffLocation) extracted.dropoffLocation = current.pickupLocation;
       else if (current.dropoffLocation && !current.pickupLocation) extracted.pickupLocation = current.dropoffLocation;
     }
@@ -1172,7 +1190,7 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
   const emailMatch = body.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
   const email = emailMatch ? validEmail(emailMatch[0]) : validEmail(body);
   if (email) extracted.customerEmail = email;
-  const name = explicitName(body);
+  const name = explicitName(body) ?? (!current.customerName ? introducedName(body) : null);
   if (name) extracted.customerName = name;
   return extracted;
 }
@@ -1279,7 +1297,7 @@ const NOT_A_NAME = /^(?:(?:תודה(?: רבה)?|סבבה|אחלה|אוקיי?|א
 
 /** "סבבה", "👍", "מעולה תודה": the customer is acknowledging, not answering the question. */
 /** "thanks man", "סבבה אחי", "חחח": words that never belong in a name. */
-const NOT_NAME_WORDS = /(?:^|\s)(?:תודה|תודות|סבבה|אחי|אחלה|יופי|מעולה|חחח+|ok|okay|thanks|thank|thx|man|bro|dude|cool|great|lol|yes|no|sure|כן|לא|בסדר|רגע|שנייה|אוקיי?)(?=$|[\s!.,?])/i;
+const NOT_NAME_WORDS = /(?:^|\s)(?:תודה|תודות|סבבה|אחי|אחלה|יופי|מעולה|חחח+|ביי|להתראות|היי|שלום|אהלן|משפחתי|ok|okay|thanks|thank|thx|man|bro|dude|cool|great|lol|yes|no|sure|bye|hi|hello|hey|כן|לא|בסדר|רגע|שנייה|אוקיי?)(?=$|[\s!.,?])/i;
 
 function isAcknowledgement(input: string) {
   return NOT_A_NAME.test(input.trim()) || smallTalkOnly(input);
@@ -1290,6 +1308,14 @@ function validName(input: string) {
   if (value.length < 2 || value.length > 100 || /https?:\/\//i.test(value)) return null;
   if (NOT_A_NAME.test(value) || NOT_NAME_WORDS.test(value) || /[?？@]|\d/.test(value) || smallTalkOnly(value)) return null;
   return value;
+}
+
+/** "נעים מאוד, אני דני", "קוראים לי מיכל כהן", "my name is John": the name, when the customer introduces themselves. */
+export function introducedName(input: string): string | null {
+  const match = input.trim().match(/(?:קוראים לי|שמי|השם שלי(?: זה| הוא)?|my name is|my name's|call me|(?:נעים(?: מאוד)?|היי|שלום|hi|hello|hey)[,!.]?\s+(?:אני|זה|i'?m|this is))\s+([A-Za-z\u05d0-\u05ea'׳-]{2,20}(?:\s+[A-Za-z\u05d0-\u05ea'׳-]{2,20})?)[\s!.🙂😊]*$/i);
+  if (!match) return null;
+  const name = validName(match[1]);
+  return name && !/^(?:צריך|רוצה|מחפש|מחפשת|רק|פה|כאן|looking|need|want|here|fine|good)/i.test(name) ? name : null;
 }
 
 function validEmail(input: string) {
@@ -1532,7 +1558,7 @@ export async function getWhatsAppFlowReply(phone: string, rawBody: string, store
   const current = saved === undefined ? previous : saved;
   // An existing customer's booking details always come from the booking itself.
   const voiced = hasBooking ? flowResult : await inOneVoice(flowResult, understood, current, previous, rawBody);
-  const result = withoutRepeatedMenu(voiced, previous, current?.locale ?? previous?.locale ?? 'he');
+  const result = humanFallback(withoutRepeatedMenu(voiced, previous, current?.locale ?? previous?.locale ?? 'he'), understood, previous, current, rawBody, phone);
   if (current && result.reply) {
     const history = [
       ...(current.history ?? previous?.history ?? []),
@@ -1579,6 +1605,117 @@ async function inOneVoice(result: WhatsAppFlowResult, understood: WhatsAppInterp
   const question = promptForState(current, locale, null, previous);
   const combined = await composeOneMessage({ message, draft: reply, question, locale });
   return combined ? { ...result, reply: combined } : result;
+}
+
+/**
+ * Without a Gemini reply, everyday messages ("מה קורה", "תודה", "חחח", "יקר לי",
+ * "אחשוב על זה") get a human answer from the reply library, plus the booking
+ * question in a wording this conversation has not seen yet. A fixed prompt the
+ * customer already received is never sent twice.
+ */
+function humanFallback(result: WhatsAppFlowResult, understood: WhatsAppInterpretation | null, previous: FlowState | null, current: FlowState | null, message: string, phone: string): WhatsAppFlowResult {
+  if ((understood?.source === 'gemini' && understood.reply) || !result.reply || result.escalate || !current || current.handedOff) return result;
+  if (current.carSale || current.leasing || current.lastQuestion || current.step === 'rental_confirm') return result;
+  const locale = current.locale ?? 'he';
+  const used = (previous?.history ?? []).filter((entry) => entry.from === 'bot').map((entry) => entry.text);
+  const seed = `${phone}:${previous?.history?.length ?? 0}:${message}`;
+  const ask = isRentalStep(current.step) ? expectedAsk(current) : null;
+  const question = ask && ask !== 'confirm' ? bookingQuestion(ask as BookingAsk, locale, seed, used) : '';
+  // Only when the message added nothing to the booking: "טוב יאללה, מ-5 עד 8 בנובמבר" is a booking detail.
+  const fields = ['pickupDate', 'dropoffDate', 'pickupLocation', 'dropoffLocation', 'vehiclePreference', 'passengers', 'customerName', 'customerEmail'] as const;
+  const addedDetail = Boolean(previous) && fields.some((field) => current[field] !== previous?.[field]);
+  // "נעים מאוד, אני דני": greet them by name.
+  const name = introducedName(message);
+  if (name && used.length) {
+    const first = name.split(' ')[0];
+    const hello = locale === 'en' ? `Nice to meet you, ${first} 🙂` : `נעים מאוד ${first} 🙂`;
+    return { ...result, reply: question ? `${hello} ${question}` : `${hello} ${locale === 'en' ? 'How can I help?' : 'במה אפשר לעזור?'}` };
+  }
+  const situation = addedDetail || message.length > 60 ? null : detectSituation(message);
+  // While asking for a name or an email, only small talk that can never be a name gets a human line.
+  const askingDetails = current.step === 'rental_name' || current.step === 'rental_email';
+  const safeWhileAsking = ['bye', 'thanks', 'laugh', 'how_are_you', 'bot_question', 'bot_name', 'thinking', 'wait', 'later', 'about_us', 'off_topic'];
+  // A request for a person or an urgent problem keep the flow's own handling.
+  if (situation && !['human_request', 'urgent'].includes(situation) && used.length && (!askingDetails || safeWhileAsking.includes(situation))) {
+    let line = humanLine(situation, locale, seed, used);
+    // Leaving in the middle of a booking: say the details are kept, and do not push the next question.
+    if (['bye', 'later'].includes(situation) && isRentalStep(current.step)) {
+      if (/שמור|שמרתי|saved|kept|keep/i.test(line)) return { ...result, reply: withoutQuestion(line) };
+      return { ...result, reply: `${withoutQuestion(line)} ${locale === 'en' ? 'I’ve kept everything you sent — just write here whenever you want to continue.' : 'שמרתי את כל מה ששלחת — כשתרצה להמשיך, פשוט תכתוב פה 🙂'}`.replace(/\s+/g, ' ').trim() };
+    }
+    // One question per message: the booking question replaces any question in the line.
+    // and a short line is enough before it: "בשמחה רבה!" rather than "בשמחה רבה! אם צריך עוד משהו, אני פה."
+    if (question) line = firstSentence(withoutQuestion(line));
+    return { ...result, reply: question ? `${line}${/[\p{L}\p{N}]$/u.test(line) ? '.' : ''} ${question}` : line };
+  }
+  // A car or a group size on its own: say we got it before the next question, like a person would.
+  const ack = addedDetail ? detailAck(previous, current, locale, seed) : '';
+  if (ack && !/^(?:סגור|מעולה|רשמתי|סבבה|קיבלתי|got it|great|noted|perfect|done)/i.test(result.reply)) return { ...result, reply: `${ack} ${result.reply}` };
+  // The same fixed prompt twice in a row reads like a machine: ask it in other words.
+  if (question && used.includes(result.reply)) return { ...result, reply: question };
+  return result;
+}
+
+function firstSentence(line: string) {
+  const match = line.match(/^.+?[.!](?:\s*\p{Extended_Pictographic}\uFE0F?)*(?=\s|$)/u);
+  return (match ? match[0] : line).trim();
+}
+
+/** "רשום אצלי. יש עוד משהו? 🙂" → "רשום אצלי." */
+function withoutQuestion(line: string) {
+  const sentences = line.match(/[^.!?？]+[.!?？]*\s*(?:\p{Extended_Pictographic}\uFE0F?\s*)*/gu) ?? [line];
+  const kept = sentences.filter((sentence) => !/[?？]/.test(sentence));
+  return (kept.length ? kept.join('') : line).trim();
+}
+
+const CAR_WORDS: Record<string, { he: string; en: string }> = {
+  ECONOMY_COMPACT: { he: 'רכב קטן וחסכוני', en: 'a small, economical car' },
+  SEDAN: { he: 'רכב משפחתי', en: 'a family car' },
+  SUV: { he: 'ג׳יפון', en: 'an SUV' },
+  VAN: { he: 'רכב 7 מקומות', en: 'a 7-seater' },
+  LUXURY: { he: 'רכב יוקרה', en: 'a luxury car' },
+};
+
+/** "רשמתי — רכב משפחתי 👍" when only the car or the group size was added. */
+function detailAck(previous: FlowState | null, current: FlowState, locale: FlowLocale, seed: string) {
+  const n = hashSeed(seed);
+  const changed = (field: keyof FlowState) => current[field] !== previous?.[field];
+  // A place or an email sent before it was asked for: say it was noted, then keep to the question.
+  if (!changed('pickupDate') && !changed('dropoffDate') && current.step !== 'rental_locations') {
+    if (changed('pickupLocation') && current.pickupLocation && !changed('dropoffLocation')) {
+      const place = (locale === 'en' ? placeName(current.pickupLocation, 'en') : current.pickupLocation) ?? '';
+      return locale === 'en' ? `Noted, pickup from ${place} 📍` : `רשמתי, איסוף מ${place} 📍`;
+    }
+    if (changed('dropoffLocation') && current.dropoffLocation) {
+      const place = (locale === 'en' ? placeName(current.dropoffLocation, 'en') : current.dropoffLocation) ?? '';
+      return locale === 'en' ? `Noted, return to ${place} 📍` : `רשמתי, החזרה ב${place} 📍`;
+    }
+  }
+  if (changed('customerEmail') && current.step !== 'rental_confirm' && current.step !== 'rental_email' && previous?.step !== 'rental_email') return locale === 'en' ? 'Got your email, thanks 👍' : 'המייל רשום אצלי, תודה 👍';
+  const others = ['pickupDate', 'dropoffDate', 'pickupLocation', 'dropoffLocation', 'customerName', 'customerEmail'] as const;
+  if (others.some((field) => current[field] !== previous?.[field])) return '';
+  const morePeople = Boolean(current.passengers && current.passengers !== previous?.passengers);
+  const car = current.vehiclePreference !== previous?.vehiclePreference && !morePeople ? CAR_WORDS[current.vehiclePreference ?? ''] : undefined;
+  if (car) {
+    const lines = locale === 'en'
+      ? [`Noted — ${car.en} 👍`, `Great choice, ${car.en} 👌`, `Got it, ${car.en}.`]
+      : [`רשמתי — ${car.he} 👍`, `${car.he}, בחירה טובה 👌`, `מעולה, ${car.he}.`];
+    return lines[n % lines.length];
+  }
+  if (current.passengers && current.passengers !== previous?.passengers) {
+    const p = current.passengers;
+    const lines = locale === 'en'
+      ? [`Noted, ${p} people 👍`, `Got it — ${p} of you.`]
+      : p === 2 ? ['רשמתי, שניים 👍', 'סבבה, זוג — נמצא משהו נוח.'] : [`רשמתי, ${p} נוסעים 👍`, `סבבה, ${p} אנשים — נמצא משהו שמתאים.`];
+    return lines[n % lines.length];
+  }
+  return '';
+}
+
+function hashSeed(text: string) {
+  let h = 0;
+  for (let i = 0; i < text.length; i += 1) h = (h * 31 + text.charCodeAt(i)) >>> 0;
+  return h;
 }
 
 /**
@@ -2233,7 +2370,11 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       ? null
       : consultativeSalesReply(body, locale, existingState);
     // A scripted sales line is only for a hesitation Gemini could not answer; a hand-off always wins.
-    if (sales && (sales.play.mustHandoff || !interpretation?.reply)) {
+    // "airport", "נסיעה משפחתית" as a short answer is a booking detail, not a hesitation to discuss.
+    const answered = Object.keys(extractRentalDetails(body, existingState, interpretation));
+    const shortAnswer = body.trim().split(/\s+/).length <= 5 && answered.length > 0
+      && answered.every((key) => ['pickupLocation', 'dropoffLocation', 'pickupDate', 'dropoffDate', 'customerEmail'].includes(key));
+    if (sales && (sales.play.mustHandoff || (!interpretation?.reply && !shortAnswer))) {
       const extracted = extractRentalDetails(body, existingState);
       const advisoryState: FlowState = Object.keys(extracted).length
         ? { ...existingState, ...extracted, locale, step: rentalStepFor({ ...existingState, ...extracted, locale }) }

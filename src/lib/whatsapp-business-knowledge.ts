@@ -103,7 +103,10 @@ export function getBusinessKnowledgeResponse(input: string, locale: Locale, prev
   const answers = parts.map((part) => getBusinessKnowledgeAnswer(part, locale)).filter((a): a is BusinessAnswer => Boolean(a));
   const unique = [...new Map(answers.map((a) => [a.topic, a])).values()].slice(0, 4);
   if (!unique.length) {
-    if (previousTopic === 'opening_hours' && /שישי|שבת|חג|friday|saturday|holiday/i.test(input)) return getSmartCarServiceAnswer('opening hours', locale);
+    // "ובשישי?" right after the opening hours: answer just that day, not the whole list again.
+    if (previousTopic === 'opening_hours' && /שישי|ערב חג|friday|eve/i.test(input)) return { topic: 'opening_hours', href: '/contact', reply: locale === 'en' ? 'On Fridays and holiday eves we’re open 08:30–14:00 🙂 At the airport, delivery is available 24/7 by arrangement.' : 'בשישי ובערבי חג אנחנו פתוחים 08:30–14:00 🙂 בנתב״ג אפשר מסירה גם מחוץ לשעות, בתיאום מראש.', linkLabel: locale === 'en' ? 'Opening hours' : 'שעות פתיחה באתר' } as BusinessAnswer;
+    if (previousTopic === 'opening_hours' && /שבת|saturday|shabbat/i.test(input)) return { topic: 'opening_hours', href: '/contact', reply: locale === 'en' ? 'On Saturdays the branches are closed, but airport delivery can be arranged in advance 24/7.' : 'בשבת הסניפים סגורים, אבל בנתב״ג אפשר לתאם מסירה מראש גם בשבת.', linkLabel: locale === 'en' ? 'Opening hours' : 'שעות פתיחה באתר' } as BusinessAnswer;
+    if (previousTopic === 'opening_hours' && /חג|holiday/i.test(input)) return getSmartCarServiceAnswer('opening hours', locale);
     return getBusinessKnowledgeAnswer(input, locale);
   }
   return { ...unique[0], reply: unique.map((a) => a.reply).join('\n\n') };
