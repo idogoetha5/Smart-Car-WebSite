@@ -19,6 +19,13 @@ The owner wants a natural, bilingual business representative, not a menu-only bo
 - Rental estimates continue through the existing vehicle/date/season pricing engine. No model may create a rental price, guarantee a particular vehicle or confirm a booking. Existing booking cases, complaints, emergencies, pricing exceptions and unknown contractual facts require the office.
 - Local knowledge is deliberately finite. Unknown information gets an honest clarification/office referral, not a fabricated policy. A test-bank routing success is not proof of factual accuracy for every business question.
 
+## One voice per message
+
+- Gemini returns `reply` (the whole WhatsApp message) and `asks` (what its closing question asks: pickup_date, return_date, places, pickup_place, return_place, vehicle, name, email, nothing, other). `rentalReply` in `whatsapp-flow.ts` sends `reply` unchanged only when `asks` equals the next missing booking detail (`expectedAsk`); otherwise it sends Gemini's answer without its questions plus one fixed question. Outside a booking `conversationalReply` uses `reply` when it asks nothing or a general question.
+- `guardedReply` (whatsapp-gemini.ts) drops a reply with a number, link or email not in the knowledge/customer message/known dates, any question about pickup/return times, or more than one question mark.
+- The fixed questions are the fallback when Gemini is unavailable or disagrees with the flow. They confirm several details at once only when one message added several ("סגור — …").
+- `whatsapp-catalog-knowledge.ts` gives Gemini the rental fleet grouped by category (make, model, seats, gearbox, fuel; never prices or plates), always on the vehicle step and whenever a message mentions cars.
+
 ## Memory, tone and typing
 
 - A conversation is remembered for 12 hours from the last message (`CONVERSATION_MEMORY_MS` in `whatsapp-flow.ts`). The state keeps the last 8 messages; Gemini receives them as `recent`, without the name/email steps and without messages containing an email or phone number.
