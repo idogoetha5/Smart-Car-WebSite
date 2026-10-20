@@ -179,12 +179,11 @@ function datesForGuard(dates: Array<string | undefined>) {
   }).join(' ');
 }
 
-/** The full reply, or '' when it breaks a rule: invented facts, asking for times, or two questions at once. */
+/** The full reply, or '' when it breaks a rule: invented facts or asking for times. (One question per booking step is checked by the flow.) */
 export function guardedReply(text: string, allowed: string): string {
   const clean = safeAcknowledgement(text, allowed);
   if (!clean) return '';
   if (/באיזו? שעה|איזו? שעה|באיזה שעות|באילו שעות|מה השעה|שעת (?:ה)?(?:איסוף|החזרה)|what time|which time|at what hour|pick-?up time|return time/i.test(clean)) return '';
-  if ((clean.match(/[?？]/g) ?? []).length > 1) return '';
   return clean;
 }
 
@@ -255,5 +254,34 @@ export async function interpretWhatsAppMessage(message: string, step: string | n
   } catch (error) {
     console.error('[whatsapp-gemini] unavailable:', error instanceof Error ? error.name : 'unknown error');
     return fallback();
+  }
+}
+
+/**
+ * One message, one voice: when Gemini's reply ends with a different question
+ * than the booking needs, ask Gemini once more to keep its answer and close
+ * with the booking question instead. Returns '' when it cannot (the caller
+ * then falls back to its own wording).
+ */
+export async function composeOneMessage(params: { message: string; draft: string; question: string; locale: 'he' | 'en' }): Promise<string> {
+  const { message, draft, question, locale } = params;
+  const body = {
+    systemInstruction: { parts: [{ text: `You write WhatsApp replies for SmartCar, an Israeli car rental. Combine DRAFT and QUESTION into ONE short, natural, warm message from one person, in ${locale === 'en' ? 'English' : 'Hebrew'}.
+- Keep what DRAFT says in answer to the customer (facts unchanged), but drop any question in DRAFT.
+- End with exactly one question that asks what QUESTION asks (you may phrase it naturally and shorter; keep any list of options in QUESTION if it has one).
+- Do not add facts, numbers, prices or promises. Never ask about times or hours. No greeting if the conversation is already going. Return JSON {"reply": "..."}.` }] },
+    contents: [{ role: 'user', parts: [{ text: JSON.stringify({ customerMessage: message, DRAFT: draft, QUESTION: question }) }] }],
+    generationConfig: { temperature: 0.4, maxOutputTokens: 600, responseFormat: { text: { mimeType: 'APPLICATION_JSON', schema: { type: 'object', properties: { reply: { type: 'string' } }, required: ['reply'] } } } },
+  };
+  try {
+    const response = await generateSmartCarContent({ model: process.env.WHATSAPP_GEMINI_MODEL || MODEL, body });
+    if (!response.ok) return '';
+    const reply = String(JSON.parse(response.text)?.reply ?? '');
+    const guarded = guardedReply(reply, `${draft}\n${question}\n${message}`);
+    if (!guarded || (guarded.match(/[?？]/g) ?? []).length > 1) return '';
+    if (locale === 'en' ? /[א-ת]{2,}/.test(guarded.replace(/נתב״ג|נתבג/g, '')) : !/[א-ת]/.test(guarded)) return '';
+    return guarded;
+  } catch {
+    return '';
   }
 }

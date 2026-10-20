@@ -11,7 +11,7 @@ import { consultativeSalesReply } from '@/lib/consultative-sales';
 import { getCarsForSale, type CarForSale } from '@/lib/cars-for-sale';
 import { closeEnough, repairCustomerText } from '@/lib/whatsapp-typing';
 import { INTENT_KEYWORDS, VEHICLE_WORDS, WANT_WORDS } from '@/lib/whatsapp-vocabulary';
-import { interpretWhatsAppMessage, type WhatsAppAsk, type WhatsAppInterpretation, type WhatsAppInterpretationContext } from '@/lib/whatsapp-gemini';
+import { composeOneMessage, interpretWhatsAppMessage, type WhatsAppAsk, type WhatsAppInterpretation, type WhatsAppInterpretationContext } from '@/lib/whatsapp-gemini';
 import {
   classifyCommercialIntent,
   commercialIntentQuestion,
@@ -1488,14 +1488,22 @@ const HISTORY_LENGTH = 8;
 export async function getWhatsAppFlowReply(phone: string, rawBody: string, store: WhatsAppFlowStore = persistentStore): Promise<WhatsAppFlowResult> {
   let saved: FlowState | null | undefined;
   let before: FlowState | null = null;
+  let understood: WhatsAppInterpretation | null = null;
+  let hasBooking = false;
   const tracking: WhatsAppFlowStore = {
     ...store,
+    activeBooking: async (p) => { const found = await store.activeBooking(p); hasBooking = Boolean(found); return found; },
     loadState: async (p) => { before = await store.loadState(p); return before; },
     saveState: async (p, state) => { saved = state; await store.saveState(p, state); },
+    interpretMessage: store.interpretMessage
+      ? async (...args) => { understood = await store.interpretMessage!(...args); return understood; }
+      : undefined,
   };
-  const result = await replyToMessage(phone, rawBody, tracking);
+  const flowResult = await replyToMessage(phone, rawBody, tracking);
   const previous = before as FlowState | null;
   const current = saved === undefined ? previous : saved;
+  // An existing customer's booking details always come from the booking itself.
+  const result = hasBooking ? flowResult : await inOneVoice(flowResult, understood, current, previous, rawBody);
   if (current && result.reply) {
     const history = [
       ...(current.history ?? previous?.history ?? []),
@@ -1505,6 +1513,30 @@ export async function getWhatsAppFlowReply(phone: string, rawBody: string, store
     await store.saveState(phone, { ...current, history });
   }
   return result;
+}
+
+/**
+ * The customer hears one voice. When Gemini read the message, its own reply is
+ * what gets sent, except where the application must speak for itself:
+ * emergencies and hand-offs, the final request summary and consent, price
+ * suggestions, and the leasing / cars-for-sale / booking-lookup flows. During
+ * a booking Gemini's reply is used as is when it ends by asking for exactly
+ * the detail the booking needs next; otherwise Gemini rewrites it once to end
+ * with that question, and only if that fails does the fixed wording go out.
+ */
+async function inOneVoice(result: WhatsAppFlowResult, understood: WhatsAppInterpretation | null, current: FlowState | null, previous: FlowState | null, message: string): Promise<WhatsAppFlowResult> {
+  const reply = understood?.reply?.trim();
+  if (!reply || understood?.source !== 'gemini' || !result.reply || result.escalate || !current || current.handedOff) return result;
+  if (current.step === 'rental_confirm' || current.carSale || current.leasing || current.lastQuestion) return result;
+  if (/₪[\d,]+/.test(result.reply) && /\/rental\//.test(result.reply)) return result;
+  const locale = current.locale ?? 'he';
+  if (!isRentalStep(current.step)) return { ...result, reply };
+  const ask = expectedAsk(current);
+  if (!ask || ask === 'confirm') return result;
+  if (understood?.asks === ask && (reply.match(/[?？]/g) ?? []).length <= 1) return { ...result, reply };
+  const question = promptForState(current, locale, null, previous);
+  const combined = await composeOneMessage({ message, draft: reply, question, locale });
+  return combined ? { ...result, reply: combined } : result;
 }
 
 async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlowStore): Promise<WhatsAppFlowResult> {
@@ -1628,9 +1660,15 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // its closing question asks for a booking detail. Start the rental instead of a menu.
   if (interpretation?.source === 'gemini' && !isRentalStep(existingState?.step ?? 'menu') && !existingState?.handedOff
     && initialRoute !== 'accident' && initialRoute !== 'breakdown' && initialRoute !== 'existing_booking_lookup'
-    && ['rental', 'delivery_return', 'unknown'].includes(interpretation.intent)
+    && interpretation.intent === 'rental'
     && RENTAL_ASKS.includes(interpretation.asks ?? 'nothing')) {
     initialRoute = 'rental';
+  }
+  // The local keyword guess ("רכב" + "?") said rental, but Gemini read a question about the rules
+  // ("מותר לצאת עם הרכב לטאבה?") or a remark ("אתם יקרים"): Gemini wins.
+  if (initialRoute === 'rental' && interpretation?.source === 'gemini' && interpretation.reply && interpretation.intent !== 'rental'
+    && !RENTAL_ASKS.includes(interpretation.asks ?? 'nothing') && !isRentalStep(existingState?.step ?? 'menu')) {
+    initialRoute = booking ? 'existing_customer' : 'new_customer';
   }
 
   if (input === 'english' || input === 'עברית' || input === 'hebrew') {
