@@ -129,7 +129,7 @@ describe('Eight required local SmartCar conversations', () => {
     expect(flow.datesQuestion.reply).toContain('מתי נוח לך לאסוף');
     expect(flow.locationsQuestion.reply).toContain('מאיפה הכי נוח לך');
     expect(flow.vehicleQuestion.reply).toContain('איזה רכב מתאים');
-    expect(flow.nameQuestion.reply).toContain('על שם מי');
+    expect(flow.nameQuestion.reply).toContain('על איזה שם');
     expect(flow.emailQuestion.reply).toContain('כתובת מייל');
     expect(flow.confirmation.reply).toContain('אני מאשר/ת');
     expect(flow.completion.reply).toContain('בקשת ההשכרה התקבלה');
@@ -278,7 +278,7 @@ describe('Eight required local SmartCar conversations', () => {
     const vehicle = await getWhatsAppFlowReply(PHONE, 'איסוף בהרצליה והחזרה בנתבג');
     expect(vehicle.reply).toContain('איזה רכב מתאים');
     const name = await getWhatsAppFlowReply(PHONE, 'ג׳יפון');
-    expect(name.reply).toContain('על שם מי');
+    expect(name.reply).toContain('על איזה שם');
   });
 
   it('accepts natural English dates, times, locations and vehicle words', async () => {
@@ -436,8 +436,8 @@ describe('Eight required local SmartCar conversations', () => {
   });
 
   it.each([
-    ['יקר לי', 'מאיפה הכי נוח לך לאסוף'],
-    ['אני אחשוב על זה', 'מאיפה הכי נוח לך לאסוף'],
+    ['יקר לי', 'מאיפה נוח לך לאסוף'],
+    ['אני אחשוב על זה', 'מאיפה נוח לך לאסוף'],
   ])('advises inside an active Hebrew rental without losing the next rental step: %s', async (message, expectedNext) => {
     await getWhatsAppFlowReply(PHONE, 'אני צריך רכב 10/09/2026 עד 14/09/2026, 9:00 עד 18:00');
     const result = await getWhatsAppFlowReply(PHONE, message);
@@ -447,7 +447,7 @@ describe('Eight required local SmartCar conversations', () => {
   });
 
   it.each([
-    ['I will think about it', 'Where is most convenient for you'],
+    ['I will think about it', 'where will you return it'],
   ])('advises inside an active English rental and then asks only the missing field: %s', async (message, expectedNext) => {
     await getWhatsAppFlowReply(PHONE, 'I need a car 10/09/2026 to 14/09/2026, 9am to 6pm');
     const result = await getWhatsAppFlowReply(PHONE, message);
