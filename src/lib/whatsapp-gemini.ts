@@ -224,8 +224,8 @@ export async function interpretWhatsAppMessage(message: string, step: string | n
 
   const locale = /[א-ת]/.test(message) ? 'he' : context?.locale ?? 'en';
   const renting = Boolean(step?.startsWith('rental_'));
-  const [knowledge, catalogue] = await Promise.all([getSiteKnowledge(), getWhatsAppCatalogueFacts(message, locale, { always: renting })]);
-  const selectedKnowledge = `${relevantKnowledge(knowledge, `${context?.knowledgeTopic ?? ''} ${message}`, 8000)}\n${catalogue}`;
+  const [knowledge, catalogue] = await Promise.all([getSiteKnowledge(), getWhatsAppCatalogueFacts(message, locale, { always: step === 'rental_vehicle' || step === 'rental_locations' })]);
+  const selectedKnowledge = `${relevantKnowledge(knowledge, `${context?.knowledgeTopic ?? ''} ${message}`, 5000)}\n${catalogue}`;
   const fallback = () => {
     // A location keyword inside a new rental is a detail, not a policy question.
     if (/צריך.*רכב|רוצה.*רכב|need.*(?:car|suv)|want.*car|צריך suv/i.test(message) && !/[?？]|כמה|איך|what|how|can i/i.test(message)) return null;

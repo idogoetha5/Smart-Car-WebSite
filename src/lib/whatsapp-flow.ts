@@ -253,6 +253,8 @@ function wantsCar(text: string) {
   const want = /צר?י?י?[כך]|צריכ|רוצ|רצה|מחפ[שס]|להזמין|להמזין|מזמין|לשכור|לשוכר|לכסור|פנוי|פנויים|זמין|need|want|looking|book|available/i.test(text) || hasApproximateKeyword(text, ['צריך', 'רוצה', 'מחפש', 'להזמין', 'לשכור', 'need', 'want', 'looking']);
   const vehicle = /ר[כקחב][בכ]|רכ(?:\s|$)|אוטו|מכונית|ג[׳']?[יי]פ|גיפ|ג׳יפון|יוקרה|משפחתי|\d\s*מקומות|\bcars?\b|\bcarr|\bauto\b|\bsuv\b|\bvan\b|jeep|vehicle/i.test(text);
   if (want && vehicle) return true;
+  // "אני מתכנן טיול לצפון", "looking for something for our vacation": a trip is a rental too.
+  if ((want || /מתכנ|planning|plan a/i.test(text)) && /טיול|חופש|נופש|נסיעה ל|trip|vacation|holiday/i.test(text)) return true;
   const words = text.split(/[^\u0590-\u05ffa-z0-9]+/i).filter(Boolean).map((word) => word.replace(STRIP_PREFIX, ''));
   const hasVehicle = vehicle || VEHICLE_WORDS.some((word) => (word.includes(' ') ? text.includes(word) : words.includes(word)));
   if (!hasVehicle) return false;
@@ -448,7 +450,13 @@ function pickRandom(arr: string[]) {
   return arr[0] ?? '';
 }
 
-function datesPrompt(locale: FlowLocale, pickupDate?: string) {
+function datesPrompt(locale: FlowLocale, pickupDate?: string, repeat = false) {
+  if (repeat) {
+    // Asked already: a short follow-up, not the opening line again.
+    return pickupDate
+      ? (locale === 'en' ? 'Until when do you need it (or for how many days)?' : 'ועד מתי צריך את הרכב (או לכמה ימים)?')
+      : (locale === 'en' ? 'From which date do you need the car?' : 'מאיזה תאריך צריך את הרכב?');
+  }
   if (pickupDate) {
     return locale === 'en'
       ? pickRandom([
@@ -475,7 +483,10 @@ function datesPrompt(locale: FlowLocale, pickupDate?: string) {
       ]);
 }
 
-function locationsPrompt(locale: FlowLocale, pickupLocation?: string, dropoffLocation?: string) {
+function locationsPrompt(locale: FlowLocale, pickupLocation?: string, dropoffLocation?: string, repeat = false) {
+  if (repeat && !pickupLocation && !dropoffLocation) {
+    return locale === 'en' ? 'And where should we hand over the car, and where will you return it?' : 'ומאיפה נוח לך לאסוף ולאן להחזיר?';
+  }
   if (pickupLocation && !dropoffLocation) {
     return locale === 'en'
       ? pickRandom([
@@ -559,7 +570,7 @@ function namePrompt(locale: FlowLocale) {
         'Perfect. Who will be the main driver on this booking?'
       ])
     : pickRandom([
-        'בחירה מעולה 👌 על שם מי לרשום את הבקשה?',
+        'מעולה, כמעט סיימנו 👌 על איזה שם לרשום את הבקשה?',
         'מצוין. איך קוראים לכם כדי שנוכל לרשום את הבקשה?',
         'נהדר. מה השם המלא לרישום ההזמנה (ומי שינהג ברכב)?'
       ]);
@@ -597,9 +608,9 @@ function confirmationPrompt(state: FlowState, locale: FlowLocale) {
 }
 
 function promptForState(state: FlowState, locale: FlowLocale, booking: BookingSummary | null, previous?: FlowState | null) {
-  if (state.step === 'rental_dates') return rentalServicePrompt(state, locale, datesPrompt(locale, state.pickupDate), previous);
+  if (state.step === 'rental_dates') return rentalServicePrompt(state, locale, datesPrompt(locale, state.pickupDate, previous?.step === 'rental_dates' && previous.pickupDate === state.pickupDate), previous);
   if (state.step === 'rental_times') return rentalServicePrompt(state, locale, timesPrompt(locale, state.pickupTime, state.returnTime), previous);
-  if (state.step === 'rental_locations') return rentalServicePrompt(state, locale, locationsPrompt(locale, state.pickupLocation, state.dropoffLocation), previous);
+  if (state.step === 'rental_locations') return rentalServicePrompt(state, locale, locationsPrompt(locale, state.pickupLocation, state.dropoffLocation, previous?.step === 'rental_locations'), previous);
   if (state.step === 'rental_vehicle') return rentalServicePrompt(state, locale, vehiclePrompt(locale), previous);
   if (state.step === 'rental_name') return rentalServicePrompt(state, locale, namePrompt(locale), previous);
   if (state.step === 'rental_email') return rentalServicePrompt(state, locale, emailPrompt(locale), previous);
@@ -658,6 +669,13 @@ function parseDateCandidates(input: string) {
   else if (/מחר|tomorrow/.test(normalized(input))) relativeDate(1);
   for (const match of input.matchAll(/\b(\d{1,2})[\/.\-](\d{1,2})(?:[\/.\-](\d{2,4}))?\b/g)) add(match[1], Number(match[2]), match[3]);
 
+  // "מ-14 עד 18 בדצמבר", "from the 3rd to the 7th of May": a day range with one month.
+  const monthWord = Object.keys(MONTHS).find((name) => new RegExp(`(?:^|[\\s,ב])${name}(?:$|[\\s,.!?])`, 'i').test(input));
+  const range = input.match(/(?:^|\s)(?:מ|מה|from)?[-־ ]?(\d{1,2})\s*(?:עד|-|–|to|until)\s*(?:ה|the)?[-־ ]?(\d{1,2})(?!\s*[\/.:]\d)(?:\s|$|[,.!?]|ב)/i);
+  if (monthWord && range && !/\d{1,2}[\/.]\d{1,2}/.test(input)) {
+    add(range[1], MONTHS[monthWord.toLowerCase()]);
+    add(range[2], MONTHS[monthWord.toLowerCase()]);
+  }
   const monthNames = Object.keys(MONTHS).join('|');
   const dayNames = `\\d{1,2}|${Object.keys(WRITTEN_DAYS).join('|')}`;
   // Hebrew prepositions are often glued to the day: "מ5 בינואר", "ל־9 בינואר".
@@ -1105,7 +1123,9 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
       else if (current.dropoffLocation && !current.pickupLocation) extracted.pickupLocation = current.dropoffLocation;
     }
   }
-  const vehiclePreference = parseVehiclePreference(body);
+  // "רכב קטן או משהו יותר גדול?" is a question, not a choice.
+  const comparing = /[?？]/.test(body) && /\sאו\s|\sor\s/i.test(body);
+  const vehiclePreference = comparing ? null : parseVehiclePreference(body);
   if (vehiclePreference) extracted.vehiclePreference = vehiclePreference;
   if (interpretation) {
     const pickupLocation = supportedGeminiField(body, interpretation.pickupLocation, interpretation.pickupEvidence);
@@ -1511,7 +1531,8 @@ export async function getWhatsAppFlowReply(phone: string, rawBody: string, store
   const previous = before as FlowState | null;
   const current = saved === undefined ? previous : saved;
   // An existing customer's booking details always come from the booking itself.
-  const result = hasBooking ? flowResult : await inOneVoice(flowResult, understood, current, previous, rawBody);
+  const voiced = hasBooking ? flowResult : await inOneVoice(flowResult, understood, current, previous, rawBody);
+  const result = withoutRepeatedMenu(voiced, previous, current?.locale ?? previous?.locale ?? 'he');
   if (current && result.reply) {
     const history = [
       ...(current.history ?? previous?.history ?? []),
@@ -1558,6 +1579,23 @@ async function inOneVoice(result: WhatsAppFlowResult, understood: WhatsAppInterp
   const question = promptForState(current, locale, null, previous);
   const combined = await composeOneMessage({ message, draft: reply, question, locale });
   return combined ? { ...result, reply: combined } : result;
+}
+
+/**
+ * The numbered welcome menu is for the first message only. Later in a chat
+ * (typically when Gemini is busy and the flow has nothing better), a short
+ * human line keeps the conversation going instead of the same menu again.
+ */
+function withoutRepeatedMenu(result: WhatsAppFlowResult, previous: FlowState | null, locale: FlowLocale): WhatsAppFlowResult {
+  const isMenu = result.reply && (result.reply.includes('1️⃣ השכרת רכב') || result.reply.includes('1️⃣ Car rental') || result.reply.includes('1️⃣ Rent a car'));
+  const botMessages = (previous?.history ?? []).filter((entry) => entry.from === 'bot');
+  if (!isMenu || !botMessages.length) return result;
+  const lines = locale === 'en'
+    ? ['I’m here 🙂 Tell me what you need — a rental, a question about something, leasing?', 'Sure — what can I sort out for you? A car for some dates, or a question?', 'Got it. What would help most right now — checking a car for your dates, or something else?']
+    : ['אני פה 🙂 ספר לי מה צריך — רכב להשכרה, שאלה על משהו, ליסינג?', 'בטח — במה אני יכול לעזור? רכב לתאריכים מסוימים, או שאלה?', 'הבנתי. מה הכי יעזור לך עכשיו — לבדוק רכב לתאריכים שלך, או משהו אחר?'];
+  const used = new Set(botMessages.map((entry) => entry.text));
+  const reply = lines.find((line) => !used.has(line)) ?? lines[botMessages.length % lines.length];
+  return { ...result, reply };
 }
 
 async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlowStore): Promise<WhatsAppFlowResult> {
@@ -2225,7 +2263,9 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     }
     // "סבבה", "👍", "תודה" between questions: acknowledge warmly and keep going.
     if (isAcknowledgement(body)) {
-      const nudge = locale === 'en' ? pickRandom(['Great 🙂', 'Perfect.', 'Got it.']) : pickRandom(['מעולה 🙂', 'סגור.', 'יופי.']);
+      const nudge = smallTalkOnly(body)
+        ? (locale === 'en' ? 'All good, thanks 🙂' : 'הכל טוב, תודה 🙂')
+        : (locale === 'en' ? pickRandom(['Great 🙂', 'Perfect.', 'Got it.']) : pickRandom(['סבבה 👍', 'סגור.', 'יופי.']));
       return { handled: true, reply: `${withoutQuestions(interpretation?.acknowledgement) && !/^(?:שלום|היי)/.test(interpretation?.acknowledgement ?? '') ? withoutQuestions(interpretation?.acknowledgement) : nudge}\n\n${promptForState({ ...existingState, locale }, locale, booking, existingState)}` };
     }
     // Without a model answer, still answer a question instead of claiming
@@ -2243,7 +2283,12 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
 
   if (existingState.step === 'rental_dates') {
     const dates = parseDateCandidates(body);
-    if (!dates.length) return { handled: true, reply: locale === 'en' ? 'I did not recognise that date. Please tell me the pickup or return date again in your own words.' : 'לא הצלחתי לזהות את התאריך. כתבו אותו שוב בצורה שנוחה לכם.' };
+    if (!dates.length) {
+      const triedADate = /\d|ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר|january|february|march|april|may|june|july|august|september|october|november|december/i.test(body);
+      const ask = datesPrompt(locale, existingState.pickupDate, true);
+      if (triedADate) return { handled: true, reply: locale === 'en' ? `Sorry, I didn’t catch the date — could you write it like 14/12? ${ask}` : `סליחה, לא תפסתי את התאריך — אפשר לכתוב למשל 14/12? ${ask}` };
+      return { handled: true, reply: `${locale === 'en' ? 'Got it 👍' : 'סבבה 👍'} ${ask}` };
+    }
     if (!existingState.pickupDate) {
       const pickupDate = dates[0];
       if (pickupDate < todayInIsrael()) return { handled: true, reply: locale === 'en' ? 'The pickup date must be today or later. Please send another date.' : 'תאריך האיסוף צריך להיות מהיום והלאה. שלחו בבקשה תאריך אחר.' };
@@ -2275,7 +2320,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
 
   if (existingState.step === 'rental_locations') {
     const locations = parseLocations(body);
-    if (!locations) return { handled: true, reply: locale === 'en' ? 'I need both locations. You can include full delivery and collection addresses.' : 'אני צריך את שני המיקומים. אפשר גם לכתוב כתובות מלאות למסירה ולהחזרה.' };
+    if (!locations) return { handled: true, reply: locale === 'en' ? 'Got it 👍 And where would you like to pick up the car and drop it off? A branch or an address both work.' : 'סבבה 👍 ומאיפה נוח לך לאסוף את הרכב ולאן להחזיר? סניף או כתובת — שניהם עובדים.' };
     await store.saveState(phone, { ...existingState, ...locations, step: 'rental_vehicle' });
     return { handled: true, reply: vehiclePrompt(locale) };
   }
