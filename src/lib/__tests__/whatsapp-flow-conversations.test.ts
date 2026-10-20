@@ -338,7 +338,7 @@ describe('Eight required local SmartCar conversations', () => {
 
   it('keeps every valid fact supplied in one Hebrew message and advances directly to confirmation', async () => {
     const result = await getWhatsAppFlowReply(PHONE, 'אני צריך רכב יוקרה מ-10/09/2026 עד 14/09/2026, איסוף ב-09:00 והחזרה ב-18:00. איסוף מהרצליה והחזרה לנתבג. שמי עידו והמייל שלי ido@example.com');
-    expect(result.reply).toContain('אפשר לבדוק את פרטי הבקשה');
+    expect(result.reply).toContain('הנה הסיכום');
     const state = mockDb.states.get(PHONE)?.state;
     expect(state).toMatchObject({
       pickupDate: '2026-09-10', dropoffDate: '2026-09-14', pickupTime: '09:00', returnTime: '18:00',
@@ -348,13 +348,13 @@ describe('Eight required local SmartCar conversations', () => {
 
   it('keeps reordered English facts and advances directly to confirmation', async () => {
     const result = await getWhatsAppFlowReply(PHONE, 'I need an SUV. My name is John Smith, john@example.com. Pick up from Tel Aviv and drop off at Ben Gurion Airport. 10/09/2026 to 14/09/2026, 9am to 6pm.');
-    expect(result.reply).toContain('Please review the request below');
+    expect(result.reply).toContain('Here’s the summary');
     expect(mockDb.states.get(PHONE)?.state).toMatchObject({ step: 'rental_confirm', vehiclePreference: 'SUV', customerName: 'John Smith', customerEmail: 'john@example.com' });
   });
 
   it('captures family-fit details in a mixed-language full request without asking twice', async () => {
     const result = await getWhatsAppFlowReply(PHONE, 'Need a family SUV for 5 passengers, 3 bags and 1 child seat. איסוף מהרצליה והחזרה לנתבג 10/09/2026 עד 14/09/2026, 9am עד 6pm. My name is Dana Levi, dana@example.com');
-    expect(result.reply).toContain('אפשר לבדוק את פרטי הבקשה');
+    expect(result.reply).toContain('הנה הסיכום');
     expect(mockDb.states.get(PHONE)?.state).toMatchObject({
       step: 'rental_confirm', passengers: 5, luggage: 3, childSeats: 1,
       vehiclePreference: 'SUV', customerName: 'Dana Levi', customerEmail: 'dana@example.com',
