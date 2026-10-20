@@ -1215,6 +1215,8 @@ const leadIn = (acknowledgement: string | undefined) => { const text = withoutQu
 /** An answer plus our follow-up question, unless the answer already ends by asking something. */
 const answerWithFollowUp = (answer: string, followUp: string) => (/\?\s*\p{Extended_Pictographic}*\uFE0F?\s*$/u.test(answer.trim()) ? answer : `${answer}\n\n${followUp}`);
 
+const RENTAL_ASKS: readonly string[] = ['pickup_date', 'return_date', 'places', 'pickup_place', 'return_place', 'vehicle'];
+
 /** What the booking needs next, in the same terms Gemini uses for the question its reply ends with. */
 function expectedAsk(state: FlowState): WhatsAppAsk | 'confirm' | null {
   switch (state.step) {
@@ -1235,8 +1237,8 @@ function expectedAsk(state: FlowState): WhatsAppAsk | 'confirm' | null {
  */
 function rentalReply(interpretation: WhatsAppInterpretation | null | undefined, state: FlowState, locale: FlowLocale, booking: BookingSummary | null, previous?: FlowState | null, answer?: string) {
   const ask = expectedAsk(state);
-  if (interpretation?.reply && ask && ask !== 'confirm' && interpretation.asks === ask) return interpretation.reply;
-  return `${leadIn(answer ?? interpretation?.acknowledgement)}${promptForState({ ...state, locale }, locale, booking, previous)}`;
+  if (interpretation?.reply && ask && ask !== 'confirm' && interpretation.asks === ask && (interpretation.reply.match(/[?？]/g) ?? []).length <= 1) return interpretation.reply;
+  return `${leadIn(answer || interpretation?.acknowledgement || interpretation?.reply)}${promptForState({ ...state, locale }, locale, booking, previous)}`;
 }
 
 /** Outside a booking: Gemini's whole reply when it has one, else the answer plus our follow-up. */
@@ -1248,6 +1250,9 @@ function conversationalReply(interpretation: WhatsAppInterpretation, followUp: s
 const NOT_A_NAME = /^(?:(?:תודה(?: רבה)?|סבבה|אחלה|אוקיי?|אוקי|בסדר|כן|לא|אולי|רגע|שנייה|יופי|מעולה|הבנתי|נכון|ברור|טוב|היי|שלום|ok|okay|thanks|thank you|yes|no|sure|fine|great|cool)[\s!.,]*)+[\s!.,\p{Extended_Pictographic}\uFE0F]*$|^[\s!.,\p{Extended_Pictographic}\uFE0F]+$/iu;
 
 /** "סבבה", "👍", "מעולה תודה": the customer is acknowledging, not answering the question. */
+/** "thanks man", "סבבה אחי", "חחח": words that never belong in a name. */
+const NOT_NAME_WORDS = /(?:^|\s)(?:תודה|תודות|סבבה|אחי|אחלה|יופי|מעולה|חחח+|ok|okay|thanks|thank|thx|man|bro|dude|cool|great|lol|yes|no|sure|כן|לא|בסדר|רגע|שנייה|אוקיי?)(?=$|[\s!.,?])/i;
+
 function isAcknowledgement(input: string) {
   return NOT_A_NAME.test(input.trim()) || smallTalkOnly(input);
 }
@@ -1255,7 +1260,7 @@ function isAcknowledgement(input: string) {
 function validName(input: string) {
   const value = input.trim().replace(/\s+/g, ' ');
   if (value.length < 2 || value.length > 100 || /https?:\/\//i.test(value)) return null;
-  if (NOT_A_NAME.test(value) || /[?？@]|\d/.test(value) || smallTalkOnly(value)) return null;
+  if (NOT_A_NAME.test(value) || NOT_NAME_WORDS.test(value) || /[?？@]|\d/.test(value) || smallTalkOnly(value)) return null;
   return value;
 }
 
@@ -1351,12 +1356,12 @@ function quotePrompt(quotes: WhatsAppRentalQuote[], locale: FlowLocale) {
   }).join('\n\n');
   return locale === 'en'
     ? pickRandom([
-        `Here are catalogue price suggestions for your dates:\n\n${options}\n\nThese are price suggestions, not a reservation or final availability confirmation. A SmartCar representative confirms the final booking.\n\n`,
+        `A few options from our fleet for your dates:\n\n${options}\n\n(Estimated prices — a SmartCar representative confirms availability and the final price.)\n\n`,
         `I pulled up some estimated prices for those dates:\n\n${options}\n\nPlease note these are catalogue estimates, not a confirmed reservation. A human representative will check live availability and confirm everything with you!\n\n`,
         `Based on the dates you requested, here is a quick price check:\n\n${options}\n\nJust a reminder: this is an estimate and not a final booking. Our team will verify availability and give you the final go-ahead.\n\n`
       ])
     : pickRandom([
-        `הנה הצעות מחיר מהקטלוג לתאריכים שביקשתם:\n\n${options}\n\nאלה הצעות מחיר בלבד, לא הזמנה ולא אישור זמינות סופי. נציג SmartCar מאשר את ההזמנה הסופית.\n\n`,
+        `הנה כמה אפשרויות מהצי לתאריכים שלך:\n\n${options}\n\n(מחירים משוערים — נציג SmartCar מאשר זמינות ומחיר סופי.)\n\n`,
         `בדקתי את התעריפים לתאריכים האלו, הנה כמה אופציות:\n\n${options}\n\nחשוב לי לציין שאלו הצעות מחיר כלליות ולא הבטחה למלאי. נציג אנושי יעבור על הבקשה ויאשר לכם זמינות סופית!\n\n`,
         `לפי התאריכים ששלחתם, זו הערכת המחירים שלנו:\n\n${options}\n\nשימו לב שזו הערכה מהקטלוג ולא הזמנה סגורה. נציג של סמארט-קאר יוודא שיש רכב פנוי ויסגור איתכם את הפרטים.\n\n`
       ]);
@@ -1589,7 +1594,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // emergencies and human takeover remain under application control.
   // An unexpected provider exception must not disable the local service flow.
   const interpretation = !existingState?.handedOff && !isMenuCommand(body) && !/^\s*\d\s*$/.test(body)
-    && existingState?.step !== 'rental_name' && existingState?.step !== 'rental_email'
+    && ((existingState?.step !== 'rental_name' && existingState?.step !== 'rental_email') || (asksQuestion && !/@|\d/.test(body)))
     && ((initialRoute !== 'accident' && initialRoute !== 'breakdown') || uncertainEmergency)
     ? await store.interpretMessage?.(body, existingState?.step ?? null, existingState ? {
       locale: existingState.locale, pickupDate: existingState.pickupDate, dropoffDate: existingState.dropoffDate,
@@ -1615,7 +1620,8 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   }
   if (interpretation && (initialRoute === 'new_customer' || initialRoute === 'existing_customer')) {
     if (interpretation.intent === 'accident' || interpretation.intent === 'breakdown') initialRoute = interpretation.intent;
-    if (interpretation.intent === 'rental') initialRoute = 'rental';
+    // "מותר לצאת עם הרכב לטאבה?" is a question about the rules, even though it mentions a rental.
+    if (interpretation.intent === 'rental' && !(asksQuestion && interpretation.reply && !RENTAL_ASKS.includes(interpretation.asks ?? 'nothing'))) initialRoute = 'rental';
     if (interpretation.intent === 'existing_booking') initialRoute = 'existing_booking_lookup';
   }
   // Gemini already treats the message as the start of a booking ("צריך אוטו לסופ״ש מנתב״ג"):
@@ -1623,7 +1629,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   if (interpretation?.source === 'gemini' && !isRentalStep(existingState?.step ?? 'menu') && !existingState?.handedOff
     && initialRoute !== 'accident' && initialRoute !== 'breakdown' && initialRoute !== 'existing_booking_lookup'
     && ['rental', 'delivery_return', 'unknown'].includes(interpretation.intent)
-    && ['pickup_date', 'return_date', 'places', 'pickup_place', 'return_place', 'vehicle'].includes(interpretation.asks ?? '')) {
+    && RENTAL_ASKS.includes(interpretation.asks ?? 'nothing')) {
     initialRoute = 'rental';
   }
 
@@ -1835,8 +1841,9 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   if (interpretation?.source === 'gemini' && interpretation.reply && !existingState?.handedOff
     && !isRentalStep(existingState?.step ?? 'menu') && initialRoute !== 'rental'
     && !existingState?.carSale && !existingState?.leasing && !existingState?.lastQuestion
-    && !['accident', 'breakdown', 'existing_booking', 'representative', 'leasing', 'buy_car', 'sell_car'].includes(interpretation.intent)
-    && classifyCommercialIntent(body) === 'none'
+    && !['accident', 'breakdown', 'existing_booking', 'representative', 'buy_car', 'sell_car'].includes(interpretation.intent)
+    // A question about leasing is answered; asking for an offer goes to the leasing flow below.
+    && (classifyCommercialIntent(body) === 'none' || (classifyCommercialIntent(body) === 'leasing' && !/הצעה|הצעת|תחזרו|שיחזרו|נציג|offer|quote|call me/i.test(body)))
     && !/^\s*\d\s*$/.test(body)) {
     await store.saveState(phone, { ...(existingState ?? { step: 'menu' as const }), step: 'menu', locale, knowledgeTopic: businessTopic ?? existingState?.knowledgeTopic });
     return { handled: true, reply: interpretation.reply };

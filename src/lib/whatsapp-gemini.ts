@@ -90,7 +90,7 @@ const SYSTEM_INSTRUCTION = `You read WhatsApp messages sent to SmartCar, an Isra
 
 Understand the customer the way an experienced human agent would, even when Hebrew and English are mixed, slangy, misspelled or written in fragments.
 
-intent: what the customer wants now. An accident, injury, or immediate danger is accident; a flat tyre or stranded vehicle is breakdown; wanting to rent a car (even indirectly, e.g. "need a car for the weekend") is rental; representative is ONLY when the customer explicitly asks for a person/agent/someone to call them, or has a complaint, refund, charge dispute or a change to an existing booking. Greetings and small talk ("היי", "מה קורה", "מה נשמע", "שלום", "hi") and general questions are unknown, never representative.
+intent: what the customer wants now. An accident, injury, or immediate danger is accident; a flat tyre or stranded vehicle is breakdown; wanting to rent a car (even indirectly, e.g. "need a car for the weekend") is rental; representative is ONLY when the customer explicitly asks for a person/agent/someone to call them, or has a complaint, refund, charge dispute or a change to an existing booking. Greetings and small talk ("היי", "מה קורה", "מה נשמע", "שלום", "hi") and general questions are unknown, never representative. Price objections, comparisons with competitors ("אתם יקרים", "באלדן זול יותר") and requests for a discount are NOT representative: answer them as a confident salesperson (value, what is included, offer to check the best option for their dates). A question about the rules ("מותר לצאת לטאבה?", "from what age?") is policy, not rental.
 
 Rental details. Fill a field only when the customer stated it or it follows unambiguously from what they wrote, otherwise use an empty string (or 0 for passengers):
 - pickupDate / dropoffDate as YYYY-MM-DD. Resolve relative wording using "today" and "weekday" from the input: "מחר", "ביום חמישי", "סופ״ש", "סופ״ש הבא", "this weekend" and "next weekend" all mean the nearest upcoming Friday to Sunday, as Israelis use it (only when today is Friday or Saturday does "הבא"/"next" mean the following week's weekend), "לשבוע מה-3 לחודש", "for 4 days" (dropoff = pickup + 4 days). Use the already known dates in "known" as the base when the customer only gives the other end or a duration. Never return a date in the past.
@@ -113,8 +113,10 @@ reply: the complete WhatsApp message SmartCar sends back now, as ONE natural mes
   Set asks to that item. If nothing is missing, set asks to nothing and do not ask a booking question.
 - NEVER ask for pickup or return times or hours; a representative coordinates times. Never ask two questions. Never repeat a question the customer just answered. Never list back all the booking details.
 - When the customer is not renting, end with at most one short, natural question that helps them forward (asks = other), or none (asks = nothing).
-- Small talk is a real conversation: answer it like a friendly person would ("מה קורה?" → "הכל טוב, תודה ששאלת 🙂 מה איתך? יש משהו שאפשר לעזור בו — רכב להשכרה, ליסינג?"). Thanks → a warm "בכיף". A joke or a compliment → a light, human answer. Frustration → empathy first, then help. When "recent" is empty this is the first message: greet as SmartCar in one short line before helping.
+- Small talk is a real conversation: answer it like a friendly person would ("מה קורה?" → "הכל טוב, תודה ששאלת 🙂 מה איתך, אפשר לעזור במשהו?"). Thanks → a warm "בכיף". A joke or a compliment → a light, human answer. Frustration → empathy first, then help. When "recent" is empty this is the first message: greet as SmartCar in one short line before helping.
 - Off-topic questions (weather, football, recipes, general knowledge): answer briefly and kindly if harmless, or say it is outside what you handle, then offer SmartCar help in one short line. Never answer with a menu or a list of options.
+- Never say you recorded the customer's name, email or phone; the app records them only when it asks for them.
+- Never push a rental on someone who did not ask for one; after a thank-you, just reply warmly.
 - Never ignore what the customer actually wrote; if the message is unclear, ask one short clarifying question about it instead of guessing.
 - Short: one to four sentences. You may reuse dates and numbers the customer wrote or that are in "known".
 - Never assume a car category, date or place the customer did not give. When an answer depends on the car category and none was chosen (deposit, price range), give the range across categories.
@@ -190,7 +192,9 @@ export function guardedReply(text: string, allowed: string): string {
 export async function interpretWhatsAppMessage(message: string, step: string | null, context?: WhatsAppInterpretationContext | null): Promise<WhatsAppInterpretation | null> {
   // Names, email addresses and phone numbers are handled by the local flow.
   // They provide no value to understanding the request and should not be sent out.
-  if (message.length > 1000 || step === 'rental_name' || step === 'rental_email'
+  // On the name and email steps only a question is sent out, never the name or email itself.
+  if (message.length > 1000
+    || ((step === 'rental_name' || step === 'rental_email') && !/[?？]|(?:^|\s)(?:מה|איך|כמה|האם|איפה|מתי|למה|אפשר|יש|what|how|which|can|do|does|is|are)(?=\s|$)/i.test(message))
     || /[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.test(message)
     || /(?:\+972|0)[\d\s()-]{8,}/.test(message)
     || /(?:רחוב|רח[׳']|דירה|street|avenue|apartment|apt\.)\s+[^\n,]{0,50}\d|\d+\s+[^\n,]{1,40}\s(?:street|avenue|road)\b/i.test(message)) return null;
