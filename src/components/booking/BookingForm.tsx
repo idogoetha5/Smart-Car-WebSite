@@ -390,6 +390,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
     handleSubmit,
     watch,
     setValue,
+    setError,
     trigger,
     formState: { errors },
   } = useForm<BookingInput>({
@@ -448,7 +449,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
   }, [vehicle.id, locale, pickupDate, dropoffDate, pickupLocation, dropoffLocation, pickupTime, returnTime, selectedExtras]);
 
   const totalDays =
-    pickupDate && dropoffDate
+    pickupDate && dropoffDate && dropoffDate > pickupDate
       ? calculateTotalDays(new Date(pickupDate), new Date(dropoffDate))
       : 0;
 
@@ -483,6 +484,11 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
     ? '* איסוף או החזרה בנתב״ג כרוכים בתוספת תשלום שאינה כלולה במחיר המשוער. סכום התוספת ייקבע עם הנציג.'
     : '* Ben Gurion Airport pickup or return costs extra and is not included in the estimate. The surcharge will be agreed with your representative.';
   const nextStep = async () => {
+    if (step === 0 && pickupDate && dropoffDate && dropoffDate <= pickupDate) {
+      setError('dropoffDate', { type: 'manual', message: isHe ? 'תאריך ההחזרה חייב להיות אחרי תאריך האיסוף.' : 'Return date must be after pickup.' });
+      setStepMessage(isHe ? 'בדקו את תאריך ההחזרה כדי להמשיך.' : 'Check the return date to continue.');
+      return;
+    }
     const fields: (keyof BookingInput)[] = step === 0
       ? ['pickupDate', 'dropoffDate', 'pickupLocation', 'dropoffLocation']
       : ['customerName', 'customerEmail', 'customerPhone', 'customerIdNumber'];

@@ -69,6 +69,14 @@ describe('public staged rental request', () => {
     expect(host.querySelector('[role="alert"]')).not.toBeNull();
     expect(fetch).not.toHaveBeenCalled();
   });
+  it('rejects a return date on or before pickup before any terms have been checked', async () => {
+    await render();
+    await setField('input[aria-label="dropoff_date"]', '2030-01-10');
+    await click('המשך לפרטים אישיים');
+    expect(visibleSection().getAttribute('aria-label')).toBe('פרטי ההשכרה');
+    expect(host.textContent).toContain('תאריך ההחזרה חייב להיות אחרי תאריך האיסוף');
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it('preserves every customer field, dates, times, extras, notes and consents through back navigation and submits once', async () => {
     await render('airport');
     expect(host.textContent).toContain('זה אינו המחיר הסופי');
