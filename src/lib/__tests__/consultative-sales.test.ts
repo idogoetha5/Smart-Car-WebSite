@@ -29,6 +29,12 @@ describe('consultative sales plays', () => {
     };
 
     const result = await getWhatsAppFlowReply('972501234567', play.trigger, store);
+    // "שדה תעופה" / "airport" on its own is the answer to "where from?": it is recorded, not discussed.
+    if (play.id.startsWith('airport-')) {
+      expect(state).toMatchObject({ pickupLocation: 'נתב״ג', step: 'rental_locations' });
+      expect(result.reply).toMatch(/נתב״ג|Ben Gurion/);
+      return;
+    }
     expect(result.reply).toContain(play.response);
     expect(result.reply).not.toMatch(/רק היום|נשאר אחרון|guaranteed|limited time|מובטח|סגור/i);
     expect(state).toMatchObject({ pickupDate: '2026-09-10', dropoffDate: '2026-09-14' });

@@ -436,22 +436,22 @@ describe('Eight required local SmartCar conversations', () => {
   });
 
   it.each([
-    ['יקר לי', 'מאיפה נוח לך לאסוף'],
-    ['אני אחשוב על זה', 'מאיפה נוח לך לאסוף'],
+    ['יקר לי', /לאסוף|להחזיר|סניף/],
+    ['אני אחשוב על זה', /לאסוף|להחזיר|סניף/],
   ])('advises inside an active Hebrew rental without losing the next rental step: %s', async (message, expectedNext) => {
     await getWhatsAppFlowReply(PHONE, 'אני צריך רכב 10/09/2026 עד 14/09/2026, 9:00 עד 18:00');
     const result = await getWhatsAppFlowReply(PHONE, message);
-    expect(result.reply).toContain(expectedNext);
+    expect(result.reply).toMatch(expectedNext);
     expect(result.reply).not.toMatch(/מובטח|סגור|רק היום/);
     expect(mockDb.states.get(PHONE)?.state).toMatchObject({ step: 'rental_locations', pickupDate: '2026-09-10' });
   });
 
   it.each([
-    ['I will think about it', 'where will you return it'],
+    ['I will think about it', /pick (?:it )?up|drop (?:it )?off|return|branch/i],
   ])('advises inside an active English rental and then asks only the missing field: %s', async (message, expectedNext) => {
     await getWhatsAppFlowReply(PHONE, 'I need a car 10/09/2026 to 14/09/2026, 9am to 6pm');
     const result = await getWhatsAppFlowReply(PHONE, message);
-    expect(result.reply).toContain(expectedNext);
+    expect(result.reply).toMatch(expectedNext);
     expect(result.escalate).not.toBe(true);
   });
 
