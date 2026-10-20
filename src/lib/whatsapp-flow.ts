@@ -167,6 +167,12 @@ export function detectWhatsAppLocale(input: string, previous?: FlowLocale): Flow
   const text = normalized(input);
   if (/^(?:עברית|hebrew)(?:\s+(?:please|בבקשה))?$|(?:speak|in)\s+hebrew/.test(text)) return 'he';
   if (/^(?:english)(?:\s+please)?$|(?:speak|in)\s+english/.test(text)) return 'en';
+  // The customer switched language: "hi" first, then everything in Hebrew (or the other way round).
+  const hebrewWords = (input.match(/[\u05d0-\u05ea]{2,}/g) ?? []).length;
+  const englishWords = input.replace(/\S+@\S+|https?:\/\/\S+/g, ' ').match(/[a-z]{2,}/gi) ?? [];
+  if (previous === 'en' && hebrewWords >= 2 && !englishWords.length) return 'he';
+  if (previous === 'he' && !hebrewWords && englishWords.length >= 3
+    && englishWords.some((word) => /^(?:i|the|a|is|are|do|you|need|want|can|what|how|where|when|for|to|my|please|car|have)$/i.test(word))) return 'en';
   if (previous) return previous;
   if (/[\u0590-\u05ff]/.test(text)) return 'he';
   if (/[a-z]/i.test(text)) return 'en';
@@ -555,7 +561,7 @@ function timesPrompt(locale: FlowLocale, pickupTime?: string, returnTime?: strin
 
 function vehiclePrompt(locale: FlowLocale) {
   const optionsEn = '\n\n1️⃣ Small and economical\n2️⃣ Family car\n3️⃣ Crossover / SUV\n4️⃣ 7 seats or more\n5️⃣ Luxury car\n6️⃣ Not sure — I’ll help you choose';
-  const optionsHe = '\n\n1️⃣ קטן וחסכוני\n2️⃣ משפחתי\n3️⃣ ג׳יפון / SUV\n4️⃣ רכב ל־7 נוסעים ומעלה\n5️⃣ רכב יוקרה\n6️⃣ לא בטוחים? נשמח לעזור להתאים';
+  const optionsHe = '\n\n1️⃣ קטן וחסכוני\n2️⃣ משפחתי\n3️⃣ ג׳יפון / SUV\n4️⃣ רכב ל־7 נוסעים ומעלה\n5️⃣ רכב יוקרה\n6️⃣ לא בטוחים — נשמח לעזור להתאים';
   return locale === 'en'
     ? pickRandom([
         `Nice — what kind of car would feel right for this trip? Tell me how many of you there are and about luggage or a child seat, and I’ll match you exactly.${optionsEn}`,
@@ -563,7 +569,7 @@ function vehiclePrompt(locale: FlowLocale) {
         `Great. What type of car suits your needs best? Let me know if you need child seats or extra space.${optionsEn}`
       ])
     : pickRandom([
-        `ואיזה רכב מתאים לנסיעה? 🚗 כמה אתם, ויש מזוודות או כיסא לילד? ככה אכוון אותך בדיוק.${optionsHe}`,
+        `ואיזה רכב מתאים לנסיעה? 🚗 ספר לי כמה אתם ואם יש מזוודות או כיסא לילד, ואכוון אותך בדיוק.${optionsHe}`,
         `נהדר. איזה סוג רכב אתם מחפשים? תרגישו חופשי לפרט על כמות נוסעים, ציוד או צרכים מיוחדים.${optionsHe}`,
         `מצוין. איזה רכב יתאים לכם בדיוק? כדאי גם לציין מזוודות, מספר אנשים או בקשות לכיסא תינוק.${optionsHe}`
       ]);
@@ -572,7 +578,7 @@ function vehiclePrompt(locale: FlowLocale) {
 function namePrompt(locale: FlowLocale) {
   return locale === 'en'
     ? pickRandom([
-        'Great choice. Who should I put the rental request under?',
+        'Perfect. Who should I put the rental request under?',
         'Excellent. Could you please share your full name for the reservation?',
         'Perfect. Who will be the main driver on this booking?'
       ])
@@ -852,7 +858,9 @@ function parseLocationClause(input: string): { pickupLocation: string; dropoffLo
   const isTime = (value: string) => /^\d{1,2}(?::\d{2})?\s*(?:am|pm|בבוקר|בערב|בלילה)?$/i.test(value);
   const isDate = (value: string) => /^\d{1,2}[/.\-]\d{1,2}(?:[/.\-]\d{2,4})?$/.test(value);
   const containsDateOrTime = (value: string) => /\b\d{1,2}[/.-]\d{1,2}(?:[/.-]\d{2,4})?\b|\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b|בבוקר|בערב|בלילה|בצהריים|בחצות/i.test(value);
-  if (parts.length === 2 && parts[0] && parts[1] && parts.every((part) => part.length <= 200) && !parts.some(containsDateOrTime) && !parts.every(isTime) && !parts.every(isDate)) return { pickupLocation: parts[0], dropoffLocation: parts[1] };
+  // "nice to meet you", "מחר עד שבוע הבא אני צריך": everyday words are not a route.
+  const chatty = (value: string) => value.split(/\s+/).length > 4 || /(?:^|\s)(?:i|i'?m|am|you|me|meet|is|are|it|we|my|your|have|need|want|אני|אתה|את|לך|לי|אנחנו|צריך|רוצה|נעים|תודה|מה|איך)(?=\s|$|[,.!?])/i.test(value);
+  if (parts.length === 2 && parts[0] && parts[1] && !parts.some(chatty) && parts.every((part) => part.length <= 200) && !parts.some(containsDateOrTime) && !parts.every(isTime) && !parts.every(isDate)) return { pickupLocation: parts[0], dropoffLocation: parts[1] };
 
   const natural = input.match(/(?:איסוף|אקח|לקחת|אאסוף|pickup|pick up|collect|delivery)\s+(?:מ|ב|in|from|at)?\s*(.+?)\s+(?:והחזרה|החזרה|ואחזיר|להחזיר|and return|return|drop ?off|bring back)\s+(?:ל|ב|at|to|in)?\s*(.+)$/i);
   const looksLikeTimePhrase = (value: string) => /\d{1,2}(?::\d{2})?|\b(?:am|pm|morning|evening|afternoon|noon|midnight)\b|בבוקר|בערב|בלילה|בצהריים|בחצות|תשע|שש|שמונה|עשר/.test(value);
@@ -914,14 +922,14 @@ function parseTripNeeds(input: string): Pick<FlowState, 'passengers' | 'luggage'
   const passengers = countFor(/\b(\d{1,2})\s*(?:נוסע(?:ים|ות)?|אנשים|חבר[הי]ם|מבוגרים|people|passengers?|adults?|persons?|guys?)\b/i) ?? brainPassengers(input) ?? undefined;
   const luggage = countFor(/\b(\d{1,2})\s*(?:מזווד(?:ה|ות)|תיק(?:ים)?|טרולי|מטען|bags?|suitcases?|luggage|baggage|backpacks?)\b/i);
   const childSeats = countFor(/\b(\d{1,2})\s*(?:כיסאות? (?:ילדים|בטיחות|תינוק)|בוסטר(?:ים)?|סלקל|child ?seats?|baby ?seats?|boosters?)\b/i);
-  const children = /ילדים|תינוק|פעוט|kids?|children|baby|toddler/.test(text);
-  const family = /משפחה|family/.test(text);
-  const youngDriver = /נהג חדש|נהג צעיר|חייל|מתחת לגיל 24|בן 18|בן 19|בן 20|בן 21|בן 22|בן 23|young driver|new driver|under 24|soldier/.test(text);
-  const offRoad = /שטח|יער|מדבר|קמפינג|טיול שטח|off road|camping|desert/.test(text);
-  const longTerm = /חודש|חודשיים|תקופה ארוכה|רילוקיישן|monthly|long term|relocation/.test(text);
-  const debitOrCash = /דביט|מזומן|דיירקט|בלי אשראי|debit|cash|direct|no credit card/.test(text);
-  const crossBorder = /סיני|טאבה|ירדן|שטחים|פלסטינ|רמאללה|חברון|sinai|taba|jordan|palestin/.test(text);
-  const pets = /כלב|חתול|בעלי חיים|pets?|dogs?|cats?/.test(text);
+  const children = /ילדים|תינוק|פעוט|\b(?:kids?|children|baby|toddlers?)\b/.test(text);
+  const family = /משפחה|\bfamily\b/.test(text);
+  const youngDriver = /נהג חדש|נהג צעיר|חייל|מתחת לגיל 24|בן 18|בן 19|בן 20|בן 21|בן 22|בן 23|\b(?:young driver|new driver|under 24|soldier)\b/.test(text);
+  const offRoad = /שטח|יער|מדבר|קמפינג|טיול שטח|\b(?:off ?road|camping|desert)\b/.test(text);
+  const longTerm = /חודש|חודשיים|תקופה ארוכה|רילוקיישן|\b(?:monthly|long term|relocation)\b/.test(text);
+  const debitOrCash = /דביט|מזומן|דיירקט|בלי אשראי|\b(?:debit|cash|no credit card)\b/.test(text);
+  const crossBorder = /סיני|טאבה|ירדן|שטחים|פלסטינ|רמאללה|חברון|\b(?:sinai|taba|jordan|palestin\w*)\b/.test(text);
+  const pets = /כלב|חתול|בעלי חיים|\b(?:pets?|dogs?|cats?)\b/.test(text);
   
   const needsArray = [];
   if (children) needsArray.push(family ? 'family / children' : 'children');
@@ -1136,7 +1144,7 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
       else if (!current.pickupLocation) extracted.pickupLocation = place;
       else if (!current.dropoffLocation) extracted.dropoffLocation = place;
     }
-    if (!places.length && (current.step === 'rental_locations' || (current.pickupLocation && (SAME_PLACE.test(body) || brainSamePlace(body)))) && (SAME_PLACE.test(body) || brainSamePlace(body) || (current.pickupLocation && /^(?:כן|כן כן|yes|yep|yeah|בטח|ברור|סבבה|אוקיי?|ok)[\s!.🙂👍]*$/i.test(body.trim())))) {
+    if (!places.length && (current.step === 'rental_locations' || (current.pickupLocation && (SAME_PLACE.test(body) || brainSamePlace(body)))) && (SAME_PLACE.test(body) || brainSamePlace(body) || (current.pickupLocation && /^(?:כן|כן כן|כן בדיוק|בדיוק|נכון|לשם|לשם גם|גם לשם|yes|yep|yeah|exactly|there too|בטח|ברור|סבבה|אוקיי?|ok)[\s!.🙂👍]*$/i.test(body.trim())))) {
       if (current.pickupLocation && !current.dropoffLocation) extracted.dropoffLocation = current.pickupLocation;
       else if (current.dropoffLocation && !current.pickupLocation) extracted.pickupLocation = current.dropoffLocation;
     }
@@ -1190,7 +1198,7 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
   const emailMatch = body.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
   const email = emailMatch ? validEmail(emailMatch[0]) : validEmail(body);
   if (email) extracted.customerEmail = email;
-  const name = explicitName(body) ?? (!current.customerName ? introducedName(body) : null);
+  const name = explicitName(body) ?? (!current.customerName ? introducedName(body) ?? (Object.keys(extracted).length || parseDateCandidates(body).length || relativeDate(body, todayInIsrael(), false) ? null : looksLikeFullName(body)) : null);
   if (name) extracted.customerName = name;
   return extracted;
 }
@@ -1307,15 +1315,35 @@ function validName(input: string) {
   const value = input.trim().replace(/\s+/g, ' ');
   if (value.length < 2 || value.length > 100 || /https?:\/\//i.test(value)) return null;
   if (NOT_A_NAME.test(value) || NOT_NAME_WORDS.test(value) || /[?？@]|\d/.test(value) || smallTalkOnly(value)) return null;
+  // "מה שעות הפתיחה", "איפה אתם נמצאים", "בדיוק", "what do you do": a question or a remark, not a name.
+  if (/^(?:מה|איך|איפה|היכן|כמה|מתי|למה|האם|יש|אין|אפשר|אני|אתה|אתם|זה|בדיוק|נכון|רגע|שנייה|what|how|where|when|why|who|is|are|do|does|can|could|i|you|it|exactly|wait)(?=\s|$)/i.test(value)) return null;
+  if (value.split(' ').length <= 4 && detectSituation(value)) return null;
+  if (SAME_PLACE.test(value) || brainSamePlace(value) || /^(?:וואלה|יאללה|אחלה|אוקי|טוב|בסדר|כן|לא|לשם|פה|כאן)(?=\s|$)/.test(value)) return null;
   return value;
 }
 
 /** "נעים מאוד, אני דני", "קוראים לי מיכל כהן", "my name is John": the name, when the customer introduces themselves. */
 export function introducedName(input: string): string | null {
-  const match = input.trim().match(/(?:קוראים לי|שמי|השם שלי(?: זה| הוא)?|my name is|my name's|call me|(?:נעים(?: מאוד)?|היי|שלום|hi|hello|hey)[,!.]?\s+(?:אני|זה|i'?m|this is))\s+([A-Za-z\u05d0-\u05ea'׳-]{2,20}(?:\s+[A-Za-z\u05d0-\u05ea'׳-]{2,20})?)[\s!.🙂😊]*$/i);
+  const match = input.trim().match(/(?:קוראים לי|שמי|השם שלי(?: זה| הוא)?|my name is|my name's|call me|(?:נעים(?: מאוד)?|היי|שלום|hi|hello|hey|nice to meet you|pleasure)[,!.]?\s+(?:אני|זה|i'?m|i am|this is))\s+([A-Za-z\u05d0-\u05ea'׳-]{2,20}(?:\s+[A-Za-z\u05d0-\u05ea'׳-]{2,20})?)[\s!.🙂😊]*$/i);
   if (!match) return null;
   const name = validName(match[1]);
   return name && !/^(?:צריך|רוצה|מחפש|מחפשת|רק|פה|כאן|looking|need|want|here|fine|good)/i.test(name) ? name : null;
+}
+
+let hebrewWords: Set<string> | null = null;
+let englishWords: Set<string> | null = null;
+/** "יוסי אברהם", "Anna Lee": two or three words that are only a name, sent before it was asked for. */
+function looksLikeFullName(input: string): string | null {
+  const value = input.trim().replace(/\s+/g, ' ');
+  const words = value.split(' ');
+  if (words.length < 2 || words.length > 3 || !words.every((word) => /^[\u05d0-\u05ea'׳-]{2,15}$/.test(word) || /^[A-Z][a-z'-]{1,15}$/.test(word))) return null;
+  // Words that are part of a request, not a name ("צריך רכב", "עד ראשון", "same place").
+  hebrewWords ??= new Set([...WANT_WORDS, ...VEHICLE_WORDS, ...Object.values(INTENT_KEYWORDS).flat()].flatMap((phrase) => phrase.split(' ')));
+  englishWords ??= new Set(['same', 'place', 'back', 'here', 'there', 'thanks', 'please', 'airport', 'tomorrow', 'today', 'week', 'small', 'big', 'family', 'car']);
+  const STOP = /^(?:ו?(?:עד|מ|ב|ל)?(?:מחר|היום|ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת|שבוע|חודש|יום|ימים|יומיים)|אותו|מקום|לשם|גם|כן|לא|טוב|רגע|בעוד|שבועיים|שבועות|בערך|בדיוק|נכון|סבבה|אחלה|תודה|בסדר|רק|עוד|אחד|אחת|שניים|יש|אין|אני|אנחנו|הוא|היא|זה|זאת|של|עם|כמו|משהו|קטן|גדול|משפחתי|ג׳יפ|ג'יפ|רכב|אוטו)$/;
+  if (words.some((word) => STOP.test(word) || hebrewWords!.has(word) || englishWords!.has(word.toLowerCase()))) return null;
+  if (knownPlacesIn(value).length || brainPlaces(value).length || brainVehicle(value) || detectSituation(value)) return null;
+  return validName(value);
 }
 
 function validEmail(input: string) {
@@ -1547,7 +1575,8 @@ export async function getWhatsAppFlowReply(phone: string, rawBody: string, store
   const tracking: WhatsAppFlowStore = {
     ...store,
     activeBooking: async (p) => { const found = await store.activeBooking(p); hasBooking = Boolean(found); return found; },
-    loadState: async (p) => { before = await store.loadState(p); return before; },
+    // A copy: the flow may update the loaded state in place, and "before" must stay as it was.
+    loadState: async (p) => { const found = await store.loadState(p); before = found ? structuredClone(found) : null; return found; },
     saveState: async (p, state) => { saved = state; await store.saveState(p, state); },
     interpretMessage: store.interpretMessage
       ? async (...args) => { understood = await store.interpretMessage!(...args); return understood; }
@@ -1616,7 +1645,7 @@ async function inOneVoice(result: WhatsAppFlowResult, understood: WhatsAppInterp
 function humanFallback(result: WhatsAppFlowResult, understood: WhatsAppInterpretation | null, previous: FlowState | null, current: FlowState | null, message: string, phone: string): WhatsAppFlowResult {
   if ((understood?.source === 'gemini' && understood.reply) || !result.reply || result.escalate || !current || current.handedOff) return result;
   if (current.carSale || current.leasing || current.lastQuestion || current.step === 'rental_confirm') return result;
-  const locale = current.locale ?? 'he';
+  const locale = detectWhatsAppLocale(message, current.locale ?? 'he');
   const used = (previous?.history ?? []).filter((entry) => entry.from === 'bot').map((entry) => entry.text);
   const seed = `${phone}:${previous?.history?.length ?? 0}:${message}`;
   const ask = isRentalStep(current.step) ? expectedAsk(current) : null;
@@ -1639,21 +1668,46 @@ function humanFallback(result: WhatsAppFlowResult, understood: WhatsAppInterpret
   if (situation && !['human_request', 'urgent'].includes(situation) && used.length && (!askingDetails || safeWhileAsking.includes(situation))) {
     let line = humanLine(situation, locale, seed, used);
     // Leaving in the middle of a booking: say the details are kept, and do not push the next question.
+    if (situation === 'wait' && isRentalStep(current.step)) return { ...result, reply: withoutQuestion(line) || (locale === 'en' ? 'Sure, take your time 🙂' : 'בטח, קח את הזמן 🙂') };
     if (['bye', 'later'].includes(situation) && isRentalStep(current.step)) {
-      if (/שמור|שמרתי|saved|kept|keep/i.test(line)) return { ...result, reply: withoutQuestion(line) };
+      if (/שמרתי|שמורים|שמור אצלי|saved|kept/i.test(line)) return { ...result, reply: withoutQuestion(line) || oneQuestion(line) };
       return { ...result, reply: `${withoutQuestion(line)} ${locale === 'en' ? 'I’ve kept everything you sent — just write here whenever you want to continue.' : 'שמרתי את כל מה ששלחת — כשתרצה להמשיך, פשוט תכתוב פה 🙂'}`.replace(/\s+/g, ' ').trim() };
     }
     // One question per message: the booking question replaces any question in the line.
     // and a short line is enough before it: "בשמחה רבה!" rather than "בשמחה רבה! אם צריך עוד משהו, אני פה."
-    if (question) line = firstSentence(withoutQuestion(line));
+    if (question) line = firstSentence(withoutQuestion(line)) || (locale === 'en' ? 'Sure 🙂' : 'סבבה 🙂');
+    else line = oneQuestion(line);
     return { ...result, reply: question ? `${line}${/[\p{L}\p{N}]$/u.test(line) ? '.' : ''} ${question}` : line };
   }
   // A car or a group size on its own: say we got it before the next question, like a person would.
   const ack = addedDetail ? detailAck(previous, current, locale, seed) : '';
+  // The flow had nothing new to say but repeat itself: the acknowledgement and the question in other words.
+  if (ack && question && used.includes(result.reply)) return { ...result, reply: `${ack} ${question}` };
+  // A return date or a name on its own leads the reply, in place of a generic "מעולה".
+  if (ack && /^(?:סגור, החזרה|Done, return|נעים מאוד|Nice to meet you|המייל רשום|Got your email)/.test(ack) && !result.reply.includes(ack)) {
+    const rest = result.reply.replace(/^(?:מעולה|סגור|סבבה|great|done|perfect|nice)[,.!]?\s*/i, '');
+    return { ...result, reply: `${ack} ${locale === 'en' ? rest.charAt(0).toUpperCase() + rest.slice(1) : rest}` };
+  }
   if (ack && !/^(?:סגור|מעולה|רשמתי|סבבה|קיבלתי|got it|great|noted|perfect|done)/i.test(result.reply)) return { ...result, reply: `${ack} ${result.reply}` };
   // The same fixed prompt twice in a row reads like a machine: ask it in other words.
   if (question && used.includes(result.reply)) return { ...result, reply: question };
+  // The same answer to the same question asked again: say so, like a person would.
+  if (used[used.length - 1] === result.reply && result.reply.length > 60) {
+    return { ...result, reply: `${locale === 'en' ? 'Like I wrote just now —' : 'כמו שכתבתי קודם —'} ${result.reply}` };
+  }
   return result;
+}
+
+/** At most one question in a line: "טוב מאוד, תודה. ואתה? הכל טוב?" → "טוב מאוד, תודה. ואתה?" */
+function oneQuestion(line: string) {
+  const sentences = line.match(/[^.!?？]+[.!?？]*\s*(?:\p{Extended_Pictographic}\uFE0F?\s*)*/gu) ?? [line];
+  let asked = false;
+  return sentences.filter((sentence) => {
+    if (!/[?？]/.test(sentence)) return true;
+    if (asked) return false;
+    asked = true;
+    return true;
+  }).join('').trim();
 }
 
 function firstSentence(line: string) {
@@ -1665,7 +1719,7 @@ function firstSentence(line: string) {
 function withoutQuestion(line: string) {
   const sentences = line.match(/[^.!?？]+[.!?？]*\s*(?:\p{Extended_Pictographic}\uFE0F?\s*)*/gu) ?? [line];
   const kept = sentences.filter((sentence) => !/[?？]/.test(sentence));
-  return (kept.length ? kept.join('') : line).trim();
+  return kept.join('').trim();
 }
 
 const CAR_WORDS: Record<string, { he: string; en: string }> = {
@@ -1690,6 +1744,14 @@ function detailAck(previous: FlowState | null, current: FlowState, locale: FlowL
       const place = (locale === 'en' ? placeName(current.dropoffLocation, 'en') : current.dropoffLocation) ?? '';
       return locale === 'en' ? `Noted, return to ${place} 📍` : `רשמתי, החזרה ב${place} 📍`;
     }
+  }
+  if (changed('dropoffDate') && !changed('pickupDate') && current.dropoffDate && previous?.pickupDate) {
+    const day = formatDate(current.dropoffDate).slice(0, 5);
+    return locale === 'en' ? `Done, return on ${day} ✅` : `סגור, החזרה ב־${day} ✅`;
+  }
+  if (changed('customerName') && current.customerName && previous?.step !== 'rental_name' && current.step !== 'rental_email') {
+    const first = current.customerName.split(' ')[0];
+    return locale === 'en' ? `Nice to meet you, ${first} 🙂` : `נעים מאוד ${first} 🙂`;
   }
   if (changed('customerEmail') && current.step !== 'rental_confirm' && current.step !== 'rental_email' && previous?.step !== 'rental_email') return locale === 'en' ? 'Got your email, thanks 👍' : 'המייל רשום אצלי, תודה 👍';
   const others = ['pickupDate', 'dropoffDate', 'pickupLocation', 'dropoffLocation', 'customerName', 'customerEmail'] as const;
@@ -1744,18 +1806,22 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // Conversations saved while the bot still asked for times continue from the next real step.
   if (existingState?.step === 'rental_times') existingState.step = rentalStepFor(existingState);
   const locale = detectWhatsAppLocale(body, existingState?.locale);
+  // The customer switched language: the rest of the chat follows them.
+  if (existingState && existingState.locale && existingState.locale !== locale) existingState.locale = locale;
 
   // The final "send the request" step is a plain yes/no gate. It stays
   // deterministic so a customer is never told the request was confirmed
   // before createRentalRequest has actually saved it.
   if (existingState?.step === 'rental_confirm') {
     if (!confirmsTerms(body)) {
-      return {
-        handled: true,
-        reply: locale === 'en'
-          ? 'The request has not been submitted yet. Reply I confirm to agree to the terms and submit it, or menu to start again.'
-          : 'הבקשה עדיין לא נשלחה. כתבו אני מאשר/ת כדי להסכים לתנאים ולשלוח אותה, או תפריט להתחלה מחדש.',
-      };
+      const gate = locale === 'en'
+        ? 'The request hasn’t been sent yet — just reply "I confirm" and I’ll pass it to the team 🙂 (or "menu" to start over).'
+        : 'הבקשה עוד לא נשלחה — רק תכתוב "אני מאשר" ואעביר אותה לצוות 🙂 (או "תפריט" כדי להתחיל מחדש).';
+      // A question before confirming ("כמה הפיקדון?") gets its answer first; the request still waits for the confirmation.
+      const looksLikeQuestion = /[?？]/.test(body) || /(?:^|\s)(?:מה|איך|כמה|האם|איפה|מתי|יש|אפשר|what|how|where|when|is|are|can|do)(?=\s|$)/i.test(body);
+      const answer = looksLikeQuestion ? knowledgeReply(body, locale, existingState)?.reply : undefined;
+      if (answer) return { handled: true, reply: `${answer}\n\n${locale === 'en' ? 'When you’re ready, reply "I confirm" and I’ll send the request 🙂' : 'כשנוח לך, תכתוב "אני מאשר" ואשלח את הבקשה 🙂'}` };
+      return { handled: true, reply: gate };
     }
     if (store.isSimulation) {
       await store.saveState(phone, null);
@@ -2407,7 +2473,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       const nudge = smallTalkOnly(body)
         ? (locale === 'en' ? 'All good, thanks 🙂' : 'הכל טוב, תודה 🙂')
         : (locale === 'en' ? pickRandom(['Great 🙂', 'Perfect.', 'Got it.']) : pickRandom(['סבבה 👍', 'סגור.', 'יופי.']));
-      return { handled: true, reply: `${withoutQuestions(interpretation?.acknowledgement) && !/^(?:שלום|היי)/.test(interpretation?.acknowledgement ?? '') ? withoutQuestions(interpretation?.acknowledgement) : nudge}\n\n${promptForState({ ...existingState, locale }, locale, booking, existingState)}` };
+      return { handled: true, reply: `${withoutQuestions(interpretation?.acknowledgement) && !/^(?:שלום|היי)/.test(interpretation?.acknowledgement ?? '') ? withoutQuestions(interpretation?.acknowledgement) : nudge}\n\n${promptForState({ ...existingState, locale }, locale, booking, existingState).replace(/^(?:Perfect|Great|Great choice|מעולה|סגור|יופי|נהדר|מצוין)[.,!]\s*/i, '')}` };
     }
     // Without a model answer, still answer a question instead of claiming
     // the customer's reply could not be read.
@@ -2461,7 +2527,11 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
 
   if (existingState.step === 'rental_locations') {
     const locations = parseLocations(body);
-    if (!locations) return { handled: true, reply: locale === 'en' ? 'Got it 👍 And where would you like to pick up the car and drop it off? A branch or an address both work.' : 'סבבה 👍 ומאיפה נוח לך לאסוף את הרכב ולאן להחזיר? סניף או כתובת — שניהם עובדים.' };
+    if (!locations) {
+      // Pickup already known: ask only where it goes back.
+      if (existingState.pickupLocation && !existingState.dropoffLocation) return { handled: true, reply: locale === 'en' ? 'And where should it go back — the same place or somewhere else?' : 'ולאן מחזירים — לאותו מקום או למקום אחר?' };
+      return { handled: true, reply: locale === 'en' ? 'Got it 👍 And where would you like to pick up the car and drop it off? A branch or an address both work.' : 'סבבה 👍 ומאיפה נוח לך לאסוף את הרכב ולאן להחזיר? סניף או כתובת — שניהם עובדים.' };
+    }
     await store.saveState(phone, { ...existingState, ...locations, step: 'rental_vehicle' });
     return { handled: true, reply: vehiclePrompt(locale) };
   }
@@ -2485,7 +2555,11 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       if (smallTalkOnly(body) || NOT_A_NAME.test(body.trim()) || NOT_NAME_WORDS.test(body)) {
         return { handled: true, reply: locale === 'en' ? 'Sure 🙂 What full name should I put the request under?' : 'בכיף 🙂 על איזה שם מלא לרשום את הבקשה?' };
       }
-      if (asksQuestion) return { handled: true, reply: namePrompt(locale) };
+      if (asksQuestion) {
+        // "כמה הפיקדון?" while we wait for a name: answer it, then ask for the name again.
+        const answer = knowledgeReply(body, locale, existingState)?.reply;
+        return { handled: true, reply: answer ? `${answer}\n\n${locale === 'en' ? 'And what full name should I put the request under?' : 'ועל איזה שם לרשום את הבקשה?'}` : namePrompt(locale) };
+      }
       return { handled: true, reply: locale === 'en' ? 'Just need a full name for the request (first and last) 🙂' : 'רק צריך שם מלא לבקשה — פרטי ומשפחה 🙂' };
     }
     await store.saveState(phone, { ...existingState, customerName, step: 'rental_email' });

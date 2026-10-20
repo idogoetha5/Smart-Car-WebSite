@@ -25,19 +25,26 @@ function contextSummary(state: FlowState | null | undefined, locale: Locale) {
   return locale === 'he' ? `רשמתי כבר: ${facts.join(', ')}.` : `I already have: ${facts.join(', ')}.`;
 }
 
-function acknowledgement(mood: ConversationMood, kind: ServiceResponseKind, locale: Locale, subject?: string) {
+function acknowledgement(mood: ConversationMood, kind: ServiceResponseKind, locale: Locale, subject?: string, seed = '') {
   if (locale === 'en') {
     if (mood === 'angry') return `I understand why ${subject ?? 'this'} feels frustrating.`;
     if (mood === 'pressed') return `I understand timing matters here${subject ? `, especially with ${subject}` : ''}.`;
     if (mood === 'uncertain') return 'I can help narrow this down.';
     if (kind === 'emergency') return 'I’m sorry this happened.';
-    return kind === 'information' ? 'Good question.' : 'I understand.';
+    return kind === 'information' ? vary(['', 'Sure —', 'Good question.', 'Happy to help.', ''], seed) : 'I understand.';
   }
   if (mood === 'angry') return `אני מבין למה ${subject ?? 'זה'} מתסכל במיוחד.`;
   if (mood === 'pressed') return `אני מבין שהזמן חשוב כאן${subject ? `, במיוחד עם ${subject}` : ''}.`;
   if (mood === 'uncertain') return 'בשמחה, נעזור לצמצם את האפשרויות.';
   if (kind === 'emergency') return 'מצטערים שזה קרה.';
-  return kind === 'information' ? 'שאלה חשובה.' : 'הבנתי.';
+  return kind === 'information' ? vary(['', 'בטח 🙂', 'שאלה טובה.', 'אז ככה —', ''], seed) : 'הבנתי.';
+}
+
+/** The same opener on every answer reads like a machine: pick one by the question itself. */
+function vary(options: string[], seed = '') {
+  let h = 0;
+  for (const ch of `${seed}`) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return options[h % options.length];
 }
 
 /** A concise WhatsApp response: acknowledgement, useful answer, one next action. */
@@ -53,7 +60,7 @@ export function composeServiceResponse(params: {
   const mood = detectConversationMood(params.input);
   // Many published answers already open warmly ("שאלה חשובה.", "בשמחה."); never stack two openers.
   const answerOpens = /^(?:שאלה (?:חשובה|טובה)|בשמחה|כן|בטח|הבנתי|important question|good question|of course|happy to|yes|sure)\b|^(?:שאלה (?:חשובה|טובה)|בשמחה|כן|בטח|הבנתי)[.,!—\s]/i.test(params.answer ?? '');
-  const intro = answerOpens && mood !== 'angry' && mood !== 'pressed' ? '' : acknowledgement(mood, params.kind, params.locale, params.subject);
+  const intro = answerOpens && mood !== 'angry' && mood !== 'pressed' ? '' : acknowledgement(mood, params.kind, params.locale, params.subject, params.input);
   const context = (mood === 'angry' || mood === 'pressed') ? contextSummary(params.state, params.locale) : '';
   return [intro, context, params.answer, params.nextStep].filter(Boolean).join(' ');
 }

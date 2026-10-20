@@ -102,6 +102,9 @@ export function brainPassengers(text: string): number | null {
   // "אני ועוד 3 חברים", "me and 4 friends": the writer plus the others.
   const plus = normal.match(/(?:עוד|(?:^|\s)ו|me and|and|plus|with)\s*(\d{1,2})\s+(?:חברימ|חברות|friends|others|more people|more)(?:\s|$)|עוד\s+(\d{1,2})\s+(?:אנשימ|נוסעימ)(?:\s|$)/);
   if (plus) return Math.min(Number(plus[1] ?? plus[2]) + 1, 20);
+  // "אני ועוד 2", "me plus 3"
+  const alone = normal.match(/^(?:אני\s+)?ו?עוד\s+(\d{1,2})$|^me (?:and|plus) (\d{1,2})$/);
+  if (alone) return Math.min(Number(alone[1] ?? alone[2]) + 1, 20);
   const total = normal.match(/(?:אנחנו|we are|were|we re|סהכ|total of)\s+(\d{1,2})(?:\s|$)|(?:^|\s)(\d{1,2})\s+(?:אנשימ|נוסעימ|מבוגרימ|people|passengers|adults|pax)(?:\s|$)/);
   if (total) { const n = Number(total[1] ?? total[2]); if (n > 0 && n <= 20) return n; }
   for (const { text: phrase, count } of BRAIN.passengers) {

@@ -225,7 +225,7 @@ const EN = merged(EN_BASE, 'en');
 const ASKS_HE: Record<BookingAsk, string[]> = {
   pickup_date: ['מאיזה תאריך צריך את הרכב?', 'מתי בא לך לאסוף?', 'לאיזה תאריך מתכננים?', 'מתי מתחילים?', 'מאיזה יום צריך אותו?', 'מתי בערך תרצה לאסוף את הרכב?'],
   return_date: ['ועד מתי צריך את הרכב (או לכמה ימים)?', 'לכמה ימים בערך?', 'ומתי מחזירים?', 'עד איזה תאריך?', 'כמה ימים תצטרך אותו?'],
-  places: ['ומאיפה נוח לך לאסוף ולאן להחזיר?', 'איפה אוספים ואיפה מחזירים? סניף או כתובת — שניהם עובדים.', 'מאיזה סניף נוח לך — הרצליה, תל אביב, ירושלים או נתב״ג? או שנביא עד אליך?', 'מאיפה לאסוף, ולאן להחזיר?'],
+  places: ['ומאיפה נוח לך לאסוף ולאן להחזיר?', 'איפה אוספים ואיפה מחזירים? סניף או כתובת — שניהם עובדים.', 'מאיזה סניף נוח לך — הרצליה, תל אביב, ירושלים, נתב״ג, או שנביא עד אליך?', 'מאיפה לאסוף, ולאן להחזיר?'],
   pickup_place: ['ומאיפה נוח לך לאסוף?', 'מאיזה מקום אוספים?', 'איפה הכי נוח לאסוף את הרכב?'],
   return_place: ['להחזיר לאותו מקום או למקום אחר?', 'ולאן מחזירים?', 'ההחזרה באותו מקום?', 'איפה נוח לך להחזיר?'],
   vehicle: ['איזה רכב מתאים לכם — קטן וחסכוני, משפחתי, SUV, 7 מקומות או יוקרה?', 'כמה אתם, ויש מזוודות? ככה אכוון אותך לרכב הנכון.', 'מה סוג הרכב שמתאים — משהו קטן, משפחתי, או יותר גדול?', 'יש סוג רכב שבא לך?'],
@@ -236,7 +236,7 @@ const ASKS_HE: Record<BookingAsk, string[]> = {
 const ASKS_EN: Record<BookingAsk, string[]> = {
   pickup_date: ['From which date do you need the car?', 'When would you like to pick it up?', 'What date are you planning for?', 'When do you start?'],
   return_date: ['And until when (or for how many days)?', 'How many days roughly?', 'When are you bringing it back?', 'Until which date?'],
-  places: ['Where would you like to pick it up and drop it off?', 'Pickup and return — a branch or an address, both work.', 'Which branch suits you — Herzliya, Tel Aviv, Jerusalem or Ben Gurion Airport? Or shall we bring it to you?'],
+  places: ['Where would you like to pick it up and drop it off?', 'Pickup and return — a branch or an address, both work.', 'Which branch suits you — Herzliya, Tel Aviv, Jerusalem, Ben Gurion Airport, or shall we bring it to you?'],
   pickup_place: ['And where would you like to pick it up?', 'Where’s best for the pickup?'],
   return_place: ['Returning it to the same place, or somewhere else?', 'And where will you drop it off?'],
   vehicle: ['What kind of car suits you — small, family, SUV, 7 seats or luxury?', 'How many of you are there, and any luggage? I’ll match the right car.', 'Any car type in mind?'],
