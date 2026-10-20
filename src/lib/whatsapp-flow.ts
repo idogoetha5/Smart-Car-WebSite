@@ -172,7 +172,8 @@ export function detectWhatsAppLocale(input: string, previous?: FlowLocale): Flow
 }
 
 function isMenuCommand(input: string) {
-  return ['תפריט', 'התחל', 'התחלה', 'שלום', 'היי', 'חזור', 'hi', 'hello', 'menu', 'start', 'back'].includes(normalized(input));
+  // Greetings are conversation, not a reset: "היי" in the middle of a chat must not wipe it.
+  return ['תפריט', 'התחל', 'התחלה', 'חזור', 'menu', 'start', 'back'].includes(normalized(input));
 }
 
 /**
@@ -1825,6 +1826,20 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       escalate: true,
       escalateReason: handoffSummary(existingState, 'בקשה לדבר עם נציג או טיפול חריג'),
     };
+  }
+
+  // Gemini first. Outside a booking, and outside the flows that collect a lead
+  // (leasing, cars for sale, booking lookup), the customer gets Gemini's own
+  // reply: small talk, questions, remarks, jokes, anything. The keyword routes
+  // below are only the fallback for when Gemini is unavailable.
+  if (interpretation?.source === 'gemini' && interpretation.reply && !existingState?.handedOff
+    && !isRentalStep(existingState?.step ?? 'menu') && initialRoute !== 'rental'
+    && !existingState?.carSale && !existingState?.leasing && !existingState?.lastQuestion
+    && !['accident', 'breakdown', 'existing_booking', 'representative', 'leasing', 'buy_car', 'sell_car'].includes(interpretation.intent)
+    && classifyCommercialIntent(body) === 'none'
+    && !/^\s*\d\s*$/.test(body)) {
+    await store.saveState(phone, { ...(existingState ?? { step: 'menu' as const }), step: 'menu', locale, knowledgeTopic: businessTopic ?? existingState?.knowledgeTopic });
+    return { handled: true, reply: interpretation.reply };
   }
 
   // Keep the four commercial intents separate. A customer who says only
