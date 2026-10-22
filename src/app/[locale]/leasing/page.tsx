@@ -127,6 +127,8 @@ export default async function LeasingPage({
   // Deduplicate: one card per make/model/year, prefer white color
   const seen = new Map<string, Vehicle>();
   for (const v of allVehicles) {
+    // A zero monthly rate means this fleet vehicle is not offered for leasing.
+    if (!(v.pricePerMonth > 0)) continue;
     const key = `${v.make}|${v.model}|${v.year}`;
     if (!seen.has(key)) {
       seen.set(key, v);

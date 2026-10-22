@@ -23,9 +23,15 @@ export async function PATCH(
   const VEHICLE_FIELDS = [
     'make', 'model', 'year', 'category', 'transmission', 'fuel_type',
     'seats', 'doors', 'price_per_day', 'price_per_month', 'deposit_amount',
+    'display_price_per_day', 'minimum_daily_price',
     'mileage_limit', 'image_urls', 'features', 'is_available', 'is_featured',
     'color_he', 'color_en', 'description_he', 'description_en', 'total_units',
   ];
+  for (const field of ['display_price_per_day', 'minimum_daily_price']) {
+    if (body[field] != null && (typeof body[field] !== 'number' || !Number.isFinite(body[field]) || body[field] <= 0)) {
+      return NextResponse.json({ error: 'המחיר חייב להיות מספר חיובי' }, { status: 400 });
+    }
+  }
   for (const field of VEHICLE_FIELDS) {
     if (Object.prototype.hasOwnProperty.call(body, field)) {
       allowedFields[field] = body[field];

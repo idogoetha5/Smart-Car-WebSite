@@ -17,7 +17,7 @@ import type { Vehicle, VehicleFilters } from '@/types';
  */
 export const VEHICLE_COLUMNS = [
   'id', 'make', 'model', 'year', 'category', 'transmission', 'fuel_type',
-  'seats', 'doors', 'price_per_day', 'price_per_month', 'deposit_amount',
+  'seats', 'doors', 'price_per_day', 'display_price_per_day', 'minimum_daily_price', 'price_per_month', 'deposit_amount',
   'mileage_limit', 'image_urls', 'features', 'is_available', 'is_featured',
   'color_he', 'color_en', 'description_he', 'description_en', 'total_units',
   'created_at', 'updated_at',
@@ -36,6 +36,8 @@ export function mapRow(row: any): Vehicle {
     seats: row.seats,
     doors: row.doors,
     pricePerDay: row.price_per_day ?? 0,
+    displayPricePerDay: row.display_price_per_day == null ? null : Number(row.display_price_per_day),
+    minimumDailyPrice: row.minimum_daily_price == null ? null : Number(row.minimum_daily_price),
     pricePerMonth: row.price_per_month,
     depositAmount: row.deposit_amount,
     mileageLimit: row.mileage_limit,

@@ -20,6 +20,7 @@ type Vehicle = any;
 const EMPTY_VEHICLE = {
   make: '', model: '', year: new Date().getFullYear(),
   category: 'ECONOMY', color_he: 'לבן', color_en: '', price_per_day: 150,
+  display_price_per_day: '' as number | '', minimum_daily_price: '' as number | '',
   fuel_type: 'GASOLINE', transmission: 'AUTOMATIC',
   seats: 5, doors: 4, is_available: true, is_featured: false,
   image_urls: [] as string[],
@@ -70,6 +71,8 @@ export default function AdminVehiclesPage() {
       color_he: v.color_he ?? 'לבן',
       color_en: v.color_en ?? '',
       price_per_day: v.price_per_day ?? 150,
+      display_price_per_day: v.display_price_per_day ?? '',
+      minimum_daily_price: v.minimum_daily_price ?? '',
       fuel_type: v.fuel_type ?? 'GASOLINE',
       transmission: v.transmission ?? 'AUTOMATIC',
       seats: v.seats ?? 5,
@@ -116,7 +119,7 @@ export default function AdminVehiclesPage() {
     if (saving || uploading) return;
     setSaving(true);
     setSaveError('');
-    const payload = { ...form, image_urls: imageUrl ? [imageUrl, ...form.image_urls.slice(1)] : form.image_urls.slice(1) };
+    const payload = { ...form, display_price_per_day: form.display_price_per_day === '' ? null : Number(form.display_price_per_day), minimum_daily_price: form.minimum_daily_price === '' ? null : Number(form.minimum_daily_price), image_urls: imageUrl ? [imageUrl, ...form.image_urls.slice(1)] : form.image_urls.slice(1) };
     try {
       const response = await fetch(editVehicle ? `/api/admin/vehicles/${editVehicle.id}` : '/api/admin/vehicles', {
         method: editVehicle ? 'PATCH' : 'POST',
@@ -217,6 +220,19 @@ export default function AdminVehiclesPage() {
                     className="w-full min-h-11 p-3 border border-gray-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]"
                   />
                 </div>
+              ))}
+
+              {([
+                ['display_price_per_day', 'מחיר ״החל מ־״ לתצוגה בלבד ₪'],
+                ['minimum_daily_price', 'מינימום להזמנה ליום, גם אחרי הנחות ₪'],
+              ] as const).map(([key, label]) => (
+                <label key={key} className="block text-xs text-gray-600">
+                  {label}
+                  <input type="number" min="0.01" step="0.01" value={form[key]}
+                    placeholder="ללא מחיר נפרד"
+                    onChange={e => set(key, e.target.value === '' ? '' : Number(e.target.value))}
+                    className="mt-1 w-full min-h-11 p-3 border border-gray-200 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]" />
+                </label>
               ))}
 
               {/* Select fields */}

@@ -268,7 +268,7 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
           })() : (
             <div className="text-center">
               <p className="text-xs text-gray-600 mb-0.5">{isHe ? 'החל מ' : 'From'}</p>
-              <span className="text-2xl font-black text-[#2D5F5F]">₪{vehicle.pricePerDay.toLocaleString()}</span>
+              <span className="text-2xl font-black text-[#2D5F5F]">₪{(vehicle.displayPricePerDay ?? vehicle.pricePerDay).toLocaleString()}</span>
               <span className="text-xs text-gray-600 block mt-0.5">/{isHe ? 'ליום' : 'day'}</span>
             </div>
           )}

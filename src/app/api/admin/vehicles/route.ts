@@ -42,11 +42,17 @@ export async function POST(request: Request) {
   const allowed = [
     'make', 'model', 'year', 'category', 'fuel_type', 'transmission',
     'price_per_day', 'seats', 'doors', 'image_urls', 'is_available',
+    'display_price_per_day', 'minimum_daily_price',
     'is_featured', 'total_units', 'deposit_amount', 'color_he', 'color_en',
     'description_he', 'description_en', 'features', 'license_plate',
   ] as const;
 
   const payload: Record<string, unknown> = {};
+  for (const field of ['display_price_per_day', 'minimum_daily_price']) {
+    if (body[field] != null && (typeof body[field] !== 'number' || !Number.isFinite(body[field]) || body[field] <= 0)) {
+      return NextResponse.json({ error: 'המחיר חייב להיות מספר חיובי' }, { status: 400 });
+    }
+  }
   for (const key of allowed) {
     if (body[key] !== undefined) payload[key] = body[key];
   }

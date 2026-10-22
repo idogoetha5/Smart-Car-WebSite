@@ -49,6 +49,14 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('public staged rental request', () => {
+  it('never uses an advertised price for the estimate or discounts below the vehicle floor', async () => {
+    const premium = { ...vehicle, pricePerDay: 1060, displayPricePerDay: 850, minimumDailyPrice: 950 };
+    await act(async () => root.render(createElement(BookingForm, { vehicle: premium, initialLocation: 'herzliya', initialReturnLocation: 'telaviv', initialPickupDate: '2030-01-10', initialReturnDate: '2030-03-11' })));
+    // 60 days, normal mocked season, 15% duration discount capped by floor.
+    expect(host.textContent).toContain('57,000');
+    expect(host.textContent).not.toContain('850');
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it('shows the airport surcharge only for an airport pickup or return, including before dates', async () => {
     await render('herzliya', false);
     expect(airportVisible()).toBe(false);

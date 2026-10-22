@@ -1,5 +1,20 @@
 import type { Vehicle } from '@/types';
 
+export type PricingVehicle = Pick<Vehicle, 'id' | 'pricePerDay' | 'minimumDailyPrice'>;
+
+/** The public starting price is intentionally not a pricing input. */
+export function minimumRentalTotal(vehicle: Pick<Vehicle, 'minimumDailyPrice'>, days: number): number {
+  return Math.max(0, vehicle.minimumDailyPrice ?? 0) * Math.max(0, days);
+}
+
+export function rentalDurationDiscount(vehicle: Pick<Vehicle, 'minimumDailyPrice'>, subtotal: number, days: number, percent: number): number {
+  return Math.min(Math.round(subtotal * percent / 100), Math.max(0, subtotal - minimumRentalTotal(vehicle, days)));
+}
+
+export function cappedRentalCoupon(vehicle: Pick<Vehicle, 'minimumDailyPrice'>, total: number, days: number, requested: number): number {
+  return Math.min(requested, Math.max(0, total - minimumRentalTotal(vehicle, days)));
+}
+
 export interface PricingSeason {
   id: string;
   nameHe: string;
@@ -87,28 +102,29 @@ function roundToTen(n: number): number {
  * isn't necessarily active today, without re-deriving it through a date.
  */
 export function priceForSeason(
-  vehicle: Pick<Vehicle, 'id' | 'pricePerDay'>,
+  vehicle: PricingVehicle,
   season: PricingSeason,
   overrides: VehiclePriceOverride[]
 ): number {
   const override = overrides.find(
     o => o.vehicleId === vehicle.id && o.seasonId === season.id
   );
-  if (override?.fixedPrice != null) return override.fixedPrice;
+  const floor = Math.max(0, vehicle.minimumDailyPrice ?? 0);
+  if (override?.fixedPrice != null) return Math.max(floor, override.fixedPrice);
   if (override?.adjustmentPercent != null) {
-    return roundToTen(vehicle.pricePerDay * (1 + override.adjustmentPercent / 100));
+    return Math.max(floor, roundToTen(vehicle.pricePerDay * (1 + override.adjustmentPercent / 100)));
   }
-  if (season.fixedPrice != null) return season.fixedPrice;
-  return roundToTen(vehicle.pricePerDay * (1 + season.adjustmentPercent / 100));
+  if (season.fixedPrice != null) return Math.max(floor, season.fixedPrice);
+  return Math.max(floor, roundToTen(vehicle.pricePerDay * (1 + season.adjustmentPercent / 100)));
 }
 
 export function getSeasonalPrice(
-  vehicle: Pick<Vehicle, 'id' | 'pricePerDay'>,
+  vehicle: PricingVehicle,
   config: PricingConfig,
   date?: Date
 ): number {
   const season = resolveSeason(date ?? new Date(), config.seasons);
-  if (!season) return vehicle.pricePerDay;
+  if (!season) return Math.max(vehicle.pricePerDay, vehicle.minimumDailyPrice ?? 0);
   return priceForSeason(vehicle, season, config.overrides);
 }
 
@@ -119,7 +135,7 @@ export function getSeasonalPrice(
  * for the July days, not the regular rate for the whole stay.
  */
 export function getSeasonalPriceRange(
-  vehicle: Pick<Vehicle, 'id' | 'pricePerDay'>,
+  vehicle: PricingVehicle,
   config: PricingConfig,
   pickupDate: Date,
   dropoffDate: Date

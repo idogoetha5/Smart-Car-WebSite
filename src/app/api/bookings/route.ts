@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 import { verifyTurnstile } from '@/lib/turnstile';
 import { verifyAdminToken } from '@/lib/admin-auth';
 import { checkRateLimit } from '@/lib/ratelimit';
-import { getSeasonalPriceRange } from '@/lib/seasonal';
+import { getSeasonalPriceRange, rentalDurationDiscount, type PricingVehicle } from '@/lib/seasonal';
 import { getActiveSeasons, getOverridesForVehicle } from '@/lib/db/pricing';
 import { bookingRequestSchema } from '@/lib/validations';
 import { readJsonBody } from '@/lib/request-body';
@@ -17,7 +17,6 @@ import { numericOrderReference } from '@/lib/order-reference';
 import { sendBookingCustomerEmail } from '@/lib/booking-customer-email';
 import { normalizeWhatsAppPhone } from '@/lib/rental-quote';
 import { isoToday } from '@/lib/rental-quote';
-import type { Vehicle } from '@/types';
 
 const EXTRAS_PRICE: Record<string, number> = {
   insurance: 45,
@@ -151,7 +150,7 @@ export async function POST(request: NextRequest) {
   // Fetch vehicle to calculate server-side price
   const { data: vehicle, error: vehicleError } = await supabase
     .from('vehicles')
-    .select('make, model, year, price_per_day, category, is_available')
+    .select('make, model, year, price_per_day, minimum_daily_price, category, is_available')
     .eq('id', vehicleId)
     .single();
 
@@ -173,7 +172,7 @@ export async function POST(request: NextRequest) {
   // Calculate authoritative price server-side (mirrors BookingForm logic).
   // Priced per-day across the full range so a rental crossing a season
   // boundary (e.g. June → July) is charged the correct rate for each day.
-  const vehicleForPricing: Pick<Vehicle, 'id' | 'pricePerDay'> = { id: vehicleId, pricePerDay: vehicle.price_per_day };
+  const vehicleForPricing: PricingVehicle = { id: vehicleId, pricePerDay: vehicle.price_per_day, minimumDailyPrice: vehicle.minimum_daily_price == null ? null : Number(vehicle.minimum_daily_price) };
   const [seasons, overrides] = await Promise.all([
     getActiveSeasons(),
     getOverridesForVehicle(vehicleId),
@@ -185,7 +184,7 @@ export async function POST(request: NextRequest) {
     new Date(dropoffDate)
   );
   const discountPct = totalDays >= 60 ? 15 : totalDays >= 30 ? 10 : totalDays >= 14 ? 7 : 0;
-  const serverDiscount = Math.round(subtotal * discountPct / 100);
+  const serverDiscount = rentalDurationDiscount(vehicleForPricing, subtotal, totalDays, discountPct);
   const vehicleTotal = subtotal - serverDiscount;
   const selectedExtras: string[] = input.extras ?? [];
   const extrasTotal = selectedExtras.reduce((sum, id) => sum + (EXTRAS_PRICE[id] ?? 0) * totalDays, 0);

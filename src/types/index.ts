@@ -11,6 +11,10 @@ export interface Vehicle {
   seats: number;
   doors: number;
   pricePerDay: number;
+  /** Catalogue-only starting price; never used to calculate a booking. */
+  displayPricePerDay?: number | null;
+  /** Minimum vehicle rental rate, including after discounts. */
+  minimumDailyPrice?: number | null;
   pricePerMonth: number;
   depositAmount: number;
   mileageLimit?: number;

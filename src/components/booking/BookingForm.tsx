@@ -11,7 +11,7 @@ import { Toast } from '@/components/ui/Toast';
 import DatePickerInput from '@/components/ui/DatePickerInput';
 import { bookingSchema, type BookingInput } from '@/lib/validations';
 import { calculateTotalDays } from '@/lib/utils';
-import { getSeasonalPrice, getSeasonalPriceRange } from '@/lib/seasonal';
+import { getSeasonalPrice, getSeasonalPriceRange, rentalDurationDiscount, cappedRentalCoupon } from '@/lib/seasonal';
 import { usePricingConfig } from '@/hooks/usePricingConfig';
 import type { Vehicle } from '@/types';
 import { AvailabilityChecker } from './AvailabilityChecker';
@@ -463,7 +463,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
       ? getSeasonalPriceRange(vehicle, pricingConfig, new Date(pickupDate), new Date(dropoffDate))
       : { subtotal: 0, avgPricePerDay: getSeasonalPrice(vehicle, pricingConfig, pickupDate ? new Date(pickupDate) : undefined) };
   const discountPct = totalDays >= 60 ? 15 : totalDays >= 30 ? 10 : totalDays >= 14 ? 7 : 0;
-  const discount = Math.round(subtotal * discountPct / 100);
+  const discount = rentalDurationDiscount(vehicle, subtotal, totalDays, discountPct);
   const vehicleTotal = subtotal - discount;
 
   const extrasTotal = selectedExtras.reduce((sum, id) => {
@@ -473,11 +473,12 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
   }, 0);
 
   const preDiscountTotal = vehicleTotal + extrasTotal;
-  const couponDiscount = couponState.status === 'valid' && couponState.value
+  const requestedCouponDiscount = couponState.status === 'valid' && couponState.value
     ? couponState.type === 'percent'
       ? Math.round(preDiscountTotal * couponState.value / 100)
       : Math.min(couponState.value, preDiscountTotal)
     : 0;
+  const couponDiscount = cappedRentalCoupon(vehicle, preDiscountTotal, totalDays, requestedCouponDiscount);
   const grandTotal = preDiscountTotal - couponDiscount;
   const airportSelected = pickupLocation === 'airport' || dropoffLocation === 'airport';
   const airportNotice = isHe
@@ -972,9 +973,9 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
               {isHe ? `${totalDays} ימים × ₪${pricePerDay}` : `₪${pricePerDay} × ${totalDays} days`}
             </span>
           </div>
-          {discountPct > 0 && (
+          {discount > 0 && (
             <div className="flex justify-between text-sm text-green-600">
-              <span>{isHe ? `הנחה ${discountPct}%` : `${discountPct}% discount`}</span>
+              <span>{discount === Math.round(subtotal * discountPct / 100) ? (isHe ? `הנחה ${discountPct}%` : `${discountPct}% discount`) : (isHe ? 'הנחה להשכרה ארוכה' : 'Long-rental discount')}</span>
               <span className="font-medium">-₪{discount}</span>
             </div>
           )}
