@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+**CRITICAL OWNER DIRECTIVE, 2026-10-22: read `docs/DEPLOYMENT-SAFETY.md` before every change or release. Never silently omit, remove, overwrite or roll back existing features/assets. Start from latest fetched `origin/clean-main`; do not deploy partial bot exports/old checkouts. Run the preservation preflight in the exact release folder. Tell Ido and receive approval before any intentional removal/rollback.**
+
 **Read this whole file before you change anything in the driver or manager apps.
 When you finish a task, update this file in the same commit** (see "Keeping this file current" at the end).
 `AGENTS.md` holds the hard rules (QR codes, mobile threshold, look and feel). This file explains the system and how to work on it.
@@ -198,6 +200,8 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
+
+- 2026-10-22 23:27 Israel — Incident recovery authorized by owner: manual bot deployment source based on old `3f5feaa` omitted published gallery assets, Search Console/mobile-admin and X2 advertised-price/floor code. Restored exact complete verified source `b83f1c7` through Git-based Vercel build `dpl_33ujsvhS7GyPANFMkD8Dz1PMLFSL`, Ready, custom aliases `smartcar.co.il` and `www.smartcar.co.il`. No vehicle/database/storage/credential mutation. Later bot edits remain on disk, deliberately not included in this owner-requested rollback. Live dashboard now shows Search Console metrics (244 clicks / 10,231 impressions) and All searches. Added explicit preservation instructions to AGENTS/CLAUDE and `docs/DEPLOYMENT-SAFETY.md`, plus a preflight checking complete Git baseline, required features and every published local gallery file. Documentation/local checks cannot guarantee zero outages or prevent independently authorized bypass; platform-level policy changes need separate approval.
 
 - 2026-10-22 — Published `542186d` (Vercel Ready; verify/audit checks pass): six owner-reference BMW X2 studio assets and separate public starting price from an enforced online daily floor, including duration-discount/coupon estimates and authoritative server calculations. Secured form exposes both optional prices. Migration applied; X2 row `c6d3d239e23cd4635a4dc0f5533ea89f0` activated only after all six deployed WebP files passed HTTP/content-type/SHA-256 checks. Public name shortened to BMW X2 per owner. Confirmed public API values, live luxury card From 850, and winter 20–23 Dec estimate 2850 (950/day), 360px no-overflow detail/card, no X2 leasing listing. Existing 171-row checksum unchanged. 990 tests, TypeScript and lint budget pass (one existing warning); no real booking/email sent. Existing unrelated Supabase security advisories remain; no auth/RLS change. Cloudflare's separate Workers check fails while the production Vercel deployment and GitHub verify/audit succeed; runtime logs were not independently audited.
 
