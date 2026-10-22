@@ -1,0 +1,548 @@
+{
+ "_about": "Trigger words in the wrong context: negation, the past, 'what if', someone else, quoting. Each case: earlier messages (pre), the message (m), and what must happen. Checked by src/lib/__tests__/whatsapp-context.test.ts without Gemini.",
+ "cases": [
+  {
+   "m": "לפני שנה עשיתי תאונה עם רכב שכור, זה משנה אם אני רוצה לשכור עכשיו?",
+   "esc": false
+  },
+  {
+   "m": "מה קורה אם יש תאונה עם הרכב?",
+   "esc": false
+  },
+  {
+   "m": "אחי עשה תאונה עם הרכב שלו ועכשיו הוא צריך רכב חלופי לשבוע",
+   "esc": false,
+   "rental": true
+  },
+  {
+   "m": "הרכב שלי במוסך אחרי תאונה, צריך רכב חלופי מחר",
+   "esc": false,
+   "rental": true
+  },
+  {
+   "m": "אין לי שום תאונות בעבר, זה עוזר במחיר?",
+   "esc": false
+  },
+  {
+   "m": "what happens if I get a flat tire?",
+   "esc": false
+  },
+  {
+   "m": "my own car broke down last week so I need a rental for a few days",
+   "esc": false,
+   "rental": true
+  },
+  {
+   "m": "the only problem is I can't decide which car",
+   "esc": false
+  },
+  {
+   "m": "עשיתי עכשיו תאונה עם הרכב שלכם",
+   "esc": true
+  },
+  {
+   "m": "הרכב ששכרתי לא מניע",
+   "esc": true
+  },
+  {
+   "m": "נתקעתי בכביש 1 עם הרכב השכור",
+   "esc": true
+  },
+  {
+   "m": "the car you gave me won't start",
+   "esc": true
+  },
+  {
+   "m": "לא צריך נציג, רק תגיד לי כמה הפיקדון",
+   "esc": false,
+   "reply": "₪|פיקדון"
+  },
+  {
+   "m": "הנציג שלכם היה מעולה בפעם הקודמת",
+   "esc": false
+  },
+  {
+   "m": "I don't need a human, just tell me your opening hours",
+   "esc": false,
+   "reply": "08:00|hours|Friday"
+  },
+  {
+   "m": "אני רוצה לדבר עם נציג",
+   "esc": true
+  },
+  {
+   "m": "אני לא צריך רכב עכשיו, רק שאלה על הביטוח",
+   "rental": false,
+   "reply": "ביטוח|כיסוי|השתתפות"
+  },
+  {
+   "m": "כבר שכרתי אצלכם בעבר, מה שעות הפתיחה?",
+   "rental": false,
+   "reply": "08:00"
+  },
+  {
+   "m": "ביטלו לי את הטיסה אז אין צורך ברכב",
+   "rental": false
+  },
+  {
+   "m": "I don't need a car anymore, thanks",
+   "rental": false
+  },
+  {
+   "pre": [
+    "צריך רכב מחר לשבוע",
+    "מהרצליה",
+    "לאותו מקום"
+   ],
+   "m": "לא ג׳יפ, משהו קטן",
+   "field": {
+    "vehiclePreference": "ECONOMY_COMPACT"
+   }
+  },
+  {
+   "pre": [
+    "I need a car tomorrow for a week",
+    "tel aviv",
+    "same place"
+   ],
+   "m": "not an SUV, something small",
+   "field": {
+    "vehiclePreference": "ECONOMY_COMPACT"
+   }
+  },
+  {
+   "pre": [
+    "צריך רכב מחר לשבוע"
+   ],
+   "m": "אני גר בהרצליה אבל צריך לאסוף בתל אביב",
+   "field": {
+    "pickupLocation": "תל אביב"
+   }
+  },
+  {
+   "pre": [
+    "צריך רכב מחר לשבוע"
+   ],
+   "m": "לא מהרצליה, מירושלים",
+   "field": {
+    "pickupLocation": "ירושלים"
+   }
+  },
+  {
+   "pre": [
+    "צריך רכב"
+   ],
+   "m": "לא מחר, מחרתיים",
+   "field": {
+    "pickupDate": "+2"
+   }
+  },
+  {
+   "pre": [
+    "צריך רכב"
+   ],
+   "m": "מחר אני לא יכול, אולי בעוד שלושה ימים",
+   "field": {
+    "pickupDate": "+3"
+   }
+  },
+  {
+   "pre": [
+    "היי"
+   ],
+   "m": "תודה, אבל עוד לא סיימנו",
+   "notReply": "ביי|להתראות|יום טוב"
+  },
+  {
+   "pre": [
+    "היי"
+   ],
+   "m": "זה לא יקר בכלל",
+   "notReply": "מבין|נבדוק|זול|הנחה"
+  },
+  {
+   "pre": [
+    "היי"
+   ],
+   "m": "החבר שלי אמר שאצלכם הדלק יקר, זה נכון?",
+   "esc": false,
+   "reply": "מלא|דלק"
+  },
+  {
+   "pre": [
+    "היי"
+   ],
+   "m": "לא תודה",
+   "rental": false,
+   "notReply": "תאריך"
+  },
+  {
+   "pre": [
+    "צריך רכב מחר לשבוע",
+    "מהרצליה",
+    "לאותו מקום",
+    "משהו קטן"
+   ],
+   "m": "לא, השם שלי זה דני לוי",
+   "field": {
+    "customerName": "דני לוי"
+   }
+  },
+  {
+   "m": "הייתה לי פעם תאונה עם רכב אחר, אתם בודקים עבר ביטוחי?",
+   "esc": false
+  },
+  {
+   "m": "אם יהיה לי פנצ׳ר בדרך, מה עושים?",
+   "esc": false
+  },
+  {
+   "m": "אשתי עשתה תאונה עם האוטו שלנו, צריכים רכב לכמה ימים",
+   "esc": false,
+   "rental": true
+  },
+  {
+   "m": "האוטו שלי התקלקל אתמול, אפשר לשכור משהו מחר?",
+   "esc": false,
+   "rental": true
+  },
+  {
+   "m": "I had an accident years ago, is that a problem?",
+   "esc": false
+  },
+  {
+   "m": "my car is at the garage, I need something for the week",
+   "esc": false,
+   "rental": true
+  },
+  {
+   "m": "יש לי פנצ׳ר ברכב ששכרתי מכם",
+   "esc": true
+  },
+  {
+   "m": "the rental car has a flat tire",
+   "esc": true
+  },
+  {
+   "m": "עשיתי תאונה עכשיו, מה לעשות?",
+   "esc": true
+  },
+  {
+   "m": "בלי נציג בבקשה, אני מעדיף לסגור פה",
+   "esc": false
+  },
+  {
+   "m": "הנציגה דנה עזרה לי מאוד, תודה לה",
+   "esc": false
+  },
+  {
+   "m": "no need for an agent, I just want the price list",
+   "esc": false
+  },
+  {
+   "m": "תעבירו אותי לנציג עכשיו",
+   "esc": true
+  },
+  {
+   "m": "can I talk to a real person please",
+   "esc": true
+  },
+  {
+   "m": "עוד לא צריך רכב, רק בודק מחירים לחודש הבא",
+   "rental": false
+  },
+  {
+   "m": "לא מחפש להשכיר, אני רוצה לדעת על ליסינג",
+   "rental": false
+  },
+  {
+   "m": "not looking to rent right now, what are your hours?",
+   "rental": false,
+   "reply": "08:00|hours|Friday"
+  },
+  {
+   "pre": [
+    "צריך רכב מחר לשבוע",
+    "מהרצליה",
+    "לאותו מקום"
+   ],
+   "m": "בלי ג׳יפ, משהו משפחתי",
+   "field": {
+    "vehiclePreference": "SEDAN"
+   }
+  },
+  {
+   "pre": [
+    "צריך רכב מחר לשבוע",
+    "מהרצליה",
+    "לאותו מקום"
+   ],
+   "m": "לא משהו קטן, צריך 7 מקומות",
+   "field": {
+    "vehiclePreference": "VAN"
+   }
+  },
+  {
+   "pre": [
+    "I need a car tomorrow for a week",
+    "tel aviv",
+    "same place"
+   ],
+   "m": "no small cars please, we need an SUV",
+   "field": {
+    "vehiclePreference": "SUV"
+   }
+  },
+  {
+   "pre": [
+    "צריך רכב מחר לשבוע"
+   ],
+   "m": "לא בנתב״ג, בתל אביב",
+   "field": {
+    "pickupLocation": "תל אביב"
+   }
+  },
+  {
+   "pre": [
+    "צריך רכב מחר לשבוע"
+   ],
+   "m": "אני מירושלים אבל אאסוף בהרצליה",
+   "field": {
+    "pickupLocation": "הרצליה"
+   }
+  },
+  {
+   "pre": [
+    "I need a car tomorrow for a week"
+   ],
+   "m": "I live in Jerusalem but I'll pick up in Tel Aviv",
+   "field": {
+    "pickupLocation": "תל אביב"
+   }
+  },
+  {
+   "pre": [
+    "צריך רכב"
+   ],
+   "m": "לא היום, מחר",
+   "field": {
+    "pickupDate": "+1"
+   }
+  },
+  {
+   "pre": [
+    "I need a car"
+   ],
+   "m": "not tomorrow, the day after",
+   "field": {
+    "pickupDate": "+2"
+   }
+  },
+  {
+   "pre": [
+    "היי"
+   ],
+   "m": "המחיר לא יקר, אני רק רוצה להבין מה כלול",
+   "notReply": "מבין אותך, מחיר|זול|הנחה"
+  },
+  {
+   "pre": [
+    "היי"
+   ],
+   "m": "אמרו לי שאתם לא מקבלים דביט, זה נכון?",
+   "reply": "דביט|אשראי"
+  },
+  {
+   "pre": [
+    "היי"
+   ],
+   "m": "לא צריך הנחה, רק מחיר הוגן",
+   "notReply": "הנחה אני לא יכול"
+  },
+  {
+   "pre": [
+    "היי"
+   ],
+   "m": "לא, תודה רבה, הכל ברור",
+   "rental": false
+  },
+  {
+   "pre": [
+    "צריך רכב מחר לשבוע",
+    "מהרצליה",
+    "לאותו מקום",
+    "משהו קטן"
+   ],
+   "m": "השם שלי לא חשוב, תרשום דני",
+   "field": {
+    "customerName": "דני"
+   }
+  },
+  {
+   "m": "אחי לפני חודש הייתה לי תקלה עם רכב שכור ממקום אחר, אצלכם יש שירותי דרך?",
+   "esc": false
+  },
+  {
+   "m": "מה עושים אם הרכב לא מניע באמצע הדרך?",
+   "esc": false
+  },
+  {
+   "m": "האוטו של אבא שלי במוסך, צריכים משהו לסופ״ש",
+   "esc": false,
+   "rental": true
+  },
+  {
+   "m": "the car i rented from you just broke down on highway 6",
+   "esc": true
+  },
+  {
+   "m": "תקועים עם הרכב שלכם ליד אילת, הוא לא נדלק",
+   "esc": true
+  },
+  {
+   "m": "my friend crashed his car, he needs a rental tomorrow",
+   "esc": false,
+   "rental": true
+  },
+  {
+   "m": "לא רוצה לדבר עם אף אחד, רק תשלח לי מחירים",
+   "esc": false
+  },
+  {
+   "m": "תודה לנציג שדיבר איתי אתמול",
+   "esc": false
+  },
+  {
+   "m": "אני לא צריך שיחזרו אליי, הכל טוב",
+   "esc": false
+  },
+  {
+   "m": "בבקשה שנציג יתקשר אליי",
+   "esc": true
+  },
+  {
+   "m": "אין לי צורך ברכב כרגע, רק רציתי לדעת כמה פיקדון",
+   "rental": false,
+   "reply": "₪|פיקדון"
+  },
+  {
+   "m": "תודה, כבר לא צריך את הרכב",
+   "rental": false
+  },
+  {
+   "m": "i dont need a car, just asking about insurance",
+   "rental": false,
+   "reply": "insurance|cover|excess"
+  },
+  {
+   "pre": [
+    "צריך רכב מחר לשבוע",
+    "מתל אביב",
+    "לאותו מקום"
+   ],
+   "m": "לא בא לי רכב יוקרה, משהו פשוט וקטן",
+   "field": {
+    "vehiclePreference": "ECONOMY_COMPACT"
+   }
+  },
+  {
+   "pre": [
+    "צריך רכב מחר לשבוע",
+    "מתל אביב",
+    "לאותו מקום"
+   ],
+   "m": "בלי משהו קטן, צריך 7 מקומות",
+   "field": {
+    "vehiclePreference": "VAN"
+   }
+  },
+  {
+   "pre": [
+    "צריך רכב מחר לשבוע"
+   ],
+   "m": "לא תל אביב, ירושלים בבקשה",
+   "field": {
+    "pickupLocation": "ירושלים"
+   }
+  },
+  {
+   "pre": [
+    "צריך רכב מחר לשבוע"
+   ],
+   "m": "אנחנו גרים בחיפה אבל נאסוף בנתב״ג",
+   "field": {
+    "pickupLocation": "נתב״ג"
+   }
+  },
+  {
+   "pre": [
+    "צריך רכב"
+   ],
+   "m": "היום לא מתאים לי, מחר כן",
+   "field": {
+    "pickupDate": "+1"
+   }
+  },
+  {
+   "pre": [
+    "I need a car"
+   ],
+   "m": "today doesn't work, tomorrow is fine",
+   "field": {
+    "pickupDate": "+1"
+   }
+  },
+  {
+   "pre": [
+    "היי"
+   ],
+   "m": "לא נראה לי שזה יקר, רק תגיד לי מה כלול",
+   "notReply": "מבין אותך, מחיר|הנחה"
+  },
+  {
+   "pre": [
+    "היי"
+   ],
+   "m": "שמעתי שיש לכם הגבלת קילומטרים, נכון?",
+   "reply": "ק״מ|קילומטר"
+  },
+  {
+   "pre": [
+    "היי"
+   ],
+   "m": "לא אכפת לי מהמחיר, העיקר שיהיה אוטומט",
+   "notReply": "מבין אותך, מחיר|הנחה"
+  },
+  {
+   "pre": [
+    "היי"
+   ],
+   "m": "no thanks, maybe next time",
+   "rental": false
+  },
+  {
+   "pre": [
+    "צריך רכב מחר לשבוע",
+    "מתל אביב",
+    "לאותו מקום",
+    "משהו קטן"
+   ],
+   "m": "תרשום על שם רונית כהן",
+   "field": {
+    "customerName": "רונית כהן"
+   }
+  },
+  {
+   "pre": [
+    "I need a car tomorrow for a week",
+    "tel aviv",
+    "same place",
+    "small car"
+   ],
+   "m": "put it under Sarah Levi",
+   "field": {
+    "customerName": "Sarah Levi"
+   }
+  }
+ ]
+}

@@ -1,0 +1,180 @@
+{
+ "_about": "Extra phrasings per question topic (lexicon/questions.json has the main set). Read by build-brain-model.mjs.",
+ "age": {
+  "he": [
+   "מאיזה גיל אתם משכירים",
+   "אני בן 19 אפשר",
+   "בן 22 זה בסדר?",
+   "יש גיל מינימום לנהג",
+   "אחי שלי בן 20 יכול לקחת רכב?",
+   "הבת שלי בת 21 היא יכולה לשכור",
+   "צריך להיות מעל 25?",
+   "מגיל כמה אפשר",
+   "גיל מינימלי לנהג",
+   "אני צעיר, זה בעיה?",
+   "בני 21 משכירים להם?",
+   "יש תוספת לנהג צעיר?"
+  ],
+  "en": [
+   "what's the minimum age",
+   "can a 19 year old rent",
+   "is 21 old enough",
+   "age requirement for drivers",
+   "I'm 20, can I rent",
+   "do you rent to young drivers",
+   "how old must the driver be",
+   "is there an age limit",
+   "minimum driver age please",
+   "young driver surcharge?",
+   "how old do I need to be",
+   "how old does the driver have to be",
+   "how old must I be to rent",
+   "what age can you rent from",
+   "do I have to be 25"
+  ]
+ },
+ "additional_driver": {
+  "he": [
+   "אפשר לרשום עוד נהג",
+   "גם בעלי ינהג",
+   "שני נהגים על אותו רכב",
+   "חבר שלי יכול להחליף אותי בנהיגה",
+   "צריך לרשום את מי שעוד נוהג?",
+   "כמה עולה להוסיף נהג",
+   "אמא שלי תנהג גם",
+   "אני והאח שלי נתחלף בנהיגה",
+   "מותר שמישהו אחר ינהג?",
+   "הבן שלי יוכל לנהוג?"
+  ],
+  "en": [
+   "can someone else drive",
+   "add a second driver",
+   "my wife will drive too",
+   "can my friend share the driving",
+   "extra driver cost",
+   "is it ok if my son drives",
+   "do I need to register another driver",
+   "two drivers allowed?"
+  ]
+ },
+ "insurance": {
+  "he": [
+   "מה כולל הכיסוי",
+   "אם קורה משהו לרכב מה מכוסה",
+   "יש לכם ביטוח מקיף?",
+   "כמה ההשתתפות אם יש מכה",
+   "על מה הביטוח לא חל",
+   "אני מכוסה אם מישהו נכנס בי",
+   "מה עם ביטוח צד ג",
+   "הביטוח כלול במחיר?",
+   "כמה אני משלם אם יש שריטה",
+   "מה הכיסוי למקרה של גניבה"
+  ],
+  "en": [
+   "what does the insurance cover",
+   "am I covered if something happens",
+   "what is the excess",
+   "is insurance included",
+   "what if I scratch the car",
+   "do you have full coverage",
+   "theft coverage?",
+   "what's my deductible"
+  ]
+ },
+ "documents": {
+  "he": [
+   "מה להביא לאיסוף",
+   "מה לקחת איתי כשאני אוסף",
+   "מה צריך שיהיה עליי באיסוף",
+   "איזה תעודות להביא",
+   "צריך רישיון מקורי?",
+   "מספיק צילום של הרישיון?",
+   "רישיון דיגיטלי מספיק?",
+   "אני צריך דרכון או מספיק תז",
+   "מה אתם צריכים ממני כשאני בא",
+   "איזה ניירת צריך"
+  ],
+  "en": [
+   "what should I bring for pickup",
+   "which documents do you need",
+   "do I need my passport",
+   "is a digital license ok",
+   "what paperwork is required",
+   "do I need an international license",
+   "what do I need to show at pickup"
+  ]
+ },
+ "mileage": {
+  "he": [
+   "כמה קילומטר אפשר לנסוע",
+   "יש מגבלת נסיעה",
+   "אם אני נוסע הרבה זה עולה יותר?",
+   "כמה קמ כלול ליום",
+   "מה קורה אם עברתי את הקילומטרים"
+  ],
+  "en": [
+   "is there a km cap",
+   "how many km per day",
+   "unlimited mileage?",
+   "is there a mileage limit",
+   "what if I go over the km",
+   "how far can I drive"
+  ]
+ },
+ "deposit": {
+  "he": [
+   "כמה אתם מקפיאים בכרטיס",
+   "כמה כסף נתפס בכרטיס",
+   "מתי משחררים את הבטחון",
+   "הפיקדון חוזר?",
+   "כמה מסגרת צריך באשראי",
+   "אתם לוקחים ערבון?"
+  ],
+  "en": [
+   "how much do you hold on the card",
+   "when is the deposit released",
+   "how much is the security hold",
+   "do you take a deposit"
+  ]
+ },
+ "price_general": {
+  "he": [
+   "מה העלות ליום",
+   "בערך כמה זה יוצא",
+   "כמה זה יעלה לי לשבוע",
+   "מה טווח המחירים",
+   "כמה כסף זה בערך",
+   "אפשר הערכת מחיר"
+  ],
+  "en": [
+   "how much per day",
+   "what does it cost roughly",
+   "price for a week?",
+   "give me a ballpark price",
+   "how expensive is it"
+  ]
+ },
+ "fines_tolls": {
+  "he": [
+   "מה עם כביש 6",
+   "מי משלם את כביש שש",
+   "יש חיוב על אגרות",
+   "מנהרות הכרמל מי משלם"
+  ],
+  "en": [
+   "who pays for road 6",
+   "how do tolls work",
+   "toll roads?",
+   "what about tolls"
+  ]
+ },
+ "fuel": {
+  "en": [
+   "do I return it full",
+   "should the tank be full",
+   "full to full?",
+   "what if I return with less fuel",
+   "do you charge for missing fuel"
+  ]
+ }
+}
