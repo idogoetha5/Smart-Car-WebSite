@@ -7,7 +7,8 @@
  */
 
 import { BRAIN } from '@/lib/whatsapp-brain-data';
-import { brainSituation } from '@/lib/whatsapp-brain';
+import { brainLearnedSituation, brainSituation } from '@/lib/whatsapp-brain';
+import { isReportedSpeech, withoutNegated } from '@/lib/whatsapp-context';
 
 export type Situation =
   | 'greeting' | 'greeting_again' | 'how_are_you' | 'doing_well' | 'thanks' | 'laugh' | 'ack'
@@ -329,7 +330,16 @@ export function variety() {
 /** Recognises small talk and everyday remarks without Gemini. */
 /** Recognises small talk and everyday remarks without Gemini: precise rules first, then the brain's 20,000 phrases. */
 export function detectSituation(text: string): Situation | null {
-  return detectByRules(text) ?? brainSituation(text);
+  // The phrase lists read what was not said "no" to ("זה לא יקר בכלל" is not about price);
+  // a message that is only a "no" ("לא תודה") is read as it is.
+  const scoped = withoutNegated(text);
+  return detectByRules(text) ?? brainSituation(scoped.length >= 2 && scoped !== text ? scoped : text);
+}
+
+/** The situation by the trained models only (wording in no list); less certain than detectSituation. */
+export function detectLearnedSituation(text: string): Situation | null {
+  const scoped = withoutNegated(text);
+  return brainLearnedSituation(scoped.length >= 2 && scoped !== text ? scoped : text);
 }
 
 function detectByRules(text: string): Situation | null {
@@ -338,13 +348,16 @@ function detectByRules(text: string): Situation | null {
   if (/(?:איך|מה) (?:קוראים לך|השם שלך|שמך)|מי (?:אתה|את)\b|what(?:'?s| is) your name|who are you/.test(t)) return 'bot_name';
   if (/מה (?:אתם|את|אתה) (?:בעצם )?(?:עושים|עושה|מציעים)|מה זה (?:smartcar|סמארט ?קאר)|מי אתם|במה אתם עוסקים|what do you (?:guys )?do|who are you guys|what is smartcar/.test(t)) return 'about_us';
   if (/^(?:ביי|ביי ביי|להתראות|יאללה ביי|לילה טוב|bye|goodbye|see you|good night|cya)\b/.test(t)) return 'bye';
+  if (/(?:^|\s)(?:ביי|להתראות|לילה טוב|good night|goodbye|bye)(?:\s|$|[!.])/.test(t) && t.length < 30) return 'bye';
   if (/(?:^|\s)(?:תודה|תודות|thanks|thank you|thx|tnx|תנקס)(?:\s|$)/.test(t) && t.length < 40) return 'thanks';
   if (/^(?:ח{2,}|הה+|😂|🤣|😄|😅|lol|haha+|lmao)/.test(t)) return 'laugh';
   if (/^(?:מה קורה|מה נשמע|מה המצב|מה איתך|מה שלומך|מה העניינים|how are you|how r u|what'?s up|sup|wassup)\??$/.test(t)) return 'how_are_you';
   if (/^(?:היי+|הי|שלום|אהלן|הלו|בוקר טוב|ערב טוב|צהריים טובים|hi+|hello|hey+|yo|good morning|good evening)(?:\s|$)/.test(t) && t.length < 25) return 'greeting';
   if (/(?:אתם|אתה) (?:תותחים|אלופים|מעולים|הכי טובים|גדולים)|שירות מעולה|you(?:'re| are) (?:great|awesome|the best)|great service/.test(t)) return 'compliment';
-  if (/(?:יקר|יקרים|מחיר מטורף|זול יותר|יותר זול|באלדן|בשלמה|בהרץ|too expensive|expensive|cheaper)/.test(t) && !/הנחה|discount/.test(t)) return 'price_objection';
-  if (/הנחה|מבצע|discount|deal|promo/.test(t)) return 'discount';
+  // "זה לא יקר בכלל" is the opposite of an objection; "החבר שלי אמר שזה יקר, נכון?" is a question.
+  const scoped = withoutNegated(t);
+  if (/(?:יקר|יקרים|מחיר מטורף|זול יותר|יותר זול|באלדן|בשלמה|בהרץ|too expensive|expensive|cheaper)/.test(scoped) && !/הנחה|discount/.test(scoped) && !(isReportedSpeech(t) && /\?/.test(text))) return 'price_objection';
+  if (/הנחה|מבצע|discount|good deal|any deals?|promo/.test(withoutNegated(t))) return 'discount';
   if (/(?:אחשוב|אני אחשוב|נחשוב|אבדוק ואחזור|אחזור אליך|i'?ll think|let me think|get back to you)/.test(t)) return 'thinking';
   if (/(?:לא יודע|לא בטוח|לא בטוחה|אין לי מושג|not sure|no idea|dunno)/.test(t)) return 'unsure';
   if (/^(?:הכל טוב|טוב|בסדר|מצוין|מעולה|ברוך השם|ב״ה|בה|all good|good|fine|great)(?:\s|$|,)/.test(t) && t.split(/\s+/).length <= 4) return 'doing_well';

@@ -2,8 +2,11 @@ import { BRANCHES } from '@/lib/branches';
 import { DELIVERY_CITIES } from '@/lib/delivery-cities';
 import { LEASING_DURATIONS, MILEAGE_PACKAGES, OFFICE_EMAIL, OFFICE_PHONE } from '@/lib/constants';
 import { getSmartCarServiceAnswer } from '@/lib/smartcar-service-knowledge';
+import { brainQuestionTopic } from '@/lib/whatsapp-brain';
+import { withoutNegated } from '@/lib/whatsapp-context';
 
 type Locale = 'he' | 'en';
+
 export type BusinessAnswer = { topic: string; reply: string; href: string; linkLabel: string };
 type Entry = { topic: string; pattern: RegExp; he: string; en: string; href: string };
 
@@ -107,7 +110,39 @@ export function getBusinessKnowledgeResponse(input: string, locale: Locale, prev
     if (previousTopic === 'opening_hours' && /שישי|ערב חג|friday|eve/i.test(input)) return { topic: 'opening_hours', href: '/contact', reply: locale === 'en' ? 'On Fridays and holiday eves we’re open 08:30–14:00 🙂 At the airport, delivery is available 24/7 by arrangement.' : 'בשישי ובערבי חג אנחנו פתוחים 08:30–14:00 🙂 בנתב״ג אפשר מסירה גם מחוץ לשעות, בתיאום מראש.', linkLabel: locale === 'en' ? 'Opening hours' : 'שעות פתיחה באתר' } as BusinessAnswer;
     if (previousTopic === 'opening_hours' && /שבת|saturday|shabbat/i.test(input)) return { topic: 'opening_hours', href: '/contact', reply: locale === 'en' ? 'On Saturdays the branches are closed, but airport delivery can be arranged in advance 24/7.' : 'בשבת הסניפים סגורים, אבל בנתב״ג אפשר לתאם מסירה מראש גם בשבת.', linkLabel: locale === 'en' ? 'Opening hours' : 'שעות פתיחה באתר' } as BusinessAnswer;
     if (previousTopic === 'opening_hours' && /חג|holiday/i.test(input)) return getSmartCarServiceAnswer('opening hours', locale);
-    return getBusinessKnowledgeAnswer(input, locale);
+    if (/^(?:לא|no|nope)[\s,.!]*$/i.test(input.trim())) return null;
+    return getBusinessKnowledgeAnswer(input, locale) ?? classifiedAnswer(input, locale);
   }
   return { ...unique[0], reply: unique.map((a) => a.reply).join('\n\n') };
+}
+
+/**
+ * The published answer for a question asked in words no rule above knows
+ * ("מה הסיפור עם הטנק", "אפשר להביא את הכלב?"): the brain's trained models
+ * name the topic, and the topic's own question fetches the same answer.
+ * Damage stays with the rules above, since a real accident must reach a person.
+ */
+const TOPIC_QUESTION: Record<string, string> = {
+  branches: 'איפה הסניפים שלכם', addresses: 'מה הכתובות של הסניפים', contact: 'מה הטלפון שלכם', hours: 'מה שעות הפתיחה',
+  age: 'מה הגיל המינימלי', new_driver: 'נהג חדש עם ותק רישיון קצר', deposit: 'כמה הפיקדון', payment: 'איך משלמים',
+  insurance: 'מה כולל הביטוח', cancellation: 'מה מדיניות הביטול', fuel: 'מה מדיניות הדלק', mileage: 'כמה קילומטרים כלולים',
+  smoking_pets: 'מותר לעשן ברכב', abroad: 'אפשר לנסוע לירדן', rideshare_towing: 'אפשר לעבוד במונית עם הרכב', documents: 'אילו מסמכים צריך',
+  tourist: 'אילו מסמכים צריך', additional_driver: 'אפשר נהג נוסף', one_way: 'אפשר להחזיר במקום אחר', fines_tolls: 'מי משלם דוחות חניה',
+  child_seat_extras: 'יש כיסא בטיחות לילד', unavailable_car: 'מה קורה אם אין רכב זמין', company_trust: 'מי אתם', price_general: 'כמה עולה',
+  airport: 'איך זה עובד בנתבג',
+  // "מה מכוסה אם קורה משהו?" is a question about cover; a real accident is caught by the rules first.
+  damage_hypothetical: 'מה כולל הביטוח',
+};
+
+function classifiedAnswer(input: string, locale: Locale): BusinessAnswer | null {
+  // The whole message first, then each clause of what was not said "no" to:
+  // "not looking to rent right now, what are your hours?" → "what are your hours?".
+  const clauses = [input, ...withoutNegated(input).split(/[,.;]|\s(?:אבל|רק|but|just)\s/i).map((part) => part.trim()).filter((part) => part.split(' ').length >= 2)];
+  for (const clause of clauses) {
+    const topic = brainQuestionTopic(clause.endsWith('?') || clause === input || !/\?/.test(input) ? clause : `${clause}?`);
+    const question = topic ? TOPIC_QUESTION[topic] : undefined;
+    const answer = question ? getBusinessKnowledgeAnswer(question, locale) : null;
+    if (answer) return answer;
+  }
+  return null;
 }

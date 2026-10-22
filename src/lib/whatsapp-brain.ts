@@ -5,22 +5,14 @@
  * understood even when Gemini is unavailable.
  */
 import { BRAIN } from '@/lib/whatsapp-brain-data';
+import { BRAIN_LR_TEXT, BRAIN_NB_TEXT } from '@/lib/whatsapp-brain-model';
+import { brainFeatures, brainNormalize, stripPrefix } from '@/lib/whatsapp-brain-features';
 import type { Situation } from '@/lib/whatsapp-replies';
 
-/** Lowercase, no niqqud or punctuation, final letters folded, "חחחחח" → "חחח", "תודהההה" → "תודה". */
-export function brainNormalize(text: string) {
-  return text
-    .toLowerCase()
-    .replace(/[֑-ׇ]/g, '')
-    .replace(/[״"׳'`´]/g, '')
-    .replace(/[ךםןףץ]/g, (ch) => ({ ך: 'כ', ם: 'מ', ן: 'נ', ף: 'פ', ץ: 'צ' } as Record<string, string>)[ch] ?? ch)
-    .replace(/([א-תa-z])\1{2,}/g, '$1$1')
-    .replace(/[^א-תa-z0-9\s\p{Extended_Pictographic}]/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+export { brainNormalize } from '@/lib/whatsapp-brain-features';
 
-const PREFIX = /^(?:וכש|וש|כש|וה|וב|ול|ומ|ה|ב|ל|מ|ו|ש)(?=[א-ת]{2,})/;
+// A prefix is only peeled off a word that stays three letters long ("הלל" is a name, not "ה" + "לל").
+const PREFIX = /^(?:וכש|וש|כש|וה|וב|ול|ומ|ה|ב|ל|מ|ו|ש)(?=[א-ת]{3,})/;
 
 type Index = Map<string, string>;
 function buildIndex(entries: Array<[string, string[]]>): { exact: Index; maxWords: number } {
@@ -71,6 +63,98 @@ export function brainSituation(text: string): Situation | null {
   // Short messages made of known phrases ("היי מה קורה", "סבבה תודה אחי"): the last phrase sets the tone.
   if (words.length <= 6 && covered >= words.length - 1) return hits[hits.length - 1].value as Situation;
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// The trained classifier (scripts/whatsapp-eval/build-brain-model.mjs): reads
+// phrasings that are in no list, by their words and letter pieces.
+
+type Model = { labels: string[]; defaults: number[]; features: Map<string, Array<[number, number]>>; logistic: boolean };
+let models: { nb: Model; lr: Model } | null = null;
+
+function parseModel(text: string, logistic: boolean): Model {
+  const lines = text.split('\n');
+  const features = new Map<string, Array<[number, number]>>();
+  for (let i = 2; i < lines.length; i += 1) {
+    const tab = lines[i].indexOf('\t');
+    if (tab < 1 || tab === lines[i].length - 1) continue;
+    features.set(lines[i].slice(0, tab), lines[i].slice(tab + 1).split(',').map((pair) => {
+      const [label, weight] = pair.split(':');
+      return [Number(label), Number(weight)] as [number, number];
+    }));
+  }
+  return { labels: lines[0].split('|'), defaults: lines[1].split(',').map(Number), features, logistic };
+}
+
+function run(model: Model, features: string[]) {
+  const scores = model.defaults.map(() => 0);
+  let seen = 0;
+  for (const feature of features) {
+    const weights = model.features.get(feature);
+    if (!weights) continue;
+    seen += 1;
+    for (const [label, weight] of weights) scores[label] += weight;
+  }
+  if (model.logistic) {
+    const scale = 1 / Math.sqrt(Math.max(seen, 1));
+    for (let c = 0; c < scores.length; c += 1) scores[c] = scores[c] * scale + model.defaults[c];
+  } else for (let c = 0; c < scores.length; c += 1) scores[c] += model.defaults[c] * seen;
+  let best = 0;
+  for (let c = 1; c < scores.length; c += 1) if (scores[c] > scores[best]) best = c;
+  const total = scores.reduce((sum, score) => sum + Math.exp(score - scores[best]), 0);
+  return { label: model.labels[best], confidence: 1 / total, seen };
+}
+
+export type BrainReading = { label: string; confidence: number; sure: boolean; agree: boolean; nb: number; known: number };
+
+/**
+ * What the message is, by the trained models: an everyday situation
+ * ("greeting", "thanks"…), "faq:<topic>", "rental", "urgent:<kind>" or
+ * "detail" (a bare place, date or car). `sure` only when both models agree.
+ */
+export function brainClassify(text: string): BrainReading | null {
+  const features = brainFeatures(text);
+  if (!features.length) return null;
+  models ??= { nb: parseModel(BRAIN_NB_TEXT, false), lr: parseModel(BRAIN_LR_TEXT, true) };
+  // How much of the message the model has met: "helicopter registration" is mostly unknown.
+  // Content words only ("what", "is", "מה", "יש" say little about whether the model knows the topic).
+  const all = brainNormalize(text).split(' ').filter((word) => word.length > 1);
+  const content = all.filter((word) => word.length >= 4);
+  const words = content.length ? content : all;
+  const known = words.length ? words.filter((word) => models!.nb.features.has(`w:${word}`) || models!.nb.features.has(`w:${stripPrefix(word)}`)).length / words.length : 0;
+  const nb = run(models.nb, features);
+  const lr = run(models.lr, features);
+  if (!nb.seen) return null;
+  const sure = nb.label === lr.label && nb.confidence >= 0.5 && lr.confidence >= 0.2;
+  return { label: nb.label, confidence: Math.min(nb.confidence, lr.confidence), sure, agree: nb.label === lr.label, nb: nb.confidence, known };
+}
+
+/** The everyday situation by the trained models, for wording that is in no list. */
+export function brainLearnedSituation(text: string): Situation | null {
+  const normal = brainNormalize(text);
+  // Words only: "1" is a menu choice, "15/11" a date.
+  if (!normal || normal.split(' ').length > 10 || !/[א-תa-z]{2,}/.test(normal)) return null;
+  const reading = brainClassify(normal);
+  return reading?.sure && !reading.label.includes(':') && reading.label !== 'detail' && reading.label !== 'rental' ? reading.label as Situation : null;
+}
+
+/** The business question a message asks, by the trained models ("faq:fuel" → "fuel"). */
+export function brainQuestionTopic(text: string): string | null {
+  const normal = brainNormalize(text);
+  if (normal.split(' ').length > 25 || !/[א-תa-z]{2,}/.test(normal)) return null;
+  const reading = brainClassify(normal);
+  if (!reading?.label.startsWith('faq:')) return null;
+  // A question ("?" or a question word) needs only both models to agree; anything else must be sure.
+  const asks = /\?/.test(text) || /(?:^|\s)(?:מה|איך|כמה|האם|איפה|מתי|למה|מי|יש|אפשר|מותר|צריך|באיזה|איזה|what|how|where|when|why|who|is|are|can|do|does)(?=\s|$)/i.test(normal);
+  // One or two words without a question ("מיכל" is a name as much as a fuel tank) never decide a topic alone.
+  if (!asks && normal.split(' ').length < 3) return null;
+  return reading.known >= 0.6 && (reading.sure || (asks && (reading.agree || reading.nb >= 0.9))) ? reading.label.slice(4) : null;
+}
+
+/** True when the trained models agree the message asks for a car. */
+export function brainWantsRental(text: string) {
+  const reading = brainClassify(text);
+  return Boolean(reading?.sure && reading.label === 'rental' && reading.confidence >= 0.5);
 }
 
 /** Known places in the message, in order, as their canonical Hebrew names. */

@@ -10,8 +10,10 @@ import { composeServiceResponse, detectConversationMood } from '@/lib/service-re
 import { consultativeSalesReply } from '@/lib/consultative-sales';
 import { getCarsForSale, type CarForSale } from '@/lib/cars-for-sale';
 import { closeEnough, repairCustomerText } from '@/lib/whatsapp-typing';
-import { bookingQuestion, detectSituation, humanLine, type BookingAsk } from '@/lib/whatsapp-replies';
-import { brainDates, brainPassengers, brainPlaces, brainSamePlace, brainVehicle } from '@/lib/whatsapp-brain';
+import { bookingQuestion, detectLearnedSituation, detectSituation, humanLine, type BookingAsk } from '@/lib/whatsapp-replies';
+import { ASKS_ABOUT_REQUEST, SAME_AS_LAST_TIME, filledDetailsLine, requestStatusReply, returningGreeting, type PastCustomer } from '@/lib/whatsapp-returning';
+import { asksForPerson, bookingScope, isBotQuestion, notOurEmergencyNow, mentionsPersonWithoutAsking, withoutPersonWords } from '@/lib/whatsapp-context';
+import { brainDates, brainPassengers, brainPlaces, brainQuestionTopic, brainSamePlace, brainVehicle } from '@/lib/whatsapp-brain';
 import { INTENT_KEYWORDS, VEHICLE_WORDS, WANT_WORDS } from '@/lib/whatsapp-vocabulary';
 import { composeOneMessage, interpretWhatsAppMessage, type WhatsAppAsk, type WhatsAppInterpretation, type WhatsAppInterpretationContext } from '@/lib/whatsapp-gemini';
 import {
@@ -59,6 +61,10 @@ export interface FlowState {
   knowledgeTopic?: string;
   /** Leasing has no self-service quote path; retain its verified intent for the representative. */
   leasing?: { kind: LeasingKind };
+  /** What we know about this number from earlier requests and bookings (whatsapp-returning.ts). */
+  returning?: PastCustomer;
+  /** The earlier requests and bookings were already looked up for this conversation. */
+  returningChecked?: boolean;
 }
 
 export interface BookingSummary {
@@ -93,6 +99,8 @@ export interface WhatsAppFlowStore {
   recordLanguageCandidate?(candidate: { phrase: string; field: 'vehicle' | 'time' | 'location'; proposedValue?: string }): Promise<void>;
   resolveApprovedVariant?(phrase: string, field: 'vehicle'): Promise<string | null>;
   interpretMessage?(message: string, step: FlowStep | null, context?: WhatsAppInterpretationContext | null): Promise<WhatsAppInterpretation | null>;
+  /** Earlier rental requests and bookings of this number, for returning customers. */
+  pastCustomer?(phone: string): Promise<PastCustomer | null>;
 }
 
 export type WhatsAppInitialRoute = 'accident' | 'breakdown' | 'rental' | 'existing_booking_lookup' | 'existing_customer' | 'new_customer';
@@ -198,7 +206,12 @@ function smallTalkOnly(body: string) {
   return /^\s*(?:היי+|הי|שלום|אהלן|הלו|מה קורה|מה נשמע|מה המצב|מה איתך|בוקר טוב|ערב טוב|hi|hello|hey|what'?s up|how are you)[\s!?.,🙂😊👋]*$/i.test(body);
 }
 
-export function requiresHumanHandoff(input: string, duringActiveRentalCollection = false) {
+export function requiresHumanHandoff(message: string, duringActiveRentalCollection = false) {
+  // "לא צריך נציג", "הנציג שלכם היה מעולה": a person word that is not a request is left out,
+  // and the rest of the message (a complaint, say) is still read.
+  // "הרכב שלי במוסך אחרי תאונה, צריך רכב חלופי": the accident is not with our car; this is a rental.
+  if (notOurEmergencyNow(message) && !asksForPerson(message)) return false;
+  const input = mentionsPersonWithoutAsking(message) ? withoutPersonWords(message) : message;
   const text = input.toLowerCase();
   // "What if I get a scratch?" is a question about the rules, answered from the site.
   if (isHypothetical(text) && !/נציג|בן ?אדם|בנאדם|representative|human|call me|תתקשרו|תחזרו/.test(text)) return false;
@@ -259,7 +272,9 @@ export function intentFromKeywords(input: string): 'accident' | 'breakdown' | 'c
 
 /** "צריך אוטו", "רוצה ג׳יפ לחתונה", "need a car": wanting a vehicle without buy/lease wording is a rental, even misspelled. */
 function wantsCar(text: string) {
-  if (/לקנות|קניי?ה|רכישה|לרכוש|ליסינג|למכור|מוכר|מכירה|יד שני|תאונ|תקלה|נתקע|פנצ'?ר|\bbuy|purchase|\blease\b|leasing|\bsell|להחזיר|מחזיר|החזרת|\breturn/i.test(text)) return false;
+  // An accident or a breakdown is not a rental request, unless it is someone else's car or the past ("הרכב שלי במוסך, צריך רכב חלופי").
+  if (/תאונ|תקלה|נתקע|פנצ'?ר/.test(text) && !notOurEmergencyNow(text)) return false;
+  if (/לקנות|קניי?ה|רכישה|לרכוש|ליסינג|למכור|מוכר|מכירה|יד שני|\bbuy|purchase|\blease\b|leasing|\bsell|להחזיר|מחזיר|החזרת|\breturn/i.test(text)) return false;
   const want = /צר?י?י?[כך]|צריכ|רוצ|רצה|מחפ[שס]|להזמין|להמזין|מזמין|לשכור|לשוכר|לכסור|פנוי|פנויים|זמין|need|want|looking|book|available/i.test(text) || hasApproximateKeyword(text, ['צריך', 'רוצה', 'מחפש', 'להזמין', 'לשכור', 'need', 'want', 'looking']);
   const vehicle = /ר[כקחב][בכ]|רכ(?:\s|$)|אוטו|מכונית|ג[׳']?[יי]פ|גיפ|ג׳יפון|יוקרה|משפחתי|\d\s*מקומות|\bcars?\b|\bcarr|\bauto\b|\bsuv\b|\bvan\b|jeep|vehicle/i.test(text);
   if (want && vehicle) return true;
@@ -279,24 +294,31 @@ function wantsCar(text: string) {
 
 export function classifyWhatsAppInitialRoute(input: string, hasActiveBooking: boolean): WhatsAppInitialRoute {
   const text = normalized(input);
-  if (ACCIDENT_PATTERN.test(text)) return 'accident';
-  if (/(?:^|\s)ד?פקו\s*לי\s*את|נכנס\S{0,2}\s*בי(?:\s|$)|נכנסובי|פגעו\s*בי/.test(text)) return 'accident';
-  if (hasApproximateKeyword(text, ['תאונה', 'התנגשות', 'התנגשתי', 'נכנסו', 'דפקו', 'accident', 'collision'])) return 'accident';
-  if (BREAKDOWN_PATTERN.test(text)) return 'breakdown';
-  if (hasApproximateKeyword(text, ['פנצר', 'תקלה', 'מצבר', 'נתקעתי', 'התקלקל', 'התקלקלה', 'מתניע', 'ננעלתי', 'breakdown', 'puncture', 'battery', 'broke down', 'stuck'])) return 'breakdown';
-  if (/(?:לא|אל|ל)\s*נ*ד+ל+\??[קכ]|ב[ו]?ר?[ו]?ke? ?down|\bbo?r?o?ke ?d[o]?w?n|(?:איב?דתי|אבדתי|אבד|אידתי)\s*(?:את\s*)?ה?מפ?ת?ח|לא\s*מ[ינ]{1,3}ע(?:\s|$|[!?.])|לא\s*נ?דל[קכ](?:ת)?(?:\s|$|[!?.])|(?:יוצא|יש|רואה)\s+עשנ|עשנ\s+מה|\bs+t+a+r+t\b.*\b(?:car|will|wont|won't)|(?:car|it)\s+(?:will not|wont|won't|doesnt|doesn't)\s+\S*st\S*rt/i.test(text)) return 'breakdown';
-  if (/brok\w* ?do?w+n|br\wke d\w*n|(?:will not|won.?t|wont|doesn.?t|does not|not|nut) sta?r?t|flat ti|flat ty/i.test(text)) return 'breakdown';
-  // Common hurried misspellings of a car that will not start, a lost key or a dead battery.
-  if (/לא\s*נדל[קכ]|לא\s*מני+ע|לא\s*מתני|איבדתי\s*(?:את\s*)?ה?מפת|מפתח\s*(?:נעול|אבד)|מצ\S{0,2}ר\s*מת|(?:^|\s)תק+ר(?:\s|$)|נתקע/.test(text)) return 'breakdown';
-  // Everything else the customer phrase lists know about an accident or a breakdown, unless it is a "what if".
-  if (!isHypothetical(text)) {
-    const keyword = intentFromKeywords(input);
-    if (keyword === 'accident' || keyword === 'breakdown') return keyword;
+  // "הרכב שלי במוסך אחרי תאונה, צריך רכב חלופי": someone else's car or the past, and a rental is wanted.
+  if (!notOurEmergencyNow(input)) {
+    if (ACCIDENT_PATTERN.test(text)) return 'accident';
+    if (/(?:^|\s)ד?פקו\s*לי\s*את|נכנס\S{0,2}\s*בי(?:\s|$)|נכנסובי|פגעו\s*בי/.test(text)) return 'accident';
+    if (hasApproximateKeyword(text, ['תאונה', 'התנגשות', 'התנגשתי', 'נכנסו', 'דפקו', 'accident', 'collision'])) return 'accident';
+    if (BREAKDOWN_PATTERN.test(text)) return 'breakdown';
+    if (hasApproximateKeyword(text, ['פנצר', 'תקלה', 'מצבר', 'נתקעתי', 'התקלקל', 'התקלקלה', 'מתניע', 'ננעלתי', 'breakdown', 'puncture', 'battery', 'broke down', 'stuck'])) return 'breakdown';
+    if (/(?:לא|אל|ל)\s*נ*ד+ל+\??[קכ]|ב[ו]?ר?[ו]?ke? ?down|\bbo?r?o?ke ?d[o]?w?n|(?:איב?דתי|אבדתי|אבד|אידתי)\s*(?:את\s*)?ה?מפ?ת?ח|לא\s*מ[ינ]{1,3}ע(?:\s|$|[!?.])|לא\s*נ?דל[קכ](?:ת)?(?:\s|$|[!?.])|(?:יוצא|יש|רואה)\s+עשנ|עשנ\s+מה|\bs+t+a+r+t\b.*\b(?:car|will|wont|won't)|(?:car|it)\s+(?:will not|wont|won't|doesnt|doesn't)\s+\S*st\S*rt/i.test(text)) return 'breakdown';
+    if (/brok\w* ?do?w+n|br\wke d\w*n|(?:will not|won.?t|wont|doesn.?t|does not|not|nut) sta?r?t|flat ti|flat ty/i.test(text)) return 'breakdown';
+    // Common hurried misspellings of a car that will not start, a lost key or a dead battery.
+    if (/לא\s*נדל[קכ]|לא\s*מני+ע|לא\s*מתני|איבדתי\s*(?:את\s*)?ה?מפת|מפתח\s*(?:נעול|אבד)|מצ\S{0,2}ר\s*מת|(?:^|\s)תק+ר(?:\s|$)|נתקע/.test(text)) return 'breakdown';
+    // Everything else the customer phrase lists know about an accident or a breakdown, unless it is a "what if".
+    if (!isHypothetical(text)) {
+      const keyword = intentFromKeywords(input);
+      if (keyword === 'accident' || keyword === 'breakdown') return keyword;
+    }
   }
   if (/הזמנה קיימת|יש לי הזמנה|סטטוס הזמנה|מספר הזמנה|כבר הזמנתי|ההזמנה שלי|איפה ההזמנה|לגבי ההזמנה|הזמנתי אצלכם|existing booking|my booking|booking status|booking (?:number|confirmation)|reservation|already booked|where is my booking|about my reservation/.test(text)) return 'existing_booking_lookup';
-  if (/השכר|להשכיר|רכב חדש|רכב ל(?:סופש|סוף שבוע|יומיים|שבוע|חודש)|הזמ|אני רוצה רכב|צריך (?:רכב|אוטו|מכונית)|מחפש (?:רכב|אוטו)|לקחת רכב|אפשר רכב|רכב פנוי|רכבים פנויים|מעוניין ברכב|rent|rental|hire (?:a )?car|car hire|need .*\b(?:car|suv|vehicle)\b|looking for .*\b(?:car|suv|vehicle)\b|\b(?:family|luxury|premium) (?:car|suv|vehicle)\b|book.*car|get a car|want a car/.test(text)) return 'rental';
-  if (hasApproximateKeyword(text, ['השכרה', 'לשכור', 'rental', 'rent'])) return 'rental';
-  if (wantsCar(text)) return 'rental';
+  // "I don't need a car anymore", "לא צריך רכב, רק שאלה": what is said "no" to does not start a booking.
+  const scoped = normalized(bookingScope(input));
+  if (/השכר|להשכיר|רכב חדש|רכב ל(?:סופש|סוף שבוע|יומיים|שבוע|חודש)|הזמ|אני רוצה רכב|צריך (?:רכב|אוטו|מכונית)|מחפש (?:רכב|אוטו)|לקחת רכב|אפשר רכב|רכב פנוי|רכבים פנויים|מעוניין ברכב|rent|rental|hire (?:a )?car|car hire|need .*\b(?:car|suv|vehicle)\b|looking for .*\b(?:car|suv|vehicle)\b|\b(?:family|luxury|premium) (?:car|suv|vehicle)\b|book.*car|get a car|want a car/.test(scoped)) return 'rental';
+  if (hasApproximateKeyword(scoped, ['השכרה', 'לשכור', 'rental', 'rent'])) return 'rental';
+  // "כמו בפעם הקודמת": a returning customer asking for the same car again.
+  if (SAME_AS_LAST_TIME.test(scoped)) return 'rental';
+  if (wantsCar(scoped)) return 'rental';
   return hasActiveBooking ? 'existing_customer' : 'new_customer';
 }
 
@@ -903,12 +925,29 @@ function parseVehiclePreference(input: string) {
   return brainVehicle(input) ?? undefined;
 }
 
+/**
+ * A whole word, with the little Hebrew prefixes (ו, ה, ב, ל, מ, ש, כ) and the usual endings
+ * (קטנה, זולים, משפחתית): "זול" is cheap, but "אזולאי" is a surname and "במוסך" is not a BMW.
+ */
+function wordMatcher(words: string, endings = '(?:ה|ים|ות|ית|י|יים|ת)?') {
+  return new RegExp(`(?:^|[^\\u0590-\\u05ffa-z0-9])[והבלמשכ]{0,2}(?:${words})${endings}(?=$|[^\\u0590-\\u05ffa-z0-9])`, 'i');
+}
+
+const VEHICLE_WORD_RULES: Array<[RegExp, string]> = [
+  [wordMatcher('קטן|מיני|סופר מיני|חסכוני|אוטומט קטן|זול|פשוט|פיקנטו|i10|קומפקטי|רכב קומפקטי|ספארק|ספייס סטאר|שברולט ספארק|מיצובישי ספייס|economy|compact|small car|small|city car|cheap|cheapest|tiny|picanto|spark|space star'), 'ECONOMY_COMPACT'],
+  [wordMatcher('משפחתי|משפחה|משפחתית|ילדים|סטנדרטי|רגיל|מזדה 3|קורולה|סדאן|אלנטרה|איוניק|sedan|family car|family vehicle|family|standard|regular|corolla|elantra|ioniq|mazda 3'), 'SEDAN'],
+  [wordMatcher("ג[׳']?יפ|ג[׳']?יפון|גיפון|קרוס\\S*אובר|קרוסובר|suv|crossover|4x4|4 על 4|jeep|גבוה|רכב שטח|טוסון|ספורטאז[׳']?|טיגואן|סלטוס|נירו|סורנטו|טיגו|אקליפס|high seat|tucson|sportage|seltos|niro|sorento|tiggo|eclipse"), 'SUV'],
+  [wordMatcher('7 מקומות|8 מקומות|9 מקומות|שבעה מושבים|ואן|וואן|מסחרי|מיניואן|קרניבל|טרברס|minivan|van|7.?seater|8.?seater|9.?seater|seven.?seater|people carrier|big car|carnival|traverse'), 'VAN'],
+  [wordMatcher("יוקרה|יוקרתי|מפואר|מרצדס|ב\\.?מ\\.?וו|במוו|אאודי|ספורט|ספורטיבי|קבריולט|לוקסוס|טסלה|חשמלי|vip|luxury|premium|executive|mercedes|bmw|audi|sport|sports car|convertible|tesla|electric|byd|geely"), 'LUXURY'],
+];
+
 function parseVehicleWords(text: string) {
-  if (/קטן|מיני|חסכוני|אוטומט קטן|זול|פשוט|פיקנטו|I10|i10|סופר מיני|רכב קומפקטי|ספארק|ספייס סטאר|שברולט ספארק|מיצובישי ספייס|economy|compact|small car|city car|cheap|tiny|picanto|spark|space star/.test(text)) return 'ECONOMY_COMPACT';
-  if (/משפח|ילדים|סטנדרטי|רגיל|מזדה 3|קורולה|סדאן|ארוך|אלנטרה|איוניק|sedan|family car|family vehicle|standard|regular|corolla|elantra|ioniq|mazda 3/.test(text)) return 'SEDAN';
-  if (/ג[׳']?יפ|קרוס\S*אובר|קרוסובר|suv|crossover|4x4|4 על 4|jeep|גבוה|שטח|טוסון|ספורטאז|טיגואן|סלטוס|נירו|סורנטו|טיגו|אקליפס|קרניבל|טרברס|high seat|tucson|sportage|seltos|niro|sorento|tiggo|eclipse/.test(text)) return 'SUV';
-  if (/(?:^|\D)(?:[6-9]|1[0-6])\s*[-־]?\s*(?:מקומ\S*|מושבים|אנשים|נוסעים|seats?|seater|people|passengers|pax)|7 מקומות|8 מקומות|9 מקומות|שבעה מושבים|ואן|מסחרי|מיניואן|קרניבל|טרברס|minivan|van|7.?seater|8.?seater|9.?seater|seven.?seater|people carrier|big car|carnival|traverse/.test(text)) return 'VAN';
-  if (/יוקרה|מפואר|מרצדס|במו|אאודי|ספורט|קבריולט|לוקסוס|טסלה|חשמלי|חשמלית|vip|luxury|premium|executive|mercedes|bmw|audi|sport|convertible|tesla|electric|byd|geely/.test(text)) return 'LUXURY';
+  // A group of six or more ("7 מקומות", "8 people") is a 7-seater, whatever else is said.
+  const group = /(?:^|\D)(?:[6-9]|1[0-6])\s*[-־]?\s*(?:מקומ\S*|מושבים|אנשים|נוסעים|seats?|seater|people|passengers|pax)/.test(text);
+  if (group) return 'VAN';
+  // A car type outranks a describing word: "family SUV" is an SUV, "ג׳יפ משפחתי" too.
+  const found = VEHICLE_WORD_RULES.filter(([matcher]) => matcher.test(text)).map(([, category]) => category);
+  for (const category of ['VAN', 'SUV', 'ECONOMY_COMPACT', 'SEDAN', 'LUXURY']) if (found.includes(category)) return category;
   if (/לא יודע|לא בטוח|תמליצ|מה מתאים|מה כדאי|מה מומלץ|אין לי מושג|תציעו לי|not sure|help me choose|recommend|dont know|what do you suggest/.test(text)) return 'ALL';
   return undefined;
 }
@@ -1065,8 +1104,11 @@ function knownPlacesIn(input: string): string[] {
 const SAME_PLACE = /(?:^|\s)(?:ל|ב|גם\s+ל?)?שם(?:\s|$|[.!])|אותו (?:מקום|סניף)|אותה כתובת|באותו|לאותו|כנ״ל|same(?: place| location| branch)?|there(?: too| as well)?|back there/i;
 
 function extractRentalDetails(body: string, current: FlowState, interpretation?: WhatsAppInterpretation | null): Partial<FlowState> {
+  // Dates, places and the car are read from what the customer did not say "no" to, without their home address:
+  // "לא מחר, מחרתיים", "not an SUV, something small", "אני גר בהרצליה אבל צריך לאסוף בתל אביב".
+  const scoped = bookingScope(body) || body;
   const extracted: Partial<FlowState> = {};
-  const dates = parseDateCandidates(body);
+  const dates = parseDateCandidates(scoped);
   if (dates.length >= 2) {
     const [pickupDate, dropoffDate] = dates;
     if (pickupDate >= todayInIsrael() && dropoffDate >= pickupDate) Object.assign(extracted, { pickupDate, dropoffDate });
@@ -1080,31 +1122,31 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
 
   // "עוד שבוע", "ביום חמישי": a pickup date counted from today.
   if (!current.pickupDate && !extracted.pickupDate && current.step === 'rental_dates') {
-    const date = relativeDate(body, todayInIsrael(), false);
+    const date = relativeDate(scoped, todayInIsrael(), false);
     if (date) extracted.pickupDate = date;
   }
   // "בחנוכה", "בפסח", "בעוד שבועיים", "לשבוע", "לסופ״ש ארוך": the brain's date phrases.
   if (!extracted.pickupDate && !extracted.dropoffDate) {
-    const fromBrain = brainDates(body, todayInIsrael(), current.pickupDate);
+    const fromBrain = brainDates(scoped, todayInIsrael(), current.pickupDate);
     if (fromBrain.pickupDate && !current.pickupDate) extracted.pickupDate = fromBrain.pickupDate;
     if (fromBrain.dropoffDate && !current.dropoffDate && (fromBrain.pickupDate || current.pickupDate)) extracted.dropoffDate = fromBrain.dropoffDate;
   }
   // "עד יום שישי" once the pickup day is known.
-  if (current.pickupDate && !extracted.dropoffDate && !dates.length && /עד|until|till|return|להחזיר|החזרה/i.test(body)) {
-    const weekdayOnly = !/שבוע|שבועיים|יומיים|חודש|ימים|days?|weeks?|month/i.test(body);
-    const date = weekdayOnly ? relativeDate(body, current.pickupDate, true) : null;
+  if (current.pickupDate && !extracted.dropoffDate && !dates.length && /עד|until|till|return|להחזיר|החזרה/i.test(scoped)) {
+    const weekdayOnly = !/שבוע|שבועיים|יומיים|חודש|ימים|days?|weeks?|month/i.test(scoped);
+    const date = weekdayOnly ? relativeDate(scoped, current.pickupDate, true) : null;
     if (date && date > current.pickupDate) extracted.dropoffDate = date;
   }
   // Parse durations if pickup date is already known
   const pickupKnown = current.pickupDate ?? (dates.length < 2 ? extracted.pickupDate : undefined);
-  if (pickupKnown && !extracted.dropoffDate && (current.pickupDate || /(?:ל|for|ל-)\s*(?:\d+\s*)?(?:חודש|שבוע|שבועיים|יומיים|ימים|days?|weeks?|month)/i.test(body))) {
+  if (pickupKnown && !extracted.dropoffDate && (current.pickupDate || /(?:ל|for|ל-)\s*(?:\d+\s*)?(?:חודש|שבוע|שבועיים|יומיים|ימים|days?|weeks?|month)/i.test(scoped))) {
     let days = 0;
-    if (/חודש|month/i.test(body)) days = 30;
-    else if (/שבועיים|two weeks|fortnight/i.test(body)) days = 14;
-    else if (/שבוע|week/i.test(body)) days = 7;
-    else if (/יומיים|two days/i.test(body)) days = 2;
+    if (/חודש|month/i.test(scoped)) days = 30;
+    else if (/שבועיים|two weeks|fortnight/i.test(scoped)) days = 14;
+    else if (/שבוע|week/i.test(scoped)) days = 7;
+    else if (/יומיים|two days/i.test(scoped)) days = 2;
     else {
-      const dayMatch = body.match(/(\d+)\s*(?:ימים|days)/i);
+      const dayMatch = scoped.match(/(\d+)\s*(?:ימים|days)/i);
       if (dayMatch) days = parseInt(dayMatch[1], 10);
     }
     
@@ -1117,13 +1159,13 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
 
   // Dates contain numbers too. Only attempt a time range when the message
   // actually contains time syntax or a time-of-day word.
-  const hasTimeSyntax = /:|\d\s*(?:am|pm)\b|\b(?:morning|evening|afternoon|noon|midnight)\b|בבוקר|בערב|בלילה|בצהריים|בחצות|שעה|hours?/i.test(body)
-    || (current.step === 'rental_times' && /^\s*\d{1,2}\s*$/.test(body));
+  const hasTimeSyntax = /:|\d\s*(?:am|pm)\b|\b(?:morning|evening|afternoon|noon|midnight)\b|בבוקר|בערב|בלילה|בצהריים|בחצות|שעה|hours?/i.test(scoped)
+    || (current.step === 'rental_times' && /^\s*\d{1,2}\s*$/.test(scoped));
   if (hasTimeSyntax) {
-    const times = parseTimes(body);
+    const times = parseTimes(scoped);
     if (times && (!current.pickupDate || current.pickupDate !== current.dropoffDate || times.returnTime > times.pickupTime)) Object.assign(extracted, times);
     else {
-      const time = parseSingleTime(body);
+      const time = parseSingleTime(scoped);
       if (time) {
         if (!current.pickupTime) extracted.pickupTime = time;
         else if (!current.returnTime) extracted.returnTime = time;
@@ -1131,34 +1173,34 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
     }
   }
 
-  const locations = parseLocations(body);
+  const locations = parseLocations(scoped);
   if (locations) Object.assign(extracted, locations);
   else {
     // One place at a time, the way people answer on WhatsApp: "הרצליה", "להחזיר בנתבג", "לאותו מקום".
-    const places = knownPlacesIn(body);
-    const saysReturn = /להחזיר|החזרה|ולהחזיר|מחזיר|return|drop ?off|bring (?:it )?back/i.test(body);
-    const saysPickup = /לאסוף|איסוף|אאסוף|pick ?up|collect/i.test(body);
+    const places = knownPlacesIn(scoped);
+    const saysReturn = /להחזיר|החזרה|ולהחזיר|מחזיר|return|drop ?off|bring (?:it )?back/i.test(scoped);
+    const saysPickup = /לאסוף|איסוף|אאסוף|pick ?up|collect/i.test(scoped);
     if (places.length === 1) {
       const [place] = places;
       if (saysReturn && !saysPickup) { if (!current.dropoffLocation) extracted.dropoffLocation = place; }
       else if (!current.pickupLocation) extracted.pickupLocation = place;
       else if (!current.dropoffLocation) extracted.dropoffLocation = place;
     }
-    if (!places.length && (current.step === 'rental_locations' || (current.pickupLocation && (SAME_PLACE.test(body) || brainSamePlace(body)))) && (SAME_PLACE.test(body) || brainSamePlace(body) || (current.pickupLocation && /^(?:כן|כן כן|כן בדיוק|בדיוק|נכון|לשם|לשם גם|גם לשם|yes|yep|yeah|exactly|there too|בטח|ברור|סבבה|אוקיי?|ok)[\s!.🙂👍]*$/i.test(body.trim())))) {
+    if (!places.length && (current.step === 'rental_locations' || (current.pickupLocation && (SAME_PLACE.test(scoped) || brainSamePlace(scoped)))) && (SAME_PLACE.test(scoped) || brainSamePlace(scoped) || (current.pickupLocation && /^(?:כן|כן כן|כן בדיוק|בדיוק|נכון|לשם|לשם גם|גם לשם|yes|yep|yeah|exactly|there too|בטח|ברור|סבבה|אוקיי?|ok)[\s!.🙂👍]*$/i.test(scoped.trim())))) {
       if (current.pickupLocation && !current.dropoffLocation) extracted.dropoffLocation = current.pickupLocation;
       else if (current.dropoffLocation && !current.pickupLocation) extracted.pickupLocation = current.dropoffLocation;
     }
   }
   // "רכב קטן או משהו יותר גדול?" is a question, not a choice.
-  const comparing = /[?？]/.test(body) && /\sאו\s|\sor\s/i.test(body);
-  const vehiclePreference = comparing ? null : parseVehiclePreference(body);
+  const comparing = /[?？]/.test(scoped) && /\sאו\s|\sor\s/i.test(scoped);
+  const vehiclePreference = comparing ? null : parseVehiclePreference(scoped);
   if (vehiclePreference) extracted.vehiclePreference = vehiclePreference;
   if (interpretation) {
-    const pickupLocation = supportedGeminiField(body, interpretation.pickupLocation, interpretation.pickupEvidence);
-    const dropoffLocation = supportedGeminiField(body, interpretation.dropoffLocation, interpretation.dropoffEvidence);
+    const pickupLocation = supportedGeminiField(scoped, interpretation.pickupLocation, interpretation.pickupEvidence);
+    const dropoffLocation = supportedGeminiField(scoped, interpretation.dropoffLocation, interpretation.dropoffEvidence);
     if (pickupLocation && !current.pickupLocation) extracted.pickupLocation = pickupLocation;
     // "הרצליה" alone is where to pick up; the return place is asked, not assumed.
-    const returnStated = /להחזיר|החזרה|ולהחזיר|נחזיר|אחזיר|מחזיר|return|drop ?off|back/i.test(body) || SAME_PLACE.test(body);
+    const returnStated = /להחזיר|החזרה|ולהחזיר|נחזיר|אחזיר|מחזיר|return|drop ?off|back/i.test(scoped) || SAME_PLACE.test(scoped);
     const sameEvidence = interpretation.dropoffEvidence.trim() && interpretation.dropoffEvidence.trim() === interpretation.pickupEvidence.trim();
     if (dropoffLocation && !current.dropoffLocation && (returnStated || !sameEvidence)) extracted.dropoffLocation = dropoffLocation;
     // Places are recorded the same way whoever read them: "Herzliya" from Gemini is "הרצליה".
@@ -1168,14 +1210,14 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
     }
     // "לאותו מקום" copies the pickup place exactly.
     const pickupKnown = extracted.pickupLocation ?? current.pickupLocation;
-    if (!current.dropoffLocation && pickupKnown && SAME_PLACE.test(body) && !knownPlacesIn(body).length) extracted.dropoffLocation = pickupKnown;
+    if (!current.dropoffLocation && pickupKnown && SAME_PLACE.test(scoped) && !knownPlacesIn(scoped).length) extracted.dropoffLocation = pickupKnown;
     const vehicleEvidence = interpretation.vehicleEvidence.trim();
     if (!vehiclePreference && interpretation.vehiclePreference && vehicleEvidence
-      && body.toLocaleLowerCase().includes(vehicleEvidence.toLocaleLowerCase())) {
+      && scoped.toLocaleLowerCase().includes(vehicleEvidence.toLocaleLowerCase())) {
       extracted.vehiclePreference = interpretation.vehiclePreference;
     }
   }
-  Object.assign(extracted, parseTripNeeds(body));
+  Object.assign(extracted, parseTripNeeds(scoped));
   if (interpretation) {
     // Gemini resolves wording the local parser cannot ("next weekend",
     // "Thursday", "for four days"). Local parsing wins when it found a value.
@@ -1314,17 +1356,22 @@ function isAcknowledgement(input: string) {
 function validName(input: string) {
   const value = input.trim().replace(/\s+/g, ' ');
   if (value.length < 2 || value.length > 100 || /https?:\/\//i.test(value)) return null;
-  if (NOT_A_NAME.test(value) || NOT_NAME_WORDS.test(value) || /[?？@]|\d/.test(value) || smallTalkOnly(value)) return null;
+  // "ליאור שלום", "מלכה שלום": a word like שלום is a surname after a first name.
+  const firstWord = value.split(' ')[0];
+  const surnameLike = value.split(' ').length >= 2 && value.split(' ').length <= 3 && !NOT_NAME_WORDS.test(firstWord) && !NOT_A_NAME.test(firstWord) && /^[\p{L}'׳ -]+$/u.test(value);
+  if (NOT_A_NAME.test(value) || (NOT_NAME_WORDS.test(value) && !surnameLike) || /[?？@]|\d/.test(value) || (!surnameLike && smallTalkOnly(value))) return null;
   // "מה שעות הפתיחה", "איפה אתם נמצאים", "בדיוק", "what do you do": a question or a remark, not a name.
-  if (/^(?:מה|איך|איפה|היכן|כמה|מתי|למה|האם|יש|אין|אפשר|אני|אתה|אתם|זה|בדיוק|נכון|רגע|שנייה|what|how|where|when|why|who|is|are|do|does|can|could|i|you|it|exactly|wait)(?=\s|$)/i.test(value)) return null;
-  if (value.split(' ').length <= 4 && detectSituation(value)) return null;
+  if (/^(?:מה|איך|איפה|היכן|כמה|מתי|למה|האם|יש|אין|אפשר|אני|אתה|אתם|זה|בדיוק|נכון|רגע|שנייה|what|whats|what's|how|hows|where|wheres|when|why|who|whos|is|are|do|does|can|could|i|you|it|exactly|wait)(?=\s|$)/i.test(value)) return null;
+  // A name never talks to us: "your", "שלך", "שלכם".
+  if (/(?:^|\s)(?:your|you|yours|שלך|שלכם|אתכם|אותך)(?=\s|$)/i.test(value)) return null;
+  if (value.split(' ').length <= 4 && !surnameLike && detectSituation(value)) return null;
   if (SAME_PLACE.test(value) || brainSamePlace(value) || /^(?:וואלה|יאללה|אחלה|אוקי|טוב|בסדר|כן|לא|לשם|פה|כאן)(?=\s|$)/.test(value)) return null;
   return value;
 }
 
 /** "נעים מאוד, אני דני", "קוראים לי מיכל כהן", "my name is John": the name, when the customer introduces themselves. */
 export function introducedName(input: string): string | null {
-  const match = input.trim().match(/(?:קוראים לי|שמי|השם שלי(?: זה| הוא)?|my name is|my name's|call me|(?:נעים(?: מאוד)?|היי|שלום|hi|hello|hey|nice to meet you|pleasure)[,!.]?\s+(?:אני|זה|i'?m|i am|this is))\s+([A-Za-z\u05d0-\u05ea'׳-]{2,20}(?:\s+[A-Za-z\u05d0-\u05ea'׳-]{2,20})?)[\s!.🙂😊]*$/i);
+  const match = input.trim().match(/(?:קוראים לי|שמי|השם שלי(?: זה| הוא)?|תרשום|תרשמי|תרשמו|רשום|תכתוב|תכתבי|על שם|my name is|my name's|call me|put it under|(?:נעים(?: מאוד)?|היי|שלום|hi|hello|hey|nice to meet you|pleasure)[,!.]?\s+(?:אני|זה|i'?m|i am|this is))\s+([A-Za-z\u05d0-\u05ea'׳-]{2,20}(?:\s+[A-Za-z\u05d0-\u05ea'׳-]{2,20})?)[\s!.🙂😊]*$/i);
   if (!match) return null;
   const name = validName(match[1]);
   return name && !/^(?:צריך|רוצה|מחפש|מחפשת|רק|פה|כאן|looking|need|want|here|fine|good)/i.test(name) ? name : null;
@@ -1418,8 +1465,47 @@ async function resolveApprovedVariant(phrase: string, field: 'vehicle') {
   return data.proposed_value;
 }
 
+/** The last rental request and the last booking of this number. Never throws: a returning customer is a nicety. */
+async function pastCustomer(phone: string): Promise<PastCustomer | null> {
+  const canonicalPhone = normalizeWhatsAppPhone(phone);
+  if (!canonicalPhone) return null;
+  try {
+    const supabase = createAdminClient();
+    const [requests, bookings] = await Promise.all([
+      supabase.from('whatsapp_rental_requests')
+        .select('customer_name, customer_email, pickup_date, dropoff_date, pickup_location, dropoff_location, vehicle_preference, status, locale, created_at')
+        .eq('phone', canonicalPhone).order('created_at', { ascending: false }).limit(1),
+      supabase.from('bookings')
+        .select('customer_name, customer_email, pickup_date, dropoff_date, pickup_location, dropoff_location, status, customer_phone, vehicle:vehicles(make, model)')
+        .eq('customer_phone_normalized', canonicalPhone).order('pickup_date', { ascending: false }).limit(3),
+    ]);
+    const request = (requests.data ?? [])[0] as Record<string, string> | undefined;
+    const booking = ((bookings.data ?? []) as unknown as Array<Record<string, unknown>>)
+      .find((row) => normalizeWhatsAppPhone(String(row.customer_phone ?? '')) === canonicalPhone);
+    if (!request && !booking) return null;
+    const vehicle = booking?.vehicle as { make?: string; model?: string } | undefined;
+    return {
+      name: request?.customer_name ?? (booking?.customer_name as string | undefined),
+      email: request?.customer_email ?? (booking?.customer_email as string | undefined),
+      locale: request?.locale === 'en' ? 'en' : request?.locale === 'he' ? 'he' : undefined,
+      lastRequest: request ? {
+        pickupDate: request.pickup_date, dropoffDate: request.dropoff_date, pickupLocation: request.pickup_location,
+        dropoffLocation: request.dropoff_location, vehiclePreference: request.vehicle_preference, status: request.status, createdAt: request.created_at,
+      } : undefined,
+      lastRental: booking ? {
+        vehicle: [vehicle?.make, vehicle?.model].filter(Boolean).join(' ') || undefined,
+        pickupDate: String(booking.pickup_date).slice(0, 10), dropoffDate: String(booking.dropoff_date).slice(0, 10),
+        pickupLocation: String(booking.pickup_location ?? ''), dropoffLocation: String(booking.dropoff_location ?? ''), status: String(booking.status ?? ''),
+      } : undefined,
+    };
+  } catch (error) {
+    console.error('[whatsapp-flow] past customer lookup failed:', error instanceof Error ? error.message : error);
+    return null;
+  }
+}
+
 const persistentStore: WhatsAppFlowStore = {
-  activeBooking, loadState, saveState, createRentalRequest,
+  activeBooking, loadState, saveState, createRentalRequest, pastCustomer,
   getRentalQuotes: (state) => getWhatsAppRentalQuotes(state.vehiclePreference, state.pickupDate!, state.dropoffDate!),
   getCarsForSale,
   recordLanguageCandidate,
@@ -1546,6 +1632,8 @@ function leasingHandoffReply(locale: FlowLocale, kind: Exclude<LeasingKind, 'unk
 function knowledgeReply(input: string, locale: FlowLocale, state?: FlowState | null): WhatsAppFlowResult | null {
   const answer = getBusinessKnowledgeResponse(input, locale, state?.knowledgeTopic);
   if (!answer) return null;
+  // "אחי עשה תאונה עם הרכב שלו ועכשיו צריך רכב חלופי": not damage to our car, so no damage answer or hand-off.
+  if (answer.topic === 'damage_accident' && notOurEmergencyNow(input)) return null;
   const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://smartcar.co.il';
   return {
     handled: true,
@@ -1572,22 +1660,37 @@ export async function getWhatsAppFlowReply(phone: string, rawBody: string, store
   let before: FlowState | null = null;
   let understood: WhatsAppInterpretation | null = null;
   let hasBooking = false;
+  // Earlier requests and bookings of this number, looked up once per conversation.
+  let past: Promise<PastCustomer | null> | null = null;
+  const lookupPast = (p: string): Promise<PastCustomer | null> => {
+    const known = before as FlowState | null;
+    past ??= known?.returningChecked ? Promise.resolve(known.returning ?? null) : (store.pastCustomer?.(p) ?? Promise.resolve(null)).catch(() => null);
+    return past;
+  };
   const tracking: WhatsAppFlowStore = {
     ...store,
     activeBooking: async (p) => { const found = await store.activeBooking(p); hasBooking = Boolean(found); return found; },
     // A copy: the flow may update the loaded state in place, and "before" must stay as it was.
     loadState: async (p) => { const found = await store.loadState(p); before = found ? structuredClone(found) : null; return found; },
-    saveState: async (p, state) => { saved = state; await store.saveState(p, state); },
+    saveState: async (p, state) => {
+      if (state && !state.returningChecked) state = { ...state, returning: (await lookupPast(p)) ?? undefined, returningChecked: true };
+      saved = state;
+      await store.saveState(p, state);
+    },
+    pastCustomer: lookupPast,
     interpretMessage: store.interpretMessage
       ? async (...args) => { understood = await store.interpretMessage!(...args); return understood; }
       : undefined,
   };
   const flowResult = await replyToMessage(phone, rawBody, tracking);
   const previous = before as FlowState | null;
-  const current = saved === undefined ? previous : saved;
+  let current = saved === undefined ? previous : saved;
   // An existing customer's booking details always come from the booking itself.
   const voiced = hasBooking ? flowResult : await inOneVoice(flowResult, understood, current, previous, rawBody);
-  const result = humanFallback(withoutRepeatedMenu(voiced, previous, current?.locale ?? previous?.locale ?? 'he'), understood, previous, current, rawBody, phone);
+  const polished = humanFallback(withoutRepeatedMenu(voiced, previous, current?.locale ?? previous?.locale ?? 'he'), understood, previous, current, rawBody, phone);
+  const known = applyReturning(polished, previous, current, rawBody);
+  const result = known.result;
+  if (known.state) current = known.state;
   if (current && result.reply) {
     const history = [
       ...(current.history ?? previous?.history ?? []),
@@ -1597,6 +1700,49 @@ export async function getWhatsAppFlowReply(phone: string, rawBody: string, store
     await store.saveState(phone, { ...current, history });
   }
   return result;
+}
+
+/**
+ * A returning customer (whatsapp-returning.ts): greeted by name, "כמו בפעם הקודמת"
+ * fills the places and car of the last request, and the name and email from
+ * last time go straight into the summary instead of being asked again.
+ */
+function applyReturning(result: WhatsAppFlowResult, previous: FlowState | null, current: FlowState | null, message: string): { result: WhatsAppFlowResult; state?: FlowState } {
+  const past = current?.returning;
+  if (!current || !past || current.handedOff || result.escalate || !result.reply) return { result };
+  const locale = current.locale ?? past.locale ?? 'he';
+  const isWelcome = /1️⃣ (?:השכרת רכב|Rent a car|Car rental)/.test(result.reply);
+  if (!previous?.history?.length && isWelcome && (past.name || past.lastRequest || past.lastRental)) {
+    return { result: { ...result, reply: returningGreeting(past, locale) } };
+  }
+  let state = current;
+  let reply = result.reply;
+  // "כמו בפעם הקודמת": the places and the car of the last request (never the dates).
+  const last = past.lastRequest ?? past.lastRental;
+  if (last && SAME_AS_LAST_TIME.test(message) && isRentalStep(state.step)) {
+    const filled: FlowState = {
+      ...state,
+      pickupLocation: state.pickupLocation ?? (last.pickupLocation || undefined),
+      dropoffLocation: state.dropoffLocation ?? (last.dropoffLocation || undefined),
+      vehiclePreference: state.vehiclePreference ?? past.lastRequest?.vehiclePreference,
+    };
+    filled.step = rentalStepFor(filled);
+    if (filled.step !== state.step || filled.pickupLocation !== state.pickupLocation || filled.vehiclePreference !== state.vehiclePreference) {
+      const what = [filled.vehiclePreference && CAR_WORDS[filled.vehiclePreference]?.[locale], filled.pickupLocation && (locale === 'en' ? `from ${placeName(filled.pickupLocation, 'en')}` : `איסוף מ${filled.pickupLocation}`), filled.dropoffLocation && filled.dropoffLocation !== filled.pickupLocation && (locale === 'en' ? `return to ${placeName(filled.dropoffLocation, 'en')}` : `החזרה ב${filled.dropoffLocation}`)].filter(Boolean).join(', ');
+      state = filled;
+      reply = `${locale === 'en' ? `Done, like last time: ${what} 👍` : `סגור, כמו בפעם הקודמת: ${what} 👍`}\n\n${promptForState(filled, locale, null, current)}`;
+    }
+  }
+  // The name and email from last time go into the summary, where they can still be changed.
+  if (state.step === 'rental_name' && !state.customerName && past.name) {
+    const name = past.name;
+    const email = state.customerEmail ?? past.email;
+    const filled: FlowState = { ...state, customerName: name, customerEmail: email, step: email ? 'rental_confirm' : 'rental_email' };
+    const lead = reply.replace(/[^.!?\n]*[?？][^\n]*$/u, '').trim();
+    const next = email ? confirmationPrompt(filled, locale) : emailPrompt(locale);
+    return { result: { ...result, reply: [lead.length > 3 && !/[?？]/.test(lead) ? lead : '', filledDetailsLine(name, email, locale), next].filter(Boolean).join('\n\n') }, state: filled };
+  }
+  return state === current ? { result: { ...result, reply } } : { result: { ...result, reply }, state };
 }
 
 /**
@@ -1660,13 +1806,20 @@ function humanFallback(result: WhatsAppFlowResult, understood: WhatsAppInterpret
     const hello = locale === 'en' ? `Nice to meet you, ${first} 🙂` : `נעים מאוד ${first} 🙂`;
     return { ...result, reply: question ? `${hello} ${question}` : `${hello} ${locale === 'en' ? 'How can I help?' : 'במה אפשר לעזור?'}` };
   }
-  const situation = addedDetail || message.length > 60 ? null : detectSituation(message);
+  // The trained models read wording that is in no list, but only replace a reply that says nothing
+  // specific (a repeated prompt or the generic "I'm here"): never an answer, a summary or a figure.
+  const genericReply = result.reply.length <= 160 && !/\d/.test(result.reply) && !getBusinessKnowledgeResponse(message, locale);
+  // A question with a published answer ("החבר שלי אמר שהדלק אצלכם יקר, זה נכון?") keeps that answer.
+  const answeredQuestion = /[?？]/.test(message) && Boolean(getBusinessKnowledgeResponse(message, locale)) && !/^(?:שאלה|good question)/i.test(result.reply);
+  const situation = addedDetail || message.length > 60 || answeredQuestion ? null : detectSituation(message) ?? (genericReply ? detectLearnedSituation(message) : null);
   // While asking for a name or an email, only small talk that can never be a name gets a human line.
   const askingDetails = current.step === 'rental_name' || current.step === 'rental_email';
   const safeWhileAsking = ['bye', 'thanks', 'laugh', 'how_are_you', 'bot_question', 'bot_name', 'thinking', 'wait', 'later', 'about_us', 'off_topic'];
   // A request for a person or an urgent problem keep the flow's own handling.
   if (situation && !['human_request', 'urgent'].includes(situation) && used.length && (!askingDetails || safeWhileAsking.includes(situation))) {
     let line = humanLine(situation, locale, seed, used);
+    // "לילה טוב" at night is answered as such, not "have a great day".
+    if (situation === 'bye' && /לילה טוב|good ?night|(?:^|\s)gn(?:\s|$)/i.test(message)) line = locale === 'en' ? 'Good night 🌙' : 'לילה טוב 🌙';
     // Leaving in the middle of a booking: say the details are kept, and do not push the next question.
     if (situation === 'wait' && isRentalStep(current.step)) return { ...result, reply: withoutQuestion(line) || (locale === 'en' ? 'Sure, take your time 🙂' : 'בטח, קח את הזמן 🙂') };
     if (['bye', 'later'].includes(situation) && isRentalStep(current.step)) {
@@ -1809,11 +1962,29 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // The customer switched language: the rest of the chat follows them.
   if (existingState && existingState.locale && existingState.locale !== locale) existingState.locale = locale;
 
+  // "מה עם הבקשה ששלחתי?": the real status of this number's last request.
+  if (!existingState?.handedOff && !isRentalStep(existingState?.step ?? 'menu') && ASKS_ABOUT_REQUEST.test(body)) {
+    const known = existingState?.returning ?? (await store.pastCustomer?.(phone)) ?? null;
+    const status = known ? requestStatusReply(known, locale) : null;
+    if (status) {
+      await store.saveState(phone, existingState ?? { step: 'menu', locale });
+      return { handled: true, reply: status };
+    }
+  }
+
   // The final "send the request" step is a plain yes/no gate. It stays
   // deterministic so a customer is never told the request was confirmed
   // before createRentalRequest has actually saved it.
   if (existingState?.step === 'rental_confirm') {
     if (!confirmsTerms(body)) {
+      // "השם שלי זה דני לוי", "the email is x@y.com": a correction to the summary, shown again.
+      const newEmail = validEmail(body.match(/[^\s@]+@[^\s@]+\.[^\s@]+/)?.[0] ?? '');
+      const newName = introducedName(body);
+      if (newEmail || newName) {
+        const updated: FlowState = { ...existingState, customerEmail: newEmail ?? existingState.customerEmail, customerName: newName ?? existingState.customerName };
+        await store.saveState(phone, updated);
+        return { handled: true, reply: `${locale === 'en' ? 'Updated 👍' : 'עדכנתי 👍'}\n\n${confirmationPrompt(updated, locale)}` };
+      }
       const gate = locale === 'en'
         ? 'The request hasn’t been sent yet — just reply "I confirm" and I’ll pass it to the team 🙂 (or "menu" to start over).'
         : 'הבקשה עוד לא נשלחה — רק תכתוב "אני מאשר" ואעביר אותה לצוות 🙂 (או "תפריט" כדי להתחיל מחדש).';
@@ -1867,9 +2038,9 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // Hebrew letters are not "word" characters for \b, so boundaries are spelled out.
   const asksQuestion = /[?？]/.test(body)
     || /(?:^|[\s,.!])(?:מה|איך|כמה|האם|איפה|היכן|מתי|עד מתי|למה|עולה|יש לכם|יש לך|אפשר|מותר|צריך|מאיזה|איזה|אילו|באיזה|what|how|where|when|why|which|do you|can i|is there|are there)(?=$|[\s,.!?])/i.test(body);
-  const personRequested = /נציג|אנושי|בן ?אדם|בנאדם|יחזור|representative|human|person|someone|call me/i.test(body);
+  const personRequested = /נציג|אנושי|בן ?אדם|בנאדם|יחזור|representative|human|person|someone|call me/i.test(body) && !mentionsPersonWithoutAsking(body);
   // "Are you a bot?" gets an honest answer, not a handoff.
-  if (!existingState?.handedOff && (/(?:^|\s)(?:אתה|את|זה)\s+(?:\S+\s+)?(?:בוט|רובוט)|are you (?:a )?(?:bot|robot|real|human)/i.test(normalized(body))
+  if (!existingState?.handedOff && (isBotQuestion(body) || /(?:^|\s)(?:אתה|את|זה)\s+(?:\S+\s+)?(?:בוט|רובוט)|are you (?:a )?(?:bot|robot|real|human)/i.test(normalized(body))
     || (/(?:^|\s)(?:אתה|את|אטה)(?:\s|$)/.test(normalized(body)) && hasApproximateKeyword(body, ['רובוט'])))) {
     return {
       handled: true,
@@ -1902,7 +2073,11 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       haveName: Boolean(existingState.customerName), haveEmail: Boolean(existingState.customerEmail),
     } : null)?.catch(() => null) ?? null
     : null;
-  const businessTopic = asksQuestion ? getBusinessKnowledgeResponse(body, locale, existingState?.knowledgeTopic)?.topic : undefined;
+  // "אתם לוקחים ביט או רק אשראי" is a question too, even without "?": the brain recognises the topic.
+  // While a name or an email is expected, only a real question is read as one ("מיכל" is a name, not a fuel tank).
+  const expectingDetail = existingState?.step === 'rental_name' || existingState?.step === 'rental_email';
+  const businessTopic = (expectingDetail ? /[?？]/.test(body) : asksQuestion || brainQuestionTopic(body))
+    ? getBusinessKnowledgeResponse(body, locale, existingState?.knowledgeTopic)?.topic : undefined;
   if (businessTopic && existingState && !existingState.handedOff) {
     existingState.knowledgeTopic = businessTopic;
     await store.saveState(phone, existingState);
@@ -1930,6 +2105,12 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // ("מותר לצאת עם הרכב לטאבה?") or a remark ("אתם יקרים"): Gemini wins.
   if (initialRoute === 'rental' && interpretation?.source === 'gemini' && interpretation.reply && interpretation.intent !== 'rental'
     && !RENTAL_ASKS.includes(interpretation.asks ?? 'nothing') && !isRentalStep(existingState?.step ?? 'menu')) {
+    initialRoute = booking ? 'existing_customer' : 'new_customer';
+  }
+  // Without Gemini: "אפשר לעשן סיגריה באוטו?" mentions a car but asks about the rules. A question with a
+  // published answer and no booking detail (dates, places, a group size) gets the answer, not a booking.
+  if (initialRoute === 'rental' && businessTopic && businessTopic !== 'damage_accident' && !(businessTopic === 'prices' || (businessTopic === 'availability' && !/אין|לא זמין|not available|unavailable|what if|ואם/i.test(body))) && interpretation?.source !== 'gemini' && !isRentalStep(existingState?.step ?? 'menu')
+    && !Object.keys(extractRentalDetails(body, { step: 'rental_dates', locale })).some((key) => !['vehiclePreference', 'tripNeeds'].includes(key))) {
     initialRoute = booking ? 'existing_customer' : 'new_customer';
   }
 
@@ -2147,6 +2328,15 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     && !/^\s*\d\s*$/.test(body)) {
     await store.saveState(phone, { ...(existingState ?? { step: 'menu' as const }), step: 'menu', locale, knowledgeTopic: businessTopic ?? existingState?.knowledgeTopic });
     return { handled: true, reply: interpretation.reply };
+  }
+
+  // A question the brain recognised as one with a published answer ("do I need to return it with a full
+  // tank", "אתם לוקחים ביט?") is answered before any "rent, lease or buy?" disambiguation.
+  if (businessTopic && interpretation?.source !== 'gemini' && !existingState?.handedOff && !existingState?.carSale && !existingState?.leasing
+    && initialRoute !== 'rental' && !isRentalStep(existingState?.step ?? 'menu')
+    && classifyCommercialIntent(body) !== 'leasing' && classifyCommercialIntent(body) !== 'car_sale' && classifyCommercialIntent(body) !== 'sell_own_car') {
+    const known = knowledgeReply(body, locale, existingState);
+    if (known) return known;
   }
 
   // Keep the four commercial intents separate. A customer who says only
@@ -2371,6 +2561,9 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // Do not let these messages steal a rental intake that includes extractable
   // facts; in that case the rental engine keeps collecting the request.
   if (!isRentalStep(existingState?.step ?? 'menu') && initialRoute !== 'rental') {
+    // A published answer is better than the general "it depends on the terms" text.
+    const known = businessTopic && !existingState?.handedOff ? knowledgeReply(body, locale, existingState) : null;
+    if (known) return known;
     const service = serviceReply(classifyServiceIntent(body), locale, booking);
     if (service) return service;
   }
@@ -2547,7 +2740,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   }
 
   if (existingState.step === 'rental_name') {
-    const customerName = validName(body);
+    const customerName = introducedName(body) ?? validName(body);
     if (!customerName) {
       // A question or a "thanks" between steps is answered, then the name is asked for again.
       const answer = asksQuestion ? knowledgeReply(body, locale, existingState)?.reply : null;
