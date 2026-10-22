@@ -45,6 +45,12 @@ export const BUSINESS_KNOWLEDGE: Entry[] = [
   { topic: 'leasing_terms', pattern: /לכמה זמן.*ליסינג|תקופ.*ליסינג|חודשי.*ליסינג|ליסינג.*(?:כולל|מסלול|תקופ|חודש|קילומ)|leas(?:e|ing).*(?:term|month|period|include|mileage)|how long.*leas/i, href: '/leasing',
     he: `מסלולי הליסינג באתר מוצעים לתקופות של ${LEASING_DURATIONS.join(', ')} חודשים, עם חבילות שנתיות של ${MILEAGE_PACKAGES.join(', ')} ק״מ. יש ליסינג פרטי ועסקי; המחיר, הרכב, הטיפולים, הביטוח והתנאים המדויקים נקבעים בהצעה ובהסכם אישי. זו אינה הצעה מאושרת.`,
     en: `The site offers leasing terms of ${LEASING_DURATIONS.join(', ')} months and annual mileage packages of ${MILEAGE_PACKAGES.join(', ')} km. Private and business leasing are available; vehicle, price, maintenance, insurance and exact conditions are set in the individual quote and agreement. This is not an approved offer.` },
+  { topic: 'leasing_types', pattern: /תפעולי|מימוני|סוגי ליסינג|איזה סוג ליסינג|ההבדל.*ליסינג|ליסינג.*ההבדל|operational leas|financial leas|types? of leas|difference.*leas/i, href: '/leasing',
+    he: 'בקצרה: בליסינג תפעולי משלמים תשלום חודשי שבדרך כלל כולל ביטוח, טיפולים ותחזוקה, ובסוף התקופה מחזירים את הרכב. בליסינג מימוני המטרה היא בעלות — משלמים על הרכב לאורך זמן ובסוף אפשר לרכוש אותו, והאחזקה עליך. ב־SmartCar יש ליסינג פרטי ועסקי; איזה מסלול מתאים לך ובאילו תנאים נציג יפרט בהצעה אישית.',
+    en: 'In short: with operational leasing you pay a monthly fee that usually covers insurance, servicing and maintenance, and you return the car at the end. With financial leasing the aim is ownership — you pay for the car over time and can buy it at the end, and upkeep is yours. SmartCar offers private and business leasing; a representative will set out which track fits you and its terms in a personal quote.' },
+  { topic: 'leasing_vs_buying', pattern: /ליסינג.*(?:לעומת|או|משתלם|כדאי|שווה).*(?:לקנות|קני|רכישה|לרכוש)|(?:לקנות|קני|רכישה|לרכוש).*(?:או|לעומת).*ליסינג|משתלם.*ליסינג|ליסינג.*משתלם|leas.*(?:vs|or|worth|better).*buy|buy.*(?:or|vs).*leas|is leasing worth/i, href: '/leasing',
+    he: `זה תלוי בעיקר בכמה אתה נוסע, לכמה זמן אתה מתכנן להחזיק רכב, ואם חשוב לך לא להתעסק עם ביטוח, טיפולים ומכירה בסוף. ליסינג נותן תשלום חודשי קבוע ושקט מתחזוקה, אבל יש מסגרת קילומטרים (אצלנו חבילות של ${MILEAGE_PACKAGES.map((km) => `${km / 1000} אלף`).join(', ')} ק״מ בשנה) ואין בעלות בסוף. קנייה משתלמת בדרך כלל יותר למי שמחזיק רכב שנים רבות. כמה אתה נוסע בשנה, ולאיזה רכב אתה מכוון?`,
+    en: `It mostly depends on how much you drive, how long you plan to keep a car, and whether you'd rather not deal with insurance, servicing and selling at the end. Leasing gives a fixed monthly payment and no maintenance worries, but it has a mileage allowance (our packages are ${MILEAGE_PACKAGES.map((km) => `${km / 1000}k`).join(', ')} km a year) and you don't own the car at the end. Buying usually pays off more if you keep a car for many years. How much do you drive a year, and what kind of car are you after?` },
   { topic: 'leasing_exit', pattern: /ביטול.*ליסינג|ליסינג.*ביטול|יציאה מוקדמת|early termination|cancel.*leas|leas.*cancel/i, href: '/terms',
     he: 'לפי הנוסח העברי של התנאים, הסכם ליסינג הוא ל־12 חודשים לפחות, וביטול מוקדם גורר פיצוי לפי החוזה הספציפי, שלא יפחת משלושה תשלומים חודשיים. בירור או שינוי הסכם קיים מטופלים במשרד לפי ההסכם החתום.',
     en: 'The Hebrew terms specify a minimum 12-month leasing agreement and early-termination compensation under the specific agreement, of at least three monthly payments. The office handles an existing agreement according to the signed contract.' },
@@ -91,7 +97,7 @@ export function getBusinessKnowledgeAnswer(input: string, locale: Locale): Busin
   }
   // Avoid converting an actual theft/accident into an informational FAQ.
   const entries = BUSINESS_KNOWLEDGE.filter((entry) => entry.pattern.test(text));
-  const priority = ['leasing_exit', 'force_majeure', 'cdw', 'insurance_exclusions', 'cross_border'];
+  const priority = ['leasing_exit', 'leasing_vs_buying', 'leasing_types', 'force_majeure', 'cdw', 'insurance_exclusions', 'cross_border'];
   entries.sort((a, b) => (priority.includes(a.topic) ? priority.indexOf(a.topic) : 99) - (priority.includes(b.topic) ? priority.indexOf(b.topic) : 99));
   const entry = entries[0];
   // Existing precisely sourced deposit/driver/fuel rules take precedence over generic prices/payment.
@@ -100,8 +106,44 @@ export function getBusinessKnowledgeAnswer(input: string, locale: Locale): Busin
   return entry ? { topic: entry.topic, reply: entry[locale], href: entry.href, linkLabel: label } : service;
 }
 
+/** In a leasing conversation, "אני נוסע 20 אלף בשנה" and "כמה זה לחודש?" are about leasing, not rental. */
+function leasingFollowUp(input: string, locale: Locale, previousTopic?: string): BusinessAnswer | null {
+  if (previousTopic?.startsWith('leasing')) {
+    const link = { href: '/leasing', linkLabel: locale === 'he' ? 'ליסינג באתר' : 'Leasing' };
+    // "ואם אני רוצה לצאת מהעסקה באמצע?"
+    if (/לצאת|לבטל|ביטול|יציאה|באמצע|להפסיק|early|cancel|get out|terminate|exit/i.test(input)) {
+      const exit = BUSINESS_KNOWLEDGE.find((entry) => entry.topic === 'leasing_exit');
+      if (exit) return { topic: 'leasing_exit', href: exit.href, linkLabel: link.linkLabel, reply: exit[locale] };
+    }
+    // "יש לכם משהו חשמלי?" in a leasing conversation: the leasing offer, not the rental fleet.
+    if (/חשמל|היבריד|electric|hybrid|\bev\b|איזה רכבים|אילו רכבים|דגמים|which cars|what cars|models/i.test(input)) {
+      return { topic: 'leasing_terms', ...link, reply: locale === 'he'
+        ? 'את הדגמים שאפשר לקחת בליסינג — כולל חשמליים והיברידיים, אם זה מה שמעניין אותך — נציג יציג לך בהצעה, כי זה משתנה לפי המלאי והתקופה. איזה סוג רכב אתה מחפש, ולכמה חודשים?'
+        : "The models available for leasing — including electric and hybrid, if that's what you're after — are presented by a representative in the quote, since they depend on stock and term. What kind of car are you looking for, and for how many months?" };
+    }
+    const yearly = input.match(/(\d{1,3})\s*(?:אלף|k|,000|000)\s*(?:ק[״"]?מ|קמ|קילומטר\S*|km|kilomet\S*)?\s*(?:ב?שנה|לשנה|a year|per year|yearly|annually)/i);
+    if (yearly) {
+      const km = Number(yearly[1]) * 1000;
+      const fit = MILEAGE_PACKAGES.find((pack) => pack >= km) ?? MILEAGE_PACKAGES[MILEAGE_PACKAGES.length - 1];
+      return { topic: 'leasing_terms', href: '/leasing', linkLabel: locale === 'he' ? 'ליסינג באתר' : 'Leasing',
+        reply: locale === 'he'
+          ? `ב־${km.toLocaleString('he-IL')} ק״מ בשנה, חבילת ${fit.toLocaleString('he-IL')} ק״מ מתאימה${fit === km ? ' בדיוק' : ''}. בנסיעות כאלה ליסינג תפעולי נוח במיוחד — הטיפולים והבלאי על החברה. לאיזה סוג רכב אתה מכוון, ולכמה זמן?`
+          : `At ${km.toLocaleString('en-US')} km a year, the ${fit.toLocaleString('en-US')} km package fits${fit === km ? ' exactly' : ''}. With that much driving, operational leasing is especially convenient — servicing and wear are on the company. What kind of car are you after, and for how long?` };
+    }
+    if (/כמה (?:זה )?(?:יוצא|עולה|יעלה)|מחיר|לחודש|חודשי|how much|price|per month|monthly/i.test(input)) {
+      return { topic: 'leasing_terms', href: '/leasing', linkLabel: locale === 'he' ? 'ליסינג באתר' : 'Leasing',
+        reply: locale === 'he'
+          ? 'התשלום החודשי בליסינג תלוי בדגם, בתקופה (12–60 חודשים) ובחבילת הקילומטרים, ולכן אין לי מחיר אחד לתת. נציג יכין לך הצעה מדויקת — לאיזה רכב ולכמה זמן לבדוק?'
+          : 'The monthly leasing payment depends on the model, the term (12–60 months) and the mileage package, so there is no single price to give. A representative will prepare an exact quote — which car and what term should we check?' };
+    }
+  }
+  return null;
+}
+
 /** Answer independent parts locally too, without duplicating the same topic. */
 export function getBusinessKnowledgeResponse(input: string, locale: Locale, previousTopic?: string): BusinessAnswer | null {
+  const leasing = leasingFollowUp(input, locale, previousTopic);
+  if (leasing) return leasing;
   const parts = input.split(/[?？;\n]+|\s+(?:וגם|ומה לגבי|and also|also|and what about)\s+/i).filter(Boolean);
   const answers = parts.map((part) => getBusinessKnowledgeAnswer(part, locale)).filter((a): a is BusinessAnswer => Boolean(a));
   const unique = [...new Map(answers.map((a) => [a.topic, a])).values()].slice(0, 4);
@@ -134,12 +176,21 @@ const TOPIC_QUESTION: Record<string, string> = {
   damage_hypothetical: 'מה כולל הביטוח',
 };
 
+const NEEDS_WORDS: Record<string, RegExp> = {
+  abroad: /חו[״"]?ל|לחו|ירדן|מצרים|טאבה|סיני|גבול|מחוץ ל|abroad|border|jordan|egypt|sinai|taba|outside israel|another country/i,
+  smoking_pets: /עישון|לעשן|סיגר|כלב|חתול|חיות|חיה|בעלי חיים|smok|cigar|dog|cat|pet|animal/i,
+  rideshare_towing: /אובר|uber|וולט|wolt|בולט|bolt|מונית|הסע|גרר|לגרור|tow|taxi|deliver/i,
+  cancellation: /ביטול|לבטל|מבטל|cancel|refund|החזר/i,
+};
+
 function classifiedAnswer(input: string, locale: Locale): BusinessAnswer | null {
   // The whole message first, then each clause of what was not said "no" to:
   // "not looking to rent right now, what are your hours?" → "what are your hours?".
   const clauses = [input, ...withoutNegated(input).split(/[,.;]|\s(?:אבל|רק|but|just)\s/i).map((part) => part.trim()).filter((part) => part.split(' ').length >= 2)];
   for (const clause of clauses) {
-    const topic = brainQuestionTopic(clause.endsWith('?') || clause === input || !/\?/.test(input) ? clause : `${clause}?`);
+    const guessed = brainQuestionTopic(clause.endsWith('?') || clause === input || !/\?/.test(input) ? clause : `${clause}?`);
+    // A few topics are never guessed without their own words: "ים המלח" is not abroad.
+    const topic = guessed && (!NEEDS_WORDS[guessed] || NEEDS_WORDS[guessed].test(clause)) ? guessed : null;
     const question = topic ? TOPIC_QUESTION[topic] : undefined;
     const answer = question ? getBusinessKnowledgeAnswer(question, locale) : null;
     if (answer) return answer;

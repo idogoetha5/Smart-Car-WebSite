@@ -70,3 +70,34 @@ export async function getWhatsAppCatalogueFacts(message: string, locale: 'he' | 
     return '';
   }
 }
+
+/**
+ * "יש לכם משהו חשמלי?", "יש רכבים ידניים?", "איזה רכבים יש לכם?": a short answer from the real
+ * fleet (models only, never availability for dates or prices). Empty when the fleet cannot be read.
+ */
+export async function fleetQuestionAnswer(kind: 'electric' | 'manual' | 'automatic' | 'types', locale: 'he' | 'en'): Promise<string> {
+  if (process.env.VITEST || process.env.NODE_ENV === 'test') return '';
+  try {
+    const rows = await loadFleet();
+    if (!rows?.length) return '';
+    const he = locale === 'he';
+    const names = (list: Rows) => [...new Set(list.map((v) => `${v.make} ${v.model}`.trim()))].slice(0, 6).join(', ');
+    const link = `https://www.smartcar.co.il/${locale}/rental`;
+    if (kind === 'electric') {
+      const electric = rows.filter((v) => /electric|חשמל/i.test(String(v.fuelType ?? '')));
+      const hybrid = rows.filter((v) => /hybrid|היבריד/i.test(String(v.fuelType ?? '')));
+      if (!electric.length && !hybrid.length) return he ? `כרגע אין חשמליים או היברידיים בצי ההשכרה. אפשר לראות את כל הרכבים כאן: ${link}` : `There are no electric or hybrid cars in the rental fleet right now. The full fleet: ${link}`;
+      const parts = [electric.length ? (he ? `חשמליים: ${names(electric)}` : `electric: ${names(electric)}`) : '', hybrid.length ? (he ? `היברידיים: ${names(hybrid)}` : `hybrid: ${names(hybrid)}`) : ''].filter(Boolean).join(he ? '; ' : '; ');
+      return he ? `כן — יש בצי ${parts}. הזמינות לתאריכים נבדקת בהזמנה. ${link}` : `Yes — the fleet has ${parts}. Availability for your dates is checked with the booking. ${link}`;
+    }
+    if (kind === 'manual' || kind === 'automatic') {
+      const manual = rows.filter((v) => /manual|ידני/i.test(String(v.transmission ?? '')));
+      if (kind === 'manual') return manual.length ? (he ? `יש גם ידניים: ${names(manual)}. ${link}` : `There are manual cars too: ${names(manual)}. ${link}`) : (he ? 'כל הרכבים בצי ההשכרה אוטומטיים.' : 'All cars in the rental fleet are automatic.');
+      return manual.length ? (he ? `רוב הצי אוטומטי. ${link}` : `Most of the fleet is automatic. ${link}`) : (he ? 'כן, כל הרכבים בצי ההשכרה אוטומטיים 🙂' : 'Yes, every car in the rental fleet is automatic 🙂');
+    }
+    const categories = [...new Set(rows.map((v) => v.category).filter(Boolean))].map((c) => CATEGORY_NAMES[c as string]?.[locale] ?? c);
+    return he ? `יש לנו ${categories.join(', ')} — מרכב קטן לעיר ועד 7 מקומות. את כל הדגמים אפשר לראות כאן: ${link}` : `We have ${categories.join(', ')} — from small city cars to 7-seaters. All models: ${link}`;
+  } catch {
+    return '';
+  }
+}

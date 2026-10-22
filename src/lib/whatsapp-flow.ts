@@ -11,6 +11,8 @@ import { consultativeSalesReply } from '@/lib/consultative-sales';
 import { getCarsForSale, type CarForSale } from '@/lib/cars-for-sale';
 import { closeEnough, repairCustomerText } from '@/lib/whatsapp-typing';
 import { bookingQuestion, detectLearnedSituation, detectSituation, humanLine, type BookingAsk } from '@/lib/whatsapp-replies';
+import { carAdvice } from '@/lib/whatsapp-advisor';
+import { fleetQuestionAnswer } from '@/lib/whatsapp-catalog-knowledge';
 import { ASKS_ABOUT_REQUEST, SAME_AS_LAST_TIME, filledDetailsLine, requestStatusReply, returningGreeting, type PastCustomer } from '@/lib/whatsapp-returning';
 import { asksForPerson, bookingScope, isBotQuestion, notOurEmergencyNow, mentionsPersonWithoutAsking, withoutPersonWords } from '@/lib/whatsapp-context';
 import { brainDates, brainPassengers, brainPlaces, brainQuestionTopic, brainSamePlace, brainVehicle } from '@/lib/whatsapp-brain';
@@ -235,7 +237,9 @@ export function requiresHumanHandoff(message: string, duringActiveRentalCollecti
  * Safety-sensitive intents are classified before menu or intake routing.
  * `hasActiveBooking` comes only from the sender's matching WhatsApp number.
  */
-const ACCIDENT_PATTERN = /הצילו|עזרה דחוף|סכנה|לא בטוח(?! איזה (?:רכב|אוטו))|(?:^|\s)אש(?:\s|$)|אמבולנס|משטרה|פצוע|תאונה|התנגשות|התנגשתי|נכנסו בי|נפגע|פגיעה ברכב|דפקו לי את הרכב|פגעו בי|פגע בי|ברחו|ברח מהמקום|עשיתי תאונה|רכב פגע בי|התהפכתי|accident|crash|collision|car accident|hit (?:(?:my|a) )?car|help me|emergency|danger|ambulance|police|injured|fire/;
+// "לא בטוח" is danger only about a place ("לא בטוח פה"), never "לא בטוח אם זה משתלם";
+// "ברחו" is a hit-and-run, not "ברחובות"; "help me" is not "help me choose a car".
+const ACCIDENT_PATTERN = /הצילו|עזרה דחוף|סכנה|(?:מקום|כביש|פה|כאן|המצב)\s+לא\s+בטוח|לא\s+בטוח\s+(?:פה|כאן|לנסוע|לעצור|להישאר)(?:\s|$|[,.!])|(?:^|\s)אש(?:\s|$)|אמבולנס|משטרה|פצוע|תאונה|התנגשות|התנגשתי|נכנסו בי|נפגע|פגיעה ברכב|דפקו לי את הרכב|פגעו בי|פגע בי|(?:^|\s)ברחו(?:\s|$|[,.!])|ברח מהמקום|עשיתי תאונה|רכב פגע בי|התהפכתי|\baccident|\bcrash(?:ed)?\b|\bcollision|car accident|hit (?:(?:my|a) )?car|\bhelp me\b(?! (?:choose|pick|decide|find|with|understand|compare))|\bhelp!|\bemergency|\bdanger|\bambulance|\bpolice\b|\binjured|\bfire\b/;
 const BREAKDOWN_PATTERN = /פנצ[׳']?ר|פנצר|תקר|צמיג|גלגל|תקלה|נתקעתי|תקוע|גרירה|גרר|לא מניע|לא מתניע|לא נדלק|לא נדלקת|נורה אדומה|נדלקה נורה|נורת אזהרה|(?:יוצא|יש|רואה|יוצאת) עשן|עשן (?:יוצא|מה)|ריח דלק|מצבר|איבדתי (?:את )?(?:ה)?מפתח|ננעל|נעול|התקלקל|התקלקלה|מקולקל|האוטו לא זז|בעיה במנוע|רעש מוזר|flat tire|flat tyre|flat|puncture|blowout|breakdown|dead battery|car stopped|i am stuck|im stuck|stranded|tow|wont start|won't start|will not start|doesnt start|doesn't start|does not start|not starting|warning light|smoke (?:is )?coming|smoke from|there is smoke|broke down|broken down|fuel smell|locked out|lost key|engine issue|strange noise/;
 
 /** True when an emergency route rests only on a fuzzy spelling match ("תסלה" ≈ "תקלה"), not on clear wording. */
@@ -712,6 +716,13 @@ function parseDateCandidates(input: string) {
     add(range[2], MONTHS[monthWord.toLowerCase()]);
   }
   const monthNames = Object.keys(MONTHS).join('|');
+  // "מ-10 בנובמבר עד ה-17": the second day belongs to the same month (or the next, if it is smaller).
+  const splitRange = input.match(new RegExp(`(\\d{1,2})\\s*(?:ב|ל|of\\s+)?(${monthNames})\\s*(?:,\\s*)?(?:עד|-|–|to|until)\\s*(?:ה|the)?[-־ ]?(\\d{1,2})(?!\\s*(?:ב|ל|of\\s+)?(?:${monthNames}))(?:\\s|$|[,.!?])`, 'i'));
+  if (splitRange) {
+    const month = MONTHS[splitRange[2].toLowerCase()];
+    add(splitRange[1], month);
+    add(splitRange[3], Number(splitRange[3]) < Number(splitRange[1]) ? (month % 12) + 1 : month);
+  }
   const dayNames = `\\d{1,2}|${Object.keys(WRITTEN_DAYS).join('|')}`;
   // Hebrew prepositions are often glued to the day: "מ5 בינואר", "ל־9 בינואר".
   const hebrewOrEnglishDayFirst = new RegExp(`(?:^|[\\s,(])(?:מה|מ|ב|ה|ל|ו|עד)?[-־]?(${dayNames})\\s+(?:ב|ל|of\\s+)?(${monthNames})(?:\\s+(\\d{2,4}))?`, 'gi');
@@ -1180,9 +1191,16 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
     const places = knownPlacesIn(scoped);
     const saysReturn = /להחזיר|החזרה|ולהחזיר|מחזיר|return|drop ?off|bring (?:it )?back/i.test(scoped);
     const saysPickup = /לאסוף|איסוף|אאסוף|pick ?up|collect/i.test(scoped);
-    if (places.length === 1) {
+    // "החניה בתל אביב יקרה?", "יש לכם סניף בירושלים?": a place inside a question is not a booking answer.
+    const askingAbout = /[?？]/.test(scoped) && !saysReturn && !saysPickup && !places.some((place) => new RegExp(`(?:^|\\s)(?:מ|מה|from)\\s*-?\\s*${place.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(scoped))
+      && !(isRentalStep(current.step) && current.step === 'rental_locations' && scoped.trim().split(/\s+/).length <= 3);
+    if (places.length === 1 && !askingAbout) {
       const [place] = places;
-      if (saysReturn && !saysPickup) { if (!current.dropoffLocation) extracted.dropoffLocation = place; }
+      // "מנתב״ג, ולהחזיר לשם": picked up there and returned there.
+      if (saysReturn && (SAME_PLACE.test(scoped.replace(new RegExp(place.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), ' ')) || brainSamePlace(scoped))) {
+        if (!current.pickupLocation) extracted.pickupLocation = place;
+        if (!current.dropoffLocation) extracted.dropoffLocation = current.pickupLocation ?? place;
+      } else if (saysReturn && !saysPickup) { if (!current.dropoffLocation) extracted.dropoffLocation = place; }
       else if (!current.pickupLocation) extracted.pickupLocation = place;
       else if (!current.dropoffLocation) extracted.dropoffLocation = place;
     }
@@ -1192,7 +1210,8 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
     }
   }
   // "רכב קטן או משהו יותר גדול?" is a question, not a choice.
-  const comparing = /[?？]/.test(scoped) && /\sאו\s|\sor\s/i.test(scoped);
+  // "ומה יותר חסכוני בדלק?", "which is roomier?" ask about cars; they do not choose one.
+  const comparing = /[?？]/.test(scoped) && (/\sאו\s|\sor\s/i.test(scoped) || (/^(?:ו?מה|ו?איזה|ו?האם|ו?איך|what|which|is|how)\s/i.test(scoped.trim()) && !/בוא נלך|נלך על|אני רוצה|ניקח|I'?ll take|let'?s go with|we'?ll take/i.test(scoped)));
   const vehiclePreference = comparing ? null : parseVehiclePreference(scoped);
   if (vehiclePreference) extracted.vehiclePreference = vehiclePreference;
   if (interpretation) {
@@ -1688,9 +1707,13 @@ export async function getWhatsAppFlowReply(phone: string, rawBody: string, store
   // An existing customer's booking details always come from the booking itself.
   const voiced = hasBooking ? flowResult : await inOneVoice(flowResult, understood, current, previous, rawBody);
   const polished = humanFallback(withoutRepeatedMenu(voiced, previous, current?.locale ?? previous?.locale ?? 'he'), understood, previous, current, rawBody, phone);
-  const known = applyReturning(polished, previous, current, rawBody);
+  const known = applyReturning(withCarAdvice(polished, understood, current, rawBody, phone), previous, current, rawBody);
   const result = known.result;
   if (known.state) current = known.state;
+  // Every conversation keeps its history, even when the reply was a general answer that saved
+  // nothing: otherwise the next message starts from scratch ("ברוכים הבאים" in the middle of a chat).
+  // (A state the flow cleared on purpose — the end of the public demo — stays cleared.)
+  if (!current && saved === undefined && result.reply && !result.escalate) current = { step: 'menu', locale: detectWhatsAppLocale(rawBody) };
   if (current && result.reply) {
     const history = [
       ...(current.history ?? previous?.history ?? []),
@@ -1700,6 +1723,36 @@ export async function getWhatsAppFlowReply(phone: string, rawBody: string, store
     await store.saveState(phone, { ...current, history });
   }
   return result;
+}
+
+/** "יש לכם משהו חשמלי?", "יש ידניים?", "איזה רכבים יש לכם?" → the real fleet (whatsapp-catalog-knowledge.ts). */
+async function fleetReply(body: string, locale: FlowLocale): Promise<string> {
+  if (!/[?？]/.test(body) && !/(?:^|\s)(?:יש לכם|יש|איזה|אילו|do you have|any|which|what)(?=\s)/i.test(body)) return '';
+  const kind = /חשמל|היבריד|electric|hybrid|\bev\b/i.test(body) ? 'electric'
+    : /ידני|גיר ידני|manual|stick/i.test(body) ? 'manual'
+      : /אוטומט|automatic/i.test(body) ? 'automatic'
+        : /(?:איזה|אילו|מה) (?:רכבים|סוגי רכבים|דגמים)|what (?:cars|models)|which (?:cars|models)/i.test(body) ? 'types' : null;
+  return kind ? fleetQuestionAnswer(kind, locale) : '';
+}
+
+/**
+ * "מה מומלץ למשפחה של 5?", "מה ההבדל בין ג׳יפון ל־7 מקומות?": advice about car types from what the
+ * customer told us (whatsapp-advisor.ts), when Gemini did not answer. The booking question follows.
+ */
+function withCarAdvice(result: WhatsAppFlowResult, understood: WhatsAppInterpretation | null, current: FlowState | null, message: string, phone: string): WhatsAppFlowResult {
+  if (!current || !result.reply || result.escalate || current.handedOff || current.carSale || current.leasing) return result;
+  if (understood?.source === 'gemini' && understood.reply) return result;
+  if (current.step === 'rental_name' || current.step === 'rental_email' || current.step === 'rental_confirm') return result;
+  const locale = current.locale ?? 'he';
+  const advice = carAdvice(message, current, locale);
+  if (!advice) return result;
+  const ask = isRentalStep(current.step) ? expectedAsk(current) : null;
+  const used = (current.history ?? []).filter((entry) => entry.from === 'bot').map((entry) => entry.text);
+  // Advice that ends with its own question ("יש נסיעה כזאת בתוכנית?") is not followed by a second one.
+  const question = /[?？]\s*$/.test(advice) ? '' : ask && ask !== 'confirm'
+    ? bookingQuestion(ask as BookingAsk, locale, `${phone}:${message}`, used)
+    : /[?？]\s*$/.test(advice) ? '' : (locale === 'en' ? 'Want me to check it for your dates?' : 'רוצה שאבדוק לתאריכים שלך?');
+  return { ...result, reply: question ? `${advice}\n\n${question}` : advice };
 }
 
 /**
@@ -1810,7 +1863,9 @@ function humanFallback(result: WhatsAppFlowResult, understood: WhatsAppInterpret
   // specific (a repeated prompt or the generic "I'm here"): never an answer, a summary or a figure.
   const genericReply = result.reply.length <= 160 && !/\d/.test(result.reply) && !getBusinessKnowledgeResponse(message, locale);
   // A question with a published answer ("החבר שלי אמר שהדלק אצלכם יקר, זה נכון?") keeps that answer.
-  const answeredQuestion = /[?？]/.test(message) && Boolean(getBusinessKnowledgeResponse(message, locale)) && !/^(?:שאלה|good question)/i.test(result.reply);
+  const knownTopic = previous?.knowledgeTopic;
+  const answeredQuestion = (/[?？]/.test(message) || Boolean(knownTopic?.startsWith('leasing')))
+    && Boolean(getBusinessKnowledgeResponse(message, locale, knownTopic)) && !/^(?:שאלה|good question)/i.test(result.reply);
   const situation = addedDetail || message.length > 60 || answeredQuestion ? null : detectSituation(message) ?? (genericReply ? detectLearnedSituation(message) : null);
   // While asking for a name or an email, only small talk that can never be a name gets a human line.
   const askingDetails = current.step === 'rental_name' || current.step === 'rental_email';
@@ -2037,7 +2092,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   let initialRoute = classifyWhatsAppInitialRoute(body, Boolean(booking));
   // Hebrew letters are not "word" characters for \b, so boundaries are spelled out.
   const asksQuestion = /[?？]/.test(body)
-    || /(?:^|[\s,.!])(?:מה|איך|כמה|האם|איפה|היכן|מתי|עד מתי|למה|עולה|יש לכם|יש לך|אפשר|מותר|צריך|מאיזה|איזה|אילו|באיזה|what|how|where|when|why|which|do you|can i|is there|are there)(?=$|[\s,.!?])/i.test(body);
+    || /(?:^|[\s,.!])(?:מה|איך|כמה|האם|איפה|היכן|מתי|עד מתי|למה|עולה|יש לכם|יש לך|אפשר|מותר|צריך|מאיזה|איזה|אילו|באיזה|משתלם|כדאי|לעומת|ההבדל|מומלץ|ממליץ|worth|better|difference|recommend|what|how|where|when|why|which|do you|can i|is there|are there)(?=$|[\s,.!?])/i.test(body);
   const personRequested = /נציג|אנושי|בן ?אדם|בנאדם|יחזור|representative|human|person|someone|call me/i.test(body) && !mentionsPersonWithoutAsking(body);
   // "Are you a bot?" gets an honest answer, not a handoff.
   if (!existingState?.handedOff && (isBotQuestion(body) || /(?:^|\s)(?:אתה|את|זה)\s+(?:\S+\s+)?(?:בוט|רובוט)|are you (?:a )?(?:bot|robot|real|human)/i.test(normalized(body))
@@ -2076,7 +2131,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // "אתם לוקחים ביט או רק אשראי" is a question too, even without "?": the brain recognises the topic.
   // While a name or an email is expected, only a real question is read as one ("מיכל" is a name, not a fuel tank).
   const expectingDetail = existingState?.step === 'rental_name' || existingState?.step === 'rental_email';
-  const businessTopic = (expectingDetail ? /[?？]/.test(body) : asksQuestion || brainQuestionTopic(body))
+  const businessTopic = (expectingDetail ? /[?？]/.test(body) : asksQuestion || brainQuestionTopic(body) || existingState?.knowledgeTopic?.startsWith('leasing'))
     ? getBusinessKnowledgeResponse(body, locale, existingState?.knowledgeTopic)?.topic : undefined;
   if (businessTopic && existingState && !existingState.handedOff) {
     existingState.knowledgeTopic = businessTopic;
@@ -2330,13 +2385,26 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     return { handled: true, reply: interpretation.reply };
   }
 
+  // "יש לכם משהו חשמלי?", "יש אוטומטים?": answered from the real fleet.
+  // (The rental fleet is not the leasing offer: in a leasing conversation the representative presents models.)
+  if (!existingState?.handedOff && !existingState?.leasing && !existingState?.knowledgeTopic?.startsWith('leasing') && !isRentalStep(existingState?.step ?? 'menu') && interpretation?.source !== 'gemini') {
+    const fleet = await fleetReply(body, locale);
+    if (fleet) {
+      await store.saveState(phone, { ...(existingState ?? { step: 'menu' as const }), locale });
+      return { handled: true, reply: fleet };
+    }
+  }
+
   // A question the brain recognised as one with a published answer ("do I need to return it with a full
   // tank", "אתם לוקחים ביט?") is answered before any "rent, lease or buy?" disambiguation.
   if (businessTopic && interpretation?.source !== 'gemini' && !existingState?.handedOff && !existingState?.carSale && !existingState?.leasing
     && initialRoute !== 'rental' && !isRentalStep(existingState?.step ?? 'menu')
-    && classifyCommercialIntent(body) !== 'leasing' && classifyCommercialIntent(body) !== 'car_sale' && classifyCommercialIntent(body) !== 'sell_own_car') {
+    && (classifyCommercialIntent(body) !== 'leasing' || businessTopic.startsWith('leasing')) && classifyCommercialIntent(body) !== 'car_sale' && classifyCommercialIntent(body) !== 'sell_own_car') {
     const known = knowledgeReply(body, locale, existingState);
-    if (known) return known;
+    if (known) {
+      await store.saveState(phone, { ...(existingState ?? { step: 'menu' as const }), locale, knowledgeTopic: businessTopic });
+      return known;
+    }
   }
 
   // Keep the four commercial intents separate. A customer who says only
@@ -2563,7 +2631,10 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   if (!isRentalStep(existingState?.step ?? 'menu') && initialRoute !== 'rental') {
     // A published answer is better than the general "it depends on the terms" text.
     const known = businessTopic && !existingState?.handedOff ? knowledgeReply(body, locale, existingState) : null;
-    if (known) return known;
+    if (known) {
+      await store.saveState(phone, { ...(existingState ?? { step: 'menu' as const }), locale, knowledgeTopic: businessTopic });
+      return known;
+    }
     const service = serviceReply(classifyServiceIntent(body), locale, booking);
     if (service) return service;
   }
@@ -2578,6 +2649,11 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   if (existingState?.handedOff) {
     // A person is taking over. Confirm once that the message reached them, then stay quiet.
     const lastBot = [...(existingState.history ?? [])].reverse().find((entry) => entry.from === 'bot')?.text ?? '';
+    // A question while waiting for the team still gets its published answer ("ואם אני רוצה לצאת באמצע?").
+    const answer = asksQuestion || brainQuestionTopic(body) ? knowledgeReply(body, locale, existingState) : null;
+    if (answer?.reply && !answer.escalate) {
+      return { handled: true, escalate: true, escalateReason: 'שאלה נוספת בשיחה שהועברה לנציג', reply: `${answer.reply}\n\n${locale === 'en' ? 'The team already has your details and will get back to you.' : 'הצוות כבר מעודכן ויחזור אליך.'}` };
+    }
     const noted = locale === 'en' ? 'Got it, I’ve added this for the team 🙏' : 'קיבלתי, הוספתי את זה לצוות 🙏';
     return { handled: true, escalate: true, escalateReason: 'שיחה כבר הועברה לנציג', ...(lastBot === noted ? {} : { reply: noted }) };
   }
@@ -2622,7 +2698,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     // A plain question in the middle of a booking ("how much is the
     // deposit?") gets the published answer, then the same next question.
     if (asksQuestion && !Object.keys(extractRentalDetails(body, existingState, interpretation)).length) {
-      const answer = interpretation?.acknowledgement || knowledgeReply(body, locale, existingState)?.reply;
+      const answer = interpretation?.acknowledgement || (await fleetReply(body, locale)) || knowledgeReply(body, locale, existingState)?.reply;
       if (answer) return { handled: true, reply: rentalReply(interpretation, existingState, locale, booking, existingState, answer) };
     }
     const sales = existingState.step === 'rental_vehicle'
