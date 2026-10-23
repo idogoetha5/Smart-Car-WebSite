@@ -1,5 +1,12 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-23 final candidate review: airport advance-arrangement question now stays
+autonomous in an actual Gemini call. Notification status refusal exposed a broad
+sell_car label despite a correct notificationRequest flag and correct model reply;
+the nontransactional notification route now accepts either sales label (and
+unknown/policy), without overriding representative/safety/active-booking gates.
+Added the exact regression; rebuilt candidate/live verification still required.
+
 Additional candidate correction: the unseen airport-arrangement question was
 correctly classified policy by Gemini, but bare "someone" triggered the legacy
 person-request check. Use the existing request helper / explicit speak-to-someone

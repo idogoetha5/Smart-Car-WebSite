@@ -22,6 +22,14 @@ const emptyFields = {
 };
 
 describe('Gemini interpretation inside the WhatsApp flow', () => {
+  it('keeps a notification status complaint even when the broad sales label is wrong', async () => {
+    const reply = 'No, this chat has not added you to a notification list.';
+    const { store } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'complaint', intent: 'sell_car', notificationRequest: true, reply, asks: 'nothing' });
+    store.engine = 'ai';
+    const result = await getWhatsAppFlowReply('notification-status', 'Have you actually added me to the fleet-sale notification list? Do not send me a phone number or website.', store);
+    expect(result.reply).toBe(reply);
+    expect(result.escalate).not.toBe(true);
+  });
   it('does not turn an airport-arrangement question into a human request because it says someone', async () => {
     const reply = 'Airport collection needs an agreed arrangement in advance; simply arriving does not confirm a meeting.';
     const { store, state } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'explanation', intent: 'policy', acknowledgement: reply, reply, asks: 'nothing' });

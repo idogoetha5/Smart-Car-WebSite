@@ -2503,7 +2503,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // Keep the validated model's actual answer instead of replacing it with the
   // legacy sales catalogue. No subscription, transaction or outreach is created.
   if (interpretation?.source === 'gemini' && interpretation.reply
-    && interpretation.intent === 'buy_car' && interpretation.notificationRequest === true
+    && ['buy_car', 'sell_car', 'unknown', 'policy'].includes(interpretation.intent) && interpretation.notificationRequest === true
     && !booking && !existingState?.handedOff && !existingState?.lastQuestion
     && !['proceed', 'selection'].includes(interpretation.purpose ?? '')) {
     await store.saveState(phone, { ...(existingState ?? { step: 'menu' as const }), locale });
