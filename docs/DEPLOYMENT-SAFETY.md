@@ -8,6 +8,12 @@ A manual CLI release copy based on old HEAD `3f5feaa` overlaid bot-only files an
 
 ## Before every deployment or promotion
 
+### Canonical local source and quarantine (2026-10-23)
+
+The complete persistent release checkout is `/Users/idog/Documents/Codex/SmartCar/production-source`; the shared source of truth remains latest `origin/clean-main`. The old partial export is preserved at `/Users/idog/Documents/Codex/SmartCar/quarantine/2026-10-22-INCOMPLETE-DO-NOT-DEPLOY`, with its Vercel link disabled and its npm build blocked. The original dirty Developer checkout is preserved, not a release baseline. See `/Users/idog/Documents/Codex/SmartCar/README.md` for the folder map. Historical handoffs claiming that excluding admin changes is safe are superseded.
+
+`scripts/ci/production-preservation-baseline.json` records every source/public path from the complete restored release and exact checksums of all public assets, not only the issues noticed by the owner. The preflight blocks missing baseline files and changed public assets. Updating this manifest to remove/replace something is a reviewable change requiring the owner's specific approval, never a workaround for a failed check.
+
 1. Read AGENTS.md, this file and current docs/AI-HANDBOOK.md. Fetch origin/clean-main and use it as the complete application baseline, never an older local checkout or a hand-picked file export.
 2. Inspect git status and preserve all user/other-agent work. Integrate the scoped change into the current baseline; do not decide that another feature is irrelevant and therefore exclude it from a whole-site deployment.
 3. Coordinate with other active publishers through the user. One release owner at a time; do not race deploy/promote/alias operations. An earlier permission to publish is not permission to override someone else's newer release.

@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   sms: vi.fn(),
   rateLimit: vi.fn(),
   classify: vi.fn(),
+  incident: vi.fn(),
+  settings: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -19,7 +21,7 @@ vi.mock('@/lib/supabase/server', () => ({
       const query = {
         select: () => query,
         eq: () => query,
-        maybeSingle: async () => ({ data: { enabled: true }, error: null }),
+        maybeSingle: mocks.settings,
       };
       return query;
     },
@@ -40,6 +42,7 @@ vi.mock('@/lib/whatsapp-flow', () => ({
   classifyWhatsAppInitialRoute: mocks.classify,
 }));
 vi.mock('@/lib/sms-alert', () => ({ sendEscalationSms: mocks.sms }));
+vi.mock('@/lib/whatsapp-incidents', () => ({ reportBotIncident: mocks.incident }));
 
 import { POST } from './route';
 
@@ -94,6 +97,8 @@ beforeEach(() => {
   mocks.classify.mockReturnValue('new_customer');
   mocks.send.mockResolvedValue({ ok: true, waMessageId: 'outbound-1', status: 200 });
   mocks.sms.mockResolvedValue(true);
+  mocks.incident.mockResolvedValue(true);
+  mocks.settings.mockResolvedValue({ data: { enabled: true }, error: null });
 });
 
 afterEach(() => {
@@ -104,6 +109,16 @@ afterEach(() => {
 });
 
 describe('local WhatsApp webhook boundary', () => {
+  it.each([{ data: null, error: null }, { data: null, error: { message: 'unavailable' } }])('fails closed when the kill switch cannot be verified', async settings => {
+    process.env.WHATSAPP_TRANSPORT = '360dialog';
+    process.env.WHATSAPP_WEBHOOK_SECRET = 'local-dialog-secret';
+    mocks.settings.mockResolvedValue(settings);
+    const response = await POST(dialogRequest('local-dialog-secret'));
+    expect(response.status).toBe(503);
+    expect(mocks.flow).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
+    expect(mocks.incident).toHaveBeenCalledWith('settings_unavailable');
+  });
   it('refuses requests while no transport is configured', async () => {
     delete process.env.WHATSAPP_TRANSPORT;
     const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
@@ -123,7 +138,9 @@ describe('local WhatsApp webhook boundary', () => {
   it('does not mistake a logging failure for a duplicate message', async () => {
     mocks.log.mockRejectedValueOnce(new Error('database unavailable'));
     const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
-    await expect(POST(metaRequest(signature))).rejects.toThrow('database unavailable');
+    const response = await POST(metaRequest(signature));
+    expect(response.status).toBe(503);
+    expect(mocks.incident).toHaveBeenCalledWith('processing_failed');
     expect(mocks.send).not.toHaveBeenCalled();
   });
 

@@ -60,12 +60,18 @@ export async function logWhatsAppMessage(params: {
 export async function isConversationSilenced(phone: string): Promise<boolean> {
   const supabase = createAdminClient();
   const cutoff = new Date(Date.now() - SILENCE_WINDOW_MS).toISOString();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('whatsapp_messages')
     .select('source, created_at, escalated_at')
     .eq('phone', phone)
+    // Filter before limiting: twenty later customer messages must not push
+    // Daniel's reply out of the window and accidentally reactivate the bot.
+    .or(`and(source.eq.human_reply,created_at.gt.${cutoff}),escalated_at.gt.${cutoff}`)
     .order('created_at', { ascending: false })
-    .limit(20);
+    .limit(1);
+
+  // A failed ownership check is not permission to talk over a representative.
+  if (error) throw new Error('[whatsapp] failed to verify human takeover');
 
   for (const row of (data ?? []) as { source: string; created_at: string; escalated_at: string | null }[]) {
     if (row.source === 'human_reply' && row.created_at > cutoff) return true;

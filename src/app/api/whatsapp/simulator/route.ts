@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWhatsAppFlowReply, type FlowState, type WhatsAppFlowStore } from '@/lib/whatsapp-flow';
 import { interpretWhatsAppMessage, type WhatsAppInterpretation } from '@/lib/whatsapp-gemini';
+import { withModelChain } from '@/lib/whatsapp-gemini-client';
 import { checkRateLimit } from '@/lib/ratelimit';
 
 export const runtime = 'nodejs';
@@ -36,6 +37,7 @@ function simulationStore(sessionId: string, initialState: FlowState | null) {
   let state = initialState;
   let understood: WhatsAppInterpretation | null = null;
   return {
+    engine: process.env.WHATSAPP_ENGINE === 'ai' ? 'ai' : 'local',
     isSimulation: true,
     activeBooking: async () => null,
     loadState: async () => state,
@@ -78,7 +80,13 @@ export async function POST(request: NextRequest) {
   const initialState = payload?.state && ['menu', 'rental_dates', 'rental_times', 'rental_locations', 'rental_vehicle', 'rental_name', 'rental_email', 'rental_confirm'].includes(payload.state.step)
     && (payload.state.locale === 'he' || payload.state.locale === 'en') ? payload.state : null;
   const store = simulationStore(sessionId, initialState);
-  const result = await getWhatsAppFlowReply(`simulation-${sessionId}`, message, store);
+  // Explicit offline rehearsal, even on a machine with a valid provider key.
+  const offline = request.headers.get('x-smartcar-engine') === 'local';
+  const aiRehearsal = request.headers.get('x-smartcar-debug') === '1' && request.headers.get('x-smartcar-engine') === 'ai';
+  const selectedStore: WhatsAppFlowStore = offline ? { ...store, engine: 'local' } : aiRehearsal ? { ...store, engine: 'ai' } : store;
+  // A tester can check one free model at a time (x-smartcar-models: gemma-4-31b-it); only the known free models are accepted.
+  const models = request.headers.get('x-smartcar-debug') === '1' ? (request.headers.get('x-smartcar-models') ?? '').split(',').map((model) => model.trim()).filter(Boolean) : [];
+  const result = await withModelChain(models, () => getWhatsAppFlowReply(`simulation-${sessionId}`, message, selectedStore));
   const state = store.currentState();
   return NextResponse.json({
     reply: result.reply ?? '',

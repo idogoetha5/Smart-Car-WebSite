@@ -6,6 +6,7 @@ import { sendWhatsAppMessage, normalizeWhatsAppSender } from '@/lib/whatsapp';
 import { logWhatsAppMessage, isConversationSilenced } from '@/lib/whatsapp-conversations';
 import { classifyWhatsAppInitialRoute, getWhatsAppFlowReply } from '@/lib/whatsapp-flow';
 import { sendEscalationSms } from '@/lib/sms-alert';
+import { reportBotIncident } from '@/lib/whatsapp-incidents';
 
 /**
  * Inbound WhatsApp webhook. Handles the preferred YCloud Coexistence path
@@ -195,13 +196,15 @@ async function handleCustomerMessage(msg: InboundMessage, botEnabled: boolean) {
       });
     } else {
       console.error(`[whatsapp][ALERT] structured reply could not be delivered to ${phone}`);
+      await reportBotIncident('delivery_failed');
     }
     if (flow.escalate) {
-      await sendEscalationSms({
+      const alerted = await sendEscalationSms({
         customerPhone: phone,
         reason: send.ok ? (flow.escalateReason ?? 'לא צוינה סיבה') : `שליחת WhatsApp נכשלה: ${flow.escalateReason ?? 'לא צוינה סיבה'}`,
         lastMessage: body,
       });
+      if (!alerted) await reportBotIncident('handoff_alert_failed');
     }
     return;
   }
@@ -211,6 +214,7 @@ async function handleCustomerMessage(msg: InboundMessage, botEnabled: boolean) {
   const reply = 'לא הצלחנו להבין את הבקשה. כתבו "תפריט" כדי להתחיל מחדש, או "נציג" כדי לעבור לצוות SmartCar.';
   const send = await sendWhatsAppMessage(phone, reply);
   if (send.ok) await logWhatsAppMessage({ phone, source: 'bot_outbound', body: reply, waMessageId: send.waMessageId });
+  else await reportBotIncident('delivery_failed');
 }
 
 async function handleChange(change: WebhookChange, botEnabled: boolean) {
@@ -267,9 +271,14 @@ export async function POST(request: NextRequest) {
   }
   if (!payload) return NextResponse.json({ ok: true });
 
+  try {
   const supabase = createAdminClient();
-  const { data: settings } = await supabase.from('whatsapp_bot_settings').select('enabled').eq('id', true).maybeSingle();
-  const botEnabled = settings?.enabled !== false;
+  const { data: settings, error } = await supabase.from('whatsapp_bot_settings').select('enabled').eq('id', true).maybeSingle();
+  if (error || !settings) {
+    await reportBotIncident('settings_unavailable');
+    return NextResponse.json({ error: 'settings unavailable' }, { status: 503 });
+  }
+  const botEnabled = settings.enabled === true;
 
   if (process.env.WHATSAPP_TRANSPORT === 'ycloud') {
     await handleYCloudEvent(payload as YCloudPayload, botEnabled);
@@ -281,4 +290,8 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ ok: true });
+  } catch {
+    await reportBotIncident('processing_failed');
+    return NextResponse.json({ error: 'processing unavailable' }, { status: 503 });
+  }
 }

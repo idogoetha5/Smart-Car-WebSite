@@ -1,0 +1,44 @@
+import { OFFICE_EMAIL } from '@/lib/constants';
+
+export type BotIncident = 'processing_failed' | 'delivery_failed' | 'handoff_alert_failed' | 'settings_unavailable' | 'test';
+const LABELS: Record<BotIncident, string> = {
+  processing_failed: 'תקלה בעיבוד הודעת WhatsApp',
+  delivery_failed: 'תשובת הבוט לא נמסרה לספק WhatsApp',
+  handoff_alert_failed: 'התרעת המעבר לנציג לא נשלחה ב־SMS',
+  settings_unavailable: 'לא ניתן לבדוק אם המענה האוטומטי מופעל',
+  test: 'בדיקת מנגנון התרעות — אין תקלה אמיתית',
+};
+
+/** Independent of the conversation DB. No customer text, keys or raw errors.
+ * Provider idempotency deduplicates identical incident classes for 15 minutes,
+ * across server instances. A full hosting outage still needs external monitoring.
+ */
+export async function reportBotIncident(kind: BotIncident): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const to = process.env.WHATSAPP_INCIDENT_EMAIL;
+  if (!apiKey || !to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    console.error('[whatsapp][incident] notification configuration missing');
+    return false;
+  }
+  const bucket = Math.floor(Date.now() / 900000);
+  // Body must remain identical for the idempotency key, including across workers.
+  const body = JSON.stringify({ from: `SmartCar <${OFFICE_EMAIL}>`, to: [to],
+    subject: `[SmartCar] ${LABELS[kind]}`,
+    text: `${LABELS[kind]}\nקוד: ${kind}\nחלון האירוע: ${new Date(bucket * 900000).toISOString()}\nיש לבדוק את המערכת ואת השיחות הממתינות. אין בהודעה זו אישור שהתקלה תוקנה.\nhttps://www.smartcar.co.il/he/admin/inbox\nהודעה זו אינה כוללת תוכן שיחות או פרטי לקוחות.`,
+  });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', { method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `smartcar-bot/${kind}/${bucket}` },
+        body, signal: AbortSignal.timeout(4000),
+      });
+      if (response.ok) {
+        const result = await response.json().catch(() => null) as { id?: string } | null;
+        return Boolean(result?.id);
+      }
+      if (response.status !== 429 && response.status < 500) break;
+    } catch { /* Same idempotency key makes an ambiguous email retry safe. */ }
+  }
+  console.error(`[whatsapp][incident] email notification failed: ${kind}`);
+  return false;
+}

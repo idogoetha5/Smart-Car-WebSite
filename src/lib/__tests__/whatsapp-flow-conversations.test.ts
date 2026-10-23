@@ -217,7 +217,7 @@ describe('Eight required local SmartCar conversations', () => {
     expect(result.escalate).not.toBe(true);
     expect(result.reply).toContain('הסימולציה הושלמה');
     expect(result.reply).toContain('לא נשלחה בקשה');
-    expect(state).toBeNull();
+    expect(state).toMatchObject({ step: 'menu', completedRequestId: 'simulation', pickupDate: '2026-09-12' });
   });
 
   it('routes the leasing-or-purchase menu choice to a specific commercial question, never to rental', async () => {
@@ -426,13 +426,12 @@ describe('Eight required local SmartCar conversations', () => {
     expect(mockDb.states.get(PHONE)?.state).toMatchObject({ handedOff: true });
   });
 
-  it('keeps collected details when a customer asks to change or cancel', async () => {
+  it('clarifies an unspecified draft change independently without losing collected details', async () => {
     await getWhatsAppFlowReply(PHONE, 'I need a car on 10/09/2026 to 14/09/2026, 9am to 6pm');
     const result = await getWhatsAppFlowReply(PHONE, 'I need to change this please');
-    expect(result.escalate).toBe(true);
-    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ pickupDate: '2026-09-10', handedOff: true });
-    expect(result.escalateReason).toContain('איסוף 2026-09-10');
-    expect(result.reply).toContain('not need to repeat');
+    expect(result.escalate).not.toBe(true);
+    expect(mockDb.states.get(PHONE)?.state).toMatchObject({ pickupDate: '2026-09-10', pendingControl: 'edit' });
+    expect(result.reply).toBe('Which detail would you like to change?');
   });
 
   it.each([

@@ -1,5 +1,11 @@
 # SmartCar business assistant — current architecture
 
+## Current integration — 2026-10-23 (supersedes historical details below)
+
+Updated coaching, academy retrieval, semantic advisory purpose, draft corrections/read-only recall, durable conversation memory and human-takeover checks are integrated on the full restored website. Production now has persistent `WHATSAPP_ENGINE=ai`, replacing the old CLI-only deployment override; absent that setting, the current stores default to local mode. Provider access prefers `WHATSAPP_GEMINI_API_KEY` and falls back to the existing `GEMINI_API_KEY`; the OCR credential was not changed. The selected chain currently returns one `gemini-3.5-flash-lite`, not the historical multi-model list. Coaching material is inference-time guidance, not model-weight training. The historical twelve-hour deletion-notice cron is now a compatible no-op and sends nothing.
+
+The simulator remains isolated (no real booking/customer writes/WhatsApp sends). New incident reporting is PII-free and requires the existing configured recipient/key; this integration does not activate transport or change credentials. Real YCloud/Daniel inbound, reply, echo and handoff remain separate acceptance gates. Run the complete tests plus preservation preflight, deploy from latest `origin/clean-main` in the canonical full source, then verify the live simulator and preserved website. Do not republish the quarantined partial release.
+
 The owner wants a natural, bilingual business representative, not a menu-only bot. Gemini interprets free-form language and composes grounded answers. Local code owns consent, actual prices, persistence, emergencies and human takeover. No component can guarantee understanding every question or uninterrupted provider availability.
 
 ## Connection and recovery

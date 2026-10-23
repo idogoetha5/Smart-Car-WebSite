@@ -30,7 +30,9 @@ const lastPages = new Map<string, { text: string; at: number }>();
 
 function staticKnowledge() {
   const branches = BRANCHES.map((b) => `- ${b.nameHe}: ${b.streetHe}, ${b.cityHe}. ${b.nameEn}: ${b.streetEn}, ${b.cityEn}. טלפון / Phone ${b.phone}.`).join('\n');
-  const faq = FAQ_HE.map((item) => `ש: ${item.q}\nת: ${item.a}`).join('\n\n');
+  const faq = FAQ_HE.map((item) => `ש: ${item.q}\nת: ${item.learnMoreHref === '/leasing'
+    ? 'יש השכרה קצרה וגם חודשית/ארוכה, לצד ליסינג פרטי ועסקי. התקופה, הקילומטראז׳, המחיר, התחזוקה והביטוח נקבעים בהצעה ובהסכם המסוימים; אין להסיק שהכל כלול בשם המסלול.'
+    : item.a}`).join('\n\n');
   const answers = [...Object.values(ANSWERS), ...BUSINESS_KNOWLEDGE].map((answer) => `- ${answer.he}\n${answer.en}`).join('\n');
   const delivery = DELIVERY_CITIES.map((city) => `- ${city.nameHe}: ${city.bodyHe}`).join('\n');
   return `# פרטי קשר

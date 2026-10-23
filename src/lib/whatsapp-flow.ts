@@ -8,6 +8,8 @@ import { placeName, rentalConfirmationIntro, rentalServicePrompt } from '@/lib/w
 import { getBusinessKnowledgeResponse } from '@/lib/whatsapp-business-knowledge';
 import { composeServiceResponse, detectConversationMood } from '@/lib/service-response';
 import { consultativeSalesReply } from '@/lib/consultative-sales';
+import { localConsultationTurn, type LocalConsultation } from '@/lib/whatsapp-local-consultation';
+import { parseConversationControl, forgetConversationFacts, factQuestion, type EditableFact } from '@/lib/whatsapp-conversation-control';
 import { getCarsForSale, type CarForSale } from '@/lib/cars-for-sale';
 import { closeEnough, repairCustomerText } from '@/lib/whatsapp-typing';
 import { bookingQuestion, detectLearnedSituation, detectSituation, humanLine, type BookingAsk } from '@/lib/whatsapp-replies';
@@ -17,7 +19,7 @@ import { ASKS_ABOUT_REQUEST, SAME_AS_LAST_TIME, filledDetailsLine, requestStatus
 import { asksForPerson, bookingScope, isBotQuestion, notOurEmergencyNow, mentionsPersonWithoutAsking, withoutPersonWords } from '@/lib/whatsapp-context';
 import { brainDates, brainPassengers, brainPlaces, brainQuestionTopic, brainSamePlace, brainVehicle } from '@/lib/whatsapp-brain';
 import { INTENT_KEYWORDS, VEHICLE_WORDS, WANT_WORDS } from '@/lib/whatsapp-vocabulary';
-import { composeOneMessage, interpretWhatsAppMessage, type WhatsAppAsk, type WhatsAppInterpretation, type WhatsAppInterpretationContext } from '@/lib/whatsapp-gemini';
+import { guardedReply, singleQuestionReply, interpretWhatsAppMessage, type WhatsAppAsk, type WhatsAppInterpretation, type WhatsAppInterpretationContext } from '@/lib/whatsapp-gemini';
 import {
   classifyCommercialIntent,
   commercialIntentQuestion,
@@ -32,7 +34,13 @@ type FlowLocale = 'he' | 'en';
 type LeasingKind = 'private' | 'business' | 'unknown';
 
 export interface FlowState {
+  pendingControl?: 'forget' | 'edit';
+  pendingEdit?: EditableFact;
+  completedRequestId?: string;
+  localConsultation?: LocalConsultation;
   step: FlowStep;
+  /** Durable needs/decisions, independent of the rolling message window. No contact data. */
+  conversationMemory?: string;
   /** A human is handling this conversation; keep the collected facts but stop auto-routing it. */
   handedOff?: boolean;
   pickupDate?: string;
@@ -81,7 +89,11 @@ export interface BookingSummary {
 }
 
 export interface WhatsAppFlowResult {
+  conversationControl?: boolean;
+  localConsultation?: boolean;
   handled: boolean;
+  /** Technical outage: do not run keyword-based sales/advice postprocessors. */
+  aiUnavailable?: boolean;
   reply?: string;
   escalate?: boolean;
   escalateReason?: string;
@@ -90,6 +102,8 @@ export interface WhatsAppFlowResult {
 type ServiceIntent = 'policy' | 'delivery_return' | 'leasing_sale' | 'existing_booking' | 'unknown';
 
 export interface WhatsAppFlowStore {
+  /** Local mode must never call a model, even if credentials are configured. */
+  engine?: 'local' | 'ai';
   activeBooking(phone: string): Promise<BookingSummary | null>;
   loadState(phone: string): Promise<FlowState | null>;
   saveState(phone: string, state: FlowState | null): Promise<void>;
@@ -217,6 +231,8 @@ export function requiresHumanHandoff(message: string, duringActiveRentalCollecti
   const text = input.toLowerCase();
   // "What if I get a scratch?" is a question about the rules, answered from the site.
   if (isHypothetical(text) && !/נציג|בן ?אדם|בנאדם|representative|human|call me|תתקשרו|תחזרו/.test(text)) return false;
+  // A personal charge/refund dispute is not the general payment FAQ.
+  if (/ירד(?:ו)? לי.{0,35}(?:כרטיס|שקל|₪|אשראי)|(?:מגיע לי|דורש|קיבלתי|הבטחתם|עדיין אין).{0,25}החזר|תחזירו לי (?:את )?הכסף|לא שחררו.{0,15}פיקדון|איפה הפיקדון שלי|המסגרת.{0,15}עדיין תפוסה|double.charged|charged me twice|where is my refund|still waiting for (?:my )?refund/i.test(text)) return true;
   // "אחזור אליך ביום ראשון", "I'll get back to you": the customer will come back — not a request for a call.
   if (/(?:^|\s)(?:אני )?אחזור (?:אלי|לך|אליכ)|נחזור אליכ|i'?ll (?:get back|come back|text you back)|will get back to you/i.test(text) && !/נציג|representative|תתקשרו|call me/.test(text)) return false;
   // Misspelled requests for a person or a refund still reach a person.
@@ -629,7 +645,7 @@ function emailPrompt(locale: FlowLocale) {
       ]);
 }
 
-function confirmationPrompt(state: FlowState, locale: FlowLocale) {
+function confirmationPrompt(state: FlowState, locale: FlowLocale, reviewOnly = false) {
   const category: Record<string, { he: string; en: string }> = {
     ECONOMY_COMPACT: { he: 'קטן וחסכוני', en: 'Small and economical' },
     SEDAN: { he: 'משפחתי', en: 'Family car' },
@@ -640,6 +656,9 @@ function confirmationPrompt(state: FlowState, locale: FlowLocale) {
   };
   const vehicle = category[state.vehiclePreference ?? 'ALL']?.[locale] ?? state.vehiclePreference ?? '-';
   const needs = [state.passengers && (locale === 'en' ? `${state.passengers} passengers` : `${state.passengers} נוסעים`), state.luggage && (locale === 'en' ? `${state.luggage} bags` : `${state.luggage} מזוודות`), state.childSeats && (locale === 'en' ? `${state.childSeats} child seats` : `${state.childSeats} כיסאות ילדים`), state.tripNeeds].filter(Boolean).join(', ');
+  if (reviewOnly) return locale === 'en'
+    ? `Here is your current draft: ${formatDate(state.pickupDate!)} to ${formatDate(state.dropoffDate!)}; pickup ${placeName(state.pickupLocation, locale)}, return ${placeName(state.dropoffLocation, locale)}; ${vehicle}${needs ? `; ${needs}` : ''}. Name: ${state.customerName}; email: ${state.customerEmail}. Nothing has been submitted or booked.`
+    : `זה הסיכום המעודכן של הבקשה: ${formatDate(state.pickupDate!)} עד ${formatDate(state.dropoffDate!)}; איסוף ${state.pickupLocation}, החזרה ${state.dropoffLocation}; ${vehicle}${needs ? `; ${needs}` : ''}. שם: ${state.customerName}; מייל: ${state.customerEmail}. הבקשה עדיין לא נשלחה ולא בוצעה הזמנה.`;
   const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://smartcar.co.il';
   const consent = termsConsent(locale);
   if (locale === 'en') return `${rentalConfirmationIntro(state, locale)}\n\nDates: ${formatDate(state.pickupDate!)} to ${formatDate(state.dropoffDate!)}${state.pickupTime ? `\nTimes: ${state.pickupTime}${state.returnTime ? ` to ${state.returnTime}` : ''}` : ''}\nPickup: ${placeName(state.pickupLocation, locale)}\nReturn: ${placeName(state.dropoffLocation, locale)}\nVehicle: ${vehicle}${needs ? `\nTrip needs: ${needs}` : ''}\nName: ${state.customerName}\nEmail: ${state.customerEmail}\n\nThis is a rental request, not a confirmation of availability, price, or a specific vehicle. A SmartCar representative will review the full fleet and provide final written confirmation.\n\n${consent.text}\n${base}/en/terms\n${base}/en/privacy\n\nReply I confirm to submit, or menu to start again.`;
@@ -727,9 +746,9 @@ function parseDateCandidates(input: string) {
   // Hebrew prepositions are often glued to the day: "מ5 בינואר", "ל־9 בינואר".
   const hebrewOrEnglishDayFirst = new RegExp(`(?:^|[\\s,(])(?:מה|מ|ב|ה|ל|ו|עד)?[-־]?(${dayNames})\\s+(?:ב|ל|of\\s+)?(${monthNames})(?:\\s+(\\d{2,4}))?`, 'gi');
   for (const match of input.matchAll(hebrewOrEnglishDayFirst)) add(match[1], MONTHS[match[2].toLowerCase()], match[3]);
-  const englishMonthFirst = new RegExp(`\\b(${monthNames})\\s+(${dayNames})(?:st|nd|rd|th)?(?:,?\\s+(\\d{2,4}))?`, 'gi');
+  const englishMonthFirst = new RegExp(`\\b(${monthNames})\\s+(${dayNames})(?:st|nd|rd|th)?(?!\\d)(?:,?\\s+(\\d{2,4}))?`, 'gi');
   for (const match of input.matchAll(englishMonthFirst)) add(match[2], MONTHS[match[1].toLowerCase()], match[3]);
-  const hebrewMonthFirst = new RegExp(`(?:^|\\s)(${monthNames})\\s+(${dayNames})(?:\\s+(\\d{2,4}))?`, 'gi');
+  const hebrewMonthFirst = new RegExp(`(?:^|\\s)(${monthNames})\\s+(${dayNames})(?!\\d)(?:\\s+(\\d{2,4}))?`, 'gi');
   for (const match of input.matchAll(hebrewMonthFirst)) add(match[2], MONTHS[match[1].toLowerCase()], match[3]);
   return results;
 }
@@ -1211,7 +1230,10 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
   }
   // "רכב קטן או משהו יותר גדול?" is a question, not a choice.
   // "ומה יותר חסכוני בדלק?", "which is roomier?" ask about cars; they do not choose one.
-  const comparing = /[?？]/.test(scoped) && (/\sאו\s|\sor\s/i.test(scoped) || (/^(?:ו?מה|ו?איזה|ו?האם|ו?איך|what|which|is|how)\s/i.test(scoped.trim()) && !/בוא נלך|נלך על|אני רוצה|ניקח|I'?ll take|let'?s go with|we'?ll take/i.test(scoped)));
+  const comparing = (interpretation?.source === 'gemini' && (['advice', 'comparison', 'explanation', 'complaint', 'social'].includes(interpretation.purpose ?? '')
+    || Boolean(interpretation.purpose && (!interpretation.vehiclePreference || !interpretation.vehicleEvidence.trim()))))
+    || /(?:ממליץ|מומלץ|מה עדיף|מה מתאים|תסביר|ההבדל|תזכיר|רק מתעניין|בלי.{0,15}שאלות|recommend|which.*better|explain|remind|just (?:comparing|looking)|not ready to book)/i.test(scoped)
+    || (/[?？]/.test(scoped) && (/\sאו\s|\sor\s/i.test(scoped) || (/^(?:ו?מה|ו?איזה|ו?האם|ו?איך|what|which|is|how)\s/i.test(scoped.trim()) && !/בוא נלך|נלך על|אני רוצה|ניקח|I'?ll take|let'?s go with|we'?ll take/i.test(scoped))));
   const vehiclePreference = comparing ? null : parseVehiclePreference(scoped);
   if (vehiclePreference) extracted.vehiclePreference = vehiclePreference;
   if (interpretation) {
@@ -1231,7 +1253,8 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
     const pickupKnown = extracted.pickupLocation ?? current.pickupLocation;
     if (!current.dropoffLocation && pickupKnown && SAME_PLACE.test(scoped) && !knownPlacesIn(scoped).length) extracted.dropoffLocation = pickupKnown;
     const vehicleEvidence = interpretation.vehicleEvidence.trim();
-    if (!vehiclePreference && interpretation.vehiclePreference && vehicleEvidence
+    if (!comparing && !vehiclePreference && interpretation.vehiclePreference && vehicleEvidence
+      && parseVehiclePreference(vehicleEvidence) === interpretation.vehiclePreference
       && scoped.toLocaleLowerCase().includes(vehicleEvidence.toLocaleLowerCase())) {
       extracted.vehiclePreference = interpretation.vehiclePreference;
     }
@@ -1259,7 +1282,7 @@ function extractRentalDetails(body: string, current: FlowState, interpretation?:
   const emailMatch = body.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
   const email = emailMatch ? validEmail(emailMatch[0]) : validEmail(body);
   if (email) extracted.customerEmail = email;
-  const name = explicitName(body) ?? (!current.customerName ? introducedName(body) ?? (Object.keys(extracted).length || parseDateCandidates(body).length || relativeDate(body, todayInIsrael(), false) ? null : looksLikeFullName(body)) : null);
+  const name = explicitName(body) ?? (!comparing && !current.customerName ? introducedName(body) ?? (Object.keys(extracted).length || parseDateCandidates(body).length || relativeDate(body, todayInIsrael(), false) ? null : looksLikeFullName(body)) : null);
   if (name) extracted.customerName = name;
   return extracted;
 }
@@ -1289,19 +1312,12 @@ async function activeBooking(phone: string): Promise<BookingSummary | null> {
   return currentOrUpcoming[0] ?? null;
 }
 
-/** The bot keeps a conversation for 12 hours after the customer's last message. */
-export const CONVERSATION_MEMORY_MS = 12 * 60 * 60 * 1000;
-
 async function loadState(phone: string): Promise<FlowState | null> {
   const supabase = createAdminClient();
   const { data, error } = await supabase.from('whatsapp_conversation_states').select('state, updated_at').eq('phone', phone).maybeSingle();
   if (error) throw new Error(`[whatsapp-flow] failed to load state: ${error.message}`);
   if (!data?.state || typeof data.state !== 'object') return null;
-  if (Date.now() - new Date(data.updated_at).getTime() > CONVERSATION_MEMORY_MS) {
-    const { error: deleteError } = await supabase.from('whatsapp_conversation_states').delete().eq('phone', phone);
-    if (deleteError) console.error('[whatsapp-flow][ALERT] failed to remove expired state:', deleteError.message);
-    return null;
-  }
+  // Owner requirement: inactivity must not erase the conversation.
   const state = data.state as FlowState;
   return ['menu', 'rental_dates', 'rental_times', 'rental_locations', 'rental_vehicle', 'rental_name', 'rental_email', 'rental_confirm'].includes(state.step) ? state : null;
 }
@@ -1313,7 +1329,7 @@ async function saveState(phone: string, state: FlowState | null) {
     if (error) throw new Error(`[whatsapp-flow] failed to clear state: ${error.message}`);
     return;
   }
-  // A new message restarts the 12 hours, so a closing notice already sent no longer applies.
+  // Strip legacy expiry-notice metadata; inactivity no longer resets memory.
   const { closingNoticeSentAt: _sent, ...fresh } = state;
   void _sent;
   const { error } = await supabase.from('whatsapp_conversation_states').upsert({ phone, state: fresh, updated_at: new Date().toISOString() });
@@ -1374,6 +1390,7 @@ function isAcknowledgement(input: string) {
 
 function validName(input: string) {
   const value = input.trim().replace(/\s+/g, ' ');
+  if (/^(?:תזכיר|תסביר|תפרט|ספר לי|תענה|בלי שאלות|remind|explain|tell me|answer)(?=\s|$)/i.test(value)) return null;
   if (value.length < 2 || value.length > 100 || /https?:\/\//i.test(value)) return null;
   // "ליאור שלום", "מלכה שלום": a word like שלום is a surname after a first name.
   const firstWord = value.split(' ')[0];
@@ -1524,6 +1541,7 @@ async function pastCustomer(phone: string): Promise<PastCustomer | null> {
 }
 
 const persistentStore: WhatsAppFlowStore = {
+  engine: process.env.WHATSAPP_ENGINE === 'ai' ? 'ai' : 'local',
   activeBooking, loadState, saveState, createRentalRequest, pastCustomer,
   getRentalQuotes: (state) => getWhatsAppRentalQuotes(state.vehiclePreference, state.pickupDate!, state.dropoffDate!),
   getCarsForSale,
@@ -1534,24 +1552,14 @@ const persistentStore: WhatsAppFlowStore = {
 
 function quotePrompt(quotes: WhatsAppRentalQuote[], locale: FlowLocale) {
   // One line per model: three identical Corollas read like a glitch.
-  quotes = quotes.filter((quote, index) => quotes.findIndex((other) => other.title === quote.title) === index);
+  quotes = quotes.filter((quote, index) => quotes.findIndex((other) => other.title === quote.title) === index).slice(0, 1);
   if (!quotes.length) return '';
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://smartcar.co.il';
   const options = quotes.map((quote) => {
-    const link = `${base}/${locale}/rental/${quote.id}`;
-    return locale === 'en' ? `${quote.title}\n₪${quote.pricePerDay.toLocaleString()}/day · ₪${quote.total.toLocaleString()} for ${quote.days} days\n${link}` : `${quote.title}\n₪${quote.pricePerDay.toLocaleString()} ליום · ₪${quote.total.toLocaleString()} ל־${quote.days} ימים\n${link}`;
+    return locale === 'en' ? `${quote.title}: approximately ₪${quote.pricePerDay.toLocaleString()}/day, ₪${quote.total.toLocaleString()} for ${quote.days} days.` : `${quote.title}: כ־₪${quote.pricePerDay.toLocaleString()} ליום, ₪${quote.total.toLocaleString()} ל־${quote.days} ימים.`;
   }).join('\n\n');
   return locale === 'en'
-    ? pickRandom([
-        `A few options from our fleet for your dates:\n\n${options}\n\n(Estimated prices — a SmartCar representative confirms availability and the final price.)\n\n`,
-        `I pulled up some estimated prices for those dates:\n\n${options}\n\nPlease note these are catalogue estimates, not a confirmed reservation. A human representative will check live availability and confirm everything with you!\n\n`,
-        `Based on the dates you requested, here is a quick price check:\n\n${options}\n\nJust a reminder: this is an estimate and not a final booking. Our team will verify availability and give you the final go-ahead.\n\n`
-      ])
-    : pickRandom([
-        `הנה כמה אפשרויות מהצי לתאריכים שלך:\n\n${options}\n\n(מחירים משוערים — נציג SmartCar מאשר זמינות ומחיר סופי.)\n\n`,
-        `בדקתי את התעריפים לתאריכים האלו, הנה כמה אופציות:\n\n${options}\n\nחשוב לי לציין שאלו הצעות מחיר כלליות ולא הבטחה למלאי. נציג אנושי יעבור על הבקשה ויאשר לכם זמינות סופית!\n\n`,
-        `לפי התאריכים ששלחתם, זו הערכת המחירים שלנו:\n\n${options}\n\nשימו לב שזו הערכה מהקטלוג ולא הזמנה סגורה. נציג של סמארט-קאר יוודא שיש רכב פנוי ויסגור איתכם את הפרטים.\n\n`
-      ]);
+    ? `${options}\nThis is a catalogue estimate, not confirmed availability or a final quote.`
+    : `${options}\nזו הערכת מחיר מהקטלוג, לא אישור זמינות או מחיר סופי.`;
 }
 
 async function continueRental(phone: string, body: string, current: FlowState, locale: FlowLocale, booking: BookingSummary | null, store: WhatsAppFlowStore, interpretation?: WhatsAppInterpretation | null): Promise<WhatsAppFlowResult | null> {
@@ -1579,7 +1587,7 @@ async function continueRental(phone: string, body: string, current: FlowState, l
   await store.saveState(phone, state);
 
   let suggestions = '';
-  if (vehicleWasAdded && state.pickupDate && state.dropoffDate) {
+  if (vehicleWasAdded && /(?:כמה עולה|מה המחיר|הצעת מחיר|how much|price|quote)/i.test(body) && state.pickupDate && state.dropoffDate) {
     try {
       const quotes = await store.getRentalQuotes?.(state) ?? [];
       suggestions = quotePrompt(quotes, locale);
@@ -1588,7 +1596,7 @@ async function continueRental(phone: string, body: string, current: FlowState, l
       // catalogue is temporarily unavailable.
     }
   }
-  if (suggestions) return { handled: true, reply: `${leadIn(interpretation?.acknowledgement)}${suggestions}${promptForState(state, locale, booking, current)}` };
+  if (suggestions) return { handled: true, reply: suggestions.trim() };
   return { handled: true, reply: rentalReply(interpretation, state, locale, booking, current) };
 }
 
@@ -1668,7 +1676,7 @@ function knowledgeReply(input: string, locale: FlowLocale, state?: FlowState | n
 }
 
 /** Handles the complete deterministic SmartCar service flow. */
-const HISTORY_LENGTH = 14;
+const HISTORY_LENGTH = 24;
 
 /**
  * Answers one customer message and keeps the last few messages of the
@@ -1702,13 +1710,14 @@ export async function getWhatsAppFlowReply(phone: string, rawBody: string, store
       : undefined,
   };
   const flowResult = await replyToMessage(phone, rawBody, tracking);
+  if (flowResult.aiUnavailable || flowResult.conversationControl) return flowResult;
   const previous = before as FlowState | null;
   let current = saved === undefined ? previous : saved;
   // An existing customer's booking details always come from the booking itself.
-  const voiced = hasBooking ? flowResult : await inOneVoice(flowResult, understood, current, previous, rawBody);
+  const voiced = hasBooking || flowResult.localConsultation ? flowResult : await inOneVoice(flowResult, understood, current, previous, rawBody);
   const polished = humanFallback(withoutRepeatedMenu(voiced, previous, current?.locale ?? previous?.locale ?? 'he'), understood, previous, current, rawBody, phone);
   const known = applyReturning(withCarAdvice(polished, understood, current, rawBody, phone), previous, current, rawBody);
-  const result = known.result;
+  const result = flowResult.localConsultation ? flowResult : known.result;
   if (known.state) current = known.state;
   // Every conversation keeps its history, even when the reply was a general answer that saved
   // nothing: otherwise the next message starts from scratch ("ברוכים הבאים" in the middle of a chat).
@@ -1717,10 +1726,11 @@ export async function getWhatsAppFlowReply(phone: string, rawBody: string, store
   if (current && result.reply) {
     const history = [
       ...(current.history ?? previous?.history ?? []),
-      { from: 'customer' as const, text: rawBody.slice(0, 500), step: previous?.step },
-      { from: 'bot' as const, text: result.reply.slice(0, 500), step: current.step },
-    ].slice(-HISTORY_LENGTH);
-    await store.saveState(phone, { ...current, history });
+      { from: 'customer' as const, text: rawBody, step: previous?.step },
+      { from: 'bot' as const, text: result.reply, step: current.step },
+    ];
+    await store.saveState(phone, { ...current, history,
+      conversationMemory: (understood as WhatsAppInterpretation | null)?.conversationMemory?.trim() || current.conversationMemory || previous?.conversationMemory });
   }
   return result;
 }
@@ -1749,7 +1759,7 @@ function withCarAdvice(result: WhatsAppFlowResult, understood: WhatsAppInterpret
   const ask = isRentalStep(current.step) ? expectedAsk(current) : null;
   const used = (current.history ?? []).filter((entry) => entry.from === 'bot').map((entry) => entry.text);
   // Advice that ends with its own question ("יש נסיעה כזאת בתוכנית?") is not followed by a second one.
-  const question = /[?？]\s*$/.test(advice) ? '' : ask && ask !== 'confirm'
+  const question = /[?？]/.test(advice) ? '' : ask && ask !== 'confirm'
     ? bookingQuestion(ask as BookingAsk, locale, `${phone}:${message}`, used)
     : /[?？]\s*$/.test(advice) ? '' : (locale === 'en' ? 'Want me to check it for your dates?' : 'רוצה שאבדוק לתאריכים שלך?');
   return { ...result, reply: question ? `${advice}\n\n${question}` : advice };
@@ -1802,13 +1812,13 @@ function applyReturning(result: WhatsAppFlowResult, previous: FlowState | null, 
  * The customer hears one voice. When Gemini read the message, its own reply is
  * what gets sent, except where the application must speak for itself:
  * emergencies and hand-offs, the final request summary and consent, price
- * suggestions, and the leasing / cars-for-sale / booking-lookup flows. During
- * a booking Gemini's reply is used as is when it ends by asking for exactly
- * the detail the booking needs next; otherwise Gemini rewrites it once to end
- * with that question, and only if that fails does the fixed wording go out.
+ * verified requested estimates, and action/lookup flows. Ordinary conversation
+ * keeps the validated model reply: a database's next missing field is not a
+ * mandate to append another question or pay for a second rewrite.
  */
 async function inOneVoice(result: WhatsAppFlowResult, understood: WhatsAppInterpretation | null, current: FlowState | null, previous: FlowState | null, message: string): Promise<WhatsAppFlowResult> {
-  const reply = understood?.reply?.trim();
+  const draft = understood?.reply?.trim();
+  const reply = draft ? guardedReply(singleQuestionReply(draft), draft) : '';
   if (!reply || understood?.source !== 'gemini' || !result.reply || !current) return result;
   // A hand-off to a person is said in Gemini's warmer words when Gemini itself asked for the person
   // and its reply says the team takes over. Emergencies always keep the fixed safety wording.
@@ -1816,23 +1826,12 @@ async function inOneVoice(result: WhatsAppFlowResult, understood: WhatsAppInterp
     const personHandoff = understood.intent === 'representative' && /נציג|צוות|מישהו מ|team|representative|someone/i.test(reply);
     return personHandoff && !/גורמי החירום|emergency/i.test(result.reply) ? { ...result, reply } : result;
   }
+  // General leasing advice is still a conversation, not a staff-only action.
+  // Do not replace Gemini's considered answer with the old leasing sales script.
+  if (current.leasing && understood.intent === 'unknown' && !result.escalate) return { ...result, reply };
   if (current.step === 'rental_confirm' || current.carSale || current.leasing || current.lastQuestion) return result;
-  if (/₪[\d,]+/.test(result.reply) && /\/rental\//.test(result.reply)) return result;
-  const locale = current.locale ?? 'he';
-  if (!isRentalStep(current.step)) return { ...result, reply };
-  const ask = expectedAsk(current);
-  if (!ask || ask === 'confirm') return result;
-  if (understood?.asks === ask && (reply.match(/[?？]/g) ?? []).length <= 1) return { ...result, reply };
-  // The customer asked something or just talked, without adding a booking detail: answer like a person
-  // and let the booking pick up again on the next message, instead of pushing the form every time.
-  const fields = ['pickupDate', 'dropoffDate', 'pickupLocation', 'dropoffLocation', 'vehiclePreference', 'passengers'] as const;
-  const addedDetail = previous && isRentalStep(previous.step) ? fields.some((field) => current[field] !== previous[field]) : true;
-  const lastBot = [...(previous?.history ?? [])].reverse().find((entry) => entry.from === 'bot')?.text ?? '';
-  const askedJustBefore = /[?？]\s*$/.test(lastBot.trim());
-  if (!addedDetail && (understood?.asks === 'other' || understood?.asks === 'nothing' || !askedJustBefore)) return { ...result, reply };
-  const question = promptForState(current, locale, null, previous);
-  const combined = await composeOneMessage({ message, draft: reply, question, locale });
-  return combined ? { ...result, reply: combined } : result;
+  if (/₪[\d,]+/.test(result.reply) && /(?:כמה עולה|מה המחיר|הצעת מחיר|how much|price|quote)/i.test(message)) return result;
+  return { ...result, reply };
 }
 
 /**
@@ -2017,6 +2016,85 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // The customer switched language: the rest of the chat follows them.
   if (existingState && existingState.locale && existingState.locale !== locale) existingState.locale = locale;
 
+  // Customer memory controls run before confirmation or any model/provider.
+  // They affect this chat only, never cancel a booking or erase office records.
+  const control = parseConversationControl(rawBody, existingState?.pendingControl);
+  const controlled = (reply: string): WhatsAppFlowResult => ({ handled: true, conversationControl: true, reply });
+  if (control?.kind === 'reset') {
+    await store.saveState(phone, { step: 'menu', locale, returningChecked: true, history: [] });
+    return controlled(locale === 'he' ? 'התחלנו שיחה חדשה, בלי פרטי השיחה הקודמת. הזמנות או בקשות שכבר נשלחו לא בוטלו. במה אפשר לעזור?' : 'We have started a fresh chat without the previous chat details. Existing bookings or submitted requests were not cancelled. How can I help?');
+  }
+  if (control?.kind === 'external') {
+    return controlled(locale === 'he' ? 'אפשר למחוק או לשנות פרטים בשיחה כאן, אבל לא למחוק הזמנה, חיוב או רישום במשרד מכאן. האם הכוונה לפרטי השיחה בלבד?' : 'I can edit or forget chat details here, but cannot delete office bookings, charges or records. Do you mean the chat details only?');
+  }
+  if (control && !control.fields.length) {
+    await store.saveState(phone, { ...(existingState ?? { step: 'menu' as const }), locale, pendingControl: control.kind, returningChecked: true });
+    return controlled(locale === 'he' ? `איזה פרט תרצה ${control.kind === 'forget' ? 'למחוק' : 'לשנות'}?` : `Which detail would you like to ${control.kind === 'forget' ? 'forget' : 'change'}?`);
+  }
+  if (control?.kind === 'forget') {
+    const next = forgetConversationFacts(existingState ?? { step: 'menu', locale }, control.fields);
+    if (isRentalStep(next.step)) next.step = rentalStepFor(next);
+    await store.saveState(phone, next);
+    return controlled(locale === 'he' ? 'הסרתי את הפרטים שביקשת מזיכרון השיחה. שאר הפרטים נשמרו; רישומים שכבר נשלחו למשרד לא נמחקו.' : 'I removed those details from chat memory and kept the rest. Records already submitted to the office were not deleted.');
+  }
+  const editField = control?.kind === 'edit' ? control.fields[0] : existingState?.pendingEdit;
+  const editInterrupted = !control && (asksForPerson(rawBody) || ACCIDENT_PATTERN.test(normalized(rawBody)) || BREAKDOWN_PATTERN.test(normalized(rawBody)) || /[?？]/.test(rawBody));
+  if (editField && !editInterrupted) {
+    const next: FlowState = { ...(existingState ?? { step: 'menu' as const }), locale, returningChecked: true };
+    delete next.pendingControl;
+    if (/^(?:עזוב|לא משנה|בטל שינוי|cancel change|never mind)[.!\s]*$/i.test(rawBody)) {
+      delete next.pendingEdit;
+      await store.saveState(phone, next);
+      return controlled(locale === 'he' ? 'השארתי את הפרט הקודם כמו שהוא.' : 'I kept the previous detail unchanged.');
+    }
+    let changed = false;
+    if (editField === 'pickupDate' || editField === 'dropoffDate') {
+      const dates = parseDateCandidates(rawBody);
+      const value = dates.length === 1 ? dates[0] : null;
+      if (value && value >= todayInIsrael()
+        && (editField !== 'pickupDate' || !next.dropoffDate || value <= next.dropoffDate)
+        && (editField !== 'dropoffDate' || !next.pickupDate || value >= next.pickupDate)) {
+        next[editField] = value;
+        changed = true;
+      }
+    } else if (editField === 'customerEmail') {
+      const value = validEmail(rawBody.match(/[^\s@]+@[^\s@]+\.[^\s@]+/)?.[0] ?? '');
+      if (value) { next.customerEmail = value; changed = true; }
+    } else if (editField === 'customerName') {
+      const value = introducedName(rawBody) ?? (control ? null : validName(rawBody));
+      if (value) { next.customerName = value; changed = true; }
+    } else if (editField === 'budget' || editField === 'annualKm') {
+      const number = rawBody.match(/\d[\d,]*/)?.[0];
+      const value = Number(number?.replace(/,/g, ''));
+      if (number && value > 0 && value <= (editField === 'budget' ? 100000 : 200000)) {
+        next.localConsultation = { ...(next.localConsultation ?? { equipment: [] }), [editField]: value };
+        changed = true;
+      }
+    } else if (editField === 'equipment') {
+      const turn = localConsultationTurn(rawBody, next.localConsultation ?? { equipment: [] });
+      if (turn && turn.state.equipment.join('|') !== next.localConsultation?.equipment.join('|')) { next.localConsultation = turn.state; changed = true; }
+    } else {
+      const blank = { ...next };
+      if (editField === 'dates') { delete blank.pickupDate; delete blank.dropoffDate; }
+      else delete blank[editField];
+      const extracted = extractRentalDetails(rawBody, blank);
+      if (editField === 'dates') {
+        if (extracted.pickupDate && extracted.dropoffDate) { next.pickupDate = extracted.pickupDate; next.dropoffDate = extracted.dropoffDate; changed = true; }
+      } else if (extracted[editField] !== undefined) { Object.assign(next, { [editField]: extracted[editField] }); changed = true; }
+    }
+    if (!changed) {
+      next.pendingEdit = editField;
+      await store.saveState(phone, next);
+      return controlled(factQuestion(editField, locale));
+    }
+    delete next.pendingEdit;
+    delete next.conversationMemory; // prevent stale AI summaries overriding a customer correction
+    if (isRentalStep(next.step)) next.step = rentalStepFor(next);
+    await store.saveState(phone, next);
+    if (next.step === 'rental_confirm') return controlled(confirmationPrompt(next, locale, true));
+    return controlled(locale === 'he' ? 'עדכנתי את הפרט בבקשה שבשיחה ושמרתי את שאר הפרטים. הזמנה שכבר אושרה במשרד לא משתנה מכאן.' : 'I updated that detail in this chat and kept the rest. An office-confirmed booking is not changed from here.');
+  }
+
   // "מה עם הבקשה ששלחתי?": the real status of this number's last request.
   if (!existingState?.handedOff && !isRentalStep(existingState?.step ?? 'menu') && ASKS_ABOUT_REQUEST.test(body)) {
     const known = existingState?.returning ?? (await store.pastCustomer?.(phone)) ?? null;
@@ -2030,8 +2108,16 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // The final "send the request" step is a plain yes/no gate. It stays
   // deterministic so a customer is never told the request was confirmed
   // before createRentalRequest has actually saved it.
-  if (existingState?.step === 'rental_confirm') {
+  if (existingState?.step === 'rental_confirm' && asksForPerson(rawBody)) {
+    await store.saveState(phone, { ...existingState, handedOff: true, pendingEdit: undefined, pendingControl: undefined });
+    return { handled: true, escalate: true, escalateReason: handoffSummary(existingState, 'בקשת נציג לפני אישור'), reply: locale === 'he' ? 'אפשר להמשיך עם נציג. הפרטים שמורים, והבקשה עדיין לא נשלחה לאישור.' : 'A representative can continue with you. Your details are retained; the request has not been submitted for confirmation.' };
+  }
+  const immediateDanger = !isHypothetical(input) && !notOurEmergencyNow(input) && (ACCIDENT_PATTERN.test(input) || BREAKDOWN_PATTERN.test(input));
+  if (existingState?.step === 'rental_confirm' && !isMenuCommand(body) && !immediateDanger) {
     if (!confirmsTerms(body)) {
+      if (/תזכיר|מה סיכמנו|מה כבר|סיכום|remind|recap|summary|what (?:have we|did we)/i.test(body)) {
+        return { handled: true, reply: confirmationPrompt(existingState, locale, true) };
+      }
       // "השם שלי זה דני לוי", "the email is x@y.com": a correction to the summary, shown again.
       const newEmail = validEmail(body.match(/[^\s@]+@[^\s@]+\.[^\s@]+/)?.[0] ?? '');
       const newName = introducedName(body);
@@ -2050,7 +2136,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       return { handled: true, reply: gate };
     }
     if (store.isSimulation) {
-      await store.saveState(phone, null);
+      await store.saveState(phone, { ...existingState, step: 'menu', completedRequestId: 'simulation' });
       return {
         handled: true,
         reply: locale === 'en'
@@ -2067,7 +2153,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
           : 'לא הצלחנו לשמור את הבקשה עקב תקלה זמנית. הפרטים עדיין שמורים. נסו לכתוב שוב אני מאשר/ת או כתבו נציג.',
       };
     }
-    await store.saveState(phone, null);
+    await store.saveState(phone, { ...existingState, step: 'menu', handedOff: true, completedRequestId: requestId });
 
     let pdfLinkStr = '';
     try {
@@ -2092,10 +2178,11 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   let initialRoute = classifyWhatsAppInitialRoute(body, Boolean(booking));
   // Hebrew letters are not "word" characters for \b, so boundaries are spelled out.
   const asksQuestion = /[?？]/.test(body)
+    || /(?:^|\s)(?:תזכיר|תסביר|תפרט|ספר לי|תענה|remind|explain|tell me)(?=\s|$)/i.test(body)
     || /(?:^|[\s,.!])(?:מה|איך|כמה|האם|איפה|היכן|מתי|עד מתי|למה|עולה|יש לכם|יש לך|אפשר|מותר|צריך|מאיזה|איזה|אילו|באיזה|משתלם|כדאי|לעומת|ההבדל|מומלץ|ממליץ|worth|better|difference|recommend|what|how|where|when|why|which|do you|can i|is there|are there)(?=$|[\s,.!?])/i.test(body);
   const personRequested = /נציג|אנושי|בן ?אדם|בנאדם|יחזור|representative|human|person|someone|call me/i.test(body) && !mentionsPersonWithoutAsking(body);
   // "Are you a bot?" gets an honest answer, not a handoff.
-  if (!existingState?.handedOff && (isBotQuestion(body) || /(?:^|\s)(?:אתה|את|זה)\s+(?:\S+\s+)?(?:בוט|רובוט)|are you (?:a )?(?:bot|robot|real|human)/i.test(normalized(body))
+  if (!existingState?.handedOff && !asksForPerson(body) && (isBotQuestion(body) || /(?:^|\s)(?:אתה|את|זה)\s+(?:\S+\s+)?(?:בוט|רובוט)|are you (?:a )?(?:bot|robot|real|human)/i.test(normalized(body))
     || (/(?:^|\s)(?:אתה|את|אטה)(?:\s|$)/.test(normalized(body)) && hasApproximateKeyword(body, ['רובוט'])))) {
     return {
       handled: true,
@@ -2113,7 +2200,8 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // Gemini reads ordinary free text, while fixed menu choices, final consent,
   // emergencies and human takeover remain under application control.
   // An unexpected provider exception must not disable the local service flow.
-  const interpretation = !existingState?.handedOff && !isMenuCommand(body) && !/^\s*\d\s*$/.test(body)
+  const interpretation = store.engine !== 'local' && process.env.WHATSAPP_ENGINE !== 'local'
+    && !existingState?.handedOff && !isMenuCommand(body) && !/^\s*\d\s*$/.test(body)
     && ((existingState?.step !== 'rental_name' && existingState?.step !== 'rental_email') || (asksQuestion && !/@|\d/.test(body)))
     && ((initialRoute !== 'accident' && initialRoute !== 'breakdown') || uncertainEmergency)
     ? await store.interpretMessage?.(body, existingState?.step ?? null, existingState ? {
@@ -2126,9 +2214,33 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
         .map(({ from, text }) => ({ from, text: text.slice(0, 500) })),
       knowledgeTopic: existingState.knowledgeTopic,
       haveName: Boolean(existingState.customerName), haveEmail: Boolean(existingState.customerEmail),
+      conversationMemory: existingState.conversationMemory,
     } : null)?.catch(() => null) ?? null
     : null;
+  // Ordinary free text requires an actual model response. A provider outage must
+  // never silently resurrect the legacy keyword advisor or mutate a booking.
+  if (store.engine !== 'local' && process.env.WHATSAPP_ENGINE !== 'local'
+    && process.env.WHATSAPP_LOCAL_BACKUP_ENABLED === 'false' && store.interpretMessage && !existingState?.handedOff
+    && !asksForPerson(body)
+    && !isMenuCommand(body) && !/^\s*\d\s*$/.test(body)
+    && !['rental_name', 'rental_email', 'rental_confirm'].includes(existingState?.step ?? '')
+    && initialRoute !== 'accident' && initialRoute !== 'breakdown'
+    && (!interpretation || interpretation.source === 'local')) {
+    return { handled: true, aiUnavailable: true, reply: locale === 'en'
+      ? 'I’m having a connection problem and cannot answer reliably right now. Please try again shortly; if it is urgent, you can request a representative.'
+      : 'יש כרגע בעיית חיבור ולא אוכל לענות בצורה אמינה. אפשר לנסות שוב בעוד מעט, ואם זה דחוף אפשר לבקש נציג.' };
+  }
   // "אתם לוקחים ביט או רק אשראי" is a question too, even without "?": the brain recognises the topic.
+  if (locale === 'he' && !booking && !existingState?.handedOff && !asksForPerson(body)
+    && !isMenuCommand(body) && initialRoute !== 'accident' && initialRoute !== 'breakdown'
+    && interpretation?.source !== 'gemini' && (!existingState || existingState.step === 'menu')
+    && !/לקנות|למכור|הזמנה קיימת|בטל|ביטול/.test(body)) {
+    const turn = localConsultationTurn(body, existingState?.localConsultation);
+    if (turn) {
+      await store.saveState(phone, { ...(existingState ?? { step: 'menu' as const }), locale, localConsultation: turn.state });
+      return { handled: true, localConsultation: true, reply: turn.reply };
+    }
+  }
   // While a name or an email is expected, only a real question is read as one ("מיכל" is a name, not a fuel tank).
   const expectingDetail = existingState?.step === 'rental_name' || existingState?.step === 'rental_email';
   const businessTopic = (expectingDetail ? /[?？]/.test(body) : asksQuestion || brainQuestionTopic(body) || existingState?.knowledgeTopic?.startsWith('leasing'))
@@ -2370,18 +2482,31 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     };
   }
 
+  // A semantic advisory act must not enter the legacy leasing/catalogue funnel
+  // merely because its question mentions a product. Safety, account disputes,
+  // explicit people requests and active-booking permissions were handled above.
+  if (interpretation?.source === 'gemini' && interpretation.reply && !booking
+    && ['advice', 'comparison', 'explanation', 'social'].includes(interpretation.purpose ?? '')
+    && !existingState?.handedOff && !existingState?.lastQuestion && !existingState?.carSale) {
+    const base: FlowState = existingState ?? { step: 'menu', locale };
+    const details = isRentalStep(base.step) ? extractRentalDetails(body, base, interpretation) : {};
+    await store.saveState(phone, { ...base, ...details, locale, knowledgeTopic: businessTopic ?? base.knowledgeTopic });
+    return { handled: true, reply: interpretation.reply };
+  }
+
   // Gemini first. Outside a booking, and outside the flows that collect a lead
   // (leasing, cars for sale, booking lookup), the customer gets Gemini's own
   // reply: small talk, questions, remarks, jokes, anything. The keyword routes
   // below are only the fallback for when Gemini is unavailable.
   if (interpretation?.source === 'gemini' && interpretation.reply && !existingState?.handedOff
     && !isRentalStep(existingState?.step ?? 'menu') && initialRoute !== 'rental'
-    && !existingState?.carSale && !existingState?.leasing && !existingState?.lastQuestion
+    && !existingState?.carSale && !existingState?.lastQuestion
     && !['accident', 'breakdown', 'existing_booking', 'representative', 'buy_car', 'sell_car'].includes(interpretation.intent)
     // A question about leasing is answered; asking for an offer goes to the leasing flow below.
-    && (classifyCommercialIntent(body) === 'none' || (classifyCommercialIntent(body) === 'leasing' && !/הצעה|הצעת|תחזרו|שיחזרו|נציג|offer|quote|call me/i.test(body)))
+    && (classifyCommercialIntent(body) === 'none' || classifyCommercialIntent(body) === 'leasing')
     && !/^\s*\d\s*$/.test(body)) {
-    await store.saveState(phone, { ...(existingState ?? { step: 'menu' as const }), step: 'menu', locale, knowledgeTopic: businessTopic ?? existingState?.knowledgeTopic });
+    await store.saveState(phone, { ...(existingState ?? { step: 'menu' as const }), step: 'menu', locale,
+      knowledgeTopic: businessTopic ?? (interpretation.intent === 'leasing' ? 'leasing_terms' : existingState?.knowledgeTopic) });
     return { handled: true, reply: interpretation.reply };
   }
 
@@ -2640,7 +2765,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   }
 
   if (isMenuCommand(body)) {
-    await store.saveState(phone, { step: 'menu', locale });
+    await store.saveState(phone, { ...(existingState ?? {}), step: 'menu', locale, handedOff: undefined });
     return { handled: true, reply: menuFor(booking, locale) };
   }
 
@@ -2806,13 +2931,11 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   }
 
   if (existingState.step === 'rental_vehicle') {
-    const vehiclePreference = parseVehiclePreference(body);
+    const vehiclePreference = extractRentalDetails(body, existingState, interpretation).vehiclePreference;
     if (!vehiclePreference) return { handled: true, reply: locale === 'en' ? 'Tell me the kind of car you have in mind, and I’ll take it from there.' : 'כתבו לי איזה סוג רכב מתאים לכם, ואני אמשיך מכאן.' };
     const state = { ...existingState, vehiclePreference, step: 'rental_name' as const };
     await store.saveState(phone, state);
-    let quotes: WhatsAppRentalQuote[] = [];
-    try { quotes = await store.getRentalQuotes?.(state) ?? []; } catch (error) { console.error('[whatsapp-flow] quote suggestions unavailable:', error); }
-    return { handled: true, reply: `${quotePrompt(quotes, locale)}${namePrompt(locale)}` };
+    return { handled: true, reply: namePrompt(locale) };
   }
 
   if (existingState.step === 'rental_name') {

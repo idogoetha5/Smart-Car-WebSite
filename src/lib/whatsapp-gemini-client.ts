@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
+
 /** Fresh, bounded provider connection. No booking actions or customer logging. */
 type Circuit = { until: number; probing: boolean };
 const circuits = new Map<string, Circuit>();
@@ -7,9 +9,15 @@ export type GeminiConnectionResult =
   | { ok: true; text: string }
   | { ok: false; reason: 'missing_key' | 'cooldown' | 'timeout' | 'network' | 'http' | 'empty'; status?: number };
 
+/** For tests: forget every model's cooldown. */
+export function resetModelCooldowns() {
+  circuits.clear();
+}
+
 /** Per-instance cooldown; it is a latency safeguard, not a distributed quota limit. */
 export async function generateSmartCarContent(params: { model: string; body: unknown }): Promise<GeminiConnectionResult> {
-  const key = process.env.GEMINI_API_KEY;
+  // Dedicated bot credential must not replace the driver's OCR credential.
+  const key = process.env.WHATSAPP_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
   if (!key) return { ok: false, reason: 'missing_key' };
   // Reset naturally when the configured model changes. Never retain the key.
   const circuit = circuits.get(params.model);
@@ -45,4 +53,84 @@ export async function generateSmartCarContent(params: { model: string; body: unk
     coolDown(30_000);
     return { ok: false, reason: error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name) ? 'timeout' : 'network' };
   }
+}
+
+/**
+ * The free models, in order. Each has its own free quota on the account (AI Studio → Rate limit,
+ * free tier, 2026-10-22): Gemini 3.5 Flash Lite and Gemini 3.1 Flash Lite 15/min and 500/day each,
+ * Gemma 4 31B and 26B 30/min and 14,400/day each. When one is busy or out for the day the next one
+ * answers, so customers get a real answer without paying. WHATSAPP_GEMINI_MODEL, if set, goes first.
+ */
+const chainOverride = new AsyncLocalStorage<string[]>();
+const KNOWN_MODELS = ['gemini-3.5-flash-lite'];
+
+/** For checking one model on the demo: runs `work` with only the given models (known free models only). */
+export function withModelChain<T>(models: string[], work: () => Promise<T>): Promise<T> {
+  const allowed = models.filter((model) => KNOWN_MODELS.includes(model));
+  return allowed.length ? chainOverride.run(allowed, work) : work();
+}
+
+export function freeModelChain(): string[] {
+  // Owner request: one Gemini model only while coaching and verifying quality.
+  // Ignore old environment chains and simulator overrides so they cannot silently
+  // re-enable Gemma or switch the model being evaluated.
+  return ['gemini-3.5-flash-lite'];
+}
+
+const isGemma = (model: string) => /^gemma/i.test(model);
+
+/**
+ * Gemma has no JSON-schema output mode: the schema goes into the instructions instead, and the
+ * answer is read as JSON from the text (see readJson).
+ */
+function forGemma(body: unknown): unknown {
+  const copy = JSON.parse(JSON.stringify(body)) as {
+    systemInstruction?: { parts?: Array<{ text?: string }> };
+    generationConfig?: Record<string, unknown> & { responseFormat?: { text?: { schema?: unknown } }; responseJsonSchema?: unknown };
+  };
+  const schema = copy.generationConfig?.responseFormat?.text?.schema ?? copy.generationConfig?.responseJsonSchema;
+  if (copy.generationConfig) {
+    delete copy.generationConfig.responseFormat;
+    delete copy.generationConfig.responseJsonSchema;
+    delete copy.generationConfig.responseMimeType;
+  }
+  if (schema) {
+    const rule = `\n\nOUTPUT: reply with ONE JSON object only — no markdown, no code fence, no text before or after — matching this JSON schema:\n${JSON.stringify(schema)}`;
+    const parts = copy.systemInstruction?.parts ?? [];
+    if (parts.length) parts[parts.length - 1].text = `${parts[parts.length - 1].text ?? ''}${rule}`;
+    else copy.systemInstruction = { parts: [{ text: rule }] };
+  }
+  return copy;
+}
+
+/** The JSON object in a model's answer, also when it is wrapped in a code fence or a sentence. */
+export function readJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start < 0 || end <= start) throw new Error('no JSON object in the answer');
+    return JSON.parse(text.slice(start, end + 1));
+  }
+}
+
+/** Tries the free models in order (skipping any in cooldown) within a time budget. */
+export async function generateWithFreeModels(body: unknown, budgetMs = 14_000, accept?: (text: string) => boolean): Promise<GeminiConnectionResult & { model?: string }> {
+  const started = Date.now();
+  let last: GeminiConnectionResult = { ok: false, reason: 'cooldown' };
+  for (const model of freeModelChain()) {
+    if (Date.now() - started > budgetMs) break;
+    const result = await generateSmartCarContent({ model, body: isGemma(model) ? forGemma(body) : body });
+    if (result.ok) {
+      let valid = true;
+      try { valid = accept ? accept(result.text) : true; } catch { valid = false; }
+      if (valid) return { ...result, model };
+      last = { ok: false, reason: 'empty' };
+      continue;
+    }
+    if (result.reason === 'missing_key') return result;
+    last = result;
+  }
+  return last;
 }

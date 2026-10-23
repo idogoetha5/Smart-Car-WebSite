@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 const fail = message => { throw new Error(`DEPLOYMENT BLOCKED: ${message}`); };
 try {
@@ -9,6 +10,14 @@ try {
   execFileSync('git', ['merge-base', '--is-ancestor', 'origin/clean-main', 'HEAD'], { stdio: 'pipe' });
   const dirty = execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' });
   if (dirty.trim()) fail('Tracked release files are uncommitted. Preserve and commit the intended changes before publishing.');
+  }
+  const baseline = JSON.parse(readFileSync(new URL('./production-preservation-baseline.json', import.meta.url), 'utf8'));
+  for (const path of baseline.requiredFiles) {
+    if (!existsSync(path)) fail(`A file from the complete restored site is missing: ${path}. Intentional removal requires owner approval and a reviewed baseline update.`);
+  }
+  for (const [path, expected] of Object.entries(baseline.publicAssetSha256)) {
+    const actual = createHash('sha256').update(readFileSync(path)).digest('hex');
+    if (actual !== expected) fail(`Published asset was replaced: ${path}. Do not silently overwrite existing images or files.`);
   }
   const required = [
     'src/components/admin/SearchConsolePanel.tsx',
@@ -40,7 +49,7 @@ try {
   }
   if (localAssets.size === 0) fail('No expected gallery assets found; check response rather than silently skipping.');
   for (const path of localAssets) if (!existsSync(path) || readFileSync(path).length === 0) fail(`Published gallery asset missing from release: ${path}`);
-  console.log(`Preservation preflight passed: ${inventory.data.length} vehicles, ${localAssets.size} published gallery files, Search Console and X2 pricing preserved.`);
+  console.log(`Preservation preflight passed: ${baseline.requiredFiles.length} baseline files, ${Object.keys(baseline.publicAssetSha256).length} exact public asset checksums, ${inventory.data.length} vehicles, ${localAssets.size} published gallery files, Search Console and X2 pricing preserved.`);
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;

@@ -1,9 +1,8 @@
 name: CI
 
 # Runs the same gates that were previously only ever run by hand, so a
-# regression fails here instead of reaching production. Vercel deploys are
-# triggered separately (the project has no Git integration at present), so
-# this workflow only reports — it does not deploy.
+# regression is reported explicitly. Vercel also builds from clean-main;
+# this workflow reports gates and does not itself deploy or promote.
 on:
   push:
     branches: [clean-main]

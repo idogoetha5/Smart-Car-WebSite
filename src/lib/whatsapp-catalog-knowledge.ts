@@ -81,7 +81,7 @@ export async function fleetQuestionAnswer(kind: 'electric' | 'manual' | 'automat
     const rows = await loadFleet();
     if (!rows?.length) return '';
     const he = locale === 'he';
-    const names = (list: Rows) => [...new Set(list.map((v) => `${v.make} ${v.model}`.trim()))].slice(0, 6).join(', ');
+    const names = (list: Rows) => [...new Set(list.map((v) => `${v.make} ${v.model}`.trim()))].slice(0, 1).join(', ');
     const link = `https://www.smartcar.co.il/${locale}/rental`;
     if (kind === 'electric') {
       const electric = rows.filter((v) => /electric|חשמל/i.test(String(v.fuelType ?? '')));
@@ -95,8 +95,9 @@ export async function fleetQuestionAnswer(kind: 'electric' | 'manual' | 'automat
       if (kind === 'manual') return manual.length ? (he ? `יש גם ידניים: ${names(manual)}. ${link}` : `There are manual cars too: ${names(manual)}. ${link}`) : (he ? 'כל הרכבים בצי ההשכרה אוטומטיים.' : 'All cars in the rental fleet are automatic.');
       return manual.length ? (he ? `רוב הצי אוטומטי. ${link}` : `Most of the fleet is automatic. ${link}`) : (he ? 'כן, כל הרכבים בצי ההשכרה אוטומטיים 🙂' : 'Yes, every car in the rental fleet is automatic 🙂');
     }
-    const categories = [...new Set(rows.map((v) => v.category).filter(Boolean))].map((c) => CATEGORY_NAMES[c as string]?.[locale] ?? c);
-    return he ? `יש לנו ${categories.join(', ')} — מרכב קטן לעיר ועד 7 מקומות. את כל הדגמים אפשר לראות כאן: ${link}` : `We have ${categories.join(', ')} — from small city cars to 7-seaters. All models: ${link}`;
+    return he
+      ? 'יש לנו מגוון רכבים, מקטנים וחסכוניים ועד משפחתיים ורכבים מרווחים יותר, לצד אפשרויות נוספות. לכמה אנשים אתה מחפש?'
+      : 'We offer a range of vehicles, from small economical cars to family cars and roomier options, with other choices too. How many people will be travelling?';
   } catch {
     return '';
   }

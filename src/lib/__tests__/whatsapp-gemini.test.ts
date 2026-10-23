@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { guardedReply, interpretWhatsAppMessage } from '@/lib/whatsapp-gemini';
+import { guardedReply, interpretWhatsAppMessage, singleQuestionReply, withoutUnsupportedOutreach } from '@/lib/whatsapp-gemini';
 
 const originalKey = process.env.GEMINI_API_KEY;
 const originalModel = process.env.WHATSAPP_GEMINI_MODEL;
@@ -26,12 +26,19 @@ const interpretation = {
 };
 
 describe('Gemini WhatsApp interpreter', () => {
+  it('retains only the first requested field in a compound question', () => {
+    expect(singleQuestionReply('איזה קילומטראז׳ מתאים לך, ובאיזה רכב מדובר?')).toBe('איזה קילומטראז׳ מתאים לך?');
+    expect(singleQuestionReply('What is your budget? Which car?')).toBe('What is your budget?');
+  });
+  it('removes outreach promises without deleting the customer acknowledgement', () => {
+    expect(withoutUnsupportedOutreach('רשמתי תקציב 3000. נציג יחזור אליך עם הצעה.')).toBe('רשמתי תקציב 3000.');
+  });
   it('sends a bounded structured classification request and validates its response', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({
       candidates: [{ content: { parts: [{ text: JSON.stringify(interpretation) }] } }],
     }), { status: 200 }));
 
-    await expect(interpretWhatsAppMessage('צריך SUV מהרצליה ולהחזיר בנתבג', 'menu')).resolves.toEqual({ ...interpretation, source: 'gemini', rawAcknowledgement: '', reply: '', rawReply: '', asks: 'nothing' });
+    await expect(interpretWhatsAppMessage('צריך SUV מהרצליה ולהחזיר בנתבג', 'menu')).resolves.toEqual({ ...interpretation, source: 'gemini', model: 'gemini-3.5-flash-lite', rawAcknowledgement: '', reply: '', rawReply: '', asks: 'nothing', conversationMemory: '' });
     const [url, options] = vi.mocked(fetch).mock.calls[0];
     expect(url).toContain('/models/gemini-3.5-flash-lite:generateContent');
     expect(options?.headers).toEqual(expect.objectContaining({ 'x-goog-api-key': 'test-key' }));
@@ -83,5 +90,25 @@ describe('guardedReply', () => {
     expect(guardedReply('סגור, מחר 👌 באיזו שעה נוח לך לאסוף?', '')).toBe('');
     expect(guardedReply('היי! מה נשמע? אפשר לעזור במשהו?', '')).toBe('היי! מה נשמע? אפשר לעזור במשהו?');
     expect(guardedReply('סגור, מ־26/10 👌 עד מתי צריך את הרכב?', '26/10')).toBe('סגור, מ־26/10 👌 עד מתי צריך את הרכב?');
+  });
+});
+
+describe('free model chain', () => {
+  it('does not switch models when the selected Gemini is out of quota', async () => {
+    vi.stubEnv('GEMINI_API_KEY', 'test-key');
+    const { generateWithFreeModels, readJson, resetModelCooldowns } = await import('@/lib/whatsapp-gemini-client');
+    resetModelCooldowns();
+    const calls: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      calls.push(url);
+      if (url.includes('gemini-3.5-flash-lite') || url.includes('gemini-3.1-flash-lite')) return new Response('quota', { status: 429 });
+      return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '```json\n{"reply":"שלום"}\n```' }] } }] }), { status: 200 });
+    }));
+    const result = await generateWithFreeModels({ systemInstruction: { parts: [{ text: 'x' }] }, generationConfig: { responseFormat: { text: { mimeType: 'APPLICATION_JSON', schema: { type: 'object' } } } } });
+    expect(result.ok).toBe(false);
+    expect(calls.map((url) => url.match(/models\/([^:]+)/)?.[1])).toEqual(['gemini-3.5-flash-lite']);
+    expect(readJson('```json\n{"reply":"שלום"}\n```')).toEqual({ reply: 'שלום' });
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 });

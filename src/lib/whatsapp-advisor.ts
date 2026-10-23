@@ -21,11 +21,11 @@ const CATEGORY_WORDS: Array<[RegExp, string]> = [
 ];
 
 const ABOUT: Record<string, { he: string; en: string }> = {
-  VAN: { he: 'רכב 7 מקומות — שלוש שורות ישיבה, הכי מרווח, ותא מטען גדול כשהשורה השלישית מקופלת. צורך יותר דלק מרכב רגיל.', en: 'a 7-seater — three rows, the roomiest, with a big boot when the third row is folded. It uses more fuel than a regular car.' },
-  SUV: { he: 'ג׳יפון — 5 מקומות, ישיבה גבוהה ונוחה, תא מטען בינוני־גדול, נעים לנסיעות ארוכות ולעליות.', en: 'an SUV — 5 seats, a high comfortable seating position, a medium-to-large boot, pleasant for long drives and hills.' },
-  SEDAN: { he: 'רכב משפחתי — 5 מקומות, נוח וחסכוני יחסית, תא מטען טוב לכמה מזוודות.', en: 'a family car — 5 seats, comfortable and fairly economical, with room for a few suitcases.' },
-  ECONOMY_COMPACT: { he: 'רכב קטן — הכי חסכוני בדלק והכי קל לחנייה בעיר, מתאים לשניים־שלושה עם מעט מטען.', en: 'a small car — the most economical and easiest to park in town, right for two or three people with little luggage.' },
-  LUXURY: { he: 'רכב יוקרה — הכי מפנק ושקט, לאירוע או לנסיעה מיוחדת.', en: 'a luxury car — the most comfortable and quiet, for an occasion or a special trip.' },
+  VAN: { he: 'רכב 7 מקומות נותן יותר מושבים, אבל כשכולם בשימוש נפח המטען עלול להיות מוגבל. צריך להתאים את הדגם גם למזוודות.', en: 'a 7-seater provides more seats, but luggage space may be limited with every seat in use. The specific model must also fit the bags.' },
+  SUV: { he: 'ג׳יפון מציע לרוב ישיבה גבוהה יותר. מספר המושבים, מרחב המטען וצריכת הדלק תלויים בדגם, ולא בשם הקטגוריה.', en: 'an SUV usually offers a higher seating position. Seating, luggage space and fuel use depend on the model, not the category name.' },
+  SEDAN: { he: 'רכב משפחתי יכול להתאים לנסיעות עם נוסעים ומטען; כדאי לבדוק את נפח תא המטען והתאמתו לציוד שלך בדגם המסוים.', en: 'a family car can suit passenger trips with luggage; check the actual boot space and whether your equipment fits the specific model.' },
+  ECONOMY_COMPACT: { he: 'רכב קטן עשוי להתאים לעיר ולמעט מטען. את החיסכון בדלק צריך לבדוק לפי הדגם וסוג ההנעה.', en: 'a small car may suit city driving with light luggage. Fuel economy still needs checking by model and powertrain.' },
+  LUXURY: { he: 'קטגוריית יוקרה מתמקדת בחוויית הנסיעה והאבזור, אבל אין להסיק ממנה אבזור מסוים לפני בדיקת הדגם.', en: 'a luxury category focuses on comfort and equipment, but specific features must be checked for the actual model.' },
 };
 
 /** The category that fits the group and their luggage best, with the reason in a few words. */
@@ -37,16 +37,16 @@ function recommend(needs: Needs, text: string, locale: AdvisorLocale) {
   const he = locale === 'he';
   if (people >= 6 || (people >= 5 && (bags >= 3 || stroller))) {
     return he
-      ? `ל־${people} אנשים${bags ? ` עם ${bags} מזוודות` : ''}${stroller ? ' ועגלה' : ''} הייתי הולך על רכב 7 מקומות — יש מקום לכולם וגם תא מטען אמיתי. ג׳יפון יכול להספיק רק אם המטען קטן.`
-      : `For ${people} people${bags ? ` with ${bags} suitcases` : ''}${stroller ? ' and a stroller' : ''} I'd go for a 7-seater — room for everyone plus a real boot. An SUV only works if the luggage is light.`;
+      ? `ל־${people} אנשים${bags ? ` עם ${bags} מזוודות` : ''}${stroller ? ' ועגלה' : ''} כדאי לבדוק רכב עם מספיק מושבים וגם מקום למטען כשהמושבים בשימוש. 7 מקומות לא מבטיחים שהמזוודות ייכנסו; צריך להתאים דגם ומספר מושבים לצורך.`
+      : `For ${people} people${bags ? ` with ${bags} suitcases` : ''}${stroller ? ' and a stroller' : ''}, check both seating and boot space with those seats in use. A 7-seater does not guarantee enough luggage space; the actual model and seating capacity must fit the group.`;
   }
   if (people >= 4 || bags >= 3 || hills) {
     return he
-      ? `${people ? `ל־${people} אנשים` : 'לנסיעה כזאת'}${hills ? ' ולדרכים של הצפון' : ''} ג׳יפון או רכב משפחתי יהיו הכי נוחים. ג׳יפון גבוה ונעים יותר בעליות; משפחתי חסכוני יותר בדלק.`
-      : `${people ? `For ${people} people` : 'For a trip like this'}${hills ? ' and hilly roads' : ''}, an SUV or a family car is the most comfortable. The SUV sits higher and handles hills more pleasantly; the family car is lighter on fuel.`;
+      ? `${people ? `ל־${people} אנשים` : 'לנסיעה כזאת'} אפשר להשוות משפחתית וג׳יפון לפי מקום לנוסעים ולמטען. ישיבה גבוהה לא מבטיחה ביצועים טובים יותר בעליות, וצריכת הדלק תלויה בדגם ובהנעה.`
+      : `${people ? `For ${people} people` : 'For a trip like this'}, compare a family car and an SUV by passenger and luggage space. A higher seating position does not guarantee better hill performance, and fuel use depends on the model and powertrain.`;
   }
   if (people && people <= 2) {
-    return he ? 'לשניים רכב קטן מספיק לגמרי — הכי חסכוני וקל לחנייה. אם יש הרבה מזוודות, משפחתי ייתן יותר מקום.' : 'For two, a small car is plenty — the most economical and easy to park. With a lot of luggage, a family car gives more room.';
+    return he ? 'לשניים עם מעט מטען אפשר להתחיל מרכב קטן. אם יש מזוודות גדולות או ציוד, כדאי לוודא שהוא נכנס לפני שבוחרים קטגוריה.' : 'For two with light luggage, a small car is a reasonable starting point. With large bags or equipment, check that everything fits before choosing a category.';
   }
   return null;
 }
@@ -57,6 +57,15 @@ const PARKING = /חני(?:ה|יה)|חנייה|לחנות|parking|park the car/i;
 /** Advice for a question about which car fits, or how car types compare. Null when the message is not that. */
 export function carAdvice(text: string, needs: Needs & { vehiclePreference?: string }, locale: AdvisorLocale): string | null {
   const he = locale === 'he';
+  // A comparison is advice, not evidence that either category was selected.
+  const familyAndSuv = /משפחתי|sedan|family car/i.test(text) && /ג[׳']?יפון|ג[׳']?יפ|suv|קרוסאובר/i.test(text);
+  if (familyAndSuv && /מתלבט|עדיף|הבדל|לעומת|compare|between|better|difference|versus|\bvs\b/i.test(text)) {
+    const hasBaby = /תינוק|תינוקת|baby|infant/i.test(text);
+    const hasStroller = /עגלה|עגלת|stroller|pram/i.test(text);
+    return he
+      ? `${hasBaby ? 'עם תינוק' : 'בבחירה הזאת'}${hasStroller ? ' ועגלה' : ''}, משפחתית יכולה להספיק; ג׳יפון מציע לרוב ישיבה גבוהה יותר. המקום למטען וצריכת הדלק תלויים בדגם, ולכן לא כדאי לבחור רק לפי הקטגוריה.${hasStroller ? ' כדאי לוודא שהעגלה והציוד נכנסים יחד לתא המטען.' : ''}`
+      : `A family car may be enough${hasBaby ? ' with a baby' : ''}; an SUV usually offers a higher seating position. Luggage space and fuel use depend on the actual model, so category alone is not enough.${hasStroller ? ' Check that the stroller and luggage fit together.' : ''}`;
+  }
   // "לא בטוח אם בכלל שווה לשכור או לקחת מוניות": honest advice, not a booking form.
   if (RENT_OR_NOT.test(text)) {
     return he
@@ -83,8 +92,8 @@ export function carAdvice(text: string, needs: Needs & { vehiclePreference?: str
     const mentioned = CATEGORY_WORDS.filter(([pattern]) => pattern.test(text)).map(([, category]) => category);
     if (/חסכוני|דלק|צורך|economical|fuel|cheaper to run/i.test(text) && mentioned.length < 2) {
       return he
-        ? 'הכי חסכוני בדלק זה רכב קטן, ואחריו משפחתי. ג׳יפון ו־7 מקומות צורכים יותר, וההבדל מורגש בנסיעות ארוכות. אצלנו המדיניות היא מלא־מלא — מקבלים מלא ומחזירים מלא.'
-        : 'The most economical is a small car, then a family car. SUVs and 7-seaters use more, and it shows on long drives. Our policy is full-to-full — you get it full and return it full.';
+        ? 'צריכת הדלק תלויה בדגם, בסוג המנוע ובנסיעה. רכב קטן עשוי להיות חסכוני, אבל אי אפשר לקבוע שמשפחתית תמיד חסכונית יותר מג׳יפון — למשל כשמשווים הנעות שונות. בין אילו דגמים אתה מתלבט?'
+        : 'Fuel use depends on the model, powertrain and journey. A small car may be economical, but a family car is not always more efficient than an SUV, especially with different powertrains. Which models are you comparing?';
     }
     if (mentioned.length >= 2) {
       const [a, b] = mentioned;
@@ -95,8 +104,8 @@ export function carAdvice(text: string, needs: Needs & { vehiclePreference?: str
     const advice = recommend(needs, text, locale);
     if (advice) return advice;
     return he
-      ? 'בשמחה. כמה תהיו, וכמה מזוודות בערך? ככה אמליץ על הרכב שהכי יתאים.'
-      : 'Happy to. How many of you will there be, and roughly how many suitcases? Then I can suggest the right car.';
+      ? needs.passengers ? 'כמה מזוודות תביאו?' : 'כמה נוסעים תהיו?'
+      : needs.passengers ? 'How many suitcases will you bring?' : 'How many passengers will there be?';
   }
   return null;
 }

@@ -4,7 +4,7 @@ import type { WhatsAppInterpretation } from '@/lib/whatsapp-gemini';
 
 function makeStore(interpretation: WhatsAppInterpretation | null) {
   let state: FlowState | null = null;
-  const interpretMessage = vi.fn(async () => interpretation);
+  const interpretMessage = vi.fn(async (..._args: Parameters<NonNullable<WhatsAppFlowStore['interpretMessage']>>) => interpretation);
   const store: WhatsAppFlowStore = {
     activeBooking: async () => null,
     loadState: async () => state,
@@ -22,6 +22,70 @@ const emptyFields = {
 };
 
 describe('Gemini interpretation inside the WhatsApp flow', () => {
+  it('does not record a recall request as a name after the old flow already asked for one', async () => {
+    const reply = 'האיסוף וההחזרה בתל אביב, מ־1.11 עד 15.11.';
+    const { store, state, interpretMessage } = makeStore({ ...emptyFields, intent: 'unknown', source: 'gemini', reply, asks: 'nothing' });
+    await store.saveState('recall-name', { step: 'rental_name', locale: 'he', pickupDate: '2026-11-01', dropoffDate: '2026-11-15', pickupLocation: 'תל אביב', dropoffLocation: 'תל אביב', vehiclePreference: 'SUV' });
+    const result = await getWhatsAppFlowReply('recall-name', 'תזכיר לי את התאריכים והמיקום שכבר אמרתי', store);
+    expect(interpretMessage).toHaveBeenCalledOnce();
+    expect(result.reply).toBe(reply);
+    expect(state()?.customerName).toBeUndefined();
+    expect(state()?.step).toBe('rental_name');
+  });
+  it.each(['מה אתה ממליץ לזוג ותינוק?', 'משפחתית או SUV מה עדיף', 'what would you recommend for a couple and baby?', 'בלי עוד שאלות כרגע תסביר בקצרה מה ההבדל', 'תזכיר לי את התאריכים והמיקום שכבר אמרתי'])('answers advice without selecting or quoting: %s', async (message) => {
+    const reply = 'משפחתית עם תא מטען מתאים לעגלה יכולה להתאים; ההתאמה תלויה בדגם.';
+    const { store, state } = makeStore({ ...emptyFields, intent: 'rental', source: 'gemini', reply, asks: 'nothing', vehiclePreference: 'SUV', vehicleEvidence: message, passengers: 0 });
+    const quotes = vi.fn(async () => []);
+    store.getRentalQuotes = quotes;
+    await store.saveState('advice-test', { step: 'rental_vehicle', locale: 'he', pickupDate: '2030-01-10', dropoffDate: '2030-01-24', pickupLocation: 'תל אביב', dropoffLocation: 'תל אביב' });
+    const result = await getWhatsAppFlowReply('advice-test', message, store);
+    expect(result.reply).toBe(reply);
+    expect(state()?.step).toBe('rental_vehicle');
+    expect(state()?.vehiclePreference).toBeUndefined();
+    expect(state()?.pickupDate).toBe('2030-01-10');
+    expect(quotes).not.toHaveBeenCalled();
+    expect(result.reply).not.toMatch(/https?:|₪|כמעט סיימנו|שם מלא/);
+  });
+  it('retains an explicit vehicle choice without unsolicited catalogue quotes', async () => {
+    const { store, state } = makeStore({ ...emptyFields, intent: 'rental', source: 'gemini', vehiclePreference: 'SUV', vehicleEvidence: 'SUV', reply: 'רשמתי ג׳יפון. על איזה שם לרשום את הבקשה?', asks: 'name' });
+    const quotes = vi.fn(async () => []);
+    store.getRentalQuotes = quotes;
+    await store.saveState('choice-test', { step: 'rental_vehicle', locale: 'he', pickupDate: '2030-01-10', dropoffDate: '2030-01-24', pickupLocation: 'תל אביב', dropoffLocation: 'תל אביב' });
+    const result = await getWhatsAppFlowReply('choice-test', 'נלך על SUV', store);
+    expect(state()?.vehiclePreference).toBe('SUV');
+    expect(quotes).not.toHaveBeenCalled();
+    expect(result.reply).not.toMatch(/https?:|₪/);
+  });
+  it('retains over 1020 messages and passes durable memory beyond the recent window', async () => {
+    const { store, state, interpretMessage } = makeStore({ ...emptyFields, intent: 'unknown', source: 'gemini', reply: 'הפרטים נשמרו.', asks: 'nothing', conversationMemory: 'שנה; 15000 קמ; גג פתוח; CarPlay; עור' });
+    const history = Array.from({ length: 1020 }, (_, i) => ({ from: i % 2 ? 'bot' as const : 'customer' as const, text: `הודעה ${i}` }));
+    await store.saveState('memory-test', { step: 'menu', locale: 'he', history, conversationMemory: 'שנה; 15000 קמ; גג פתוח; CarPlay; עור' });
+    await getWhatsAppFlowReply('memory-test', 'מה ההעדפות שלי?', store);
+    expect(interpretMessage.mock.calls[0]?.[2]).toMatchObject({ conversationMemory: 'שנה; 15000 קמ; גג פתוח; CarPlay; עור' });
+    expect(state()?.history).toHaveLength(1022);
+    expect(state()?.history?.[0].text).toBe('הודעה 0');
+    expect(state()?.conversationMemory).toContain('15000');
+  });
+  it('does not fall back to keyword advice or begin intake when the provider is unavailable', async () => {
+    vi.stubEnv('WHATSAPP_LOCAL_BACKUP_ENABLED', 'false');
+    const { store, state } = makeStore(null);
+    const result = await getWhatsAppFlowReply('972501234567', 'אנחנו זוג עם תינוק ועגלה, מה עדיף משפחתית או גיפון?', store);
+    expect(result.aiUnavailable).toBe(true);
+    expect(result.reply).toContain('בעיית חיבור');
+    expect(result.reply).not.toContain('מאיזה תאריך');
+    expect(result.escalate).not.toBe(true);
+    expect(state()).toBeNull();
+    vi.unstubAllEnvs();
+  });
+
+  it('does not substitute a local knowledge interpretation for a live model', async () => {
+    vi.stubEnv('WHATSAPP_LOCAL_BACKUP_ENABLED', 'false');
+    const { store } = makeStore({ ...emptyFields, intent: 'policy', source: 'local', acknowledgement: 'old local advice' });
+    const result = await getWhatsAppFlowReply('972501234567', 'מה יותר חסכוני בדלק?', store);
+    expect(result.aiUnavailable).toBe(true);
+    expect(result.reply).not.toContain('old local advice');
+    vi.unstubAllEnvs();
+  });
   it('routes an unfamiliar rental phrase into the existing safe intake', async () => {
     const { store, interpretMessage, state } = makeStore({ intent: 'rental', ...emptyFields });
     const result = await getWhatsAppFlowReply('972501234567', 'אפשר אוטו לחופשה?', store);
