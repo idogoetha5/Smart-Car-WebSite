@@ -327,6 +327,8 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 
 ### Change log
 
+- 2026-10-23 — Third search-content pass locked and reviewed: distinct bilingual title/description/share metadata for `/leasing` catalogue/quote hub vs `/services/leasing` explainer. Both URLs and all catalogue/form behaviour retained. Scoped tests now cover the distinction; final combined checks and publication pending. No routes removed or canonical consolidation performed.
+
 - 2026-10-23 — Reviewed/integrated source task's rental structured-data correction: shared helper describes LeaseOut explicitly, uses the existing advertised display-price precedence (X2 850) rather than calculation base1060, and escapes script-closing characters. Existing booking minimum950/calculation/form/images/URLs are unchanged. Five focused helper tests plus40 SEO tests passed in the source task; combined publisher gates/live verification remain required. No schema/data migration.
 
 - 2026-10-23 — Integrated second search-content pass for all four remaining existing service pages (business, commercial, new-driver, sale), Hebrew/English. Retains every route/CTA/asset/price; adds practical checks without promising licence eligibility, payload, cover, warranty or availability. Scoped sitemap dates match actual edits. Source task40 focused tests/typecheck/lint passed; publisher reviewed the complete four-file diff. Included after the bot follow-up as a separate commit; combined candidate/CI/live checks still required. Live first-pass326-page audit resolved114 missing descriptions; duplicate groups78 remain open.

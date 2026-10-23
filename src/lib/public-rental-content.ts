@@ -1,6 +1,12 @@
 import type { BranchId } from '@/lib/branches';
 
 type Copy = { he: string; en: string };
+// The catalogue/quote hub and the service explainer are different destinations.
+// Keep both public, with distinct search intent rather than hiding either one.
+export const LEASING_CATALOG_SEARCH = {
+  title: { he: 'ליסינג פרטי ועסקי – בחירת רכב ובקשת הצעה | SmartCar', en: 'Leasing Vehicles in Israel – Compare & Request a Quote | SmartCar' },
+  description: { he: 'בחרו רכב לליסינג פרטי או עסקי ממבחר SmartCar, השוו קבוצות רכב ושלחו בקשה לפי תקופה וקילומטרים. המחיר והתנאים הסופיים מאושרים בהצעה כתובה.', en: 'Compare SmartCar vehicles for private or business leasing in Israel. Choose a vehicle group and request a quote by term and mileage. Final pricing and terms require written confirmation.' },
+};
 export type RentalAdvice = {
   title: Copy;
   description: Copy;

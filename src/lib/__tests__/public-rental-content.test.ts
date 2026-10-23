@@ -4,10 +4,14 @@ import BranchPage, { generateMetadata as branchMetadata } from '@/app/[locale]/b
 import ServicePage, { generateMetadata as serviceMetadata } from '@/app/[locale]/services/[type]/page';
 import { metadata as adminMetadata } from '@/app/[locale]/admin/layout';
 import { BRANCHES } from '@/lib/branches';
-import { BRANCH_RENTAL_ADVICE, SERVICE_RENTAL_ADVICE, rentalCopy } from '@/lib/public-rental-content';
+import { BRANCH_RENTAL_ADVICE, LEASING_CATALOG_SEARCH, SERVICE_RENTAL_ADVICE, rentalCopy } from '@/lib/public-rental-content';
 
 describe('public rental search content and preserved private exclusion', () => {
   for (const locale of ['he', 'en']) {
+    it(`distinguishes the leasing catalogue from the service explainer in ${locale}`, () => {
+      expect(rentalCopy(LEASING_CATALOG_SEARCH.title, locale)).not.toBe(rentalCopy(SERVICE_RENTAL_ADVICE.leasing.title, locale));
+      expect(rentalCopy(LEASING_CATALOG_SEARCH.description, locale)).not.toBe(rentalCopy(SERVICE_RENTAL_ADVICE.leasing.description, locale));
+    });
     it(`uses distinct branch search titles and descriptions in ${locale}`, () => {
       const entries = Object.values(BRANCH_RENTAL_ADVICE);
       expect(new Set(entries.map(a => rentalCopy(a.title, locale))).size).toBe(entries.length);
