@@ -43,6 +43,13 @@ describe('Gemini WhatsApp interpreter', () => {
     expect(url).toContain('/models/gemini-3.5-flash-lite:generateContent');
     expect(options?.headers).toEqual(expect.objectContaining({ 'x-goog-api-key': 'test-key' }));
     const body = JSON.parse(String(options?.body));
+    // Wiring evidence only, not a score of Gemini's conversational compliance.
+    const instructions = body.systemInstruction.parts.map((part: { text: string }) => part.text).join('\n');
+    expect(instructions).toContain('FINAL RESPONSE CONTRACT');
+    expect(instructions).toContain('CONVERSATION ACADEMY');
+    expect(instructions).toContain('A refundable hold');
+    expect(instructions).toContain("nor evidence of the customer's budget");
+    expect(instructions).toContain('not a completed subscription');
     expect(body.generationConfig.responseFormat.text.mimeType).toBe('APPLICATION_JSON');
     expect(body.generationConfig.responseFormat.text.schema.required).toContain('intent');
     expect(options?.signal).toBeInstanceOf(AbortSignal);

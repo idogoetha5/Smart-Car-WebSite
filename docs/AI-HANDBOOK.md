@@ -1,5 +1,19 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-23 coaching work in progress: five live Gemini simulator turns reviewed,
+not real customers. Identified deposit minimisation, premature taxi value claim
+and an unanswered fleet-sale notification request. Added targeted guidance locally;
+not deployed or live-retested yet. Evidence and remaining work:
+`docs/whatsapp-bot/LIVE-COACHING-2026-10-23.md`. Actual inbound and staff-outbound
+builders mapped in `docs/whatsapp-bot/WEBSITE-ENTRY-POINTS.md`; an estimate must
+not be silently recorded as customer budget. Full 1,065 tests, typecheck and scoped
+lint passed before the last prompt-wiring assertions (repeat focused gate).
+Owner explicitly requests publishing current progress, then further improvement;
+this is NOT approval to activate customer transport. CLI token is currently
+invalid; existing connected deployment integration remains available.
+Owner alert destination approved:
+ido.goetha5@gmail.com; receipt of a real incident test still requires verification.
+
 **CRITICAL OWNER DIRECTIVE, 2026-10-22: read `docs/DEPLOYMENT-SAFETY.md` before every change or release. Never silently omit, remove, overwrite or roll back existing features/assets. Start from latest fetched `origin/clean-main`; do not deploy partial bot exports/old checkouts. Run the preservation preflight in the exact release folder. Tell Ido and receive approval before any intentional removal/rollback.**
 
 **Read this whole file before you change anything in the driver or manager apps.
