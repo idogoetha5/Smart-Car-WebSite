@@ -1,11 +1,13 @@
 import { OFFICE_EMAIL } from '@/lib/constants';
 
-export type BotIncident = 'processing_failed' | 'delivery_failed' | 'handoff_alert_failed' | 'settings_unavailable' | 'test';
+export type BotIncident = 'processing_failed' | 'delivery_failed' | 'handoff_alert_failed' | 'settings_unavailable' | 'ai_unavailable' | 'ai_recovered' | 'test';
 const LABELS: Record<BotIncident, string> = {
   processing_failed: 'תקלה בעיבוד הודעת WhatsApp',
   delivery_failed: 'תשובת הבוט לא נמסרה לספק WhatsApp',
   handoff_alert_failed: 'התרעת המעבר לנציג לא נשלחה ב־SMS',
   settings_unavailable: 'לא ניתן לבדוק אם המענה האוטומטי מופעל',
+  ai_unavailable: 'Gemini לא זמין — הבוט עבר למענה הגיבוי',
+  ai_recovered: 'Gemini חזר לענות לאחר תקלה',
   test: 'בדיקת מנגנון התרעות — אין תקלה אמיתית',
 };
 
@@ -24,7 +26,7 @@ export async function reportBotIncident(kind: BotIncident): Promise<boolean> {
   // Body must remain identical for the idempotency key, including across workers.
   const body = JSON.stringify({ from: `SmartCar <${OFFICE_EMAIL}>`, to: [to],
     subject: `[SmartCar] ${LABELS[kind]}`,
-    text: `${LABELS[kind]}\nקוד: ${kind}\nחלון האירוע: ${new Date(bucket * 900000).toISOString()}\nיש לבדוק את המערכת ואת השיחות הממתינות. אין בהודעה זו אישור שהתקלה תוקנה.\nhttps://www.smartcar.co.il/he/admin/inbox\nהודעה זו אינה כוללת תוכן שיחות או פרטי לקוחות.`,
+    text: `${LABELS[kind]}\nקוד: ${kind}\nחלון האירוע: ${new Date(bucket * 900000).toISOString()}\n${kind === 'ai_recovered' ? 'התקבלה תשובה תקינה מהמודל בניסיון הבא. אין בכך אישור שכל רכיבי המערכת תקינים או שהודעות קודמות נמסרו.' : 'יש לבדוק את המערכת ואת השיחות הממתינות. אין בהודעה זו אישור שהתקלה תוקנה.'}\nhttps://www.smartcar.co.il/he/admin/inbox\nהודעה זו אינה כוללת תוכן שיחות או פרטי לקוחות.`,
   });
   for (let attempt = 0; attempt < 2; attempt++) {
     try {

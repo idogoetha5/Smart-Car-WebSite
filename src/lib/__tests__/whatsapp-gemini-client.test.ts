@@ -1,12 +1,38 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+const notifications = vi.hoisted(() => ({ report: vi.fn() }));
+vi.mock('@/lib/whatsapp-incidents', () => ({ reportBotIncident: notifications.report }));
 
 beforeEach(() => {
   vi.stubEnv('GEMINI_API_KEY', 'test-only');
   vi.stubGlobal('fetch', vi.fn());
+  notifications.report.mockReset().mockResolvedValue(true);
 });
-afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); vi.useRealTimers(); });
 
 describe('replacement Gemini connection', () => {
+  it('alerts on outage, avoids hammering during cooldown and confirms recovery only after a valid response', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2030-01-01T00:00:00Z'));
+    const { generateSmartCarContent, resetModelCooldowns } = await import('@/lib/whatsapp-gemini-client');
+    resetModelCooldowns();
+    vi.mocked(fetch).mockResolvedValueOnce(new Response('{}', { status: 503 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'valid reply' }] } }] })));
+    const request = { model: 'recovery-check', body: {} };
+    expect(await generateSmartCarContent(request)).toMatchObject({ ok: false, status: 503 });
+    expect(notifications.report).toHaveBeenLastCalledWith('ai_unavailable');
+    expect(await generateSmartCarContent(request)).toMatchObject({ reason: 'cooldown' });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(notifications.report).toHaveBeenCalledTimes(1);
+    vi.setSystemTime(new Date('2030-01-01T00:00:31Z'));
+    expect(await generateSmartCarContent(request)).toEqual({ ok: true, text: 'valid reply' });
+    expect(notifications.report).toHaveBeenLastCalledWith('ai_recovered');
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+  it('still returns an actionable fallback result if the alert service also fails', async () => {
+    const { generateSmartCarContent } = await import('@/lib/whatsapp-gemini-client');
+    notifications.report.mockRejectedValue(new Error('mail unavailable'));
+    vi.mocked(fetch).mockRejectedValue(new DOMException('deadline', 'TimeoutError'));
+    expect(await generateSmartCarContent({ model: 'alert-outage', body: {} })).toEqual({ ok: false, reason: 'timeout' });
+  });
   it('returns text and ignores internal thinking parts', async () => {
     const { generateSmartCarContent } = await import('@/lib/whatsapp-gemini-client');
     vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ candidates: [{ content: { parts: [{ thought: true, text: 'private reasoning' }, { text: '{"intent":"policy"}' }] } }] })));
