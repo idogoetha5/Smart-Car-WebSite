@@ -13,24 +13,39 @@ async function checkAuth() {
   return verifyInboxToken(cookieStore.get('inbox_auth')?.value ?? '');
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ phone: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ phone: string }> }) {
   if (!(await checkAuth())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { phone } = await params;
+  const search = new URL(request.url).searchParams;
+  const before = search.get('before');
+  const after = search.get('after');
+  const validCursor = (value: string | null) => value === null || (/^[1-9]\d{0,15}$/.test(value) && Number.isSafeInteger(Number(value)));
+  if (!/^\+?\d{9,15}$/.test(phone) || !validCursor(before) || !validCursor(after) || (before && after)) {
+    return NextResponse.json({ error: 'Invalid conversation cursor' }, { status: 400 });
+  }
 
   const supabase = createAdminClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from('whatsapp_messages')
     .select('id, source, body, created_at, escalated_at')
-    .eq('phone', phone)
-    .order('created_at', { ascending: true })
-    .limit(200);
+    .eq('phone', phone);
+  if (before) query = query.lt('id', before);
+  if (after) query = query.gt('id', after);
+  // Identity cursor is stable even when multiple messages share a timestamp.
+  // New conversations open at the latest window, never the oldest 200 rows.
+  const { data, error } = await query.order('id', { ascending: Boolean(after) }).limit(101);
 
   if (error) {
     console.error('[admin/whatsapp/conversations/:phone]', error.message);
     return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 });
   }
 
-  return NextResponse.json({ data: data ?? [] });
+  const page = (data ?? []).slice(0, 100);
+  if (!after) page.reverse();
+  return NextResponse.json({ data: page, pagination: {
+    hasMore: (data?.length ?? 0) > 100,
+    before: page[0]?.id ?? null, after: page.at(-1)?.id ?? null,
+  } }, { headers: { 'Cache-Control': 'private, no-store' } });
 }
 
 /**
