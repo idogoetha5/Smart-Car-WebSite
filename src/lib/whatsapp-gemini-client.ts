@@ -72,16 +72,12 @@ export async function generateSmartCarContent(params: { model: string; body: unk
   }
 }
 
-/**
- * The free models, in order. Each has its own free quota on the account (AI Studio → Rate limit,
- * free tier, 2026-10-22): Gemini 3.5 Flash Lite and Gemini 3.1 Flash Lite 15/min and 500/day each,
- * Gemma 4 31B and 26B 30/min and 14,400/day each. When one is busy or out for the day the next one
- * answers, so customers get a real answer without paying. WHATSAPP_GEMINI_MODEL, if set, goes first.
- */
+/** Owner requested one Gemini only. Legacy exported names remain compatible;
+ * they are not a claim of free usage or independent model quotas. */
 const chainOverride = new AsyncLocalStorage<string[]>();
 const KNOWN_MODELS = ['gemini-3.5-flash-lite'];
 
-/** For checking one model on the demo: runs `work` with only the given models (known free models only). */
+/** Demo diagnostic override, restricted to the sole configured Gemini. */
 export function withModelChain<T>(models: string[], work: () => Promise<T>): Promise<T> {
   const allowed = models.filter((model) => KNOWN_MODELS.includes(model));
   return allowed.length ? chainOverride.run(allowed, work) : work();

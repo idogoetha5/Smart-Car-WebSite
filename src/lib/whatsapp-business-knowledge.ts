@@ -118,23 +118,23 @@ function leasingFollowUp(input: string, locale: Locale, previousTopic?: string):
     // "יש לכם משהו חשמלי?" in a leasing conversation: the leasing offer, not the rental fleet.
     if (/חשמל|היבריד|electric|hybrid|\bev\b|איזה רכבים|אילו רכבים|דגמים|which cars|what cars|models/i.test(input)) {
       return { topic: 'leasing_terms', ...link, reply: locale === 'he'
-        ? 'את הדגמים שאפשר לקחת בליסינג — כולל חשמליים והיברידיים, אם זה מה שמעניין אותך — נציג יציג לך בהצעה, כי זה משתנה לפי המלאי והתקופה. איזה סוג רכב אתה מחפש, ולכמה חודשים?'
-        : "The models available for leasing — including electric and hybrid, if that's what you're after — are presented by a representative in the quote, since they depend on stock and term. What kind of car are you looking for, and for how many months?" };
+        ? 'דגם מסוים בליסינג, כולל חשמלי או היברידי, דורש בדיקת התאמה וזמינות להצעה המסוימת. עצם הופעת הדגם באתר לא מאשרת שהוא זמין בליסינג לתקופה המבוקשת.'
+        : 'A specific leasing model, including an electric or hybrid, needs suitability and availability verification for the particular offer. A website listing does not confirm leasing availability for the requested term.' };
     }
     const yearly = input.match(/(\d{1,3})\s*(?:אלף|k|,000|000)\s*(?:ק[״"]?מ|קמ|קילומטר\S*|km|kilomet\S*)?\s*(?:ב?שנה|לשנה|a year|per year|yearly|annually)/i);
     if (yearly) {
       const km = Number(yearly[1]) * 1000;
-      const fit = MILEAGE_PACKAGES.find((pack) => pack >= km) ?? MILEAGE_PACKAGES[MILEAGE_PACKAGES.length - 1];
+      const fit = MILEAGE_PACKAGES.find((pack) => pack >= km);
       return { topic: 'leasing_terms', href: '/leasing', linkLabel: locale === 'he' ? 'ליסינג באתר' : 'Leasing',
         reply: locale === 'he'
-          ? `ב־${km.toLocaleString('he-IL')} ק״מ בשנה, חבילת ${fit.toLocaleString('he-IL')} ק״מ מתאימה${fit === km ? ' בדיוק' : ''}. בנסיעות כאלה ליסינג תפעולי נוח במיוחד — הטיפולים והבלאי על החברה. לאיזה סוג רכב אתה מכוון, ולכמה זמן?`
-          : `At ${km.toLocaleString('en-US')} km a year, the ${fit.toLocaleString('en-US')} km package fits${fit === km ? ' exactly' : ''}. With that much driving, operational leasing is especially convenient — servicing and wear are on the company. What kind of car are you after, and for how long?` };
+          ? `${km.toLocaleString('he-IL')} ק״מ בשנה הם בסיס להשוואה${fit ? ` מול חבילת ${fit.toLocaleString('he-IL')} ק״מ שמופיעה באתר` : ', מעבר לחבילות שמופיעות באתר'}. יש לבדוק בהצעה את מכסת הק״מ, עלות החריגה ותנאי היציאה. תחזוקה וביטוח נקבעים בהסכם המסוים, לא בשם המסלול.`
+          : `${km.toLocaleString('en-US')} km a year is a basis for comparison${fit ? ` with the published ${fit.toLocaleString('en-US')} km package` : ', beyond the published packages'}. Check the offer’s mileage allowance, excess-mileage rate and exit terms. Maintenance and insurance depend on the specific agreement, not the plan label.` };
     }
     if (/כמה (?:זה )?(?:יוצא|עולה|יעלה)|מחיר|לחודש|חודשי|how much|price|per month|monthly/i.test(input)) {
       return { topic: 'leasing_terms', href: '/leasing', linkLabel: locale === 'he' ? 'ליסינג באתר' : 'Leasing',
         reply: locale === 'he'
-          ? 'התשלום החודשי בליסינג תלוי בדגם, בתקופה (12–60 חודשים) ובחבילת הקילומטרים, ולכן אין לי מחיר אחד לתת. נציג יכין לך הצעה מדויקת — לאיזה רכב ולכמה זמן לבדוק?'
-          : 'The monthly leasing payment depends on the model, the term (12–60 months) and the mileage package, so there is no single price to give. A representative will prepare an exact quote — which car and what term should we check?' };
+          ? 'התשלום החודשי בליסינג תלוי בדגם, בתקופה ובחבילת הקילומטרים. המחיר, השירותים הכלולים ותנאי היציאה נקבעים בהצעה המסוימת; לא נוצרה או נשלחה כאן הצעת מחיר.'
+          : 'The monthly leasing payment depends on the model, term and mileage package. Price, included services and exit terms are set in the individual offer; no quotation has been created or sent here.' };
     }
   }
   return null;

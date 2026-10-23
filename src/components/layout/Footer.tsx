@@ -118,6 +118,8 @@ export default function Footer() {
             <ul className="space-y-2 text-sm">
               {[
                 { href: `/${locale}/rental`,           labelHe: 'השכרת רכב יומית',  labelEn: 'Daily Car Rental' },
+                { href: `/${locale}/services/monthly`, labelHe: 'השכרת רכב לחודש', labelEn: 'Monthly Car Rental' },
+                { href: `/${locale}/services/hourly`, labelHe: 'השכרת רכב לפי שעה', labelEn: 'Hourly Car Rental' },
                 { href: `/${locale}/leasing`,          labelHe: 'ליסינג פרטי',       labelEn: 'Private Leasing' },
                 // Finding 95: this said "ליסינג עסקי" but pointed at
                 // /services/business, whose heading is "רכב לעסק, מהשכרה קצרה
@@ -129,8 +131,8 @@ export default function Footer() {
                 { href: `/${locale}/services/new-driver`,labelHe: 'נהג חדש',         labelEn: 'New Driver' },
                 { href: `/${locale}/cars-for-sale`,    labelHe: 'רכבים למכירה',      labelEn: 'Cars for Sale' },
               ].map((s) => (
-                <li key={s.href}>
-                  <Link href={s.href} className="text-[#7fb09f] hover:text-[#B64916] transition-colors">
+                <li key={s.labelEn}>
+                  <Link href={s.href} className="inline-flex min-h-11 items-center text-[#7fb09f] hover:text-[#B64916] transition-colors">
                     {locale === 'he' ? s.labelHe : s.labelEn}
                   </Link>
                 </li>

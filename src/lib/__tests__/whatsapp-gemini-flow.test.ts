@@ -22,6 +22,36 @@ const emptyFields = {
 };
 
 describe('Gemini interpretation inside the WhatsApp flow', () => {
+  it('does not let the FAQ shortcut swallow a real account handoff', async () => {
+    const reply = 'צריך לבדוק את מצב הפיקדון הספציפי עם צוות המשרד.';
+    const { store, state } = makeStore({ ...emptyFields, source: 'gemini', intent: 'representative', purpose: 'complaint', acknowledgement: 'הפיקדון עדיין תופס מסגרת.', reply, asks: 'nothing' });
+    store.engine = 'ai';
+    const result = await getWhatsAppFlowReply('account-review', 'החזרתי את הרכב ואתם עדיין תופסים לי את הפיקדון. אני צריך את המסגרת לקניות לשבת, זה ממש לא מצחיק.', store);
+    expect(result.escalate).toBe(true);
+    expect(state()?.handedOff).toBe(true);
+    expect(result.reply).toBe(reply);
+  });
+  it('keeps a genuine contact-information question autonomous', async () => {
+    const { store, state } = makeStore({ ...emptyFields, source: 'gemini', intent: 'representative', purpose: 'explanation', acknowledgement: 'אפשר להתקשר למשרד.', reply: 'אפשר להתקשר למשרד.', asks: 'nothing' });
+    store.engine = 'ai';
+    const result = await getWhatsAppFlowReply('contact-info', 'איך אפשר להתקשר אליכם?', store);
+    expect(result.escalate).not.toBe(true);
+    expect(state()?.handedOff).not.toBe(true);
+  });
+  it.each(['Hello, please notify me when fleet cars become available.', 'Have you actually added me to the notification list?', 'רק ביקשתי עדכון כשיהיו רכבים, לא רשימת מלאי'])('keeps notification discussion out of catalogue actions: %s', async message => {
+    const reply = /[א-ת]/.test(message) ? 'לא נוצרה כאן הרשמה לעדכונים אוטומטיים.' : 'This chat has not created an automatic notification signup.';
+    const { store, state } = makeStore({ ...emptyFields, purpose: 'correction', intent: 'buy_car', source: 'gemini', reply, asks: 'nothing', notificationRequest: true });
+    store.engine = 'ai';
+    const catalogue = vi.fn(async () => []);
+    store.getCarsForSale = catalogue;
+    await store.saveState('notification', { step: 'menu', locale: 'en', carSale: { mode: 'car_sale', selectedCarIds: ['existing-car'], budget: 90000 } });
+    const result = await getWhatsAppFlowReply('notification', message, store);
+    expect(result.reply).toBe(reply);
+    expect(result.escalate).not.toBe(true);
+    expect(catalogue).not.toHaveBeenCalled();
+    expect(state()?.carSale).toMatchObject({ selectedCarIds: ['existing-car'], budget: 90000 });
+    expect(state()?.history?.at(-1)?.text).toBe(reply);
+  });
   it('does not record a recall request as a name after the old flow already asked for one', async () => {
     const reply = 'האיסוף וההחזרה בתל אביב, מ־1.11 עד 15.11.';
     const { store, state, interpretMessage } = makeStore({ ...emptyFields, intent: 'unknown', source: 'gemini', reply, asks: 'nothing' });

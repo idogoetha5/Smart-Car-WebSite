@@ -2,6 +2,9 @@ import { Suspense } from 'react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Car, ChevronRight, ChevronLeft } from 'lucide-react';
 import RentalResults from './RentalResults';
+import Link from 'next/link';
+import PublicRentalAdvice from '@/components/content/PublicRentalAdvice';
+import { NATIONAL_RENTAL_ADVICE } from '@/lib/public-rental-content';
 
 /**
  * Finding 41. The whole page used to be a client component behind
@@ -87,6 +90,21 @@ export default async function RentalPage({
       >
         <RentalResults />
       </Suspense>
+      <div className="max-w-3xl mx-auto mt-12">
+        <PublicRentalAdvice advice={NATIONAL_RENTAL_ADVICE} locale={locale} />
+        <nav aria-label={isHe ? 'השכרת רכב לפי מיקום' : 'Rental locations'} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {[
+            { id: 'telaviv', he: 'השכרת רכב בתל אביב', en: 'Car rental in Tel Aviv' },
+            { id: 'herzliya', he: 'השכרת רכב בהרצליה', en: 'Car rental in Herzliya' },
+            { id: 'jerusalem', he: 'השכרת רכב בירושלים', en: 'Car rental in Jerusalem' },
+            { id: 'airport', he: 'השכרת רכב בנתב״ג', en: 'Ben Gurion Airport car rental' },
+          ].map(branch => (
+            <Link key={branch.id} href={`/${locale}/branches/${branch.id}`} className="flex items-center min-h-12 rounded-xl border border-[#2D5F5F]/20 px-4 py-3 text-[#2D5F5F] hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2D5F5F]">
+              {isHe ? branch.he : branch.en}
+            </Link>
+          ))}
+        </nav>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { localeAlternates } from '@/lib/seo';
 import type { Metadata } from 'next';
+import { NATIONAL_RENTAL_ADVICE, rentalCopy } from '@/lib/public-rental-content';
 
 export async function generateMetadata({
   params,
@@ -7,12 +8,9 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const isHe = locale === 'he';
   return {
-    title: { absolute: isHe ? 'רכבים להשכרה | SmartCar' : 'Vehicles for Rent | SmartCar' },
-    description: isHe
-      ? 'מבחר רכבים מהצי של SmartCar. שלחו בקשה ונבדוק זמינות בצי המלא לפי תאריכים ומיקום.'
-      : 'A selection of vehicles from the SmartCar fleet. Send a request and we will check availability in the full fleet by dates and location.',
+    title: { absolute: rentalCopy(NATIONAL_RENTAL_ADVICE.title, locale) },
+    description: rentalCopy(NATIONAL_RENTAL_ADVICE.description, locale),
     alternates: localeAlternates(locale, 'rental'),
   };
 }

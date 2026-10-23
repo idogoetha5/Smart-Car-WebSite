@@ -1,8 +1,10 @@
-import { localeAlternates } from '@/lib/seo';
+import { localeAlternates, ogImage } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { JSX } from 'react';
+import { SERVICE_RENTAL_ADVICE, rentalCopy } from '@/lib/public-rental-content';
+import PublicRentalAdvice from '@/components/content/PublicRentalAdvice';
 
 type ServiceData = {
   titleHe: string;
@@ -201,12 +203,15 @@ export async function generateMetadata({
   const { locale, type } = await params;
   const service = SERVICES[type];
   if (!service) return {};
+  const advice = SERVICE_RENTAL_ADVICE[type];
+  const title = advice ? rentalCopy(advice.title, locale) : `${locale === 'he' ? service.titleHe : service.titleEn} | SmartCar`;
+  const description = advice ? rentalCopy(advice.description, locale) : (locale === 'he' ? service.descHe : service.descEn);
   return {
-    title: locale === 'he' ? service.titleHe : service.titleEn,
-    // Reuses the same descHe/descEn copy rendered in the page body — never
-    // a separately-invented summary.
-    description: locale === 'he' ? service.descHe : service.descEn,
+    title: { absolute: title },
+    description,
     alternates: localeAlternates(locale, `services/${type}`),
+    openGraph: { title, description, url: `/${locale}/services/${type}`, type: 'website', locale: locale === 'he' ? 'he_IL' : 'en_US', siteName: 'SmartCar', images: [ogImage(locale)] },
+    twitter: { card: 'summary_large_image', title, description, images: ['/images/og-image.png'] },
   };
 }
 
@@ -280,6 +285,12 @@ export default async function ServicePage({
       </div>
 
       {/* CTA */}
+      {SERVICE_RENTAL_ADVICE[type] && (
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4">
+          <PublicRentalAdvice advice={SERVICE_RENTAL_ADVICE[type]} locale={locale} />
+        </div>
+      )}
+
       <div className="bg-[#0D2B2B] py-16 px-6 text-center">
         <h2 className="text-2xl font-bold text-white mb-8">
           {isHe ? 'מוכנים להתחיל?' : 'Ready to get started?'}

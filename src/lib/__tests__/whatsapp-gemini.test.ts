@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { guardedReply, interpretWhatsAppMessage, singleQuestionReply, withoutUnsupportedOutreach } from '@/lib/whatsapp-gemini';
+import { guardedReply, interpretWhatsAppMessage, singleQuestionReply, withoutUnsupportedOutreach, safeAcknowledgement } from '@/lib/whatsapp-gemini';
 
 const originalKey = process.env.GEMINI_API_KEY;
 const originalModel = process.env.WHATSAPP_GEMINI_MODEL;
@@ -26,12 +26,27 @@ const interpretation = {
 };
 
 describe('Gemini WhatsApp interpreter', () => {
+  it.each(['אני נוסע 25 אלף בשנה', 'I drive 25k per year', '25 thousand km per year'])('retains equivalent explicit quantities without admitting invented numbers: %s', evidence => {
+    expect(safeAcknowledgement('25,000 ק״מ בשנה.', evidence)).toBe('25,000 ק״מ בשנה.');
+    expect(safeAcknowledgement('26,000 ק״מ בשנה.', evidence)).toBe('');
+    expect(safeAcknowledgement('250,000 ק״מ בשנה.', evidence)).toBe('');
+  });
+  it('does not discard the live leasing correction and replace it with a scripted fallback', async () => {
+    const reply = 'ב־25,000 ק״מ בשנה כדאי לבדוק את מכסת הק״מ, מחיר החריגה ותנאי היציאה המוקדמת בחוזה של 24 חודשים.';
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ ...interpretation, purpose: 'comparison', intent: 'leasing', notificationRequest: false, acknowledgement: 'מעדכן: 25,000 ק״מ בשנה.', reply, asks: 'nothing', conversationMemory: 'הלקוח תיקן ל־25,000 קמ; 3000 הוא אומדן מחשבון, לא תקציב.' }) }] } }] })));
+    const result = await interpretWhatsAppMessage('אני נוסע 25 אלף בשנה, לא 15, והגמישות חשובה. מה לבדוק בחוזה?', 'menu', { locale: 'he', knowledgeTopic: 'leasing_terms', conversationMemory: 'מתלבט בין 12 ל־24 חודשים; 15000 קמ; אומדן מחשבון3000' });
+    expect(result?.reply).toBe(reply);
+    expect(result?.acknowledgement).toBe('מעדכן: 25,000 ק״מ בשנה.');
+    expect(result?.reply).not.toMatch(/על החברה|לאיזה סוג|כמה נוסעים/);
+  });
   it('retains only the first requested field in a compound question', () => {
     expect(singleQuestionReply('איזה קילומטראז׳ מתאים לך, ובאיזה רכב מדובר?')).toBe('איזה קילומטראז׳ מתאים לך?');
     expect(singleQuestionReply('What is your budget? Which car?')).toBe('What is your budget?');
   });
   it('removes outreach promises without deleting the customer acknowledgement', () => {
     expect(withoutUnsupportedOutreach('רשמתי תקציב 3000. נציג יחזור אליך עם הצעה.')).toBe('רשמתי תקציב 3000.');
+    expect(withoutUnsupportedOutreach('הפיקדון עדיין תפוס. אני מעביר את הפנייה לנציג.')).toBe('הפיקדון עדיין תפוס.');
+    expect(withoutUnsupportedOutreach("This needs review. I'm transferring your case now.")).toBe('This needs review.');
   });
   it('sends a bounded structured classification request and validates its response', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({
@@ -46,6 +61,10 @@ describe('Gemini WhatsApp interpreter', () => {
     // Wiring evidence only, not a score of Gemini's conversational compliance.
     const instructions = body.systemInstruction.parts.map((part: { text: string }) => part.text).join('\n');
     expect(instructions).toContain('FINAL RESPONSE CONTRACT');
+    expect(instructions).toContain('SMARTCAR SERVICE CHARTER');
+    expect(instructions.indexOf('SMARTCAR SERVICE CHARTER')).toBeLessThan(instructions.indexOf('COACHING CURRICULUM'));
+    expect(instructions.length).toBeLessThan(65000);
+    expect(body.generationConfig.responseFormat.text.schema.required).toContain('notificationRequest');
     expect(instructions).toContain('CONVERSATION ACADEMY');
     expect(instructions).toContain('A refundable hold');
     expect(instructions).toContain("nor evidence of the customer's budget");
