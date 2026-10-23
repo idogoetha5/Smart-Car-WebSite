@@ -14,19 +14,24 @@ const FIELDS: Array<[EditableFact, RegExp]> = [
   ['passengers', /נוסעים|אנשים|passengers|people/i],
   ['luggage', /מזווד|מטען|כלי נגינה|luggage|bags|suitcases?|cargo|musical instruments?/i],
   ['budget', /תקציב|budget/i],
-  ['annualKm', /קילומטר|קילומטרא|ק[״"]?מ|mileage|annual km/i],
+  ['annualKm', /קילומטר|קילומטרא|ק[״"]?מ|mileage|kilomet|\bkm\b|yearly distance/i],
   ['equipment', /אבזור|העדפות|גג פתוח|גג נפתח|קארפליי|קאר פליי|מושבי עור|equipment|preferences/i],
 ];
 
 /** A scoped forget instruction must also govern future retrieval of old quotes. */
-export function isForgottenHistoryText(text: string, position: number, boundaries?: Partial<Record<EditableFact, number>>): boolean {
-  if (text.includes('[הוסר מהשיחה]')) return true;
-  return Object.entries(boundaries ?? {}).some(([field, boundary]) => {
-    if (typeof boundary !== 'number' || position > boundary) return false;
+export function redactForgottenHistoryText(text: string, position: number, boundaries?: Partial<Record<EditableFact, number>>): string {
+  const patterns = Object.entries(boundaries ?? {}).flatMap(([field, boundary]) => {
+    if (typeof boundary !== 'number' || position > boundary) return [];
     const pattern = FIELDS.find(([key]) => key === field)?.[1]
       ?? (field === 'pickupDate' || field === 'dropoffDate' ? /תאריך|מועד|איסוף|החזרה|date|pickup|return|dropoff/i : null);
-    return pattern?.test(text) ?? false;
+    return pattern ? [pattern] : [];
   });
+  if (!patterns.length && !text.includes('[הוסר מהשיחה]')) return text;
+  // Keep conjunction/negation in the surviving clause ("and cannot charge").
+  // Do not split thousands separators or decimal numbers.
+  return text.split(/[;.!?](?:\s+|$)|,(?!\d)\s*|\s+(?=and\b|but\b|אבל\b|ואין\b|ולא\b|וגם\b)/i)
+    .filter(clause => !clause.includes('[הוסר מהשיחה]') && !patterns.some(pattern => pattern.test(clause)))
+    .map(clause => clause.trim()).filter(Boolean).join('. ');
 }
 
 /** Intent must be an instruction, not a mention, hypothetical or negation. */
@@ -79,6 +84,8 @@ export function forgetConversationFacts(state: FlowState, fields: EditableFact[]
   }
   // Old summaries and returning-customer snapshots must not silently restore
   // erased facts. This forgets chat memory, not business booking records.
+  // Free-form summaries have no per-fact provenance. Clear them rather than
+  // risk reintroducing a requested deletion; unrelated archive clauses remain.
   delete next.conversationMemory;
   delete next.returning;
   next.returningChecked = true;

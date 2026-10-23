@@ -32,6 +32,17 @@ forgotten value; matching old quotes stay out of retrieval/recent context, while
 later supplied facts can be used. Literal history redaction is case-insensitive.
 "Forget everything about luggage" is scoped forgetting, not a full-chat reset.
 This is a chat-memory control, not deletion of retained business/message records.
+Final retrieval review: redaction now removes matching clauses rather than the
+entire mixed quote, keeping an unrelated "cannot charge an electric car" constraint
+when instrument/luggage details are forgotten. Unproven free-form summary is still
+cleared on forgetting; surviving archive clauses can supply unrelated context.
+Focused75 tests/typecheck passed after this refinement; repeat full gates.
+Final refinement gates:1162 full tests/87files, typecheck, lint budget pass.
+Actual staged Gemini on2c16f41 retrieved travel-alone/3musical-instruments/no
+charging from the first entry of a seeded1021-entry archive, with those facts
+absent from the supplied short summary. Returned history1023. This is one real
+model turn after a seeded fixture, not1021real AI turns. Mixed-clause forget
+refinement still requires rebuilt candidate and the following adaptive turns.
 
 Further adaptive review caught negated "בלי להתחיל מחדש" executing reset and
 "forget the seat discussion for now" being mistaken for record erasure. Control

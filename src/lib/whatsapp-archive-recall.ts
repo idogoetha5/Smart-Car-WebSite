@@ -1,5 +1,5 @@
 /** Bounded retrieval from retained customer quotes, not a replacement for the archive. */
-import { isForgottenHistoryText, type EditableFact } from '@/lib/whatsapp-conversation-control';
+import { redactForgottenHistoryText, type EditableFact } from '@/lib/whatsapp-conversation-control';
 type Entry = { from: 'customer' | 'bot'; text: string; step?: string };
 export type RecalledCustomerQuote = { position: number; text: string };
 
@@ -30,8 +30,7 @@ export function recallArchivedCustomerQuotes(message: string, history: Entry[], 
   const contacts = privateValues.filter((v): v is string => typeof v === 'string' && Boolean(v.trim())).map(normalize);
   const candidates = older.flatMap((entry, index) => {
     if (!entry || entry.from !== 'customer' || typeof entry.text !== 'string' || ['rental_name', 'rental_email', 'rental_confirm'].includes(entry.step ?? '')) return [];
-    const text = entry.text.trim();
-    if (isForgottenHistoryText(text, index + 1, forgottenBefore)) return [];
+    const text = redactForgottenHistoryText(entry.text.trim(), index + 1, forgottenBefore);
     const normalized = normalize(text);
     if (!text || /@|(?:\+\d{1,3}|0)[\d\s()-]{8,}/.test(text) || contacts.some(value => normalized.includes(value))) return [];
     const words = new Set(tokens(text));

@@ -10,7 +10,7 @@ import { getBusinessKnowledgeResponse } from '@/lib/whatsapp-business-knowledge'
 import { composeServiceResponse, detectConversationMood } from '@/lib/service-response';
 import { consultativeSalesReply } from '@/lib/consultative-sales';
 import { localConsultationTurn, type LocalConsultation } from '@/lib/whatsapp-local-consultation';
-import { parseConversationControl, forgetConversationFacts, factQuestion, isForgottenHistoryText, type EditableFact } from '@/lib/whatsapp-conversation-control';
+import { parseConversationControl, forgetConversationFacts, factQuestion, redactForgottenHistoryText, type EditableFact } from '@/lib/whatsapp-conversation-control';
 import { getCarsForSale, type CarForSale } from '@/lib/cars-for-sale';
 import { closeEnough, repairCustomerText } from '@/lib/whatsapp-typing';
 import { bookingQuestion, detectLearnedSituation, detectSituation, humanLine, type BookingAsk } from '@/lib/whatsapp-replies';
@@ -2215,8 +2215,8 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       dropoffLocation: existingState.dropoffLocation, vehiclePreference: existingState.vehiclePreference, passengers: existingState.passengers,
       // Names, emails and phone numbers stay out of what Gemini sees.
       recent: (Array.isArray(existingState.history) ? existingState.history.slice(-HISTORY_LENGTH) : [])
-        .filter((entry, index) => !['rental_name', 'rental_email', 'rental_confirm'].includes(entry.step ?? '') && !/@|(?:\+972|0)[\d\s()-]{8,}/.test(entry.text)
-          && !isForgottenHistoryText(entry.text, Math.max(0, (existingState.history?.length ?? 0) - HISTORY_LENGTH) + index + 1, existingState.memoryForgetBefore))
+        .map((entry, index) => ({ ...entry, text: redactForgottenHistoryText(entry.text, Math.max(0, (existingState.history?.length ?? 0) - HISTORY_LENGTH) + index + 1, existingState.memoryForgetBefore) }))
+        .filter(entry => entry.text && !['rental_name', 'rental_email', 'rental_confirm'].includes(entry.step ?? '') && !/@|(?:\+972|0)[\d\s()-]{8,}/.test(entry.text))
         .map(({ from, text }) => ({ from, text: text.slice(0, 500) })),
       knowledgeTopic: existingState.knowledgeTopic,
       haveName: Boolean(existingState.customerName), haveEmail: Boolean(existingState.customerEmail),

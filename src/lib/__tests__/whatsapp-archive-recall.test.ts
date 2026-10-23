@@ -4,6 +4,14 @@ import { forgetConversationFacts } from '@/lib/whatsapp-conversation-control';
 
 const noise = (n: number) => Array.from({ length: n }, (_, index) => ({ from: 'customer' as const, text: `Small talk ${index}` }));
 describe('bounded older-customer archive retrieval', () => {
+  it('keeps an unrelated charging constraint when luggage is forgotten from a mixed quote', () => {
+    const text = 'I carry 3 musical instruments, and cannot use an electric car because I have no charging access.';
+    const state = forgetConversationFacts({ step: 'menu', locale: 'en', conversationMemory: text, history: [{ from: 'customer', text }, ...noise(1020)] }, ['luggage']);
+    expect(state.conversationMemory).toBeUndefined();
+    const quotes = recallArchivedCustomerQuotes('What did I say about charging near the beginning?', state.history!, [], state.memoryForgetBefore);
+    expect(quotes[0].text).toContain('no charging access');
+    expect(quotes[0].text).not.toContain('3 musical instruments');
+  });
   it('does not resurrect forgotten quantities written as words, but permits newly supplied facts', () => {
     const old = { from: 'customer' as const, text: 'My annual mileage is fifteen thousand kilometres.' };
     const state = forgetConversationFacts({ step: 'menu', locale: 'en', history: [old, ...noise(1020)] }, ['annualKm']);
