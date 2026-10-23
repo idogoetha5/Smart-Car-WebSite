@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { verifyAdminToken, verifyInboxToken } from '@/lib/admin-auth';
 import { sendWhatsAppMessage } from '@/lib/whatsapp';
 import { logWhatsAppMessage } from '@/lib/whatsapp-conversations';
+import { reportBotIncident } from '@/lib/whatsapp-incidents';
 
 /** See src/app/api/admin/whatsapp/conversations/route.ts for why two cookies. */
 async function checkAuth() {
@@ -58,15 +59,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ pho
   const { phone } = await params;
 
   const body = (await request.json().catch(() => null)) as { message?: string } | null;
-  const message = body?.message?.trim();
-  if (!message) return NextResponse.json({ error: 'הודעה ריקה' }, { status: 400 });
+  const message = typeof body?.message === 'string' ? body.message.trim() : '';
+  if (!message || message.length > 4096) return NextResponse.json({ error: 'יש להזין הודעה באורך תקין' }, { status: 400 });
 
   const result = await sendWhatsAppMessage(phone, message);
   if (!result.ok) {
-    return NextResponse.json({ error: 'שליחה נכשלה' }, { status: 502 });
+    await reportBotIncident('delivery_failed').catch(() => false);
+    return NextResponse.json({ error: 'השליחה לא אושרה. יש לבדוק את השיחה לפני ניסיון נוסף.', code: result.outcome === 'uncertain' ? 'delivery_uncertain' : 'delivery_failed' }, { status: result.outcome === 'uncertain' ? 409 : 502 });
   }
 
-  await logWhatsAppMessage({ phone, source: 'human_reply', body: message, waMessageId: result.waMessageId });
-
-  return NextResponse.json({ data: { ok: true } });
+  let historySynced = true;
+  try {
+    await logWhatsAppMessage({ phone, source: 'human_reply', body: message, waMessageId: result.waMessageId });
+  } catch {
+    historySynced = false;
+    await reportBotIncident('processing_failed').catch(() => false);
+  }
+  // Provider acceptance must not become a generic failure inviting duplicate send.
+  return NextResponse.json({ data: { ok: true, historySynced } });
 }

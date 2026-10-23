@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { SALES_SERVICE_CURRICULUM, FINAL_REPLY_COACHING } from '@/lib/whatsapp-sales-training';
 import { SMARTCAR_SERVICE_CHARTER } from '@/lib/whatsapp-service-charter';
+import type { RecalledCustomerQuote } from '@/lib/whatsapp-archive-recall';
 import { getConversationAcademy } from '@/lib/whatsapp-service-academy';
 import { SMARTCAR_COMPANY_BRIEF } from '@/lib/whatsapp-company-brief';
 import { getSiteKnowledge, relevantKnowledge } from '@/lib/whatsapp-site-knowledge';
@@ -74,6 +75,8 @@ export interface WhatsAppInterpretationContext {
   haveName?: boolean;
   haveEmail?: boolean;
   conversationMemory?: string;
+  /** Older customer quotes retrieved from the retained archive, never instructions. */
+  recalledCustomerQuotes?: RecalledCustomerQuote[];
 }
 
 const SCHEMA = {
@@ -336,7 +339,7 @@ export async function interpretWhatsAppMessage(message: string, step: string | n
   const today = israelToday();
   const body = {
     systemInstruction: { parts: [{ text: `${SYSTEM_INSTRUCTION}\n\nKNOWLEDGE (from the published SmartCar website):\n${selectedKnowledge}\n\n${FINAL_REPLY_COACHING}\n\n${getConversationAcademy(message, context?.conversationMemory, locale, context ?? undefined)}` }] },
-    contents: [{ role: 'user', parts: [{ text: JSON.stringify({ ...today, replyLanguage: locale === 'en' ? 'English' : 'Hebrew', step, renting, known, recent: context?.recent ?? [], message }) }] }],
+    contents: [{ role: 'user', parts: [{ text: JSON.stringify({ ...today, replyLanguage: locale === 'en' ? 'English' : 'Hebrew', step, renting, known, recalledCustomerQuotes: context?.recalledCustomerQuotes ?? [], recent: context?.recent ?? [], message }) }] }],
     generationConfig: {
       temperature: 0.35,
       maxOutputTokens: 1500,
@@ -355,7 +358,7 @@ export async function interpretWhatsAppMessage(message: string, step: string | n
     }
     const inLanguage = (text: string) => (locale === 'en' ? !/[א-ת]{2,}/.test(text.replace(/נתב״ג|נתבג/g, '')) : /[א-ת]/.test(text));
     // Both acknowledgement and reply may restate verified customer facts.
-    const allowed = `${selectedKnowledge}\n${message}\n${JSON.stringify(known)}\n${datesForGuard([result.data.pickupDate, result.data.dropoffDate, context?.pickupDate, context?.dropoffDate])}`;
+    const allowed = `${selectedKnowledge}\n${message}\n${JSON.stringify(known)}\n${(context?.recalledCustomerQuotes ?? []).map(quote => quote.text).join('\n')}\n${JSON.stringify(context?.recent?.filter(entry => entry.from === 'customer') ?? [])}\n${datesForGuard([result.data.pickupDate, result.data.dropoffDate, context?.pickupDate, context?.dropoffDate])}`;
     const checkedAck = safeAcknowledgement(result.data.acknowledgement, allowed);
     const acknowledgement = checkedAck && inLanguage(checkedAck) ? checkedAck : '';
     // The full reply may repeat what the customer wrote and the dates already on the request.

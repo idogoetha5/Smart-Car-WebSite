@@ -1,5 +1,38 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+Latest verified production: protected PR3 merged as `1e5fab4`, deployment
+`dpl_7Zt85r4NKhHqG2DaaS9bLYZhDpgy` READY on both domains. Public Gemini
+retained Niro/25,000km/estimate-vs-budget and did not reset or hand off on a
+negated instruction. Public326-page audit: zero HTTP/title/description/H1/
+canonical/language/noindex issues; duplicate groups76 remain, not a ranking claim.
+Public X2 schema price850/LeaseOut verified; catalogue172, base1060/floor950 kept.
+Independent public image audit361 URLs all200/image, all172 cars at least4photos;
+it is not a visual/identity audit. No error/fatal release logs in checked15minutes.
+Priority recrawl requests accepted for Tel Aviv, monthly and Jerusalem; acceptance
+is only a queue, not proof of new indexing/rank. Customer transport remains OFF.
+
+Next local increment (`codex/bot-delivery-safety-20261023`): bounded8s provider
+send; distinguish accepted/rejected/uncertain/not-sent without automatic retry;
+missing provider reference is uncertain. Human-reply API preserves a positive
+acceptance even if history write/incident email fails and warns against resend.
+Actual local API/UI rehearsal used fake backend/provider, blocked external network,
+and displayed the warning at360px (no overflow,44pxsend) while loading all1020
+fictional archived messages interactively. No customer send/credentials/data used.
+New bounded archive recall retrieves up to8 older customer quotes for Gemini,
+excluding known contact values/collection steps and old bot claims. Unit fixture
+finds a constraint before1020 later entries and keeps full state history. This is
+selective retrieval, not proof of flawless recall of every fact or1020real turns.
+Full1157 tests/typecheck/lint budget passed before final defensive input checks;
+focused/full gates and actual staged Gemini recall still required. No DB migration.
+Final local gates completed:1161 tests/87files, typecheck and lint budget pass
+(0errors/1existing warning). Actual staged Gemini1020-history retrieval remains
+the next gate; unit fixtures and mobile UI history are not substitutes for it.
+Scoped forgetting now records per-field archive boundaries without retaining the
+forgotten value; matching old quotes stay out of retrieval/recent context, while
+later supplied facts can be used. Literal history redaction is case-insensitive.
+"Forget everything about luggage" is scoped forgetting, not a full-chat reset.
+This is a chat-memory control, not deletion of retained business/message records.
+
 Further adaptive review caught negated "בלי להתחיל מחדש" executing reset and
 "forget the seat discussion for now" being mistaken for record erasure. Control
 parsing now scopes negation before reset and distinguishes a paused discussion.
@@ -7,7 +40,7 @@ General sales advice also no longer enters the catalogue merely because sale
 context exists; active-booking, staff, safety and transaction gates stay above it.
 Exact regressions added; rebuild and live retest required before follow-up merge.
 
-Current production progress: protected PR2 merged as `29fa24e`; Vercel
+Previous production progress: protected PR2 merged as `29fa24e`; Vercel
 `dpl_7oTxkrA3iNMa7duCZzjGg3fYeoNz` READY on both custom domains. Actual public
 Gemini answered fictional advice without stock/action; 172 cars, X2 850/floor950,
 three exact gallery samples, HE/EN pages and sitemap passed. Public326-URL SEO
@@ -326,6 +359,8 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
+
+- 2026-10-23 — PR3 progress published/verified as `1e5fab4` (bot control fixes, all8 service advice pages, rental schema and distinct leasing hub metadata). Next branch adds bounded/uncertainty-aware send handling, honest post-acceptance history failure, private bounded older-quote retrieval; actual loopback API/UI mobile test loaded all1020fictional messages and prevented duplicate-send advice. No real transport, schema, auth, asset or price change. Local1157 tests/typecheck/lint budget passed; next release pending.
 
 - 2026-10-23 — Third search-content pass locked and reviewed: distinct bilingual title/description/share metadata for `/leasing` catalogue/quote hub vs `/services/leasing` explainer. Both URLs and all catalogue/form behaviour retained. Scoped tests now cover the distinction; final combined checks and publication pending. No routes removed or canonical consolidation performed.
 

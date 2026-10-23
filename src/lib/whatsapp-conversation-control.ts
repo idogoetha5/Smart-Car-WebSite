@@ -12,11 +12,22 @@ const FIELDS: Array<[EditableFact, RegExp]> = [
   ['dropoffLocation', /מקום ההחזרה|מיקום ההחזרה|סניף החזרה|החזרה|return (?:location|branch)|dropoff/i],
   ['vehiclePreference', /סוג הרכב|קטגוריה|דגם|vehicle|car type|category/i],
   ['passengers', /נוסעים|אנשים|passengers|people/i],
-  ['luggage', /מזווד|מטען|luggage|bags/i],
+  ['luggage', /מזווד|מטען|כלי נגינה|luggage|bags|suitcases?|cargo|musical instruments?/i],
   ['budget', /תקציב|budget/i],
   ['annualKm', /קילומטר|קילומטרא|ק[״"]?מ|mileage|annual km/i],
   ['equipment', /אבזור|העדפות|גג פתוח|גג נפתח|קארפליי|קאר פליי|מושבי עור|equipment|preferences/i],
 ];
+
+/** A scoped forget instruction must also govern future retrieval of old quotes. */
+export function isForgottenHistoryText(text: string, position: number, boundaries?: Partial<Record<EditableFact, number>>): boolean {
+  if (text.includes('[הוסר מהשיחה]')) return true;
+  return Object.entries(boundaries ?? {}).some(([field, boundary]) => {
+    if (typeof boundary !== 'number' || position > boundary) return false;
+    const pattern = FIELDS.find(([key]) => key === field)?.[1]
+      ?? (field === 'pickupDate' || field === 'dropoffDate' ? /תאריך|מועד|איסוף|החזרה|date|pickup|return|dropoff/i : null);
+    return pattern?.test(text) ?? false;
+  });
+}
 
 /** Intent must be an instruction, not a mention, hypothetical or negation. */
 export function parseConversationControl(text: string, pending?: 'forget' | 'edit'): ControlAction | null {
@@ -24,7 +35,7 @@ export function parseConversationControl(text: string, pending?: 'forget' | 'edi
   if (/מה (?:יקרה|קורה) אם|מה זה|איך (?:מוחקים|משנים)|what (?:happens|if)|how (?:do|can) (?:i|you)/i.test(text)) return null;
   // "בלי להתחיל מחדש" must not execute the reset phrase it prohibits.
   text = withoutNegated(text);
-  const reset = /(?:תתחיל|נתחיל|להתחיל|תתחילו|התחל)(?: את (?:השיחה|הכל|הכול))? (?:מחדש|מההתחלה)|(?:אפס|תאפס|לאפס) (?:את )?(?:השיחה|הצ[׳']?אט|הכל|הכול)|(?:תמחק|מחק|תשכח|שכח) (?:את )?(?:הכל|הכול|כל (?:השיחה|הפרטים))|start (?:all )?over|start (?:again|from (?:the )?beginning)|reset (?:the )?(?:chat|conversation)|forget everything|delete everything/i.test(text);
+  const reset = /(?:תתחיל|נתחיל|להתחיל|תתחילו|התחל)(?: את (?:השיחה|הכל|הכול))? (?:מחדש|מההתחלה)|(?:אפס|תאפס|לאפס) (?:את )?(?:השיחה|הצ[׳']?אט|הכל|הכול)|(?:תמחק|מחק|תשכח|שכח) (?:את )?(?:הכל|הכול|כל (?:השיחה|הפרטים))(?: עכשיו| בבקשה)?(?=\s*(?:[.!?]|$))|start (?:all )?over|start (?:again|from (?:the )?beginning)|reset (?:the )?(?:chat|conversation)|(?:forget|delete) everything(?: we (?:said|discussed)| in (?:this|the) (?:chat|conversation))?(?: now| please)?(?=\s*(?:[.!?]|$))/i.test(text);
   if (reset) return { kind: 'reset' };
   // Pausing a topic is not a request to erase records or reset the chat.
   if (/\bforget (?:the )?[^.!?]{0,60}\b(?:discussion|topic)\b[^.!?]{0,30}\bfor now\b/i.test(text)) return null;
@@ -51,6 +62,7 @@ export function parseConversationControl(text: string, pending?: 'forget' | 'edi
 
 export function forgetConversationFacts(state: FlowState, fields: EditableFact[]): FlowState {
   const next = structuredClone(state);
+  next.memoryForgetBefore = { ...next.memoryForgetBefore, ...Object.fromEntries(fields.map(field => [field, next.history?.length ?? 0])) };
   const removed: string[] = [];
   for (const field of fields) {
     if (field === 'budget' || field === 'annualKm' || field === 'equipment') {
@@ -70,7 +82,7 @@ export function forgetConversationFacts(state: FlowState, fields: EditableFact[]
   delete next.conversationMemory;
   delete next.returning;
   next.returningChecked = true;
-  next.history = (next.history ?? []).map(entry => ({ ...entry, text: removed.filter(Boolean).reduce((text, value) => text.split(value).join('[הוסר מהשיחה]'), entry.text) }));
+  next.history = (next.history ?? []).map(entry => ({ ...entry, text: removed.filter(Boolean).reduce((text, value) => text.replace(new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '[הוסר מהשיחה]'), entry.text) }));
   delete next.pendingEdit;
   delete next.pendingControl;
   return next;

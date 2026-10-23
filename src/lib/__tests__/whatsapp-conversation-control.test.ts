@@ -16,6 +16,9 @@ function setup() {
 }
 
 describe('customer-controlled conversation memory', () => {
+  it.each(['forget everything about luggage', 'delete everything about musical instruments', 'תמחק הכל לגבי המטען'])('keeps a scoped everything request from becoming a full reset: %s', text => {
+    expect(parseConversationControl(text)).toEqual({ kind: 'forget', fields: ['luggage'] });
+  });
   it.each(['תתקן רק את ההנחה, בלי להתחיל מחדש', 'תזכיר לי מה סיכמנו וללא איפוס השיחה', 'Forget the seat discussion for now. Recap our arrival plan without starting a booking.'])('does not reset or erase for a negated reset or paused topic: %s', text => {
     expect(parseConversationControl(text)).toBeNull();
   });
