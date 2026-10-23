@@ -1,4 +1,5 @@
 import { vehicleSearchMetadata } from '@/lib/vehicle-search-metadata';
+import { vehicleRentalSchema, rentalSchemaJson } from '@/lib/vehicle-rental-schema';
 export const revalidate = 3600;
 
 import { notFound } from 'next/navigation';
@@ -47,22 +48,7 @@ export default async function RentalDetailPage({
     locale === 'he' ? vehicle.descriptionHe : vehicle.descriptionEn;
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
-  const vehicleJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-    description: description ?? `${vehicle.make} ${vehicle.model} ${vehicle.year}`,
-    image: vehicle.imageUrls?.[0] ?? undefined,
-    brand: { '@type': 'Brand', name: vehicle.make },
-    offers: {
-      '@type': 'Offer',
-      price: vehicle.pricePerDay,
-      priceCurrency: 'ILS',
-      priceSpecification: { '@type': 'UnitPriceSpecification', price: vehicle.pricePerDay, priceCurrency: 'ILS', unitText: 'DAY' },
-      url: `${baseUrl}/${locale}/rental/${vehicle.id}`,
-      seller: { '@type': 'AutoRental', name: 'SmartCar' },
-    },
-  };
+  const vehicleJsonLd = vehicleRentalSchema(vehicle, locale, baseUrl);
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
@@ -82,7 +68,7 @@ export default async function RentalDetailPage({
     // each other. Starting the content at 5rem clears the button in both
     // directions, and looks better on a page with no header above it.
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-10 overflow-x-hidden" dir={locale === 'he' ? 'rtl' : 'ltr'}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(vehicleJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: rentalSchemaJson(vehicleJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }} />
 
       {/* First thing on the page — no hero here, the customer is mid-flow

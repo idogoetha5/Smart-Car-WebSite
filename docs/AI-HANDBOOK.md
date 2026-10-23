@@ -327,6 +327,8 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 
 ### Change log
 
+- 2026-10-23 — Reviewed/integrated source task's rental structured-data correction: shared helper describes LeaseOut explicitly, uses the existing advertised display-price precedence (X2 850) rather than calculation base1060, and escapes script-closing characters. Existing booking minimum950/calculation/form/images/URLs are unchanged. Five focused helper tests plus40 SEO tests passed in the source task; combined publisher gates/live verification remain required. No schema/data migration.
+
 - 2026-10-23 — Integrated second search-content pass for all four remaining existing service pages (business, commercial, new-driver, sale), Hebrew/English. Retains every route/CTA/asset/price; adds practical checks without promising licence eligibility, payload, cover, warranty or availability. Scoped sitemap dates match actual edits. Source task40 focused tests/typecheck/lint passed; publisher reviewed the complete four-file diff. Included after the bot follow-up as a separate commit; combined candidate/CI/live checks still required. Live first-pass326-page audit resolved114 missing descriptions; duplicate groups78 remain open.
 
 - 2026-10-23 — Protected PR2 progress published as `29fa24e`, deployment `dpl_7oTxkrA3iNMa7duCZzjGg3fYeoNz`; full-site public/API checks and selected real Gemini calls passed, transport off. Follow-up locally fixes Hebrew attached negation and explicit contact-information intent in a sales thread;124 focused tests/typecheck and1114 full tests pass. No schema/assets/pricing/auth/transport changes. Follow-up publication and live regression still required; full customer-readiness gates remain open.
