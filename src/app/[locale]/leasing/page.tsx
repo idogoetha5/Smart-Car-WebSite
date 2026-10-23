@@ -1,6 +1,7 @@
-import { localeAlternates } from '@/lib/seo';
+import { localeAlternates, ogImage } from '@/lib/seo';
+import type { Metadata } from 'next';
 import PublicRentalAdvice from '@/components/content/PublicRentalAdvice';
-import { SERVICE_RENTAL_ADVICE, rentalCopy } from '@/lib/public-rental-content';
+import { LEASING_CATALOG_SEARCH, SERVICE_RENTAL_ADVICE, rentalCopy } from '@/lib/public-rental-content';
 export const revalidate = 3600;
 
 
@@ -16,14 +17,18 @@ import { calcMinLeasingPrice } from '@/lib/pricing';
 import type { Vehicle } from '@/types';
 import { LeasingInquirySection } from './LeasingInquirySection';
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
+  const title = rentalCopy(LEASING_CATALOG_SEARCH.title, locale);
+  const description = rentalCopy(LEASING_CATALOG_SEARCH.description, locale);
   return {
     title: {
-      absolute: rentalCopy(SERVICE_RENTAL_ADVICE.leasing.title, locale),
+      absolute: title,
     },
-    description: rentalCopy(SERVICE_RENTAL_ADVICE.leasing.description, locale),
+    description,
     alternates: localeAlternates(locale, 'leasing'),
+    openGraph: { title, description, url: `/${locale}/leasing`, siteName: 'SmartCar', type: 'website', locale: locale === 'he' ? 'he_IL' : 'en_US', images: [ogImage(locale)] },
+    twitter: { card: 'summary_large_image', title, description, images: ['/images/og-image.png'] },
   };
 }
 

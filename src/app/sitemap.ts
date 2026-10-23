@@ -86,8 +86,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       'business', 'commercial', 'daily', 'hourly',
       'leasing', 'monthly', 'new-driver', 'sale',
     ].flatMap((type) => [
-      { url: `${baseUrl}/he/services/${type}`, lastModified: ['daily', 'monthly', 'hourly', 'leasing'].includes(type) ? RENTAL_GUIDANCE_LAST_MODIFIED : STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.6 },
-      { url: `${baseUrl}/en/services/${type}`, lastModified: ['daily', 'monthly', 'hourly', 'leasing'].includes(type) ? RENTAL_GUIDANCE_LAST_MODIFIED : STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.6 },
+      { url: `${baseUrl}/he/services/${type}`, lastModified: RENTAL_GUIDANCE_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.6 },
+      { url: `${baseUrl}/en/services/${type}`, lastModified: RENTAL_GUIDANCE_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.6 },
     ]),
   ];
 

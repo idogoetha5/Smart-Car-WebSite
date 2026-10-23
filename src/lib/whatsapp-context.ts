@@ -35,6 +35,9 @@ export function withoutNegated(text: string): string {
   const keep = words.map(() => true);
   for (let i = 0; i < words.length; i += 1) {
     let word = bare(words[i]);
+    // Hebrew attaches the conjunction to the negator: "ובלי להעביר לנציג".
+    // Strip it only for an actual negator, not arbitrary words beginning ו.
+    if (word.startsWith('ו') && NEGATORS.has(word.slice(1))) word = word.slice(1);
     // "don't", "won't" as one token; "do not" as two.
     if (word === 'do' && bare(words[i + 1] ?? '') === 'not') { keep[i] = false; i += 1; word = 'not'; }
     if (!NEGATORS.has(word) || endsClause(words[i])) continue;

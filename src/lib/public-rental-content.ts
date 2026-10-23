@@ -1,6 +1,12 @@
 import type { BranchId } from '@/lib/branches';
 
 type Copy = { he: string; en: string };
+// The catalogue/quote hub and the service explainer are different destinations.
+// Keep both public, with distinct search intent rather than hiding either one.
+export const LEASING_CATALOG_SEARCH = {
+  title: { he: 'ליסינג פרטי ועסקי – בחירת רכב ובקשת הצעה | SmartCar', en: 'Leasing Vehicles in Israel – Compare & Request a Quote | SmartCar' },
+  description: { he: 'בחרו רכב לליסינג פרטי או עסקי ממבחר SmartCar, השוו קבוצות רכב ושלחו בקשה לפי תקופה וקילומטרים. המחיר והתנאים הסופיים מאושרים בהצעה כתובה.', en: 'Compare SmartCar vehicles for private or business leasing in Israel. Choose a vehicle group and request a quote by term and mileage. Final pricing and terms require written confirmation.' },
+};
 export type RentalAdvice = {
   title: Copy;
   description: Copy;
@@ -46,6 +52,38 @@ export const BRANCH_RENTAL_ADVICE: Record<BranchId, RentalAdvice> = {
 };
 
 export const SERVICE_RENTAL_ADVICE: Record<string, RentalAdvice> = {
+  business: {
+    title: { he: 'השכרת רכב לעסקים ולציי רכב – פתרון לפי הצורך | SmartCar', en: 'Business Car Rental & Fleet Enquiries in Israel | SmartCar' },
+    description: { he: 'השכרת רכב לעסקים: מרכב זמני לעובד ועד כמה רכבים לפעילות השוטפת. השוו תקופה, קבוצות רכב וקילומטרים וקבלו הצעה מותאמת מ-SmartCar.', en: 'Business car rental in Israel, from a temporary employee vehicle to several cars for daily operations. Compare vehicle groups, term and mileage with a tailored SmartCar quote.' },
+    sections: [
+      { heading: { he: 'רכב לעובד, לפרויקט או לכמה צוותים?', en: 'A vehicle for an employee, a project or several teams?' }, text: { he: 'ציינו כמה רכבים דרושים, מי צפוי לנהוג, היכן מתחילה העבודה ומה משך השימוש המשוער. לעובד שנוסע לפגישות ולצוות שמוביל ציוד יש צרכים שונים. התאימו את קבוצות הרכב למספר הנוסעים, למטען ולנסועה לפני שמשווים את עלות התקופה.', en: 'Specify how many vehicles you need, who will drive, where work starts and the expected period. An employee travelling to meetings and a team carrying equipment have different needs. Match vehicle groups to passengers, cargo and mileage before comparing the cost for the full period.' } },
+      { heading: { he: 'השכרה עסקית או ליסינג לעסק?', en: 'Business rental or business leasing?' }, text: { he: 'לצורך זמני או לפרויקט עם מועד סיום משתנה, בקשו להשוות השכרה יומית או חודשית. לצורך ממושך ומוגדר בדקו גם מסלול ליסינג. בהצעה הכתובה חשוב לפרט תקופה, קילומטרים, נהגים מורשים, כיסוי, שירותים ותנאי שינוי; לא כל מסלול כולל אותם מרכיבים.', en: 'For a temporary need or a project with a changing end date, compare daily or monthly rental. For a defined longer-term need, also consider leasing. The written quote should explain the term, mileage, authorised drivers, cover, services and change conditions; inclusions differ between plans.' } },
+    ],
+  },
+  commercial: {
+    title: { he: 'השכרת רכב מסחרי – להובלה ולעבודה | SmartCar', en: 'Commercial Vehicle & Van Rental in Israel | SmartCar' },
+    description: { he: 'השכרת רכב מסחרי להובלה, ציוד ועבודה. ציינו מידות מטען, משך שימוש ויעד כדי לבדוק קבוצה מתאימה, דרישות רישיון ותנאים עם SmartCar.', en: 'Enquire about commercial vehicle and van rental in Israel for cargo, equipment and work. Provide load dimensions, period and destination to check a suitable vehicle and terms.' },
+    sections: [
+      { heading: { he: 'מה מעמיסים וכמה מקום צריך?', en: 'What are you carrying and how much space do you need?' }, text: { he: 'לפני בחירת מסחרית מדדו את הפריטים הגדולים וציינו אורך, רוחב, גובה ומשקל משוער. בדקו עם הנציג את מידות תא המטען, פתח ההעמסה, מספר המושבים וכושר ההעמסה של הרכב שיוצע בפועל. תמונה או שם דגם לבדם אינם אישור שהמטען מתאים לרכב.', en: 'Before choosing a van, measure the largest items and provide their length, width, height and estimated weight. Ask the representative to confirm cargo space, loading opening, seats and payload for the actual vehicle offered. A photo or model name alone does not confirm that your load will fit.' } },
+      { heading: { he: 'רישיון, תקופה ומסירה של רכב מסחרי', en: 'Licence, rental period and commercial-vehicle delivery' }, text: { he: 'ציינו מי ינהג, את סוג הרישיון ואת מועדי האיסוף וההחזרה. יש לוודא שהרישיון מתאים לרכב המסוים ולא להניח שכל מסחרית מתאימה לכל רישיון. להשכרה ממושכת בקשו הצעה לתקופה כולה, כולל מכסת קילומטרים, כיסוי ועלויות מסירה והחזרה אם נדרשות.', en: 'Provide the driver and licence category as well as collection and return dates. Confirm that the licence is appropriate for the specific vehicle; do not assume every van can be driven on every licence. For a longer rental, request a full-period quote with mileage, cover and any delivery or return charges.' } },
+    ],
+  },
+  'new-driver': {
+    title: { he: 'השכרת רכב לנהג חדש ולנהג צעיר מגיל 21 | SmartCar', en: 'New & Young Driver Car Rental from Age 21 | SmartCar' },
+    description: { he: 'השכרת רכב לנהגים חדשים וצעירים מגיל 21 ב-SmartCar. בדקו התאמה לפי גיל, ותק רישיון, קבוצת רכב וכיסוי לפני אישור ההשכרה.', en: 'Explore SmartCar rental for new and young drivers from age 21. Check eligibility by age, licence history, vehicle group and cover before rental confirmation.' },
+    sections: [
+      { heading: { he: 'מה לציין כדי לבדוק התאמה לנהג?', en: 'What details help check driver eligibility?' }, text: { he: 'מסרו את גיל הנהג, מועד הוצאת הרישיון, סוג הרישיון ותאריכי ההשכרה. אפשר לפנות גם בשנתיים הראשונות לרישיון; הנציג יבדוק את קבוצת הרכב והכיסוי המתאימים. אין לראות בתצוגת רכב בקטלוג אישור אוטומטי לנהג או לתאריכים שבחרתם.', en: 'Provide the driver’s age, licence issue date, licence category and rental dates. Enquiries are welcome within the first two years of holding a licence; the representative will check an appropriate vehicle group and cover. A catalogue listing is not automatic approval for a driver or the requested dates.' } },
+      { heading: { he: 'נהג נוסף והתנאים לפני היציאה', en: 'Additional drivers and terms before collection' }, text: { he: 'אם יותר מאדם אחד ינהג, ציינו מראש את כל הנהגים ובקשו בדיקת התאמה לכל אחד. כל נהג חייב להירשם בחוזה ולהיות מכוסה בהתאם לתנאים. בדקו בהצעה את הכיסוי, ההשתתפות העצמית, הפיקדון וכל תוספת רלוונטית; מגבלות הנהיגה החלות על הנהג ממשיכות לחול גם ברכב שכור.', en: 'If more than one person will drive, identify all drivers in advance and request an eligibility check for each. Every driver must be registered in the agreement and covered under its terms. Check cover, excess, deposit and applicable charges in the quote; restrictions applying to a driver still apply in a rental car.' } },
+    ],
+  },
+  sale: {
+    title: { he: 'רכבים מצי ההשכרה למכירה – מידע לכל רכב | SmartCar', en: 'Rental Fleet Cars for Sale in Israel | SmartCar' },
+    description: { he: 'רכבים נבחרים מצי SmartCar למכירה. עיינו במבחר ובקשו נתוני רכב, מסמכים זמינים ותנאי עסקה לגבי הרכב הספציפי לפני החלטה.', en: 'Explore selected SmartCar fleet vehicles for sale in Israel. Request vehicle-specific details, available documents and sale terms before making your decision.' },
+    sections: [
+      { heading: { he: 'משווים רכבים מהצי? בדקו את הרכב המסוים', en: 'Compare the specific vehicle, not just the model' }, text: { he: 'שנת דגם או תמונת המחשה אינן מספיקות כדי להשוות רכבים למכירה. בקשו את הקילומטרים, פרטי הבעלות והמסמכים הזמינים לגבי הרכב שמעניין אתכם. ודאו אילו פרטים נבדקו ומה עוד דורש בירור; אין להניח שלכל הרכבים אותה היסטוריה או אותם תנאי מכירה.', en: 'A model year or illustrative photo is not enough to compare cars for sale. Request mileage, ownership details and available documents for the vehicle you are considering. Clarify what has been checked and what still needs confirmation; histories and sale terms are not identical across vehicles.' } },
+      { heading: { he: 'מה מבררים לפני החלטת רכישה?', en: 'What should you clarify before buying?' }, text: { he: 'בקשו מחיר ותנאי עסקה בכתב, מידע על המסמכים שניתן לקבל ואפשרות לתיאום צפייה ובירור בדיקה. אחריות, מימון או התחייבויות אחרות קיימים רק אם הוצעו ואושרו במפורש לגבי העסקה המסוימת. צוות SmartCar זמין לבירור הפרטים לפני קבלת החלטה.', en: 'Request the price and sale terms in writing, details of available documents and arrangements for viewing and discussing an inspection. Warranty, finance or other commitments apply only when explicitly offered and confirmed for that transaction. Ask SmartCar to clarify the details before deciding.' } },
+    ],
+  },
   leasing: {
     title: { he: 'ליסינג פרטי ועסקי – לפי תקופה וקילומטרים | SmartCar', en: 'Private & Business Leasing in Israel | SmartCar' },
     description: { he: 'ליסינג פרטי ועסקי ב-SmartCar: התאימו רכב, תקופה וקילומטרים ובדקו אילו שירותים נכללים במסלול. קבלו הצעה כתובה לפני ההחלטה.', en: 'Explore private and business leasing in Israel with SmartCar. Match the vehicle, term and mileage, check included services and request a written quote before deciding.' },

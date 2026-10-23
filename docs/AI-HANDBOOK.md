@@ -1,5 +1,28 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+Further adaptive review caught negated "בלי להתחיל מחדש" executing reset and
+"forget the seat discussion for now" being mistaken for record erasure. Control
+parsing now scopes negation before reset and distinguishes a paused discussion.
+General sales advice also no longer enters the catalogue merely because sale
+context exists; active-booking, staff, safety and transaction gates stay above it.
+Exact regressions added; rebuild and live retest required before follow-up merge.
+
+Current production progress: protected PR2 merged as `29fa24e`; Vercel
+`dpl_7oTxkrA3iNMa7duCZzjGg3fYeoNz` READY on both custom domains. Actual public
+Gemini answered fictional advice without stock/action; 172 cars, X2 850/floor950,
+three exact gallery samples, HE/EN pages and sitemap passed. Public326-URL SEO
+audit: zero missing descriptions (before114), HTTP/title/H1/canonical/language
+issues0; duplicate title/description groups78/78 (before46/38), still open,
+not a ranking claim. No runtime error clusters or release error/fatal logs found
+in the checked10-minute window. This does not prove zero failures or email receipt.
+
+Follow-up after protected merge PR2 (`29fa24e`): candidate selected checks passed,
+1112 full tests/typecheck/lint budget passed; production Git build is running.
+Unseen adaptive turns found two remaining controller errors: attached Hebrew
+negator ובלי was not scoped, and explicitly requested office contact was replaced
+by an active sales catalogue. Added narrow fixes/regressions without changing
+safety/account/explicit-person gates. Follow-up remains unpublished until verified.
+
 2026-10-23 final candidate review: airport advance-arrangement question now stays
 autonomous in an actual Gemini call. Notification status refusal exposed a broad
 sell_car label despite a correct notificationRequest flag and correct model reply;
@@ -303,6 +326,14 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
+
+- 2026-10-23 — Third search-content pass locked and reviewed: distinct bilingual title/description/share metadata for `/leasing` catalogue/quote hub vs `/services/leasing` explainer. Both URLs and all catalogue/form behaviour retained. Scoped tests now cover the distinction; final combined checks and publication pending. No routes removed or canonical consolidation performed.
+
+- 2026-10-23 — Reviewed/integrated source task's rental structured-data correction: shared helper describes LeaseOut explicitly, uses the existing advertised display-price precedence (X2 850) rather than calculation base1060, and escapes script-closing characters. Existing booking minimum950/calculation/form/images/URLs are unchanged. Five focused helper tests plus40 SEO tests passed in the source task; combined publisher gates/live verification remain required. No schema/data migration.
+
+- 2026-10-23 — Integrated second search-content pass for all four remaining existing service pages (business, commercial, new-driver, sale), Hebrew/English. Retains every route/CTA/asset/price; adds practical checks without promising licence eligibility, payload, cover, warranty or availability. Scoped sitemap dates match actual edits. Source task40 focused tests/typecheck/lint passed; publisher reviewed the complete four-file diff. Included after the bot follow-up as a separate commit; combined candidate/CI/live checks still required. Live first-pass326-page audit resolved114 missing descriptions; duplicate groups78 remain open.
+
+- 2026-10-23 — Protected PR2 progress published as `29fa24e`, deployment `dpl_7oTxkrA3iNMa7duCZzjGg3fYeoNz`; full-site public/API checks and selected real Gemini calls passed, transport off. Follow-up locally fixes Hebrew attached negation and explicit contact-information intent in a sales thread;124 focused tests/typecheck and1114 full tests pass. No schema/assets/pricing/auth/transport changes. Follow-up publication and live regression still required; full customer-readiness gates remain open.
 
 - 2026-10-23 — Local thread archive/polling increment on `codex/bot-recovery-alerts`: added acceptance ledger; cursor API with auth/invalid-cursor/failure tests and shared client feed with 1,020-row, burst, retry-state and concurrent-poll tests. Actual local API/UI rehearsal loaded all 1,020 fictional messages and then all 1,370 after a burst, retaining a draft on intentional send failure. Scoped lint/typecheck and final full 1,065-test run pass. No schema/assets/prices/dependency/auth/transport change and no publication. Local test fixture uses fake credentials and data; it is outside the production tree. Next dev regenerated only the heading level in its managed AGENTS block; critical preservation instructions remain unchanged. A 360px local iframe rendered the layout but did not hydrate; do not call it a mobile interaction pass. Interactive phone verification, list discovery, media and durable processing remain open.
 
