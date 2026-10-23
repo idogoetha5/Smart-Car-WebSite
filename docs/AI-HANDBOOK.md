@@ -1,5 +1,12 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+Further adaptive review caught negated "בלי להתחיל מחדש" executing reset and
+"forget the seat discussion for now" being mistaken for record erasure. Control
+parsing now scopes negation before reset and distinguishes a paused discussion.
+General sales advice also no longer enters the catalogue merely because sale
+context exists; active-booking, staff, safety and transaction gates stay above it.
+Exact regressions added; rebuild and live retest required before follow-up merge.
+
 Current production progress: protected PR2 merged as `29fa24e`; Vercel
 `dpl_7oTxkrA3iNMa7duCZzjGg3fYeoNz` READY on both custom domains. Actual public
 Gemini answered fictional advice without stock/action; 172 cars, X2 850/floor950,

@@ -1,4 +1,5 @@
 import type { FlowState } from '@/lib/whatsapp-flow';
+import { withoutNegated } from '@/lib/whatsapp-context';
 
 export type EditableFact = 'customerEmail' | 'customerName' | 'dates' | 'pickupDate' | 'dropoffDate' | 'pickupLocation' | 'dropoffLocation' | 'vehiclePreference' | 'passengers' | 'luggage' | 'budget' | 'annualKm' | 'equipment';
 export type ControlAction = { kind: 'reset' } | { kind: 'external' } | { kind: 'forget' | 'edit'; fields: EditableFact[] };
@@ -21,8 +22,12 @@ const FIELDS: Array<[EditableFact, RegExp]> = [
 export function parseConversationControl(text: string, pending?: 'forget' | 'edit'): ControlAction | null {
   if (/(?:אל|לא)\s+(?:תמחק|מחק|תשכח|תאפס|תתחיל|למחוק|להתחיל|לשנות)|don['’]?t\s+(?:delete|forget|reset|restart|change)|do not\s+(?:delete|forget|reset|restart|change)/i.test(text)) return null;
   if (/מה (?:יקרה|קורה) אם|מה זה|איך (?:מוחקים|משנים)|what (?:happens|if)|how (?:do|can) (?:i|you)/i.test(text)) return null;
+  // "בלי להתחיל מחדש" must not execute the reset phrase it prohibits.
+  text = withoutNegated(text);
   const reset = /(?:תתחיל|נתחיל|להתחיל|תתחילו|התחל)(?: את (?:השיחה|הכל|הכול))? (?:מחדש|מההתחלה)|(?:אפס|תאפס|לאפס) (?:את )?(?:השיחה|הצ[׳']?אט|הכל|הכול)|(?:תמחק|מחק|תשכח|שכח) (?:את )?(?:הכל|הכול|כל (?:השיחה|הפרטים))|start (?:all )?over|start (?:again|from (?:the )?beginning)|reset (?:the )?(?:chat|conversation)|forget everything|delete everything/i.test(text);
   if (reset) return { kind: 'reset' };
+  // Pausing a topic is not a request to erase records or reset the chat.
+  if (/\bforget (?:the )?[^.!?]{0,60}\b(?:discussion|topic)\b[^.!?]{0,30}\bfor now\b/i.test(text)) return null;
   const forgetting = /(?:^|\s)(?:תמחק|מחק|תשכח|שכח|תסיר|הסר|delete|remove|forget)(?=\s|$)/i.test(text);
   const editing = /(?:^|\s)(?:תשנה|שנה|תעדכן|עדכן|לשנות|לעדכן|change|update|correct)(?=\s|$)/i.test(text);
   const kind = forgetting ? 'forget' : editing ? 'edit' : pending;

@@ -16,6 +16,9 @@ function setup() {
 }
 
 describe('customer-controlled conversation memory', () => {
+  it.each(['תתקן רק את ההנחה, בלי להתחיל מחדש', 'תזכיר לי מה סיכמנו וללא איפוס השיחה', 'Forget the seat discussion for now. Recap our arrival plan without starting a booking.'])('does not reset or erase for a negated reset or paused topic: %s', text => {
+    expect(parseConversationControl(text)).toBeNull();
+  });
   it.each(['תשנה את ההחזרה לעשרה בפברואר 2030', 'change return date to 10 February 2030'])('edits only the return date: %s', async text => {
     const chat = setup();
     await chat.send(text);

@@ -2501,7 +2501,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // explicit people requests and active-booking permissions were handled above.
   if (interpretation?.source === 'gemini' && interpretation.reply && !booking
     && ['advice', 'comparison', 'explanation', 'social'].includes(interpretation.purpose ?? '')
-    && !existingState?.handedOff && !existingState?.lastQuestion && !existingState?.carSale) {
+    && !existingState?.handedOff && !existingState?.lastQuestion) {
     const base: FlowState = existingState ?? { step: 'menu', locale };
     const details = isRentalStep(base.step) ? extractRentalDetails(body, base, interpretation) : {};
     await store.saveState(phone, { ...base, ...details, locale, knowledgeTopic: businessTopic ?? base.knowledgeTopic });

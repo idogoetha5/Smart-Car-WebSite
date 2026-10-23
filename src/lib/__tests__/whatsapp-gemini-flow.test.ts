@@ -22,6 +22,16 @@ const emptyFields = {
 };
 
 describe('Gemini interpretation inside the WhatsApp flow', () => {
+  it('answers general vehicle-history advice within sales without pretending to review a specific car', async () => {
+    const reply = 'Verify maintenance records, ownership history and mileage consistency before choosing.';
+    const { store, state } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'advice', intent: 'buy_car', reply, asks: 'nothing' });
+    store.engine = 'ai';
+    await store.saveState('sale-advice', { step: 'menu', locale: 'en', carSale: { mode: 'car_sale', selectedCarIds: ['kept'], budget: 90000 } });
+    const result = await getWhatsAppFlowReply('sale-advice', "What should I check about a used fleet car's history? No catalogue.", store);
+    expect(result.reply).toBe(reply);
+    expect(result.escalate).not.toBe(true);
+    expect(state()?.carSale?.selectedCarIds).toEqual(['kept']);
+  });
   it('answers a requested office number without replacing it with the active sales catalogue', async () => {
     const reply = 'You can reach the office at 09-9509757.';
     const { store, state } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'details', intent: 'buy_car', contactInformationRequested: true, reply, asks: 'nothing' });
