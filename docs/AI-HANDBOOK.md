@@ -1,5 +1,21 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+Additional candidate correction: the unseen airport-arrangement question was
+correctly classified policy by Gemini, but bare "someone" triggered the legacy
+person-request check. Use the existing request helper / explicit speak-to-someone
+phrase rather than any mention of someone. Regression must keep this ordinary
+policy question autonomous. Final combined release is still gated on the rebuilt
+candidate and required PR checks; no production readiness claim from unit tests.
+
+Candidate2682608 live retests: personal deposit complaint now escalates=true and
+handedOff=true; notification follow-up keeps Gemini instead of a catalogue, but
+Gemini still appended the office phone despite an explicit refusal. Added a
+semantic positive-contact-request flag and a narrow notification-only redirect
+guard; requested contact details remain permitted. Candidate must be rebuilt and
+retested after this correction. Required PR2 verify/audit passed on2682608;
+nonrequired Cloudflare Workers check fails on both previous8a942ab and this PR,
+so it is a separate pre-existing integration failure, not a green all-platform claim.
+
 2026-10-23 combined candidate gates: final completed SEO scope reviewed, full1,109
 tests/85files and lint budget passed (0errors/1existing warning). After the last
 intent-priority wording refinement, focused46tests and typecheck passed. No

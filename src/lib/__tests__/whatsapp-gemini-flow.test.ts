@@ -22,6 +22,15 @@ const emptyFields = {
 };
 
 describe('Gemini interpretation inside the WhatsApp flow', () => {
+  it('does not turn an airport-arrangement question into a human request because it says someone', async () => {
+    const reply = 'Airport collection needs an agreed arrangement in advance; simply arriving does not confirm a meeting.';
+    const { store, state } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'explanation', intent: 'policy', acknowledgement: reply, reply, asks: 'nothing' });
+    store.engine = 'ai';
+    const result = await getWhatsAppFlowReply('airport-policy', 'We have not booked. Can I just show up at Ben Gurion at 1 am and expect someone to be waiting?', store);
+    expect(result.reply).toBe(reply);
+    expect(result.escalate).not.toBe(true);
+    expect(state()?.handedOff).not.toBe(true);
+  });
   it('does not let the FAQ shortcut swallow a real account handoff', async () => {
     const reply = 'צריך לבדוק את מצב הפיקדון הספציפי עם צוות המשרד.';
     const { store, state } = makeStore({ ...emptyFields, source: 'gemini', intent: 'representative', purpose: 'complaint', acknowledgement: 'הפיקדון עדיין תופס מסגרת.', reply, asks: 'nothing' });

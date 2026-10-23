@@ -2180,7 +2180,9 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   const asksQuestion = /[?？]/.test(body)
     || /(?:^|\s)(?:תזכיר|תסביר|תפרט|ספר לי|תענה|remind|explain|tell me)(?=\s|$)/i.test(body)
     || /(?:^|[\s,.!])(?:מה|איך|כמה|האם|איפה|היכן|מתי|עד מתי|למה|עולה|יש לכם|יש לך|אפשר|מותר|צריך|מאיזה|איזה|אילו|באיזה|משתלם|כדאי|לעומת|ההבדל|מומלץ|ממליץ|worth|better|difference|recommend|what|how|where|when|why|which|do you|can i|is there|are there)(?=$|[\s,.!?])/i.test(body);
-  const personRequested = /נציג|אנושי|בן ?אדם|בנאדם|יחזור|representative|human|person|someone|call me/i.test(body) && !mentionsPersonWithoutAsking(body);
+  // "Will someone be waiting at the airport?" is not "let me speak to someone".
+  const personRequested = (asksForPerson(body) || /(?:talk|speak|connect|transfer|put me).{0,25}\bsomeone\b/i.test(body))
+    && !mentionsPersonWithoutAsking(body);
   // "Are you a bot?" gets an honest answer, not a handoff.
   if (!existingState?.handedOff && !asksForPerson(body) && (isBotQuestion(body) || /(?:^|\s)(?:אתה|את|זה)\s+(?:\S+\s+)?(?:בוט|רובוט)|are you (?:a )?(?:bot|robot|real|human)/i.test(normalized(body))
     || (/(?:^|\s)(?:אתה|את|אטה)(?:\s|$)/.test(normalized(body)) && hasApproximateKeyword(body, ['רובוט'])))) {

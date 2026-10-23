@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { guardedReply, interpretWhatsAppMessage, singleQuestionReply, withoutUnsupportedOutreach, safeAcknowledgement } from '@/lib/whatsapp-gemini';
+import { guardedReply, interpretWhatsAppMessage, singleQuestionReply, withoutUnsupportedOutreach, withoutNotificationRedirects, safeAcknowledgement } from '@/lib/whatsapp-gemini';
 
 const originalKey = process.env.GEMINI_API_KEY;
 const originalModel = process.env.WHATSAPP_GEMINI_MODEL;
@@ -26,6 +26,13 @@ const interpretation = {
 };
 
 describe('Gemini WhatsApp interpreter', () => {
+  it('keeps a direct notification answer without the unwanted office redirect seen live', () => {
+    const status = 'This chat has not created an automatic notification signup.';
+    const noisy = `${status} For current car purchase availability, you can contact the office directly at 09-9509757.`;
+    expect(withoutNotificationRedirects(noisy, 'en')).toBe(status);
+    expect(withoutNotificationRedirects(noisy, 'en', true)).toBe(noisy);
+    expect(withoutNotificationRedirects('לא נוצרה הרשמה אוטומטית. אפשר להתקשר למשרד ב־09-9509757.', 'he')).toBe('לא נוצרה הרשמה אוטומטית.');
+  });
   it.each(['אני נוסע 25 אלף בשנה', 'I drive 25k per year', '25 thousand km per year'])('retains equivalent explicit quantities without admitting invented numbers: %s', evidence => {
     expect(safeAcknowledgement('25,000 ק״מ בשנה.', evidence)).toBe('25,000 ק״מ בשנה.');
     expect(safeAcknowledgement('26,000 ק״מ בשנה.', evidence)).toBe('');

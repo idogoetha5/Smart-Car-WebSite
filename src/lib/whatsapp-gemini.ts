@@ -19,6 +19,7 @@ const InterpretationSchema = z.object({
   purpose: z.enum(['advice', 'comparison', 'explanation', 'details', 'selection', 'proceed', 'correction', 'complaint', 'social', 'unknown']).optional(),
   /** Desired notification / signup clarification, never evidence of enrollment. */
   notificationRequest: z.boolean().optional(),
+  contactInformationRequested: z.boolean().optional(),
   intent: z.enum(['accident', 'breakdown', 'rental', 'existing_booking', 'policy', 'delivery_return', 'leasing', 'buy_car', 'sell_car', 'representative', 'unknown']),
   vehiclePreference: z.enum(['ECONOMY_COMPACT', 'SEDAN', 'SUV', 'VAN', 'LUXURY', 'ALL', '']).default(''),
   vehicleEvidence: z.string().default(''),
@@ -80,6 +81,7 @@ const SCHEMA = {
   properties: {
     purpose: { type: 'string', enum: ['advice', 'comparison', 'explanation', 'details', 'selection', 'proceed', 'correction', 'complaint', 'social', 'unknown'] },
     notificationRequest: { type: 'boolean', description: 'True when the current request is future fleet-sale notifications or clarification of whether notification signup happened; false for a request to see current cars or take a transaction action.' },
+    contactInformationRequested: { type: 'boolean', description: 'True only for a positive customer request for a contact number or link now. A pasted number, or a request NOT to send contact details, is false.' },
     intent: { type: 'string', enum: ['accident', 'breakdown', 'rental', 'existing_booking', 'policy', 'delivery_return', 'leasing', 'buy_car', 'sell_car', 'representative', 'unknown'] },
     vehiclePreference: { type: 'string', enum: ['ECONOMY_COMPACT', 'SEDAN', 'SUV', 'VAN', 'LUXURY', 'ALL', ''] },
     vehicleEvidence: { type: 'string' },
@@ -97,7 +99,7 @@ const SCHEMA = {
     asks: { type: 'string', enum: [...ASKS] },
     conversationMemory: { type: 'string' },
   },
-  required: ['purpose', 'notificationRequest', 'intent', 'vehiclePreference', 'vehicleEvidence', 'pickupLocation', 'pickupEvidence', 'dropoffLocation', 'dropoffEvidence', 'pickupDate', 'dropoffDate', 'pickupTime', 'returnTime', 'passengers', 'acknowledgement', 'reply', 'asks', 'conversationMemory'],
+  required: ['purpose', 'notificationRequest', 'contactInformationRequested', 'intent', 'vehiclePreference', 'vehicleEvidence', 'pickupLocation', 'pickupEvidence', 'dropoffLocation', 'dropoffEvidence', 'pickupDate', 'dropoffDate', 'pickupTime', 'returnTime', 'passengers', 'acknowledgement', 'reply', 'asks', 'conversationMemory'],
 };
 
 const SYSTEM_INSTRUCTION = `${SMARTCAR_SERVICE_CHARTER}
@@ -112,6 +114,10 @@ request, NOT a completed subscription and NOT a request to browse inventory.
 Explain honestly that this chat has not created an automatic notification signup.
 Do not evade that answer by offering current cars, a telephone number or a link.
 Return false when the customer now asks to browse current cars instead.
+contactInformationRequested is true only when the customer positively asks for a
+phone number or link NOW. 'Do not send me a phone number' is false. While answering
+notification status, do not append an office/website redirection without that
+positive request. The person is already talking to SmartCar here.
 purpose: the conversational act, separate from business intent. Advice, comparison
 and explanation do not select a vehicle even inside an existing rental request.
 Use selection only for a genuine choice; details for supplied facts; proceed for
@@ -275,6 +281,17 @@ export function withoutUnsupportedOutreach(text: string): string {
   return text.split(/(?<=[.!?])\s+|\n+/).filter(sentence => !/העברתי.{0,35}(?:צוות|משרד|נציג)|אני (?:כבר )?(?:מעביר|מעבירה|אעביר)|(?:נציג|הצוות|המשרד).{0,24}(?:יחזור|יחזרו|ייצור|יצרו|יכין|יכינו)|(?:יחזרו|ייצרו|יצרו) איתך קשר|i(?:'ve| have) (?:sent|forwarded)|i(?:'m|’m| am| will) (?:now )?(?:transfer|transferring|forward|forwarding|send|sending)|(?:agent|representative|team) will (?:call|contact|get back|prepare)/i.test(sentence)).join(' ').trim();
 }
 
+/** An exact channel rule for an unavailable signup capability, not a substitute
+ * for Gemini's understanding. Preserve genuinely requested contact information. */
+export function withoutNotificationRedirects(text: string, locale: 'he' | 'en', requested = false): string {
+  if (requested) return text;
+  const kept = text.split(/(?<=[.!?])\s+|\n+/).filter(sentence =>
+    !/https?:\/\/|www\.|(?:^|[^\d])(?:\+?972|0)[\d\s()-]{8,}|(?:contact|call|reach|visit|check|view).{0,45}(?:office|website|sales page)|(?:פנו|לפנות|התקשר|להתקשר|לבקר|בדקו|לצפות).{0,30}(?:משרד|אתר|עמוד)/i.test(sentence));
+  return kept.join(' ').trim() || (locale === 'he'
+    ? 'לא נוצרה כאן הרשמה לעדכונים אוטומטיים על רכבים למכירה.'
+    : 'This chat has not created an automatic notification signup for cars for sale.');
+}
+
 /** Gemini understands the language; application code still controls facts, prices and actions. */
 export async function interpretWhatsAppMessage(message: string, step: string | null, context?: WhatsAppInterpretationContext | null): Promise<WhatsAppInterpretation | null> {
   // Names, email addresses and phone numbers are handled by the local flow.
@@ -342,7 +359,10 @@ export async function interpretWhatsAppMessage(message: string, step: string | n
     const checkedAck = safeAcknowledgement(result.data.acknowledgement, allowed);
     const acknowledgement = checkedAck && inLanguage(checkedAck) ? checkedAck : '';
     // The full reply may repeat what the customer wrote and the dates already on the request.
-    const truthfulReply = withoutUnsupportedOutreach(result.data.reply);
+    const outreachChecked = withoutUnsupportedOutreach(result.data.reply);
+    const truthfulReply = result.data.notificationRequest === true
+      ? withoutNotificationRedirects(outreachChecked, locale, result.data.contactInformationRequested === true)
+      : outreachChecked;
     const boundedReply = truthfulReply || (result.data.reply.trim() ? (locale === 'he' ? 'הפעולה הזו דורשת בדיקה של הצוות. לא בוצעה כאן פעולה בחשבון או בהזמנה.' : 'This action needs staff review. No account or booking action has been completed here.') : '');
     const guarded = guardedReply(singleQuestionReply(boundedReply), allowed);
     // The reply must be in the customer's language: an English message never gets a Hebrew answer.
