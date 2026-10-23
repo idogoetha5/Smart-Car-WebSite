@@ -1,4 +1,4 @@
-import { localeAlternates } from '@/lib/seo';
+import { vehicleSearchMetadata } from '@/lib/vehicle-search-metadata';
 export const revalidate = 3600;
 
 import { notFound } from 'next/navigation';
@@ -17,35 +17,7 @@ export async function generateMetadata({
   const { locale, id } = await params;
   const vehicle = await getVehicleById(id).catch(() => null);
   if (!vehicle) return {};
-  const isHe = locale === 'he';
-  const title = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
-  const description = (isHe ? vehicle.descriptionHe : vehicle.descriptionEn) ??
-    (isHe
-      ? `${vehicle.make} ${vehicle.model} — מ-₪${vehicle.pricePerDay}/יום`
-      : `${vehicle.make} ${vehicle.model} — from ₪${vehicle.pricePerDay}/day`);
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
-  const pageUrl = `${baseUrl}/${locale}/rental/${vehicle.id}`;
-  const image = vehicle.imageUrls?.[0] ?? null;
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      url: pageUrl,
-      siteName: 'SmartCar',
-      locale: isHe ? 'he_IL' : 'en_US',
-      type: 'website',
-      ...(image ? { images: [{ url: image, width: 1200, height: 630, alt: title }] } : {}),
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-      ...(image ? { images: [image] } : {}),
-    },
-    alternates: localeAlternates(locale, `rental/${vehicle.id}`),
-  };
+  return vehicleSearchMetadata(vehicle, locale);
 }
 
 export default async function RentalDetailPage({

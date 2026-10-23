@@ -1,5 +1,38 @@
 # Live coaching review — 2026-10-23
 
+## Progress release and newly identified controller failures
+
+Progress `8a942ab` is published as `dpl_7WZjgceTY8qXBsP3M1nuZsDxz5v4` on both
+custom domains. GitHub CI39965483083 verify/audit completed successfully.
+Production-config candidate and public-domain checks read 172 cars, X2
+display850/floor950, three distributed exact gallery samples and HE/EN pages.
+The public simulator returned Gemini; transport remains unconnected/off.
+
+These subsequent baseline dialogues exposed failures beyond prompt wording:
+
+- Fleet-sale notification follow-up: Gemini correctly said no automatic signup
+  existed, but the car-sale controller replaced it with a price/spec catalogue.
+  Local fix: explicit semantic notificationRequest channel; retain the model's
+  answer without inventory reads, transaction creation or losing selected-car data.
+- Personal deposit complaint: Gemini returned intent representative + purpose
+  complaint, but the FAQ shortcut returned its text with escalated=false. Local
+  fix: contact-information-only exemption must not swallow real staff intents.
+  Regression asserts handedOff and escalate=true; ordinary phone inquiry stays
+  autonomous. Present-tense unsupported outreach claims are filtered as well.
+- Leasing correction: customer wrote 25 אלף; Gemini correctly answered 25,000,
+  retained corrected mileage and distinguished calculator estimate from budget.
+  Numeric guard rejected the equivalent quantity and triggered a legacy fallback
+  (including unsupported included-maintenance wording) and an unrelated passenger
+  question. Local fix: derive exact thousand-unit equivalences only from supplied
+  evidence, never generated memory; retain the useful model reply. Backup now
+  describes contractual checks without inventing inclusions, quote preparation,
+  repeated multi-field questions or a maximum package fitting excessive mileage.
+
+Focused code tests are not conversational-quality evidence. New fixes/controlling
+service charter still require live candidate retests and unseen scenarios. Live
+baseline transcripts are retained fully in task outputs; no customer data used.
+Do not represent the original four-turn review below as the complete test corpus.
+
 Isolated live Gemini simulator dialogues, NOT customer conversations. All four
 reported turns returned source `gemini`, model `gemini-3.5-flash-lite`. No WhatsApp
 message, booking or subscription created. Full fictional transcripts are in the

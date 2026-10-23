@@ -15,8 +15,9 @@ const STATIC_CONTENT_LAST_MODIFIED = new Date('2026-07-28T00:00:00Z');
 // The branch-page copy and structured data are shared across every branch.
 // Keep each branch entry fresh when that shared content changes, so crawlers
 // have an accurate signal that the location pages should be revisited.
-const BRANCH_PAGE_LAST_MODIFIED = new Date('2026-10-19T00:00:00Z');
-const TEL_AVIV_BRANCH_LAST_MODIFIED = new Date('2026-10-19T00:00:00Z');
+const BRANCH_PAGE_LAST_MODIFIED = new Date('2026-10-23T00:00:00Z');
+const TEL_AVIV_BRANCH_LAST_MODIFIED = new Date('2026-10-23T00:00:00Z');
+const RENTAL_GUIDANCE_LAST_MODIFIED = new Date('2026-10-23T00:00:00Z');
 const NATIONWIDE_RENTAL_LAST_MODIFIED = new Date('2026-10-19T00:00:00Z');
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -33,10 +34,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/en`, lastModified: NATIONWIDE_RENTAL_LAST_MODIFIED, changeFrequency: 'daily', priority: 1.0 },
     { url: `${baseUrl}/he/catalog`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'daily', priority: 0.9 },
     { url: `${baseUrl}/en/catalog`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'daily', priority: 0.9 },
-    { url: `${baseUrl}/he/rental`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${baseUrl}/en/rental`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${baseUrl}/he/leasing`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${baseUrl}/en/leasing`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${baseUrl}/he/rental`, lastModified: RENTAL_GUIDANCE_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${baseUrl}/en/rental`, lastModified: RENTAL_GUIDANCE_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${baseUrl}/he/leasing`, lastModified: RENTAL_GUIDANCE_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${baseUrl}/en/leasing`, lastModified: RENTAL_GUIDANCE_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/he/contact`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${baseUrl}/en/contact`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${baseUrl}/he/cars-for-sale`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'daily', priority: 0.8 },
@@ -85,8 +86,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       'business', 'commercial', 'daily', 'hourly',
       'leasing', 'monthly', 'new-driver', 'sale',
     ].flatMap((type) => [
-      { url: `${baseUrl}/he/services/${type}`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.6 },
-      { url: `${baseUrl}/en/services/${type}`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.6 },
+      { url: `${baseUrl}/he/services/${type}`, lastModified: ['daily', 'monthly', 'hourly', 'leasing'].includes(type) ? RENTAL_GUIDANCE_LAST_MODIFIED : STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.6 },
+      { url: `${baseUrl}/en/services/${type}`, lastModified: ['daily', 'monthly', 'hourly', 'leasing'].includes(type) ? RENTAL_GUIDANCE_LAST_MODIFIED : STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.6 },
     ]),
   ];
 

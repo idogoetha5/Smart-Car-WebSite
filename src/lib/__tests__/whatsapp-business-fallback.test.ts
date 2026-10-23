@@ -3,6 +3,18 @@ import { getBusinessKnowledgeResponse } from '@/lib/whatsapp-business-knowledge'
 import { getWhatsAppFlowReply, type FlowState, type WhatsAppFlowStore } from '@/lib/whatsapp-flow';
 
 describe('business knowledge without a model', () => {
+  it.each([['אני נוסע 25 אלף בשנה', 'he'], ['I drive 25k per year', 'en']] as const)('keeps mileage advice contractual rather than promising included services: %s', (input, locale) => {
+    const reply = getBusinessKnowledgeResponse(input, locale, 'leasing_terms')?.reply ?? '';
+    expect(reply).toContain('25,000');
+    expect(reply).toContain('30,000');
+    expect(reply).not.toMatch(/על החברה|servicing and wear are on|fits exactly|לאיזה סוג|for how long/i);
+    expect(reply).toMatch(/הסכם המסוים|specific agreement/);
+  });
+  it('does not claim the largest package fits mileage beyond the published maximum', () => {
+    const reply = getBusinessKnowledgeResponse('I drive 40k per year', 'en', 'leasing_terms')?.reply ?? '';
+    expect(reply).toContain('beyond the published packages');
+    expect(reply).not.toContain('fits');
+  });
   it.each([
     ['כמה עולה ביטול השתתפות עצמית?', 'he', 'Type A'],
     ['What does CDW cover?', 'en', 'Type A'],

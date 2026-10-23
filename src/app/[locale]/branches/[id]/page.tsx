@@ -4,6 +4,8 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { BRANCHES, mapsUrl, wazeUrl, type BranchId } from '@/lib/branches';
 import { localeAlternates } from '@/lib/seo';
+import { BRANCH_RENTAL_ADVICE, rentalCopy } from '@/lib/public-rental-content';
+import PublicRentalAdvice from '@/components/content/PublicRentalAdvice';
 
 export function generateStaticParams() {
   return BRANCHES.map((b) => ({ id: b.id }));
@@ -69,12 +71,15 @@ export async function generateMetadata({
   const branch = BRANCHES.find((b) => b.id === id);
   if (!branch) return {};
   const isHe = locale === 'he';
-  const city = isHe ? DISPLAY_CITY[branch.id].he : DISPLAY_CITY[branch.id].en;
-  const content = CONTENT[branch.id];
+  const advice = BRANCH_RENTAL_ADVICE[branch.id];
+  const title = rentalCopy(advice.title, locale);
+  const description = rentalCopy(advice.description, locale);
   return {
-    title: { absolute: isHe ? `השכרת רכב ב${city} | SmartCar` : `Car Rental in ${city} | SmartCar` },
-    description: isHe ? content.metaHe : content.metaEn,
+    title: { absolute: title },
+    description,
     alternates: localeAlternates(locale, `branches/${branch.id}`),
+    openGraph: { title, description, url: `/${locale}/branches/${branch.id}`, type: 'website', locale: isHe ? 'he_IL' : 'en_US', siteName: 'SmartCar', images: [{ url: branch.image, alt: isHe ? branch.nameHe : branch.nameEn }] },
+    twitter: { card: 'summary_large_image', title, description, images: [branch.image] },
   };
 }
 
@@ -182,6 +187,8 @@ export default async function BranchDetailPage({
         <p className="text-gray-700 text-lg leading-relaxed mb-8 text-start">
           {isHe ? content.bodyHe : content.bodyEn}
         </p>
+
+        <PublicRentalAdvice advice={BRANCH_RENTAL_ADVICE[branch.id]} locale={locale} />
 
         <section className="mb-8" aria-labelledby="branch-rental-faq">
             <h2 id="branch-rental-faq" className="text-2xl font-bold text-[#0D2B2B] mb-4">

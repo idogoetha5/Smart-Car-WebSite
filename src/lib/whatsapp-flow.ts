@@ -2180,7 +2180,9 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   const asksQuestion = /[?？]/.test(body)
     || /(?:^|\s)(?:תזכיר|תסביר|תפרט|ספר לי|תענה|remind|explain|tell me)(?=\s|$)/i.test(body)
     || /(?:^|[\s,.!])(?:מה|איך|כמה|האם|איפה|היכן|מתי|עד מתי|למה|עולה|יש לכם|יש לך|אפשר|מותר|צריך|מאיזה|איזה|אילו|באיזה|משתלם|כדאי|לעומת|ההבדל|מומלץ|ממליץ|worth|better|difference|recommend|what|how|where|when|why|which|do you|can i|is there|are there)(?=$|[\s,.!?])/i.test(body);
-  const personRequested = /נציג|אנושי|בן ?אדם|בנאדם|יחזור|representative|human|person|someone|call me/i.test(body) && !mentionsPersonWithoutAsking(body);
+  // "Will someone be waiting at the airport?" is not "let me speak to someone".
+  const personRequested = (asksForPerson(body) || /(?:talk|speak|connect|transfer|put me).{0,25}\bsomeone\b/i.test(body))
+    && !mentionsPersonWithoutAsking(body);
   // "Are you a bot?" gets an honest answer, not a handoff.
   if (!existingState?.handedOff && !asksForPerson(body) && (isBotQuestion(body) || /(?:^|\s)(?:אתה|את|זה)\s+(?:\S+\s+)?(?:בוט|רובוט)|are you (?:a )?(?:bot|robot|real|human)/i.test(normalized(body))
     || (/(?:^|\s)(?:אתה|את|אטה)(?:\s|$)/.test(normalized(body)) && hasApproximateKeyword(body, ['רובוט'])))) {
@@ -2432,7 +2434,10 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // "for how long is leasing?" into a menu. Emergencies were handled above;
   // an explicit request for a person, a rental in progress, an existing
   // booking and the cars-for-sale catalogue keep their own paths.
+  const contactInformationOnly = !['complaint', 'proceed', 'correction'].includes(interpretation?.purpose ?? '')
+    && /איך (?:אפשר )?להתקשר|(?:מה|מהו) (?:מספר )?הטלפון|phone number|how (?:can|do) i (?:call|contact|reach) you/i.test(body);
   if (interpretation?.acknowledgement && asksQuestion && !personRequested && !smallTalkOnly(body)
+    && (interpretation.intent !== 'representative' || contactInformationOnly)
     && !['accident', 'breakdown', 'existing_booking', 'buy_car', 'sell_car'].includes(interpretation.intent)
     && !(interpretation.intent === 'rental' && !existingState)
     && !isRentalStep(existingState?.step ?? 'menu') && !existingState?.handedOff
@@ -2473,9 +2478,9 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       reply: composeServiceResponse({
         locale, input: body, state: existingState, kind: mood === 'angry' ? 'complaint' : 'handoff',
         answer: locale === 'en'
-          ? 'I have passed this to the SmartCar team with the details already shared, so you will not need to repeat yourself.'
-          : 'העברתי את הפנייה לצוות SmartCar עם הפרטים שכבר שיתפתם, כך שלא תצטרכו לחזור עליהם.',
-        nextStep: locale === 'en' ? 'If you have it, send the booking reference here.' : 'אם יש מספר הזמנה, אפשר לשלוח אותו כאן.',
+          ? 'This needs review by the SmartCar team with the context already shared. No account change or refund has been completed here.'
+          : 'זה מצריך בדיקה של צוות SmartCar עם ההקשר שכבר שיתפת. לא בוצע כאן שינוי בחשבון או החזר כספי.',
+        nextStep: existingState?.bookingReference || booking ? undefined : locale === 'en' ? 'If you have it, send the booking reference here.' : 'אם יש מספר הזמנה, אפשר לשלוח אותו כאן.',
       }),
       escalate: true,
       escalateReason: handoffSummary(existingState, 'בקשה לדבר עם נציג או טיפול חריג'),
@@ -2491,6 +2496,17 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     const base: FlowState = existingState ?? { step: 'menu', locale };
     const details = isRentalStep(base.step) ? extractRentalDetails(body, base, interpretation) : {};
     await store.saveState(phone, { ...base, ...details, locale, knowledgeTopic: businessTopic ?? base.knowledgeTopic });
+    return { handled: true, reply: interpretation.reply };
+  }
+
+  // An enquiry about future notifications is not permission to browse stock.
+  // Keep the validated model's actual answer instead of replacing it with the
+  // legacy sales catalogue. No subscription, transaction or outreach is created.
+  if (interpretation?.source === 'gemini' && interpretation.reply
+    && ['buy_car', 'sell_car', 'unknown', 'policy'].includes(interpretation.intent) && interpretation.notificationRequest === true
+    && !booking && !existingState?.handedOff && !existingState?.lastQuestion
+    && !['proceed', 'selection'].includes(interpretation.purpose ?? '')) {
+    await store.saveState(phone, { ...(existingState ?? { step: 'menu' as const }), locale });
     return { handled: true, reply: interpretation.reply };
   }
 

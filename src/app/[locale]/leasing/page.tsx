@@ -1,4 +1,6 @@
 import { localeAlternates } from '@/lib/seo';
+import PublicRentalAdvice from '@/components/content/PublicRentalAdvice';
+import { SERVICE_RENTAL_ADVICE, rentalCopy } from '@/lib/public-rental-content';
 export const revalidate = 3600;
 
 
@@ -16,16 +18,11 @@ import { LeasingInquirySection } from './LeasingInquirySection';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
-  const isHe = locale === 'he';
   return {
     title: {
-      absolute: isHe
-        ? 'ליסינג פרטי ועסקי | SmartCar'
-        : 'Private and Business Leasing | SmartCar',
+      absolute: rentalCopy(SERVICE_RENTAL_ADVICE.leasing.title, locale),
     },
-    description: isHe
-      ? 'מסלולי ליסינג ללקוחות פרטיים ולעסקים, בהתאמה לתקופה, למספר הקילומטרים ולשירותים הנדרשים. קבלו הצעה ברורה בכתב מנציג SmartCar.'
-      : 'Leasing plans for private and business customers, matched to the term, mileage and services required. Receive a clear written quote from SmartCar.',
+    description: rentalCopy(SERVICE_RENTAL_ADVICE.leasing.description, locale),
     alternates: localeAlternates(locale, 'leasing'),
   };
 }
@@ -262,6 +259,9 @@ export default async function LeasingPage({
 
       {/* ── INQUIRY SECTION (reads ?vehicle=id) ───────────────── */}
       <LeasingInquirySection vehicles={vehicles} locale={locale} />
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+        <PublicRentalAdvice advice={SERVICE_RENTAL_ADVICE.leasing} locale={locale} />
+      </div>
 
       {/* ── LEASING TYPES ─────────────────────────────────────── */}
       <section className="py-14 bg-white">

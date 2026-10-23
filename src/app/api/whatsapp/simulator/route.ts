@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
   const offline = request.headers.get('x-smartcar-engine') === 'local';
   const aiRehearsal = request.headers.get('x-smartcar-debug') === '1' && request.headers.get('x-smartcar-engine') === 'ai';
   const selectedStore: WhatsAppFlowStore = offline ? { ...store, engine: 'local' } : aiRehearsal ? { ...store, engine: 'ai' } : store;
-  // A tester can check one free model at a time (x-smartcar-models: gemma-4-31b-it); only the known free models are accepted.
+  // Diagnostic selection is restricted by the client to the sole configured Gemini.
   const models = request.headers.get('x-smartcar-debug') === '1' ? (request.headers.get('x-smartcar-models') ?? '').split(',').map((model) => model.trim()).filter(Boolean) : [];
   const result = await withModelChain(models, () => getWhatsAppFlowReply(`simulation-${sessionId}`, message, selectedStore));
   const state = store.currentState();
