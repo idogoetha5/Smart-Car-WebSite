@@ -33,7 +33,7 @@ describe('public rental search content and preserved private exclusion', () => {
         expect(html).toContain('min-h-12');
       });
     }
-    for (const type of ['daily', 'monthly', 'hourly', 'leasing']) {
+    for (const type of ['daily', 'monthly', 'hourly', 'leasing', 'business', 'commercial', 'new-driver', 'sale']) {
       it(`renders useful ${locale}/${type} content without hiding the route`, async () => {
         const props = { params: Promise.resolve({ locale, type }) };
         const metadata = await serviceMetadata(props);
