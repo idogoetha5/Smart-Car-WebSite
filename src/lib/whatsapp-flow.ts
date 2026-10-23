@@ -2436,6 +2436,15 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // booking and the cars-for-sale catalogue keep their own paths.
   const contactInformationOnly = !['complaint', 'proceed', 'correction'].includes(interpretation?.purpose ?? '')
     && /איך (?:אפשר )?להתקשר|(?:מה|מהו) (?:מספר )?הטלפון|phone number|how (?:can|do) i (?:call|contact|reach) you/i.test(body);
+  // Contact information is not a catalogue selection, even in a sales thread.
+  // Keep genuine staff requests, complaints and account-specific work separate.
+  if (interpretation?.source === 'gemini' && interpretation.reply
+    && interpretation.contactInformationRequested === true
+    && !['complaint', 'proceed', 'correction'].includes(interpretation.purpose ?? '')
+    && !personRequested && !existingState?.handedOff && !booking) {
+    await store.saveState(phone, { ...(existingState ?? { step: 'menu' as const }), locale });
+    return { handled: true, reply: interpretation.reply };
+  }
   if (interpretation?.acknowledgement && asksQuestion && !personRequested && !smallTalkOnly(body)
     && (interpretation.intent !== 'representative' || contactInformationOnly)
     && !['accident', 'breakdown', 'existing_booking', 'buy_car', 'sell_car'].includes(interpretation.intent)

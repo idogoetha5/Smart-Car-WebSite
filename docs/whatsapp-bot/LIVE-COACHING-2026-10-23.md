@@ -1,5 +1,22 @@
 # Live coaching review — 2026-10-23
 
+## Combined progress published, further adaptive defects retained
+
+Protected PR2 merged as29fa24e, production dpl_7oTxkrA3iNMa7duCZzjGg3fYeoNz
+READY on both domains. Exact candidate5039ef3: notification refusal answered
+directly without phone/URL/catalogue, airport1am advice stayed autonomous.
+Leasing dialogue retained25,000km, calculator estimate vs budget, flexibility;
+changing only model preserved other facts. One answer inferred long trips from
+mileage: quality issue, not verified customer fact. Actual public Gemini advice
+also returned without catalogue or rental action. These are selected examples,
+not completed24-dialogue acceptance or weight training.
+
+Next adaptive turns exposed two controller failures on the candidate: requesting
+the office number (contactInformationRequested=true, correct Gemini answer) was
+replaced by the active sales catalogue; Hebrew ובלי להעביר לנציג still triggered
+handoff despite Gemini policy/explanation. Both exact regressions now have local
+fixes. They require rebuilt live retests; do not silently count failures as passes.
+
 ## Progress release and newly identified controller failures
 
 Progress `8a942ab` is published as `dpl_7WZjgceTY8qXBsP3M1nuZsDxz5v4` on both

@@ -22,6 +22,27 @@ const emptyFields = {
 };
 
 describe('Gemini interpretation inside the WhatsApp flow', () => {
+  it('answers a requested office number without replacing it with the active sales catalogue', async () => {
+    const reply = 'You can reach the office at 09-9509757.';
+    const { store, state } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'details', intent: 'buy_car', contactInformationRequested: true, reply, asks: 'nothing' });
+    store.engine = 'ai';
+    const catalogue = vi.fn(async () => []);
+    store.getCarsForSale = catalogue;
+    await store.saveState('sale-contact', { step: 'menu', locale: 'en', carSale: { mode: 'car_sale', selectedCarIds: ['kept'], budget: 90000 } });
+    const result = await getWhatsAppFlowReply('sale-contact', 'Now I do want your office phone number, please.', store);
+    expect(result.reply).toBe(reply);
+    expect(result.escalate).not.toBe(true);
+    expect(catalogue).not.toHaveBeenCalled();
+    expect(state()?.carSale?.selectedCarIds).toEqual(['kept']);
+  });
+  it('does not hand off a declined rental when the customer says ובלי להעביר לנציג', async () => {
+    const reply = 'בחרת במוניות בגלל שתי נסיעות קצרות ותפיסת מסגרת בפיקדון.';
+    const { store } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'explanation', intent: 'policy', reply, asks: 'nothing' });
+    store.engine = 'ai';
+    const result = await getWhatsAppFlowReply('declined-recall', 'נשאר עם מוניות. רק תזכיר לי למה החלטנו ככה, בלי לשאול שאלות ובלי להעביר לנציג.', store);
+    expect(result.reply).toBe(reply);
+    expect(result.escalate).not.toBe(true);
+  });
   it('keeps a notification status complaint even when the broad sales label is wrong', async () => {
     const reply = 'No, this chat has not added you to a notification list.';
     const { store } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'complaint', intent: 'sell_car', notificationRequest: true, reply, asks: 'nothing' });
