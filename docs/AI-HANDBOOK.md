@@ -1,5 +1,16 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-24 — Unpublished backup-advice follow-up on separate full worktree:
+explicit rental exploration now receives family cost/child-seat or visitor
+licence/document/payment checks without an appended booking-date question.
+Category and supplier eligibility are not guaranteed; no inventory/link added.
+Annual consultation retains its facts but yields actual duplicate-charge disputes
+to the existing account-review gate. Declined budget receives comparison criteria.
+These are bounded deterministic fallbacks, not human-level general understanding.
+Local full-controller regressions cover both exploration examples and a charge
+interrupting annual advice. Multi-turn exploration readiness remains to complete;
+no publication, live transport or actual Gemini verification is implied.
+
 2026-10-24 — Lead-inbox follow-up: private admin feed now includes all four
 intake sources without the name-based housekeeping filter used by Sheets.
 Internal/test names are labelled rather than hidden; unnamed enquiries remain

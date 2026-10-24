@@ -14,7 +14,7 @@ import { parseConversationControl, forgetConversationFacts, factQuestion, redact
 import { getCarsForSale, type CarForSale } from '@/lib/cars-for-sale';
 import { closeEnough, repairCustomerText } from '@/lib/whatsapp-typing';
 import { bookingQuestion, detectLearnedSituation, detectSituation, humanLine, type BookingAsk } from '@/lib/whatsapp-replies';
-import { carAdvice } from '@/lib/whatsapp-advisor';
+import { carAdvice, isExploringRental } from '@/lib/whatsapp-advisor';
 import { fleetQuestionAnswer } from '@/lib/whatsapp-catalog-knowledge';
 import { ASKS_ABOUT_REQUEST, SAME_AS_LAST_TIME, filledDetailsLine, requestStatusReply, returningGreeting, type PastCustomer } from '@/lib/whatsapp-returning';
 import { asksForPerson, bookingScope, isBotQuestion, notOurEmergencyNow, mentionsPersonWithoutAsking, withoutPersonWords } from '@/lib/whatsapp-context';
@@ -1762,7 +1762,7 @@ function withCarAdvice(result: WhatsAppFlowResult, understood: WhatsAppInterpret
   const ask = isRentalStep(current.step) ? expectedAsk(current) : null;
   const used = (current.history ?? []).filter((entry) => entry.from === 'bot').map((entry) => entry.text);
   // Advice that ends with its own question ("יש נסיעה כזאת בתוכנית?") is not followed by a second one.
-  const question = /[?？]/.test(advice) ? '' : ask && ask !== 'confirm'
+  const question = isExploringRental(message) || /[?？]/.test(advice) ? '' : ask && ask !== 'confirm'
     ? bookingQuestion(ask as BookingAsk, locale, `${phone}:${message}`, used)
     : /[?？]\s*$/.test(advice) ? '' : (locale === 'en' ? 'Want me to check it for your dates?' : 'רוצה שאבדוק לתאריכים שלך?');
   return { ...result, reply: question ? `${advice}\n\n${question}` : advice };

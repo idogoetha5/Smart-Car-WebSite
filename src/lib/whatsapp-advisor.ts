@@ -51,12 +51,22 @@ function recommend(needs: Needs, text: string, locale: AdvisorLocale) {
   return null;
 }
 
+/** Explicit research is not consent to start collecting a booking. */
+export function isExploringRental(text: string): boolean {
+  return /מתלבט|מתלבטים|רק מתעניין|רק מתעניינת|לפני שמחליט|מה חשוב לבדוק|עוד לא להזמין|בלי להזמין|before deciding|not ready|no booking yet|just exploring|what should I check/i.test(text);
+}
+
 const RENT_OR_NOT = /שווה (?:בכלל )?לשכור|כדאי (?:בכלל )?לשכור|(?:או|לעומת) (?:לקחת |לנסוע ב)?מוניות|או מונית|או תחבורה ציבורית|בכלל צריך רכב|worth renting|(?:or|vs) (?:take |taking )?(?:taxis|a taxi|cabs|uber)|need a car at all/i;
 const PARKING = /חני(?:ה|יה)|חנייה|לחנות|parking|park the car/i;
 
 /** Advice for a question about which car fits, or how car types compare. Null when the message is not that. */
 export function carAdvice(text: string, needs: Needs & { vehiclePreference?: string }, locale: AdvisorLocale): string | null {
   const he = locale === 'he';
+  if (isExploringRental(text) && /licen[cs]e|Canadian|tourist|visiting|רישיון זר|תייר/i.test(text)) {
+    return he
+      ? 'לפני שמחליטים, כדאי לבדוק את תנאי הרישיון והוותק לנהג בפועל, המסמכים הנדרשים, אמצעי התשלום והפיקדון. בהצעה חשוב לבדוק גם כיסוי, השתתפות עצמית, קילומטרים והחזרה. רישיון זר לבדו לא מספיק כדי לאשר זכאות; התנאים תלויים במסמכים ובספק.'
+      : 'Before deciding, check the licence and driving-experience requirements for the actual driver, required documents, payment method and deposit. Compare cover, excess, mileage and return terms too. A Canadian licence alone does not establish eligibility; the documents and supplier requirements still need checking.';
+  }
   // A comparison is advice, not evidence that either category was selected.
   const familyAndSuv = /משפחתי|sedan|family car/i.test(text) && /ג[׳']?יפון|ג[׳']?יפ|suv|קרוסאובר/i.test(text);
   if (familyAndSuv && /מתלבט|עדיף|הבדל|לעומת|compare|between|better|difference|versus|\bvs\b/i.test(text)) {
@@ -67,10 +77,10 @@ export function carAdvice(text: string, needs: Needs & { vehiclePreference?: str
       : `A family car may be enough${hasBaby ? ' with a baby' : ''}; an SUV usually offers a higher seating position. Luggage space and fuel use depend on the actual model, so category alone is not enough.${hasStroller ? ' Check that the stroller and luggage fit together.' : ''}`;
   }
   // "לא בטוח אם בכלל שווה לשכור או לקחת מוניות": honest advice, not a booking form.
-  if (RENT_OR_NOT.test(text)) {
+  if (RENT_OR_NOT.test(text) || /מתלבט(?:ים)? אם בכלל לשכור/i.test(text)) {
     return he
-      ? 'תלוי בתוכנית: אם רוב הזמן אתה בתוך העיר, מוניות ותחבורה ציבורית בדרך כלל נוחות יותר — החנייה בתל אביב יקרה ולא תמיד קל למצוא. רכב משתלם כשיש נסיעות מחוץ לעיר, ואפשר גם לשכור רק ליום אחד לנסיעה כזאת. יש נסיעה כזאת בתוכנית?'
-      : "It depends on the plan: if you're mostly in the city, taxis and public transport are usually easier — parking in Tel Aviv is expensive and hard to find. A car pays off for trips out of town, and you can rent for just one day for that. Is there a trip like that in the plan?";
+      ? 'כדאי להשוות את העלות הכוללת של השכרה — כולל כיסוי, דלק וחניה — מול חלופות שמתאימות לכם. עם תינוק חשוב לבדוק גם מושב בטיחות מתאים בכל חלופה, ועם עגלה לוודא שיש מקום לציוד. בלי המחירים והסידורים האלה אי אפשר לקבוע מה משתלם יותר.'
+      : 'Compare the full rental cost, including cover, fuel and parking, with alternatives that fit your journeys. With a baby, check a suitable child seat in every option; with a stroller, check luggage space too. Without those costs and arrangements, I cannot say which option is better value.';
   }
   // "ואם אני רוצה רק יום אחד לנסוע לים המלח?"
   if (/(?:רק |ל)?יום אחד|ליום (?:אחד|בודד)|just (?:for )?(?:one|a) day|for (?:one|a single) day|only one day/i.test(text) && /[?？]|אפשר|can i|possible/i.test(text)) {
