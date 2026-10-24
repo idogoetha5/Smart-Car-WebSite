@@ -29,6 +29,8 @@ describe('Gemini WhatsApp interpreter', () => {
   it.each([
     'We do not compare outside transport options. We can help arrange your rental.',
     'A rental gives you room for your stroller and gear for three days.',
+    'Renting makes it straightforward to travel with a baby, stroller, and luggage.',
+    'A rental offers a vehicle, whereas relying on street transport means coordinating each journey.',
   ])('repairs an observed robotic policy disclosure or invented stroller: %s', async bad => {
     const good = 'A rental gives you a car at your disposal for three days. We can help choose suitable space and check a child-seat arrangement.';
     const response = (reply: string) => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ ...interpretation, purpose: 'advice', intent: 'rental', reply, asks: 'nothing' }) }] } }] }));

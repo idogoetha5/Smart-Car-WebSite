@@ -9,6 +9,10 @@ internal comparison rules and invented an unstated stroller. Follow-up validatio
 now requests bounded same-model repair for those observed failures, using actual
 customer messages/recalled quotes as equipment evidence, never model memory as
 proof. Tests simulate bad→repaired output; real follow-up verification pending.
+First c83f0a8 candidate English reply still invented a stroller using a comma list
+and compared indirectly against street transport, so it is NOT a passing quality
+result. Validation now rejects unconfirmed stroller mentions in any wording and
+those indirect outside-transport phrases, with observed bad-output regressions.
 Private comparison UI now displays per-turn actual source/model, duration and
 reported input/output/thinking token counts; fallback is labelled explicitly.
 Requested model title alone must not count as proof of an AI response. This
