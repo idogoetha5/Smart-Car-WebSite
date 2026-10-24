@@ -2,9 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import { useLocale } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
 import { useVehicles } from '@/hooks/useVehicles';
 import VehicleGrid from '@/components/catalog/VehicleGrid';
+import type { Vehicle } from '@/types';
+import { rentalSearchCriteria, type RentalSearchCriteria } from '@/lib/rental-search';
 
 const CATEGORY_ORDER: Record<string, number> = {
   MINI: 0, ECONOMY: 1, COMPACT: 2, SEDAN: 3,
@@ -12,24 +13,18 @@ const CATEGORY_ORDER: Record<string, number> = {
 };
 
 /**
- * Only the part that genuinely needs the browser: the filters hold local
- * state and the dates/locations come from useSearchParams, which forces a
- * client boundary. The page heading and copy around it are server-rendered
- * so they exist in the initial HTML.
+ * Filters stay interactive, and SWR still refreshes public fleet data. URL
+ * criteria arrive from the server instead of forcing the whole grid through
+ * a useSearchParams rendering bailout. Undated discovery gets fleet seed data.
  */
-export default function RentalResults() {
+export default function RentalResults({ initialVehicles, criteria = rentalSearchCriteria() }: { initialVehicles?: Vehicle[]; criteria?: RentalSearchCriteria }) {
   const locale = useLocale();
   const isHe = locale === 'he';
-  const { vehicles, isLoading } = useVehicles({ isAvailable: true });
-  const searchParams = useSearchParams();
+  const { vehicles, isLoading } = useVehicles({ isAvailable: true }, initialVehicles);
 
-  const pickupDate     = searchParams.get('pickup') ?? '';
-  const returnDate     = searchParams.get('return') ?? '';
-  const location       = searchParams.get('location') ?? '';
-  const pickupLocation = searchParams.get('pickupLocation') ?? location;
-  const returnLocation = searchParams.get('returnLocation') ?? pickupLocation;
+  const { pickupDate, returnDate, location, pickupLocation, returnLocation } = criteria;
 
-  const [categoryFilter, setCategoryFilter]         = useState('');
+  const [categoryFilter, setCategoryFilter]         = useState(criteria.category);
   const [seatsFilter, setSeatsFilter]               = useState('');
   const [transmissionFilter, setTransmissionFilter] = useState('');
 
@@ -65,7 +60,7 @@ export default function RentalResults() {
           value={categoryFilter}
           aria-label={isHe ? 'סינון לפי קטגוריה' : 'Filter by category'}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="p-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:border-[#2D5F5F] cursor-pointer"
+          className="min-h-12 p-2 border border-gray-200 rounded-lg text-base bg-white outline-none focus:border-[#2D5F5F] cursor-pointer"
         >
           <option value="">{isHe ? 'כל הקטגוריות' : 'All categories'}</option>
           <option value="MINI">{isHe ? 'מיני' : 'Mini'}</option>
@@ -85,7 +80,8 @@ export default function RentalResults() {
             <button
               key={s}
               onClick={() => setSeatsFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-sm border-2 transition-colors ${
+              aria-pressed={seatsFilter === s}
+              className={`min-h-11 min-w-11 px-3 py-1.5 rounded-lg text-sm border-2 transition-colors ${
                 seatsFilter === s
                   ? 'border-[#2D5F5F] bg-[#2D5F5F] text-white font-bold'
                   : 'border-gray-200 text-gray-600 hover:border-[#2D5F5F]'
@@ -100,7 +96,7 @@ export default function RentalResults() {
           value={transmissionFilter}
           aria-label={isHe ? 'סינון לפי תיבת הילוכים' : 'Filter by transmission'}
           onChange={(e) => setTransmissionFilter(e.target.value)}
-          className="p-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:border-[#2D5F5F] cursor-pointer"
+          className="min-h-12 p-2 border border-gray-200 rounded-lg text-base bg-white outline-none focus:border-[#2D5F5F] cursor-pointer"
         >
           <option value="">{isHe ? 'כל סוגי ההילוכים' : 'All transmissions'}</option>
           <option value="AUTOMATIC">{isHe ? 'אוטומטי' : 'Automatic'}</option>
@@ -110,7 +106,7 @@ export default function RentalResults() {
         {hasFilters && (
           <button
             onClick={() => { setCategoryFilter(''); setSeatsFilter(''); setTransmissionFilter(''); }}
-            className="px-3 py-2 text-sm text-[#B64916] border border-[#B64916] rounded-lg hover:bg-orange-50 transition-colors"
+            className="min-h-11 px-3 py-2 text-sm text-[#B64916] border border-[#B64916] rounded-lg hover:bg-orange-50 transition-colors"
           >
             {isHe ? 'נקה פילטרים' : 'Clear filters'}
           </button>
