@@ -16,6 +16,17 @@ Full-controller regression verifies research → yes → explicit preparation.
 Broader multi-turn exploration readiness remains to complete;
 no publication, live transport or actual Gemini verification is implied.
 
+2026-10-24 — Google lead-sheet diagnosis:69working keys(62rental/7contact),
+all7stored contacts present, rentals through October24 present. Two booking keys
+were intentionally absent with deletion-ledger entries; four leasing requests
+were flagged internal by the unchanged sheet name filter. No evidence of lost
+stored customer leads in this reconciliation. Apps Script executions succeed
+every5minutes; one transient failure recovered on the next run. Visible A2
+summary was frozen at October19/65 and new rows appended below old history.
+Script update refreshes only the generated summary, inserts whole new rows at
+top, preserves filters/manual columns/deletion ledger, and sorts complete old
+rows once. Bound-script installation and fresh live verification required.
+
 2026-10-24 — Lead-inbox follow-up: private admin feed now includes all four
 intake sources without the name-based housekeeping filter used by Sheets.
 Internal/test names are labelled rather than hidden; unnamed enquiries remain

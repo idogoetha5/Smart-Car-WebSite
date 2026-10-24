@@ -47,27 +47,52 @@ function syncSmartCarLeads() {
     var seed = [];
     current.forEach(function (r) { if (r[0] && !seen.has(r[0])) { seen.add(r[0]); seed.push([r[0]]); } });
     if (seed.length) ledger.getRange(ledger.getLastRow() + 1, 1, seed.length, 1).setValues(seed);
-    var fresh = body.rows.filter(function (row) { return !seen.has(row.key); });
+    var fresh = body.rows.filter(function (row) { return !seen.has(row.key); }).sort(function (a, b) {
+      return String(b.createdAt).localeCompare(String(a.createdAt));
+    });
     // Write the working rows before the ledger. If Google fails between these
     // writes, the next run recovers the keys from the working sheet.
     if (fresh.length) {
-      var start = Math.max(dataRow, sheet.getLastRow() + 1);
-      var end = start + fresh.length - 1;
-      if (end > sheet.getMaxRows()) sheet.insertRowsAfter(sheet.getMaxRows(), end - sheet.getMaxRows());
+      // Insert whole rows so every manual column/note stays with its lead.
+      // New enquiries must not disappear below months of existing history.
+      var filter = sheet.getFilter();
+      var criteria = [];
+      if (filter) {
+        for (var column = 1; column <= 6; column++) criteria[column] = filter.getColumnFilterCriteria(column);
+        filter.remove();
+      }
+      sheet.insertRowsBefore(dataRow, fresh.length);
+      var start = dataRow;
       var range = sheet.getRange(start, 1, fresh.length, 7);
-      sheet.getRange(dataRow, 1, 1, 7).copyTo(range, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
+      sheet.getRange(dataRow + fresh.length, 1, 1, 7).copyTo(range, SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
       var safe = function (value) { var text = String(value == null ? '' : value); return /^[=+\-@]/.test(text) ? "'" + text : text; };
       range.setNumberFormat('@');
       range.setValues(fresh.map(function (r) {
         return [r.source, r.name, r.phone, r.email, r.createdAt, r.details, r.key].map(safe);
       }));
       ledger.getRange(ledger.getLastRow() + 1, 1, fresh.length, 1).setValues(fresh.map(function (r) { return [r.key]; }));
-      var filter = sheet.getFilter();
-      if (filter) filter.remove();
-      sheet.getRange(headerRow, 1, end - headerRow + 1, 6).createFilter();
+      var nextFilter = sheet.getRange(headerRow, 1, sheet.getLastRow() - headerRow + 1, 6).createFilter();
+      for (var c = 1; c <= 6; c++) if (criteria[c]) nextFilter.setColumnFilterCriteria(c, criteria[c]);
+    }
+    // One-time repair of the old import/new-at-bottom ordering. Sort complete
+    // rows, including the hidden key and any office-added columns; never rewrite
+    // customer cells. Later runs leave the owner's existing ordering alone.
+    if (props.getProperty('LEADS_NEWEST_FIRST_V2') !== 'true') {
+      var size = sheet.getLastRow() - headerRow;
+      if (size > 1) sheet.getRange(dataRow, 1, size, sheet.getLastColumn()).sort({ column: 5, ascending: false });
+      props.setProperty('LEADS_NEWEST_FIRST_V2', 'true');
     }
     var stamp = Utilities.formatDate(new Date(), 'Asia/Jerusalem', 'dd/MM/yyyy HH:mm');
     sheet.getRange('A1').setNote('סנכרון אחרון: ' + stamp + ' · פניות חדשות נוספות כל 5 דקות');
+    // Replace only the original generated summary, never an owner's own title.
+    if (headerRow > 1) {
+      var summary = sheet.getRange(headerRow - 1, 1);
+      if (/^(עודכן |סנכרון אחרון:)/.test(String(summary.getValue()))) {
+        var keys = sheet.getLastRow() >= dataRow ? sheet.getRange(dataRow, 7, sheet.getLastRow() - headerRow, 1).getDisplayValues().filter(function (r) { return Boolean(r[0]); }) : [];
+        var contacts = keys.filter(function (r) { return r[0].indexOf('contact:') === 0; }).length;
+        summary.setValue('סנכרון אחרון: ' + stamp + ' · ' + keys.length + ' פניות · ' + contacts + ' צור קשר');
+      }
+    }
     props.setProperty('LAST_SUCCESS_AT', new Date().toISOString());
     props.setProperty('LAST_ADDED_COUNT', String(fresh.length));
     console.log('Lead sync succeeded; added ' + fresh.length + ' rows.');
