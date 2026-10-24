@@ -16,6 +16,13 @@ function setup() {
 }
 
 describe('customer-controlled conversation memory', () => {
+  it.each([
+    'Good. Change the requirement to two cars, not three. The project may now last one to four months. We are still comparing.',
+    'תעדכן את הצורך לשני רכבים למשך 4 חודשים, עדיין לא החלטנו על מסלול',
+  ])('lets concrete fleet-count and project-duration corrections reach the adviser: %s', text => {
+    expect(parseConversationControl(text)).toBeNull();
+  });
+
   it('still applies an explicit email update alongside correction of an answer', async () => {
     const chat = setup();
     await chat.send('Correct your answer about vehicle dimensions. Also update my email to new@example.com');

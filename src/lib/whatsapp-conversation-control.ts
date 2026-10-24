@@ -71,6 +71,10 @@ export function parseConversationControl(text: string, pending?: 'forget' | 'edi
       fields.unshift(...(pickup ? ['pickupDate' as const] : []), ...(dropoff ? ['dropoffDate' as const] : []));
     }
   }
+  // Counts and project duration are understood by the adviser, not editable
+  // form slots. A concrete correction must not become a generic edit prompt.
+  if (kind === 'edit' && !fields.length
+    && /\b(?:one|two|three|four|five|six|\d+)\s+(?:cars?|vehicles?|months?|weeks?)\b|(?:רכב אחד|שני רכבים|שתי מכוניות|שלושה רכבים|\d+\s*(?:רכבים|מכוניות|חודשים|שבועות))|(?:משך|תקופת) הפרויקט/i.test(text)) return null;
   if (pending && !forgetting && !editing && !fields.length) return null;
   return { kind, fields };
 }

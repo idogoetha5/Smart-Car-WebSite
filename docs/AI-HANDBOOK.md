@@ -1,5 +1,14 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-25 — Actual Gemini candidate6a4f173 responds using3.5FlashLite.
+Family and business follow-ups preserved correction/language without handoff,
+but initial advice overgeneralised taxi cost and monthly exit flexibility;
+final coaching now explicitly separates security from travel spend and requires
+child-seat arrangements/written exit terms before recommending alternatives.
+Concrete count/duration corrections were intercepted as empty form edits; parser
+now lets these adviser-managed facts reach Gemini. Real-model retest required.
+Candidate gallery/X2/public pages passed; no domain promotion or readiness claim.
+
 2026-10-24 — Unpublished backup-advice follow-up on separate full worktree:
 explicit rental exploration now receives family cost/child-seat or visitor
 licence/document/payment checks without an appended booking-date question.
