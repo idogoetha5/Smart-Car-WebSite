@@ -7,7 +7,7 @@ export type ControlAction = { kind: 'reset' } | { kind: 'external' } | { kind: '
 /** A correction to our explanation must reach the adviser, even during an edit. */
 export function isAdviceCorrection(text: string): boolean {
   if (/(?:change|update|correct)\s+(?:(?:my|the)\s+)?(?:email|name|pickup date|return date|vehicle type)|(?:תשנה|תעדכן)\s+(?:את\s+)?(?:המייל|השם|תאריך|סוג הרכב)/i.test(text)) return false;
-  return /(?:\b(?:correct|fix|revise)\s+(?:(?:that|the|your)\s+(?:assumption|answer|claim|statement)|what you (?:said|told)|that\s*:)|(?:תתקן|תקן|תתקני|תקני)\s+(?:רק\s+)?(?:את\s+)?(?:ההנחה|התשובה|הטענה|מה שאמרת))/i.test(text);
+  return /(?:\b(?:correct|fix|revise)\s+(?:(?:that|the|your)\s+(?:(?:simplified|previous|earlier|last|incorrect|wrong)\s+){0,2}(?:assumption|answer|claim|statement|explanation|response|advice|comparison|definition|recommendation)|what you (?:said|told)|that\s*:)|(?:תתקן|תקן|תתקני|תקני)\s+(?:רק\s+)?(?:את\s+)?(?:ההנחה|התשובה|הטענה|ההסבר|מה שאמרת))/i.test(text);
 }
 
 const FIELDS: Array<[EditableFact, RegExp]> = [

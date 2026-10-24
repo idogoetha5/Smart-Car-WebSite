@@ -2505,7 +2505,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   // merely because its question mentions a product. Safety, account disputes,
   // explicit people requests and active-booking permissions were handled above.
   if (interpretation?.source === 'gemini' && interpretation.reply && !booking
-    && ['advice', 'comparison', 'explanation', 'social'].includes(interpretation.purpose ?? '')
+    && (['advice', 'comparison', 'explanation', 'social'].includes(interpretation.purpose ?? '') || isAdviceCorrection(body))
     && !existingState?.handedOff && !existingState?.lastQuestion) {
     const base: FlowState = existingState ?? { step: 'menu', locale };
     const details = isRentalStep(base.step) ? extractRentalDetails(body, base, interpretation) : {};
@@ -2763,7 +2763,8 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     const policy = knowledgeReply(locale === 'en' ? 'cancellation policy' : 'מדיניות ביטול', locale, existingState);
     if (policy) return policy;
   }
-  if (requiresHumanHandoff(body, collectingNewRental) && !validStructuredEmail && !policyQuestion) {
+  if (requiresHumanHandoff(body, collectingNewRental) && !validStructuredEmail && !policyQuestion
+    && (interpretation?.source !== 'gemini' || interpretation.intent === 'representative')) {
     await store.saveState(phone, handoffState(existingState, locale));
     const mood = detectConversationMood(body);
     return {
