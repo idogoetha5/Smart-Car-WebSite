@@ -5,7 +5,8 @@ rental, not proactively recommend taxis/public transport/competitors. Updated
 charter, academy, final coaching and deterministic fallback together, removing
 the contradictory taxi suggestion example. Owner clarified absolutely no taxi comparisons, including on explicit customer
 request. Explain relevant SmartCar rental value and verified terms instead;
-respect refusal and keep consultation separate from booking consent. Same-model
+respect refusal and keep consultation separate from booking consent. Do not
+announce the internal sales rule to customers or add unstated equipment. Same-model
 validation rejects taxi comparison/recommendation content instead of returning a scripted sale.
 
 2026-10-25 — Actual Gemini candidate6a4f173 responds using3.5FlashLite.
