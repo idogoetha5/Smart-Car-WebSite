@@ -29,6 +29,16 @@ This is an append-only site-to-sheet integration. Editing the sheet does not
 modify bookings. A customer making another request creates a separate lead;
 multiple requests from one phone are retained intentionally.
 
+October24 follow-up: new records are inserted as complete rows immediately
+below the header, newest first; keys, manual edits, added columns and deletion
+ledger remain intact. The first upgraded run sorts the existing complete rows
+once by intake date, then sets LEADS_NEWEST_FIRST_V2. Subsequent runs leave
+existing ordering alone. Original generated summary text above the header is
+updated on every successful sync with actual time and current lead/contact
+counts. Owner-written titles are not replaced. Source inspection found regular
+successful five-minute executions and today's rentals already present, while
+the original visible summary still incorrectly said October19/65requests.
+
 Activated on 2026-10-19: Google permissions granted by the owner, two live runs
 succeeded with zero duplicate additions, and one time trigger was verified. The
 periodic office CSV cron entry is removed from `vercel.json`; the route remains

@@ -7,9 +7,11 @@ class FakeSheet {
   note = '';
   getLastRow() { return this.rows.length; }
   getMaxRows() { return 1000; }
+  getLastColumn() { return Math.max(7, ...this.rows.map(row => row.length)); }
   hideSheet() { /* no-op */ }
   getFilter() { return null; }
   insertRowsAfter() { /* no-op */ }
+  insertRowsBefore(row: number, count: number) { this.rows.splice(row - 1, 0, ...Array.from({length:count},()=>[])); }
   getRange(row: number | string, column = 1, count = 1, width = 1) {
     const start = typeof row === 'string' ? Number(row.slice(1)) - 1 : row - 1;
     const setValues = (values: string[][]) => {
@@ -26,7 +28,11 @@ class FakeSheet {
       setNote: (value: string) => { this.note = value; },
       copyTo() { /* formatting only */ },
       setNumberFormat() { /* text formatting */ },
-      createFilter() { /* no-op */ },
+      createFilter() { return { setColumnFilterCriteria() {} }; },
+      sort: ({column: key}: {column:number}) => {
+        const sorted = this.rows.slice(start,start+count).sort((a,b)=>(b[key-1]||'').localeCompare(a[key-1]||''));
+        this.rows.splice(start,count,...sorted);
+      },
     };
   }
 }
@@ -63,11 +69,17 @@ describe('bound lead sheet synchronization', () => {
     vm.runInContext('syncSmartCarLeads()', context);
     expect(triggers).toBe(1);
     expect(sheet.rows).toHaveLength(4);
-    expect(sheet.rows[3][1]).toMatch(/^'=/);
-    expect(sheet.rows[2][5]).toBe('Keep this note');
-    sheet.rows.pop();
+    expect(sheet.rows[2][1]).toMatch(/^'=/);
+    expect(sheet.rows[3][5]).toBe('Keep this note');
+    sheet.rows.splice(2,1);
     vm.runInContext('syncSmartCarLeads()', context);
     expect(sheet.rows).toHaveLength(3);
     expect(sheet.note).toContain('19/10/2026');
+    expect(sheet.rows[0][0]).toBe('My own title');
+    sheet.insertRowsBefore(2,1);
+    sheet.rows[1] = ['עודכן 19 באוק׳ 2026, 18:23 · 65 פניות'];
+    vm.runInContext('syncSmartCarLeads()', context);
+    expect(sheet.rows[1][0]).toBe('סנכרון אחרון: 19/10/2026 19:00 · 1 פניות · 0 צור קשר');
+    expect(sheet.rows[3][5]).toBe('Keep this note');
   });
 });
