@@ -21,25 +21,44 @@ export interface SendWhatsAppResult {
   ok: boolean;
   waMessageId: string | null;
   status: number | null;
+  /** Acceptance is not device delivery. Never blindly retry an uncertain result. */
+  outcome: 'accepted' | 'rejected' | 'uncertain' | 'not_sent';
+}
+
+const SEND_DEADLINE_MS = 8000;
+
+async function providerRequest(url: string, init: RequestInit, messageId: (data: unknown) => string | null): Promise<SendWhatsAppResult> {
+  try {
+    const res = await fetch(url, { ...init, signal: AbortSignal.timeout(SEND_DEADLINE_MS) });
+    if (!res.ok) {
+      const uncertain = res.status >= 500 || res.status === 408;
+      return { ok: false, waMessageId: null, status: res.status, outcome: uncertain ? 'uncertain' : 'rejected' };
+    }
+    const data: unknown = await res.json().catch(() => null);
+    const id = messageId(data);
+    return id
+      ? { ok: true, waMessageId: id, status: res.status, outcome: 'accepted' }
+      : { ok: false, waMessageId: null, status: res.status, outcome: 'uncertain' };
+  } catch {
+    console.error('[whatsapp][ALERT] provider response unavailable; delivery is uncertain');
+    return { ok: false, waMessageId: null, status: null, outcome: 'uncertain' };
+  }
+}
+
+function metaMessageId(data: unknown): string | null {
+  const id = (data as { messages?: { id?: unknown }[] } | null)?.messages?.[0]?.id;
+  return typeof id === 'string' && id.length > 0 ? id : null;
 }
 
 async function send360dialog(recipient: string, body: string): Promise<SendWhatsAppResult> {
   const apiKey = process.env.WHATSAPP_D360_API_KEY;
   if (!apiKey) throw new Error('[whatsapp] WHATSAPP_D360_API_KEY is not configured');
 
-  const res = await fetch('https://waba.360dialog.io/v1/messages', {
+  return providerRequest('https://waba.360dialog.io/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'D360-API-KEY': apiKey },
     body: JSON.stringify({ to: recipient, type: 'text', text: { body } }),
-  });
-
-  const status = res.status;
-  if (!res.ok) {
-    console.error(`[whatsapp][ALERT] 360dialog send failed with ${status}`);
-    return { ok: false, waMessageId: null, status };
-  }
-  const data = (await res.json().catch(() => null)) as { messages?: { id?: string }[] } | null;
-  return { ok: true, waMessageId: data?.messages?.[0]?.id ?? null, status };
+  }, metaMessageId);
 }
 
 async function sendYCloud(recipient: string, body: string): Promise<SendWhatsAppResult> {
@@ -48,7 +67,7 @@ async function sendYCloud(recipient: string, body: string): Promise<SendWhatsApp
   if (!apiKey) throw new Error('[whatsapp] WHATSAPP_YCLOUD_API_KEY is not configured');
   if (!sender) throw new Error('[whatsapp] WHATSAPP_BUSINESS_PHONE is not configured');
 
-  const res = await fetch('https://api.ycloud.com/v2/whatsapp/messages/sendDirectly', {
+  return providerRequest('https://api.ycloud.com/v2/whatsapp/messages/sendDirectly', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
     body: JSON.stringify({
@@ -57,15 +76,11 @@ async function sendYCloud(recipient: string, body: string): Promise<SendWhatsApp
       type: 'text',
       text: { body },
     }),
+  }, data => {
+    const value = data as { id?: unknown; wamid?: unknown } | null;
+    const id = value?.wamid ?? value?.id;
+    return typeof id === 'string' && id.length > 0 ? id : null;
   });
-
-  const status = res.status;
-  if (!res.ok) {
-    console.error(`[whatsapp][ALERT] YCloud send failed with ${status}`);
-    return { ok: false, waMessageId: null, status };
-  }
-  const data = (await res.json().catch(() => null)) as { id?: string; wamid?: string } | null;
-  return { ok: true, waMessageId: data?.wamid ?? data?.id ?? null, status };
 }
 
 async function sendMetaDirect(recipient: string, body: string): Promise<SendWhatsAppResult> {
@@ -74,19 +89,11 @@ async function sendMetaDirect(recipient: string, body: string): Promise<SendWhat
   if (!phoneNumberId) throw new Error('[whatsapp] WHATSAPP_PHONE_NUMBER_ID is not configured');
   if (!token) throw new Error('[whatsapp] WHATSAPP_ACCESS_TOKEN is not configured');
 
-  const res = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+  return providerRequest(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ messaging_product: 'whatsapp', to: recipient, type: 'text', text: { body } }),
-  });
-
-  const status = res.status;
-  if (!res.ok) {
-    console.error(`[whatsapp][ALERT] Meta direct send failed with ${status}`);
-    return { ok: false, waMessageId: null, status };
-  }
-  const data = (await res.json().catch(() => null)) as { messages?: { id?: string }[] } | null;
-  return { ok: true, waMessageId: data?.messages?.[0]?.id ?? null, status };
+  }, metaMessageId);
 }
 
 /**
@@ -97,9 +104,9 @@ async function sendMetaDirect(recipient: string, body: string): Promise<SendWhat
  */
 export async function sendWhatsAppMessage(to: string, body: string): Promise<SendWhatsAppResult> {
   const recipient = normalizeWhatsAppPhone(to);
-  if (!recipient) {
-    console.error('[whatsapp] refusing to send — invalid recipient phone');
-    return { ok: false, waMessageId: null, status: null };
+  if (!recipient || !body.trim() || body.length > 4096) {
+    console.error('[whatsapp] refusing invalid recipient or message');
+    return { ok: false, waMessageId: null, status: null, outcome: 'not_sent' };
   }
 
   try {
@@ -107,8 +114,8 @@ export async function sendWhatsAppMessage(to: string, body: string): Promise<Sen
     if (selected === 'ycloud') return await sendYCloud(recipient, body);
     if (selected === '360dialog') return await send360dialog(recipient, body);
     return await sendMetaDirect(recipient, body);
-  } catch (err) {
-    console.error('[whatsapp][ALERT] send errored:', (err as Error)?.message);
-    return { ok: false, waMessageId: null, status: null };
+  } catch {
+    console.error('[whatsapp][ALERT] transport configuration unavailable; message not sent');
+    return { ok: false, waMessageId: null, status: null, outcome: 'not_sent' };
   }
 }

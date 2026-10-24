@@ -22,6 +22,28 @@ const emptyFields = {
 };
 
 describe('Gemini interpretation inside the WhatsApp flow', () => {
+  it('keeps a current-needs recap autonomous instead of matching rent inside current', async () => {
+    const reply = 'You travel alone, carry two suitcases and have no charging access.';
+    const { store, state } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'details', intent: 'unknown', reply, asks: 'nothing' });
+    store.engine = 'ai';
+    await store.saveState('current-recap', { step: 'menu', locale: 'en', conversationMemory: reply, returningChecked: true });
+    const result = await getWhatsAppFlowReply('current-recap', 'Briefly recap only my current travel needs. No booking, catalogue or contact request.', store);
+    expect(result.reply).toBe(reply);
+    expect(result.escalate).not.toBe(true);
+    expect(state()?.handedOff).not.toBe(true);
+    expect(state()?.lastQuestion).toBeUndefined();
+  });
+  it('passes older customer evidence to the model after 1020 archived entries and retains the full history', async () => {
+    const reply = 'You mentioned three musical instruments.';
+    const { store, state, interpretMessage } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'explanation', intent: 'unknown', reply, asks: 'nothing' });
+    store.engine = 'ai';
+    const history = [{ from: 'customer' as const, text: 'We need luggage space for 3 musical instruments.' }, ...Array.from({ length: 1020 }, (_, i) => ({ from: 'customer' as const, text: `Small talk ${i}` }))];
+    await store.saveState('archive-recall', { step: 'menu', locale: 'en', history });
+    const result = await getWhatsAppFlowReply('archive-recall', 'What did I say earlier about musical instruments and luggage?', store);
+    expect(result.reply).toBe(reply);
+    expect(interpretMessage.mock.calls[0][2]?.recalledCustomerQuotes?.[0].text).toContain('3 musical instruments');
+    expect(state()?.history).toHaveLength(1023);
+  });
   it('answers general vehicle-history advice within sales without pretending to review a specific car', async () => {
     const reply = 'Verify maintenance records, ownership history and mileage consistency before choosing.';
     const { store, state } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'advice', intent: 'buy_car', reply, asks: 'nothing' });

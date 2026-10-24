@@ -83,8 +83,10 @@ export default function AdminInboxThreadPage() {
       if (!res.ok) {
         setActionError('השליחה לא אושרה. הטיוטה נשמרה; יש לבדוק את השיחה לפני ניסיון נוסף.');
       } else {
+        const sent = await res.json().catch(() => null);
         setDraft('');
         nearBottom.current = true;
+        if (sent?.data?.historySynced === false) setActionError('השליחה אושרה, אך ההודעה עדיין לא מוצגת בשיחה. אין לשלוח שוב.');
         await mutate().catch(() => setActionError('ההודעה נשלחה, אך לא הצלחנו לעדכן את ההיסטוריה כרגע. אין צורך לשלוח שוב.'));
       }
     } catch {

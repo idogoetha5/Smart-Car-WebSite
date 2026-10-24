@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/server';
+import { recallArchivedCustomerQuotes } from '@/lib/whatsapp-archive-recall';
 import { OFFICE_PHONE } from '@/lib/constants';
 import { normalizeWhatsAppPhone } from '@/lib/rental-quote';
 import { normalizeEmail } from '@/lib/email';
@@ -9,7 +10,7 @@ import { getBusinessKnowledgeResponse } from '@/lib/whatsapp-business-knowledge'
 import { composeServiceResponse, detectConversationMood } from '@/lib/service-response';
 import { consultativeSalesReply } from '@/lib/consultative-sales';
 import { localConsultationTurn, type LocalConsultation } from '@/lib/whatsapp-local-consultation';
-import { parseConversationControl, forgetConversationFacts, factQuestion, type EditableFact } from '@/lib/whatsapp-conversation-control';
+import { parseConversationControl, forgetConversationFacts, factQuestion, redactForgottenHistoryText, type EditableFact } from '@/lib/whatsapp-conversation-control';
 import { getCarsForSale, type CarForSale } from '@/lib/cars-for-sale';
 import { closeEnough, repairCustomerText } from '@/lib/whatsapp-typing';
 import { bookingQuestion, detectLearnedSituation, detectSituation, humanLine, type BookingAsk } from '@/lib/whatsapp-replies';
@@ -36,6 +37,8 @@ type LeasingKind = 'private' | 'business' | 'unknown';
 export interface FlowState {
   pendingControl?: 'forget' | 'edit';
   pendingEdit?: EditableFact;
+  /** Scope of customer-requested forgetting, without keeping the forgotten value. */
+  memoryForgetBefore?: Partial<Record<EditableFact, number>>;
   completedRequestId?: string;
   localConsultation?: LocalConsultation;
   step: FlowStep;
@@ -2212,11 +2215,13 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       dropoffLocation: existingState.dropoffLocation, vehiclePreference: existingState.vehiclePreference, passengers: existingState.passengers,
       // Names, emails and phone numbers stay out of what Gemini sees.
       recent: (Array.isArray(existingState.history) ? existingState.history.slice(-HISTORY_LENGTH) : [])
-        .filter((entry) => !['rental_name', 'rental_email', 'rental_confirm'].includes(entry.step ?? '') && !/@|(?:\+972|0)[\d\s()-]{8,}/.test(entry.text))
+        .map((entry, index) => ({ ...entry, text: redactForgottenHistoryText(entry.text, Math.max(0, (existingState.history?.length ?? 0) - HISTORY_LENGTH) + index + 1, existingState.memoryForgetBefore) }))
+        .filter(entry => entry.text && !['rental_name', 'rental_email', 'rental_confirm'].includes(entry.step ?? '') && !/@|(?:\+972|0)[\d\s()-]{8,}/.test(entry.text))
         .map(({ from, text }) => ({ from, text: text.slice(0, 500) })),
       knowledgeTopic: existingState.knowledgeTopic,
       haveName: Boolean(existingState.customerName), haveEmail: Boolean(existingState.customerEmail),
       conversationMemory: existingState.conversationMemory,
+      recalledCustomerQuotes: recallArchivedCustomerQuotes(body, existingState.history ?? [], [existingState.customerName, existingState.customerEmail, phone], existingState.memoryForgetBefore),
     } : null)?.catch(() => null) ?? null
     : null;
   // Ordinary free text requires an actual model response. A provider outage must

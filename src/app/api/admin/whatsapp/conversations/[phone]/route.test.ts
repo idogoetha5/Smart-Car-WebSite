@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-const mocks = vi.hoisted(() => ({ authenticated: true, failed: false, rows: [] as { id: number; body: string; source: string; created_at: string; escalated_at: null }[], queried: vi.fn() }));
+const mocks = vi.hoisted(() => ({ authenticated: true, failed: false, rows: [] as { id: number; body: string; source: string; created_at: string; escalated_at: null }[], queried: vi.fn(), send: vi.fn(), log: vi.fn(), incident: vi.fn() }));
+vi.mock('@/lib/whatsapp', () => ({ sendWhatsAppMessage: mocks.send }));
+vi.mock('@/lib/whatsapp-conversations', () => ({ logWhatsAppMessage: mocks.log }));
+vi.mock('@/lib/whatsapp-incidents', () => ({ reportBotIncident: mocks.incident }));
 vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => ({ value: 'fictional' }) }) }));
 vi.mock('@/lib/admin-auth', () => ({ verifyAdminToken: async () => mocks.authenticated, verifyInboxToken: async () => false }));
 vi.mock('@/lib/supabase/server', () => ({ createAdminClient: () => ({ from: () => {
@@ -12,11 +15,44 @@ vi.mock('@/lib/supabase/server', () => ({ createAdminClient: () => ({ from: () =
     limit: async (limit: number) => ({ data: mocks.rows.filter(row => row.id > after && row.id < before).sort((a, b) => ascending ? a.id - b.id : b.id - a.id).slice(0, limit), error: mocks.failed ? { message: 'unavailable' } : null }),
   }; return chain;
 } }) }));
-import { GET } from './route';
+import { GET, POST } from './route';
 const call = (query = '') => GET(new Request(`http://localhost/api/admin/whatsapp/conversations/972501234567${query}`), { params: Promise.resolve({ phone: '972501234567' }) });
 beforeEach(() => {
   mocks.authenticated = true; mocks.failed = false; mocks.queried.mockClear();
+  mocks.send.mockReset().mockResolvedValue({ ok: true, waMessageId: 'fictional-provider-id', status: 200, outcome: 'accepted' });
+  mocks.log.mockReset().mockResolvedValue(true);
+  mocks.incident.mockReset().mockResolvedValue(true);
   mocks.rows = Array.from({ length: 1020 }, (_, i) => ({ id: i + 1, body: `fictional ${i + 1}`, source: 'customer_inbound', created_at: '2030-01-01T00:00:00Z', escalated_at: null }));
+});
+
+describe('human reply delivery acknowledgement', () => {
+  const send = (message: unknown = 'fictional reply') => POST(new Request('http://localhost/api/admin/whatsapp/conversations/972501234567', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message }) }), { params: Promise.resolve({ phone: '972501234567' }) });
+  it('does not send without the scoped authenticated session', async () => {
+    mocks.authenticated = false;
+    expect((await send()).status).toBe(401);
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+  it.each([123, null, '', 'x'.repeat(4097)])('validates text before calling the provider', async message => {
+    expect((await send(message)).status).toBe(400);
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+  it('distinguishes uncertain delivery and never retries automatically', async () => {
+    mocks.send.mockResolvedValue({ ok: false, waMessageId: null, status: null, outcome: 'uncertain' });
+    const response = await send();
+    expect(response.status).toBe(409);
+    expect((await response.json()).code).toBe('delivery_uncertain');
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+    expect(mocks.log).not.toHaveBeenCalled();
+    expect(mocks.incident).toHaveBeenCalledWith('delivery_failed');
+  });
+  it('keeps a positively accepted send acknowledged even if history persistence fails', async () => {
+    mocks.log.mockRejectedValue(new Error('simulated database outage'));
+    mocks.incident.mockRejectedValue(new Error('simulated notification outage'));
+    const response = await send();
+    expect(response.status).toBe(200);
+    expect((await response.json()).data).toEqual({ ok: true, historySynced: false });
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+  });
 });
 describe('authenticated thread cursor API', () => {
   it('returns newest 100, ascending for display, with no-store headers', async () => {
