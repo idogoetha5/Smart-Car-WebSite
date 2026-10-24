@@ -338,7 +338,7 @@ export async function interpretWhatsAppMessage(message: string, step: string | n
   };
   const today = israelToday();
   const body = {
-    systemInstruction: { parts: [{ text: `${SYSTEM_INSTRUCTION}\n\nKNOWLEDGE (from the published SmartCar website):\n${selectedKnowledge}\n\n${FINAL_REPLY_COACHING}\n\n${getConversationAcademy(message, context?.conversationMemory, locale, context ?? undefined)}` }] },
+    systemInstruction: { parts: [{ text: `${SYSTEM_INSTRUCTION}\n\nKNOWLEDGE (from the published SmartCar website):\n${selectedKnowledge}\n\n${getConversationAcademy(message, context?.conversationMemory, locale, context ?? undefined)}\n\n${FINAL_REPLY_COACHING}` }] },
     contents: [{ role: 'user', parts: [{ text: JSON.stringify({ ...today, replyLanguage: locale === 'en' ? 'English' : 'Hebrew', step, renting, known, recalledCustomerQuotes: context?.recalledCustomerQuotes ?? [], recent: context?.recent ?? [], message }) }] }],
     generationConfig: {
       temperature: 0.35,

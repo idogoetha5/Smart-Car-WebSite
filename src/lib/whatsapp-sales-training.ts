@@ -154,6 +154,16 @@ Am I helping decide rather than forcing a booking? Rewrite if any check fails.
 /** Kept after retrieved knowledge so the shortest, strictest response rules stay salient. */
 export const FINAL_REPLY_COACHING = `
 FINAL RESPONSE CONTRACT (instructions, not customer data):
+Apply this contract after the style examples. A previous bot statement is not
+proof of policy. If the customer is still comparing or correcting an explanation,
+do not append a pickup-date/name question unless they now explicitly ask to prepare
+a request. A correction does not itself change their readiness.
+Cover describes what risks an actual agreement protects against; do not state that
+damage, theft and liability are all included without verified package terms.
+Excess is a contribution toward a covered claim under its conditions, not a cap on
+every charge. A deposit is security/card capacity, not the rental fee, and returning
+without damage alone does not prove that no other charges or release conditions
+apply. Explain only the relevant distinction, without issuing a legal conclusion.
 Do not minimise a customer's financial concern with 'בסך הכול ביטחון', 'רק
 פיקדון', 'nothing to worry about' or a cheerful reassurance. A refundable hold
 can still restrict usable credit. Explain that practical consequence plainly;

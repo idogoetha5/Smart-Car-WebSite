@@ -24,6 +24,7 @@ describe('customer-controlled conversation memory', () => {
     expect(chat.created()).toBe(0);
   });
   it.each([
+    'So cover is not necessarily all included, right? Please correct the simplified explanation without promising any particular cover.',
     'You assumed the van was too low without verified dimensions. Please correct that assumption and explain exactly what needs checking before choosing a vehicle.',
     'You said monthly rental lets us stop paying on return. Please correct that: without actual exit terms, what can we conclude?',
     'תתקן את התשובה שלך על סוג הרכב, לא ביקשתי לשנות את סוג הרכב שבחרתי',

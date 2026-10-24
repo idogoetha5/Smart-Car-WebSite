@@ -15,6 +15,17 @@ that:" for a generic field edit. Local parser now leaves explicit corrections
 of the adviser's answer to Gemini; ordinary stored-fact edits remain supported.
 Added exact bilingual regressions. Focused gates and rebuilt real model retests
 remain required. No publication/complete-readiness claim for this follow-up.
+Further independent budget/tourist turns found an unwanted pickup question during
+comparison and over-simple cover/deposit definitions. Move the existing final
+response contract after retrieved coaching examples and clarify these distinctions
+there. Advice-correction parsing also recognises a corrected explanation, including
+while a previous field edit is pending. Actual model retest remains necessary.
+A live budget follow-up also exposed the legacy broad handoff regex treating a
+hypothetical charge/deposit explanation as an actual account dispute during a
+draft, despite Gemini's non-person intent. Advice corrections now preserve the
+model answer; broad fallback handoff only applies without Gemini or with its
+representative intent. Earlier fixed emergency, explicit-person and specific
+actual-charge-dispute gates remain above this path. Exact regression added.
 
 2026-10-24 — Reviewed delivery-page continuation from the SEO task: all13area
 URLs/actions retained; arranged delivery distinguished from a real pickup branch,
