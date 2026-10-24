@@ -5,6 +5,9 @@ import RentalResults from './RentalResults';
 import Link from 'next/link';
 import PublicRentalAdvice from '@/components/content/PublicRentalAdvice';
 import { NATIONAL_RENTAL_ADVICE } from '@/lib/public-rental-content';
+import { getRentalPageVehicles } from '@/lib/rental-page-data';
+import { rentalSearchCriteria, type RentalSearchInput } from '@/lib/rental-search';
+import type { Vehicle } from '@/types';
 
 /**
  * Finding 41. The whole page used to be a client component behind
@@ -14,22 +17,32 @@ import { NATIONAL_RENTAL_ADVICE } from '@/lib/public-rental-content';
  * fails or is slow gets a blank page on the highest-intent route on the site.
  *
  * The heading and the explanation are static, so they belong on the server.
- * Only the filters and the vehicle grid need the browser, because the filters
- * hold local state and the dates come from useSearchParams — and
- * useSearchParams is what forces the Suspense boundary in the first place.
+ * The undated model grid now also has server-fetched seed data. URL criteria
+ * are read here; browser filtering and fleet revalidation remain interactive.
+ * Dated searches retain their existing client-price loading path.
  *
  * The fallback is a visible skeleton rather than null, so the page never
  * flashes empty beneath a heading that is already there.
  */
 export default async function RentalPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams?: Promise<RentalSearchInput>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'booking' });
   const isHe = locale === 'he';
+  const criteria = rentalSearchCriteria(await searchParams);
+  let initialVehicles: Vehicle[] | undefined;
+  // Indexable undated pages render model links immediately. Dated searches keep
+  // the existing client loading path so no uncached seasonal-price assumption
+  // is newly exposed in the server HTML. Booking calculation is unchanged.
+  if (!criteria.pickupDate || !criteria.returnDate) {
+    try { initialVehicles = await getRentalPageVehicles(); } catch { /* Client fetch remains available. */ }
+  }
 
   const steps = isHe
     // "שלח בקשה", not "אשר הזמנה": the final step submits a request that a
@@ -88,7 +101,7 @@ export default async function RentalPage({
           </div>
         }
       >
-        <RentalResults />
+        <RentalResults key={criteria.category} initialVehicles={initialVehicles} criteria={criteria} />
       </Suspense>
       <div className="max-w-3xl mx-auto mt-12">
         <PublicRentalAdvice advice={NATIONAL_RENTAL_ADVICE} locale={locale} />

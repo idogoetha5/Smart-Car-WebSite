@@ -8,6 +8,7 @@ import { Users, DoorOpen, Fuel, Settings, Star } from 'lucide-react';
 import type { Vehicle } from '@/types';
 import { getSeasonalPrice } from '@/lib/seasonal';
 import { usePricingConfig } from '@/hooks/usePricingConfig';
+import { preferredVehicleId } from '@/lib/vehicle-canonical';
 
 const categoryLabelHe: Record<string, string> = {
   MINI:       'מיני',
@@ -288,7 +289,10 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
             if (pickupLocation) p.set('pickupLocation', pickupLocation);
             if (returnLocation) p.set('returnLocation', returnLocation);
             const qs = p.toString();
-            return `/${locale}/rental/${vehicle.id}${qs ? '?' + qs : ''}`;
+            // Undated discovery follows Google's preferred model URL. Existing
+            // date-based selections keep their exact vehicle ID and parameters.
+            const id = pickupDate || returnDate ? vehicle.id : preferredVehicleId(vehicle, allVariants);
+            return `/${locale}/rental/${id}${qs ? '?' + qs : ''}`;
           })()}
           className="block w-full py-2.5 px-4 bg-[#2D5F5F] text-white text-sm font-bold rounded-xl hover:bg-[#1A3A3A] transition-colors text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F] focus-visible:ring-offset-2"
         >

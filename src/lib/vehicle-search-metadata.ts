@@ -3,7 +3,7 @@ import type { Vehicle } from '@/types';
 import { localeAlternates } from '@/lib/seo';
 
 /** Model-level facts only: no inferred equipment, live availability or prices. */
-export function vehicleSearchMetadata(vehicle: Vehicle, locale: string): Metadata {
+export function vehicleSearchMetadata(vehicle: Vehicle, locale: string, canonicalId = vehicle.id): Metadata {
   if (!vehicle.make?.trim() || !vehicle.model?.trim()) return {};
   const isHe = locale === 'he';
   const name = `${vehicle.make} ${vehicle.model}`;
@@ -19,8 +19,8 @@ export function vehicleSearchMetadata(vehicle: Vehicle, locale: string): Metadat
   return {
     title: { absolute: title },
     description,
-    alternates: localeAlternates(locale, `rental/${vehicle.id}`),
-    openGraph: { title, description, url: `/${locale}/rental/${vehicle.id}`, siteName: 'SmartCar', locale: isHe ? 'he_IL' : 'en_US', type: 'website', ...(image ? { images: [{ url: image, alt: name }] } : {}) },
+    alternates: localeAlternates(locale, `rental/${canonicalId}`),
+    openGraph: { title, description, url: `/${locale}/rental/${canonicalId}`, siteName: 'SmartCar', locale: isHe ? 'he_IL' : 'en_US', type: 'website', ...(image ? { images: [{ url: image, alt: name }] } : {}) },
     twitter: { card: 'summary_large_image', title, description, ...(image ? { images: [image] } : {}) },
   };
 }

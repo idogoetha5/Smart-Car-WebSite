@@ -1,5 +1,36 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-24 — Owner approved preferred Google URLs for identical vehicle pages.
+Conservative canonical grouping requires identical specifications, years, photos,
+features, both descriptions, all prices/floors/deposits/mileage and capacity.
+Stable oldest record (ID tie-break) is preferred in each language and sitemap;
+undated discovery links follow it. Different offers stay independent. Every old
+detail route and its original booking ID remain available; dated card links and
+all booking calculations are unchanged. Public fleet errors fall back to self
+canonical. Sitemap revalidates every60s so inventory changes do not wait for a
+new deployment. This SEO-only branch is the sole publisher while bot work is paused.
+
+2026-10-24 — Reviewed completed rental-discovery follow-up: undated server fleet
+seed with60s public cache, existing SWR revalidation/recovery retained, URL category
+applied and dates/both locations preserved. Dated pricing remains on the existing
+client path. SEO-only baseline passed16new regressions and full1213tests/90files,
+typecheck/lint budget pass; actual local172-row public-data fixture rendered45
+HE/EN model links and3VAN links,360px filters/navigation passed. Real candidate
+and custom-domain fleet/price checks are still required. No DB writes or pricing
+logic changes. Details and fixture limits: docs/SEO-2026-10-23.md.
+
+Latest verified live release: protected PR4/918c79c,
+dpl_7bmf61t4zJJtxGpGGSkL1X4PCENV READY with both custom domains. Public catalogue
+172/X2display850/base1060/floor950,3exact gallery samples and HE/EN pages passed.
+Actual owner-page POST accepted the test notification; Gmail verified its arrival
+in ido.goetha5@gmail.com's INBOX at2026-10-24T08:47:26Z (test category only,
+no customer content). This verifies the current email path, not whole-host uptime
+or durable incident retry. Customer WhatsApp remains OFF. Readiness gaps remain.
+
+The owner requested SEO-only completion on October24. Unpublished bot commits
+f8b059c/0d47962 and their full coaching notes remain preserved on
+`codex/bot-recovery-followup-20261024`; they are not part of this scoped SEO branch.
+Use the latest published `origin/clean-main` before resuming that bot work.
 2026-10-24 — Reviewed delivery-page continuation from the SEO task: all13area
 URLs/actions retained; arranged delivery distinguished from a real pickup branch,
 unsupported nearest-branch label corrected, regional schema Place, restrained
