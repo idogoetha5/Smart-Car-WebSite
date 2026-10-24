@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { getWhatsAppFlowReply, type FlowState, type WhatsAppFlowStore } from '@/lib/whatsapp-flow';
+import { getWhatsAppFlowReply, classifyWhatsAppInitialRoute, type FlowState, type WhatsAppFlowStore } from '@/lib/whatsapp-flow';
 import type { WhatsAppInterpretation } from '@/lib/whatsapp-gemini';
 
 function makeStore(interpretation: WhatsAppInterpretation | null) {
@@ -22,6 +22,18 @@ const emptyFields = {
 };
 
 describe('Gemini interpretation inside the WhatsApp flow', () => {
+  it('does not confuse a liability ceiling with a puncture before Gemini reads it', async () => {
+    const input = 'אל תניח מה החוק אומר ואל תבטיח ראש שקט. אנחנו רק משווים. מה ההבדל בין פיקדון להשתתפות עצמית, והאם הפיקדון הוא תקרת כל החיובים?';
+    const reply = 'הפיקדון אינו תקרת כל החיובים. האחריות תלויה בתנאי ההסכם והכיסוי.';
+    const { store, interpretMessage } = makeStore({ ...emptyFields, source: 'gemini', intent: 'policy', purpose: 'explanation', reply, asks: 'nothing' });
+    expect(classifyWhatsAppInitialRoute(input, false)).not.toBe('breakdown');
+    expect(classifyWhatsAppInitialRoute('יש לי תקר בגלגל ואני בצד הדרך', false)).toBe('breakdown');
+    const result = await getWhatsAppFlowReply('liability-ceiling', input, store);
+    expect(interpretMessage).toHaveBeenCalledOnce();
+    expect(result.reply).toBe(reply);
+    expect(result.escalate).not.toBe(true);
+  });
+
   it.each(['policy', 'rental'] as const)('does not turn a hypothetical deposit correction into an account dispute during a draft (%s)', async intent => {
     const reply = 'פיקדון תופס מסגרת ואינו מחיר ההשכרה. ייתכנו חיובים אחרים לפי ההסכם, גם בלי נזק. נשארים בהשוואה.';
     const { store, state } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'correction', intent, reply, asks: 'nothing' });

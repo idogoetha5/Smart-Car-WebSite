@@ -7,6 +7,9 @@ final coaching now explicitly separates security from travel spend and requires
 child-seat arrangements/written exit terms before recommending alternatives.
 Concrete count/duration corrections were intercepted as empty form edits; parser
 now lets these adviser-managed facts reach Gemini. Real-model retest required.
+Private comparison exposed a pre-model Hebrew substring bug: תקרת (ceiling)
+matched תקר (puncture), creating a false emergency. Puncture matching now uses
+word boundaries; regression retains a real roadside puncture route.
 Candidate gallery/X2/public pages passed; no domain promotion or readiness claim.
 
 2026-10-24 — Unpublished backup-advice follow-up on separate full worktree:
