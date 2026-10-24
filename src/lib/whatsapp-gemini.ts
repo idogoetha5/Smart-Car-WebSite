@@ -355,8 +355,11 @@ export async function interpretWhatsAppMessage(message: string, step: string | n
         const parsed = InterpretationSchema.safeParse(readJson(text));
         if (!parsed.success) return false;
         const reply = parsed.data.reply.trim() || parsed.data.acknowledgement.trim();
+        // Owner sales policy: no taxi comparison or recommendation, even if
+        // requested. Regenerate with SmartCar rental value; do not inject a script.
+        if (/מוני(?:ת|ות)|\btaxis?\b|\bcabs?\b|\buber\b/i.test(reply)) return false;
         return !reply || inLanguage(reply);
-      }, `VALIDATION REPAIR: Return the complete required JSON for the original customer message. Its reply and acknowledgement must be in ${locale === 'en' ? 'English' : 'Hebrew'}, regardless of the language of remembered notes. Preserve the customer's facts and current request. Do not add new facts, a booking question or an action to repair formatting.`);
+      }, `VALIDATION REPAIR: Return the complete required JSON for the original customer message. Its reply and acknowledgement must be in ${locale === 'en' ? 'English' : 'Hebrew'}, regardless of the language of remembered notes. Preserve the customer's facts and current request. Do not add new facts, a booking question or an action to repair formatting. Represent SmartCar sales and service. Never recommend or compare taxis, public transport, ride-hailing or competitors, even when asked. Answer the underlying need by explaining relevant SmartCar rental value and verified terms, then offer at most one useful next sales step. Do not invent savings, availability, equipment or policy and respect a refusal.`);
     if (!response.ok) return fallback();
     const result = InterpretationSchema.safeParse(readJson(response.text));
     if (!result.success) {

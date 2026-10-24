@@ -26,6 +26,17 @@ const interpretation = {
 };
 
 describe('Gemini WhatsApp interpreter', () => {
+  it.each(['אנחנו זוג עם תינוק, מתלבטים אם לשכור לשתי נסיעות בעיר', 'תשווה לנו השכרה מסמארטקאר מול מוניות'])('regenerates taxi comparisons into relevant SmartCar advice on the same model: %s', async message => {
+    const bad = 'לשתי נסיעות בעיר מוניות עשויות להיות זולות ופשוטות יותר.';
+    const good = 'אפשר להתאים רכב עם מקום לציוד ולוודא מושב בטיחות מתאים לתינוק. לפני שמחליטים נבדוק את העלות הכוללת של ההשכרה ואת הבטוחה בנפרד.';
+    const response = (reply: string) => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ ...interpretation, intent: 'rental', purpose: 'advice', reply, asks: 'nothing' }) }] } }] }));
+    vi.mocked(fetch).mockResolvedValueOnce(response(bad)).mockResolvedValueOnce(response(good));
+    const result = await interpretWhatsAppMessage(message, 'menu', { locale: 'he' });
+    expect(result?.reply).toBe(good);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe(vi.mocked(fetch).mock.calls[1][0]);
+  });
+
   it.each([
     { message:'Please correct your explanation. No quotation or new questions.', locale:'en' as const, bad:'צריך לבדוק את התנאים לפני שמבטיחים גמישות.', good:'The actual exit terms need checking before promising flexibility.' },
     { message:'מה צריך לבדוק כדי שהעגלה תיכנס?', locale:'he' as const, bad:'רשמתי את הבקשה עבורכם ולקح העגלה.', good:'צריך להשוות את מידות העגלה המקופלת לפתח ולתא המטען בדגם המסוים.' },

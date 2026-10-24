@@ -1,5 +1,13 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-25 owner correction: sales guidance must help choose a suitable SmartCar
+rental, not proactively recommend taxis/public transport/competitors. Updated
+charter, academy, final coaching and deterministic fallback together, removing
+the contradictory taxi suggestion example. Owner clarified absolutely no taxi comparisons, including on explicit customer
+request. Explain relevant SmartCar rental value and verified terms instead;
+respect refusal and keep consultation separate from booking consent. Same-model
+validation rejects taxi comparison/recommendation content instead of returning a scripted sale.
+
 2026-10-25 — Actual Gemini candidate6a4f173 responds using3.5FlashLite.
 Family and business follow-ups preserved correction/language without handoff,
 but initial advice overgeneralised taxi cost and monthly exit flexibility;
@@ -10,6 +18,11 @@ now lets these adviser-managed facts reach Gemini. Real-model retest required.
 Private comparison exposed a pre-model Hebrew substring bug: תקרת (ceiling)
 matched תקר (puncture), creating a false emergency. Puncture matching now uses
 word boundaries; regression retains a real roadside puncture route.
+Latest real3.5 retest corrected count/duration and ceiling routing, but initial
+family advice still omitted child-seat arrangements when discussing taxis.
+Bounded same-model validation now rejects that narrow incomplete answer when a
+baby is explicitly in the current message; one regeneration uses the existing
+remaining budget, with no provider/action/send retry. Real retest remains needed.
 Candidate gallery/X2/public pages passed; no domain promotion or readiness claim.
 
 2026-10-24 — Unpublished backup-advice follow-up on separate full worktree:

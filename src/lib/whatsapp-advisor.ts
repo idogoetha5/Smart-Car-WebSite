@@ -92,8 +92,8 @@ export function carAdvice(text: string, needs: Needs & { vehiclePreference?: str
   // "לא בטוח אם בכלל שווה לשכור או לקחת מוניות": honest advice, not a booking form.
   if (RENT_OR_NOT.test(text) || /מתלבט(?:ים)? אם בכלל לשכור/i.test(text)) {
     return he
-      ? 'כדאי להשוות את העלות הכוללת של השכרה — כולל כיסוי, דלק וחניה — מול חלופות שמתאימות לכם. עם תינוק חשוב לבדוק גם מושב בטיחות מתאים בכל חלופה, ועם עגלה לוודא שיש מקום לציוד. בלי המחירים והסידורים האלה אי אפשר לקבוע מה משתלם יותר.'
-      : 'Compare the full rental cost, including cover, fuel and parking, with alternatives that fit your journeys. With a baby, check a suitable child seat in every option; with a stroller, check luggage space too. Without those costs and arrangements, I cannot say which option is better value.';
+      ? 'רכב שכור יכול לתת לכם רכב לרשותכם לאורך התקופה, עם מקום לציוד ובהתאמה לנסיעות שלכם. עם תינוק צריך לוודא מושב בטיחות מתאים, ועם עגלה לבדוק שהיא נכנסת יחד עם שאר הציוד. לפני שמחליטים, כדאי לבדוק את העלות הכוללת — כולל כיסוי, דלק וחניה — לצד הפיקדון שנדרש בנפרד כבטוחה.'
+      : 'A rental can give you a vehicle at your disposal for the agreed period, with space suited to your plans. With a baby, verify a suitable child-seat arrangement; with a stroller, check room for all your equipment. Before deciding, check the total rental cost, including cover, fuel and parking, with the required deposit considered separately as security.';
   }
   // "ואם אני רוצה רק יום אחד לנסוע לים המלח?"
   if (/(?:רק |ל)?יום אחד|ליום (?:אחד|בודד)|just (?:for )?(?:one|a) day|for (?:one|a single) day|only one day/i.test(text) && /[?？]|אפשר|can i|possible/i.test(text)) {
