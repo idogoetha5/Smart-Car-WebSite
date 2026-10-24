@@ -26,6 +26,22 @@ const interpretation = {
 };
 
 describe('Gemini WhatsApp interpreter', () => {
+  it.each([
+    { message:'Please correct your explanation. No quotation or new questions.', locale:'en' as const, bad:'צריך לבדוק את התנאים לפני שמבטיחים גמישות.', good:'The actual exit terms need checking before promising flexibility.' },
+    { message:'מה צריך לבדוק כדי שהעגלה תיכנס?', locale:'he' as const, bad:'רשמתי את הבקשה עבורכם ולקح העגלה.', good:'צריך להשוות את מידות העגלה המקופלת לפתח ולתא המטען בדגם המסוים.' },
+  ])('regenerates a wrong-language or garbled reply once on the same model: $locale', async ({message,locale,bad,good}) => {
+    const { resetModelCooldowns } = await import('@/lib/whatsapp-gemini-client'); resetModelCooldowns();
+    const response = (reply:string) => new Response(JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify({...interpretation,intent:'policy',vehiclePreference:'',pickupLocation:'',dropoffLocation:'',reply,asks:'nothing'})}]}}]}));
+    vi.mocked(fetch).mockResolvedValueOnce(response(bad)).mockResolvedValueOnce(response(good));
+    const result=await interpretWhatsAppMessage(message,null,{locale,conversationMemory:'הערות קודמות בעברית'});
+    expect(result?.reply).toBe(good);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(fetch).mock.calls.map(call=>String(call[0]))).toEqual([
+      expect.stringContaining('/gemini-3.5-flash-lite:generateContent'),expect.stringContaining('/gemini-3.5-flash-lite:generateContent'),
+    ]);
+    const second=JSON.parse(vi.mocked(fetch).mock.calls[1][1]?.body as string);
+    expect(second.systemInstruction.parts.at(-1).text).toContain('VALIDATION REPAIR');
+  });
   it('keeps a direct notification answer without the unwanted office redirect seen live', () => {
     const status = 'This chat has not created an automatic notification signup.';
     const noisy = `${status} For current car purchase availability, you can contact the office directly at 09-9509757.`;
@@ -111,7 +127,7 @@ describe('Gemini WhatsApp interpreter', () => {
   });
 
   it('falls back on an invalid or failed model response', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"intent":"book_without_consent"}' }] } }] }), { status: 200 }));
+    for (let i = 0; i < 2; i++) vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"intent":"book_without_consent"}' }] } }] }), { status: 200 }));
     await expect(interpretWhatsAppMessage('רוצה רכב', null)).resolves.toBeNull();
     vi.mocked(fetch).mockResolvedValueOnce(new Response('{}', { status: 403 }));
     await expect(interpretWhatsAppMessage('רוצה רכב', null)).resolves.toBeNull();

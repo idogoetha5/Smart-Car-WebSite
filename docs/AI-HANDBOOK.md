@@ -19,6 +19,36 @@ passed. Intake integration verifies store-before-success, immediate private read
 all4sources/pagination, challenge/auth guards and source/storage error paths;
 actual staged/live verification remains required before reporting publication.
 
+2026-10-24 resumed bot work uses a separate full worktree based on published
+1d2ad32, retaining all latest SEO/canonical/inventory work. Preserved bot fixes
+f8b059c/0d47962 were integrated; main checkout and publication ownership stay with
+the coordinating task. No domain promotion/merge or customer activation here.
+Added a private owner-only Gemini3.8 comparison page/API, fixed model and12/hour
+additional rehearsal limit (existing distributed-or-instance limiter semantics).
+It shares the isolated simulator flow, caps payload256KB, reports token counts,
+sets low thinking and suppresses false production-outage alerts from experiments.
+Public model headers/default model and actual customer transport remain unchanged.
+This is not a model upgrade or a passing real-model comparison yet. Current
+configured customer model remains Gemini3.5FlashLite; evaluation must establish
+quality, latency and cost before any proposed switch.
+Wrong-language/invalid structured content may now receive one regeneration on the
+same configured model, with fixed validation feedback and the remaining14s request
+budget. Provider HTTP/network failures are not retried by this content-repair path;
+no business action or WhatsApp send is repeated. Model reply-language validation
+precedes the fallback that produced unrelated policy text in an observed English
+correction. Actual candidate/live repair verification is still required.
+Deterministic handoff/catalogue fallbacks and simulator labels no longer claim
+staff notification, immediate takeover or a callback before those actions run.
+They state the concrete need for review and retain action flags/context. This is
+not a durable handoff implementation or proof that a person received an alert.
+Local resumed-work gates: full1264tests/93files, typecheck and lint budget pass
+(0errors/1existingwarning) before the final evaluation-alert-isolation regression.
+Repeat focused/full gates as appropriate; real comparative calls and full
+24-dialogue acceptance remain open, with no customer-readiness claim.
+Rebased onto published71d4bb2 after the coordinating task's newer release;
+all latest office, SEO and public-site changes are retained. Source preflight,
+combined gates and build must be repeated on this exact baseline before review.
+
 2026-10-24 — Owner approved preferred Google URLs for identical vehicle pages.
 Conservative canonical grouping requires identical specifications, years, photos,
 features, both descriptions, all prices/floors/deposits/mileage and capacity.

@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { reportBotIncident, type BotIncident } from '@/lib/whatsapp-incidents';
+import { activeModelEvaluation, recordEvaluationUsage } from '@/lib/whatsapp-model-evaluation';
 
 /** Fresh, bounded provider connection. No booking actions or customer logging. */
 type Circuit = { until: number; probing: boolean };
@@ -8,6 +9,8 @@ const REQUEST_MS = 8000;
 let reportedMissingKey = false;
 
 async function notify(kind: BotIncident) {
+  // A failed private experiment is not an outage of the customer model.
+  if (activeModelEvaluation()) return;
   // Notification failure must never prevent the local backup from replying.
   try { await reportBotIncident(kind); }
   catch { console.error('[whatsapp-gemini] incident notification unavailable'); }
@@ -24,23 +27,27 @@ export function resetModelCooldowns() {
 }
 
 /** Per-instance cooldown; it is a latency safeguard, not a distributed quota limit. */
-export async function generateSmartCarContent(params: { model: string; body: unknown }): Promise<GeminiConnectionResult> {
+export async function generateSmartCarContent(params: { model: string; body: unknown; timeoutMs?: number }): Promise<GeminiConnectionResult> {
   // Dedicated bot credential must not replace the driver's OCR credential.
   const key = process.env.WHATSAPP_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
   if (!key) {
-    if (!reportedMissingKey) { reportedMissingKey = true; await notify('ai_unavailable'); }
+    if (!activeModelEvaluation() && !reportedMissingKey) { reportedMissingKey = true; await notify('ai_unavailable'); }
     return { ok: false, reason: 'missing_key' };
   }
-  reportedMissingKey = false;
+  if (!activeModelEvaluation()) reportedMissingKey = false;
   // Reset naturally when the configured model changes. Never retain the key.
   const circuit = circuits.get(params.model);
   if (circuit && (circuit.until > Date.now() || circuit.probing)) return { ok: false, reason: 'cooldown' };
   if (circuit) circuit.probing = true;
   const coolDown = (ms: number) => circuits.set(params.model, { until: Date.now() + ms, probing: false });
   try {
+    const originalBody = params.body && typeof params.body === 'object' ? params.body as Record<string, unknown> : null;
+    const body = params.model === 'gemini-3.8-flash' && originalBody
+      ? { ...originalBody, generationConfig: { ...(originalBody.generationConfig as object ?? {}), thinkingConfig: { thinkingLevel: 'low' } } }
+      : params.body;
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(params.model)}:generateContent`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify(params.body), signal: AbortSignal.timeout(REQUEST_MS),
+      body: JSON.stringify(body), signal: AbortSignal.timeout(Math.max(1, Math.min(REQUEST_MS, Math.floor(params.timeoutMs ?? REQUEST_MS)))),
     });
     if (!response.ok) {
       // Do not repeatedly retry exhausted daily/free quota on every customer turn.
@@ -54,6 +61,7 @@ export async function generateSmartCarContent(params: { model: string; body: unk
       return { ok: false, reason: 'http', status: response.status };
     }
     const data = await response.json();
+    recordEvaluationUsage(data?.usageMetadata);
     const text = data?.candidates?.[0]?.content?.parts
       ?.filter((part: { thought?: boolean }) => !part.thought)
       .map((part: { text?: string }) => part.text ?? '').join('') ?? '';
@@ -84,6 +92,8 @@ export function withModelChain<T>(models: string[], work: () => Promise<T>): Pro
 }
 
 export function freeModelChain(): string[] {
+  const evaluation = activeModelEvaluation();
+  if (evaluation) return [evaluation.model];
   // Owner request: one Gemini model only while coaching and verifying quality.
   // Ignore old environment chains and simulator overrides so they cannot silently
   // re-enable Gemma or switch the model being evaluated.
@@ -128,22 +138,35 @@ export function readJson(text: string): unknown {
   }
 }
 
-/** Tries the free models in order (skipping any in cooldown) within a time budget. */
-export async function generateWithFreeModels(body: unknown, budgetMs = 14_000, accept?: (text: string) => boolean): Promise<GeminiConnectionResult & { model?: string }> {
+/** One configured model, with at most one validated-content repair. This never
+ * retries a failed provider call or a WhatsApp/business action. */
+export async function generateWithFreeModels(body: unknown, budgetMs = 14_000, accept?: (text: string) => boolean, repairInstruction?: string): Promise<GeminiConnectionResult & { model?: string }> {
   const started = Date.now();
   let last: GeminiConnectionResult = { ok: false, reason: 'cooldown' };
   for (const model of freeModelChain()) {
-    if (Date.now() - started > budgetMs) break;
-    const result = await generateSmartCarContent({ model, body: isGemma(model) ? forGemma(body) : body });
-    if (result.ok) {
+    const original = isGemma(model) ? forGemma(body) : body;
+    let requestBody = original;
+    for (let attempt = 0; attempt < (repairInstruction ? 2 : 1); attempt++) {
+      const remaining = budgetMs - (Date.now() - started);
+      if (remaining <= 0) break;
+      const result = await generateSmartCarContent({ model, body: requestBody, timeoutMs: remaining });
+      if (!result.ok) {
+        if (result.reason === 'missing_key') return result;
+        last = result;
+        break;
+      }
       let valid = true;
       try { valid = accept ? accept(result.text) : true; } catch { valid = false; }
       if (valid) return { ...result, model };
       last = { ok: false, reason: 'empty' };
-      continue;
+      if (repairInstruction && original && typeof original === 'object') {
+        const input = original as { systemInstruction?: { parts?: unknown[] } };
+        requestBody = { ...original, systemInstruction: { parts: [
+          ...(Array.isArray(input.systemInstruction?.parts) ? input.systemInstruction.parts : []),
+          { text: repairInstruction },
+        ] } };
+      }
     }
-    if (result.reason === 'missing_key') return result;
-    last = result;
   }
   return last;
 }
