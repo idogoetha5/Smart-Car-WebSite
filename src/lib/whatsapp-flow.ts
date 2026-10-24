@@ -10,11 +10,11 @@ import { getBusinessKnowledgeResponse } from '@/lib/whatsapp-business-knowledge'
 import { composeServiceResponse, detectConversationMood } from '@/lib/service-response';
 import { consultativeSalesReply } from '@/lib/consultative-sales';
 import { localConsultationTurn, type LocalConsultation } from '@/lib/whatsapp-local-consultation';
-import { parseConversationControl, forgetConversationFacts, factQuestion, redactForgottenHistoryText, type EditableFact } from '@/lib/whatsapp-conversation-control';
+import { parseConversationControl, forgetConversationFacts, factQuestion, redactForgottenHistoryText, isAdviceCorrection, type EditableFact } from '@/lib/whatsapp-conversation-control';
 import { getCarsForSale, type CarForSale } from '@/lib/cars-for-sale';
 import { closeEnough, repairCustomerText } from '@/lib/whatsapp-typing';
 import { bookingQuestion, detectLearnedSituation, detectSituation, humanLine, type BookingAsk } from '@/lib/whatsapp-replies';
-import { carAdvice } from '@/lib/whatsapp-advisor';
+import { carAdvice, isExploringRental } from '@/lib/whatsapp-advisor';
 import { fleetQuestionAnswer } from '@/lib/whatsapp-catalog-knowledge';
 import { ASKS_ABOUT_REQUEST, SAME_AS_LAST_TIME, filledDetailsLine, requestStatusReply, returningGreeting, type PastCustomer } from '@/lib/whatsapp-returning';
 import { asksForPerson, bookingScope, isBotQuestion, notOurEmergencyNow, mentionsPersonWithoutAsking, withoutPersonWords } from '@/lib/whatsapp-context';
@@ -41,6 +41,8 @@ export interface FlowState {
   memoryForgetBefore?: Partial<Record<EditableFact, number>>;
   completedRequestId?: string;
   localConsultation?: LocalConsultation;
+  /** Backup-only research phase; a short acknowledgement is not booking consent. */
+  backupExploring?: boolean;
   step: FlowStep;
   /** Durable needs/decisions, independent of the rolling message window. No contact data. */
   conversationMemory?: string;
@@ -94,6 +96,7 @@ export interface BookingSummary {
 export interface WhatsAppFlowResult {
   conversationControl?: boolean;
   localConsultation?: boolean;
+  backupAdvice?: boolean;
   handled: boolean;
   /** Technical outage: do not run keyword-based sales/advice postprocessors. */
   aiUnavailable?: boolean;
@@ -259,7 +262,7 @@ export function requiresHumanHandoff(message: string, duringActiveRentalCollecti
 // "לא בטוח" is danger only about a place ("לא בטוח פה"), never "לא בטוח אם זה משתלם";
 // "ברחו" is a hit-and-run, not "ברחובות"; "help me" is not "help me choose a car".
 const ACCIDENT_PATTERN = /הצילו|עזרה דחוף|סכנה|(?:מקום|כביש|פה|כאן|המצב)\s+לא\s+בטוח|לא\s+בטוח\s+(?:פה|כאן|לנסוע|לעצור|להישאר)(?:\s|$|[,.!])|(?:^|\s)אש(?:\s|$)|אמבולנס|משטרה|פצוע|תאונה|התנגשות|התנגשתי|נכנסו בי|נפגע|פגיעה ברכב|דפקו לי את הרכב|פגעו בי|פגע בי|(?:^|\s)ברחו(?:\s|$|[,.!])|ברח מהמקום|עשיתי תאונה|רכב פגע בי|התהפכתי|\baccident|\bcrash(?:ed)?\b|\bcollision|car accident|hit (?:(?:my|a) )?car|\bhelp me\b(?! (?:choose|pick|decide|find|with|understand|compare))|\bhelp!|\bemergency|\bdanger|\bambulance|\bpolice\b|\binjured|\bfire\b/;
-const BREAKDOWN_PATTERN = /פנצ[׳']?ר|פנצר|תקר|צמיג|גלגל|תקלה|נתקעתי|תקוע|גרירה|גרר|לא מניע|לא מתניע|לא נדלק|לא נדלקת|נורה אדומה|נדלקה נורה|נורת אזהרה|(?:יוצא|יש|רואה|יוצאת) עשן|עשן (?:יוצא|מה)|ריח דלק|מצבר|איבדתי (?:את )?(?:ה)?מפתח|ננעל|נעול|התקלקל|התקלקלה|מקולקל|האוטו לא זז|בעיה במנוע|רעש מוזר|flat tire|flat tyre|flat|puncture|blowout|breakdown|dead battery|car stopped|i am stuck|im stuck|stranded|tow|wont start|won't start|will not start|doesnt start|doesn't start|does not start|not starting|warning light|smoke (?:is )?coming|smoke from|there is smoke|broke down|broken down|fuel smell|locked out|lost key|engine issue|strange noise/;
+const BREAKDOWN_PATTERN = /פנצ[׳']?ר|פנצר|(?:^|[\s,.!?])ה?תקר(?=$|[\s,.!?])|צמיג|גלגל|תקלה|נתקעתי|תקוע|גרירה|גרר|לא מניע|לא מתניע|לא נדלק|לא נדלקת|נורה אדומה|נדלקה נורה|נורת אזהרה|(?:יוצא|יש|רואה|יוצאת) עשן|עשן (?:יוצא|מה)|ריח דלק|מצבר|איבדתי (?:את )?(?:ה)?מפתח|ננעל|נעול|התקלקל|התקלקלה|מקולקל|האוטו לא זז|בעיה במנוע|רעש מוזר|flat tire|flat tyre|flat|puncture|blowout|breakdown|dead battery|car stopped|i am stuck|im stuck|stranded|tow|wont start|won't start|will not start|doesnt start|doesn't start|does not start|not starting|warning light|smoke (?:is )?coming|smoke from|there is smoke|broke down|broken down|fuel smell|locked out|lost key|engine issue|strange noise/;
 
 /** True when an emergency route rests only on a fuzzy spelling match ("תסלה" ≈ "תקלה"), not on clear wording. */
 export function emergencyIsFuzzyOnly(input: string) {
@@ -385,7 +388,7 @@ function serviceReply(intent: ServiceIntent, locale: FlowLocale, booking: Bookin
         ])
       : pickRandom([
           'הבנתי שמדובר בתנאי ההשכרה. ביטוח, פיקדון, דלק, קילומטראז׳, כיסאות ילדים ונהג נוסף תלויים בפרטי ההשכרה ובהסכם. נציג SmartCar יאשר את התנאים הרלוונטיים לפני האיסוף — מה חשוב לכם לבדוק?',
-          'אין בעיה, שאלות על תנאים ומדיניות זה חשוב. מכיוון שדברים כמו גובה הפיקדון והביטוח משתנים לפי רכב, העברתי את זה לנציג שיבדוק בדיוק למקרה שלכם. על מה תרצו להתמקד?',
+          'גובה הפיקדון והכיסוי תלויים ברכב ובתנאי ההשכרה. איזה תנאי תרצו להבין?',
           'בשמחה! לגבי מדיניות ותנאי השכרה: הפיקדון, הביטוח ושאר התוספות מותאמים תמיד להזמנה הספציפית שלכם. כתבו לי כאן מה תרצו לברר ונציג יחזור אליכם עם תשובה מדויקת.'
         ])
   };
@@ -1648,12 +1651,12 @@ function leasingHandoffReply(locale: FlowLocale, kind: Exclude<LeasingKind, 'unk
   const label = locale === 'he' ? (kind === 'business' ? 'ליסינג עסקי' : 'ליסינג פרטי') : (kind === 'business' ? 'business leasing' : 'private leasing');
   return locale === 'he'
     ? pickRandom([
-        `הבנתי שמדובר ב־${label}. תנאים, רכב, מחיר ומועד מסירה אינם מאומתים כאן, לכן העברתי לנציג עם הפרט הזה כדי שיבדוק את האפשרויות בלי להבטיח דבר.`,
-        `מצוין, סימנתי שאתם מתעניינים ב־${label}. מאחר שמחירי ליסינג ותנאים דורשים התאמה אישית, נציג שלנו משתלט כעת על השיחה ויחזור אליכם בהקדם עם ההצעות.`,
-        `מעולה. העברתי לצוות שלנו שאתם מעוניינים ב־${label}. נציג אנושי יבדוק את המלאי והמסלולים וישלח לכם את ההצעות הכי רלוונטיות בלי שום התחייבות בשלב זה.`
+        `מדובר ב־${label}. כדי להכין הצעה צריך שנציג יאמת את הרכב, המחיר והתנאים בהתאם לצורך שלכם.`,
+        `עבור ${label}, ההצעה צריכה לפרט את הרכב, התשלום ומה כלול. אישור הפרטים האלה מצריך טיפול של נציג.`,
+        `כדי להתקדם עם ${label} נדרשת הצעה מאומתת מנציג. אפשר להוסיף כאן העדפה שחשוב להביא בחשבון.`
       ])
     : pickRandom([
-        `I understand this is ${label}. Terms, vehicle, price, and delivery timing are not verified here, so I have passed this detail to a representative to check the options without promising any of them.`,
+        `For ${label}, a representative needs to verify the vehicle, price and terms before an offer can be relied on.`,
         `Noted, you're looking for ${label}. Since leasing requires a custom quote, I've handed this over to a human agent who will get back to you shortly with options.`,
         `Perfect. I've sent your request for ${label} to our leasing team. A representative will review the vehicles available and provide you with an exact quote soon.`
       ]);
@@ -1676,6 +1679,10 @@ function knowledgeReply(input: string, locale: FlowLocale, state?: FlowState | n
     // published answer is shown first.
     ...(answer.topic === 'damage_accident' && !/[?？]|מה קורה אם|(?:^|\s)אם (?:יש|יהיה|אני)|what if|in case/i.test(input) ? { escalate: true, escalateReason: handoffSummary(state ?? null, 'נזק או תאונה') } : {}),
   };
+}
+
+function explicitlyStartsRental(text: string): boolean {
+  return !isExploringRental(text) && /(?:רוצה|רוצים|בוא|בואו|אפשר) (?:עכשיו )?(?:להתחיל|להכין|לפתוח) (?:בקשת )?(?:השכרה|הזמנה)|(?:ready to|let['’]s|want to) (?:book|start (?:a )?(?:rental|booking))/i.test(text);
 }
 
 /** Handles the complete deterministic SmartCar service flow. */
@@ -1720,13 +1727,19 @@ export async function getWhatsAppFlowReply(phone: string, rawBody: string, store
   const voiced = hasBooking || flowResult.localConsultation ? flowResult : await inOneVoice(flowResult, understood, current, previous, rawBody);
   const polished = humanFallback(withoutRepeatedMenu(voiced, previous, current?.locale ?? previous?.locale ?? 'he'), understood, previous, current, rawBody, phone);
   const known = applyReturning(withCarAdvice(polished, understood, current, rawBody, phone), previous, current, rawBody);
-  const result = flowResult.localConsultation ? flowResult : known.result;
+  const result = flowResult.localConsultation || flowResult.backupAdvice ? flowResult : known.result;
   if (known.state) current = known.state;
   // Every conversation keeps its history, even when the reply was a general answer that saved
   // nothing: otherwise the next message starts from scratch ("ברוכים הבאים" in the middle of a chat).
   // (A state the flow cleared on purpose — the end of the public demo — stays cleared.)
   if (!current && saved === undefined && result.reply && !result.escalate) current = { step: 'menu', locale: detectWhatsAppLocale(rawBody) };
   if (current && result.reply) {
+    const realModelAnswer = (understood as WhatsAppInterpretation | null)?.source === 'gemini';
+    if (realModelAnswer || explicitlyStartsRental(rawBody)) current = { ...current, backupExploring: undefined };
+    else if (!hasBooking && !result.escalate && !current.handedOff && !current.carSale && !current.leasing
+      && isExploringRental(rawBody) && carAdvice(rawBody, current, current.locale ?? 'he')) {
+      current = { ...current, backupExploring: true };
+    }
     const history = [
       ...(current.history ?? previous?.history ?? []),
       { from: 'customer' as const, text: rawBody, step: previous?.step },
@@ -1762,7 +1775,7 @@ function withCarAdvice(result: WhatsAppFlowResult, understood: WhatsAppInterpret
   const ask = isRentalStep(current.step) ? expectedAsk(current) : null;
   const used = (current.history ?? []).filter((entry) => entry.from === 'bot').map((entry) => entry.text);
   // Advice that ends with its own question ("יש נסיעה כזאת בתוכנית?") is not followed by a second one.
-  const question = /[?？]/.test(advice) ? '' : ask && ask !== 'confirm'
+  const question = isExploringRental(message) || /[?？]/.test(advice) ? '' : ask && ask !== 'confirm'
     ? bookingQuestion(ask as BookingAsk, locale, `${phone}:${message}`, used)
     : /[?？]\s*$/.test(advice) ? '' : (locale === 'en' ? 'Want me to check it for your dates?' : 'רוצה שאבדוק לתאריכים שלך?');
   return { ...result, reply: question ? `${advice}\n\n${question}` : advice };
@@ -2041,7 +2054,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     return controlled(locale === 'he' ? 'הסרתי את הפרטים שביקשת מזיכרון השיחה. שאר הפרטים נשמרו; רישומים שכבר נשלחו למשרד לא נמחקו.' : 'I removed those details from chat memory and kept the rest. Records already submitted to the office were not deleted.');
   }
   const editField = control?.kind === 'edit' ? control.fields[0] : existingState?.pendingEdit;
-  const editInterrupted = !control && (asksForPerson(rawBody) || ACCIDENT_PATTERN.test(normalized(rawBody)) || BREAKDOWN_PATTERN.test(normalized(rawBody)) || /[?？]/.test(rawBody));
+  const editInterrupted = !control && (isAdviceCorrection(rawBody) || asksForPerson(rawBody) || ACCIDENT_PATTERN.test(normalized(rawBody)) || BREAKDOWN_PATTERN.test(normalized(rawBody)) || /[?？]/.test(rawBody));
   if (editField && !editInterrupted) {
     const next: FlowState = { ...(existingState ?? { step: 'menu' as const }), locale, returningChecked: true };
     delete next.pendingControl;
@@ -2309,8 +2322,8 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       escalate: true,
       escalateReason: handoffSummary(state, 'בירור הזמנה שלא אומתה לפי המספר'),
       reply: locale === 'en'
-        ? 'Thank you. I have passed the booking enquiry with the detail you shared, so you will not need to start a new rental request.'
-        : 'תודה. העברתי את בירור ההזמנה עם הפרט ששיתפתם, כך שלא תצטרכו להתחיל בקשת השכרה חדשה.',
+        ? 'The booking enquiry needs office review using the detail you shared. There is no need to start a new rental request.'
+        : 'בירור ההזמנה מצריך בדיקה של המשרד לפי הפרט ששיתפת. אין צורך להתחיל בקשת השכרה חדשה.',
     };
   }
 
@@ -2332,8 +2345,8 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
         escalate: true,
         escalateReason: input === '2' ? handoffSummary(existingState, 'בקשה לשינוי או הארכת הזמנה') : handoffSummary(existingState, 'בקשה לדבר עם נציג'),
         reply: locale === 'en'
-          ? 'I have passed this request with your active booking details, so you will not need to repeat them.'
-          : 'העברתי את הבקשה עם פרטי ההזמנה הפעילה, כך שלא תצטרכו לחזור עליהם.',
+          ? 'This request needs office review with the active booking details. No change to the booking has been confirmed here.'
+          : 'הבקשה מצריכה בדיקה של המשרד עם פרטי ההזמנה הפעילה. לא אושר כאן שינוי בהזמנה.',
       };
     }
     if (input === '3') {
@@ -2388,7 +2401,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
         handled: true,
         escalate: true,
         escalateReason: 'בקשה לדבר עם נציג',
-        reply: locale === 'en' ? 'I have passed your request to a representative. Please write any important detail here.' : 'העברתי את הבקשה לנציג. אפשר לכתוב כאן כל פרט שחשוב שנכיר.',
+        reply: locale === 'en' ? 'A representative needs to handle this with the context you shared here. You can add any important detail in this chat.' : 'נציג צריך לטפל בזה עם ההקשר ששיתפת כאן. אפשר להוסיף בשיחה פרט שחשוב לבדיקה.',
       };
     }
     if (input === '6') return {
@@ -2473,7 +2486,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       handled: true, escalate: true, escalateReason: handoffSummary(existingState, 'מחלוקת על חיוב'),
       reply: composeServiceResponse({
         locale, input: body, state: existingState, kind: 'complaint',
-        answer: locale === 'en' ? 'I have sent the charge for review with the details already shared, so you will not need to repeat the issue.' : 'העברתי את החיוב לבדיקה עם הפרטים שכבר שיתפתם, כך שלא תצטרכו לחזור על העניין.',
+        answer: locale === 'en' ? 'That specific charge needs office review using the details you have already shared.' : 'החיוב המסוים הזה מצריך בדיקה של המשרד לפי הפרטים שכבר שיתפת.',
         nextStep: locale === 'en' ? 'If you have it, send the booking reference or receipt here.' : 'אם יש מספר הזמנה או קבלה, אפשר לשלוח אותם כאן.',
       }),
     };
@@ -2501,11 +2514,21 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     };
   }
 
+  // Acknowledging comparison advice does not authorise a rental intake.
+  // Safety, an actual charge dispute and an explicit person request win above.
+  if (interpretation?.source !== 'gemini' && !booking && !existingState?.handedOff
+    && existingState?.backupExploring && /^(?:כן|אוקיי|אוקי|בסדר|סבבה|תודה|yes|ok|okay|thanks)[.! ]*$/i.test(body.trim())) {
+    await store.saveState(phone, { ...existingState, locale });
+    return { handled: true, backupAdvice: true, reply: locale === 'en'
+      ? 'We can keep comparing without starting a booking. What would you like to clarify next?'
+      : 'אפשר להמשיך להשוות בלי להתחיל הזמנה. מה עוד תרצה לברר?' };
+  }
+
   // A semantic advisory act must not enter the legacy leasing/catalogue funnel
   // merely because its question mentions a product. Safety, account disputes,
   // explicit people requests and active-booking permissions were handled above.
   if (interpretation?.source === 'gemini' && interpretation.reply && !booking
-    && ['advice', 'comparison', 'explanation', 'social'].includes(interpretation.purpose ?? '')
+    && (['advice', 'comparison', 'explanation', 'social'].includes(interpretation.purpose ?? '') || isAdviceCorrection(body))
     && !existingState?.handedOff && !existingState?.lastQuestion) {
     const base: FlowState = existingState ?? { step: 'menu', locale };
     const details = isRentalStep(base.step) ? extractRentalDetails(body, base, interpretation) : {};
@@ -2618,8 +2641,8 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       return {
         handled: true, escalate: true, escalateReason: handoffSummary(existingState, 'קטלוג רכבים למכירה אינו זמין'),
         reply: locale === 'he'
-          ? 'אני לא יכול לאמת כרגע את נתוני קטלוג הרכבים למכירה, ולכן לא אציג פרטים לא בדוקים. העברתי לנציג את הבקשה וההקשר שכבר שיתפתם.'
-          : 'I cannot verify the cars-for-sale catalogue right now, so I will not show unchecked details. I have passed your request and the context already shared to a representative.',
+          ? 'נתוני הרכבים למכירה אינם זמינים לי כרגע. נציג צריך לבדוק את האפשרויות לפי הצורך שכבר תיארת.'
+          : 'The cars-for-sale data is unavailable to me right now. A representative needs to check the options against the needs you described.',
       };
     }
     const sales = getCarSalesReply(body, locale, cars, existingState?.carSale);
@@ -2699,7 +2722,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       handled: true, escalate: true, escalateReason: handoffSummary(existingState, 'איחור או עיכוב בטיסה'),
       reply: composeServiceResponse({
         locale, input: body, state: existingState, kind: 'change', subject: locale === 'he' ? 'עיכוב הטיסה' : 'the flight delay',
-        answer: locale === 'en' ? 'I have passed the timing issue to SmartCar with the details already shared.' : 'העברתי את עניין התזמון ל־SmartCar עם הפרטים שכבר שיתפתם.',
+        answer: locale === 'en' ? 'The changed arrival time needs coordination with SmartCar. The original pickup arrangement has not been changed here.' : 'זמן ההגעה החדש מצריך תיאום עם SmartCar. הסדר האיסוף המקורי לא שונה כאן.',
         nextStep: locale === 'en' ? `If pickup is close, call SmartCar now: ${OFFICE_PHONE}.` : `אם האיסוף קרוב, התקשרו עכשיו ל־SmartCar: ${OFFICE_PHONE}.`,
       }),
     };
@@ -2746,8 +2769,8 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
         state: existingState,
         kind: 'handoff',
         answer: locale === 'en'
-          ? 'I have passed the change or cancellation request to SmartCar with the details already shared, so you will not need to repeat them or start again.'
-          : 'העברתי את בקשת השינוי או הביטול ל־SmartCar עם הפרטים שכבר שיתפתם, כך שלא תצטרכו להתחיל מחדש.',
+          ? 'The change or cancellation needs office review using the details you shared. No booking change or cancellation has been confirmed here.'
+          : 'השינוי או הביטול מצריכים בדיקה של המשרד לפי הפרטים ששיתפת. לא אושר כאן שינוי או ביטול של הזמנה.',
         nextStep: locale === 'en' ? 'If you have it, send the booking reference here.' : 'אם יש מספר הזמנה, אפשר לשלוח אותו כאן.',
       }),
     };
@@ -2763,7 +2786,8 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     const policy = knowledgeReply(locale === 'en' ? 'cancellation policy' : 'מדיניות ביטול', locale, existingState);
     if (policy) return policy;
   }
-  if (requiresHumanHandoff(body, collectingNewRental) && !validStructuredEmail && !policyQuestion) {
+  if (requiresHumanHandoff(body, collectingNewRental) && !validStructuredEmail && !policyQuestion
+    && (interpretation?.source !== 'gemini' || interpretation.intent === 'representative')) {
     await store.saveState(phone, handoffState(existingState, locale));
     const mood = detectConversationMood(body);
     return {
@@ -2771,8 +2795,8 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       reply: composeServiceResponse({
         locale, input: body, state: existingState, kind: mood === 'angry' ? 'complaint' : 'handoff',
         answer: locale === 'en'
-          ? 'I have passed this to the SmartCar team with the details already shared, so you will not need to repeat yourself.'
-          : 'העברתי את הפנייה לצוות SmartCar עם הפרטים שכבר שיתפתם, כך שלא תצטרכו לחזור עליהם.',
+          ? 'This needs office review using the context you have already shared.'
+          : 'זה מצריך בדיקה של המשרד עם ההקשר שכבר שיתפת.',
         nextStep: locale === 'en' ? 'If you have it, send the booking reference here.' : 'אם יש מספר הזמנה, אפשר לשלוח אותו כאן.',
       }),
       escalate: true,
@@ -2807,9 +2831,9 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     // A question while waiting for the team still gets its published answer ("ואם אני רוצה לצאת באמצע?").
     const answer = asksQuestion || brainQuestionTopic(body) ? knowledgeReply(body, locale, existingState) : null;
     if (answer?.reply && !answer.escalate) {
-      return { handled: true, escalate: true, escalateReason: 'שאלה נוספת בשיחה שהועברה לנציג', reply: `${answer.reply}\n\n${locale === 'en' ? 'The team already has your details and will get back to you.' : 'הצוות כבר מעודכן ויחזור אליך.'}` };
+      return { handled: true, escalate: true, escalateReason: 'שאלה נוספת בשיחה שהועברה לנציג', reply: `${answer.reply}\n\n${locale === 'en' ? 'The conversation is still marked for representative review.' : 'השיחה עדיין מסומנת לטיפול נציג.'}` };
     }
-    const noted = locale === 'en' ? 'Got it, I’ve added this for the team 🙏' : 'קיבלתי, הוספתי את זה לצוות 🙏';
+    const noted = locale === 'en' ? 'The additional detail is part of this conversation for representative review.' : 'הפרט הנוסף נשאר בשיחה לטיפול הנציג.';
     return { handled: true, escalate: true, escalateReason: 'שיחה כבר הועברה לנציג', ...(lastBot === noted ? {} : { reply: noted }) };
   }
 
@@ -3028,13 +3052,13 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
 
   if (booking) {
     if (input === '1') return { handled: true, reply: formatBooking(booking, locale) };
-    if (input === '2' || input === '5' || input.includes('נציג')) return { handled: true, reply: locale === 'en' ? 'Of course. We have forwarded your request to the SmartCar team. A representative will assist you as soon as possible.' : 'כמובן. העברנו את הפנייה שלכם לצוות SmartCar. נציג יחזור אליכם בהקדם האפשרי.', escalate: true, escalateReason: input === '2' ? 'בקשה לשינוי או הארכת הזמנה' : 'בקשה לדבר עם נציג' };
+    if (input === '2' || input === '5' || input.includes('נציג')) return { handled: true, reply: locale === 'en' ? 'A representative needs to review this with the booking context. No booking change has been confirmed here.' : 'נציג צריך לבדוק את הבקשה עם הקשר ההזמנה. לא אושר כאן שינוי בהזמנה.', escalate: true, escalateReason: input === '2' ? 'בקשה לשינוי או הארכת הזמנה' : 'בקשה לדבר עם נציג' };
     if (input === '3') {
       await store.saveState(phone, { step: 'rental_dates', locale });
       return { handled: true, reply: datesPrompt(locale) };
     }
     if (input === '4') return { handled: true, reply: locale === 'en' ? 'SmartCar has branches in Herzliya, Tel Aviv, Jerusalem, and Ben Gurion Airport. Delivery and collection at an address in Israel can also be arranged in advance, subject to availability.' : 'לרשותכם סניפים בהרצליה, תל אביב, ירושלים ונתב״ג. אפשר גם לתאם מסירה והחזרה בכתובת שנוחה לכם ברחבי הארץ, בהתאם לזמינות ולתיאום מראש.' };
-    if (input === '6') return { handled: true, reply: locale === 'en' ? 'We have forwarded your request to the SmartCar team. Reply here with your question or any important details, and a representative will assist you.' : 'העברנו את הפנייה לצוות SmartCar. כתבו כאן את השאלה או הפרטים שחשוב שנכיר, ונציג יטפל בה בהקדם.', escalate: true, escalateReason: 'שאלה חופשית של לקוח קיים' };
+    if (input === '6') return { handled: true, reply: locale === 'en' ? 'Please write the question or important detail here for review with your booking context.' : 'אפשר לכתוב כאן את השאלה או הפרט החשוב לבדיקה עם הקשר ההזמנה.', escalate: true, escalateReason: 'שאלה חופשית של לקוח קיים' };
     if (input === '7') return { handled: true, reply: locale === 'en' ? 'Tell us what happened: accident, flat tyre, or roadside breakdown. If there is immediate danger, contact the emergency services first.' : 'כתבו לנו מה קרה: תאונה, פנצ׳ר או תקלה בדרך. אם קיימת סכנה מיידית, פנו קודם לגורמי החירום.' };
     return { handled: true, reply: existingCustomerMenu(booking, locale) };
   }
@@ -3046,7 +3070,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
   if (input === '2') return { handled: true, reply: locale === 'en' ? 'We could not find an active booking linked to this WhatsApp number. If the booking uses another number, type representative and we will help.' : 'לא זיהינו הזמנה פעילה לפי מספר הוואטסאפ הזה. אם ההזמנה נרשמה עם מספר אחר, כתבו "נציג" ונעזור לכם.' };
   if (input === '3') return { handled: true, reply: locale === 'en' ? 'SmartCar offers private and business leasing, as well as selected vehicles for sale. Tell us what interests you, and we will guide you.' : 'SmartCar מציעה ליסינג פרטי ועסקי וגם רכבים נבחרים למכירה. כתבו לנו מה מעניין אתכם — ליסינג פרטי, ליסינג לעסק או רכב לרכישה — ונכוון אתכם.' };
   if (input === '4') return { handled: true, reply: locale === 'en' ? 'SmartCar has branches in Herzliya, Tel Aviv, Jerusalem, and Ben Gurion Airport. Delivery and collection at an address in Israel can also be arranged in advance, subject to availability.' : 'לרשותכם סניפים בהרצליה, תל אביב, ירושלים ונתב״ג. אפשר גם לתאם מסירה והחזרה בכתובת שנוחה לכם ברחבי הארץ, בכפוף לתיאום מראש ולזמינות.' };
-  if (input === '5' || input.includes('נציג')) return { handled: true, reply: locale === 'en' ? 'Of course. We have forwarded your request to the SmartCar team. A representative will assist you as soon as possible.' : 'כמובן. העברנו את הפנייה שלכם לצוות SmartCar. נציג יחזור אליכם בהקדם האפשרי.', escalate: true, escalateReason: 'בקשה לדבר עם נציג' };
+  if (input === '5' || input.includes('נציג')) return { handled: true, reply: locale === 'en' ? 'A representative needs to handle this with the context you shared here. You can add any important detail in this chat.' : 'נציג צריך לטפל בזה עם ההקשר ששיתפת כאן. אפשר להוסיף בשיחה פרט שחשוב לבדיקה.', escalate: true, escalateReason: 'בקשה לדבר עם נציג' };
   if (input === '6') return { handled: true, reply: locale === 'en' ? 'Tell us what happened: accident, flat tyre, or roadside breakdown. If there is immediate danger, contact the emergency services first.' : 'כתבו לנו מה קרה: תאונה, פנצ׳ר או תקלה בדרך. אם קיימת סכנה מיידית, פנו קודם לגורמי החירום.' };
   return { handled: true, reply: menuFor(booking, locale) };
 }

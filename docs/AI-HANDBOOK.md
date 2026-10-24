@@ -1,5 +1,47 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-25 owner correction: sales guidance must help choose a suitable SmartCar
+rental, not proactively recommend taxis/public transport/competitors. Updated
+charter, academy, final coaching and deterministic fallback together, removing
+the contradictory taxi suggestion example. Owner clarified absolutely no taxi comparisons, including on explicit customer
+request. Explain relevant SmartCar rental value and verified terms instead;
+respect refusal and keep consultation separate from booking consent. Do not
+announce the internal sales rule to customers or add unstated equipment. Same-model
+validation rejects taxi comparison/recommendation content instead of returning a scripted sale.
+
+2026-10-25 — Actual Gemini candidate6a4f173 responds using3.5FlashLite.
+Family and business follow-ups preserved correction/language without handoff,
+but initial advice overgeneralised taxi cost and monthly exit flexibility;
+final coaching now explicitly separates security from travel spend and requires
+child-seat arrangements/written exit terms before recommending alternatives.
+Concrete count/duration corrections were intercepted as empty form edits; parser
+now lets these adviser-managed facts reach Gemini. Real-model retest required.
+Private comparison exposed a pre-model Hebrew substring bug: תקרת (ceiling)
+matched תקר (puncture), creating a false emergency. Puncture matching now uses
+word boundaries; regression retains a real roadside puncture route.
+Latest real3.5 retest corrected count/duration and ceiling routing, but initial
+family advice still omitted child-seat arrangements when discussing taxis.
+Bounded same-model validation now rejects that narrow incomplete answer when a
+baby is explicitly in the current message; one regeneration uses the existing
+remaining budget, with no provider/action/send retry. Real retest remains needed.
+Candidate gallery/X2/public pages passed; no domain promotion or readiness claim.
+
+2026-10-24 — Unpublished backup-advice follow-up on separate full worktree:
+explicit rental exploration now receives family cost/child-seat or visitor
+licence/document/payment checks without an appended booking-date question.
+Category and supplier eligibility are not guaranteed; no inventory/link added.
+Annual consultation retains its facts but yields actual duplicate-charge disputes
+to the existing account-review gate. Declined budget receives comparison criteria.
+These are bounded deterministic fallbacks, not human-level general understanding.
+Local full-controller regressions cover both exploration examples and a charge
+interrupting annual advice. Follow-up checks exposed own-child-seat and deposit/excess questions being
+overridden by policy/intake text. Added direct qualified comparisons and a
+backup research-phase flag: short acknowledgements do not start booking; explicit
+request preparation clears it. Safety/person/actual-charge gates stay ahead.
+Full-controller regression verifies research → yes → explicit preparation.
+Broader multi-turn exploration readiness remains to complete;
+no publication, live transport or actual Gemini verification is implied.
+
 2026-10-24 — Google lead-sheet diagnosis:69working keys(62rental/7contact),
 all7stored contacts present, rentals through October24 present. Two booking keys
 were intentionally absent with deletion-ledger entries; four leasing requests
@@ -29,6 +71,36 @@ Local gates:1246tests/92files, typecheck, lint budget(0errors/1existing warning)
 passed. Intake integration verifies store-before-success, immediate private read,
 all4sources/pagination, challenge/auth guards and source/storage error paths;
 actual staged/live verification remains required before reporting publication.
+
+2026-10-24 resumed bot work uses a separate full worktree based on published
+1d2ad32, retaining all latest SEO/canonical/inventory work. Preserved bot fixes
+f8b059c/0d47962 were integrated; main checkout and publication ownership stay with
+the coordinating task. No domain promotion/merge or customer activation here.
+Added a private owner-only Gemini3.8 comparison page/API, fixed model and12/hour
+additional rehearsal limit (existing distributed-or-instance limiter semantics).
+It shares the isolated simulator flow, caps payload256KB, reports token counts,
+sets low thinking and suppresses false production-outage alerts from experiments.
+Public model headers/default model and actual customer transport remain unchanged.
+This is not a model upgrade or a passing real-model comparison yet. Current
+configured customer model remains Gemini3.5FlashLite; evaluation must establish
+quality, latency and cost before any proposed switch.
+Wrong-language/invalid structured content may now receive one regeneration on the
+same configured model, with fixed validation feedback and the remaining14s request
+budget. Provider HTTP/network failures are not retried by this content-repair path;
+no business action or WhatsApp send is repeated. Model reply-language validation
+precedes the fallback that produced unrelated policy text in an observed English
+correction. Actual candidate/live repair verification is still required.
+Deterministic handoff/catalogue fallbacks and simulator labels no longer claim
+staff notification, immediate takeover or a callback before those actions run.
+They state the concrete need for review and retain action flags/context. This is
+not a durable handoff implementation or proof that a person received an alert.
+Local resumed-work gates: full1264tests/93files, typecheck and lint budget pass
+(0errors/1existingwarning) before the final evaluation-alert-isolation regression.
+Repeat focused/full gates as appropriate; real comparative calls and full
+24-dialogue acceptance remain open, with no customer-readiness claim.
+Rebased onto published71d4bb2 after the coordinating task's newer release;
+all latest office, SEO and public-site changes are retained. Source preflight,
+combined gates and build must be repeated on this exact baseline before review.
 
 2026-10-24 — Owner approved preferred Google URLs for identical vehicle pages.
 Conservative canonical grouping requires identical specifications, years, photos,
@@ -61,6 +133,26 @@ The owner requested SEO-only completion on October24. Unpublished bot commits
 f8b059c/0d47962 and their full coaching notes remain preserved on
 `codex/bot-recovery-followup-20261024`; they are not part of this scoped SEO branch.
 Use the latest published `origin/clean-main` before resuming that bot work.
+
+2026-10-24 follow-up after protected PR4 merge918c79c (production build pending
+at this entry): actual candidate reviews exposed control parsing before Gemini
+mistaking "correct that assumption" for vehicle preference editing and "correct
+that:" for a generic field edit. Local parser now leaves explicit corrections
+of the adviser's answer to Gemini; ordinary stored-fact edits remain supported.
+Added exact bilingual regressions. Focused gates and rebuilt real model retests
+remain required. No publication/complete-readiness claim for this follow-up.
+Further independent budget/tourist turns found an unwanted pickup question during
+comparison and over-simple cover/deposit definitions. Move the existing final
+response contract after retrieved coaching examples and clarify these distinctions
+there. Advice-correction parsing also recognises a corrected explanation, including
+while a previous field edit is pending. Actual model retest remains necessary.
+A live budget follow-up also exposed the legacy broad handoff regex treating a
+hypothetical charge/deposit explanation as an actual account dispute during a
+draft, despite Gemini's non-person intent. Advice corrections now preserve the
+model answer; broad fallback handoff only applies without Gemini or with its
+representative intent. Earlier fixed emergency, explicit-person and specific
+actual-charge-dispute gates remain above this path. Exact regression added.
+
 2026-10-24 — Reviewed delivery-page continuation from the SEO task: all13area
 URLs/actions retained; arranged delivery distinguished from a real pickup branch,
 unsupported nearest-branch label corrected, regional schema Place, restrained

@@ -121,8 +121,8 @@ function agentReply(locale: Locale, action: CarSalesAction, context: CarSalesCon
   const contextWithAction = { ...context, mode: 'car_sale' as const, lastAction: action };
   const known = context.selectedCarIds?.length ? (locale === 'he' ? 'רשמתי גם את הרכב/ים שבחרת.' : 'I have also kept the selected vehicle(s).') : '';
   const reply = locale === 'he'
-    ? `${subject} זה פרט שלא מופיע בנתוני הקטלוג המאומתים, ולכן לא אנחש. העברתי לנציג עם ההקשר שכבר שיתפת. ${known}`.trim()
-    : `${subject} is not in the verified catalogue data, so I will not guess. I have passed this to a representative with the context you already shared. ${known}`.trim();
+    ? `${subject} לא מופיע בנתוני הקטלוג המאומתים. נציג צריך לבדוק את הפרט הזה לפני שמסתמכים עליו. ${known}`.trim()
+    : `${subject} is not in the verified catalogue data. A representative needs to verify that detail before you rely on it. ${known}`.trim();
   return { reply, action, context: contextWithAction, escalate: true, escalateReason: `מכירת רכב: ${action}${context.selectedCarIds?.length ? ` | רכבים: ${context.selectedCarIds.join(', ')}` : ''}` };
 }
 

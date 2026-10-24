@@ -406,7 +406,8 @@ describe('Eight required local SmartCar conversations', () => {
     const result = await getWhatsAppFlowReply(PHONE, message);
     expect(result.escalate).toBe(true);
     expect(result.reply).toMatch(/frustrating|I understand/i);
-    expect(result.reply).toContain('not need to repeat');
+    expect(result.reply).toContain('details you have already shared');
+    expect(result.reply).not.toMatch(/I have (?:sent|passed|forwarded)|will (?:call|contact|get back)/i);
     expect(result.reply).not.toMatch(/your fault|you should have/i);
   });
 

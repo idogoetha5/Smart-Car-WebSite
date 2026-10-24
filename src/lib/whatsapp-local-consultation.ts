@@ -11,6 +11,8 @@ export interface LocalConsultation {
 export function localConsultationTurn(text: string, previous?: LocalConsultation) {
   const annual = /(?:רכב|השכרה|ליסינג).{0,24}(?:לשנה|לשנתיים|12 חודשים)|(?:צריך|מחפש).{0,20}רכב לשנה/.test(text);
   if (!previous && !annual) return null;
+  // An existing annual enquiry must never consume an actual account dispute.
+  if (/חייבו אותי|חייבתם אותי|חויבתי|חיוב כפול|חיוב שלא|charged me|double charge|charged twice/i.test(text)) return null;
   // Consultation memory survives an interruption; a policy question belongs to
   // the policy engine, not to the next unanswered sales slot.
   if (/[?？]|מה|איך|האם|אפשר/.test(text)
@@ -43,7 +45,7 @@ export function localConsultationTurn(text: string, previous?: LocalConsultation
     reply = 'לשימוש ארוך כדאי להשוות השכרה ארוכה מול ליסינג לפי העלות הכוללת ותנאי היציאה, ולא רק התשלום החודשי. כמה ק״מ בערך אתה נוסע בשנה?';
   } else if (state.budgetDeclined && !state.budget) {
     state.awaiting = 'equipment';
-    reply = `אפשר להתקדם בלי תקציב בשלב הזה. הפרטים שיש לי: ${summary}. לא אציג מחיר או זמינות בלי אימות.`;
+    reply = `אפשר להתקדם בלי תקציב בשלב הזה. הפרטים שיש לי: ${summary}. כדי להשוות הצעות, בדוק עלות כוללת, מקדמה, מה כלול בכיסוי ובטיפולים, עלות חריגת ק״מ ותנאי יציאה מוקדמת. את האבזור צריך לוודא ברכב המסוים; לא אציג מחיר או זמינות בלי אימות.`;
   } else if (!state.budget) {
     state.awaiting = 'budget';
     reply = `${state.equipment.length ? `רשמתי כהעדפות: ${state.equipment.join(', ')} — זו עדיין לא הבטחה לאבזור ברכב מסוים. ` : `רשמתי ${state.annualKm.toLocaleString('en-US')} ק״מ בשנה. `}איזה תקציב חודשי נוח לך?`;

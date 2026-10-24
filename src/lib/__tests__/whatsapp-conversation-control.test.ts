@@ -16,6 +16,28 @@ function setup() {
 }
 
 describe('customer-controlled conversation memory', () => {
+  it.each([
+    'Good. Change the requirement to two cars, not three. The project may now last one to four months. We are still comparing.',
+    'תעדכן את הצורך לשני רכבים למשך 4 חודשים, עדיין לא החלטנו על מסלול',
+  ])('lets concrete fleet-count and project-duration corrections reach the adviser: %s', text => {
+    expect(parseConversationControl(text)).toBeNull();
+  });
+
+  it('still applies an explicit email update alongside correction of an answer', async () => {
+    const chat = setup();
+    await chat.send('Correct your answer about vehicle dimensions. Also update my email to new@example.com');
+    expect(chat.state()?.customerEmail).toBe('new@example.com');
+    expect(chat.state()?.vehiclePreference).toBe('SUV');
+    expect(chat.created()).toBe(0);
+  });
+  it.each([
+    'So cover is not necessarily all included, right? Please correct the simplified explanation without promising any particular cover.',
+    'You assumed the van was too low without verified dimensions. Please correct that assumption and explain exactly what needs checking before choosing a vehicle.',
+    'You said monthly rental lets us stop paying on return. Please correct that: without actual exit terms, what can we conclude?',
+    'תתקן את התשובה שלך על סוג הרכב, לא ביקשתי לשנות את סוג הרכב שבחרתי',
+  ])('does not treat correction of advice as a stored-fact edit: %s', text => {
+    expect(parseConversationControl(text)).toBeNull();
+  });
   it.each(['forget everything about luggage', 'delete everything about musical instruments', 'תמחק הכל לגבי המטען'])('keeps a scoped everything request from becoming a full reset: %s', text => {
     expect(parseConversationControl(text)).toEqual({ kind: 'forget', fields: ['luggage'] });
   });

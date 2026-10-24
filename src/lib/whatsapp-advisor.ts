@@ -51,12 +51,35 @@ function recommend(needs: Needs, text: string, locale: AdvisorLocale) {
   return null;
 }
 
+/** Explicit research is not consent to start collecting a booking. */
+export function isExploringRental(text: string): boolean {
+  return /מתלבט|מתלבטים|רק מתעניין|רק מתעניינת|לפני שמחליט|מה חשוב לבדוק|עוד לא להזמין|(?:עוד |עדיין )?לא (?:רוצים|רוצה|מוכנים|מוכן) להזמין|בלי להזמין|before deciding|not ready|no booking yet|just exploring|what should I check/i.test(text);
+}
+
 const RENT_OR_NOT = /שווה (?:בכלל )?לשכור|כדאי (?:בכלל )?לשכור|(?:או|לעומת) (?:לקחת |לנסוע ב)?מוניות|או מונית|או תחבורה ציבורית|בכלל צריך רכב|worth renting|(?:or|vs) (?:take |taking )?(?:taxis|a taxi|cabs|uber)|need a car at all/i;
 const PARKING = /חני(?:ה|יה)|חנייה|לחנות|parking|park the car/i;
 
 /** Advice for a question about which car fits, or how car types compare. Null when the message is not that. */
 export function carAdvice(text: string, needs: Needs & { vehiclePreference?: string }, locale: AdvisorLocale): string | null {
   const he = locale === 'he';
+  // Explain the requested comparison rather than treating a keyword as a sales slot.
+  if (/(?:פיקדון|deposit)/i.test(text) && /השתתפות עצמית|excess|deductible/i.test(text)
+    && /הבדל|לעומת|difference|versus|compare|\bvs\b/i.test(text)) {
+    return he
+      ? 'פיקדון הוא סכום שנחסם או נגבה כבטוחה לפי ההסכם. השתתפות עצמית היא החלק שהשוכר עשוי לשאת בו במקרה שמכוסה בתנאי הכיסוי. אלה לא אותו דבר: הפיקדון אינו בהכרח תקרת האחריות, והשתתפות עצמית לא מבטיחה שכל נזק מכוסה. כדי להשוות הצעות, בדוק את סכום הבטוחה, תנאי השחרור, הכיסוי, החריגים והאחריות בכל מקרה.'
+      : 'A deposit is security held or collected under the agreement. An excess is the amount the renter may be responsible for in a case covered by the agreed cover. They are different: the deposit is not necessarily the liability limit, and an excess does not mean every type of damage is covered. Compare the security amount, release terms, cover, exclusions and liability in each case.';
+  }
+  if (isExploringRental(text) && /כיסא בטיחות|כסא בטיחות|child seat|car seat/i.test(text)
+    && /משלנו|שלנו|own|already have/i.test(text)) {
+    return he
+      ? 'אם אתם מביאים כיסא משלכם, כדאי להשוות לפי התאמת הכיסא וההתקנה לרכב המסוים, מקום לעגלה ולציוד, ונוחות הכנסת התינוק. אפשר לצמצם כיוון לפי הצרכים האלה בלי לבחור דגם או להתחיל הזמנה. בהמשך צריך לאמת את ההתאמה בפועל, ולא להסתמך רק על שם הקטגוריה.'
+      : 'With your own child seat, compare compatibility and installation in the actual car, room for the stroller and bags, and ease of getting the baby in. You can narrow the options without selecting a model or starting a booking. Actual compatibility still needs checking; the category name alone is not enough.';
+  }
+  if (isExploringRental(text) && /licen[cs]e|Canadian|tourist|visiting|רישיון זר|תייר/i.test(text)) {
+    return he
+      ? 'לפני שמחליטים, כדאי לבדוק את תנאי הרישיון והוותק לנהג בפועל, המסמכים הנדרשים, אמצעי התשלום והפיקדון. בהצעה חשוב לבדוק גם כיסוי, השתתפות עצמית, קילומטרים והחזרה. רישיון זר לבדו לא מספיק כדי לאשר זכאות; התנאים תלויים במסמכים ובספק.'
+      : 'Before deciding, check the licence and driving-experience requirements for the actual driver, required documents, payment method and deposit. Compare cover, excess, mileage and return terms too. A Canadian licence alone does not establish eligibility; the documents and supplier requirements still need checking.';
+  }
   // A comparison is advice, not evidence that either category was selected.
   const familyAndSuv = /משפחתי|sedan|family car/i.test(text) && /ג[׳']?יפון|ג[׳']?יפ|suv|קרוסאובר/i.test(text);
   if (familyAndSuv && /מתלבט|עדיף|הבדל|לעומת|compare|between|better|difference|versus|\bvs\b/i.test(text)) {
@@ -67,10 +90,10 @@ export function carAdvice(text: string, needs: Needs & { vehiclePreference?: str
       : `A family car may be enough${hasBaby ? ' with a baby' : ''}; an SUV usually offers a higher seating position. Luggage space and fuel use depend on the actual model, so category alone is not enough.${hasStroller ? ' Check that the stroller and luggage fit together.' : ''}`;
   }
   // "לא בטוח אם בכלל שווה לשכור או לקחת מוניות": honest advice, not a booking form.
-  if (RENT_OR_NOT.test(text)) {
+  if (RENT_OR_NOT.test(text) || /מתלבט(?:ים)? אם בכלל לשכור/i.test(text)) {
     return he
-      ? 'תלוי בתוכנית: אם רוב הזמן אתה בתוך העיר, מוניות ותחבורה ציבורית בדרך כלל נוחות יותר — החנייה בתל אביב יקרה ולא תמיד קל למצוא. רכב משתלם כשיש נסיעות מחוץ לעיר, ואפשר גם לשכור רק ליום אחד לנסיעה כזאת. יש נסיעה כזאת בתוכנית?'
-      : "It depends on the plan: if you're mostly in the city, taxis and public transport are usually easier — parking in Tel Aviv is expensive and hard to find. A car pays off for trips out of town, and you can rent for just one day for that. Is there a trip like that in the plan?";
+      ? 'רכב שכור יכול לתת לכם רכב לרשותכם לאורך התקופה, עם מקום לציוד ובהתאמה לנסיעות שלכם. עם תינוק צריך לוודא מושב בטיחות מתאים, ועם עגלה לבדוק שהיא נכנסת יחד עם שאר הציוד. לפני שמחליטים, כדאי לבדוק את העלות הכוללת — כולל כיסוי, דלק וחניה — לצד הפיקדון שנדרש בנפרד כבטוחה.'
+      : 'A rental can give you a vehicle at your disposal for the agreed period, with space suited to your plans. With a baby, verify a suitable child-seat arrangement; with a stroller, check room for all your equipment. Before deciding, check the total rental cost, including cover, fuel and parking, with the required deposit considered separately as security.';
   }
   // "ואם אני רוצה רק יום אחד לנסוע לים המלח?"
   if (/(?:רק |ל)?יום אחד|ליום (?:אחד|בודד)|just (?:for )?(?:one|a) day|for (?:one|a single) day|only one day/i.test(text) && /[?？]|אפשר|can i|possible/i.test(text)) {
