@@ -1,5 +1,19 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-24 — Staged1c0933e adaptive Gemini verification: scoped luggage forgetting
+retained travelling-alone/no-charging facts; a later new two-suitcase detail was
+accepted without reviving the old musical-instrument details. This follows a
+seeded1021-entry archive, not1021real model turns. Complete-site staged catalogue,
+X2 and three exact gallery samples plus public HE/EN pages passed. Not published.
+Further original coaching addresses observed unsupported cargo-fit inference,
+monthly early-exit generalisation and defensive responses to corrections. These
+new instructions still need regression gates and actual candidate verification.
+No model-weight training, production DB writes or customer transport activation.
+The final adaptive recap exposed a controller error despite a correct Gemini
+answer: the substring rent in current triggered the rental commercial classifier,
+then a negated booking mention entered the legacy account fallback. Bound English
+rental words and added the exact full-flow regression. Rebuild/live retest required.
+
 Latest verified production: protected PR3 merged as `1e5fab4`, deployment
 `dpl_7Zt85r4NKhHqG2DaaS9bLYZhDpgy` READY on both domains. Public Gemini
 retained Niro/25,000km/estimate-vs-budget and did not reset or hand off on a
