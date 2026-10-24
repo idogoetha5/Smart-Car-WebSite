@@ -10,6 +10,24 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); vi.useRealTimers(); });
 
 describe('replacement Gemini connection', () => {
+  it('bounds a content repair by the remaining budget and never switches models', async () => {
+    vi.useFakeTimers(); const start=Date.now(); vi.setSystemTime(start);
+    const { generateWithFreeModels, resetModelCooldowns } = await import('@/lib/whatsapp-gemini-client'); resetModelCooldowns();
+    const timeout=vi.spyOn(AbortSignal,'timeout').mockImplementation(()=>new AbortController().signal);
+    vi.mocked(fetch).mockImplementationOnce(async()=>{
+      vi.setSystemTime(start+600);
+      return new Response(JSON.stringify({candidates:[{content:{parts:[{text:'invalid'}]}}]}));
+    }).mockResolvedValueOnce(new Response(JSON.stringify({candidates:[{content:{parts:[{text:'valid'}]}}]})));
+    expect(await generateWithFreeModels({contents:[]},1000,text=>text==='valid','Use the required output format.')).toMatchObject({ok:true,text:'valid',model:'gemini-3.5-flash-lite'});
+    expect(timeout.mock.calls.map(call=>call[0])).toEqual([1000,400]);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+  it('does not use content regeneration to retry a provider failure', async () => {
+    const { generateWithFreeModels, resetModelCooldowns } = await import('@/lib/whatsapp-gemini-client'); resetModelCooldowns();
+    vi.mocked(fetch).mockResolvedValue(new Response('{}',{status:503}));
+    expect(await generateWithFreeModels({},14000,()=>false,'Use the required output format.')).toMatchObject({ok:false,status:503});
+    expect(fetch).toHaveBeenCalledOnce();
+  });
   it('alerts on outage, avoids hammering during cooldown and confirms recovery only after a valid response', async () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date('2030-01-01T00:00:00Z'));
     const { generateSmartCarContent, resetModelCooldowns } = await import('@/lib/whatsapp-gemini-client');

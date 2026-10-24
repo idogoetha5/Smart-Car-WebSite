@@ -338,7 +338,7 @@ export async function interpretWhatsAppMessage(message: string, step: string | n
   };
   const today = israelToday();
   const body = {
-    systemInstruction: { parts: [{ text: `${SYSTEM_INSTRUCTION}\n\nKNOWLEDGE (from the published SmartCar website):\n${selectedKnowledge}\n\n${FINAL_REPLY_COACHING}\n\n${getConversationAcademy(message, context?.conversationMemory, locale, context ?? undefined)}` }] },
+    systemInstruction: { parts: [{ text: `${SYSTEM_INSTRUCTION}\n\nKNOWLEDGE (from the published SmartCar website):\n${selectedKnowledge}\n\n${getConversationAcademy(message, context?.conversationMemory, locale, context ?? undefined)}\n\n${FINAL_REPLY_COACHING}` }] },
     contents: [{ role: 'user', parts: [{ text: JSON.stringify({ ...today, replyLanguage: locale === 'en' ? 'English' : 'Hebrew', step, renting, known, recalledCustomerQuotes: context?.recalledCustomerQuotes ?? [], recent: context?.recent ?? [], message }) }] }],
     generationConfig: {
       temperature: 0.35,
@@ -348,15 +348,21 @@ export async function interpretWhatsAppMessage(message: string, step: string | n
   };
 
   try {
+    const inLanguage = (text: string) => !/[\p{Script=Arabic}\p{Script=Cyrillic}]/u.test(text)
+      && (locale === 'en' ? !/[א-ת]{2,}/.test(text.replace(/נתב״ג|נתבג/g, '')) : /[א-ת]/.test(text));
     const response = await generateWithFreeModels(body, 14_000,
-      (text) => InterpretationSchema.safeParse(readJson(text)).success);
+      (text) => {
+        const parsed = InterpretationSchema.safeParse(readJson(text));
+        if (!parsed.success) return false;
+        const reply = parsed.data.reply.trim() || parsed.data.acknowledgement.trim();
+        return !reply || inLanguage(reply);
+      }, `VALIDATION REPAIR: Return the complete required JSON for the original customer message. Its reply and acknowledgement must be in ${locale === 'en' ? 'English' : 'Hebrew'}, regardless of the language of remembered notes. Preserve the customer's facts and current request. Do not add new facts, a booking question or an action to repair formatting.`);
     if (!response.ok) return fallback();
     const result = InterpretationSchema.safeParse(readJson(response.text));
     if (!result.success) {
       console.error('[whatsapp-gemini] invalid structured response');
       return fallback();
     }
-    const inLanguage = (text: string) => (locale === 'en' ? !/[א-ת]{2,}/.test(text.replace(/נתב״ג|נתבג/g, '')) : /[א-ת]/.test(text));
     // Both acknowledgement and reply may restate verified customer facts.
     const allowed = `${selectedKnowledge}\n${message}\n${JSON.stringify(known)}\n${(context?.recalledCustomerQuotes ?? []).map(quote => quote.text).join('\n')}\n${JSON.stringify(context?.recent?.filter(entry => entry.from === 'customer') ?? [])}\n${datesForGuard([result.data.pickupDate, result.data.dropoffDate, context?.pickupDate, context?.dropoffDate])}`;
     const checkedAck = safeAcknowledgement(result.data.acknowledgement, allowed);
@@ -369,8 +375,8 @@ export async function interpretWhatsAppMessage(message: string, step: string | n
     const boundedReply = truthfulReply || (result.data.reply.trim() ? (locale === 'he' ? 'הפעולה הזו דורשת בדיקה של הצוות. לא בוצעה כאן פעולה בחשבון או בהזמנה.' : 'This action needs staff review. No account or booking action has been completed here.') : '');
     const guarded = guardedReply(singleQuestionReply(boundedReply), allowed);
     // The reply must be in the customer's language: an English message never gets a Hebrew answer.
-    const reply = guarded && (locale === 'en' ? !/[א-ת]{2,}/.test(guarded.replace(/נתב״ג|נתבג/g, '')) : /[א-ת]/.test(guarded)) ? guarded : '';
-    return { ...result.data, reply, source: 'gemini', model: response.model, rawAcknowledgement: result.data.acknowledgement, rawReply: result.data.reply, acknowledgement: acknowledgement || (result.data.acknowledgement ? fallback()?.acknowledgement : '') || '' };
+    const reply = guarded && inLanguage(guarded) ? guarded : '';
+    return { ...result.data, reply, source: 'gemini', model: response.model, rawAcknowledgement: result.data.acknowledgement, rawReply: result.data.reply, acknowledgement };
   } catch (error) {
     console.error('[whatsapp-gemini] unavailable:', error instanceof Error ? error.name : 'unknown error');
     return fallback();

@@ -22,6 +22,58 @@ const emptyFields = {
 };
 
 describe('Gemini interpretation inside the WhatsApp flow', () => {
+  it.each(['policy', 'rental'] as const)('does not turn a hypothetical deposit correction into an account dispute during a draft (%s)', async intent => {
+    const reply = 'פיקדון תופס מסגרת ואינו מחיר ההשכרה. ייתכנו חיובים אחרים לפי ההסכם, גם בלי נזק. נשארים בהשוואה.';
+    const { store, state } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'correction', intent, reply, asks: 'nothing' });
+    store.engine = 'ai';
+    await store.saveState('deposit-advice-correction', { step: 'rental_dates', locale: 'he', returningChecked: true, passengers: 3 });
+    const result = await getWhatsAppFlowReply('deposit-advice-correction', 'לא ביקשתי להתחיל השכרה, ולכן שאלת האיסוף מוקדמת. אנחנו רק משווים. וגם רכב בלי נזק לא בהכרח אומר שאין חיובים אחרים. תתקן את ההסבר בלי שאלה בסוף.', store);
+    expect(result.reply).toBe(reply);
+    expect(result.escalate).not.toBe(true);
+    expect(state()?.handedOff).not.toBe(true);
+    expect(state()?.passengers).toBe(3);
+  });
+  it('handles frustration with an explanation without a keyword-only handoff', async () => {
+    const reply = 'אסביר אחרת: הפיקדון והחיובים האפשריים הם דברים נפרדים.';
+    const { store, state } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'complaint', intent: 'policy', reply, asks: 'nothing' });
+    store.engine = 'ai';
+    await store.saveState('explanation-frustration', { step: 'rental_dates', locale: 'he', returningChecked: true });
+    const result = await getWhatsAppFlowReply('explanation-frustration', 'אני מתוסכל מהתשובה שלך. זו רק שאלה כללית על התנאים.', store);
+    expect(result.reply).toBe(reply);
+    expect(result.escalate).not.toBe(true);
+    expect(state()?.handedOff).not.toBe(true);
+  });
+  it('keeps an explicit actual double-charge dispute above a mistaken model policy label', async () => {
+    const { store, state } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'complaint', intent: 'policy', reply: 'General charges depend on the agreement.', asks: 'nothing' });
+    store.engine = 'ai';
+    const result = await getWhatsAppFlowReply('actual-charge-dispute', 'You charged me twice. I need this charge reviewed.', store);
+    expect(result.escalate).toBe(true);
+    expect(state()?.handedOff).toBe(true);
+  });
+  it('does not let a pending generic edit swallow correction of monthly-exit advice', async () => {
+    const reply = 'Monthly billing alone does not establish penalty-free early return; the actual exit terms must be checked.';
+    const { store, state, interpretMessage } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'explanation', intent: 'leasing', reply, asks: 'nothing' });
+    store.engine = 'ai';
+    await store.saveState('exit-advice-correction', { step: 'menu', locale: 'en', returningChecked: true, pendingControl: 'edit', knowledgeTopic: 'leasing_terms' });
+    const result = await getWhatsAppFlowReply('exit-advice-correction', 'You said monthly rental lets us stop paying on return. Please correct that: without the actual exit terms, what can we honestly conclude? No new questions or quotation.', store);
+    expect(result.reply).toBe(reply);
+    expect(interpretMessage).toHaveBeenCalledOnce();
+    expect(result.conversationControl).not.toBe(true);
+    expect(result.escalate).not.toBe(true);
+    expect(state()?.knowledgeTopic).toMatch(/^leasing_/);
+  });
+  it.each([undefined, 'vehiclePreference' as const])('answers correction of its own advice instead of a fact-edit prompt (pending: %s)', async pendingEdit => {
+    const reply = 'I cannot establish fit without verified load-space dimensions and payload. My earlier height assumption was unsupported.';
+    const { store, state, interpretMessage } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'explanation', intent: 'unknown', reply, asks: 'nothing' });
+    store.engine = 'ai';
+    await store.saveState('advice-correction', { step: 'menu', locale: 'en', returningChecked: true, pendingEdit, vehiclePreference: 'ALL' });
+    const result = await getWhatsAppFlowReply('advice-correction', 'Please correct that assumption and explain what needs checking before choosing a vehicle.', store);
+    expect(result.reply).toBe(reply);
+    expect(interpretMessage).toHaveBeenCalledOnce();
+    expect(result.conversationControl).not.toBe(true);
+    expect(result.escalate).not.toBe(true);
+    expect(state()?.vehiclePreference).toBe('ALL');
+  });
   it('keeps a current-needs recap autonomous instead of matching rent inside current', async () => {
     const reply = 'You travel alone, carry two suitcases and have no charging access.';
     const { store, state } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'details', intent: 'unknown', reply, asks: 'nothing' });

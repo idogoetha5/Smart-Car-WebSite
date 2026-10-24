@@ -59,7 +59,7 @@ function conversationStatus(state: FlowState) {
     : { label: state.locale === 'en' ? 'Ready to help' : 'מוכנים לעזור', detail: state.locale === 'en' ? 'Write naturally.' : 'כתבו חופשי.', tone: 'neutral' as const };
 }
 
-export default function WhatsAppSimulator() {
+export default function WhatsAppSimulator({ endpoint = '/api/whatsapp/simulator', title = 'SmartCar' }: { endpoint?: string; title?: string }) {
   const sessionId = useRef(newSessionId()).current;
   const endOfConversation = useRef<HTMLDivElement>(null);
   const resetVersion = useRef(0);
@@ -86,7 +86,7 @@ export default function WhatsAppSimulator() {
     setSending(true);
 
     try {
-      const response = await fetch('/api/whatsapp/simulator', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, message, state: flowState }),
@@ -128,7 +128,7 @@ export default function WhatsAppSimulator() {
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25"><Bot className="h-5 w-5" aria-hidden="true" /></div>
               <div className="min-w-0">
-                <h1 className="font-semibold tracking-tight">SmartCar</h1>
+                <h1 className="font-semibold tracking-tight">{title}</h1>
                 <p className="flex items-center gap-1.5 text-xs text-white/80"><span className="h-2 w-2 rounded-full bg-[#79f2a3]" aria-hidden="true" /><span className="truncate">{status.tone === 'neutral' ? 'עוזר שירות ומכירה — סימולציה' : status.label}</span></p>
               </div>
             </div>
@@ -156,7 +156,7 @@ export default function WhatsAppSimulator() {
               <div className={`max-w-[90%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ring-1 ${message.from === 'customer'
                 ? 'rounded-tr-sm bg-white text-slate-800 ring-black/5'
                 : message.error ? 'rounded-tl-sm bg-red-50 text-red-950 ring-red-200' : 'rounded-tl-sm bg-[#d9fdd3] text-slate-800 ring-[#bceab8]'}`}>
-                {message.warning && <span className="mb-1 flex items-center gap-1 text-xs font-semibold text-orange-800"><ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" /> הועבר לנציג</span>}
+                {message.warning && <span className="mb-1 flex items-center gap-1 text-xs font-semibold text-orange-800"><ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" /> נדרש טיפול נציג</span>}
                 {message.error && <span className="mb-1 flex items-center gap-1 text-xs font-semibold text-red-800">בעיה זמנית בסימולציה</span>}
                 {message.body}
                 <span className="mt-1 block text-left text-[10px] text-slate-400">עכשיו</span>

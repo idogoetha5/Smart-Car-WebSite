@@ -3,6 +3,20 @@ import { localConsultationTurn, type LocalConsultation } from '@/lib/whatsapp-lo
 import { getWhatsAppFlowReply, type FlowState, type WhatsAppFlowStore } from '@/lib/whatsapp-flow';
 
 describe('offline consultation, no model or provider', () => {
+  it('does not let annual consultation swallow a real charge dispute', async () => {
+    let state: FlowState | null = { step: 'menu', locale: 'he', localConsultation: { months: 12, annualKm: 15000, equipment: ['Apple CarPlay'] } };
+    const store: WhatsAppFlowStore = {
+      engine: 'local', activeBooking: async () => null, loadState: async () => state,
+      saveState: async (_, next) => { state = next; },
+      createRentalRequest: async () => { throw new Error('No consent'); },
+    };
+    const result = await getWhatsAppFlowReply('annual-charge', 'חייבתם אותי פעמיים על אותו חודש', store);
+    expect(result.escalate).toBe(true);
+    expect(result.reply).toContain('בדיקה');
+    expect(result.reply).not.toContain('תקציב חודשי');
+    expect((state as FlowState | null)?.localConsultation?.annualKm).toBe(15000);
+  });
+
   it('keeps the screenshot conversation rather than restarting or promising equipment', async () => {
     let state: FlowState | null = null;
     let modelCalls = 0;
