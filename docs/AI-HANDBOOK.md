@@ -13,6 +13,15 @@ The final adaptive recap exposed a controller error despite a correct Gemini
 answer: the substring rent in current triggered the rental commercial classifier,
 then a negated booking mention entered the legacy account fallback. Bound English
 rental words and added the exact full-flow regression. Rebuild/live retest required.
+Added an admin-only POST /api/admin/whatsapp/incident-test using the existing fixed
+test category/configured recipient and15-minute provider idempotency. No recipient
+or content can be supplied by callers; inbox-only/anonymous sessions cannot send.
+It reports provider acceptance only; actual inbox receipt still requires checking.
+Delivery incident subject now says unconfirmed rather than claiming non-delivery
+when the provider outcome may be uncertain. No customer transport change.
+The private owner page /he/admin/bot-alerts provides the test button and separates
+provider acceptance from actual inbox receipt and from external uptime monitoring.
+No public navigation, customer records or existing office actions were changed.
 
 Latest verified production: protected PR3 merged as `1e5fab4`, deployment
 `dpl_7Zt85r4NKhHqG2DaaS9bLYZhDpgy` READY on both domains. Public Gemini
