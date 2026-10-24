@@ -23,8 +23,9 @@ export async function POST(request: NextRequest) {
   headers.set('x-smartcar-engine', 'ai');
   headers.delete('x-smartcar-models');
   const rehearsal = new NextRequest(request.url, { method: 'POST', headers, body: raw });
+  const started = Date.now();
   const { result, evaluation } = await evaluateGeminiModel(() => simulate(rehearsal));
-  return NextResponse.json({ ...await result.json(), evaluation }, {
+  return NextResponse.json({ ...await result.json(), evaluation: { ...evaluation, durationMs: Date.now() - started } }, {
     status: result.status, headers: { 'Cache-Control': 'private, no-store' },
   });
 }

@@ -3,7 +3,10 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Bot, CheckCircle2, RotateCcw, Send, ShieldCheck, Sparkles } from 'lucide-react';
 
-type Message = { from: 'customer' | 'bot'; body: string; warning?: boolean; error?: boolean };
+type EvaluationUsage = { inputTokens: number; outputTokens: number; thinkingTokens: number };
+type Message = { from: 'customer' | 'bot'; body: string; warning?: boolean; error?: boolean;
+  privateEvaluation?: { source: string; model?: string; usage?: EvaluationUsage | null; durationMs?: number } };
+
 type QuickReply = { label: string; message: string };
 type FlowState = {
   step: string;
@@ -91,13 +94,17 @@ export default function WhatsAppSimulator({ endpoint = '/api/whatsapp/simulator'
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, message, state: flowState }),
       });
-      const data = await response.json().catch(() => null) as { reply?: string; escalated?: boolean; quickReplies?: QuickReply[]; state?: FlowState } | null;
+      const data = await response.json().catch(() => null) as { reply?: string; escalated?: boolean; quickReplies?: QuickReply[]; state?: FlowState; understood?: { source?: string; model?: string }; evaluation?: { usage?: EvaluationUsage | null; durationMs?: number } } | null;
       if (!response.ok || !data) throw new Error('Simulation response unavailable');
       if (requestVersion !== resetVersion.current) return;
       setMessages((current) => [...current, {
         from: 'bot',
         body: data.reply || 'לא התקבלה תשובה. אפשר לנסות שוב.',
         warning: data.escalated,
+        ...(endpoint === '/api/admin/whatsapp/model-evaluation' ? { privateEvaluation: {
+          source: data.understood?.source ?? 'local', model: data.understood?.model,
+          usage: data.evaluation?.usage, durationMs: data.evaluation?.durationMs,
+        } } : {}),
       }]);
       setQuickReplies(data.quickReplies ?? []);
       setFlowState(data.state ?? null);
@@ -159,6 +166,12 @@ export default function WhatsAppSimulator({ endpoint = '/api/whatsapp/simulator'
                 {message.warning && <span className="mb-1 flex items-center gap-1 text-xs font-semibold text-orange-800"><ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" /> נדרש טיפול נציג</span>}
                 {message.error && <span className="mb-1 flex items-center gap-1 text-xs font-semibold text-red-800">בעיה זמנית בסימולציה</span>}
                 {message.body}
+                {message.privateEvaluation && <div className="mt-2 border-t border-black/10 pt-2 text-xs text-slate-600" aria-label="נתוני בדיקה פרטית">
+                  <p>{message.privateEvaluation.source === 'gemini' ? `תשובת AI: ${message.privateEvaluation.model ?? 'מודל לא דווח'}` : 'תשובת גיבוי — לא תשובת AI'}{typeof message.privateEvaluation.durationMs === 'number' ? ` · זמן שרת ${(message.privateEvaluation.durationMs / 1000).toFixed(1)} שניות` : ''}</p>
+                  {message.privateEvaluation.usage
+                    ? <p>טוקנים: קלט {message.privateEvaluation.usage.inputTokens}, פלט {message.privateEvaluation.usage.outputTokens}, חשיבה {message.privateEvaluation.usage.thinkingTokens}</p>
+                    : <p>נתוני טוקנים לא דווחו</p>}
+                </div>}
                 <span className="mt-1 block text-left text-[10px] text-slate-400">עכשיו</span>
               </div>
             </div>

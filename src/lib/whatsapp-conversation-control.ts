@@ -18,7 +18,7 @@ const FIELDS: Array<[EditableFact, RegExp]> = [
   ['dropoffLocation', /מקום ההחזרה|מיקום ההחזרה|סניף החזרה|החזרה|return (?:location|branch)|dropoff/i],
   ['vehiclePreference', /סוג הרכב|קטגוריה|דגם|vehicle|car type|category/i],
   ['passengers', /נוסעים|אנשים|passengers|people/i],
-  ['luggage', /מזווד|מטען|כלי נגינה|luggage|bags|suitcases?|cargo|musical instruments?/i],
+  ['luggage', /מזווד|מטען|כלי נגינה|תיק גב|(?:^|\s)תיק(?:ים|י)?(?=\s|$|[,.!?])|תרמיל|עגלה|עגלת|luggage|bags?|suitcases?|backpacks?|stroller|pram|buggy|cargo|musical instruments?/i],
   ['budget', /תקציב|budget/i],
   ['annualKm', /קילומטר|קילומטרא|ק[״"]?מ|mileage|kilomet|\bkm\b|yearly distance/i],
   ['equipment', /אבזור|העדפות|גג פתוח|גג נפתח|קארפליי|קאר פליי|מושבי עור|equipment|preferences/i],

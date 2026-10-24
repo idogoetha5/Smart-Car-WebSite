@@ -1,9 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { recallArchivedCustomerQuotes } from '@/lib/whatsapp-archive-recall';
-import { forgetConversationFacts } from '@/lib/whatsapp-conversation-control';
+import { forgetConversationFacts, redactForgottenHistoryText } from '@/lib/whatsapp-conversation-control';
 
 const noise = (n: number) => Array.from({ length: n }, (_, index) => ({ from: 'customer' as const, text: `Small talk ${index}` }));
 describe('bounded older-customer archive retrieval', () => {
+  it.each(['רק שנינו עם תיק גב אחד. רוצים רכב קטן לשלושה ימים.', 'Two adults with one backpack. We want a small car for three days.'])('does not revive a forgotten backpack from recent or old customer quotes: %s', text => {
+    const state = forgetConversationFacts({ step: 'menu', locale: 'he', passengers: 2, history: [{ from: 'customer', text }] }, ['luggage']);
+    const recent = redactForgottenHistoryText(state.history![0].text, 1, state.memoryForgetBefore);
+    expect(recent).not.toMatch(/תיק גב|backpack/);
+    expect(recent).toMatch(/שלושה ימים|three days/);
+    state.history!.push(...noise(1020));
+    const archive = recallArchivedCustomerQuotes('What did I want near the beginning?', state.history!, [], state.memoryForgetBefore);
+    expect(archive.map(q => q.text).join(' ')).not.toMatch(/תיק גב|backpack/);
+    expect(archive.map(q => q.text).join(' ')).toMatch(/שלושה ימים|three days/);
+    expect(state.passengers).toBe(2);
+  });
+
   it('keeps an unrelated charging constraint when luggage is forgotten from a mixed quote', () => {
     const text = 'I carry 3 musical instruments, and cannot use an electric car because I have no charging access.';
     const state = forgetConversationFacts({ step: 'menu', locale: 'en', conversationMemory: text, history: [{ from: 'customer', text }, ...noise(1020)] }, ['luggage']);
