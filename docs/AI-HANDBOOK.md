@@ -50,6 +50,15 @@ The owner requested SEO-only completion on October24. Unpublished bot commits
 f8b059c/0d47962 and their full coaching notes remain preserved on
 `codex/bot-recovery-followup-20261024`; they are not part of this scoped SEO branch.
 Use the latest published `origin/clean-main` before resuming that bot work.
+
+2026-10-24 follow-up after protected PR4 merge918c79c (production build pending
+at this entry): actual candidate reviews exposed control parsing before Gemini
+mistaking "correct that assumption" for vehicle preference editing and "correct
+that:" for a generic field edit. Local parser now leaves explicit corrections
+of the adviser's answer to Gemini; ordinary stored-fact edits remain supported.
+Added exact bilingual regressions. Focused gates and rebuilt real model retests
+remain required. No publication/complete-readiness claim for this follow-up.
+
 2026-10-24 — Reviewed delivery-page continuation from the SEO task: all13area
 URLs/actions retained; arranged delivery distinguished from a real pickup branch,
 unsupported nearest-branch label corrected, regional schema Place, restrained
