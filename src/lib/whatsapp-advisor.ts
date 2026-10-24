@@ -53,7 +53,7 @@ function recommend(needs: Needs, text: string, locale: AdvisorLocale) {
 
 /** Explicit research is not consent to start collecting a booking. */
 export function isExploringRental(text: string): boolean {
-  return /מתלבט|מתלבטים|רק מתעניין|רק מתעניינת|לפני שמחליט|מה חשוב לבדוק|עוד לא להזמין|בלי להזמין|before deciding|not ready|no booking yet|just exploring|what should I check/i.test(text);
+  return /מתלבט|מתלבטים|רק מתעניין|רק מתעניינת|לפני שמחליט|מה חשוב לבדוק|עוד לא להזמין|(?:עוד |עדיין )?לא (?:רוצים|רוצה|מוכנים|מוכן) להזמין|בלי להזמין|before deciding|not ready|no booking yet|just exploring|what should I check/i.test(text);
 }
 
 const RENT_OR_NOT = /שווה (?:בכלל )?לשכור|כדאי (?:בכלל )?לשכור|(?:או|לעומת) (?:לקחת |לנסוע ב)?מוניות|או מונית|או תחבורה ציבורית|בכלל צריך רכב|worth renting|(?:or|vs) (?:take |taking )?(?:taxis|a taxi|cabs|uber)|need a car at all/i;
@@ -62,6 +62,19 @@ const PARKING = /חני(?:ה|יה)|חנייה|לחנות|parking|park the car/i;
 /** Advice for a question about which car fits, or how car types compare. Null when the message is not that. */
 export function carAdvice(text: string, needs: Needs & { vehiclePreference?: string }, locale: AdvisorLocale): string | null {
   const he = locale === 'he';
+  // Explain the requested comparison rather than treating a keyword as a sales slot.
+  if (/(?:פיקדון|deposit)/i.test(text) && /השתתפות עצמית|excess|deductible/i.test(text)
+    && /הבדל|לעומת|difference|versus|compare|\bvs\b/i.test(text)) {
+    return he
+      ? 'פיקדון הוא סכום שנחסם או נגבה כבטוחה לפי ההסכם. השתתפות עצמית היא החלק שהשוכר עשוי לשאת בו במקרה שמכוסה בתנאי הכיסוי. אלה לא אותו דבר: הפיקדון אינו בהכרח תקרת האחריות, והשתתפות עצמית לא מבטיחה שכל נזק מכוסה. כדי להשוות הצעות, בדוק את סכום הבטוחה, תנאי השחרור, הכיסוי, החריגים והאחריות בכל מקרה.'
+      : 'A deposit is security held or collected under the agreement. An excess is the amount the renter may be responsible for in a case covered by the agreed cover. They are different: the deposit is not necessarily the liability limit, and an excess does not mean every type of damage is covered. Compare the security amount, release terms, cover, exclusions and liability in each case.';
+  }
+  if (isExploringRental(text) && /כיסא בטיחות|כסא בטיחות|child seat|car seat/i.test(text)
+    && /משלנו|שלנו|own|already have/i.test(text)) {
+    return he
+      ? 'אם אתם מביאים כיסא משלכם, כדאי להשוות לפי התאמת הכיסא וההתקנה לרכב המסוים, מקום לעגלה ולציוד, ונוחות הכנסת התינוק. אפשר לצמצם כיוון לפי הצרכים האלה בלי לבחור דגם או להתחיל הזמנה. בהמשך צריך לאמת את ההתאמה בפועל, ולא להסתמך רק על שם הקטגוריה.'
+      : 'With your own child seat, compare compatibility and installation in the actual car, room for the stroller and bags, and ease of getting the baby in. You can narrow the options without selecting a model or starting a booking. Actual compatibility still needs checking; the category name alone is not enough.';
+  }
   if (isExploringRental(text) && /licen[cs]e|Canadian|tourist|visiting|רישיון זר|תייר/i.test(text)) {
     return he
       ? 'לפני שמחליטים, כדאי לבדוק את תנאי הרישיון והוותק לנהג בפועל, המסמכים הנדרשים, אמצעי התשלום והפיקדון. בהצעה חשוב לבדוק גם כיסוי, השתתפות עצמית, קילומטרים והחזרה. רישיון זר לבדו לא מספיק כדי לאשר זכאות; התנאים תלויים במסמכים ובספק.'

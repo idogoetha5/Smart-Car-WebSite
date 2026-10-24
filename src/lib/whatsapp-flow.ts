@@ -41,6 +41,8 @@ export interface FlowState {
   memoryForgetBefore?: Partial<Record<EditableFact, number>>;
   completedRequestId?: string;
   localConsultation?: LocalConsultation;
+  /** Backup-only research phase; a short acknowledgement is not booking consent. */
+  backupExploring?: boolean;
   step: FlowStep;
   /** Durable needs/decisions, independent of the rolling message window. No contact data. */
   conversationMemory?: string;
@@ -94,6 +96,7 @@ export interface BookingSummary {
 export interface WhatsAppFlowResult {
   conversationControl?: boolean;
   localConsultation?: boolean;
+  backupAdvice?: boolean;
   handled: boolean;
   /** Technical outage: do not run keyword-based sales/advice postprocessors. */
   aiUnavailable?: boolean;
@@ -1678,6 +1681,10 @@ function knowledgeReply(input: string, locale: FlowLocale, state?: FlowState | n
   };
 }
 
+function explicitlyStartsRental(text: string): boolean {
+  return !isExploringRental(text) && /(?:רוצה|רוצים|בוא|בואו|אפשר) (?:עכשיו )?(?:להתחיל|להכין|לפתוח) (?:בקשת )?(?:השכרה|הזמנה)|(?:ready to|let['’]s|want to) (?:book|start (?:a )?(?:rental|booking))/i.test(text);
+}
+
 /** Handles the complete deterministic SmartCar service flow. */
 const HISTORY_LENGTH = 24;
 
@@ -1720,13 +1727,19 @@ export async function getWhatsAppFlowReply(phone: string, rawBody: string, store
   const voiced = hasBooking || flowResult.localConsultation ? flowResult : await inOneVoice(flowResult, understood, current, previous, rawBody);
   const polished = humanFallback(withoutRepeatedMenu(voiced, previous, current?.locale ?? previous?.locale ?? 'he'), understood, previous, current, rawBody, phone);
   const known = applyReturning(withCarAdvice(polished, understood, current, rawBody, phone), previous, current, rawBody);
-  const result = flowResult.localConsultation ? flowResult : known.result;
+  const result = flowResult.localConsultation || flowResult.backupAdvice ? flowResult : known.result;
   if (known.state) current = known.state;
   // Every conversation keeps its history, even when the reply was a general answer that saved
   // nothing: otherwise the next message starts from scratch ("ברוכים הבאים" in the middle of a chat).
   // (A state the flow cleared on purpose — the end of the public demo — stays cleared.)
   if (!current && saved === undefined && result.reply && !result.escalate) current = { step: 'menu', locale: detectWhatsAppLocale(rawBody) };
   if (current && result.reply) {
+    const realModelAnswer = (understood as WhatsAppInterpretation | null)?.source === 'gemini';
+    if (realModelAnswer || explicitlyStartsRental(rawBody)) current = { ...current, backupExploring: undefined };
+    else if (!hasBooking && !result.escalate && !current.handedOff && !current.carSale && !current.leasing
+      && isExploringRental(rawBody) && carAdvice(rawBody, current, current.locale ?? 'he')) {
+      current = { ...current, backupExploring: true };
+    }
     const history = [
       ...(current.history ?? previous?.history ?? []),
       { from: 'customer' as const, text: rawBody, step: previous?.step },
@@ -2499,6 +2512,16 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
       escalate: true,
       escalateReason: handoffSummary(existingState, 'בקשה לדבר עם נציג או טיפול חריג'),
     };
+  }
+
+  // Acknowledging comparison advice does not authorise a rental intake.
+  // Safety, an actual charge dispute and an explicit person request win above.
+  if (interpretation?.source !== 'gemini' && !booking && !existingState?.handedOff
+    && existingState?.backupExploring && /^(?:כן|אוקיי|אוקי|בסדר|סבבה|תודה|yes|ok|okay|thanks)[.! ]*$/i.test(body.trim())) {
+    await store.saveState(phone, { ...existingState, locale });
+    return { handled: true, backupAdvice: true, reply: locale === 'en'
+      ? 'We can keep comparing without starting a booking. What would you like to clarify next?'
+      : 'אפשר להמשיך להשוות בלי להתחיל הזמנה. מה עוד תרצה לברר?' };
   }
 
   // A semantic advisory act must not enter the legacy leasing/catalogue funnel

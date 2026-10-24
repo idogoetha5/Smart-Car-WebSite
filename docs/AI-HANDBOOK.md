@@ -8,7 +8,12 @@ Annual consultation retains its facts but yields actual duplicate-charge dispute
 to the existing account-review gate. Declined budget receives comparison criteria.
 These are bounded deterministic fallbacks, not human-level general understanding.
 Local full-controller regressions cover both exploration examples and a charge
-interrupting annual advice. Multi-turn exploration readiness remains to complete;
+interrupting annual advice. Follow-up checks exposed own-child-seat and deposit/excess questions being
+overridden by policy/intake text. Added direct qualified comparisons and a
+backup research-phase flag: short acknowledgements do not start booking; explicit
+request preparation clears it. Safety/person/actual-charge gates stay ahead.
+Full-controller regression verifies research → yes → explicit preparation.
+Broader multi-turn exploration readiness remains to complete;
 no publication, live transport or actual Gemini verification is implied.
 
 2026-10-24 — Lead-inbox follow-up: private admin feed now includes all four
