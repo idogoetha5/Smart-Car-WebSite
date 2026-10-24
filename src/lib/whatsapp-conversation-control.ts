@@ -4,6 +4,12 @@ import { withoutNegated } from '@/lib/whatsapp-context';
 export type EditableFact = 'customerEmail' | 'customerName' | 'dates' | 'pickupDate' | 'dropoffDate' | 'pickupLocation' | 'dropoffLocation' | 'vehiclePreference' | 'passengers' | 'luggage' | 'budget' | 'annualKm' | 'equipment';
 export type ControlAction = { kind: 'reset' } | { kind: 'external' } | { kind: 'forget' | 'edit'; fields: EditableFact[] };
 
+/** A correction to our explanation must reach the adviser, even during an edit. */
+export function isAdviceCorrection(text: string): boolean {
+  if (/(?:change|update|correct)\s+(?:(?:my|the)\s+)?(?:email|name|pickup date|return date|vehicle type)|(?:תשנה|תעדכן)\s+(?:את\s+)?(?:המייל|השם|תאריך|סוג הרכב)/i.test(text)) return false;
+  return /(?:\b(?:correct|fix|revise)\s+(?:(?:that|the|your)\s+(?:(?:simplified|previous|earlier|last|incorrect|wrong)\s+){0,2}(?:assumption|answer|claim|statement|explanation|response|advice|comparison|definition|recommendation)|what you (?:said|told)|that\s*:)|(?:תתקן|תקן|תתקני|תקני)\s+(?:רק\s+)?(?:את\s+)?(?:ההנחה|התשובה|הטענה|ההסבר|מה שאמרת))/i.test(text);
+}
+
 const FIELDS: Array<[EditableFact, RegExp]> = [
   ['customerEmail', /מייל|דוא[״"]?ל|email|e-mail/i],
   ['customerName', /(?:^|\s)(?:השם|שם|name)(?=\s|$|[,.!?])/i],
@@ -40,6 +46,10 @@ export function parseConversationControl(text: string, pending?: 'forget' | 'edi
   if (/מה (?:יקרה|קורה) אם|מה זה|איך (?:מוחקים|משנים)|what (?:happens|if)|how (?:do|can) (?:i|you)/i.test(text)) return null;
   // "בלי להתחיל מחדש" must not execute the reset phrase it prohibits.
   text = withoutNegated(text);
+  // Correcting the adviser's answer is not editing a customer's stored fact.
+  // A field mentioned later in the explanation (e.g. choosing a vehicle) is
+  // not the object of "correct that assumption".
+  if (isAdviceCorrection(text)) return null;
   const reset = /(?:תתחיל|נתחיל|להתחיל|תתחילו|התחל)(?: את (?:השיחה|הכל|הכול))? (?:מחדש|מההתחלה)|(?:אפס|תאפס|לאפס) (?:את )?(?:השיחה|הצ[׳']?אט|הכל|הכול)|(?:תמחק|מחק|תשכח|שכח) (?:את )?(?:הכל|הכול|כל (?:השיחה|הפרטים))(?: עכשיו| בבקשה)?(?=\s*(?:[.!?]|$))|start (?:all )?over|start (?:again|from (?:the )?beginning)|reset (?:the )?(?:chat|conversation)|(?:forget|delete) everything(?: we (?:said|discussed)| in (?:this|the) (?:chat|conversation))?(?: now| please)?(?=\s*(?:[.!?]|$))/i.test(text);
   if (reset) return { kind: 'reset' };
   // Pausing a topic is not a request to erase records or reset the chat.

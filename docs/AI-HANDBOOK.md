@@ -1,5 +1,41 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-24 — Reviewed completed rental-discovery follow-up: undated server fleet
+seed with60s public cache, existing SWR revalidation/recovery retained, URL category
+applied and dates/both locations preserved. Dated pricing remains on the existing
+client path. SEO task reported16new regressions and full1225tests/90files,
+typecheck/lint budget pass; actual local172-row public-data fixture rendered45
+HE/EN model links and3VAN links,360px filters/navigation passed. Real candidate
+and custom-domain fleet/price checks are still required. No DB writes or pricing
+logic changes. Details and fixture limits: docs/SEO-2026-10-23.md.
+
+Latest verified live release: protected PR4/918c79c,
+dpl_7bmf61t4zJJtxGpGGSkL1X4PCENV READY with both custom domains. Public catalogue
+172/X2display850/base1060/floor950,3exact gallery samples and HE/EN pages passed.
+Actual owner-page POST accepted the test notification; Gmail verified its arrival
+in ido.goetha5@gmail.com's INBOX at2026-10-24T08:47:26Z (test category only,
+no customer content). This verifies the current email path, not whole-host uptime
+or durable incident retry. Customer WhatsApp remains OFF. Readiness gaps remain.
+
+2026-10-24 follow-up after protected PR4 merge918c79c (production build pending
+at this entry): actual candidate reviews exposed control parsing before Gemini
+mistaking "correct that assumption" for vehicle preference editing and "correct
+that:" for a generic field edit. Local parser now leaves explicit corrections
+of the adviser's answer to Gemini; ordinary stored-fact edits remain supported.
+Added exact bilingual regressions. Focused gates and rebuilt real model retests
+remain required. No publication/complete-readiness claim for this follow-up.
+Further independent budget/tourist turns found an unwanted pickup question during
+comparison and over-simple cover/deposit definitions. Move the existing final
+response contract after retrieved coaching examples and clarify these distinctions
+there. Advice-correction parsing also recognises a corrected explanation, including
+while a previous field edit is pending. Actual model retest remains necessary.
+A live budget follow-up also exposed the legacy broad handoff regex treating a
+hypothetical charge/deposit explanation as an actual account dispute during a
+draft, despite Gemini's non-person intent. Advice corrections now preserve the
+model answer; broad fallback handoff only applies without Gemini or with its
+representative intent. Earlier fixed emergency, explicit-person and specific
+actual-charge-dispute gates remain above this path. Exact regression added.
+
 2026-10-24 — Reviewed delivery-page continuation from the SEO task: all13area
 URLs/actions retained; arranged delivery distinguished from a real pickup branch,
 unsupported nearest-branch label corrected, regional schema Place, restrained

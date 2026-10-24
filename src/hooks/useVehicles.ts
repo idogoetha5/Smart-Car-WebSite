@@ -21,12 +21,16 @@ function buildQuery(filters: VehicleFilters): string {
   return params.toString();
 }
 
-export function useVehicles(initialFilters?: VehicleFilters) {
+export function useVehicles(initialFilters?: VehicleFilters, initialVehicles?: Vehicle[]) {
   const [filters, setFilters] = useState<VehicleFilters>(initialFilters ?? {});
+  const query = buildQuery(filters);
 
   const { data, error, isLoading, mutate } = useSWR<Vehicle[] | null>(
-    `/api/vehicles?${buildQuery(filters)}`,
+    `/api/vehicles?${query}`,
     dataFetcher,
+    initialVehicles !== undefined && query === buildQuery(initialFilters ?? {})
+      ? { fallbackData: initialVehicles }
+      : undefined,
   );
 
   // ECONOMY_COMPACT and `seats` have no server-side equivalent, so they are
@@ -47,7 +51,7 @@ export function useVehicles(initialFilters?: VehicleFilters) {
 
   return {
     vehicles,
-    isLoading,
+    isLoading: isLoading && data === undefined,
     error: error ? (error as Error).message : null,
     filters,
     setFilters,
