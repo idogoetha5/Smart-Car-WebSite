@@ -1,5 +1,25 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-25 — PR8 progress live at protected merge a505535; both custom domains
+use READY dpl_3PkVgU48iBmSm3hSjTi4zps5pqQV. Public gallery hashes/172vehicles/
+X2prices/HEEN/demo/sitemap and authenticated SearchConsole/detailed searches
+passed; admin360px has no horizontal overflow and retains navigation/noindex.
+Actual public Gemini3.5Lite stays rental-focused, but English still disclosed
+internal comparison rules and invented an unstated stroller. Follow-up validation
+now requests bounded same-model repair for those observed failures, using actual
+customer messages/recalled quotes as equipment evidence, never model memory as
+proof. Tests simulate bad→repaired output; real follow-up verification pending.
+Private comparison UI now displays per-turn actual source/model, duration and
+reported input/output/thinking token counts; fallback is labelled explicitly.
+Requested model title alone must not count as proof of an AI response. This
+metadata is hidden from the public simulator. Actual UI verification pending.
+Actual private comparison six-turn transcript exposed a scoped-forget failure:
+backpack/תיק גב was not in luggage aliases, so the next recap revived it. Added
+bilingual luggage aliases shared by recent and archive redaction, with tests
+retaining separate duration/passenger facts and blocking resurrection after1020
+archived messages. Real follow-up verification still required.
+Customer WhatsApp remains OFF;24-dialogue and operational launch gates stay open.
+
 2026-10-25 owner correction: sales guidance must help choose a suitable SmartCar
 rental, not proactively recommend taxis/public transport/competitors. Updated
 charter, academy, final coaching and deterministic fallback together, removing

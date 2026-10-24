@@ -26,6 +26,18 @@ const interpretation = {
 };
 
 describe('Gemini WhatsApp interpreter', () => {
+  it.each([
+    'We do not compare outside transport options. We can help arrange your rental.',
+    'A rental gives you room for your stroller and gear for three days.',
+  ])('repairs an observed robotic policy disclosure or invented stroller: %s', async bad => {
+    const good = 'A rental gives you a car at your disposal for three days. We can help choose suitable space and check a child-seat arrangement.';
+    const response = (reply: string) => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ ...interpretation, purpose: 'advice', intent: 'rental', reply, asks: 'nothing' }) }] } }] }));
+    vi.mocked(fetch).mockResolvedValueOnce(response(bad)).mockResolvedValueOnce(response(good));
+    const result = await interpretWhatsAppMessage('We are a couple with a baby visiting for three days. Help us choose a car.', 'menu', { locale: 'en' });
+    expect(result?.reply).toBe(good);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
   it.each(['אנחנו זוג עם תינוק, מתלבטים אם לשכור לשתי נסיעות בעיר', 'תשווה לנו השכרה מסמארטקאר מול מוניות'])('regenerates taxi comparisons into relevant SmartCar advice on the same model: %s', async message => {
     const bad = 'לשתי נסיעות בעיר מוניות עשויות להיות זולות ופשוטות יותר.';
     const good = 'אפשר להתאים רכב עם מקום לציוד ולוודא מושב בטיחות מתאים לתינוק. לפני שמחליטים נבדוק את העלות הכוללת של ההשכרה ואת הבטוחה בנפרד.';

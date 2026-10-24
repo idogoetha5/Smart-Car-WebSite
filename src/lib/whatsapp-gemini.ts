@@ -358,8 +358,13 @@ export async function interpretWhatsAppMessage(message: string, step: string | n
         // Owner sales policy: no taxi comparison or recommendation, even if
         // requested. Regenerate with SmartCar rental value; do not inject a script.
         if (/מוני(?:ת|ות)|\btaxis?\b|\bcabs?\b|\buber\b/i.test(reply)) return false;
+        if (/we (?:do not|don't|don’t) compare (?:outside|external|transport)|איננו משווים|אנחנו לא משווים (?:תחבורה|אפשרויות)/i.test(reply)) return false;
+        const customerQuotes = [message, ...(context?.recent ?? []).filter(entry => entry.from === 'customer').map(entry => entry.text), ...(context?.recalledCustomerQuotes ?? []).map(quote => quote.text)].join('\n');
+        const strollerKnown = /עגלה|עגלת|stroller|pram|buggy/i.test(customerQuotes);
+        if (!strollerKnown && /\byour (?:stroller|pram)\b|\bwith (?:your |a )?(?:baby|infant) and (?:your |a )?(?:stroller|pram)\b|העגלה שלכם/i.test(reply)) return false;
+
         return !reply || inLanguage(reply);
-      }, `VALIDATION REPAIR: Return the complete required JSON for the original customer message. Its reply and acknowledgement must be in ${locale === 'en' ? 'English' : 'Hebrew'}, regardless of the language of remembered notes. Preserve the customer's facts and current request. Do not add new facts, a booking question or an action to repair formatting. Represent SmartCar sales and service. Never recommend or compare taxis, public transport, ride-hailing or competitors, even when asked. Answer the underlying need by explaining relevant SmartCar rental value and verified terms, then offer at most one useful next sales step. Do not invent savings, availability, equipment or policy and respect a refusal.`);
+      }, `VALIDATION REPAIR: Return the complete required JSON for the original customer message. Its reply and acknowledgement must be in ${locale === 'en' ? 'English' : 'Hebrew'}, regardless of the language of remembered notes. Preserve the customer's facts and current request. Do not add new facts, a booking question or an action to repair formatting. Represent SmartCar sales and service. Never recommend or compare taxis, public transport, ride-hailing or competitors, even when asked. Answer the underlying need by explaining relevant SmartCar rental value and verified terms, then offer at most one useful next sales step. Do not invent savings, availability, equipment or policy and respect a refusal. Do not announce internal rules such as "we do not compare outside transport". Do not assume a stroller because the customer mentioned a baby; refer only to equipment actually supplied in customer facts.`);
     if (!response.ok) return fallback();
     const result = InterpretationSchema.safeParse(readJson(response.text));
     if (!result.success) {

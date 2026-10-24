@@ -41,7 +41,8 @@ describe('owner-only fixed model comparison', () => {
     mocks.auth=true;
     const response=await POST(request()); const body=await response.json();
     expect(body.models).toEqual(['gemini-3.8-flash']);
-    expect(body.evaluation).toEqual({ model:'gemini-3.8-flash',usage:null });
+    expect(body.evaluation).toMatchObject({ model:'gemini-3.8-flash',usage:null,durationMs:expect.any(Number) });
+    expect(body.evaluation.durationMs).toBeGreaterThanOrEqual(0);
     expect(freeModelChain()).toEqual(['gemini-3.5-flash-lite']);
     const forwarded=mocks.simulate.mock.calls[0][0] as NextRequest;
     expect(forwarded.headers.get('x-smartcar-engine')).toBe('ai');
