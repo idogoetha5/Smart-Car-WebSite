@@ -4,6 +4,10 @@ import { canonicalVehicles } from '@/lib/vehicle-canonical';
 import { BRANCHES } from '@/lib/branches';
 import { DELIVERY_CITIES } from '@/lib/delivery-cities';
 
+// The cached public fleet must not turn this route into a build-time-only map.
+// Inventory additions and changes to equivalent offers should reach crawlers.
+export const revalidate = 60;
+
 const baseUrl =
   process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
 

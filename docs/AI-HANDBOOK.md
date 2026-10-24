@@ -7,7 +7,8 @@ Stable oldest record (ID tie-break) is preferred in each language and sitemap;
 undated discovery links follow it. Different offers stay independent. Every old
 detail route and its original booking ID remain available; dated card links and
 all booking calculations are unchanged. Public fleet errors fall back to self
-canonical. This SEO-only branch is the sole publisher while bot work is paused.
+canonical. Sitemap revalidates every60s so inventory changes do not wait for a
+new deployment. This SEO-only branch is the sole publisher while bot work is paused.
 
 2026-10-24 — Reviewed completed rental-discovery follow-up: undated server fleet
 seed with60s public cache, existing SWR revalidation/recovery retained, URL category
