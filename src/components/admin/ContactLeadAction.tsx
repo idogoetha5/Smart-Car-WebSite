@@ -3,16 +3,13 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useApiList } from "@/lib/swr";
-import { isNewContactLead, type AdminLead } from "@/lib/admin-leads";
+import { ADMIN_LEADS_REFRESH, isNewContactLead, type AdminLead } from "@/lib/admin-leads";
 
 /** Same private feed and NEW definition as the lead inbox; no write on opening. */
 export default function ContactLeadAction({ locale }: { locale: string }) {
   const { items, error, isLoading } = useApiList<AdminLead>(
     "/api/admin/leads",
-    {
-      refreshInterval: 30_000,
-      revalidateOnFocus: true,
-    },
+    ADMIN_LEADS_REFRESH,
   );
   const count = items.filter(isNewContactLead).length;
   const he = locale === "he";

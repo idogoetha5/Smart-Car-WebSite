@@ -15,6 +15,7 @@ export default function ContactForm({ isHe }: { isHe: boolean }) {
   const [website, setWebsite] = useState('');
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileError, setTurnstileError] = useState(false);
+  const [challengeAttempt, setChallengeAttempt] = useState(0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +33,10 @@ export default function ContactForm({ isHe }: { isHe: boolean }) {
       setSubmitted(true);
     } catch {
       setSubmitError(true);
+      // A verification token is single-use, including when persistence or the
+      // response fails. Let a real visitor retry without waiting for expiry.
+      setTurnstileToken(null);
+      setChallengeAttempt(attempt => attempt + 1);
     } finally {
       setLoading(false);
     }
@@ -131,6 +136,7 @@ export default function ContactForm({ isHe }: { isHe: boolean }) {
 
       <div className="flex justify-center">
         <TurnstileWidget
+          key={challengeAttempt}
           onSuccess={setTurnstileToken}
           onError={() => setTurnstileToken(null)}
           onExpire={() => setTurnstileToken(null)}

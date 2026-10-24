@@ -34,7 +34,8 @@ export async function GET() {
         followups.set(row.contact_lead_id, row as ContactFollowup);
       if ((data ?? []).length < 500) break;
     }
-    const leads = await getCustomerLeads();
+    // Name-based sheet housekeeping must never remove enquiries from the inbox.
+    const leads = await getCustomerLeads({ includeInternal: true });
     return NextResponse.json(
       {
         data: leads

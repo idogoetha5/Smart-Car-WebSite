@@ -8,6 +8,8 @@ export interface LeadExportRow {
   email: string;
   createdAt: string;
   details: string;
+  /** Only included in the private inbox; never silently hide an office enquiry. */
+  internal?: boolean;
 }
 
 const INTERNAL_NAMES = new Set([
@@ -22,7 +24,7 @@ export function isCustomerLead(name: string): boolean {
 }
 
 /** Full reconciliation feed: a missed poll never loses an older lead. */
-export async function getCustomerLeads(): Promise<LeadExportRow[]> {
+export async function getCustomerLeads({ includeInternal = false }: { includeInternal?: boolean } = {}): Promise<LeadExportRow[]> {
   const client = createAdminClient();
   const sources = [
     { table: 'bookings', prefix: 'booking', label: 'השכרה', columns: 'id,customer_name,customer_phone,customer_email,pickup_location,dropoff_location,created_at' },
@@ -40,12 +42,15 @@ export async function getCustomerLeads(): Promise<LeadExportRow[]> {
       const records = data as unknown as Record<string, unknown>[];
       for (const record of records) {
         const name = String(record.customer_name ?? record.name ?? '');
-        if (!isCustomerLead(name)) continue;
+        const filtered = !isCustomerLead(name);
+        const internal = Boolean(name.trim()) && filtered;
+        if (filtered && !includeInternal) continue;
         rows.push({
-          key: `${source.prefix}:${record.id}`, source: source.label, name,
+          key: `${source.prefix}:${record.id}`, source: source.label, name: name || 'ללא שם',
           phone: String(record.customer_phone ?? record.phone ?? ''),
           email: String(record.customer_email ?? record.email ?? ''),
           createdAt: String(record.created_at ?? ''),
+          ...(includeInternal ? { internal } : {}),
           details: source.prefix === 'contact' ? String(record.message ?? '')
             : source.prefix === 'leasing' ? ''
               : `${record.pickup_location ?? ''} → ${record.dropoff_location ?? ''}`,
