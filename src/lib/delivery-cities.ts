@@ -7,14 +7,15 @@
  * These are not a substitute for the branch pages in @/lib/branches — no
  * new location, address or service is being introduced here, only a
  * dedicated URL per city/region so each can be found on its own for
- * "השכרת רכב <place>" searches. Nearest-branch data lets each page point to
- * a real pickup option instead of implying a branch that doesn't exist.
+ * "השכרת רכב <place>" searches. The legacy nearestBranch field points to
+ * an existing pickup option; it is not a verified distance comparison and
+ * must not be displayed as "the nearest branch".
  *
  * Deliberately bounded, not exhaustive: Google's spam policy treats large
  * numbers of near-identical, keyword-swapped city pages as "doorway pages,"
  * a pattern that can trigger a manual action against the whole site. This
- * list stays at a size where every entry gets genuinely distinct body copy
- * (real distance/logistics detail, not template variables) and two of the
+ * list stays bounded and requires useful body copy rather than invented
+ * distance, stock or location claims. Two of the
  * wider-reach searches ("הצפון" / "הדרום") are covered as single regional
  * pages instead of one entry per town — full country coverage without
  * mass-producing lookalike pages. Kept off primary navigation on purpose
@@ -94,9 +95,9 @@ export const DELIVERY_CITIES: DeliveryCity[] = [
     nameEn: 'Holon',
     nearestBranch: 'herzliya',
     bodyHe:
-      'בחולון ניתן לתאם מסירה והחזרה של רכב מ-SmartCar בכתובת הביתית או העסקית, בתיאום מראש. מתאים במיוחד למי שצריך רכב לכמה ימים בלי להתעסק עם תור בסוכנות.',
+      'בחולון אפשר לתאם מסירה והחזרה של רכב מ-SmartCar לבית או לעסק. שלחו לנו את הכתובת ואת מועדי ההשכרה, ונבדוק יחד את האפשרויות.',
     bodyEn:
-      "In Holon, a SmartCar delivery and return can be arranged at a home or business address, by prior arrangement. It's a good fit for anyone who needs a car for a few days without waiting in line at an agency.",
+      'In Holon, you can arrange SmartCar delivery and return at a home or business address. Send us the address and rental dates so we can check the options with you.',
   },
   {
     slug: 'kfar-saba',
@@ -104,9 +105,9 @@ export const DELIVERY_CITIES: DeliveryCity[] = [
     nameEn: 'Kfar Saba',
     nearestBranch: 'herzliya',
     bodyHe:
-      'בכפר סבא אפשר לתאם מסירה עד הבית או המשרד, בלי לצאת מהעיר כדי לאסוף רכב. הצי הרחב של SmartCar זמין גם כאן, מקומפקטי ועד יוקרה.',
+      'בכפר סבא אפשר לתאם מסירה עד הבית או המשרד. ספרו לנו איזה רכב אתם צריכים ולכמה זמן, ונבדוק מה פנוי לתאריכים שלכם.',
     bodyEn:
-      "In Kfar Saba, delivery can be arranged straight to your home or office, without leaving the city to collect a vehicle. SmartCar's full fleet, from compact to luxury, is available here too.",
+      'In Kfar Saba, delivery to your home or office can be arranged. Tell us what kind of car you need and for how long, and we will check availability for your dates.',
   },
   {
     slug: 'ashdod',
@@ -124,9 +125,9 @@ export const DELIVERY_CITIES: DeliveryCity[] = [
     nameEn: 'Modiin',
     nearestBranch: 'herzliya',
     bodyHe:
-      'במודיעין, בדיוק באמצע הדרך בין תל אביב לירושלים, ניתן לתאם מסירה עד הבית בתיאום מראש. נוח למי שצריך רכב לימים בודדים בלי לנסוע לאסוף אותו.',
+      'צריכים רכב במודיעין? אפשר לתאם מסירה לבית או לכתובת אחרת בעיר. אם ההחזרה במקום אחר, ציינו גם אותו כדי שנוכל לבדוק את שני המיקומים.',
     bodyEn:
-      "In Modiin, roughly halfway between Tel Aviv and Jerusalem, delivery to your door can be arranged by prior agreement. Convenient for anyone who needs a car for a few days without a trip to collect it.",
+      'Need a car in Modiin? Delivery to your home or another address in the city can be arranged. If you plan to return it elsewhere, include that location so we can check both arrangements.',
   },
   {
     slug: 'haifa',
@@ -182,6 +183,25 @@ export const DELIVERY_CITIES: DeliveryCity[] = [
 
 export function getDeliveryCity(slug: string): DeliveryCity | undefined {
   return DELIVERY_CITIES.find((c) => c.slug === slug);
+}
+
+export function isDeliveryRegion(city: DeliveryCity): boolean {
+  return ['center', 'north', 'south'].includes(city.slug);
+}
+
+/** A service area is not an additional branch or a promise of stock. */
+export function deliverySearchCopy(city: DeliveryCity, locale: string) {
+  const isHe = locale === 'he';
+  const heading = isHe
+    ? `השכרת רכב ${hePrefix('ב', city.nameHe)} – מסירה בתיאום`
+    : `Car Rental in ${city.nameEn} – Arranged Delivery`;
+  return {
+    heading,
+    title: `${heading} | SmartCar`,
+    description: isHe
+      ? `צריכים רכב ${hePrefix('ב', city.nameHe)}? אפשר לתאם מסירה והחזרה עם SmartCar. שלחו כתובת ותאריכים ונבדוק זמינות, עלות מסירה ואפשרות לאיסוף בסניף.`
+      : `Need a car in ${city.nameEn}? Arrange delivery and return with SmartCar. Send your address and dates to check availability, delivery costs or branch collection.`,
+  };
 }
 
 /**

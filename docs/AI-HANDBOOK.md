@@ -1,5 +1,14 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-24 — Reviewed delivery-page continuation from the SEO task: all13area
+URLs/actions retained; arranged delivery distinguished from a real pickup branch,
+unsupported nearest-branch label corrected, regional schema Place, restrained
+bilingual metadata and planning links. PUBLIC-COPY.md records the owner's style
+direction. Reported60focused tests/typecheck/lint and actual360px browser checks
+on5HE/EN city/region pages passed; branch/monthly navigation worked. Combined
+full-source gates and actual staged/public verification remain publication gates.
+No prices, gallery assets, booking permissions or customer transport changed.
+
 2026-10-24 — Staged1c0933e adaptive Gemini verification: scoped luggage forgetting
 retained travelling-alone/no-charging facts; a later new two-suitcase detail was
 accepted without reviving the old musical-instrument details. This follows a

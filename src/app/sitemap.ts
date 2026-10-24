@@ -18,6 +18,7 @@ const STATIC_CONTENT_LAST_MODIFIED = new Date('2026-07-28T00:00:00Z');
 const BRANCH_PAGE_LAST_MODIFIED = new Date('2026-10-23T00:00:00Z');
 const TEL_AVIV_BRANCH_LAST_MODIFIED = new Date('2026-10-23T00:00:00Z');
 const RENTAL_GUIDANCE_LAST_MODIFIED = new Date('2026-10-23T00:00:00Z');
+const DELIVERY_GUIDANCE_LAST_MODIFIED = new Date('2026-10-24T00:00:00Z');
 const NATIONWIDE_RENTAL_LAST_MODIFIED = new Date('2026-10-19T00:00:00Z');
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -77,8 +78,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // existing door-to-door delivery service. Indexed via this sitemap;
     // linked on-site only as the small "also deliver to" line on /branches.
     ...DELIVERY_CITIES.flatMap((c) => [
-      { url: `${baseUrl}/he/delivery/${c.slug}`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.5 },
-      { url: `${baseUrl}/en/delivery/${c.slug}`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.5 },
+      { url: `${baseUrl}/he/delivery/${c.slug}`, lastModified: DELIVERY_GUIDANCE_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.5 },
+      { url: `${baseUrl}/en/delivery/${c.slug}`, lastModified: DELIVERY_GUIDANCE_LAST_MODIFIED, changeFrequency: 'monthly' as const, priority: 0.5 },
     ]),
     { url: `${baseUrl}/he/cookies`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${baseUrl}/en/cookies`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'yearly', priority: 0.3 },
