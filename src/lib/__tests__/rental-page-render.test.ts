@@ -13,6 +13,7 @@ vi.mock('swr', () => ({ default: state.swr }));
 
 import RentalPage from '@/app/[locale]/rental/page';
 import { useVehicles } from '@/hooks/useVehicles';
+import VehicleCard from '@/components/catalog/VehicleCard';
 
 const car = (id: string, model: string, category: Vehicle['category']): Vehicle => ({
   id, make: 'Toyota', model, year: 2026, category, seats: 5, doors: 4,
@@ -29,6 +30,21 @@ beforeEach(() => {
 });
 
 describe('server-seeded rental discovery without changing dated pricing', () => {
+  it('aligns undated discovery with the canonical but keeps dated booking IDs and both locations', () => {
+    const newer = { ...fleet[0], id: 'newer', createdAt: '2026-10-24' };
+    const older = { ...fleet[0], id: 'older', createdAt: '2026-01-01' };
+    const props = { vehicle: newer, variants: [newer, older] };
+    const discovery = renderToStaticMarkup(createElement(VehicleCard, props));
+    expect(discovery).toContain('/he/rental/older');
+    const dated = renderToStaticMarkup(createElement(VehicleCard, {
+      ...props, pickupDate: '2026-12-20', returnDate: '2026-12-23',
+      pickupLocation: 'airport', returnLocation: 'telaviv',
+    }));
+    expect(dated).toContain('/he/rental/newer?pickup=2026-12-20');
+    expect(dated).toContain('return=2026-12-23');
+    expect(dated).toContain('pickupLocation=airport');
+    expect(dated).toContain('returnLocation=telaviv');
+  });
   it('renders model links in initial undated HTML, deduplicated as before', async () => {
     const html = renderToStaticMarkup(await RentalPage({ params: Promise.resolve({ locale: 'he' }), searchParams: Promise.resolve({}) }));
     expect(html).toContain('/he/rental/corolla-white');

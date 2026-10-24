@@ -4,6 +4,8 @@ export const revalidate = 3600;
 
 import { notFound } from 'next/navigation';
 import { getVehicleById } from '@/lib/db/vehicles';
+import { getRentalPageVehicles } from '@/lib/rental-page-data';
+import { preferredVehicleId } from '@/lib/vehicle-canonical';
 import BookingForm from '@/components/booking/BookingForm';
 import VehicleGallery from '@/components/vehicle/VehicleGallery';
 import BackToVehicles from '@/components/vehicle/BackToVehicles';
@@ -18,7 +20,8 @@ export async function generateMetadata({
   const { locale, id } = await params;
   const vehicle = await getVehicleById(id).catch(() => null);
   if (!vehicle) return {};
-  return vehicleSearchMetadata(vehicle, locale);
+  const fleet = await getRentalPageVehicles().catch(() => []);
+  return vehicleSearchMetadata(vehicle, locale, preferredVehicleId(vehicle, fleet));
 }
 
 export default async function RentalDetailPage({

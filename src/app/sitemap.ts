@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
-import { createAdminClient } from '@/lib/supabase/server';
+import { getRentalPageVehicles } from '@/lib/rental-page-data';
+import { canonicalVehicles } from '@/lib/vehicle-canonical';
 import { BRANCHES } from '@/lib/branches';
 import { DELIVERY_CITIES } from '@/lib/delivery-cities';
 
@@ -93,22 +94,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const supabase = createAdminClient();
-    const { data: vehicles } = await supabase
-      .from('vehicles')
-      .select('id, updated_at')
-      .eq('is_available', true);
+    const vehicles = canonicalVehicles(await getRentalPageVehicles());
 
     const vehicleRoutes: MetadataRoute.Sitemap = (vehicles ?? []).flatMap((v) => [
       {
         url: `${baseUrl}/he/rental/${v.id}`,
-        lastModified: new Date(v.updated_at),
+        lastModified: new Date(v.updatedAt),
         changeFrequency: 'daily' as const,
         priority: 0.7,
       },
       {
         url: `${baseUrl}/en/rental/${v.id}`,
-        lastModified: new Date(v.updated_at),
+        lastModified: new Date(v.updatedAt),
         changeFrequency: 'daily' as const,
         priority: 0.7,
       },
