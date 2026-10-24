@@ -22,6 +22,30 @@ const emptyFields = {
 };
 
 describe('Gemini interpretation inside the WhatsApp flow', () => {
+  it('does not let a pending generic edit swallow correction of monthly-exit advice', async () => {
+    const reply = 'Monthly billing alone does not establish penalty-free early return; the actual exit terms must be checked.';
+    const { store, state, interpretMessage } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'explanation', intent: 'leasing', reply, asks: 'nothing' });
+    store.engine = 'ai';
+    await store.saveState('exit-advice-correction', { step: 'menu', locale: 'en', returningChecked: true, pendingControl: 'edit', knowledgeTopic: 'leasing_terms' });
+    const result = await getWhatsAppFlowReply('exit-advice-correction', 'You said monthly rental lets us stop paying on return. Please correct that: without the actual exit terms, what can we honestly conclude? No new questions or quotation.', store);
+    expect(result.reply).toBe(reply);
+    expect(interpretMessage).toHaveBeenCalledOnce();
+    expect(result.conversationControl).not.toBe(true);
+    expect(result.escalate).not.toBe(true);
+    expect(state()?.knowledgeTopic).toMatch(/^leasing_/);
+  });
+  it.each([undefined, 'vehiclePreference' as const])('answers correction of its own advice instead of a fact-edit prompt (pending: %s)', async pendingEdit => {
+    const reply = 'I cannot establish fit without verified load-space dimensions and payload. My earlier height assumption was unsupported.';
+    const { store, state, interpretMessage } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'explanation', intent: 'unknown', reply, asks: 'nothing' });
+    store.engine = 'ai';
+    await store.saveState('advice-correction', { step: 'menu', locale: 'en', returningChecked: true, pendingEdit, vehiclePreference: 'ALL' });
+    const result = await getWhatsAppFlowReply('advice-correction', 'Please correct that assumption and explain what needs checking before choosing a vehicle.', store);
+    expect(result.reply).toBe(reply);
+    expect(interpretMessage).toHaveBeenCalledOnce();
+    expect(result.conversationControl).not.toBe(true);
+    expect(result.escalate).not.toBe(true);
+    expect(state()?.vehiclePreference).toBe('ALL');
+  });
   it('keeps a current-needs recap autonomous instead of matching rent inside current', async () => {
     const reply = 'You travel alone, carry two suitcases and have no charging access.';
     const { store, state } = makeStore({ ...emptyFields, source: 'gemini', purpose: 'details', intent: 'unknown', reply, asks: 'nothing' });

@@ -10,7 +10,7 @@ import { getBusinessKnowledgeResponse } from '@/lib/whatsapp-business-knowledge'
 import { composeServiceResponse, detectConversationMood } from '@/lib/service-response';
 import { consultativeSalesReply } from '@/lib/consultative-sales';
 import { localConsultationTurn, type LocalConsultation } from '@/lib/whatsapp-local-consultation';
-import { parseConversationControl, forgetConversationFacts, factQuestion, redactForgottenHistoryText, type EditableFact } from '@/lib/whatsapp-conversation-control';
+import { parseConversationControl, forgetConversationFacts, factQuestion, redactForgottenHistoryText, isAdviceCorrection, type EditableFact } from '@/lib/whatsapp-conversation-control';
 import { getCarsForSale, type CarForSale } from '@/lib/cars-for-sale';
 import { closeEnough, repairCustomerText } from '@/lib/whatsapp-typing';
 import { bookingQuestion, detectLearnedSituation, detectSituation, humanLine, type BookingAsk } from '@/lib/whatsapp-replies';
@@ -2041,7 +2041,7 @@ async function replyToMessage(phone: string, rawBody: string, store: WhatsAppFlo
     return controlled(locale === 'he' ? 'הסרתי את הפרטים שביקשת מזיכרון השיחה. שאר הפרטים נשמרו; רישומים שכבר נשלחו למשרד לא נמחקו.' : 'I removed those details from chat memory and kept the rest. Records already submitted to the office were not deleted.');
   }
   const editField = control?.kind === 'edit' ? control.fields[0] : existingState?.pendingEdit;
-  const editInterrupted = !control && (asksForPerson(rawBody) || ACCIDENT_PATTERN.test(normalized(rawBody)) || BREAKDOWN_PATTERN.test(normalized(rawBody)) || /[?？]/.test(rawBody));
+  const editInterrupted = !control && (isAdviceCorrection(rawBody) || asksForPerson(rawBody) || ACCIDENT_PATTERN.test(normalized(rawBody)) || BREAKDOWN_PATTERN.test(normalized(rawBody)) || /[?？]/.test(rawBody));
   if (editField && !editInterrupted) {
     const next: FlowState = { ...(existingState ?? { step: 'menu' as const }), locale, returningChecked: true };
     delete next.pendingControl;

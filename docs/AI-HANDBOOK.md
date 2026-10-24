@@ -1,5 +1,21 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+Latest verified live release: protected PR4/918c79c,
+dpl_7bmf61t4zJJtxGpGGSkL1X4PCENV READY with both custom domains. Public catalogue
+172/X2display850/base1060/floor950,3exact gallery samples and HE/EN pages passed.
+Actual owner-page POST accepted the test notification; Gmail verified its arrival
+in ido.goetha5@gmail.com's INBOX at2026-10-24T08:47:26Z (test category only,
+no customer content). This verifies the current email path, not whole-host uptime
+or durable incident retry. Customer WhatsApp remains OFF. Readiness gaps remain.
+
+2026-10-24 follow-up after protected PR4 merge918c79c (production build pending
+at this entry): actual candidate reviews exposed control parsing before Gemini
+mistaking "correct that assumption" for vehicle preference editing and "correct
+that:" for a generic field edit. Local parser now leaves explicit corrections
+of the adviser's answer to Gemini; ordinary stored-fact edits remain supported.
+Added exact bilingual regressions. Focused gates and rebuilt real model retests
+remain required. No publication/complete-readiness claim for this follow-up.
+
 2026-10-24 — Reviewed delivery-page continuation from the SEO task: all13area
 URLs/actions retained; arranged delivery distinguished from a real pickup branch,
 unsupported nearest-branch label corrected, regional schema Place, restrained
