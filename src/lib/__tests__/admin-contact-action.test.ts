@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import ContactLeadAction from "@/components/admin/ContactLeadAction";
 import AdminLeadsPage from "@/app/[locale]/admin/(protected)/leads/page";
 import {
+  ADMIN_LEADS_REFRESH,
   DEFAULT_FOLLOWUP,
   isNewContactLead,
   leadInboxView,
@@ -51,6 +52,20 @@ beforeEach(() => {
   state.query = "source=contact&status=NEW";
 });
 describe("contact quick action", () => {
+  it('keeps both entry points updating in background tabs and after reconnection', () => {
+    expect(ADMIN_LEADS_REFRESH).toMatchObject({refreshWhenHidden:true,revalidateOnReconnect:true,revalidateOnFocus:true});
+    expect(ADMIN_LEADS_REFRESH.refreshInterval).toBeLessThanOrEqual(15_000);
+  });
+  it('puts unanswered contact messages before newer rental requests without hiding either', () => {
+    state.query = '';
+    state.items[0].createdAt = '2026-01-01T10:00:00Z';
+    state.items[2].createdAt = '2026-10-24T10:00:00Z';
+    const html = renderToStaticMarkup(createElement(AdminLeadsPage));
+    expect(html.indexOf('>contact:new</h2>')).toBeLessThan(html.indexOf('>booking:example</h2>'));
+    expect(html).toContain('contact:handled');
+    expect(html).toContain('booking:example');
+    expect(html).toContain('פניות צור קשר למענה');
+  });
   it("counts only new contact enquiries and opens that exact inbox view", () => {
     const html = render();
     expect(html).toContain("פנייה חדשה ממתינה לטיפול");

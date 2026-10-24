@@ -1,6 +1,17 @@
 import { z } from "zod";
 import type { LeadExportRow } from "@/lib/lead-export";
 
+// Keep both office entry points on the same live feed, including background
+// tabs. Reconnection/focus catches requests that arrived while a phone slept.
+export const ADMIN_LEADS_REFRESH = {
+  refreshInterval: 15_000,
+  refreshWhenHidden: true,
+  revalidateOnFocus: true,
+  revalidateOnReconnect: true,
+  dedupingInterval: 1_000,
+  focusThrottleInterval: 1_000,
+};
+
 export const CONTACT_STATES = {
   NEW: "חדשה",
   CONTACTED: "נוצר קשר",

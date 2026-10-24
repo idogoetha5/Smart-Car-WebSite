@@ -14,6 +14,7 @@ import AdminSheet from "@/components/admin/AdminSheet";
 import { useToast } from "@/components/ui/AppToast";
 import { useApiList } from "@/lib/swr";
 import {
+  ADMIN_LEADS_REFRESH,
   CONTACT_STATES,
   followupDue,
   israelDateTimeInput,
@@ -324,7 +325,7 @@ function LeadWorkspace({
   const { locale = "he" } = useParams<{ locale: string }>();
   const { items, isLoading, error, mutate } = useApiList<AdminLead>(
     "/api/admin/leads",
-    { refreshInterval: 30_000, revalidateOnFocus: true },
+    ADMIN_LEADS_REFRESH,
   );
   const [query, setQuery] = useState("");
   const [source, setSource] = useState(initialSource);
@@ -355,7 +356,7 @@ function LeadWorkspace({
             .includes(q) ||
           (digits.length >= 4 &&
             lead.phone.replace(/\D/g, "").includes(digits))),
-    );
+    ).sort((a, b) => Number(isNewContactLead(b)) - Number(isNewContactLead(a)) || b.createdAt.localeCompare(a.createdAt));
   }, [items, query, source, dueOnly, newOnly, now]);
   const due = items.filter((lead) => followupDue(lead, now)).length;
   return (
@@ -367,7 +368,7 @@ function LeadWorkspace({
           </p>
           <h1 className="text-3xl font-black tracking-tight">פניות ולידים</h1>
           <p className="mt-2 max-w-lg text-sm leading-6 text-[#D5EAE4]">
-            כל הפניות במקום אחד. טיפול ומעקב אישי בפניות צור קשר.
+            כל הפניות מהאתר במקום אחד. פניות צור קשר שממתינות למענה מופיעות ראשונות.
           </p>
         </div>
         <a
@@ -423,7 +424,7 @@ function LeadWorkspace({
           }}
           className={`flex min-h-11 items-center gap-2 rounded-xl border px-4 text-sm font-bold ${newOnly ? "border-[#2D5F5F] bg-[#2D5F5F] text-white" : "border-[#B8D8D8] bg-[#EAF4F4] text-[#1F5A56]"}`}
         >
-          חדשות לטיפול · {items.filter(isNewContactLead).length}
+          פניות צור קשר למענה · {items.filter(isNewContactLead).length}
         </button>
         <button
           type="button"
@@ -474,6 +475,7 @@ function LeadWorkspace({
                   </h2>
                   <span className="shrink-0 rounded-lg border border-[#D9E8E2] bg-[#EDF5F1] px-2.5 py-1 text-xs font-bold text-[#1F5A56]">
                     {lead.source}
+                    {lead.internal && <span className="block text-xs font-medium text-slate-500">בדיקה / פנימי</span>}
                   </span>
                 </div>
                 <p

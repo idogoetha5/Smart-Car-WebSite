@@ -1,5 +1,24 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-24 — Lead-inbox follow-up: private admin feed now includes all four
+intake sources without the name-based housekeeping filter used by Sheets.
+Internal/test names are labelled rather than hidden; unnamed enquiries remain
+visible. Existing sheet filtering/deletion ledger and follow-up permissions stay
+intact. Dashboard contact tile and inbox share15s polling, background updates
+and focus/reconnect recovery. Unanswered contact messages appear first, with a
+clearly labelled contact queue. Failed public contact submissions remount the
+single-use challenge so retry can work without discarding entered details.
+Diagnosis:71filtered live enquiries included rentals from October24; all7stored
+contact enquiries were visible, newest October14Israel time. This is not proof
+of lost contact submissions or a database outage. End-to-end verification must
+check a fresh, clearly labelled temporary record without customer messaging.
+SEO PR6/1d2ad32 is live and preserved; bot work resumes in its own full worktree,
+with this chat retaining publication ownership until coordinated release.
+Local gates:1246tests/92files, typecheck, lint budget(0errors/1existing warning)
+passed. Intake integration verifies store-before-success, immediate private read,
+all4sources/pagination, challenge/auth guards and source/storage error paths;
+actual staged/live verification remains required before reporting publication.
+
 2026-10-24 — Owner approved preferred Google URLs for identical vehicle pages.
 Conservative canonical grouping requires identical specifications, years, photos,
 features, both descriptions, all prices/floors/deposits/mileage and capacity.
