@@ -2,8 +2,8 @@ import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ flow: vi.fn(), limit: vi.fn(), interpret: vi.fn() }));
-vi.mock('@/lib/whatsapp-flow', () => ({ getWhatsAppFlowReply: mocks.flow }));
-vi.mock('@/lib/whatsapp-gemini', () => ({ interpretWhatsAppMessage: mocks.interpret }));
+vi.mock('@/lib/whatsapp-rebuild', () => ({ getRebuiltBotReply: mocks.flow }));
+vi.mock('@/lib/whatsapp-rebuild-gemini', () => ({ readBotTurn: mocks.interpret }));
 vi.mock('@/lib/ratelimit', () => ({ checkRateLimit: mocks.limit }));
 
 import { POST } from './route';
@@ -19,7 +19,7 @@ function request(message = 'שלום') {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.limit.mockResolvedValue({ success: true });
-  mocks.flow.mockResolvedValue({ handled: true, reply: 'שלום' });
+  mocks.flow.mockImplementation(async (_phone, _message, store) => ({ reply: 'שלום', source: 'local', state: await store.loadState('simulation-testsession123') ?? { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] } }));
 });
 
 describe('public WhatsApp simulator limits', () => {
@@ -32,14 +32,17 @@ describe('public WhatsApp simulator limits', () => {
     expect(mocks.flow).not.toHaveBeenCalled();
   });
 
-  it('passes the interpreter into a valid isolated simulation', async () => {
-    const response = await POST(request());
+  it('passes the interpreter into an AI-only isolated simulation', async () => {
+    const aiRequest = request();
+    aiRequest.headers.set('x-smartcar-debug', '1');
+    aiRequest.headers.set('x-smartcar-engine', 'ai');
+    const response = await POST(aiRequest);
     expect(response.status).toBe(200);
     expect(mocks.flow).toHaveBeenCalledWith('simulation-testsession123', 'שלום', expect.objectContaining({
-      isSimulation: true, interpretMessage: expect.any(Function),
+      isSimulation: true, readTurn: expect.any(Function),
     }));
-    const store = mocks.flow.mock.calls[0][2] as { interpretMessage: (message: string, step: null) => Promise<unknown> };
-    await store.interpretMessage('שלום', null);
-    expect(mocks.interpret).toHaveBeenCalledWith('שלום', null);
+    const store = mocks.flow.mock.calls[0][2] as { readTurn: (message: string, context: { phase: string }) => Promise<unknown> };
+    await store.readTurn('שלום', { phase: 'explore' });
+    expect(mocks.interpret).toHaveBeenCalledWith('שלום', { phase: 'explore' });
   });
 });

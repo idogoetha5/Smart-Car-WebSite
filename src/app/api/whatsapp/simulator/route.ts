@@ -1,99 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getWhatsAppFlowReply, type FlowState, type WhatsAppFlowStore } from '@/lib/whatsapp-flow';
-import { interpretWhatsAppMessage, type WhatsAppInterpretation } from '@/lib/whatsapp-gemini';
-import { withModelChain } from '@/lib/whatsapp-gemini-client';
+import { getRebuiltBotReply, type RebuildState, type RebuildStore } from '@/lib/whatsapp-rebuild';
+import { readBotTurn, type BotReading } from '@/lib/whatsapp-rebuild-gemini';
 import { checkRateLimit } from '@/lib/ratelimit';
 
 export const runtime = 'nodejs';
 
 type QuickReply = { label: string; message: string };
-
-function quickReplies(state: FlowState | null | undefined, reply: string): QuickReply[] {
-  if (state?.lastQuestion === 'commercial_choice' && !state.handedOff && !state.carSale) {
-    return state.locale === 'en'
-      ? [{ label: 'Private leasing', message: 'private leasing' }, { label: 'Business leasing', message: 'business leasing' }, { label: 'Cars for sale', message: 'cars for sale' }]
-      : [{ label: 'ליסינג פרטי', message: 'ליסינג פרטי' }, { label: 'ליסינג עסקי', message: 'ליסינג עסקי' }, { label: 'רכבים למכירה', message: 'אני רוצה לקנות רכב' }];
-  }
-  if (state?.step === 'rental_vehicle') {
-    return state.locale === 'en'
-      ? [{ label: 'Small & economical', message: '1' }, { label: 'Family car', message: '2' }, { label: 'Crossover / SUV', message: '3' }, { label: '7 seats or more', message: '4' }, { label: 'Luxury car', message: '5' }, { label: 'Help me choose', message: '6' }]
-      : [{ label: 'קטן וחסכוני', message: '1' }, { label: 'רכב משפחתי', message: '2' }, { label: 'קרוסאובר / SUV', message: '3' }, { label: '7 מקומות ומעלה', message: '4' }, { label: 'רכב יוקרתי', message: '5' }, { label: 'עזרו לי לבחור', message: '6' }];
-  }
-  if (state?.step === 'rental_confirm') {
-    return state.locale === 'en'
-      ? [{ label: 'I confirm', message: 'I confirm' }, { label: 'Start again', message: 'menu' }]
-      : [{ label: 'אני מאשר/ת', message: 'אני מאשר/ת' }, { label: 'התחלה מחדש', message: 'תפריט' }];
-  }
-  if ((!state || state.step === 'menu') && (reply.includes('1️⃣') || reply.includes('איך נוכל לעזור') || reply.includes('Welcome to SmartCar'))) {
-    const english = state?.locale === 'en' || /Welcome|accident|flat tyre|breakdown|representative/i.test(reply);
-    return english
-      ? [{ label: 'Rent a car', message: '1' }, { label: 'Existing booking', message: '2' }, { label: 'Leasing / purchase', message: '3' }, { label: 'Accident or breakdown', message: '6' }, { label: 'עברית', message: 'עברית' }]
-      : [{ label: 'השכרת רכב', message: '1' }, { label: 'בירור הזמנה קיימת', message: '2' }, { label: 'ליסינג או רכישה', message: '3' }, { label: 'תאונה, פנצ׳ר או תקלה', message: '6' }, { label: 'English', message: 'English' }];
-  }
+function quickReplies(state: RebuildState | null, reply: string): QuickReply[] {
+  if (state?.step === 'rental_confirm') return state.locale === 'en'
+    ? [{ label: 'I confirm', message: 'I confirm' }, { label: 'Keep discussing', message: "I don't want to book now" }]
+    : [{ label: 'אני מאשר/ת', message: 'אני מאשר' }, { label: 'להמשיך להתלבט', message: 'לא רוצה להזמין עכשיו' }];
+  if (!state || state.step === 'menu' && /ברוכים הבאים|Welcome to SmartCar/.test(reply)) return state?.locale === 'en'
+    ? [{ label: 'Rent a car', message: 'I want to rent a car' }, { label: 'Existing booking', message: 'I need help with my booking' }, { label: 'Leasing or purchase', message: 'I want to discuss leasing' }, { label: 'Roadside help', message: 'My car broke down' }, { label: 'עברית', message: 'עברית' }]
+    : [{ label: 'השכרת רכב', message: 'אני רוצה לשכור רכב' }, { label: 'הזמנה קיימת', message: 'אני צריך עזרה עם הזמנה קיימת' }, { label: 'ליסינג או רכישה', message: 'רוצה לברר על ליסינג' }, { label: 'עזרה בדרך', message: 'נתקעתי עם הרכב' }, { label: 'English', message: 'English' }];
   return [];
 }
 
-function simulationStore(sessionId: string, initialState: FlowState | null) {
+function simulationStore(sessionId: string, initialState: RebuildState | null, useAi: boolean) {
   let state = initialState;
-  let understood: WhatsAppInterpretation | null = null;
+  let understood: BotReading | null = null;
   return {
-    engine: process.env.WHATSAPP_ENGINE === 'ai' ? 'ai' : 'local',
     isSimulation: true,
     activeBooking: async () => null,
     loadState: async () => state,
-    saveState: async (_phone, nextState) => {
-      state = nextState;
-    },
+    saveState: async (_phone, next) => { state = next; },
     createRentalRequest: async () => `SIM-${sessionId.slice(0, 6).toUpperCase()}`,
-    getRentalQuotes: async (st) => {
-      const { getWhatsAppRentalQuotes } = await import('@/lib/whatsapp-rental-quotes');
-      return getWhatsAppRentalQuotes(st.vehiclePreference, st.pickupDate!, st.dropoffDate!);
-    },
-    interpretMessage: async (...args) => {
-      understood = await interpretWhatsAppMessage(...args);
-      return understood;
-    },
+    readTurn: async (...args) => { understood = useAi ? await readBotTurn(...args) : null; return understood; },
     currentState: () => state,
     understood: () => understood,
-  } satisfies WhatsAppFlowStore & { currentState: () => FlowState | null; understood: () => WhatsAppInterpretation | null };
+  } satisfies RebuildStore & { currentState: () => RebuildState | null; understood: () => BotReading | null };
 }
 
 export async function POST(request: NextRequest) {
-  // The screen is an isolated rehearsal. It never stores a customer, sends
-  // WhatsApp, or creates a real rental request.
-
-  const payload = await request.json().catch(() => null) as { sessionId?: string; message?: string; state?: FlowState | null } | null;
+  // Isolated rehearsal: no customer message, database rental request or
+  // WhatsApp send. The state is supplied by the caller for this one turn.
+  const payload = await request.json().catch(() => null) as { sessionId?: string; message?: string; state?: RebuildState | null } | null;
   const sessionId = payload?.sessionId?.trim() ?? '';
   const message = payload?.message?.trim() ?? '';
-  if (!/^[a-zA-Z0-9_-]{12,80}$/.test(sessionId) || !message || message.length > 1000) {
-    return NextResponse.json({ error: 'Invalid simulation message' }, { status: 400 });
-  }
+  if (!/^[a-zA-Z0-9_-]{12,80}$/.test(sessionId) || !message || message.length > 1000) return NextResponse.json({ error: 'Invalid simulation message' }, { status: 400 });
   const address = request.headers.get('x-real-ip') || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
   const [visitorLimit, sessionLimit] = await Promise.all([
     checkRateLimit(`whatsapp-simulator:visitor:${address}`, 200, 60 * 60_000),
     checkRateLimit(`whatsapp-simulator:session:${sessionId}`, 20, 10 * 60_000),
   ]);
-  if (!visitorLimit.success || !sessionLimit.success) {
-    return NextResponse.json({ error: 'Too many simulation messages' }, { status: 429 });
-  }
-
-  const initialState = payload?.state && ['menu', 'rental_dates', 'rental_times', 'rental_locations', 'rental_vehicle', 'rental_name', 'rental_email', 'rental_confirm'].includes(payload.state.step)
-    && (payload.state.locale === 'he' || payload.state.locale === 'en') ? payload.state : null;
-  const store = simulationStore(sessionId, initialState);
-  // Explicit offline rehearsal, even on a machine with a valid provider key.
-  const offline = request.headers.get('x-smartcar-engine') === 'local';
+  if (!visitorLimit.success || !sessionLimit.success) return NextResponse.json({ error: 'Too many simulation messages' }, { status: 429 });
+  const initialState = payload?.state?.version === 2 && ['he', 'en'].includes(payload.state.locale) ? payload.state : null;
   const aiRehearsal = request.headers.get('x-smartcar-debug') === '1' && request.headers.get('x-smartcar-engine') === 'ai';
-  const selectedStore: WhatsAppFlowStore = offline ? { ...store, engine: 'local' } : aiRehearsal ? { ...store, engine: 'ai' } : store;
-  // Diagnostic selection is restricted by the client to the sole configured Gemini.
-  const models = request.headers.get('x-smartcar-debug') === '1' ? (request.headers.get('x-smartcar-models') ?? '').split(',').map((model) => model.trim()).filter(Boolean) : [];
-  const result = await withModelChain(models, () => getWhatsAppFlowReply(`simulation-${sessionId}`, message, selectedStore));
-  const state = store.currentState();
+  const useAi = aiRehearsal || request.headers.get('x-smartcar-engine') !== 'local' && process.env.WHATSAPP_ENGINE === 'ai';
+  const store = simulationStore(sessionId, initialState, useAi);
+  const result = await getRebuiltBotReply(`simulation-${sessionId}`, message, store);
   return NextResponse.json({
-    reply: result.reply ?? '',
+    reply: result.reply,
     escalated: Boolean(result.escalate),
-    quickReplies: quickReplies(state, result.reply ?? ''),
-    state,
-    // What the model understood, so a tester can see why the bot answered as it did.
+    quickReplies: quickReplies(result.state, result.reply),
+    state: store.currentState(),
+    source: result.source,
+    model: result.model,
     understood: request.headers.get('x-smartcar-debug') === '1' ? store.understood() : undefined,
   });
 }

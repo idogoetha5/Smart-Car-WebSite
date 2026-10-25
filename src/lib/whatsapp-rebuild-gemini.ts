@@ -1,0 +1,96 @@
+import { activeModelEvaluation } from '@/lib/whatsapp-model-evaluation';
+import { generateSmartCarContent, readJson } from '@/lib/whatsapp-gemini-client';
+
+export type BotRoute = 'explore' | 'book' | 'service' | 'policy' | 'leasing' | 'sale' | 'human' | 'social';
+export type VehicleDirection = 'compact' | 'family' | 'suv' | 'seven_seat' | 'none';
+export type BotFields = Partial<Record<'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'passengers' | 'luggage' | 'childSeats', { value: string; evidence: string }>>;
+
+export type BotReading = {
+  route: BotRoute;
+  direction: VehicleDirection;
+  reply: string;
+  fields: BotFields;
+  source: 'gemini';
+  model: string;
+};
+
+export type GeminiBotContext = {
+  locale: 'he' | 'en';
+  phase: 'explore' | 'booking' | 'service';
+  recent: Array<{ from: 'customer' | 'bot'; text: string }>;
+  known: Record<string, string | number | undefined>;
+  today: string;
+};
+
+const ROUTES: BotRoute[] = ['explore', 'book', 'service', 'policy', 'leasing', 'sale', 'human', 'social'];
+const DIRECTIONS: VehicleDirection[] = ['compact', 'family', 'suv', 'seven_seat', 'none'];
+const FIELD_NAMES = ['pickupDate', 'returnDate', 'pickupLocation', 'returnLocation', 'vehicleNeed', 'passengers', 'luggage', 'childSeats'] as const;
+
+const INSTRUCTIONS = `You are SmartCar's helpful rental and service adviser in Israel. Read the customer's actual message and recent turns. Return only the JSON object requested by the schema.
+Classify the current need: explore (advice or indecision), book (explicitly wants to start or continue a rental request), service (an existing rental/problem), policy (published business rules), leasing, sale, human, or social. A question about a car or price is NOT consent to book. A mention of taxi, bus or another rental company is NOT paid commercial driving.
+For exploration, recommend one sensible SmartCar vehicle direction when the stated need supports it and explain one concrete benefit. Do not mention, recommend or compare outside transport or competitors, even if the customer names them. Do not announce this rule. Respect refusal. Keep advice separate from booking.
+Do not invent a price, available car, delivery arrangement, child-seat or luggage fit, insurance eligibility, discount, completed booking, message sent, or human handoff. A vehicle group is only a direction until exact fit and availability are checked. Answer the user's actual question before one useful next question. Use warm natural Hebrew or English matching the customer, under 65 words. No catalogue, links, stock closing or internal policy text.
+Extract only facts explicitly supplied in the CURRENT customer message. Each nonempty field needs a verbatim evidence substring from that message. Dates may be ISO YYYY-MM-DD derived from an explicit date phrase relative to the supplied Israel date. A trip destination is not a pickup point. Never infer passengers from luggage. Never turn a question into a selected vehicle. Fields may be omitted.
+Personal names, email addresses, phone numbers and exact street addresses must never appear in your JSON reply or extracted fields. Application code collects them separately. Latest customer correction wins.`;
+
+const SCHEMA = {
+  type: 'object',
+  properties: {
+    route: { type: 'string', enum: ROUTES },
+    direction: { type: 'string', enum: DIRECTIONS },
+    reply: { type: 'string' },
+    fields: {
+      type: 'object',
+      properties: Object.fromEntries(FIELD_NAMES.map(name => [name, { type: 'object', properties: { value: { type: 'string' }, evidence: { type: 'string' } }, required: ['value', 'evidence'] }])),
+    },
+  },
+  required: ['route', 'direction', 'reply', 'fields'],
+};
+
+function scrub(text: string): string {
+  return text
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email removed]')
+    .replace(/(?:\+972|0)[\d\s()-]{8,}/g, '[phone removed]')
+    .replace(/(?:קוראים לי|שמי|השם שלי|my name is)\s+[\p{L}' -]{2,50}/giu, '[name removed]')
+    .replace(/(?:רחוב|רח׳|street|st\.)\s+[^,.\n]{3,60}/gi, '[address removed]')
+    .replace(/[\p{L}][\p{L}\s.'-]{2,30}\s+\d{1,4}(?!\d)/gu, '[address removed]')
+    .slice(0, 450);
+}
+
+function validatedFields(raw: unknown, message: string): BotFields {
+  if (!raw || typeof raw !== 'object') return {};
+  const result: BotFields = {};
+  const record = raw as Record<string, unknown>;
+  for (const name of FIELD_NAMES) {
+    const item = record[name];
+    if (!item || typeof item !== 'object') continue;
+    const { value, evidence } = item as { value?: unknown; evidence?: unknown };
+    if (typeof value !== 'string' || typeof evidence !== 'string' || !value.trim() || !evidence.trim()) continue;
+    if (!message.toLocaleLowerCase().includes(evidence.trim().toLocaleLowerCase())) continue;
+    if (value.length > 80 || evidence.length > 80 || /@|(?:\+972|0)[\d\s()-]{8,}/.test(value)) continue;
+    result[name] = { value: value.trim(), evidence: evidence.trim() };
+  }
+  return result;
+}
+
+export async function readBotTurn(message: string, context: GeminiBotContext): Promise<BotReading | null> {
+  // The fixed customer model is never selected by an environment chain or a
+  // caller header. The owner-only authenticated evaluation scope is separate.
+  const model = activeModelEvaluation()?.model ?? 'gemini-3.5-flash-lite';
+  const safeMessage = scrub(message);
+  const recent = context.recent.slice(-8).map(item => ({ from: item.from, text: scrub(item.text) }));
+  const body = {
+    systemInstruction: { parts: [{ text: INSTRUCTIONS }] },
+    contents: [{ role: 'user', parts: [{ text: JSON.stringify({ todayInIsrael: context.today, locale: context.locale, phase: context.phase, known: context.known, recent, message: safeMessage }) }] }],
+    generationConfig: { temperature: 0.3, maxOutputTokens: 700, responseFormat: { text: { mimeType: 'APPLICATION_JSON', schema: SCHEMA } } },
+  };
+  const response = await generateSmartCarContent({ model, body, timeoutMs: 8000 });
+  if (!response.ok) return null;
+  try {
+    const raw = readJson(response.text) as Record<string, unknown>;
+    if (!raw || !ROUTES.includes(raw.route as BotRoute) || !DIRECTIONS.includes(raw.direction as VehicleDirection) || typeof raw.reply !== 'string') return null;
+    const reply = raw.reply.trim();
+    if (!reply || reply.length > 650) return null;
+    return { route: raw.route as BotRoute, direction: raw.direction as VehicleDirection, reply, fields: validatedFields(raw.fields, safeMessage), source: 'gemini', model };
+  } catch { return null; }
+}
