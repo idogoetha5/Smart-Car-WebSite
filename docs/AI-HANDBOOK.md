@@ -1,5 +1,13 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-25 — Owner-authorized live data-only price update: Hyundai Kona and
+Seat Arona base/day and minimum_daily_price are now280ILS; Hyundai i20 base/day
+and minimum_daily_price are260ILS. All3records per model(9total) updated from250
+with guarded predicates; display overrides remain null. Existing seasonal
+rules remain in place and the booking floor also caps duration/coupon discounts.
+Verified all9records through production /api/vehicles and a separate grouped
+database read. No deployment, booking changes or other vehicle writes.
+
 2026-10-25 owner correction: sales guidance must help choose a suitable SmartCar
 rental, not proactively recommend taxis/public transport/competitors. Updated
 charter, academy, final coaching and deterministic fallback together, removing
