@@ -8,15 +8,17 @@ for public bookings. Existing bookings remain unchanged and show “לא צוי�
 2026-10-25 — Owner authorised a conversation-core rebuild after repeated
 real-model sales and service failures. In the canonical production-source
 checkout, a new v2 core and compact, fixed-model Gemini interpretation
-boundary now power the isolated simulator only. The contract is recorded in
+boundary now power the isolated simulator and the webhook in the unpublished
+bot branch. The contract is recorded in
 `docs/whatsapp-bot/REBUILD-CONTRACT.md`: application code owns consent, state,
 safety and business actions; Gemini reads redacted recent turns and returns
 intent, a short draft and customer-evidenced facts. Local consultation covers
 outside-option and child-seat cases without repeating those options or
-claiming fit. The existing webhook, message logging and transport kill switch
-remain unchanged and still use the previous engine. New focused tests pass;
-full tests, exact-source preflight, real-model multi-turn QA and a production
-adapter remain pending. This is not a customer launch or a model switch.
+claiming fit. Webhook signature checks, message logging, human silence and the
+transport kill switch remain in place. Focused and full tests, type checking
+and exact-source preflight pass; real-model multi-turn QA and request
+idempotency remain pending. The bot switch is OFF. This is not a customer
+launch or a model switch.
 
 2026-10-25 — Owner-authorized live data-only price update: Hyundai Kona and
 Seat Arona base/day and minimum_daily_price are now280ILS; Hyundai i20 base/day
