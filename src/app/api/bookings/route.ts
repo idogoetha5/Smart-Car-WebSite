@@ -204,6 +204,7 @@ export async function POST(request: NextRequest) {
       customer_phone:      input.customerPhone,
       customer_phone_normalized: normalizeWhatsAppPhone(input.customerPhone),
       customer_id_number:  input.customerIdNumber ?? null,
+      driver_age_range:   input.driverAgeRange,
       pickup_date:         pickupDate,
       dropoff_date:        dropoffDate,
       pickup_location:     input.pickupLocation,

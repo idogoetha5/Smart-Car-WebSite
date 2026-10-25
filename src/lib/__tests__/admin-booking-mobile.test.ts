@@ -15,6 +15,7 @@ const booking: AdminBooking = {
   customer_name: "לקוח לדוגמה",
   customer_phone: "052-123-4567",
   customer_email: "example@example.invalid",
+  driver_age_range: "24-plus",
   status: "PENDING",
   pickup_date: "2026-10-20T00:00:00Z",
   dropoff_date: "2026-10-22T00:00:00Z",
@@ -98,6 +99,8 @@ describe("mobile booking context", () => {
       "כיסא בטיחות לילד",
       "נהג נוסף",
       "נהג לדוגמה",
+      "גיל הנהג",
+      "24+",
       "אנגלית",
       "850",
     ])

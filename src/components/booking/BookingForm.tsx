@@ -492,7 +492,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
     }
     const fields: (keyof BookingInput)[] = step === 0
       ? ['pickupDate', 'dropoffDate', 'pickupLocation', 'dropoffLocation']
-      : ['customerName', 'customerEmail', 'customerPhone', 'customerIdNumber'];
+      : ['customerName', 'customerEmail', 'customerPhone', 'customerIdNumber', 'driverAgeRange'];
     const valid = await trigger(fields, { shouldFocus: true });
     if (!valid || (step === 0 && totalDays <= 0)) {
       setStepMessage(isHe ? 'יש להשלים את השדות המסומנים כדי להמשיך.' : 'Complete the highlighted fields to continue.');
@@ -610,7 +610,7 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
         if (step < 2) { event.preventDefault(); void nextStep(); return; }
         void handleSubmit(onSubmit, (invalid) => {
           if (invalid.pickupDate || invalid.dropoffDate || invalid.pickupLocation || invalid.dropoffLocation) changeStep(0);
-          else if (invalid.customerName || invalid.customerEmail || invalid.customerPhone || invalid.customerIdNumber) changeStep(1);
+          else if (invalid.customerName || invalid.customerEmail || invalid.customerPhone || invalid.customerIdNumber || invalid.driverAgeRange) changeStep(1);
           setStepMessage(isHe ? 'יש להשלים את השדות המסומנים לפני שליחת הבקשה.' : 'Complete the highlighted fields before sending your request.');
         })(event);
       }}
@@ -804,6 +804,18 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
               {...register('customerPhone')}
             />
           </div>
+          <fieldset>
+            <legend className="mb-2 text-sm font-medium text-gray-700">{isHe ? 'גיל הנהג' : 'Driver age'}</legend>
+            <div className="grid grid-cols-2 gap-3">
+              {(['21-23', '24-plus'] as const).map((range) => (
+                <label key={range} className="flex min-h-12 items-center justify-center rounded-lg border border-gray-200 px-3 text-base font-semibold text-gray-800 has-[:checked]:border-[#2D5F5F] has-[:checked]:bg-[#E8F1F1] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[#2D5F5F]">
+                  <input className="sr-only" type="radio" value={range} {...register('driverAgeRange')} />
+                  {range === '21-23' ? '21–23' : '24+'}
+                </label>
+              ))}
+            </div>
+            {errors.driverAgeRange && <p className="mt-1 text-xs text-red-700" role="alert">{errors.driverAgeRange.message}</p>}
+          </fieldset>
           <div>
             <div className="flex items-center gap-1.5 mb-1">
               <label htmlFor="customer-id-number" className="text-sm font-medium text-gray-700">{t('id_number')}</label>

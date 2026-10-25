@@ -14,6 +14,7 @@ function validPayload(overrides: Record<string, unknown> = {}) {
     customerName: 'ישראל ישראלי',
     customerEmail: 'customer@example.com',
     customerPhone: '+972501234567',
+    driverAgeRange: '24-plus',
     pickupDate: '2026-09-01',
     dropoffDate: '2026-09-03',
     pickupLocation: 'הרצליה',
@@ -24,6 +25,12 @@ function validPayload(overrides: Record<string, unknown> = {}) {
 }
 
 describe('bookingRequestSchema', () => {
+  it('requires one of the two driver age groups and rejects a birth date', () => {
+    expect(bookingRequestSchema.safeParse(validPayload({ driverAgeRange: undefined })).success).toBe(false);
+    expect(bookingRequestSchema.safeParse(validPayload({ driverAgeRange: 'under-21' })).success).toBe(false);
+    expect(bookingRequestSchema.safeParse(validPayload({ dateOfBirth: '1990-04-12' })).success).toBe(false);
+    expect(bookingRequestSchema.safeParse(validPayload({ driverAgeRange: '21-23' })).success).toBe(true);
+  });
   it('accepts what the booking form actually posts', () => {
     // Mirrors the real submit body, including the fields the server
     // deliberately ignores — those must not be rejected.

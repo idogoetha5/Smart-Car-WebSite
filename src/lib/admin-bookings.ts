@@ -6,6 +6,7 @@ export interface AdminBooking {
   customer_name?: string;
   customer_phone?: string;
   customer_email?: string;
+  driver_age_range?: '21-23' | '24-plus' | null;
   source?: string;
   vehicle_id?: string;
   vehicle?: { make?: string; model?: string; year?: number };

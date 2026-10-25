@@ -1,2 +1,3 @@
 # Local review captures and scratch artifacts are not application inputs.
 work/
+src/app/api/whatsapp/simulator/route 2.ts

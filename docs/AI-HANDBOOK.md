@@ -1,5 +1,10 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-25 — Booking requests collect only the main driver's selected age group:
+21–23 or 24+ (age 24 is in 24+). It is stored in `bookings.driver_age_range`;
+the admin booking sheet shows that group. No birth date is requested or stored
+for public bookings. Existing bookings remain unchanged and show “לא צוין”.
+
 2026-10-25 — Owner authorised a conversation-core rebuild after repeated
 real-model sales and service failures. In the canonical production-source
 checkout, a new v2 core and compact, fixed-model Gemini interpretation

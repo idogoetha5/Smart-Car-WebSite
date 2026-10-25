@@ -91,11 +91,16 @@ describe('public staged rental request', () => {
     expect(host.textContent).not.toContain('לצפייה במחיר הסופי');
     await click('המשך לפרטים אישיים');
     expect(visibleSection().getAttribute('aria-label')).toBe('פרטים אישיים');
+    expect(visibleSection().textContent).toContain('גיל הנהג');
+    expect(visibleSection().textContent).toContain('21–23');
+    expect(visibleSection().textContent).toContain('24+');
+    expect(visibleSection().textContent).not.toContain('תאריך לידה');
     expect(host.querySelectorAll('[role="note"]')).toHaveLength(0);
     await setField('[name="customerName"]', 'Test Customer');
     await setField('[name="customerEmail"]', 'test@example.com');
     await setField('[name="customerPhone"]', '+972501234567');
     await setField('[name="customerIdNumber"]', 'AB123456');
+    await act(async () => host.querySelector<HTMLInputElement>('[name="driverAgeRange"][value="24-plus"]')!.click());
     await setField('[name="notes"]', 'Test-only note');
     await click('המשך לתוספות וסיכום');
     expect(visibleSection().getAttribute('aria-label')).toBe('תוספות וסיכום');
@@ -114,7 +119,7 @@ describe('public staged rental request', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
     const [url, options] = vi.mocked(fetch).mock.calls[0];
     expect(url).toBe('/api/bookings');
-    expect(JSON.parse(options!.body as string)).toMatchObject({ vehicleId: 'test-vehicle', customerName: 'Test Customer', customerEmail: 'test@example.com', customerPhone: '+972501234567', customerIdNumber: 'AB123456', notes: 'Test-only note', pickupDate: '2030-01-10', dropoffDate: '2030-01-13', pickupLocation: 'airport', dropoffLocation: 'telaviv', pickup_time: '09:00', return_time: '09:00', extras: ['driver'], additionalDriverName: 'Extra Test Driver', agreeTerms: true, marketingConsent: true, locale: 'he', turnstileToken: 'mock-token' });
+    expect(JSON.parse(options!.body as string)).toMatchObject({ vehicleId: 'test-vehicle', customerName: 'Test Customer', customerEmail: 'test@example.com', customerPhone: '+972501234567', customerIdNumber: 'AB123456', driverAgeRange: '24-plus', notes: 'Test-only note', pickupDate: '2030-01-10', dropoffDate: '2030-01-13', pickupLocation: 'airport', dropoffLocation: 'telaviv', return_time: '09:00', pickup_time: '09:00', extras: ['driver'], additionalDriverName: 'Extra Test Driver', agreeTerms: true, marketingConsent: true, locale: 'he', turnstileToken: 'mock-token' });
   });
   it('provides the same non-final estimate and airport warning in English', async () => {
     mocks.locale = 'en'; await render('airport');

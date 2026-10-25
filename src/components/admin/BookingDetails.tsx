@@ -14,6 +14,7 @@ function date(value?: string) {
     timeZone: "Asia/Jerusalem",
   });
 }
+
 function Detail({
   label,
   value,
@@ -77,6 +78,7 @@ export default function BookingDetails({
           <Detail label="שם מלא" value={b.customer_name} />
           <Detail label="טלפון" value={b.customer_phone} ltr />
           <Detail label="אימייל" value={b.customer_email} ltr />
+          <Detail label="גיל הנהג" value={b.driver_age_range === "21-23" ? "21–23" : b.driver_age_range === "24-plus" ? "24+" : undefined} />
           <Detail
             label="שפת ההזמנה"
             value={

@@ -37,6 +37,7 @@ const bookingFormFields = {
     .refine(val => !val || /^[a-z0-9]{1,9}$/i.test(val), {
       message: 'מספר תעודת זהות או דרכון חייב להכיל עד 9 אותיות או ספרות',
     }),
+  driverAgeRange: z.enum(['21-23', '24-plus'], { message: 'יש לבחור את קבוצת הגיל של הנהג' }),
   pickupDate: z.string().min(1, 'Pickup date is required').max(32),
   dropoffDate: z.string().min(1, 'Drop-off date is required').max(32),
   pickupLocation: z.string().min(1, 'Pickup location is required').max(200),
