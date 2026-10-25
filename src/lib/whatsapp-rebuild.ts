@@ -21,6 +21,7 @@ export type RebuildState = {
   interest?: 'leasing' | 'sale';
   safetyAlertAt?: string;
   handedOff?: boolean;
+  handoffAt?: string;
   completedRequestId?: string;
 };
 
@@ -134,7 +135,8 @@ function explicitBooking(input: string): boolean {
 }
 
 function safety(input: string): 'accident' | 'breakdown' | null {
-  if (/מה קורה אם|אם תהיה|hypothetical|what if/i.test(input)) return null;
+  if (/מה (?:קורה|יקרה|עושים)?\s*אם|אם (?:תהיה|יקרה|אעשה|הרכב ייתקע)|במקרה של|hypothetical|what if|if (?:I have|the car breaks down)/i.test(input)) return null;
+  if (/הרכב שלי.{0,35}(?:במוסך|אחרי תאונה)|my own car.{0,35}(?:accident|crash)/i.test(input) && /לשכור|להשכיר|רכב חלופי|rent|replacement car/i.test(input)) return null;
   if (/תאונה|התנגשות|(?<!לא )נפגע|פצוע|accident|crash|collision|(?<!not )injured/i.test(input)) return 'accident';
   if (/פנצ[׳']?ר|גרר|נתקעתי|לא מניע|רעש.{0,25}בלמ|בלמ.{0,25}רעש|עשן|תקלה ברכב|flat tire|breakdown|won'?t start|brake.{0,25}(?:noise|problem)|(?:noise|problem).{0,25}brake/i.test(input)) return 'breakdown';
   return null;
@@ -265,6 +267,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   const input = raw.trim().slice(0, 1000);
   const stored = await store.loadState(phone);
   const state = stored?.version === 2 ? structuredClone(stored) : fresh(language(input, 'he'));
+  if (state.handedOff && (!state.handoffAt || !Number.isFinite(Date.parse(state.handoffAt)) || Date.now() - Date.parse(state.handoffAt) >= 24 * 60 * 60 * 1000)) {
+    state.handedOff = false;
+    state.handoffAt = undefined;
+    state.phase = 'explore';
+    state.step = 'menu';
+  }
   state.locale = language(input, state.locale);
   const he = state.locale === 'he';
   let reply = '';
@@ -275,7 +283,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
 
   const incident = safety(input);
   if (incident) {
-    state.phase = 'service'; state.handedOff = true;
+    state.phase = 'service'; state.handedOff = true; state.handoffAt ??= new Date().toISOString();
     const recentAlert = state.safetyAlertAt && Date.now() - Date.parse(state.safetyAlertAt) < 24 * 60 * 60 * 1000;
     reply = /גרר|tow|roadside/i.test(input) && recentAlert
       ? (he ? `לא אוכל לאשר שנשלח גרר. הישארו במקום בטוח והתקשרו עכשיו ל־SmartCar לתיאום סיוע: ${OFFICE_PHONE}.` : `I cannot confirm a tow has been dispatched. Stay somewhere safe and call SmartCar now to arrange help: ${OFFICE_PHONE}.`)
@@ -294,6 +302,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const id = await store.createRentalRequest(phone, state);
     if (id) {
       state.completedRequestId = id; state.phase = 'explore'; state.step = 'menu'; state.booking = {};
+      delete state.requestKey;
       reply = store.isSimulation ? (he ? 'בסימולציה הבקשה נקלטה לצורכי בדיקה בלבד; לא נוצרה הזמנה אמיתית.' : 'The request was recorded in this simulation only; no real booking was created.') : (he ? `בקשת ההשכרה נשלחה לבדיקה, מספר ${id}. היא עדיין אינה הזמנה מאושרת.` : `Your rental request was sent for review, reference ${id}. It is not a confirmed booking yet.`);
     } else reply = he ? 'לא הצלחתי לשמור את הבקשה כרגע. לא נוצרה הזמנה; אפשר לנסות שוב או להתקשר למשרד.' : 'I could not save the request. No booking was created; please try again or call the office.';
   } else {
@@ -343,14 +352,14 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         reply = `${policy ? `${policy}\n\n` : prefix}${question(missing, state.locale)}`;
       }
     } else if (reading?.route === 'human' || /(?:דבר|לדבר|נציג|בן אדם|human|representative|person)/i.test(input) && /רוצה|אפשר|need|want|speak/i.test(input)) {
-      state.phase = 'service'; state.handedOff = true; escalate = true;
+      state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); escalate = true;
       reply = he ? `כדי שהצוות יטפל בזה, התקשרו ל־SmartCar: ${OFFICE_PHONE}.` : `Please call SmartCar so the team can handle this: ${OFFICE_PHONE}.`;
     } else if (reading?.route === 'service' || /הזמנה קיימת|ההזמנה שלי|שכרתי|existing booking|my booking|I rented/i.test(input)) {
       state.phase = 'service';
       const booking = await store.activeBooking(phone);
       const answer = getSmartCarServiceAnswer(input, state.locale);
       if (/לשנות|לשינוי|להאריך|יום ההחזרה|יום מאוחר|change|extend|return date/i.test(input)) {
-        state.handedOff = true; escalate = true;
+        state.handedOff = true; state.handoffAt = new Date().toISOString(); escalate = true;
         reply = he ? `שינוי הזמנה דורש בדיקת זמינות ואישור של הצוות; לא שיניתי אותה עכשיו. השיחה נשמרת לטיפול, ואפשר להתקשר ל־${OFFICE_PHONE}.` : `A booking change needs the team's availability check and approval; I have not changed it. This conversation is retained for the team, and you can call ${OFFICE_PHONE}.`;
       } else if (answer) reply = answer.reply;
       else if (booking) reply = he ? `מצאתי הזמנה במצב ${booking.status}. שינוי או בירור ספציפי דורשים טיפול צוות; התקשרו ל־${OFFICE_PHONE}.` : `I found a booking with status ${booking.status}. A specific change or case review needs the team; please call ${OFFICE_PHONE}.`;
@@ -358,7 +367,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else if (state.interest && (!reading || reading.route === state.interest || reading.route === 'explore' || reading.route === 'policy' || reading.route === 'social')) {
       const answer = commercialReply(input, state);
       reply = answer.reply; escalate = answer.escalate;
-      if (escalate) { state.phase = 'service'; state.handedOff = true; }
+      if (escalate) { state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); }
     } else if (/נהג צעיר|young driver/i.test(input) && /תוספת|מחיר|עלות|כמה|surcharge|extra|price|cost/i.test(input)) {
       reply = he ? 'ייתכן שתנאי המחיר והביטוח ישתנו לפי גיל הנהג וקבוצת הרכב. אין לי תוספת מאושרת לנקוב בה; הצוות יאשר אותה בהצעה האישית.' : 'Price and insurance terms may vary by driver age and vehicle group. I cannot quote an approved surcharge here; the team will confirm it in your offer.';
     } else if (/ביטוח|כיסוי|insurance|covered/i.test(input) && /אותי|בשבילי|בוודאות|personal|me|definitely/i.test(input)) {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { getRebuiltBotReply, type RebuildState, type RebuildStore } from '@/lib/whatsapp-rebuild';
+import { getRebuiltBotReply, isRebuiltSafetyMessage, type RebuildState, type RebuildStore } from '@/lib/whatsapp-rebuild';
 import type { BotReading } from '@/lib/whatsapp-rebuild-gemini';
 
 const base: BotReading = { route: 'explore', direction: 'none', reply: 'אפשר להתאים לכם רכב של SmartCar. לאילו תאריכים תצטרכו אותו?', fields: {}, source: 'gemini', model: 'gemini-3.5-flash-lite' };
@@ -136,6 +136,13 @@ describe('replacement SmartCar conversation core', () => {
     expect(chat.readTurn).not.toHaveBeenCalled();
   });
 
+  it('does not alert staff for a hypothetical accident or a past event involving the customer’s own car', async () => {
+    expect(isRebuiltSafetyMessage('מה עושים אם הרכב נתקע וצריך גרר?')).toBe(false);
+    expect(isRebuiltSafetyMessage('מה אם תהיה תאונה בעתיד?')).toBe(false);
+    expect(isRebuiltSafetyMessage('הרכב שלי במוסך אחרי תאונה, אני צריך לשכור רכב חלופי')).toBe(false);
+    expect(isRebuiltSafetyMessage('נתקעתי עכשיו ויש עשן מהרכב')).toBe(true);
+  });
+
   it('keeps a roadside incident safe without sending a new alert for each update', async () => {
     const chat = memory();
     const first = await chat.send('יש רעש חזק בבלמים, להמשיך לנסוע?');
@@ -182,6 +189,22 @@ describe('replacement SmartCar conversation core', () => {
     expect(second.reply).toContain('לא שיניתי');
   });
 
+  it('lets a new enquiry resume after the 24-hour handoff window', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-25T10:00:00Z'));
+    try {
+      const chat = memory(() => base);
+      const handoff = await chat.send('יש לי הזמנה קיימת ואני צריך לשנות את יום ההחזרה');
+      expect(handoff.state.handedOff).toBe(true);
+      expect(handoff.state.handoffAt).toBe('2026-10-25T10:00:00.000Z');
+      vi.advanceTimersByTime(24 * 60 * 60 * 1000 + 1000);
+      const resumed = await chat.send('אני מתעניין ברכב לטיול חדש');
+      expect(resumed.state.handedOff).toBe(false);
+      expect(resumed.state.phase).toBe('explore');
+      expect(chat.readTurn).toHaveBeenCalled();
+    } finally { vi.useRealTimers(); }
+  });
+
   it('retains booking facts and requires explicit confirmation before a request', async () => {
     const chat = memory(message => {
       if (message.includes('להזמין')) return { ...base, route: 'book', direction: 'compact', fields: {
@@ -210,6 +233,10 @@ describe('replacement SmartCar conversation core', () => {
     expect(chat.create).toHaveBeenCalledTimes(1);
     expect(chat.state()?.completedRequestId).toBe('SIM-123');
     expect(chat.state()?.booking).toEqual({});
+    expect(chat.state()?.requestKey).toBeUndefined();
+    const newRequest = await chat.send('אני רוצה להזמין רכב קטן לנסיעה נוספת');
+    expect(newRequest.state.requestKey).toMatch(/^[0-9a-f-]{36}$/);
+    expect(newRequest.state.requestKey).not.toBe(first.state.requestKey);
   });
 
   it('does not send name and email collection turns to Gemini', async () => {
