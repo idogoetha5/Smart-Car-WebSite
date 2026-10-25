@@ -10,6 +10,7 @@ describe('SmartCar service knowledge — bilingual, published facts only', () =>
     ['נהג נוסף ואילו מסמכים צריך?', 'he', 'driver_documents', '/insurance'], ['Can I add an additional driver and what documents are needed?', 'en', 'driver_documents', '/insurance'],
     ['מה גיל המינימום וותק הרישיון?', 'he', 'age_licence', '/terms'], ['What is the minimum age and licence experience?', 'en', 'age_licence', '/terms'],
     ['אפשר לאסוף בנתבג ולהחזיר בירושלים?', 'he', 'different_location', '/terms'], ['Can I collect at the airport and return elsewhere?', 'en', 'different_location', '/terms'],
+    ['איסוף בנתב״ג והחזרה בתל אביב אפשרי?', 'he', 'different_location', '/terms'],
     ['מה מדיניות הביטול והשינוי?', 'he', 'cancellation', '/terms'], ['What is the cancellation policy?', 'en', 'cancellation', '/terms'],
     ['מה קורה אם הרכב לא זמין?', 'he', 'availability', '/terms'], ['What if my car is unavailable?', 'en', 'availability', '/terms'],
     ['מה עושים במקרה של נזק או תאונה?', 'he', 'damage_accident', '/terms'], ['What happens after an accident or damage?', 'en', 'damage_accident', '/terms'],

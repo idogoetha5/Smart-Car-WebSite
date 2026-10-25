@@ -37,8 +37,9 @@ export type RebuildStore = {
 const ORDER: BookingKey[] = ['pickupDate', 'returnDate', 'pickupLocation', 'returnLocation', 'vehicleNeed', 'customerName', 'customerEmail'];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const OUTSIDE = /מוני(?:ת|ות)|אוטובוס|רכבת|תחבורה ציבורית|אוויס|אלדן|סיקסט|הרץ|מתחר|חברת השכרה אחרת|\btaxi\b|\bbus\b|\btrain\b|\buber\b|\bavis\b|\bhertz\b|\bsixt\b|competitor|another rental company/i;
-const UNSAFE_CLAIM = /(?:יש לנו|יש אצלנו|זמין עכשיו|זמין בדיוק|פנוי עכשיו|מובטח|בטוח ש|בהחלט ייכנס|בהחלט יתאים|מזווד.{0,25}(?:ייכנס|יספיק)|we have available|available for (?:your|the) (?:trip|dates)|guaranteed|(?:definitely|easily) fits?|fits? (?:your|two|three|the) (?:bags|suitcases|luggage)|confirmed booking)/i;
+const UNSAFE_CLAIM = /(?:יש לנו|יש אצלנו|זמין עכשיו|זמין בדיוק|פנוי עכשיו|מובטח|בטוח ש|בהחלט ייכנס|בהחלט יתאים|מזווד.{0,25}(?:ייכנס|יספיק)|חיסכון בדלק|we have available|available for (?:your|the) (?:trip|dates)|guaranteed|(?:definitely|easily) fits?|fits? (?:your|two|three|the) (?:bags|suitcases|luggage)|great fuel efficiency|fuel savings|confirmed booking)/i;
 const PRICE_OR_AVAILABILITY = /מחיר|עלות|כמה.{0,12}(?:עול|יעל)|(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:price|cost|rate|available|availability)\b/iu;
+const AVAILABILITY_ONLY = /(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:available|availability|in stock)\b/iu;
 const MONTHS: Record<string, number> = { ינואר: 1, פברואר: 2, מרץ: 3, אפריל: 4, מאי: 5, יוני: 6, יולי: 7, אוגוסט: 8, ספטמבר: 9, אוקטובר: 10, נובמבר: 11, דצמבר: 12, january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12 };
 const EXPLICIT_RANGE = new RegExp(`(\\d{1,2})\\s*(?:עד|[-–]|to|until)\\s*(\\d{1,2})\\s+(?:ב)?(${Object.keys(MONTHS).join('|')})(?:\\s+(20\\d{2}))?`, 'iu');
 
@@ -46,6 +47,12 @@ function priceAnswer(locale: Locale): string {
   return locale === 'he'
     ? 'המחיר באתר הוא הערכה, לא הצעה סופית. מחיר וזמינות מדויקים נבדקים לפי התאריכים, הרכב והתוספות; אין לי אישור מלאי כרגע.'
     : 'The website price is an estimate, not a final offer. Exact price and availability depend on the dates, vehicle and extras; I cannot confirm inventory here.';
+}
+
+function availabilityAnswer(locale: Locale): string {
+  return locale === 'he'
+    ? 'אין לי גישה למלאי חי, ולכן לא אוכל לאשר שרכב מסוים פנוי. שלחו תאריכים ואבדוק עם הצוות מה אפשר להציע.'
+    : 'I do not have live inventory access, so I cannot confirm a specific car is available. Send your dates and the team can check options.';
 }
 
 function language(input: string, previous: Locale): Locale {
@@ -229,13 +236,14 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
 }
 
 function privateDetail(input: string, state: RebuildState): boolean {
-  if (state.step === 'rental_email') {
-    const email = input.trim();
-    if (EMAIL.test(email) && email.length <= 160) { state.booking.customerEmail = email; return true; }
+  if (state.phase !== 'booking') return false;
+  if (state.step === 'rental_email' || state.step === 'rental_confirm') {
+    const email = input.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0];
+    if (email && EMAIL.test(email) && email.length <= 160) { state.booking.customerEmail = email; return true; }
   }
-  if (state.step === 'rental_name') {
+  if (state.step === 'rental_name' || state.step === 'rental_confirm') {
     const explicit = input.match(/(?:קוראים לי|שמי|השם שלי|my name is|I am)\s+([\p{L}' -]{3,60})/iu)?.[1]?.trim();
-    const candidate = explicit ?? (/^[\p{L}' -]{3,60}$/u.test(input.trim()) ? input.trim() : '');
+    const candidate = explicit ?? (state.step === 'rental_name' && /^[\p{L}' -]{3,60}$/u.test(input.trim()) ? input.trim() : '');
     if (candidate && candidate.split(/\s+/).length <= 4) { state.booking.customerName = candidate; return true; }
   }
   return false;
@@ -280,7 +288,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : state.safetyAlertAt
         ? (he ? `תודה על העדכון. אל תמשיכו לנסוע אם יש חשש בטיחותי; לתיאום עזרה התקשרו עכשיו ל־${OFFICE_PHONE}.` : `Thanks for the update. Do not keep driving if the car may be unsafe; call ${OFFICE_PHONE} now to arrange help.`)
         : (he ? `השינוי מחייב בדיקה ואישור של הצוות; לא שיניתי את ההזמנה בשיחה הזו. אפשר להתקשר ל־${OFFICE_PHONE}.` : `The change needs team review and approval; I have not changed your booking here. Please call ${OFFICE_PHONE}.`);
-  } else if (state.phase === 'booking' && state.step === 'rental_confirm' && /לא מאשר|לא מאשרת|not confirm|not yet|רגע/i.test(input)) {
+  } else if (state.phase === 'booking' && state.step === 'rental_confirm' && /לא מאשר|לא מאשרת|not confirm|not yet/i.test(input)) {
     reply = he ? 'לא שלחתי בקשה. הפרטים נשמרו בשיחה; אפשר לתקן אותם או לאשר רק כשתרצו.' : 'I have not sent a request. The details remain in this conversation; you can correct them or confirm when ready.';
   } else if (state.phase === 'booking' && state.step === 'rental_confirm' && /^(?:אני מאשר(?:ת)?|מאשר(?:ת)?|כן,? מאשר(?:ת)?|i confirm|confirm)$/i.test(input)) {
     const id = await store.createRentalRequest(phone, state);
@@ -291,6 +299,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   } else {
     privateTurn = state.phase === 'booking' && (state.step === 'rental_name' || state.step === 'rental_email');
     const gotPrivate = privateDetail(input, state);
+    privateTurn ||= gotPrivate;
     let reading: BotReading | null = null;
     if (!gotPrivate && !EMAIL.test(input) && !/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/.test(input)) {
       const context: GeminiBotContext = {
@@ -355,7 +364,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else if (/ביטוח|כיסוי|insurance|covered/i.test(input) && /אותי|בשבילי|בוודאות|personal|me|definitely/i.test(input)) {
       reply = he ? 'לא אוכל לאשר כיסוי ביטוחי אישי בשיחה. הזכאות תלויה בגיל, בוותק הרישיון, בנהגים הרשומים ובקבוצת הרכב; הצוות יאשר את תנאי הכיסוי בהצעה ובחוזה לפני ההזמנה.' : 'I cannot confirm personal insurance cover here. Eligibility depends on age, licence experience, named drivers and vehicle group; the team will confirm the terms in the offer and agreement before booking.';
     } else if (PRICE_OR_AVAILABILITY.test(input)) {
-      reply = `${priceAnswer(state.locale)} ${state.booking.pickupDate ? (he ? 'מאיפה תרצו לאסוף?' : 'Where would you like to pick it up?') : (he ? 'לאילו תאריכים תצטרכו את הרכב?' : 'What dates do you need the car?')}`;
+      reply = AVAILABILITY_ONLY.test(input) && !/מחיר|עלות|עול|יעל|price|cost|rate/i.test(input)
+        ? availabilityAnswer(state.locale)
+        : `${priceAnswer(state.locale)} ${state.booking.pickupDate ? (he ? 'מאיפה תרצו לאסוף?' : 'Where would you like to pick it up?') : (he ? 'לאילו תאריכים תצטרכו את הרכב?' : 'What dates do you need the car?')}`;
     } else if (reading?.route === 'policy' || /[?؟]/.test(input) && getSmartCarServiceAnswer(input, state.locale)) {
       const fact = getSmartCarServiceAnswer(input, state.locale);
       reply = fact?.reply ?? (he ? 'את התנאי המדויק צריך לבדוק בהצעה ובחוזה הרלוונטיים. מה בדיוק חשוב לך לברר?' : 'The exact term needs checking in the relevant offer and agreement. What would you like to clarify?');

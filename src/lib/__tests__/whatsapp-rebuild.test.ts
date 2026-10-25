@@ -38,6 +38,13 @@ describe('replacement SmartCar conversation core', () => {
     expect(chat.create).not.toHaveBeenCalled();
   });
 
+  it('answers a specific website car availability question without a price detour', async () => {
+    const chat = memory(() => ({ ...base, reply: 'יש לנו רכב פנוי עכשיו.' }));
+    const result = await chat.send('האם ה־Kia Sportage מהאתר פנוי?');
+    expect(result.reply).toContain('אין לי גישה למלאי חי');
+    expect(result.reply).not.toContain('המחיר באתר');
+  });
+
   it('does not treat a bare yes or an explicit refusal as booking consent', async () => {
     const chat = memory(() => ({ ...base, route: 'book' }));
     await chat.send('אני מתלבט על רכב לסופ״ש');
@@ -264,6 +271,24 @@ describe('replacement SmartCar conversation core', () => {
     const withheld = await chat.send('אני לא מאשר עדיין');
     expect(withheld.reply).toContain('לא שלחתי בקשה');
     expect(withheld.state.step).toBe('rental_confirm');
+    expect(chat.create).not.toHaveBeenCalled();
+  });
+
+  it('updates private contact details in the summary before explicit consent without sending them to Gemini', async () => {
+    const chat = memory(() => ({ ...base, route: 'book', fields: {
+      pickupDate: { value: '2026-11-10', evidence: '10' }, returnDate: { value: '2026-11-13', evidence: '13' },
+      pickupLocation: { value: 'הרצליה', evidence: 'בהרצליה' }, returnLocation: { value: 'הרצליה', evidence: 'אותו מקום' },
+      vehicleNeed: { value: 'משפחתית', evidence: 'משפחתית' },
+    } }));
+    await chat.send('אני רוצה להזמין משפחתית מ-10 עד 13 בנובמבר, איסוף בהרצליה והחזרה באותו מקום');
+    await chat.send('לקוח בדיקה');
+    await chat.send('old@example.invalid');
+    const calls = chat.readTurn.mock.calls.length;
+    const updated = await chat.send('המייל שלי new@example.invalid');
+    expect(updated.reply).toContain('new@example.invalid');
+    expect(updated.reply).not.toContain('old@example.invalid');
+    expect(updated.state.history.at(-2)?.private).toBe(true);
+    expect(chat.readTurn).toHaveBeenCalledTimes(calls);
     expect(chat.create).not.toHaveBeenCalled();
   });
 
