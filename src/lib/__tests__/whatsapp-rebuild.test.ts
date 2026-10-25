@@ -140,6 +140,7 @@ describe('replacement SmartCar conversation core', () => {
     expect(isRebuiltSafetyMessage('מה עושים אם הרכב נתקע וצריך גרר?')).toBe(false);
     expect(isRebuiltSafetyMessage('מה אם תהיה תאונה בעתיד?')).toBe(false);
     expect(isRebuiltSafetyMessage('הרכב שלי במוסך אחרי תאונה, אני צריך לשכור רכב חלופי')).toBe(false);
+    expect(isRebuiltSafetyMessage('יש לכם שירות גרר?')).toBe(false);
     expect(isRebuiltSafetyMessage('נתקעתי עכשיו ויש עשן מהרכב')).toBe(true);
   });
 

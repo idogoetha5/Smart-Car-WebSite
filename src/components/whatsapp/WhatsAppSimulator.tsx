@@ -85,6 +85,7 @@ export default function WhatsAppSimulator({ endpoint = '/api/whatsapp/simulator'
         body: JSON.stringify({ sessionId, message, state: flowState }),
       });
       const data = await response.json().catch(() => null) as { reply?: string; escalated?: boolean; quickReplies?: QuickReply[]; state?: FlowState } | null;
+      if (response.status === 429) throw new Error('simulation-limit');
       if (!response.ok || !data) throw new Error('Simulation response unavailable');
       if (requestVersion !== resetVersion.current) return;
       setMessages((current) => [...current, {
@@ -94,9 +95,9 @@ export default function WhatsAppSimulator({ endpoint = '/api/whatsapp/simulator'
       }]);
       setQuickReplies(data.quickReplies ?? []);
       setFlowState(data.state ?? null);
-    } catch {
+    } catch (error) {
       if (requestVersion === resetVersion.current) {
-        setMessages((current) => [...current, { from: 'bot', body: 'הסימולציה אינה זמינה כרגע. אפשר לנסות שוב בעוד רגע.', error: true }]);
+        setMessages((current) => [...current, { from: 'bot', body: error instanceof Error && error.message === 'simulation-limit' ? 'הגעתם למכסת הודעות הבדיקה של הסימולציה. אפשר לנסות שוב בהמשך.' : 'הסימולציה אינה זמינה כרגע. אפשר לנסות שוב בעוד רגע.', error: true }]);
       }
     } finally {
       if (requestVersion === resetVersion.current) setSending(false);
