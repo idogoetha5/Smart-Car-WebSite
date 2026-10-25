@@ -67,10 +67,11 @@ describe('WhatsApp initial routing', () => {
     expect(requiresHumanHandoff('אני רוצה להחזיר את הרכב בנתב״ג')).toBe(false);
   });
 
-  it('keeps the normal webhook route independent of Claude', () => {
+  it('uses the rebuilt conversation core while retaining signed webhook verification', () => {
     const webhook = readFileSync(resolve(process.cwd(), 'src/app/api/whatsapp/webhook/route.ts'), 'utf8');
     expect(webhook).not.toContain('getWhatsAppAiReply');
-    expect(webhook).toContain('getWhatsAppFlowReply');
+    expect(webhook).toContain('getRebuiltBotReply');
+    expect(webhook).not.toContain('getWhatsAppFlowReply');
     expect(webhook).toContain('refusing 360dialog webhook');
     expect(webhook).not.toContain('accepting 360dialog webhook unverified');
   });
