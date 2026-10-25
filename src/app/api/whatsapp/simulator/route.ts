@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRebuiltBotReply, type RebuildState, type RebuildStore } from '@/lib/whatsapp-rebuild';
 import { readBotTurn, type BotReading } from '@/lib/whatsapp-rebuild-gemini';
 import { checkRateLimit } from '@/lib/ratelimit';
+import { cookies } from 'next/headers';
+import { verifyAdminToken } from '@/lib/admin-auth';
 
 export const runtime = 'nodejs';
 
@@ -45,7 +47,12 @@ export async function POST(request: NextRequest) {
   ]);
   if (!visitorLimit.success || !sessionLimit.success) return NextResponse.json({ error: 'Too many simulation messages' }, { status: 429 });
   const initialState = payload?.state?.version === 2 && ['he', 'en'].includes(payload.state.locale) ? payload.state : null;
-  const aiRehearsal = request.headers.get('x-smartcar-debug') === '1' && request.headers.get('x-smartcar-engine') === 'ai';
+  const wantsPrivateDebug = request.headers.get('x-smartcar-debug') === '1';
+  if (wantsPrivateDebug) {
+    const jar = await cookies();
+    if (!await verifyAdminToken(jar.get('admin_auth')?.value ?? '')) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+  const aiRehearsal = wantsPrivateDebug && request.headers.get('x-smartcar-engine') === 'ai';
   const useAi = aiRehearsal || request.headers.get('x-smartcar-engine') !== 'local' && process.env.WHATSAPP_ENGINE === 'ai';
   const store = simulationStore(sessionId, initialState, useAi);
   const result = await getRebuiltBotReply(`simulation-${sessionId}`, message, store);
@@ -56,6 +63,6 @@ export async function POST(request: NextRequest) {
     state: store.currentState(),
     source: result.source,
     model: result.model,
-    understood: request.headers.get('x-smartcar-debug') === '1' ? store.understood() : undefined,
+    understood: wantsPrivateDebug ? store.understood() : undefined,
   });
 }

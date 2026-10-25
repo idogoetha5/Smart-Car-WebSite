@@ -1,10 +1,12 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ flow: vi.fn(), limit: vi.fn(), interpret: vi.fn() }));
+const mocks = vi.hoisted(() => ({ flow: vi.fn(), limit: vi.fn(), interpret: vi.fn(), admin: false }));
 vi.mock('@/lib/whatsapp-rebuild', () => ({ getRebuiltBotReply: mocks.flow }));
 vi.mock('@/lib/whatsapp-rebuild-gemini', () => ({ readBotTurn: mocks.interpret }));
 vi.mock('@/lib/ratelimit', () => ({ checkRateLimit: mocks.limit }));
+vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => ({ value: 'fictional-admin-cookie' }) }) }));
+vi.mock('@/lib/admin-auth', () => ({ verifyAdminToken: async () => mocks.admin }));
 
 import { POST } from './route';
 
@@ -18,6 +20,7 @@ function request(message = 'שלום') {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.admin = false;
   mocks.limit.mockResolvedValue({ success: true });
   mocks.flow.mockImplementation(async (_phone, _message, store) => ({ reply: 'שלום', source: 'local', state: await store.loadState('simulation-testsession123') ?? { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] } }));
 });
@@ -33,6 +36,7 @@ describe('public WhatsApp simulator limits', () => {
   });
 
   it('passes the interpreter into an AI-only isolated simulation', async () => {
+    mocks.admin = true;
     const aiRequest = request();
     aiRequest.headers.set('x-smartcar-debug', '1');
     aiRequest.headers.set('x-smartcar-engine', 'ai');
@@ -44,5 +48,15 @@ describe('public WhatsApp simulator limits', () => {
     const store = mocks.flow.mock.calls[0][2] as { readTurn: (message: string, context: { phase: string }) => Promise<unknown> };
     await store.readTurn('שלום', { phase: 'explore' });
     expect(mocks.interpret).toHaveBeenCalledWith('שלום', { phase: 'explore' });
+  });
+
+  it('rejects public debug headers before they can force a paid model call', async () => {
+    const aiRequest = request();
+    aiRequest.headers.set('x-smartcar-debug', '1');
+    aiRequest.headers.set('x-smartcar-engine', 'ai');
+    const response = await POST(aiRequest);
+    expect(response.status).toBe(403);
+    expect(mocks.flow).not.toHaveBeenCalled();
+    expect(mocks.interpret).not.toHaveBeenCalled();
   });
 });

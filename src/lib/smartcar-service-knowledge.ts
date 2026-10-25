@@ -75,8 +75,8 @@ export const ANSWERS: Record<ServiceKnowledgeTopic, LocalisedAnswer> = {
   },
   damage_accident: {
     topic: 'damage_accident', href: '/terms', linkLabelHe: 'לתנאי נזק ותאונה', linkLabelEn: 'Damage and accident terms',
-    he: 'מצטערים שזה קרה. אם יש סכנה או נפגעים, פנו קודם לגורמי החירום. לאחר מכן דווחו ל־SmartCar בתוך שעה ומלאו דוח תאונה; אי־דיווח עלול לבטל כיסוי ביטוחי. נציג מטפל בפנייה עם הפרטים שכבר שיתפתם.',
-    en: 'I’m sorry this happened. If anyone is hurt or there is danger, contact emergency services first. Then report it to SmartCar within one hour and complete an accident report; failure to report may void insurance cover. A representative will handle this with the details already shared.',
+    he: 'אם יש סכנה או נפגעים, פנו קודם לגורמי החירום. לאחר מכן דווחו ל־SmartCar בתוך שעה ומלאו דוח תאונה; אי־דיווח עלול לבטל כיסוי ביטוחי. לתיאום טיפול במקרה מסוים התקשרו למשרד.',
+    en: 'If anyone is hurt or there is danger, contact emergency services first. Then report it to SmartCar within one hour and complete an accident report; failure to report may void insurance cover. Call the office to arrange help for a specific case.',
   },
   opening_hours: {
     topic: 'opening_hours', href: '/contact', linkLabelHe: 'שעות פתיחה באתר', linkLabelEn: 'Opening hours',

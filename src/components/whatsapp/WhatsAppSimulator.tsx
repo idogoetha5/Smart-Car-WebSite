@@ -6,30 +6,25 @@ import { Bot, CheckCircle2, RotateCcw, Send, ShieldCheck, Sparkles } from 'lucid
 type Message = { from: 'customer' | 'bot'; body: string; warning?: boolean; error?: boolean };
 type QuickReply = { label: string; message: string };
 type FlowState = {
+  version: 2;
+  phase: 'explore' | 'booking' | 'service';
   step: string;
   locale: 'he' | 'en';
   handedOff?: boolean;
-  lastQuestion?: string;
-  pickupDate?: string;
-  dropoffDate?: string;
-  pickupTime?: string;
-  returnTime?: string;
-  pickupLocation?: string;
-  dropoffLocation?: string;
-  vehiclePreference?: string;
-  carSale?: { mode?: string; selectedCarIds?: string[]; budget?: number };
+  interest?: 'leasing' | 'sale';
 } | null;
 
 const initial: Message[] = [{
   from: 'bot',
-  body: 'ברוכים הבאים ל־SmartCar 👋\n\nאפשר לכתוב לנו חופשי — גם משפט חלקי או מבולגן. נבין אם מדובר בהשכרה, הזמנה קיימת, ליסינג, רכישת רכב או עזרה בדרך, ונשאל רק את הדבר הבא שחסר.',
+  body: 'ברוכים הבאים ל־SmartCar 👋\n\nאפשר לשאול על השכרה, הזמנה קיימת, ליסינג, רכישת רכב או עזרה בדרך. זו סימולציה בלבד; היא אינה שולחת הודעות או יוצרת הזמנות.',
 }];
 
 const initialReplies: QuickReply[] = [
-  { label: 'השכרת רכב', message: '1' },
-  { label: 'בירור הזמנה קיימת', message: '2' },
-  { label: 'ליסינג או רכישה', message: '3' },
-  { label: 'תאונה, פנצ׳ר או תקלה', message: '6' },
+  { label: 'השכרת רכב', message: 'אני מחפש רכב להשכרה, מה כדאי לבדוק?' },
+  { label: 'הזמנה קיימת', message: 'יש לי הזמנה קיימת ואני צריך עזרה' },
+  { label: 'ליסינג', message: 'אני מתעניין בליסינג' },
+  { label: 'רכישת רכב', message: 'אני מחפש רכב לקנייה' },
+  { label: 'עזרה בדרך', message: 'שכרתי רכב ויש תקלה, אני צריך עזרה בדרך' },
   { label: 'English', message: 'English' },
 ];
 
@@ -40,13 +35,11 @@ function newSessionId() {
 function conversationStatus(state: FlowState) {
   if (!state) return { label: 'אפשר להתחיל בכל נושא', detail: 'בחירת התחלה מהירה או הודעה חופשית', tone: 'neutral' as const };
   if (state.handedOff) return { label: state.locale === 'en' ? 'Representative context prepared' : 'ההקשר מוכן לנציג', detail: state.locale === 'en' ? 'The simulation will not contact anyone.' : 'בסימולציה לא מתבצעת פנייה לאיש צוות.', tone: 'handoff' as const };
-  if (state.lastQuestion === 'booking_lookup') return { label: state.locale === 'en' ? 'Existing booking enquiry' : 'בירור הזמנה קיימת', detail: state.locale === 'en' ? 'Waiting for a reference or full name' : 'מחכים למספר הזמנה או לשם מלא', tone: 'active' as const };
-  if (state.lastQuestion === 'commercial_choice') return { label: state.locale === 'en' ? 'Commercial enquiry' : 'בירור מסחרי', detail: state.locale === 'en' ? 'Private lease, business lease, or a listed car' : 'ליסינג פרטי, ליסינג עסקי או רכב מהקטלוג', tone: 'active' as const };
-  if (state.carSale?.mode === 'car_sale') return { label: state.locale === 'en' ? 'Cars for sale' : 'רכבים למכירה', detail: state.locale === 'en' ? 'Only verified catalogue details are shown' : 'מוצגים רק פרטי קטלוג מאומתים', tone: 'active' as const };
+  if (state.phase === 'service') return { label: state.locale === 'en' ? 'Service enquiry' : 'פניית שירות', detail: state.locale === 'en' ? 'Specific changes need team review.' : 'שינויים מסוימים דורשים בדיקת צוות.', tone: 'active' as const };
+  if (state.interest) return { label: state.locale === 'en' ? 'Commercial enquiry' : 'בירור מסחרי', detail: state.locale === 'en' ? 'The team checks leasing and sale offers.' : 'הצעות ליסינג ומכירה נבדקות מול הצוות.', tone: 'active' as const };
 
   const steps: Record<string, { he: string; en: string }> = {
     rental_dates: { he: 'מתאמים תאריכים', en: 'Collecting dates' },
-    rental_times: { he: 'מתאמים שעות', en: 'Collecting times' },
     rental_locations: { he: 'מתאמים מיקומים', en: 'Collecting locations' },
     rental_vehicle: { he: 'מתאימים קטגוריית רכב', en: 'Choosing a vehicle category' },
     rental_name: { he: 'מסכמים בקשת השכרה', en: 'Preparing the rental request' },

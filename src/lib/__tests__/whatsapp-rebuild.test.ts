@@ -275,6 +275,22 @@ describe('replacement SmartCar conversation core', () => {
     expect(result.reply).toMatch(/תאריכים/);
   });
 
+  it('closes politely and lists needed details during a Gemini outage', async () => {
+    const chat = memory(() => null);
+    const details = await chat.send('איזה פרטים צריך כדי לבדוק?');
+    expect(details.reply).toContain('תאריכי איסוף והחזרה');
+    const thanks = await chat.send('תודה.');
+    expect(thanks.reply).toContain('בשמחה');
+    expect(thanks.reply).not.toContain('לאילו תאריכים');
+  });
+
+  it('answers a hypothetical roadside question without claiming a representative took over', async () => {
+    const chat = memory(() => null);
+    const answer = await chat.send('מה אם תהיה תאונה בעתיד?');
+    expect(answer.escalate).toBe(false);
+    expect(answer.reply).not.toContain('נציג מטפל');
+  });
+
   it('recovers after a provider outage without losing supplied trip facts', async () => {
     let available = false;
     const chat = memory(() => available ? { ...base, direction: 'family' } : null);
