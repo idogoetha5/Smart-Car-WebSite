@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
-import { freeModelChain } from '@/lib/whatsapp-gemini-client';
+import { botModelForCurrentScope } from '@/lib/whatsapp-rebuild-gemini';
 const mocks = vi.hoisted(() => ({ auth: false, limit: vi.fn(), simulate: vi.fn() }));
 vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => ({ value: 'fictional' }) }) }));
 vi.mock('@/lib/admin-auth', () => ({ verifyAdminToken: async () => mocks.auth }));
@@ -14,7 +14,7 @@ const request = (body = '{}', origin = 'https://www.smartcar.co.il') => new Next
 beforeEach(() => {
   vi.clearAllMocks(); mocks.auth=false;
   mocks.limit.mockResolvedValue({ success:true });
-  mocks.simulate.mockImplementation(async () => NextResponse.json({ reply:'fictional', models:freeModelChain() }));
+  mocks.simulate.mockImplementation(async () => NextResponse.json({ reply:'fictional', models:[botModelForCurrentScope()] }));
 });
 describe('owner-only fixed model comparison', () => {
   it('refuses unauthenticated and inbox-only callers before spending or simulating', async () => {
@@ -42,7 +42,7 @@ describe('owner-only fixed model comparison', () => {
     const response=await POST(request()); const body=await response.json();
     expect(body.models).toEqual(['gemini-3.8-flash']);
     expect(body.evaluation).toEqual({ model:'gemini-3.8-flash',usage:null });
-    expect(freeModelChain()).toEqual(['gemini-3.5-flash-lite']);
+    expect(botModelForCurrentScope()).toBe('gemini-3.5-flash-lite');
     const forwarded=mocks.simulate.mock.calls[0][0] as NextRequest;
     expect(forwarded.headers.get('x-smartcar-engine')).toBe('ai');
     expect(forwarded.headers.get('x-smartcar-models')).toBeNull();
@@ -51,6 +51,6 @@ describe('owner-only fixed model comparison', () => {
   it('preserves simulator validation errors and releases the private context', async () => {
     mocks.auth=true; mocks.simulate.mockResolvedValue(NextResponse.json({ error:'Invalid simulation message' },{status:400}));
     expect((await POST(request())).status).toBe(400);
-    expect(freeModelChain()).toEqual(['gemini-3.5-flash-lite']);
+    expect(botModelForCurrentScope()).toBe('gemini-3.5-flash-lite');
   });
 });

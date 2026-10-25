@@ -22,6 +22,11 @@ export type GeminiBotContext = {
   today: string;
 };
 
+/** Only the authenticated evaluation scope may select the private comparison model. */
+export function botModelForCurrentScope(): string {
+  return activeModelEvaluation()?.model ?? 'gemini-3.5-flash-lite';
+}
+
 const ROUTES: BotRoute[] = ['explore', 'book', 'service', 'policy', 'leasing', 'sale', 'human', 'social'];
 const DIRECTIONS: VehicleDirection[] = ['compact', 'family', 'suv', 'seven_seat', 'none'];
 const FIELD_NAMES = ['pickupDate', 'returnDate', 'pickupLocation', 'returnLocation', 'vehicleNeed', 'passengers', 'luggage', 'childSeats'] as const;
@@ -77,7 +82,7 @@ function validatedFields(raw: unknown, message: string): BotFields {
 export async function readBotTurn(message: string, context: GeminiBotContext): Promise<BotReading | null> {
   // The fixed customer model is never selected by an environment chain or a
   // caller header. The owner-only authenticated evaluation scope is separate.
-  const model = activeModelEvaluation()?.model ?? 'gemini-3.5-flash-lite';
+  const model = botModelForCurrentScope();
   const safeMessage = scrub(message);
   const recent = context.recent.slice(-8).map(item => ({ from: item.from, text: scrub(item.text) }));
   const known = Object.fromEntries(Object.entries(context.known).map(([key, value]) => [key, typeof value === 'string' ? scrub(value) : value]));

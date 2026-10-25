@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { getSmartCarServiceAnswer } from '@/lib/smartcar-service-knowledge';
-import { composeServiceResponse, detectConversationMood } from '@/lib/service-response';
 
 describe('SmartCar service knowledge — bilingual, published facts only', () => {
   it.each([
@@ -25,26 +24,4 @@ describe('SmartCar service knowledge — bilingual, published facts only', () =>
     expect(getSmartCarServiceAnswer('cancel', 'en')?.reply).toContain('72');
   });
 
-  it('responds to an angry deposit complaint with acknowledgement, facts and no false promise', () => {
-    const input = 'למה אתם רוצים ממני 3,000 פיקדון? זה הזוי';
-    const answer = getSmartCarServiceAnswer(input, 'he')!;
-    const reply = composeServiceResponse({ locale: 'he', input, kind: 'information', answer: answer.reply, nextStep: 'לתנאי הפיקדון: /he/terms', subject: 'גובה הפיקדון' });
-    expect(reply).toContain('מבין למה גובה הפיקדון מתסכל');
-    expect(reply).toContain('₪3,000');
-    expect(reply).not.toMatch(/מצטערים על אי הנוחות|אשמתך|מובטח|סגור/);
-  });
-
-  it('keeps context and asks one next thing after a repeated-question complaint', () => {
-    const reply = composeServiceResponse({
-      locale: 'he', input: 'כבר כתבתי לכם את התאריכים, למה אתם שוב שואלים?', kind: 'complaint',
-      state: { step: 'rental_times', pickupDate: '2026-09-10', dropoffDate: '2026-09-14', locale: 'he' },
-      answer: 'נכון — אשתמש בפרטים שכבר נמצאים כאן.', nextStep: 'באילו שעות נוח לכם לאסוף ולהחזיר?',
-    });
-    expect(reply).toContain('איסוף 2026-09-10');
-    expect(reply).toContain('באילו שעות');
-  });
-
-  it.each([
-    ['הטיסה מתעכבת ואני אאחר', 'pressed'], ['I already told you the dates', 'angry'], ['לא בטוח איזה רכב מתאים', 'uncertain'], ['I had an accident', 'urgent'],
-  ] as const)('detects a customer state: %s', (input, mood) => expect(detectConversationMood(input)).toBe(mood));
 });

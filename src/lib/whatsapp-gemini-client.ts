@@ -1,4 +1,3 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
 import { reportBotIncident, type BotIncident } from '@/lib/whatsapp-incidents';
 import { activeModelEvaluation, recordEvaluationUsage } from '@/lib/whatsapp-model-evaluation';
 
@@ -80,52 +79,6 @@ export async function generateSmartCarContent(params: { model: string; body: unk
   }
 }
 
-/** Owner requested one Gemini only. Legacy exported names remain compatible;
- * they are not a claim of free usage or independent model quotas. */
-const chainOverride = new AsyncLocalStorage<string[]>();
-const KNOWN_MODELS = ['gemini-3.5-flash-lite'];
-
-/** Demo diagnostic override, restricted to the sole configured Gemini. */
-export function withModelChain<T>(models: string[], work: () => Promise<T>): Promise<T> {
-  const allowed = models.filter((model) => KNOWN_MODELS.includes(model));
-  return allowed.length ? chainOverride.run(allowed, work) : work();
-}
-
-export function freeModelChain(): string[] {
-  const evaluation = activeModelEvaluation();
-  if (evaluation) return [evaluation.model];
-  // Owner request: one Gemini model only while coaching and verifying quality.
-  // Ignore old environment chains and simulator overrides so they cannot silently
-  // re-enable Gemma or switch the model being evaluated.
-  return ['gemini-3.5-flash-lite'];
-}
-
-const isGemma = (model: string) => /^gemma/i.test(model);
-
-/**
- * Gemma has no JSON-schema output mode: the schema goes into the instructions instead, and the
- * answer is read as JSON from the text (see readJson).
- */
-function forGemma(body: unknown): unknown {
-  const copy = JSON.parse(JSON.stringify(body)) as {
-    systemInstruction?: { parts?: Array<{ text?: string }> };
-    generationConfig?: Record<string, unknown> & { responseFormat?: { text?: { schema?: unknown } }; responseJsonSchema?: unknown };
-  };
-  const schema = copy.generationConfig?.responseFormat?.text?.schema ?? copy.generationConfig?.responseJsonSchema;
-  if (copy.generationConfig) {
-    delete copy.generationConfig.responseFormat;
-    delete copy.generationConfig.responseJsonSchema;
-    delete copy.generationConfig.responseMimeType;
-  }
-  if (schema) {
-    const rule = `\n\nOUTPUT: reply with ONE JSON object only — no markdown, no code fence, no text before or after — matching this JSON schema:\n${JSON.stringify(schema)}`;
-    const parts = copy.systemInstruction?.parts ?? [];
-    if (parts.length) parts[parts.length - 1].text = `${parts[parts.length - 1].text ?? ''}${rule}`;
-    else copy.systemInstruction = { parts: [{ text: rule }] };
-  }
-  return copy;
-}
-
 /** The JSON object in a model's answer, also when it is wrapped in a code fence or a sentence. */
 export function readJson(text: string): unknown {
   try {
@@ -136,37 +89,4 @@ export function readJson(text: string): unknown {
     if (start < 0 || end <= start) throw new Error('no JSON object in the answer');
     return JSON.parse(text.slice(start, end + 1));
   }
-}
-
-/** One configured model, with at most one validated-content repair. This never
- * retries a failed provider call or a WhatsApp/business action. */
-export async function generateWithFreeModels(body: unknown, budgetMs = 14_000, accept?: (text: string) => boolean, repairInstruction?: string): Promise<GeminiConnectionResult & { model?: string }> {
-  const started = Date.now();
-  let last: GeminiConnectionResult = { ok: false, reason: 'cooldown' };
-  for (const model of freeModelChain()) {
-    const original = isGemma(model) ? forGemma(body) : body;
-    let requestBody = original;
-    for (let attempt = 0; attempt < (repairInstruction ? 2 : 1); attempt++) {
-      const remaining = budgetMs - (Date.now() - started);
-      if (remaining <= 0) break;
-      const result = await generateSmartCarContent({ model, body: requestBody, timeoutMs: remaining });
-      if (!result.ok) {
-        if (result.reason === 'missing_key') return result;
-        last = result;
-        break;
-      }
-      let valid = true;
-      try { valid = accept ? accept(result.text) : true; } catch { valid = false; }
-      if (valid) return { ...result, model };
-      last = { ok: false, reason: 'empty' };
-      if (repairInstruction && original && typeof original === 'object') {
-        const input = original as { systemInstruction?: { parts?: unknown[] } };
-        requestBody = { ...original, systemInstruction: { parts: [
-          ...(Array.isArray(input.systemInstruction?.parts) ? input.systemInstruction.parts : []),
-          { text: repairInstruction },
-        ] } };
-      }
-    }
-  }
-  return last;
 }
