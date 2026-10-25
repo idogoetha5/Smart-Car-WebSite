@@ -33,7 +33,7 @@ async function saveState(phone: string, state: RebuildState): Promise<void> {
 
 async function createRentalRequest(phone: string, state: RebuildState): Promise<string | null> {
   const b = state.booking;
-  if (!state.requestKey || !b.pickupDate || !b.returnDate || !b.pickupLocation || !b.returnLocation || !b.vehicleNeed || !b.customerName || !b.customerEmail) return null;
+  if (!state.requestKey || !b.pickupDate || !b.returnDate || !b.pickupLocation || !b.returnLocation || !b.vehicleNeed || !['21-23', '24-plus'].includes(b.driverAgeRange ?? '') || !b.customerName || !b.customerEmail) return null;
   const canonical = normalizeWhatsAppPhone(phone);
   if (!canonical) return null;
   const consent = termsConsent(state.locale);
@@ -44,7 +44,7 @@ async function createRentalRequest(phone: string, state: RebuildState): Promise<
     pickup_date: b.pickupDate, dropoff_date: b.returnDate,
     pickup_time: '09:00', return_time: '09:00',
     pickup_location: b.pickupLocation, dropoff_location: b.returnLocation,
-    vehicle_preference: b.vehicleNeed,
+    vehicle_preference: b.vehicleNeed, driver_age_range: b.driverAgeRange,
     trip_needs: [b.passengers && `${b.passengers} passengers`, b.luggage && `${b.luggage} luggage`, b.childSeats && `${b.childSeats} child seats`, 'times not given — coordinate with customer'].filter(Boolean).join(', '),
     locale: state.locale, status: 'PENDING', terms_version: consent.version,
     terms_text_hash: consent.hash, terms_accepted_at: new Date().toISOString(), consent_source: 'whatsapp',

@@ -6,14 +6,14 @@ import { readBotTurn, type BotReading, type GeminiBotContext, type VehicleDirect
 
 type Locale = 'he' | 'en';
 type Phase = 'explore' | 'booking' | 'service';
-type BookingKey = 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'customerName' | 'customerEmail';
+type BookingKey = 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'driverAgeRange' | 'customerName' | 'customerEmail';
 type BookingDraft = Partial<Record<BookingKey, string>> & { passengers?: number; luggage?: number; childSeats?: number };
 type HistoryEntry = { from: 'customer' | 'bot'; text: string; private?: boolean };
 
 export type RebuildState = {
   version: 2;
   phase: Phase;
-  step: 'menu' | 'rental_dates' | 'rental_locations' | 'rental_vehicle' | 'rental_name' | 'rental_email' | 'rental_confirm';
+  step: 'menu' | 'rental_dates' | 'rental_locations' | 'rental_vehicle' | 'rental_age' | 'rental_name' | 'rental_email' | 'rental_confirm';
   locale: Locale;
   booking: BookingDraft;
   requestKey?: string;
@@ -35,7 +35,7 @@ export type RebuildStore = {
   readTurn?: typeof readBotTurn;
 };
 
-const ORDER: BookingKey[] = ['pickupDate', 'returnDate', 'pickupLocation', 'returnLocation', 'vehicleNeed', 'customerName', 'customerEmail'];
+const ORDER: BookingKey[] = ['pickupDate', 'returnDate', 'pickupLocation', 'returnLocation', 'vehicleNeed', 'driverAgeRange', 'customerName', 'customerEmail'];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const OUTSIDE = /מוני(?:ת|ות)|אוטובוס|רכבת|תחבורה ציבורית|אוויס|אלדן|סיקסט|הרץ|מתחר|חברת השכרה אחרת|\btaxi\b|\bbus\b|\btrain\b|\buber\b|\bavis\b|\bhertz\b|\bsixt\b|competitor|another rental company/i;
 const UNSAFE_CLAIM = /(?:יש לנו|יש אצלנו|זמין עכשיו|זמין בדיוק|פנוי עכשיו|מובטח|בטוח ש|בהחלט ייכנס|בהחלט יתאים|מזווד.{0,25}(?:ייכנס|יספיק)|חיסכון בדלק|we have available|available for (?:your|the) (?:trip|dates)|guaranteed|(?:definitely|easily) fits?|fits? (?:your|two|three|the) (?:bags|suitcases|luggage)|great fuel efficiency|fuel savings|confirmed booking)/i;
@@ -76,6 +76,7 @@ function bookingStep(missing: BookingKey | null): RebuildState['step'] {
   if (missing === 'pickupDate' || missing === 'returnDate') return 'rental_dates';
   if (missing === 'pickupLocation' || missing === 'returnLocation') return 'rental_locations';
   if (missing === 'vehicleNeed') return 'rental_vehicle';
+  if (missing === 'driverAgeRange') return 'rental_age';
   if (missing === 'customerName') return 'rental_name';
   return 'rental_email';
 }
@@ -84,13 +85,13 @@ function question(key: BookingKey, locale: Locale): string {
   const he: Record<BookingKey, string> = {
     pickupDate: 'באיזה תאריך תרצו לאסוף את הרכב?', returnDate: 'באיזה תאריך תחזירו את הרכב?',
     pickupLocation: 'מאיפה תרצו לאסוף את הרכב?', returnLocation: 'איפה תרצו להחזיר אותו?',
-    vehicleNeed: 'איזה סוג רכב תרצו, או כמה נוסעים וציוד יהיו?', customerName: 'על איזה שם לרשום את הבקשה?',
+    vehicleNeed: 'איזה סוג רכב תרצו, או כמה נוסעים וציוד יהיו?', driverAgeRange: 'מה קבוצת הגיל של הנהג? בחרו 21–23 או 24+ (גיל 24 שייך ל־24+).', customerName: 'על איזה שם לרשום את הבקשה?',
     customerEmail: 'לאיזו כתובת מייל לשלוח את סיכום הבקשה?',
   };
   const en: Record<BookingKey, string> = {
     pickupDate: 'What date would you like to pick up the car?', returnDate: 'What date will you return it?',
     pickupLocation: 'Where would you like to pick it up?', returnLocation: 'Where will you return it?',
-    vehicleNeed: 'What kind of car do you need, or how many passengers and bags?', customerName: 'What name should I put on the request?',
+    vehicleNeed: 'What kind of car do you need, or how many passengers and bags?', driverAgeRange: 'What is the driver age group: 21–23 or 24+? Age 24 belongs to 24+.', customerName: 'What name should I put on the request?',
     customerEmail: 'What email address should receive the request summary?',
   };
   return (locale === 'he' ? he : en)[key];
@@ -132,6 +133,17 @@ function explicitBooking(input: string): boolean {
   if (/לא רוצה להזמין|רק מתעניין|רק שואל|לא עכשיו|not ready|just asking|don't book|do not book/i.test(input)) return false;
   if (/[?؟]/.test(input) && /כדאי|האם|should|would it|how/i.test(input)) return false;
   return /אני רוצה (?:להזמין|לשכור)|בוא(?:ו)? נתקדם|בוא(?:ו)? נלך על זה|אפשר להתחיל (?:הזמנה|בקשה)|תכין(?:ו)? (?:לי )?בקשה|אני (?:אזמין|אשכור)|I(?:'d| would) like to (?:book|rent)|let'?s (?:book|proceed)|I want to (?:book|rent)|go ahead with (?:the )?(?:rental|request)/i.test(input);
+}
+
+function driverAgeRange(input: string, state: RebuildState): '21-23' | '24-plus' | null {
+  if (/(?:^|\D)21\s*[-–]\s*23(?:\D|$)/u.test(input)) return '21-23';
+  if (/(?:^|\D)24\s*\+(?:\D|$)/u.test(input)) return '24-plus';
+  if (!/(?:בן|בת|גיל|age|aged)/i.test(input) && !(state.phase === 'booking' && state.step === 'rental_age')) return null;
+  const age = input.match(/(?:בן|בת|גיל|age(?:d)?(?: is)?)\s*(\d{2})(?!\d)/i)?.[1]
+    ?? (state.phase === 'booking' && state.step === 'rental_age' ? input.trim().match(/^(\d{2})$/)?.[1] : undefined);
+  if (!age) return null;
+  const value = Number(age);
+  return value >= 21 && value <= 23 ? '21-23' : value >= 24 && value <= 99 ? '24-plus' : null;
 }
 
 function safety(input: string): 'accident' | 'breakdown' | null {
@@ -255,8 +267,8 @@ function privateDetail(input: string, state: RebuildState): boolean {
 function summary(state: RebuildState): string {
   const b = state.booking;
   const consent = termsConsent(state.locale);
-  if (state.locale === 'en') return `Request summary: ${b.vehicleNeed}, ${b.pickupDate} to ${b.returnDate}, pickup ${b.pickupLocation}, return ${b.returnLocation}, name ${b.customerName}, email ${b.customerEmail}. This is a request, not a confirmed booking. ${consent.text} Terms: https://www.smartcar.co.il/en/terms Privacy: https://www.smartcar.co.il/en/privacy Reply “I confirm” only if you agree to the details and terms and want to send the request.`;
-  return `סיכום הבקשה: ${b.vehicleNeed}, מ־${b.pickupDate} עד ${b.returnDate}, איסוף ב${b.pickupLocation}, החזרה ב${b.returnLocation}, שם ${b.customerName}, מייל ${b.customerEmail}. זו בקשה לבדיקה, לא הזמנה מאושרת. ${consent.text} תנאים: https://www.smartcar.co.il/he/terms פרטיות: https://www.smartcar.co.il/he/privacy שלחו ״אני מאשר/ת״ רק אם אתם מסכימים לפרטים ולתנאים ורוצים לשלוח את הבקשה.`;
+  if (state.locale === 'en') return `Request summary: ${b.vehicleNeed}, ${b.pickupDate} to ${b.returnDate}, pickup ${b.pickupLocation}, return ${b.returnLocation}, driver age ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}, name ${b.customerName}, email ${b.customerEmail}. This is a request, not a confirmed booking. ${consent.text} Terms: https://www.smartcar.co.il/en/terms Privacy: https://www.smartcar.co.il/en/privacy Reply “I confirm” only if you agree to the details and terms and want to send the request.`;
+  return `סיכום הבקשה: ${b.vehicleNeed}, מ־${b.pickupDate} עד ${b.returnDate}, איסוף ב${b.pickupLocation}, החזרה ב${b.returnLocation}, גיל נהג ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}, שם ${b.customerName}, מייל ${b.customerEmail}. זו בקשה לבדיקה, לא הזמנה מאושרת. ${consent.text} תנאים: https://www.smartcar.co.il/he/terms פרטיות: https://www.smartcar.co.il/he/privacy שלחו ״אני מאשר/ת״ רק אם אתם מסכימים לפרטים ולתנאים ורוצים לשלוח את הבקשה.`;
 }
 
 function pushHistory(state: RebuildState, input: string, reply: string, privateTurn: boolean): void {
@@ -300,18 +312,24 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   } else if (state.phase === 'booking' && state.step === 'rental_confirm' && /לא מאשר|לא מאשרת|not confirm|not yet/i.test(input)) {
     reply = he ? 'לא שלחתי בקשה. הפרטים נשמרו בשיחה; אפשר לתקן אותם או לאשר רק כשתרצו.' : 'I have not sent a request. The details remain in this conversation; you can correct them or confirm when ready.';
   } else if (state.phase === 'booking' && state.step === 'rental_confirm' && /^(?:אני מאשר(?:ת)?|מאשר(?:ת)?|כן,? מאשר(?:ת)?|i confirm|confirm)$/i.test(input)) {
+    const missing = nextMissing(state.booking);
+    if (missing) {
+      state.step = bookingStep(missing);
+      reply = question(missing, state.locale);
+    } else {
     const id = await store.createRentalRequest(phone, state);
     if (id) {
       state.completedRequestId = id; state.phase = 'explore'; state.step = 'menu'; state.booking = {};
       delete state.requestKey;
       reply = store.isSimulation ? (he ? 'בסימולציה הבקשה נקלטה לצורכי בדיקה בלבד; לא נוצרה הזמנה אמיתית.' : 'The request was recorded in this simulation only; no real booking was created.') : (he ? `בקשת ההשכרה נשלחה לבדיקה, מספר ${id}. היא עדיין אינה הזמנה מאושרת.` : `Your rental request was sent for review, reference ${id}. It is not a confirmed booking yet.`);
     } else reply = he ? 'לא הצלחתי לשמור את הבקשה כרגע. לא נוצרה הזמנה; אפשר לנסות שוב או להתקשר למשרד.' : 'I could not save the request. No booking was created; please try again or call the office.';
+    }
   } else {
     privateTurn = state.phase === 'booking' && (state.step === 'rental_name' || state.step === 'rental_email');
     const gotPrivate = privateDetail(input, state);
     privateTurn ||= gotPrivate;
     let reading: BotReading | null = null;
-    if (!gotPrivate && !EMAIL.test(input) && !/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/.test(input)) {
+    if (!gotPrivate && !(state.phase === 'booking' && state.step === 'rental_age' && driverAgeRange(input, state)) && !EMAIL.test(input) && !/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/.test(input)) {
       const context: GeminiBotContext = {
         locale: state.locale, phase: state.phase, today: israelDate(),
         recent: state.history.filter(item => !item.private).slice(-8).map(({ from, text }) => ({ from, text })),
@@ -323,6 +341,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const statedRange = explicitDateRange(input);
     if (statedRange) Object.assign(state.booking, statedRange);
     applyExplicitLocations(input, state.booking);
+    const statedAgeRange = driverAgeRange(input, state);
+    if (statedAgeRange) state.booking.driverAgeRange = statedAgeRange;
     const declines = /לא רוצה להזמין|לא מבקש להזמין|אל תזמין|לא עכשיו|רק מתעניין|עדיין בודק|don't book|cancel this request|not ready to book|just looking/i.test(input);
     const lastBot = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
     const modelSupportedProceed = reading?.route === 'book' && /^(?:כן|יאללה|בוא|בואי|yes|okay|ok|go ahead|let's proceed)/i.test(input)
@@ -383,7 +403,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else if (/^(?:תודה(?: רבה)?[.!\s]*|thanks?(?: a lot)?[.!\s]*|thank you[.!\s]*)$/i.test(input)) {
       reply = he ? 'בשמחה. כשתרצו להמשיך, אני כאן.' : 'You are welcome. I am here when you are ready.';
     } else if (/איזה פרטים|מה (?:צריך|תצטרכו)|what details|what do you need/i.test(input)) {
-      reply = he ? 'כדי לבדוק השכרה נצטרך תאריכי איסוף והחזרה, מיקומים וסוג רכב או מספר נוסעים וציוד. שם ומייל נבקש רק אם תרצו לשלוח בקשה.' : 'To check a rental we need pickup and return dates, locations, and a vehicle type or passenger and luggage details. We only ask for name and email if you choose to send a request.';
+      reply = he ? 'כדי לבדוק השכרה נצטרך תאריכי איסוף והחזרה, מיקומים, סוג רכב או מספר נוסעים וציוד, וקבוצת גיל נהג 21–23 או 24+. שם ומייל נבקש רק אם תרצו לשלוח בקשה.' : 'To check a rental we need pickup and return dates, locations, a vehicle type or passenger and luggage details, and the driver age group: 21–23 or 24+. We only ask for name and email if you choose to send a request.';
     } else if (reading?.route === 'social') {
       const modelReply = safeModelReply(reading, input, state);
       reply = modelReply ?? (he ? 'היי 🙂 במה אפשר לעזור לך עם רכב?' : 'Hi 🙂 How can I help with a car?');

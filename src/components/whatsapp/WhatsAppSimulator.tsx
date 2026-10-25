@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Bot, CheckCircle2, RotateCcw, Send, ShieldCheck, Sparkles } from 'lucide-react';
+import { CarFront, RotateCcw, Send, ShieldCheck } from 'lucide-react';
 
 type Message = { from: 'customer' | 'bot'; body: string; warning?: boolean; error?: boolean };
 type QuickReply = { label: string; message: string };
@@ -16,7 +16,7 @@ type FlowState = {
 
 const initial: Message[] = [{
   from: 'bot',
-  body: 'ברוכים הבאים ל־SmartCar 👋\n\nאפשר לשאול על השכרה, הזמנה קיימת, ליסינג, רכישת רכב או עזרה בדרך. זו סימולציה בלבד; היא אינה שולחת הודעות או יוצרת הזמנות.',
+  body: 'שלום, הגעתם ל־SmartCar 👋\nאיך אפשר לעזור? אפשר לשאול על השכרה, הזמנה קיימת, ליסינג, רכישת רכב או עזרה בדרך.',
 }];
 
 const initialReplies: QuickReply[] = [
@@ -42,6 +42,7 @@ function conversationStatus(state: FlowState) {
     rental_dates: { he: 'מתאמים תאריכים', en: 'Collecting dates' },
     rental_locations: { he: 'מתאמים מיקומים', en: 'Collecting locations' },
     rental_vehicle: { he: 'מתאימים קטגוריית רכב', en: 'Choosing a vehicle category' },
+    rental_age: { he: 'בודקים את קבוצת גיל הנהג', en: 'Checking the driver age group' },
     rental_name: { he: 'מסכמים בקשת השכרה', en: 'Preparing the rental request' },
     rental_email: { he: 'מסכמים בקשת השכרה', en: 'Preparing the rental request' },
     rental_confirm: { he: 'בודקים את פרטי הבקשה', en: 'Reviewing the request' },
@@ -114,61 +115,43 @@ export default function WhatsAppSimulator({ endpoint = '/api/whatsapp/simulator'
   }
 
   return (
-    <main className="h-[100dvh] bg-[radial-gradient(circle_at_top,_#e8fff0,_#efeae2_38%,_#e6eef0)] sm:px-6 sm:py-6" dir="rtl">
-      <div className="mx-auto flex h-full max-w-2xl flex-col overflow-hidden bg-white sm:rounded-[2rem] sm:border sm:border-[#075e54]/15 sm:shadow-[0_24px_70px_rgba(7,94,84,0.18)]">
-        <header className="relative shrink-0 overflow-hidden bg-[#075e54] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-white sm:px-5 sm:py-4">
-          <div className="absolute -left-8 -top-10 h-36 w-36 rounded-full bg-[#25d366]/15 blur-2xl" aria-hidden="true" />
-          <div className="relative flex items-center justify-between gap-4">
+    <main className="h-[100dvh] bg-[#F5F0E8] p-0 sm:p-5" dir="rtl">
+      <div className="mx-auto flex h-full max-w-3xl flex-col overflow-hidden bg-[#FCFBF8] sm:rounded-[1.5rem] sm:border sm:border-[#0D2B2B]/10 sm:shadow-[0_20px_55px_rgba(13,43,43,0.12)]">
+        <header className="shrink-0 bg-[#0D2B2B] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-white sm:px-6 sm:py-3.5">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25"><Bot className="h-5 w-5" aria-hidden="true" /></div>
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#B8D8D8] text-[#0D2B2B]"><CarFront className="h-5 w-5" aria-hidden="true" /></div>
               <div className="min-w-0">
-                <h1 className="font-semibold tracking-tight">{title}</h1>
-                <p className="flex items-center gap-1.5 text-xs text-white/80"><span className="h-2 w-2 rounded-full bg-[#79f2a3]" aria-hidden="true" /><span className="truncate">{status.tone === 'neutral' ? 'עוזר שירות ומכירה — סימולציה' : status.label}</span></p>
+                <h1 className="text-base font-bold tracking-tight">{title}<span className="ms-2 rounded-full bg-[#E8743B] px-2 py-0.5 align-middle text-[10px] font-semibold text-white">הדגמה</span></h1>
+                <p className="truncate text-xs text-[#B8D8D8]">{status.label}</p>
               </div>
             </div>
-            <button type="button" onClick={reset} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white" aria-label="איפוס שיחה" title="איפוס שיחה">
-              <RotateCcw className="h-5 w-5" aria-hidden="true" />
+            <button type="button" onClick={reset} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#B8D8D8] transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-[#B8D8D8]" aria-label="איפוס שיחה" title="איפוס שיחה">
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
         </header>
 
-        <section className="hidden shrink-0 border-b border-[#075e54]/10 bg-[#f7fbf9] px-4 py-3 sm:block" aria-label="מצב השיחה">
-          <div className="flex items-start gap-2.5">
-            {status.tone === 'handoff' ? <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-orange-700" aria-hidden="true" /> : status.tone === 'active' ? <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[#0c7a64]" aria-hidden="true" /> : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#0c7a64]" aria-hidden="true" />}
-            <div className="min-w-0 text-xs leading-5">
-              <p className="font-semibold text-[#075e54]">{status.label}</p>
-              <p className="text-slate-600">{status.detail}</p>
-            </div>
-          </div>
-        </section>
-
-        <section className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-[#efeae2] p-3 sm:p-4" aria-live="polite" aria-busy={sending} aria-label="שיחת WhatsApp לדוגמה" role="log">
-          <div className="mx-auto w-fit max-w-full rounded-xl border border-[#075e54]/10 bg-white/90 px-3 py-2 text-center text-xs font-medium text-slate-600 shadow-sm">סביבת ניסיון בלבד — לא נשלחת הודעה ל־WhatsApp ולא נוצרת הזמנה. הודעות חופשיות עשויות להישלח ל־Google Gemini להבנת הבקשה; השתמשו בפרטים מומצאים.</div>
-          <div className="mx-auto w-fit rounded-md bg-[#d7e6e1]/70 px-2.5 py-1 text-[11px] font-medium text-slate-500">היום</div>
+        <section className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-[#F8F7F3] px-3 py-4 sm:px-7 sm:py-5" aria-live="polite" aria-busy={sending} aria-label="שיחת WhatsApp לדוגמה" role="log">
+          <p className="mx-auto max-w-xl text-center text-[11px] leading-5 text-[#5B6B68]">סביבת ניסיון בלבד. לא נשלחות הודעות ולא נוצרות הזמנות. הודעות חופשיות עשויות להישלח ל־Google Gemini להבנת הבקשה; השתמשו בפרטים מומצאים.</p>
           {messages.map((message, index) => (
             <div key={`${index}-${message.from}`} className={`flex ${message.from === 'customer' ? 'justify-start' : 'justify-end'}`}>
-              <div className={`max-w-[90%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ring-1 ${message.from === 'customer'
-                ? 'rounded-tr-sm bg-white text-slate-800 ring-black/5'
-                : message.error ? 'rounded-tl-sm bg-red-50 text-red-950 ring-red-200' : 'rounded-tl-sm bg-[#d9fdd3] text-slate-800 ring-[#bceab8]'}`}>
-                {message.warning && <span className="mb-1 flex items-center gap-1 text-xs font-semibold text-orange-800"><ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" /> נדרש טיפול נציג</span>}
-                {message.error && <span className="mb-1 flex items-center gap-1 text-xs font-semibold text-red-800">בעיה זמנית בסימולציה</span>}
+              <div className={`max-w-[85%] whitespace-pre-wrap rounded-[1rem] px-3.5 py-2.5 text-sm leading-[1.65] ring-1 sm:max-w-[75%] ${message.from === 'customer'
+                ? 'rounded-tr-sm bg-white text-[#0D2B2B] ring-[#0D2B2B]/10'
+                : message.error ? 'rounded-tl-sm bg-[#FFF2ED] text-[#8D3113] ring-[#E8743B]/25' : 'rounded-tl-sm bg-[#E5F0EE] text-[#0D2B2B] ring-[#B8D8D8]'}`}>
+                {message.warning && <span className="mb-1 flex items-center gap-1 text-xs font-semibold text-[#A9471E]"><ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" /> נדרש טיפול נציג</span>}
+                {message.error && <span className="mb-1 block text-xs font-semibold">בעיה זמנית בסימולציה</span>}
                 {message.body}
-                <span className="mt-1 block text-left text-[10px] text-slate-400">עכשיו</span>
               </div>
             </div>
           ))}
-          {sending && <div className="flex justify-end"><div className="rounded-2xl rounded-tl-sm bg-[#d9fdd3] px-4 py-3 text-sm text-slate-500 shadow-sm ring-1 ring-[#bceab8]"><span className="inline-flex items-center gap-1" aria-label="SmartCar כותב"><i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#0c7a64]" /><i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#0c7a64] [animation-delay:150ms]" /><i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#0c7a64] [animation-delay:300ms]" /></span></div></div>}
+          {sending && <div className="flex justify-end"><div className="rounded-2xl rounded-tl-sm bg-[#E5F0EE] px-4 py-3 text-sm text-[#2D5F5F] ring-1 ring-[#B8D8D8]"><span className="inline-flex items-center gap-1" aria-label="SmartCar כותב"><i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#2D5F5F]" /><i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#2D5F5F] [animation-delay:150ms]" /><i className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#2D5F5F] [animation-delay:300ms]" /></span></div></div>}
           {!sending && quickReplies.length > 0 && (
             <div className="pt-2" aria-label="אפשרויות מהירות">
-              <p className="mb-2 text-xs font-medium text-slate-500">אפשר להתחיל בלחיצה:</p>
-              <div className="flex flex-wrap justify-start gap-2">
+              <p className="mb-2 text-xs font-medium text-[#5B6B68]">אפשר להתחיל מכאן</p>
+              <div className="flex flex-wrap gap-2">
                 {quickReplies.map((option) => (
-                  <button
-                    key={`${option.label}-${option.message}`}
-                    type="button"
-                    onClick={() => send(undefined, option.message, option.label)}
-                    className="min-h-11 rounded-full border border-[#25d366]/70 bg-white px-3.5 py-2 text-sm font-semibold text-[#075e54] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#e8fff0] focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-                  >
+                  <button key={`${option.label}-${option.message}`} type="button" onClick={() => send(undefined, option.message, option.label)} className="min-h-10 rounded-xl border border-[#B8D8D8] bg-white px-3.5 py-2 text-sm font-medium text-[#0D2B2B] transition hover:border-[#2D5F5F] hover:bg-[#EEF6F6] focus:outline-none focus:ring-2 focus:ring-[#2D5F5F]">
                     {option.label}
                   </button>
                 ))}
@@ -178,10 +161,10 @@ export default function WhatsAppSimulator({ endpoint = '/api/whatsapp/simulator'
           <div ref={endOfConversation} />
         </section>
 
-        <form onSubmit={send} className="flex shrink-0 items-center gap-2 border-t border-black/5 bg-[#f0f2f5] px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]" dir="rtl" aria-label="שליחת הודעה לסימולציה">
-          <input value={draft} onChange={(event) => setDraft(event.target.value)} disabled={sending} placeholder={flowState?.locale === 'en' ? 'Type a message to SmartCar' : 'כתבו הודעה ל־SmartCar'} className="min-w-0 flex-1 rounded-full border-0 bg-white px-4 py-3 text-base text-slate-900 outline-none ring-1 ring-black/10 transition placeholder:text-slate-400 focus:ring-2 focus:ring-[#25d366] disabled:cursor-not-allowed disabled:bg-slate-100" />
-          <button type="submit" disabled={!draft.trim() || sending} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#25d366] text-white shadow-sm transition hover:bg-[#1fbd5b] focus:outline-none focus:ring-2 focus:ring-[#075e54] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40" aria-label="שליחה">
-            <Send className="h-5 w-5" aria-hidden="true" />
+        <form onSubmit={send} className="flex shrink-0 items-center gap-2 border-t border-[#0D2B2B]/10 bg-[#FCFBF8] px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5" dir="rtl" aria-label="שליחת הודעה לסימולציה">
+          <input value={draft} onChange={(event) => setDraft(event.target.value)} disabled={sending} placeholder={flowState?.locale === 'en' ? 'Type a message to SmartCar' : 'כתבו הודעה ל־SmartCar'} className="min-w-0 flex-1 rounded-xl border border-[#0D2B2B]/15 bg-white px-4 py-2.5 text-base text-[#0D2B2B] outline-none transition placeholder:text-[#7A8B87] focus:border-[#2D5F5F] focus:ring-2 focus:ring-[#B8D8D8] disabled:cursor-not-allowed disabled:bg-slate-100" />
+          <button type="submit" disabled={!draft.trim() || sending} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E8743B] text-white transition hover:bg-[#C65E2D] focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40" aria-label="שליחה">
+            <Send className="h-4 w-4" aria-hidden="true" />
           </button>
         </form>
       </div>

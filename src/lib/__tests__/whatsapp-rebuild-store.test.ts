@@ -27,7 +27,7 @@ const ready: RebuildState = {
   booking: {
     pickupDate: '2026-11-10', returnDate: '2026-11-13',
     pickupLocation: 'הרצליה', returnLocation: 'הרצליה',
-    vehicleNeed: 'רכב קטן', customerName: 'לקוח בדיקה', customerEmail: 'test@example.invalid',
+    vehicleNeed: 'רכב קטן', driverAgeRange: '24-plus', customerName: 'לקוח בדיקה', customerEmail: 'test@example.invalid',
   },
 };
 
@@ -38,5 +38,14 @@ describe('rebuilt rental request persistence', () => {
     expect(await persistentRebuildStore.createRentalRequest('972501234567', ready)).toBe('42');
     expect(db.rows.size).toBe(1);
     expect(db.writes.map(row => row.request_key)).toEqual([ready.requestKey, ready.requestKey]);
+    expect(db.writes.map(row => row.driver_age_range)).toEqual(['24-plus', '24-plus']);
+  });
+
+  it('will not save a request without the required driver age group', async () => {
+    db.writes.length = 0;
+    const missingAge = structuredClone(ready);
+    delete missingAge.booking.driverAgeRange;
+    expect(await persistentRebuildStore.createRentalRequest('972501234567', missingAge)).toBeNull();
+    expect(db.writes).toHaveLength(0);
   });
 });

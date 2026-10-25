@@ -63,7 +63,7 @@ describe('replacement SmartCar conversation core', () => {
       const chat = memory(() => ({ ...base, route: 'book', fields: { vehicleNeed: { value: 'רכב קטן', evidence: 'רכב קטן' } } }));
       const result = await chat.send('אני רוצה להזמין רכב קטן מ-10 עד 13 בנובמבר, איסוף בהרצליה והחזרה באותו מקום.');
       expect(result.state.booking).toMatchObject({ pickupDate: '2026-11-10', returnDate: '2026-11-13', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב קטן' });
-      expect(result.reply).toContain('על איזה שם');
+      expect(result.reply).toContain('קבוצת הגיל');
     } finally { vi.useRealTimers(); }
   });
 
@@ -219,16 +219,20 @@ describe('replacement SmartCar conversation core', () => {
     expect(first.state.phase).toBe('booking');
     expect(first.state.booking).toMatchObject({ pickupDate: '2026-10-26', returnDate: '2026-10-28', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'קומפקטי' });
     expect(first.state.requestKey).toMatch(/^[0-9a-f-]{36}$/);
-    expect(first.reply).toMatch(/שם/);
+    expect(first.reply).toMatch(/קבוצת הגיל/);
     expect(first.reply).not.toContain('מחיר וזמינות');
     expect(chat.create).not.toHaveBeenCalled();
-    const second = await chat.send('קוראים לי דניאל כהן');
+    const second = await chat.send('24+');
     expect(second.state.requestKey).toBe(first.state.requestKey);
-    expect(second.reply).toMatch(/מייל/);
-    const third = await chat.send('daniel@example.com');
-    expect(third.reply).toMatch(/אני מאשר/);
-    expect(third.reply).toContain('קראתי ואני מסכים/ה לתנאי השימוש ולמדיניות הפרטיות של SmartCar.');
-    expect(third.reply).toContain('https://www.smartcar.co.il/he/terms');
+    expect(second.state.booking.driverAgeRange).toBe('24-plus');
+    expect(second.reply).toMatch(/שם/);
+    const third = await chat.send('קוראים לי דניאל כהן');
+    expect(third.reply).toMatch(/מייל/);
+    const fourth = await chat.send('daniel@example.com');
+    expect(fourth.reply).toMatch(/אני מאשר/);
+    expect(fourth.reply).toContain('גיל נהג 24+');
+    expect(fourth.reply).toContain('קראתי ואני מסכים/ה לתנאי השימוש ולמדיניות הפרטיות של SmartCar.');
+    expect(fourth.reply).toContain('https://www.smartcar.co.il/he/terms');
     expect(chat.create).not.toHaveBeenCalled();
     await chat.send('אני מאשר');
     expect(chat.create).toHaveBeenCalledTimes(1);
@@ -244,6 +248,7 @@ describe('replacement SmartCar conversation core', () => {
     const chat = memory(() => ({ ...base, route: 'book', fields: { pickupDate: { value: '2026-10-26', evidence: 'מחר' }, returnDate: { value: '2026-10-28', evidence: 'רביעי' }, pickupLocation: { value: 'הרצליה', evidence: 'בהרצליה' }, returnLocation: { value: 'הרצליה', evidence: 'אותו מקום' }, vehicleNeed: { value: 'משפחתית', evidence: 'משפחתית' } } }));
     await chat.send('אני רוצה להזמין משפחתית מחר עד רביעי, איסוף בהרצליה והחזרה באותו מקום.');
     const calls = chat.readTurn.mock.calls.length;
+    await chat.send('21–23');
     await chat.send('דניאל כהן');
     await chat.send('daniel@example.com');
     expect(chat.readTurn).toHaveBeenCalledTimes(calls);
@@ -310,6 +315,7 @@ describe('replacement SmartCar conversation core', () => {
       vehicleNeed: { value: 'משפחתית', evidence: 'משפחתית' },
     } }));
     await chat.send('אני רוצה להזמין משפחתית מ-10 עד 13 בנובמבר, איסוף בהרצליה והחזרה באותו מקום');
+    await chat.send('24+');
     await chat.send('לקוח בדיקה');
     await chat.send('test@example.invalid');
     const withheld = await chat.send('אני לא מאשר עדיין');
@@ -325,6 +331,7 @@ describe('replacement SmartCar conversation core', () => {
       vehicleNeed: { value: 'משפחתית', evidence: 'משפחתית' },
     } }));
     await chat.send('אני רוצה להזמין משפחתית מ-10 עד 13 בנובמבר, איסוף בהרצליה והחזרה באותו מקום');
+    await chat.send('24+');
     await chat.send('לקוח בדיקה');
     await chat.send('old@example.invalid');
     const calls = chat.readTurn.mock.calls.length;

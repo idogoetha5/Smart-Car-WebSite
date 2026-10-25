@@ -9,6 +9,7 @@ export const runtime = 'nodejs';
 
 type QuickReply = { label: string; message: string };
 function quickReplies(state: RebuildState | null, reply: string): QuickReply[] {
+  if (state?.step === 'rental_age') return [{ label: '21–23', message: '21–23' }, { label: '24+', message: '24+' }];
   if (state?.step === 'rental_confirm') return state.locale === 'en'
     ? [{ label: 'I confirm', message: 'I confirm' }, { label: 'Keep discussing', message: "I don't want to book now" }]
     : [{ label: 'אני מאשר/ת', message: 'אני מאשר' }, { label: 'להמשיך להתלבט', message: 'לא רוצה להזמין עכשיו' }];
