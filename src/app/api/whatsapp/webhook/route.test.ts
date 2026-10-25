@@ -37,10 +37,11 @@ vi.mock('@/lib/whatsapp-conversations', () => ({
   logWhatsAppMessage: mocks.log,
   isConversationSilenced: mocks.silenced,
 }));
-vi.mock('@/lib/whatsapp-flow', () => ({
-  getWhatsAppFlowReply: mocks.flow,
-  classifyWhatsAppInitialRoute: mocks.classify,
+vi.mock('@/lib/whatsapp-rebuild', () => ({
+  getRebuiltBotReply: mocks.flow,
+  isRebuiltSafetyMessage: mocks.classify,
 }));
+vi.mock('@/lib/whatsapp-rebuild-store', () => ({ persistentRebuildStore: {} }));
 vi.mock('@/lib/sms-alert', () => ({ sendEscalationSms: mocks.sms }));
 vi.mock('@/lib/whatsapp-incidents', () => ({ reportBotIncident: mocks.incident }));
 
@@ -94,7 +95,7 @@ beforeEach(() => {
   mocks.silenced.mockResolvedValue(false);
   mocks.rateLimit.mockResolvedValue({ success: true });
   mocks.flow.mockResolvedValue({ handled: true, reply: 'ברוכים הבאים ל־SmartCar' });
-  mocks.classify.mockReturnValue('new_customer');
+  mocks.classify.mockReturnValue(false);
   mocks.send.mockResolvedValue({ ok: true, waMessageId: 'outbound-1', status: 200 });
   mocks.sms.mockResolvedValue(true);
   mocks.incident.mockResolvedValue(true);
@@ -148,7 +149,7 @@ describe('local WhatsApp webhook boundary', () => {
     const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
     const response = await POST(metaRequest(signature));
     expect(response.status).toBe(200);
-    expect(mocks.flow).toHaveBeenCalledWith('972501234567', 'שלום');
+    expect(mocks.flow).toHaveBeenCalledWith('972501234567', 'שלום', expect.any(Object));
     expect(mocks.send).toHaveBeenCalledWith('972501234567', 'ברוכים הבאים ל־SmartCar');
     expect(mocks.log).toHaveBeenCalledTimes(2);
   });
@@ -246,7 +247,7 @@ describe('local WhatsApp webhook boundary', () => {
     const response = await POST(ycloudRequest(ycloudPayload));
 
     expect(response.status).toBe(200);
-    expect(mocks.flow).toHaveBeenCalledWith('972501234567', 'שלום');
+    expect(mocks.flow).toHaveBeenCalledWith('972501234567', 'שלום', expect.any(Object));
     expect(mocks.log).toHaveBeenCalledWith(expect.objectContaining({
       phone: '972501234567',
       source: 'customer_inbound',
@@ -312,13 +313,13 @@ describe('local WhatsApp webhook boundary', () => {
     const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
     const response = await POST(metaRequest(signature));
     expect(response.status).toBe(200);
-    expect(mocks.sms).toHaveBeenCalledWith(expect.objectContaining({ customerPhone: '972501234567', reason: 'תאונה' }));
+    expect(mocks.sms).toHaveBeenCalledWith(expect.objectContaining({ customerPhone: '972501234567', reason: 'בקשת שירות או בטיחות' }));
     expect(mocks.log).toHaveBeenLastCalledWith(expect.objectContaining({ escalatedAt: expect.any(String) }));
   });
 
   it('lets a new accident bypass the recent-human-reply silence window', async () => {
     mocks.silenced.mockResolvedValue(true);
-    mocks.classify.mockReturnValue('accident');
+    mocks.classify.mockReturnValue(true);
     mocks.flow.mockResolvedValue({ handled: true, reply: 'הודעת בטיחות', escalate: true, escalateReason: 'תאונה' });
     const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
     const response = await POST(metaRequest(signature));

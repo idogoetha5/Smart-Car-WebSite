@@ -29,6 +29,17 @@ describe('replacement SmartCar conversation core', () => {
     expect(chat.create).not.toHaveBeenCalled();
   });
 
+  it('does not treat a bare yes or an explicit refusal as booking consent', async () => {
+    const chat = memory(() => ({ ...base, route: 'book' }));
+    await chat.send('אני מתלבט על רכב לסופ״ש');
+    const yes = await chat.send('כן');
+    expect(yes.state.phase).toBe('explore');
+    const no = await chat.send('רק מתעניין, לא רוצה להזמין עכשיו');
+    expect(no.state.phase).toBe('explore');
+    expect(no.reply).toContain('לא שלחתי בקשה');
+    expect(chat.create).not.toHaveBeenCalled();
+  });
+
   it('gives positive SmartCar advice without repeating an outside option', async () => {
     const chat = memory(() => ({ ...base, reply: 'מונית תהיה זולה יותר.' }));
     const result = await chat.send('יש לי שתי פגישות בירושלים. אולי אגיע במונית, למה כדאי לשכור אצלכם?');
@@ -72,10 +83,13 @@ describe('replacement SmartCar conversation core', () => {
     expect(second.reply).toMatch(/מייל/);
     const third = await chat.send('daniel@example.com');
     expect(third.reply).toMatch(/אני מאשר/);
+    expect(third.reply).toContain('קראתי ואני מסכים/ה לתנאי השימוש ולמדיניות הפרטיות של SmartCar.');
+    expect(third.reply).toContain('https://www.smartcar.co.il/he/terms');
     expect(chat.create).not.toHaveBeenCalled();
     await chat.send('אני מאשר');
     expect(chat.create).toHaveBeenCalledTimes(1);
     expect(chat.state()?.completedRequestId).toBe('SIM-123');
+    expect(chat.state()?.booking).toEqual({});
   });
 
   it('does not send name and email collection turns to Gemini', async () => {
@@ -92,6 +106,18 @@ describe('replacement SmartCar conversation core', () => {
     const result = await chat.send('אנחנו נוסעים צפונה עם מזוודה.');
     expect(result.state.booking.pickupLocation).toBeUndefined();
     expect(result.state.booking.childSeats).toBeUndefined();
+  });
+
+  it('rejects impossible or reversed dates before they reach a rental request', async () => {
+    const chat = memory(() => ({ ...base, route: 'book', fields: {
+      pickupDate: { value: '2026-10-28', evidence: 'רביעי' },
+      returnDate: { value: '2026-10-26', evidence: 'שני' },
+    } }));
+    const result = await chat.send('אני רוצה להזמין מרביעי עד שני');
+    expect(result.state.booking.pickupDate).toBe('2026-10-28');
+    expect(result.state.booking.returnDate).toBeUndefined();
+    expect(result.reply).toMatch(/תאריך תחזירו/);
+    expect(chat.create).not.toHaveBeenCalled();
   });
 
   it('has a useful bounded fallback when Gemini is unavailable', async () => {

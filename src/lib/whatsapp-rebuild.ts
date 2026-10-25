@@ -1,5 +1,5 @@
 import { OFFICE_PHONE } from '@/lib/constants';
-import { getBusinessKnowledgeResponse } from '@/lib/whatsapp-business-knowledge';
+import { termsConsent } from '@/lib/consent';
 import { getSmartCarServiceAnswer } from '@/lib/smartcar-service-knowledge';
 import { readBotTurn, type BotReading, type GeminiBotContext, type VehicleDirection } from '@/lib/whatsapp-rebuild-gemini';
 
@@ -76,12 +76,16 @@ function question(key: BookingKey, locale: Locale): string {
 }
 
 function israelDate(): string { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date()); }
-function validDate(value: string): boolean { return /^20\d{2}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`)); }
+function validDate(value: string): boolean {
+  if (!/^20\d{2}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
 
 function explicitBooking(input: string): boolean {
   if (/לא רוצה להזמין|רק מתעניין|רק שואל|לא עכשיו|not ready|just asking|don't book|do not book/i.test(input)) return false;
   if (/[?؟]/.test(input) && /כדאי|האם|should|would it|how/i.test(input)) return false;
-  return /אני רוצה (?:להזמין|לשכור)|בוא(?:ו)? נתקדם|אפשר להתחיל (?:הזמנה|בקשה)|תכין(?:ו)? (?:לי )?בקשה|אני (?:אזמין|אשכור)|I(?:'d| would) like to (?:book|rent)|let'?s (?:book|proceed)|I want to (?:book|rent)/i.test(input);
+  return /אני רוצה (?:להזמין|לשכור)|בוא(?:ו)? נתקדם|בוא(?:ו)? נלך על זה|אפשר להתחיל (?:הזמנה|בקשה)|תכין(?:ו)? (?:לי )?בקשה|אני (?:אזמין|אשכור)|I(?:'d| would) like to (?:book|rent)|let'?s (?:book|proceed)|I want to (?:book|rent)|go ahead with (?:the )?(?:rental|request)/i.test(input);
 }
 
 function safety(input: string): 'accident' | 'breakdown' | null {
@@ -90,6 +94,8 @@ function safety(input: string): 'accident' | 'breakdown' | null {
   if (/פנצ[׳']?ר|גרר|נתקעתי|לא מניע|רעש.{0,25}בלמ|בלמ.{0,25}רעש|עשן|תקלה ברכב|flat tire|breakdown|won'?t start|brake.{0,25}(?:noise|problem)|(?:noise|problem).{0,25}brake/i.test(input)) return 'breakdown';
   return null;
 }
+
+export function isRebuiltSafetyMessage(input: string): boolean { return safety(input) !== null; }
 
 function direction(reading: BotReading | null, draft: BookingDraft, input: string): VehicleDirection {
   const people = draft.passengers ?? 0;
@@ -133,7 +139,11 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
   for (const [source, target] of [['pickupDate', 'pickupDate'], ['returnDate', 'returnDate'], ['pickupLocation', 'pickupLocation'], ['returnLocation', 'returnLocation'], ['vehicleNeed', 'vehicleNeed']] as const) {
     const field = fields[source];
     if (!field || !input.toLocaleLowerCase().includes(field.evidence.toLocaleLowerCase())) continue;
-    if ((source === 'pickupDate' || source === 'returnDate') && !validDate(field.value)) continue;
+    if (source === 'pickupDate' || source === 'returnDate') {
+      const latest = new Date(`${israelDate()}T00:00:00Z`);
+      latest.setUTCFullYear(latest.getUTCFullYear() + 2);
+      if (!validDate(field.value) || field.value < israelDate() || field.value > latest.toISOString().slice(0, 10)) continue;
+    }
     if ((source === 'pickupLocation' || source === 'returnLocation')
       && !/איסוף|לאסוף|להחזיר|החזרה|pick.?up|return|drop.?off/i.test(input)
       && !(state.phase === 'booking' && state.step === 'rental_locations' && input.trim().split(/\s+/).length <= 3)) continue;
@@ -146,6 +156,7 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
     if (field && input.toLocaleLowerCase().includes(field.evidence.toLocaleLowerCase()) && Number.isInteger(count) && count >= 0 && count <= 20) state.booking[name] = count;
   }
   if (!state.booking.returnLocation && state.booking.pickupLocation && /אותו מקום|שם גם|same place|same location/i.test(input)) state.booking.returnLocation = state.booking.pickupLocation;
+  if (state.booking.pickupDate && state.booking.returnDate && state.booking.returnDate < state.booking.pickupDate) delete state.booking.returnDate;
 }
 
 function privateDetail(input: string, state: RebuildState): boolean {
@@ -163,8 +174,9 @@ function privateDetail(input: string, state: RebuildState): boolean {
 
 function summary(state: RebuildState): string {
   const b = state.booking;
-  if (state.locale === 'en') return `Request summary: ${b.vehicleNeed}, ${b.pickupDate} to ${b.returnDate}, pickup ${b.pickupLocation}, return ${b.returnLocation}, name ${b.customerName}, email ${b.customerEmail}. This is a request, not a confirmed booking. Reply “I confirm” to send it.`;
-  return `סיכום הבקשה: ${b.vehicleNeed}, מ־${b.pickupDate} עד ${b.returnDate}, איסוף ב${b.pickupLocation}, החזרה ב${b.returnLocation}, שם ${b.customerName}, מייל ${b.customerEmail}. זו בקשה לבדיקה, לא הזמנה מאושרת. שלחו ״אני מאשר/ת״ כדי לשלוח אותה.`;
+  const consent = termsConsent(state.locale);
+  if (state.locale === 'en') return `Request summary: ${b.vehicleNeed}, ${b.pickupDate} to ${b.returnDate}, pickup ${b.pickupLocation}, return ${b.returnLocation}, name ${b.customerName}, email ${b.customerEmail}. This is a request, not a confirmed booking. ${consent.text} Terms: https://www.smartcar.co.il/en/terms Privacy: https://www.smartcar.co.il/en/privacy Reply “I confirm” only if you agree to the details and terms and want to send the request.`;
+  return `סיכום הבקשה: ${b.vehicleNeed}, מ־${b.pickupDate} עד ${b.returnDate}, איסוף ב${b.pickupLocation}, החזרה ב${b.returnLocation}, שם ${b.customerName}, מייל ${b.customerEmail}. זו בקשה לבדיקה, לא הזמנה מאושרת. ${consent.text} תנאים: https://www.smartcar.co.il/he/terms פרטיות: https://www.smartcar.co.il/he/privacy שלחו ״אני מאשר/ת״ רק אם אתם מסכימים לפרטים ולתנאים ורוצים לשלוח את הבקשה.`;
 }
 
 function pushHistory(state: RebuildState, input: string, reply: string, privateTurn: boolean): void {
@@ -194,7 +206,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   } else if (state.phase === 'booking' && state.step === 'rental_confirm' && /^(?:אני מאשר(?:ת)?|מאשר(?:ת)?|כן,? מאשר(?:ת)?|i confirm|confirm)$/i.test(input)) {
     const id = await store.createRentalRequest(phone, state);
     if (id) {
-      state.completedRequestId = id; state.phase = 'explore'; state.step = 'menu';
+      state.completedRequestId = id; state.phase = 'explore'; state.step = 'menu'; state.booking = {};
       reply = store.isSimulation ? (he ? 'בסימולציה הבקשה נקלטה לצורכי בדיקה בלבד; לא נוצרה הזמנה אמיתית.' : 'The request was recorded in this simulation only; no real booking was created.') : (he ? `בקשת ההשכרה נשלחה לבדיקה, מספר ${id}. היא עדיין אינה הזמנה מאושרת.` : `Your rental request was sent for review, reference ${id}. It is not a confirmed booking yet.`);
     } else reply = he ? 'לא הצלחתי לשמור את הבקשה כרגע. לא נוצרה הזמנה; אפשר לנסות שוב או להתקשר למשרד.' : 'I could not save the request. No booking was created; please try again or call the office.';
   } else {
@@ -210,8 +222,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reading = await (store.readTurn ?? readBotTurn)(input, context);
       if (reading) { model = reading.model; applyFields(input, state, reading); }
     }
-    const wantsBooking = explicitBooking(input) || (state.phase === 'booking' && !/לא רוצה להזמין|אל תזמין|don't book|cancel this request/i.test(input));
-    if (state.phase === 'booking' && /לא רוצה להזמין|אל תזמין|don't book|cancel this request/i.test(input)) {
+    const declines = /לא רוצה להזמין|אל תזמין|לא עכשיו|רק מתעניין|don't book|cancel this request|not ready to book/i.test(input);
+    const lastBot = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+    const modelSupportedProceed = reading?.route === 'book' && /^(?:כן|יאללה|בוא|בואי|yes|okay|ok|go ahead|let's proceed)/i.test(input)
+      && /להתחיל.{0,25}(?:בקשה|הזמנה)|start.{0,25}(?:request|booking)/i.test(lastBot);
+    const wantsBooking = !declines && (explicitBooking(input) || modelSupportedProceed || state.phase === 'booking');
+    if (declines) {
       state.phase = 'explore'; state.step = 'menu';
       reply = he ? 'בסדר, לא שלחתי בקשה. הפרטים יישארו כאן אם תרצה להמשיך להתלבט.' : 'Okay, I have not sent a request. The details stay here if you want to think it over.';
     } else if (wantsBooking) {
@@ -236,7 +252,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       else if (booking) reply = he ? `מצאתי הזמנה במצב ${booking.status}. שינוי או בירור ספציפי דורשים טיפול צוות; התקשרו ל־${OFFICE_PHONE}.` : `I found a booking with status ${booking.status}. A specific change or case review needs the team; please call ${OFFICE_PHONE}.`;
       else reply = he ? `כדי לבדוק מקרה מסוים נדרש מספר ההזמנה. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `To check a specific case, please send the booking reference or call ${OFFICE_PHONE}.`;
     } else if (reading?.route === 'policy') {
-      const fact = getSmartCarServiceAnswer(input, state.locale) ?? getBusinessKnowledgeResponse(input, state.locale);
+      const fact = getSmartCarServiceAnswer(input, state.locale);
       reply = fact?.reply ?? (he ? 'את התנאי המדויק צריך לבדוק בהצעה ובחוזה הרלוונטיים. מה בדיוק חשוב לך לברר?' : 'The exact term needs checking in the relevant offer and agreement. What would you like to clarify?');
     } else if (reading?.route === 'leasing' || reading?.route === 'sale') {
       reply = reading.route === 'leasing'

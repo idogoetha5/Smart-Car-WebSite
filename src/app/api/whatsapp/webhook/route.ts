@@ -4,7 +4,8 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { sendWhatsAppMessage, normalizeWhatsAppSender } from '@/lib/whatsapp';
 import { logWhatsAppMessage, isConversationSilenced } from '@/lib/whatsapp-conversations';
-import { classifyWhatsAppInitialRoute, getWhatsAppFlowReply } from '@/lib/whatsapp-flow';
+import { getRebuiltBotReply, isRebuiltSafetyMessage } from '@/lib/whatsapp-rebuild';
+import { persistentRebuildStore } from '@/lib/whatsapp-rebuild-store';
 import { sendEscalationSms } from '@/lib/sms-alert';
 import { reportBotIncident } from '@/lib/whatsapp-incidents';
 
@@ -176,15 +177,13 @@ async function handleCustomerMessage(msg: InboundMessage, botEnabled: boolean) {
   // A recent human reply normally silences the bot, but a new accident or
   // roadside failure must always produce the fixed safety reply and a fresh
   // alert even inside that 24-hour handoff window.
-  const route = classifyWhatsAppInitialRoute(body, false);
-  const isEmergency = route === 'accident' || route === 'breakdown';
+  const isEmergency = isRebuiltSafetyMessage(body);
   if (!isEmergency && await isConversationSilenced(phone)) return;
 
-  // Every inbound message stays in the deterministic service flow. The bot
-  // never asks an AI model to select a route, assess an emergency, or make a
-  // booking decision.
-  const flow = await getWhatsAppFlowReply(phone, body);
-  if (flow.handled && flow.reply) {
+  // The rebuilt core owns conversation state and verified actions. The
+  // existing signed transport, message log and kill switch remain unchanged.
+  const flow = await getRebuiltBotReply(phone, body, persistentRebuildStore);
+  if (flow.reply) {
     const send = await sendWhatsAppMessage(phone, flow.reply);
     if (send.ok) {
       await logWhatsAppMessage({
@@ -201,7 +200,7 @@ async function handleCustomerMessage(msg: InboundMessage, botEnabled: boolean) {
     if (flow.escalate) {
       const alerted = await sendEscalationSms({
         customerPhone: phone,
-        reason: send.ok ? (flow.escalateReason ?? 'לא צוינה סיבה') : `שליחת WhatsApp נכשלה: ${flow.escalateReason ?? 'לא צוינה סיבה'}`,
+        reason: send.ok ? 'בקשת שירות או בטיחות' : 'שליחת WhatsApp נכשלה בבקשת שירות או בטיחות',
         lastMessage: body,
       });
       if (!alerted) await reportBotIncident('handoff_alert_failed');
@@ -209,7 +208,7 @@ async function handleCustomerMessage(msg: InboundMessage, botEnabled: boolean) {
     return;
   }
 
-  // getWhatsAppFlowReply always handles the normal path. This fallback is
+  // getRebuiltBotReply always handles the normal path. This fallback is
   // intentionally deterministic in case a future flow branch is incomplete.
   const reply = 'לא הצלחנו להבין את הבקשה. כתבו "תפריט" כדי להתחיל מחדש, או "נציג" כדי לעבור לצוות SmartCar.';
   const send = await sendWhatsAppMessage(phone, reply);

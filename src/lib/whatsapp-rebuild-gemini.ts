@@ -79,9 +79,10 @@ export async function readBotTurn(message: string, context: GeminiBotContext): P
   const model = activeModelEvaluation()?.model ?? 'gemini-3.5-flash-lite';
   const safeMessage = scrub(message);
   const recent = context.recent.slice(-8).map(item => ({ from: item.from, text: scrub(item.text) }));
+  const known = Object.fromEntries(Object.entries(context.known).map(([key, value]) => [key, typeof value === 'string' ? scrub(value) : value]));
   const body = {
     systemInstruction: { parts: [{ text: INSTRUCTIONS }] },
-    contents: [{ role: 'user', parts: [{ text: JSON.stringify({ todayInIsrael: context.today, locale: context.locale, phase: context.phase, known: context.known, recent, message: safeMessage }) }] }],
+    contents: [{ role: 'user', parts: [{ text: JSON.stringify({ todayInIsrael: context.today, locale: context.locale, phase: context.phase, known, recent, message: safeMessage }) }] }],
     generationConfig: { temperature: 0.3, maxOutputTokens: 700, responseFormat: { text: { mimeType: 'APPLICATION_JSON', schema: SCHEMA } } },
   };
   const response = await generateSmartCarContent({ model, body, timeoutMs: 8000 });

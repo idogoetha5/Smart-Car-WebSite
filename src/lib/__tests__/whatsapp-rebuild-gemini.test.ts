@@ -11,7 +11,7 @@ beforeEach(() => { vi.clearAllMocks(); mocks.evaluation.mockReturnValue(undefine
 describe('replacement Gemini boundary', () => {
   it('uses only the approved customer model and keeps contact details out of its request', async () => {
     mocks.generate.mockResolvedValue({ ok: true, text: JSON.stringify({ route: 'explore', direction: 'compact', reply: 'רכב קומפקטי הוא כיוון לבדיקה. לאילו ימים?', fields: {} }) });
-    const result = await readBotTurn('קוראים לי דניאל כהן. אני צריך רכב. המייל שלי daniel@example.com והטלפון 0501234567, איסוף ברחוב הרצל 5', context);
+    const result = await readBotTurn('קוראים לי דניאל כהן. אני צריך רכב. המייל שלי daniel@example.com והטלפון 0501234567, איסוף ברחוב הרצל 5', { ...context, known: { pickupLocation: 'רחוב הרצל 5' } });
     expect(result?.model).toBe('gemini-3.5-flash-lite');
     const call = mocks.generate.mock.calls[0][0];
     expect(call.model).toBe('gemini-3.5-flash-lite');
