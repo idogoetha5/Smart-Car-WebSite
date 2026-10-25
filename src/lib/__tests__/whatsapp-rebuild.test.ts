@@ -91,6 +91,35 @@ describe('replacement SmartCar conversation core', () => {
     expect(result.reply).not.toContain('תאריכים שכבר ציינתם');
   });
 
+  it('rejects unverified luggage fit and a mixed-script Hebrew answer', async () => {
+    const fit = memory(() => ({ ...base, direction: 'compact', reply: 'A compact car easily fits two suitcases.' }));
+    const fitResult = await fit.send('We have two suitcases. Is a compact car suitable?');
+    expect(fitResult.source).toBe('local');
+    expect(fitResult.reply).not.toContain('easily fits');
+    const mixed = memory(() => ({ ...base, reply: 'כשترצה להתקדם נבדוק תאריכים.' }));
+    const mixedResult = await mixed.send('מה הצעד הבא?');
+    expect(mixedResult.source).toBe('local');
+    expect(mixedResult.reply).not.toContain('ترצה');
+  });
+
+  it('treats an ordinary Hebrew child-seat phrase as a fit question, even with a model recommendation', async () => {
+    const chat = memory(() => ({ ...base, direction: 'suv', reply: 'רכב הפנאי יתאים למרחב הנדרש בוודאות.' }));
+    const result = await chat.send('אנחנו ארבעה עם שלוש מזוודות ונצטרך כיסא בטיחות.');
+    expect(result.source).toBe('local');
+    expect(result.reply).toContain('בדגם המסוים');
+    expect(result.reply).not.toContain('בוודאות');
+  });
+
+  it('lets a customer switch from leasing back to rental without a stale leasing answer', async () => {
+    const chat = memory(() => ({ ...base, route: 'leasing' }));
+    await chat.send('אני שוקל ליסינג עסקי לשנה');
+    const pivot = await chat.send('בעצם אני מעדיף השכרה לחודש וחצי');
+    expect(pivot.state.interest).toBeUndefined();
+    expect(pivot.reply).toContain('נחזור לבדוק השכרה');
+    const pause = await chat.send('אני עדיין בודק, לא מבקש להזמין');
+    expect(pause.reply).toContain('לא שלחתי בקשה');
+  });
+
   it('routes a real brake concern to safety without model or sales', async () => {
     const chat = memory();
     const result = await chat.send('שכרתי אתמול והרכב עושה רעש חזק בבלמים. להמשיך לנסוע?');
@@ -210,6 +239,32 @@ describe('replacement SmartCar conversation core', () => {
     expect(result.source).toBe('local');
     expect(result.reply).toContain('SmartCar');
     expect(result.reply).toMatch(/תאריכים/);
+  });
+
+  it('recovers after a provider outage without losing supplied trip facts', async () => {
+    let available = false;
+    const chat = memory(() => available ? { ...base, direction: 'family' } : null);
+    const outage = await chat.send('אנחנו ארבעה עם מזוודות, מחפשים רכב לטיול');
+    expect(outage.source).toBe('local');
+    available = true;
+    const recovered = await chat.send('בעצם נהיה חמישה אנשים');
+    expect(recovered.model).toBe('gemini-3.5-flash-lite');
+    expect(recovered.state.history).toHaveLength(4);
+  });
+
+  it('keeps a completed rental draft pending when the customer withholds confirmation', async () => {
+    const chat = memory(() => ({ ...base, route: 'book', fields: {
+      pickupDate: { value: '2026-11-10', evidence: '10' }, returnDate: { value: '2026-11-13', evidence: '13' },
+      pickupLocation: { value: 'הרצליה', evidence: 'בהרצליה' }, returnLocation: { value: 'הרצליה', evidence: 'אותו מקום' },
+      vehicleNeed: { value: 'משפחתית', evidence: 'משפחתית' },
+    } }));
+    await chat.send('אני רוצה להזמין משפחתית מ-10 עד 13 בנובמבר, איסוף בהרצליה והחזרה באותו מקום');
+    await chat.send('לקוח בדיקה');
+    await chat.send('test@example.invalid');
+    const withheld = await chat.send('אני לא מאשר עדיין');
+    expect(withheld.reply).toContain('לא שלחתי בקשה');
+    expect(withheld.state.step).toBe('rental_confirm');
+    expect(chat.create).not.toHaveBeenCalled();
   });
 
   it('answers a service policy from published facts', async () => {

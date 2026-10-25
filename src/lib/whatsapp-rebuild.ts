@@ -37,7 +37,7 @@ export type RebuildStore = {
 const ORDER: BookingKey[] = ['pickupDate', 'returnDate', 'pickupLocation', 'returnLocation', 'vehicleNeed', 'customerName', 'customerEmail'];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const OUTSIDE = /מוני(?:ת|ות)|אוטובוס|רכבת|תחבורה ציבורית|אוויס|אלדן|סיקסט|הרץ|מתחר|חברת השכרה אחרת|\btaxi\b|\bbus\b|\btrain\b|\buber\b|\bavis\b|\bhertz\b|\bsixt\b|competitor|another rental company/i;
-const UNSAFE_CLAIM = /(?:יש לנו|יש אצלנו|זמין עכשיו|זמין בדיוק|פנוי עכשיו|מובטח|בטוח ש|בהחלט ייכנס|בהחלט יתאים|we have available|available for (?:your|the) (?:trip|dates)|guaranteed|definitely fits|confirmed booking)/i;
+const UNSAFE_CLAIM = /(?:יש לנו|יש אצלנו|זמין עכשיו|זמין בדיוק|פנוי עכשיו|מובטח|בטוח ש|בהחלט ייכנס|בהחלט יתאים|מזווד.{0,25}(?:ייכנס|יספיק)|we have available|available for (?:your|the) (?:trip|dates)|guaranteed|(?:definitely|easily) fits?|fits? (?:your|two|three|the) (?:bags|suitcases|luggage)|confirmed booking)/i;
 const PRICE_OR_AVAILABILITY = /מחיר|עלות|כמה.{0,12}(?:עול|יעל)|(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:price|cost|rate|available|availability)\b/iu;
 const MONTHS: Record<string, number> = { ינואר: 1, פברואר: 2, מרץ: 3, אפריל: 4, מאי: 5, יוני: 6, יולי: 7, אוגוסט: 8, ספטמבר: 9, אוקטובר: 10, נובמבר: 11, דצמבר: 12, january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12 };
 const EXPLICIT_RANGE = new RegExp(`(\\d{1,2})\\s*(?:עד|[-–]|to|until)\\s*(\\d{1,2})\\s+(?:ב)?(${Object.keys(MONTHS).join('|')})(?:\\s+(20\\d{2}))?`, 'iu');
@@ -158,7 +158,7 @@ export function isRebuiltSafetyMessage(input: string): boolean { return safety(i
 function direction(reading: BotReading | null, draft: BookingDraft, input: string): VehicleDirection {
   const people = draft.passengers ?? 0;
   if (people >= 6) return 'seven_seat';
-  if (draft.childSeats || /תינוק|ילד|כיסא(?: ה)?בטיחות|baby|child seat|car seat/i.test(input)) return 'family';
+  if (draft.childSeats || /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input)) return 'family';
   if (people >= 3 || (draft.luggage ?? 0) >= 3) return 'family';
   if (/פגיש|עיר|חניה|city|meeting|parking/i.test(input)) return 'compact';
   return reading?.direction && reading.direction !== 'none' ? reading.direction : 'none';
@@ -166,13 +166,18 @@ function direction(reading: BotReading | null, draft: BookingDraft, input: strin
 
 function advice(input: string, state: RebuildState, reading: BotReading | null): string {
   const he = state.locale === 'he';
-  if (/כיסא(?: ה)?בטיחות|child seat|car seat/i.test(input) && /לאן|איפה|מספיק מקום|where|install|enough (?:room|space)/i.test(input)) {
+  if (/כיסא(?:\s+ה?)?בטיחות|child seat|car seat/i.test(input) && /לאן|איפה|מספיק מקום|where|install|enough (?:room|space)/i.test(input)) {
     return he
       ? 'כיסא בטיחות צריך להתקין במושב מתאים לפי הוראות יצרני הרכב והכיסא, לא בתא המטען. לגבי המזוודות, נבדוק מקום בדגם המסוים לפני שנבטיח התאמה. לאילו תאריכים תצטרכו רכב?'
       : 'A child seat must be fitted in a suitable seat following the car and seat makers’ instructions, never in the boot. We need to check luggage space in the actual model before promising a fit. What dates do you need the car?';
   }
+  if (/מזווד|מטען|תא מטען|luggage|suitcase|boot|trunk/i.test(input) && /כמה|נכנס|יספיק|מקום|יכול|fit|space|room|how many/i.test(input)) {
+    return he
+      ? 'כמות המזוודות שתיכנס תלויה בדגם המסוים ובגודל המזוודות. אוכל להציע קבוצת רכב לבדיקה, אבל לא להבטיח התאמה בלי בדיקת הרכב עצמו. כמה נוסעים ומזוודות יהיו?'
+      : 'Luggage fit depends on the actual model and suitcase sizes. I can suggest a vehicle group to check, but cannot promise fit without checking that car. How many passengers and suitcases will you have?';
+  }
   const group = direction(reading, state.booking, input);
-  const topic = /תינוק|ילד|כיסא(?: ה)?בטיחות|baby|child seat|car seat/i.test(input) || Boolean(state.booking.childSeats) ? 'child' :
+  const topic = /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input) || Boolean(state.booking.childSeats) ? 'child' :
     /פגיש|עיר|חניה|city|meeting|parking/i.test(input) ? 'city' : 'trip';
   const lead = he ? ({ compact: 'הייתי מתחיל מרכב קומפקטי של SmartCar', family: 'הייתי מתחיל ממשפחתית של SmartCar', suv: 'ג׳יפון של SmartCar הוא כיוון לבדיקה', seven_seat: 'הייתי בודק רכב שבעה מקומות של SmartCar', none: 'אפשר לבחור רכב של SmartCar לפי הנסיעה שלכם' } as const)[group]
     : ({ compact: 'I would start with a SmartCar compact', family: 'I would start with a SmartCar family car', suv: 'A SmartCar SUV is a direction to check', seven_seat: 'I would check a SmartCar seven-seater', none: 'We can choose a SmartCar car around your trip' } as const)[group];
@@ -184,14 +189,15 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
 }
 
 function safeModelReply(reading: BotReading | null, input: string, state: RebuildState): string | null {
-  if (!reading || OUTSIDE.test(input) || /תינוק|ילד|כיסא(?: ה)?בטיחות|baby|child seat|car seat/i.test(input)) return null;
+  if (!reading || OUTSIDE.test(input) || /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input)) return null;
+  if (/מזווד|מטען|תא מטען|luggage|suitcase|boot|trunk/i.test(input) && /כמה|נכנס|יספיק|מקום|יכול|fit|space|room|how many/i.test(input)) return null;
   if (PRICE_OR_AVAILABILITY.test(input)) return null;
   const reply = reading.reply;
   if (OUTSIDE.test(reply) || UNSAFE_CLAIM.test(reply) || /₪|\b\d{2,}\b/.test(reply)) return null;
   if (!state.booking.pickupDate && /תאריכים (?:שכבר )?ציינ|dates (?:you(?:'ve| have) )?(?:already )?mentioned/i.test(reply)) return null;
   if (reply.length > 40 && !/[.!?…]$/.test(reply)) return null;
   if ((reply.match(/[?؟]/g) ?? []).length > 1) return null;
-  if (state.locale === 'he' && !/[א-ת]/.test(reply)) return null;
+  if (state.locale === 'he' && (!/[א-ת]/.test(reply) || /[\u0600-\u06ff]/u.test(reply))) return null;
   if (state.locale === 'en' && /[א-ת]/.test(reply)) return null;
   return reply;
 }
@@ -274,6 +280,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : state.safetyAlertAt
         ? (he ? `תודה על העדכון. אל תמשיכו לנסוע אם יש חשש בטיחותי; לתיאום עזרה התקשרו עכשיו ל־${OFFICE_PHONE}.` : `Thanks for the update. Do not keep driving if the car may be unsafe; call ${OFFICE_PHONE} now to arrange help.`)
         : (he ? `השינוי מחייב בדיקה ואישור של הצוות; לא שיניתי את ההזמנה בשיחה הזו. אפשר להתקשר ל־${OFFICE_PHONE}.` : `The change needs team review and approval; I have not changed your booking here. Please call ${OFFICE_PHONE}.`);
+  } else if (state.phase === 'booking' && state.step === 'rental_confirm' && /לא מאשר|לא מאשרת|not confirm|not yet|רגע/i.test(input)) {
+    reply = he ? 'לא שלחתי בקשה. הפרטים נשמרו בשיחה; אפשר לתקן אותם או לאשר רק כשתרצו.' : 'I have not sent a request. The details remain in this conversation; you can correct them or confirm when ready.';
   } else if (state.phase === 'booking' && state.step === 'rental_confirm' && /^(?:אני מאשר(?:ת)?|מאשר(?:ת)?|כן,? מאשר(?:ת)?|i confirm|confirm)$/i.test(input)) {
     const id = await store.createRentalRequest(phone, state);
     if (id) {
@@ -296,16 +304,21 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const statedRange = explicitDateRange(input);
     if (statedRange) Object.assign(state.booking, statedRange);
     applyExplicitLocations(input, state.booking);
-    const declines = /לא רוצה להזמין|אל תזמין|לא עכשיו|רק מתעניין|don't book|cancel this request|not ready to book/i.test(input);
+    const declines = /לא רוצה להזמין|לא מבקש להזמין|אל תזמין|לא עכשיו|רק מתעניין|עדיין בודק|don't book|cancel this request|not ready to book|just looking/i.test(input);
     const lastBot = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
     const modelSupportedProceed = reading?.route === 'book' && /^(?:כן|יאללה|בוא|בואי|yes|okay|ok|go ahead|let's proceed)/i.test(input)
       && /להתחיל.{0,25}(?:בקשה|הזמנה)|start.{0,25}(?:request|booking)/i.test(lastBot);
     const wantsBooking = !declines && (explicitBooking(input) || modelSupportedProceed || state.phase === 'booking');
-    if (reading?.route === 'leasing' || /ליסינג|leasing/i.test(input)) state.interest = 'leasing';
+    const rentalPivot = /מעדיף (?:את ה)?השכרה|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|back to renting/i.test(input);
+    if (rentalPivot) state.interest = undefined;
+    else if (reading?.route === 'leasing' || /ליסינג|leasing/i.test(input)) state.interest = 'leasing';
     else if (reading?.route === 'sale' || /לקנייה|למכירה|רכב לקנות|buy a car|car for sale/i.test(input)) state.interest = 'sale';
     if (declines) {
       state.phase = 'explore'; state.step = 'menu';
       reply = he ? 'בסדר, לא שלחתי בקשה. הפרטים יישארו כאן אם תרצה להמשיך להתלבט.' : 'Okay, I have not sent a request. The details stay here if you want to think it over.';
+    } else if (rentalPivot) {
+      state.phase = 'explore'; state.step = 'menu';
+      reply = he ? 'הבנתי, נחזור לבדוק השכרה. לחודש וחצי חשוב להתאים רכב וקילומטראז׳ למסלול ההשכרה; באילו תאריכים תרצה לאסוף ולהחזיר?' : 'Understood, let us check a rental instead. For a longer rental, the vehicle and mileage terms matter. What pickup and return dates do you need?';
     } else if (wantsBooking) {
       state.phase = 'booking';
       state.requestKey ??= randomUUID();
