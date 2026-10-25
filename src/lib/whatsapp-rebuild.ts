@@ -1,4 +1,5 @@
 import { OFFICE_PHONE } from '@/lib/constants';
+import { randomUUID } from 'node:crypto';
 import { termsConsent } from '@/lib/consent';
 import { getSmartCarServiceAnswer } from '@/lib/smartcar-service-knowledge';
 import { readBotTurn, type BotReading, type GeminiBotContext, type VehicleDirection } from '@/lib/whatsapp-rebuild-gemini';
@@ -15,6 +16,7 @@ export type RebuildState = {
   step: 'menu' | 'rental_dates' | 'rental_locations' | 'rental_vehicle' | 'rental_name' | 'rental_email' | 'rental_confirm';
   locale: Locale;
   booking: BookingDraft;
+  requestKey?: string;
   history: HistoryEntry[];
   handedOff?: boolean;
   completedRequestId?: string;
@@ -34,11 +36,18 @@ const ORDER: BookingKey[] = ['pickupDate', 'returnDate', 'pickupLocation', 'retu
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const OUTSIDE = /מוני(?:ת|ות)|אוטובוס|רכבת|תחבורה ציבורית|אוויס|אלדן|סיקסט|הרץ|מתחר|חברת השכרה אחרת|\btaxi\b|\bbus\b|\btrain\b|\buber\b|\bavis\b|\bhertz\b|\bsixt\b|competitor|another rental company/i;
 const UNSAFE_CLAIM = /(?:יש לנו|יש אצלנו|זמין עכשיו|זמין בדיוק|פנוי עכשיו|מובטח|בטוח ש|בהחלט ייכנס|בהחלט יתאים|we have available|guaranteed|definitely fits|confirmed booking)/i;
+const PRICE_OR_AVAILABILITY = /מחיר|עלות|כמה.{0,12}(?:עול|יעל)|(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:price|cost|rate|available|availability)\b/iu;
+
+function priceAnswer(locale: Locale): string {
+  return locale === 'he'
+    ? 'המחיר באתר הוא הערכה, לא הצעה סופית. מחיר וזמינות מדויקים נבדקים לפי התאריכים, הרכב והתוספות; אין לי אישור מלאי כרגע.'
+    : 'The website price is an estimate, not a final offer. Exact price and availability depend on the dates, vehicle and extras; I cannot confirm inventory here.';
+}
 
 function language(input: string, previous: Locale): Locale {
   if (/עברית|hebrew/i.test(input)) return 'he';
   if (/english|אנגלית/i.test(input)) return 'en';
-  if (EMAIL.test(input.trim()) || /(?:\+972|0)[\d\s()-]{8,}/.test(input)) return previous;
+  if (EMAIL.test(input.trim()) || /(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/.test(input)) return previous;
   return /[א-ת]/.test(input) ? 'he' : /[a-z]{3,}/i.test(input) ? 'en' : previous;
 }
 
@@ -100,7 +109,7 @@ export function isRebuiltSafetyMessage(input: string): boolean { return safety(i
 function direction(reading: BotReading | null, draft: BookingDraft, input: string): VehicleDirection {
   const people = draft.passengers ?? 0;
   if (people >= 6) return 'seven_seat';
-  if (draft.childSeats || /תינוק|ילד|כיסא בטיחות|baby|child seat|car seat/i.test(input)) return 'family';
+  if (draft.childSeats || /תינוק|ילד|כיסא(?: ה)?בטיחות|baby|child seat|car seat/i.test(input)) return 'family';
   if (people >= 3 || (draft.luggage ?? 0) >= 3) return 'family';
   if (/פגיש|עיר|חניה|city|meeting|parking/i.test(input)) return 'compact';
   return reading?.direction && reading.direction !== 'none' ? reading.direction : 'none';
@@ -109,21 +118,20 @@ function direction(reading: BotReading | null, draft: BookingDraft, input: strin
 function advice(input: string, state: RebuildState, reading: BotReading | null): string {
   const he = state.locale === 'he';
   const group = direction(reading, state.booking, input);
-  const topic = /תינוק|ילד|כיסא בטיחות|baby|child seat|car seat/i.test(input) || Boolean(state.booking.childSeats) ? 'child' :
+  const topic = /תינוק|ילד|כיסא(?: ה)?בטיחות|baby|child seat|car seat/i.test(input) || Boolean(state.booking.childSeats) ? 'child' :
     /פגיש|עיר|חניה|city|meeting|parking/i.test(input) ? 'city' : 'trip';
   const lead = he ? ({ compact: 'הייתי מתחיל מרכב קומפקטי של SmartCar', family: 'הייתי מתחיל ממשפחתית של SmartCar', suv: 'ג׳יפון של SmartCar הוא כיוון לבדיקה', seven_seat: 'הייתי בודק רכב שבעה מקומות של SmartCar', none: 'אפשר לבחור רכב של SmartCar לפי הנסיעה שלכם' } as const)[group]
     : ({ compact: 'I would start with a SmartCar compact', family: 'I would start with a SmartCar family car', suv: 'A SmartCar SUV is a direction to check', seven_seat: 'I would check a SmartCar seven-seater', none: 'We can choose a SmartCar car around your trip' } as const)[group];
   const benefit = he ? topic === 'child' ? 'זה כיוון נוח לבדיקת מקום לנוסעים ולציוד; את התאמת כיסא הבטיחות צריך לוודא בדגם המסוים.' : topic === 'city' ? 'רכב שיעמוד לרשותכם בין היעדים נותן גמישות לאורך היום.' : 'כך אפשר להתאים את המרחב והנוחות למשך הנסיעה ולציוד שלכם.'
     : topic === 'child' ? 'It is a good starting point for passenger and luggage space; the child seat must be checked against the actual car.' : topic === 'city' ? 'Having the car at your disposal gives flexibility between stops during the day.' : 'We can match passenger space and comfort to the trip and your luggage.';
   const next = state.booking.pickupDate ? (he ? 'מאיפה תרצו לאסוף?' : 'Where would you like to pick it up?') : (he ? 'לאילו תאריכים תצטרכו את הרכב?' : 'What dates do you need the car?');
-  const price = /כמה עולה|מחיר|עלות|זמין|פנוי|how much|price|cost|available/i.test(input)
-    ? (he ? 'מחיר וזמינות מדויקים דורשים בדיקה לתאריכים ולדגם; אין לי אישור מלאי כרגע. ' : 'Exact price and availability need checking for the dates and vehicle; I cannot confirm inventory here. ') : '';
+  const price = PRICE_OR_AVAILABILITY.test(input) ? `${priceAnswer(state.locale)} ` : '';
   return `${lead}. ${benefit} ${price}${next}`.replace(/\s+/g, ' ').trim();
 }
 
 function safeModelReply(reading: BotReading | null, input: string, state: RebuildState): string | null {
-  if (!reading || OUTSIDE.test(input) || /תינוק|ילד|כיסא בטיחות|baby|child seat|car seat/i.test(input)) return null;
-  if (/כמה עולה|מחיר|עלות|זמין|פנוי|how much|price|cost|available/i.test(input)) return null;
+  if (!reading || OUTSIDE.test(input) || /תינוק|ילד|כיסא(?: ה)?בטיחות|baby|child seat|car seat/i.test(input)) return null;
+  if (PRICE_OR_AVAILABILITY.test(input)) return null;
   const reply = reading.reply;
   if (OUTSIDE.test(reply) || UNSAFE_CLAIM.test(reply) || /₪|\b\d{2,}\b/.test(reply)) return null;
   if (reply.length > 40 && !/[.!?…]$/.test(reply)) return null;
@@ -213,7 +221,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     privateTurn = state.phase === 'booking' && (state.step === 'rental_name' || state.step === 'rental_email');
     const gotPrivate = privateDetail(input, state);
     let reading: BotReading | null = null;
-    if (!gotPrivate && !EMAIL.test(input) && !/(?:\+972|0)[\d\s()-]{8,}/.test(input)) {
+    if (!gotPrivate && !EMAIL.test(input) && !/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/.test(input)) {
       const context: GeminiBotContext = {
         locale: state.locale, phase: state.phase, today: israelDate(),
         recent: state.history.filter(item => !item.private).slice(-8).map(({ from, text }) => ({ from, text })),
@@ -232,12 +240,15 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = he ? 'בסדר, לא שלחתי בקשה. הפרטים יישארו כאן אם תרצה להמשיך להתלבט.' : 'Okay, I have not sent a request. The details stay here if you want to think it over.';
     } else if (wantsBooking) {
       state.phase = 'booking';
+      state.requestKey ??= randomUUID();
       const missing = nextMissing(state.booking);
       state.step = bookingStep(missing);
       if (!missing) reply = summary(state);
       else {
-        const prefix = /כמה עולה|מחיר|עלות|זמין|פנוי|how much|price|cost|available/i.test(input)
-          ? (he ? 'מחיר וזמינות סופיים ייבדקו לפי הרכב והתאריכים. ' : 'Final price and availability need checking for the dates and car. ') : '';
+        const prefix = PRICE_OR_AVAILABILITY.test(input) ? `${priceAnswer(state.locale)} `
+          : /הזמנה סופית|הזמנה מאושרת|final booking|confirmed booking/i.test(input)
+            ? (he ? 'זו בקשה לבדיקה בלבד, לא הזמנה מאושרת. ' : 'This is a request for review, not a confirmed booking. ')
+            : '';
         const policy = reading?.route === 'policy' ? getSmartCarServiceAnswer(input, state.locale)?.reply : null;
         reply = `${policy ? `${policy}\n\n` : prefix}${question(missing, state.locale)}`;
       }
@@ -251,7 +262,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       if (answer) reply = answer.reply;
       else if (booking) reply = he ? `מצאתי הזמנה במצב ${booking.status}. שינוי או בירור ספציפי דורשים טיפול צוות; התקשרו ל־${OFFICE_PHONE}.` : `I found a booking with status ${booking.status}. A specific change or case review needs the team; please call ${OFFICE_PHONE}.`;
       else reply = he ? `כדי לבדוק מקרה מסוים נדרש מספר ההזמנה. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `To check a specific case, please send the booking reference or call ${OFFICE_PHONE}.`;
-    } else if (reading?.route === 'policy') {
+    } else if (PRICE_OR_AVAILABILITY.test(input)) {
+      reply = `${priceAnswer(state.locale)} ${state.booking.pickupDate ? (he ? 'מאיפה תרצו לאסוף?' : 'Where would you like to pick it up?') : (he ? 'לאילו תאריכים תצטרכו את הרכב?' : 'What dates do you need the car?')}`;
+    } else if (reading?.route === 'policy' || /[?؟]/.test(input) && getSmartCarServiceAnswer(input, state.locale)) {
       const fact = getSmartCarServiceAnswer(input, state.locale);
       reply = fact?.reply ?? (he ? 'את התנאי המדויק צריך לבדוק בהצעה ובחוזה הרלוונטיים. מה בדיוק חשוב לך לברר?' : 'The exact term needs checking in the relevant offer and agreement. What would you like to clarify?');
     } else if (reading?.route === 'leasing' || reading?.route === 'sale') {

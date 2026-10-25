@@ -16,8 +16,11 @@ intent, a short draft and customer-evidenced facts. Local consultation covers
 outside-option and child-seat cases without repeating those options or
 claiming fit. Webhook signature checks, message logging, human silence and the
 transport kill switch remain in place. Focused and full tests, type checking
-and exact-source preflight pass; real-model multi-turn QA and request
-idempotency remain pending. The bot switch is OFF. This is not a customer
+and exact-source preflight pass. Initial real-model dialogues exposed date
+redaction, incomplete price answers and an incorrect luggage-to-vehicle field;
+the fixes are under repeat evaluation. Rental requests now use a persisted
+draft key and a unique database index to prevent retry duplicates. The bot
+switch is OFF. This is not a customer
 launch or a model switch.
 
 2026-10-25 — Owner-authorized live data-only price update: Hyundai Kona and

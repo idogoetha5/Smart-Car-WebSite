@@ -33,10 +33,14 @@ async function saveState(phone: string, state: RebuildState): Promise<void> {
 
 async function createRentalRequest(phone: string, state: RebuildState): Promise<string | null> {
   const b = state.booking;
-  if (!b.pickupDate || !b.returnDate || !b.pickupLocation || !b.returnLocation || !b.vehicleNeed || !b.customerName || !b.customerEmail) return null;
+  if (!state.requestKey || !b.pickupDate || !b.returnDate || !b.pickupLocation || !b.returnLocation || !b.vehicleNeed || !b.customerName || !b.customerEmail) return null;
+  const canonical = normalizeWhatsAppPhone(phone);
+  if (!canonical) return null;
   const consent = termsConsent(state.locale);
-  const { data, error } = await createAdminClient().from('whatsapp_rental_requests').insert({
-    phone: normalizeWhatsAppPhone(phone), customer_name: b.customerName, customer_email: b.customerEmail,
+  const db = createAdminClient();
+  const { data, error } = await db.from('whatsapp_rental_requests').insert({
+    request_key: state.requestKey,
+    phone: canonical, customer_name: b.customerName, customer_email: b.customerEmail,
     pickup_date: b.pickupDate, dropoff_date: b.returnDate,
     pickup_time: '09:00', return_time: '09:00',
     pickup_location: b.pickupLocation, dropoff_location: b.returnLocation,
@@ -45,6 +49,11 @@ async function createRentalRequest(phone: string, state: RebuildState): Promise<
     locale: state.locale, status: 'PENDING', terms_version: consent.version,
     terms_text_hash: consent.hash, terms_accepted_at: new Date().toISOString(), consent_source: 'whatsapp',
   }).select('id').single();
+  if (error?.code === '23505') {
+    const { data: existing, error: lookupError } = await db.from('whatsapp_rental_requests')
+      .select('id, phone').eq('request_key', state.requestKey).maybeSingle();
+    if (!lookupError && existing?.id && existing.phone === canonical) return String(existing.id);
+  }
   if (error || !data?.id) {
     console.error('[whatsapp-rebuild] rental request creation failed', error?.message ?? 'missing id');
     return null;

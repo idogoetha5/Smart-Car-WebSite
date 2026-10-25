@@ -30,7 +30,7 @@ const INSTRUCTIONS = `You are SmartCar's helpful rental and service adviser in I
 Classify the current need: explore (advice or indecision), book (explicitly wants to start or continue a rental request), service (an existing rental/problem), policy (published business rules), leasing, sale, human, or social. A question about a car or price is NOT consent to book. A mention of taxi, bus or another rental company is NOT paid commercial driving.
 For exploration, recommend one sensible SmartCar vehicle direction when the stated need supports it and explain one concrete benefit. Do not mention, recommend or compare outside transport or competitors, even if the customer names them. Do not announce this rule. Respect refusal. Keep advice separate from booking.
 Do not invent a price, available car, delivery arrangement, child-seat or luggage fit, insurance eligibility, discount, completed booking, message sent, or human handoff. A vehicle group is only a direction until exact fit and availability are checked. Answer the user's actual question before one useful next question. Use warm natural Hebrew or English matching the customer, under 65 words. No catalogue, links, stock closing or internal policy text.
-Extract only facts explicitly supplied in the CURRENT customer message. Each nonempty field needs a verbatim evidence substring from that message. Dates may be ISO YYYY-MM-DD derived from an explicit date phrase relative to the supplied Israel date. A trip destination is not a pickup point. Never infer passengers from luggage. Never turn a question into a selected vehicle. Fields may be omitted.
+Extract only facts explicitly supplied in the CURRENT customer message. Each nonempty field needs a verbatim evidence substring from that message. Dates may be ISO YYYY-MM-DD derived from an explicit date phrase relative to the supplied Israel date. For a range such as "10 עד 13 בנובמבר", extract both dates in the next occurrence of that month. A trip destination is not a pickup point. Never infer passengers from luggage. A suitcase count is luggage, never vehicleNeed. Never turn a question into a selected vehicle. Fields may be omitted.
 Personal names, email addresses, phone numbers and exact street addresses must never appear in your JSON reply or extracted fields. Application code collects them separately. Latest customer correction wins.`;
 
 const SCHEMA = {
@@ -50,10 +50,10 @@ const SCHEMA = {
 function scrub(text: string): string {
   return text
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email removed]')
-    .replace(/(?:\+972|0)[\d\s()-]{8,}/g, '[phone removed]')
+    .replace(/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/g, '[phone removed]')
     .replace(/(?:קוראים לי|שמי|השם שלי|my name is)\s+[\p{L}' -]{2,50}/giu, '[name removed]')
     .replace(/(?:רחוב|רח׳|street|st\.)\s+[^,.\n]{3,60}/gi, '[address removed]')
-    .replace(/[\p{L}][\p{L}\s.'-]{2,30}\s+\d{1,4}(?!\d)/gu, '[address removed]')
+    .replace(/(?:^|[,;]\s*)(?:[\p{L}]{3,30}\s+){1,2}\d{1,4}(?=\s*(?:[,.;]|$))/gu, '[address removed]')
     .slice(0, 450);
 }
 
@@ -67,7 +67,8 @@ function validatedFields(raw: unknown, message: string): BotFields {
     const { value, evidence } = item as { value?: unknown; evidence?: unknown };
     if (typeof value !== 'string' || typeof evidence !== 'string' || !value.trim() || !evidence.trim()) continue;
     if (!message.toLocaleLowerCase().includes(evidence.trim().toLocaleLowerCase())) continue;
-    if (value.length > 80 || evidence.length > 80 || /@|(?:\+972|0)[\d\s()-]{8,}/.test(value)) continue;
+    if (value.length > 80 || evidence.length > 80 || /@|(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/.test(value)) continue;
+    if (name === 'vehicleNeed' && !/רכב|משפחת|קומפקט|ג[׳'י]?יפ|מיני|סדאן|שבעה מקומות|car|vehicle|suv|van|sedan|hatchback/i.test(evidence)) continue;
     result[name] = { value: value.trim(), evidence: evidence.trim() };
   }
   return result;

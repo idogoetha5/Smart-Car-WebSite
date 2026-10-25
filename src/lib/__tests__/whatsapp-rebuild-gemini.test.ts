@@ -25,6 +25,22 @@ describe('replacement Gemini boundary', () => {
     expect(result?.fields.luggage).toEqual({ value: '2', evidence: 'שתי מזוודות' });
   });
 
+  it('preserves a customer date range while removing an exact street address', async () => {
+    mocks.generate.mockResolvedValue({ ok: true, text: JSON.stringify({ route: 'book', direction: 'compact', reply: 'נבדוק את הבקשה.', fields: { pickupDate: { value: '2026-11-10', evidence: '10' }, returnDate: { value: '2026-11-13', evidence: '13 בנובמבר' } } }) });
+    const result = await readBotTurn('אני רוצה להזמין רכב קטן מ-10 עד 13 בנובמבר, איסוף ברחוב הרצל 5', context);
+    const request = JSON.stringify(mocks.generate.mock.calls[0][0].body);
+    expect(request).toContain('10 עד 13 בנובמבר');
+    expect(request).not.toContain('הרצל 5');
+    expect(result?.fields.pickupDate?.value).toBe('2026-11-10');
+  });
+
+  it('does not turn luggage into a vehicle choice', async () => {
+    mocks.generate.mockResolvedValue({ ok: true, text: JSON.stringify({ route: 'book', direction: 'family', reply: 'נבדוק רכב מתאים.', fields: { vehicleNeed: { value: 'מזוודה אחת', evidence: 'מזוודה אחת' }, luggage: { value: '1', evidence: 'מזוודה אחת' } } }) });
+    const result = await readBotTurn('אנחנו עם מזוודה אחת', context);
+    expect(result?.fields.vehicleNeed).toBeUndefined();
+    expect(result?.fields.luggage?.value).toBe('1');
+  });
+
   it('keeps the private comparison model in the authenticated evaluation scope', async () => {
     mocks.evaluation.mockReturnValue({ model: 'gemini-3.8-flash' });
     mocks.generate.mockResolvedValue({ ok: true, text: JSON.stringify({ route: 'social', direction: 'none', reply: 'שלום!', fields: {} }) });

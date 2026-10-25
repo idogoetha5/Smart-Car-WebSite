@@ -29,6 +29,15 @@ describe('replacement SmartCar conversation core', () => {
     expect(chat.create).not.toHaveBeenCalled();
   });
 
+  it('answers a daily-price question without inventing a final quote or starting a request', async () => {
+    const chat = memory(() => ({ ...base, reply: 'המחיר הסופי הוא 250 ₪ ליום.' }));
+    const result = await chat.send('כמה זה עולה ליום?');
+    expect(result.reply).toContain('המחיר באתר הוא הערכה');
+    expect(result.reply).not.toContain('250');
+    expect(result.state.phase).toBe('explore');
+    expect(chat.create).not.toHaveBeenCalled();
+  });
+
   it('does not treat a bare yes or an explicit refusal as booking consent', async () => {
     const chat = memory(() => ({ ...base, route: 'book' }));
     await chat.send('אני מתלבט על רכב לסופ״ש');
@@ -77,9 +86,12 @@ describe('replacement SmartCar conversation core', () => {
     const first = await chat.send('אני רוצה להזמין רכב קטן מחר מהרצליה עד יום רביעי, ולהחזיר לאותו מקום.');
     expect(first.state.phase).toBe('booking');
     expect(first.state.booking).toMatchObject({ pickupDate: '2026-10-26', returnDate: '2026-10-28', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'קומפקטי' });
+    expect(first.state.requestKey).toMatch(/^[0-9a-f-]{36}$/);
     expect(first.reply).toMatch(/שם/);
+    expect(first.reply).not.toContain('מחיר וזמינות');
     expect(chat.create).not.toHaveBeenCalled();
     const second = await chat.send('קוראים לי דניאל כהן');
+    expect(second.state.requestKey).toBe(first.state.requestKey);
     expect(second.reply).toMatch(/מייל/);
     const third = await chat.send('daniel@example.com');
     expect(third.reply).toMatch(/אני מאשר/);
@@ -133,5 +145,12 @@ describe('replacement SmartCar conversation core', () => {
     const result = await chat.send('מה מדיניות הדלק שלכם?');
     expect(result.reply).toContain('מלא־מלא');
     expect(result.reply).not.toMatch(/תאריכים|להזמין/);
+  });
+
+  it('uses published airport pickup terms even when Gemini treats the question as exploration', async () => {
+    const chat = memory(() => ({ ...base, route: 'explore', reply: 'Airport pickup is available for your trip.' }));
+    const result = await chat.send('Can I pick it up at the airport?');
+    expect(result.reply).toContain('subject to advance coordination and availability');
+    expect(result.reply).not.toContain('is available for your trip');
   });
 });
