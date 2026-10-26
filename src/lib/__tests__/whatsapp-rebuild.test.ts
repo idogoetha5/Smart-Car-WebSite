@@ -21,6 +21,26 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('greets a customer naturally before offering any vehicle advice', async () => {
+    const chat = memory(() => ({ ...base, route: 'explore' }));
+    const hello = await chat.send('היי');
+    expect(hello.reply).toBe('היי 🙂 מה נשמע? איך אפשר לעזור לך היום?');
+    expect(hello.reply).not.toMatch(/רכב|תאריכים|נסיעה/);
+    expect(chat.readTurn).not.toHaveBeenCalled();
+    const followup = await chat.send('מה נשמע?');
+    expect(followup.reply).toContain('תודה ששאלת');
+    expect(followup.reply).not.toContain('רכב');
+  });
+
+  it('does not restart sales when a customer says hello in the middle of a request', async () => {
+    const chat = memory(() => null);
+    await chat.send('אני רוצה לשכור רכב ל-10 עד 13 בנובמבר');
+    const hello = await chat.send('שלום');
+    expect(hello.state.phase).toBe('booking');
+    expect(hello.reply).toContain('הפרטים שכבר מסרת שמורים');
+    expect(hello.reply).not.toContain('איזה רכב');
+  });
+
   it('starts a rental request from natural closing and reservation language without claiming a hold', async () => {
     const close = memory(() => null);
     await close.send('אנחנו ארבעה נוסעים, צריך רכב לסוף שבוע');

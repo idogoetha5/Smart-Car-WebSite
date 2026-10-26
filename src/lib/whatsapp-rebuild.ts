@@ -136,6 +136,16 @@ function explicitBooking(input: string): boolean {
   return /אני רוצה (?:להזמין|לשכור|להתקדם עם בקש(?:ה להשכרה|ת השכרה))|בוא(?:ו)? נתקדם|בוא(?:ו)? (?:נלך על זה|נסגור)|יאללה נסגור|תשריין לי|שריין לי|אפשר להתחיל (?:הזמנה|בקשה)|תכין(?:ו)? (?:לי )?(?:בקש(?:ה|ת השכרה)|הצעה)|אני (?:אזמין|אשכור)|I(?:'d| would) like to (?:book|rent)|let'?s (?:book|proceed|close)|I want to (?:book|rent)|go ahead with (?:the )?(?:rental|request)/i.test(input);
 }
 
+function greeting(input: string, locale: Locale): string | null {
+  if (/^(?:היי+|הי+|שלום|אהלן|בוקר טוב|צהריים טובים|ערב טוב|hi+|hello|hey|good morning|good evening)[!?.\s🙂👋]*$/i.test(input)) {
+    return locale === 'he' ? 'היי 🙂 מה נשמע? איך אפשר לעזור לך היום?' : 'Hi 🙂 How are you? How can I help you today?';
+  }
+  if (/^(?:מה נשמע|מה קורה|מה שלומך|how are you|how is it going)[!?.\s🙂]*$/i.test(input)) {
+    return locale === 'he' ? 'הכול טוב, תודה ששאלת 🙂 מה שלומך? איך אפשר לעזור לך היום?' : 'Doing well, thanks for asking 🙂 How are you? How can I help today?';
+  }
+  return null;
+}
+
 function explicitVehicleNeed(input: string, locale: Locale): string | null {
   if (/שבעה מקומות|7[- ]?seater|seven[- ]?seater/i.test(input)) return locale === 'he' ? 'רכב שבעה מקומות' : 'seven-seat car';
   if (/משפחתי|משפחתית|family car/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
@@ -356,6 +366,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = store.isSimulation ? (he ? 'בסימולציה הבקשה נקלטה לצורכי בדיקה בלבד; לא נוצרה הזמנה אמיתית.' : 'The request was recorded in this simulation only; no real booking was created.') : (he ? `בקשת ההשכרה נשלחה לבדיקה, מספר ${id}. היא עדיין אינה הזמנה מאושרת.` : `Your rental request was sent for review, reference ${id}. It is not a confirmed booking yet.`);
     } else reply = he ? 'לא הצלחתי לשמור את הבקשה כרגע. לא נוצרה הזמנה; אפשר לנסות שוב או להתקשר למשרד.' : 'I could not save the request. No booking was created; please try again or call the office.';
     }
+  } else if (greeting(input, state.locale)) {
+    reply = state.phase === 'booking'
+      ? (he ? 'היי 🙂 מה נשמע? הפרטים שכבר מסרת שמורים, ונוכל להמשיך מתי שנוח לך.' : 'Hi 🙂 How are you? The details you gave are saved, and we can continue when you are ready.')
+      : greeting(input, state.locale)!;
   } else {
     privateTurn = state.phase === 'booking' && (state.step === 'rental_name' || state.step === 'rental_email');
     const gotPrivate = privateDetail(input, state);
