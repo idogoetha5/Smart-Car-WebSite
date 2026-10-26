@@ -23,13 +23,26 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 describe('replacement SmartCar conversation core', () => {
   it('remembers a numeric date range from a WhatsApp-style short answer', async () => {
     const chat = memory(() => null);
-    await chat.send('אני רוצה לשכור רכב פנאי');
+    await chat.send('אני רוצה לשכור רכב');
+    const vehicle = await chat.send('ג׳יפ');
+    expect(vehicle.reply).toContain('רשמתי רכב פנאי');
+    expect(vehicle.state.booking.vehicleNeed).toBe('רכב פנאי');
     const dates = await chat.send('15/11-26/11');
     expect(dates.state.booking.pickupDate).toMatch(/-11-15$/);
     expect(dates.state.booking.returnDate).toMatch(/-11-26$/);
     expect(dates.reply).toContain('מאיפה');
     const price = await chat.send('כמה זה יעלה?');
     expect(price.reply).not.toMatch(/באתר|מלאי|אין לי/);
+  });
+
+  it('normalizes a model-extracted SUV to customer-facing Hebrew', async () => {
+    const chat = memory(message => message === 'ג׳יפ'
+      ? { ...base, fields: { vehicleNeed: { value: 'suv', evidence: 'ג׳יפ' } } }
+      : null);
+    await chat.send('אני רוצה לשכור רכב');
+    const vehicle = await chat.send('ג׳יפ');
+    expect(vehicle.state.booking.vehicleNeed).toBe('רכב פנאי');
+    expect(vehicle.reply).toContain('רשמתי רכב פנאי');
   });
 
   it.each([
@@ -418,7 +431,7 @@ describe('replacement SmartCar conversation core', () => {
     try {
       const chat = memory(() => ({ ...base, route: 'book', fields: { vehicleNeed: { value: 'רכב קטן', evidence: 'רכב קטן' } } }));
       const result = await chat.send('אני רוצה להזמין רכב קטן מ-10 עד 13 בנובמבר, איסוף בהרצליה והחזרה באותו מקום.');
-      expect(result.state.booking).toMatchObject({ pickupDate: '2026-11-10', returnDate: '2026-11-13', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב קטן' });
+      expect(result.state.booking).toMatchObject({ pickupDate: '2026-11-10', returnDate: '2026-11-13', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב קומפקטי' });
       expect(result.reply).toContain('קבוצת הגיל');
     } finally { vi.useRealTimers(); }
   });
@@ -642,7 +655,7 @@ describe('replacement SmartCar conversation core', () => {
     });
     const first = await chat.send('אני רוצה להזמין רכב קטן מחר מהרצליה עד יום רביעי, ולהחזיר לאותו מקום.');
     expect(first.state.phase).toBe('booking');
-    expect(first.state.booking).toMatchObject({ pickupDate: '2026-10-26', returnDate: '2026-10-28', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'קומפקטי' });
+    expect(first.state.booking).toMatchObject({ pickupDate: '2026-10-26', returnDate: '2026-10-28', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב קומפקטי' });
     expect(first.state.requestKey).toMatch(/^[0-9a-f-]{36}$/);
     expect(first.reply).toMatch(/קבוצת הגיל/);
     expect(first.reply).not.toContain('מחיר וזמינות');

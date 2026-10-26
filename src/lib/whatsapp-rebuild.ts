@@ -377,7 +377,9 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
       && !/איסוף|לאסוף|להחזיר|החזרה|pick.?up|return|drop.?off/i.test(input)
       && !(state.phase === 'booking' && state.step === 'rental_locations' && input.trim().split(/\s+/).length <= 3)) continue;
     if (source === 'vehicleNeed' && state.phase !== 'booking' && !explicitBooking(input)) continue;
-    state.booking[target] = field.value;
+    state.booking[target] = source === 'vehicleNeed'
+      ? explicitVehicleNeed(field.evidence, state.locale) ?? explicitVehicleNeed(field.value, state.locale) ?? field.value
+      : field.value;
   }
   for (const name of ['passengers', 'luggage', 'childSeats'] as const) {
     const field = fields[name];
@@ -485,6 +487,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else reply = he ? 'סליחה, חזרתי על שאלה. לא צריך לציין שעה כרגע. איך תרצה שאעזור מכאן?' : 'Sorry, I repeated a question. I do not need a time now. How would you like me to help?';
   } else {
     const lastBot = lastBotReply;
+    const wasBooking = state.phase === 'booking';
+    const previousVehicleNeed = state.booking.vehicleNeed;
     // A free-form recommendation may already have invited the customer to give
     // rental dates. Continue that intake as a real draft instead of letting
     // subsequent short answers drift back into open-ended model chat.
@@ -567,6 +571,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
             ? (he ? 'זו בקשה לבדיקה בלבד, לא הזמנה מאושרת. ' : 'This is a request for review, not a confirmed booking. ')
             : statedVehicle && /בעצם|מעדיף|במקום|actually|instead|prefer/i.test(input)
               ? (he ? `עדכנתי את סוג הרכב ל${statedVehicle}. ` : `I updated the vehicle type to ${statedVehicle}. `)
+              : statedVehicle && wasBooking && !previousVehicleNeed
+                ? (he ? `רשמתי ${statedVehicle}. ` : `Got it: ${statedVehicle}. `)
               : /תשריין|שריין|reserve|hold (?:a |the )?car/i.test(input)
                 ? (he ? 'בשמחה, נוכל להעביר בקשה לשריון; האישור הסופי יינתן לאחר בדיקת זמינות. ' : 'Gladly, we can pass on a reservation request; final confirmation follows an availability check. ')
                 : '';

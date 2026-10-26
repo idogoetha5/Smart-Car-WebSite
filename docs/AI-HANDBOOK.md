@@ -21,6 +21,11 @@ such as `15/11-26/11` are retained in the rental draft. Added regressions
 for the exact website-price and internal-wording failures. The isolated demo
 remains a rehearsal; customer WhatsApp transport remains OFF.
 
+The live production rehearsal additionally found a model-derived English
+`suv` in a Hebrew request summary. Vehicle categories extracted by Gemini
+are now normalized from the customer's explicit wording, and a short vehicle
+choice during intake receives an acknowledgement before the next question.
+
 2026-10-25 — Booking requests collect only the main driver's selected age group:
 21–23 or 24+ (age 24 is in 24+). It is stored in `bookings.driver_age_range`;
 the admin booking sheet shows that group. No birth date is requested or stored
