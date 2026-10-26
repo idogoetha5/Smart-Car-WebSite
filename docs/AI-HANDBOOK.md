@@ -1,5 +1,24 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-26 — Additional production simulator dialogues found five concrete
+conversation defects: an unsupported seven-seat fit claim for five people and
+three bags, an explicit pickup/return sentence overwritten as the pickup
+city, a leasing "כן, תתקדמו" loop, repeated sale-preference copy after
+"מה יש לכם?", and generic repeats after a service booking reference or
+callback-time question. The core now retains clearly stated passenger/bag
+counts, rejects the unsupported model fit claim, parses both named cities,
+uses those needs when preparing a rental request, advances the leasing and
+sale handoffs, and acknowledges service details without promising a fixed
+callback time. Observed full-conversation regressions were added. Customer
+WhatsApp transport remains OFF.
+
+The owner's subsequent "nothing advances" report led to a broader approval
+audit. Natural short approvals such as "כן, תתקדמו", "כן תודה" and "סבבה"
+now advance the relevant rental or commercial path; a personal leasing-offer
+reply is treated as an actionable offer. This remains scoped to an explicit
+offer or intake question and does not treat corrections such as "כן אבל..."
+as unconditional consent.
+
 2026-10-26 — Live user demo showed approximate dates ("מעוד שבוע", "עוד
 חודש") being acknowledged as if exact, followed by location questions and a
 return to the missing pickup date. The conversation core now retains that

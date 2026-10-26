@@ -21,6 +21,59 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('keeps family needs and both cities without claiming a seven-seat fit', async () => {
+    const chat = memory(() => ({ ...base, direction: 'seven_seat', reply: 'רכב בעל 7 מקומות יתאים לכם מצוין, ויעניק לכם מרחב נוח לכל הנוסעים והציוד. באיזה תאריכים תרצו לצאת לדרך?' }));
+    const advice = await chat.send('אנחנו חמישה עם שלוש מזוודות, איזה רכב יתאים?');
+    expect(advice.state.booking.passengers).toBe(5);
+    expect(advice.state.booking.luggage).toBe(3);
+    expect(advice.reply).not.toContain('יתאים לכם מצוין');
+    await chat.send('אני צריך אותו 12/11-16/11');
+    const locations = await chat.send('איסוף מהרצליה והחזרה בתל אביב');
+    expect(locations.state.booking.pickupLocation).toBe('הרצליה');
+    expect(locations.state.booking.returnLocation).toBe('תל אביב');
+    expect(locations.state.booking.vehicleNeed).toContain('5 נוסעים ול־3 מזוודות');
+    expect(locations.reply).toContain('קבוצת הגיל');
+  });
+
+  it('moves leasing forward on a natural yes and answers sale inventory without repeating', async () => {
+    const leasing = memory(() => null);
+    await leasing.send('מחפש ליסינג פרטי לשנתיים, 20 אלף קמ בשנה, רכב קטן');
+    await leasing.send('כמה זה עולה בחודש?');
+    const advanced = await leasing.send('כן, תתקדמו');
+    expect(advanced.escalate).toBe(true);
+    const sale = memory(() => null);
+    const first = await sale.send('רוצה לקנות רכב משפחתי עד 80 אלף שקל');
+    const inventory = await sale.send('מה יש לכם?');
+    expect(inventory.reply).not.toBe(first.reply);
+    expect(inventory.reply).toContain('דגמים');
+  });
+
+  it.each(['כן, תתקדמו', 'כן תודה', 'סבבה'])('accepts natural approval to advance sales: %s', async approval => {
+    const sale = memory(() => null);
+    await sale.send('אני רוצה לקנות רכב משפחתי עד 80 אלף שקל');
+    const advanced = await sale.send(approval);
+    expect(advanced.escalate).toBe(true);
+    expect(advanced.state.handedOff).toBe(true);
+  });
+
+  it('moves a rental date invitation into a real request on a natural approval', async () => {
+    const chat = memory(() => base);
+    await chat.send('מה המחיר להשכרה?');
+    const advanced = await chat.send('כן, תתקדמו');
+    expect(advanced.state.phase).toBe('booking');
+    expect(advanced.reply).toContain('תאריך');
+  });
+
+  it('acknowledges a reference and answers callback timing after service handoff', async () => {
+    const chat = memory(() => null);
+    await chat.send('יש לי הזמנה קיימת ואני צריך לשנות את יום ההחזרה');
+    const reference = await chat.send('מספר הזמנה 123456');
+    expect(reference.reply).toContain('קיבלנו את מספר ההזמנה');
+    const timing = await chat.send('מתי חוזרים אליי?');
+    expect(timing.reply).toContain('בהקדם');
+    expect(timing.reply).not.toBe(reference.reply);
+  });
+
   it('remembers approximate dates without skipping to locations or repeating the date question', async () => {
     const chat = memory(message => ({ ...base, reply: message === 'מה אתם מציעים?' ? base.reply : 'רשמתי את התאריך. מאיפה תרצו לאסוף את הרכב?' }));
     await chat.send('מה אתם מציעים?');
