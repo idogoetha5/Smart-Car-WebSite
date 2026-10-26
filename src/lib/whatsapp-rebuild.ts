@@ -39,7 +39,7 @@ export type RebuildStore = {
 const ORDER: BookingKey[] = ['pickupDate', 'returnDate', 'pickupLocation', 'returnLocation', 'vehicleNeed', 'driverAgeRange', 'customerName', 'customerEmail'];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const OUTSIDE = /מוני(?:ת|ות)|אוטובוס|רכבת|תחבורה ציבורית|אוויס|אלדן|סיקסט|הרץ|מתחר|חברת השכרה אחרת|\btaxi\b|\bbus\b|\btrain\b|\buber\b|\bavis\b|\bhertz\b|\bsixt\b|competitor|another rental company/i;
-const UNSAFE_CLAIM = /(?:יש לנו|יש אצלנו|זמין עכשיו|זמין בדיוק|פנוי עכשיו|מובטח|בטוח ש|בהחלט ייכנס|בהחלט יתאים|מזווד.{0,25}(?:ייכנס|יספיק)|חיסכון בדלק|we have available|available for (?:your|the) (?:trip|dates)|guaranteed|(?:definitely|easily) fits?|fits? (?:your|two|three|the) (?:bags|suitcases|luggage)|great fuel efficiency|fuel savings|confirmed booking)/i;
+const UNSAFE_CLAIM = /(?:יש לנו|יש אצלנו|זמין עכשיו|זמין בדיוק|פנוי עכשיו|מובטח|בטוח ש|בהחלט ייכנס|בהחלט יתאים|מזווד.{0,25}(?:ייכנס|יספיק)|(?:חיסכון|חסכון) בדלק|צריכת דלק.{0,25}(?:מעולה|נמוכה|טובה|חסכונית)|we have available|available for (?:your|the) (?:trip|dates)|guaranteed|(?:definitely|easily) fits?|fits? (?:your|two|three|the) (?:bags|suitcases|luggage)|great fuel efficiency|fuel savings|confirmed booking)/i;
 const INTERNAL_VOICE = /המחיר באתר|באתר (?:הוא|מופיע)|אין לי (?:גישה|אישור|מלאי|אפשרות)|לא אישרתי|לא פתרתי|בשיחה הזו|כיוון לבדיקה|הצוות צריך לבדוק|נשמר.{0,25}(?:לטיפול|לנציג)|website price|on the website|I (?:do not|don't) have (?:access|approval|inventory)|I have not (?:confirmed|resolved)|internal (?:check|process|system)/i;
 const PRICE_OR_AVAILABILITY = /מחיר|עלות|כמה.{0,12}(?:עול|יעל)|(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:price|cost|rate|available|availability)\b/iu;
 const AVAILABILITY_ONLY = /(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:available|availability|in stock)\b/iu;
@@ -304,13 +304,22 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
 
 export function isRebuiltSafetyMessage(input: string): boolean { return safety(input) !== null; }
 
+function hasVehicleContext(draft: BookingDraft, input: string): boolean {
+  return Boolean(draft.vehicleNeed || explicitVehicleNeed(input, 'he')
+    || /נוסע|זוג|משפחה|ילד|תינוק|מזווד|ציוד|מטען|מרווח|עיר|חניה|פגיש|שטח|passenger|family|child|baby|luggage|bags|space|city|parking|meeting|off.?road/i.test(input));
+}
+
 function direction(reading: BotReading | null, draft: BookingDraft, input: string): VehicleDirection {
   const people = draft.passengers ?? 0;
+  if (/רכב פנאי|\bSUV\b/i.test(draft.vehicleNeed ?? '')) return 'suv';
+  if (/שבעה מקומות|seven.?seat/i.test(draft.vehicleNeed ?? '')) return 'seven_seat';
+  if (/משפחתי|משפחתית|family/i.test(draft.vehicleNeed ?? '')) return 'family';
+  if (/קומפקטי|compact/i.test(draft.vehicleNeed ?? '')) return 'compact';
   if (people >= 6) return 'seven_seat';
   if (draft.childSeats || /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input)) return 'family';
   if (people >= 3 || (draft.luggage ?? 0) >= 3) return 'family';
   if (/פגיש|עיר|חניה|city|meeting|parking/i.test(input)) return 'compact';
-  return reading?.direction && reading.direction !== 'none' ? reading.direction : 'none';
+  return hasVehicleContext(draft, input) && reading?.direction && reading.direction !== 'none' ? reading.direction : 'none';
 }
 
 function advice(input: string, state: RebuildState, reading: BotReading | null): string {
@@ -353,6 +362,7 @@ function safeModelReply(reading: BotReading | null, input: string, state: Rebuil
   if (PRICE_OR_AVAILABILITY.test(input)) return null;
   const reply = reading.reply;
   if (OUTSIDE.test(reply) || UNSAFE_CLAIM.test(reply) || INTERNAL_VOICE.test(reply) || /₪|\b\d{2,}\b/.test(reply)) return null;
+  if (!hasVehicleContext(state.booking, input) && /רכב (?:קטן|קומפקטי|משפחתי|פנאי|שבעה מקומות)|משפחתית|ג[׳'י]?יפון|קטגוריית רכבים קומפקטיים|compact car|family car|SUV/i.test(reply)) return null;
   if (/באיזו שעה|באיזה שעה|מה השעה|שעת (?:ה?איסוף|ה?החזרה)|what time|pickup time|drop.?off time|return time/i.test(reply)) return null;
   if (state.booking.pickupDate && /באיזה תאריך.{0,25}לאסוף|תאריך איסוף|what date.{0,25}pick.?up/i.test(reply)) return null;
   if (state.booking.returnDate && /באיזה תאריך.{0,25}תחזיר|תאריך החזרה|what date.{0,25}return/i.test(reply)) return null;

@@ -22,6 +22,17 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 
 describe('replacement SmartCar conversation core', () => {
   it.each([
+    'רכב קטן ייתן לך חסכון בדלק. באילו תאריכים תרצה אותו?',
+    'רכב קטן מציע צריכת דלק מעולה. באילו תאריכים תרצה אותו?',
+    'לסוף השבוע אני ממליץ על קטגוריית רכבים קומפקטיים. אילו תאריכים?',
+  ])('does not publish unsupported fuel or vehicle claims: %s', async draftedReply => {
+    const chat = memory(() => ({ ...base, direction: 'compact', reply: draftedReply }));
+    const answer = await chat.send('צריך רכב לסוף שבוע');
+    expect(answer.reply).not.toMatch(/חסכון בדלק|צריכת דלק מעולה|קטגוריית רכבים קומפקטיים/);
+    expect(answer.reply).toContain('תאריכים');
+  });
+
+  it.each([
     'אילו תאריכים תרצה לבדוק?',
     'לאילו תאריכים תצטרכו את הרכב?',
     'באיזה תאריכים תרצה שההשכרה תתחיל ותסתיים?',

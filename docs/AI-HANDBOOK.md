@@ -48,6 +48,13 @@ same probe found missing routing for "איך מבטלים", "אני בן 22" and
 rented car that will not start enters urgent safety handoff. Discount and
 installment questions receive direct customer-facing answers.
 
+The post-release live loop probe also showed unsupported model claims of
+fuel savings and an arbitrary compact-car recommendation for a generic
+weekend request. The reply gate now rejects these claims and only accepts a
+specific vehicle direction when the customer has provided a vehicle or a
+concrete passenger, luggage or trip need; a generic weekend request receives
+a neutral SmartCar response and the next useful date question.
+
 2026-10-25 — Booking requests collect only the main driver's selected age group:
 21–23 or 24+ (age 24 is in 24+). It is stored in `bookings.driver_age_range`;
 the admin booking sheet shows that group. No birth date is requested or stored
