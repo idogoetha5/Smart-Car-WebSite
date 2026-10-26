@@ -59,6 +59,7 @@ describe('replacement SmartCar conversation core', () => {
     const underage = await chat.send('בן 20');
     expect(underage.reply).toContain('המינימלי להשכרה הוא 21');
     expect(underage.state.booking.driverAgeRange).toBeUndefined();
+    expect(underage.state.step).toBe('rental_age');
     expect(chat.create).not.toHaveBeenCalled();
   });
 
@@ -98,7 +99,7 @@ describe('replacement SmartCar conversation core', () => {
   });
 
   it('answers a follow-up about the customer’s child seat instead of repeating vehicle advice', async () => {
-    const chat = memory(() => ({ ...base, direction: 'family' }));
+    const chat = memory(message => ({ ...base, route: message.includes('מה חשוב') ? 'policy' : 'explore', direction: 'family' }));
     await chat.send('אנחנו זוג עם תינוק ושלוש מזוודות. כדאי לשכור משפחתית?');
     const answer = await chat.send('יש לי כיסא בטיחות משלי. מה חשוב לוודא?');
     expect(answer.reply).toContain('להתקין אותו');
@@ -113,6 +114,14 @@ describe('replacement SmartCar conversation core', () => {
     expect(handoff.escalate).toBe(true);
     expect(handoff.state.handoffKind).toBe('commercial');
     expect(handoff.reply).toContain('רכישת הרכב');
+  });
+
+  it('treats a sales callback request as a handoff even when Gemini labels it sale', async () => {
+    const chat = memory(() => ({ ...base, route: 'sale' }));
+    await chat.send('אני מחפש רכב יד שנייה בתקציב של 70 אלף שקל');
+    const handoff = await chat.send('משפחתית. אפשר שהצוות יחזור אלי?');
+    expect(handoff.escalate).toBe(true);
+    expect(handoff.state.handoffKind).toBe('commercial');
   });
 
   it('starts a request only after accepting a direct offer following a final-price question', async () => {

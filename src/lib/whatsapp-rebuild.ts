@@ -171,7 +171,7 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
   const lastBot = [...state.history].reverse().find(item => item.from === 'bot')?.text ?? '';
   const acceptsTeamCheck = /(?:הצוות יבדוק|הצוות יוכל לבדוק|team (?:check|review))/i.test(lastBot)
     && /^(?:כן|בטח|אפשר|yes|sure)(?:[\s,.!]|$)|שהצוות|שיבדקו|תבדקו|תעביר|לפי מה שכבר|אין לי העדפה|אין העדפה|לא משנה|no preference|go ahead|please do/i.test(input);
-  const asksTeamReview = /תעביר(?:ו)?\s+(?:את זה|את הפרטים|לצוות)|שהצוות יבדוק|שיבדקו בשבילי|pass (?:this|it|the details) to (?:the )?team|send (?:this|it) to (?:the )?team/i.test(input);
+  const asksTeamReview = /תעביר(?:ו)?\s+(?:את זה|את הפרטים|לצוות)|שהצוות יבדוק|שיבדקו בשבילי|שהצוות יחזור אלי|שיחזרו אלי|תחזרו אלי|pass (?:this|it|the details) to (?:the )?team|send (?:this|it) to (?:the )?team|(?:team|someone).{0,15}call me back/i.test(input);
   if (state.interest === 'leasing') {
     if (/הבדל|difference|compare/i.test(input)) return { reply: he ? 'ליסינג פרטי מיועד לשימוש אישי, ועסקי לצורכי העסק. ההתחייבויות, השירותים והמחיר נקבעים רק בהצעה ובחוזה של המסלול המתאים. תרצה לבדוק מסלול פרטי או עסקי?' : 'Private leasing serves personal use; business leasing serves a company. Commitments, services and price are set in the specific offer and contract. Which route would you like us to check?', escalate: false };
     if (/מחיר|חודשי|תשלום|כמה|price|monthly|cost/i.test(input)) return { reply: he ? 'אי אפשר להבטיח תשלום חודשי לפני הצעה אישית. המחיר תלוי במסלול, ברכב, בתקופה ובקילומטראז׳. אפשר להעביר לצוות את הפרטים שכבר ציינת כדי שיבדוק הצעה.' : 'I cannot promise a monthly payment before a tailored offer. It depends on the plan, car, term and mileage. I can pass the details you supplied to the team for a quote.', escalate: false };
@@ -412,9 +412,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
             ? (he ? 'זו בקשה לבדיקה בלבד, לא הזמנה מאושרת. ' : 'This is a request for review, not a confirmed booking. ')
             : '';
         const policy = reading?.route === 'policy' ? getSmartCarServiceAnswer(input, state.locale)?.reply : null;
-        reply = reportedAge && Number(reportedAge) < 21
-          ? (he ? 'גיל הנהג המינימלי להשכרה הוא 21. לא אוכל להמשיך בקשה עם נהג בגיל שציינת; אם יש נהג אחר שעומד בתנאים, אפשר לציין את קבוצת הגיל שלו.' : 'The minimum rental driver age is 21. I cannot continue a request with the age you gave; if another driver qualifies, please provide their age group.')
-          : `${policy ? `${policy}\n\n` : prefix}${question(missing, state.locale)}`;
+        if (reportedAge && Number(reportedAge) < 21) {
+          state.step = 'rental_age';
+          reply = he ? 'גיל הנהג המינימלי להשכרה הוא 21. לא אוכל להמשיך בקשה עם נהג בגיל שציינת; אם יש נהג אחר שעומד בתנאים, אפשר לציין את קבוצת הגיל שלו.' : 'The minimum rental driver age is 21. I cannot continue a request with the age you gave; if another driver qualifies, please provide their age group.';
+        } else reply = `${policy ? `${policy}\n\n` : prefix}${question(missing, state.locale)}`;
       }
     } else if (reading?.route === 'human' || /(?:דבר|לדבר|נציג|בן אדם|human|representative|person)/i.test(input) && /רוצה|אפשר|need|want|speak/i.test(input)) {
       state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = state.interest ? 'commercial' : 'human'; escalate = true;
@@ -440,6 +441,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const answer = commercialReply(input, state);
       reply = answer.reply; escalate = answer.escalate;
       if (escalate) { state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'commercial'; }
+    } else if (/כיסא(?:\s+ה?)?בטיחות|child seat|car seat/i.test(input) && /מה חשוב|מה צריך|מה לוודא|what.*(?:check|verify)|what matters/i.test(input)) {
+      reply = advice(input, state, reading);
     } else if (/נהג צעיר|young driver/i.test(input) && /תוספת|מחיר|עלות|כמה|surcharge|extra|price|cost/i.test(input)) {
       reply = he ? 'ייתכן שתנאי המחיר והביטוח ישתנו לפי גיל הנהג וקבוצת הרכב. אין לי תוספת מאושרת לנקוב בה; הצוות יאשר אותה בהצעה האישית.' : 'Price and insurance terms may vary by driver age and vehicle group. I cannot quote an approved surcharge here; the team will confirm it in your offer.';
     } else if (/ביטוח|כיסוי|insurance|covered/i.test(input) && /אותי|בשבילי|בוודאות|personal|me|definitely/i.test(input)) {
