@@ -42,7 +42,6 @@ async function createRentalRequest(phone: string, state: RebuildState): Promise<
     request_key: state.requestKey,
     phone: canonical, customer_name: b.customerName, customer_email: b.customerEmail,
     pickup_date: b.pickupDate, dropoff_date: b.returnDate,
-    pickup_time: '09:00', return_time: '09:00',
     pickup_location: b.pickupLocation, dropoff_location: b.returnLocation,
     vehicle_preference: b.vehicleNeed, driver_age_range: b.driverAgeRange,
     trip_needs: [b.passengers && `${b.passengers} passengers`, b.luggage && `${b.luggage} luggage`, b.childSeats && `${b.childSeats} child seats`, 'times not given — coordinate with customer'].filter(Boolean).join(', '),

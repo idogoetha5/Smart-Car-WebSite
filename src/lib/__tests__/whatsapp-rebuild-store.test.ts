@@ -39,6 +39,7 @@ describe('rebuilt rental request persistence', () => {
     expect(db.rows.size).toBe(1);
     expect(db.writes.map(row => row.request_key)).toEqual([ready.requestKey, ready.requestKey]);
     expect(db.writes.map(row => row.driver_age_range)).toEqual(['24-plus', '24-plus']);
+    expect(db.writes.every(row => !('pickup_time' in row) && !('return_time' in row))).toBe(true);
   });
 
   it('will not save a request without the required driver age group', async () => {

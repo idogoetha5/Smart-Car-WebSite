@@ -32,11 +32,12 @@ describe('replacement SmartCar conversation core', () => {
   });
 
   it('starts an English rental with stated passenger and luggage needs', async () => {
-    const chat = memory(() => base);
+    const chat = memory(message => ({ ...base, fields: message.includes('rental car') ? { vehicleNeed: { value: 'rental car', evidence: 'rental car' } } : {} }));
     const started = await chat.send('Hi, I need a rental car for five people and three bags');
     expect(started.state.phase).toBe('booking');
     expect(started.state.booking.passengers).toBe(5);
     expect(started.state.booking.luggage).toBe(3);
+    expect(started.state.booking.vehicleNeed).toBe('car for 5 passengers and 3 bags');
     expect(started.reply).toContain('date');
     const dates = await chat.send('12/11-16/11');
     expect(dates.state.booking.pickupDate).toMatch(/-11-12$/);
@@ -81,6 +82,11 @@ describe('replacement SmartCar conversation core', () => {
     expect(locations.state.booking.returnLocation).toBe('תל אביב');
     expect(locations.state.booking.vehicleNeed).toContain('5 נוסעים ול־3 מזוודות');
     expect(locations.reply).toContain('קבוצת הגיל');
+    await chat.send('24+');
+    await chat.send('רותם לוי');
+    const summary = await chat.send('rotem@example.com');
+    expect(summary.reply).toContain('נוסעים: 5');
+    expect(summary.reply).toContain('מזוודות: 3');
   });
 
   it('moves leasing forward on a natural yes and answers sale inventory without repeating', async () => {

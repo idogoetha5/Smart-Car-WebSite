@@ -485,8 +485,11 @@ function summary(state: RebuildState): string {
   const b = state.booking;
   const consent = termsConsent(state.locale);
   const date = (value?: string) => value ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : '';
-  if (state.locale === 'en') return `Here are your request details:\nVehicle: ${b.vehicleNeed}\nDates: ${date(b.pickupDate)}–${date(b.returnDate)}\nPickup: ${b.pickupLocation}\nReturn: ${b.returnLocation}\nDriver age: ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}\nName: ${b.customerName}\nEmail: ${b.customerEmail}\n\nThis request is subject to SmartCar's review and confirmation. Before sending it, please confirm the following statement:\n“${consent.text}”\nTerms: https://www.smartcar.co.il/en/terms\nPrivacy: https://www.smartcar.co.il/en/privacy\nIf everything is correct and you agree, reply “I confirm” to send the request.`;
-  return `אלה פרטי הבקשה שלכם:\nרכב: ${b.vehicleNeed}\nתאריכים: ${date(b.pickupDate)}–${date(b.returnDate)}\nאיסוף: ${b.pickupLocation}\nהחזרה: ${b.returnLocation}\nגיל הנהג: ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}\nשם: ${b.customerName}\nמייל: ${b.customerEmail}\n\nהבקשה תועבר לאישור SmartCar. לפני השליחה, אנא אשרו את ההצהרה:\n״${consent.text}״\nתנאי השימוש: https://www.smartcar.co.il/he/terms\nמדיניות הפרטיות: https://www.smartcar.co.il/he/privacy\nאם הכול נכון ואתם מסכימים, שלחו ״אני מאשר/ת״ כדי לשלוח את הבקשה.`;
+  const needs = state.locale === 'en'
+    ? `${b.passengers ? `Passengers: ${b.passengers}\n` : ''}${b.luggage ? `Bags: ${b.luggage}\n` : ''}`
+    : `${b.passengers ? `נוסעים: ${b.passengers}\n` : ''}${b.luggage ? `מזוודות: ${b.luggage}\n` : ''}`;
+  if (state.locale === 'en') return `Here are your request details:\nVehicle: ${b.vehicleNeed}\n${needs}Dates: ${date(b.pickupDate)}–${date(b.returnDate)}\nPickup: ${b.pickupLocation}\nReturn: ${b.returnLocation}\nDriver age: ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}\nName: ${b.customerName}\nEmail: ${b.customerEmail}\n\nThis request is subject to SmartCar's review and confirmation. Before sending it, please confirm the following statement:\n“${consent.text}”\nTerms: https://www.smartcar.co.il/en/terms\nPrivacy: https://www.smartcar.co.il/en/privacy\nIf everything is correct and you agree, reply “I confirm” to send the request.`;
+  return `אלה פרטי הבקשה שלכם:\nרכב: ${b.vehicleNeed}\n${needs}תאריכים: ${date(b.pickupDate)}–${date(b.returnDate)}\nאיסוף: ${b.pickupLocation}\nהחזרה: ${b.returnLocation}\nגיל הנהג: ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}\nשם: ${b.customerName}\nמייל: ${b.customerEmail}\n\nהבקשה תועבר לאישור SmartCar. לפני השליחה, אנא אשרו את ההצהרה:\n״${consent.text}״\nתנאי השימוש: https://www.smartcar.co.il/he/terms\nמדיניות הפרטיות: https://www.smartcar.co.il/he/privacy\nאם הכול נכון ואתם מסכימים, שלחו ״אני מאשר/ת״ כדי לשלוח את הבקשה.`;
 }
 
 function pushHistory(state: RebuildState, input: string, reply: string, privateTurn: boolean): void {
@@ -665,7 +668,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       state.phase = 'booking';
       state.interest = undefined;
       state.requestKey ??= randomUUID();
-      if (!state.booking.vehicleNeed && state.booking.passengers) {
+      if (state.booking.passengers && (!state.booking.vehicleNeed || /^(?:rental car|car|vehicle|רכב|רכב להשכרה)$/i.test(state.booking.vehicleNeed))) {
         const people = state.booking.passengers;
         const bags = state.booking.luggage;
         state.booking.vehicleNeed = he ? `רכב ל־${people} נוסעים${bags ? ` ול־${bags} מזוודות` : ''}` : `car for ${people} passengers${bags ? ` and ${bags} bags` : ''}`;

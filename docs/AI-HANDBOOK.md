@@ -34,6 +34,13 @@ repeating the pickup-date question. A customer asking to cancel an existing
 booking now moves from policy explanation to collecting the reference and a
 human review; it never claims to have cancelled the booking itself.
 
+The WhatsApp rental request table previously required pickup/return TIME and
+the bot inserted 09:00 for both, despite never asking the customer for a
+time. A schema migration makes those request fields nullable and the bot
+omits them. The separate trip-needs note still says times need coordination;
+existing rows are unchanged. Request summaries also show stated passenger
+and bag counts, and generic AI vehicle wording cannot replace those needs.
+
 2026-10-26 — Live user demo showed approximate dates ("מעוד שבוע", "עוד
 חודש") being acknowledged as if exact, followed by location questions and a
 return to the missing pickup date. The conversation core now retains that
