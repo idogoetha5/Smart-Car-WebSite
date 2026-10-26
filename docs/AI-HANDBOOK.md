@@ -1,5 +1,26 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-26 — Owner's production demo showed that “אני רוצה רכב פנאי”
+could remain in free-form advice after the bot asked for rental dates. Short
+answers then had no request state, repeated questions and never reached
+confirmation. A direct vehicle request followed by a rental-date prompt now
+starts the persisted draft; a pre-existing free-form date prompt also resumes
+that draft when the customer's next answer confirms or gives a date. During
+consultation, explicitly stated vehicle type, dates, locations, passenger
+needs and driver age remain in the draft and are reused when the customer
+asks to proceed. Full guided-request and consultation-to-booking regressions
+cover this behavior. No customer WhatsApp activation.
+
+2026-10-26 — Owner's WhatsApp demo exposed customer replies that described
+internal limitations and assumed the customer had seen the website. Rewrote
+price/availability, sales, leasing, test-drive, service, safety and advice
+copy to speak directly to the customer, while keeping essential conditions
+for final price, stock, booking changes and appointments. Gemini's prompt
+and reply gate now reject internal-process phrasing. Numeric short date ranges
+such as `15/11-26/11` are retained in the rental draft. Added regressions
+for the exact website-price and internal-wording failures. The isolated demo
+remains a rehearsal; customer WhatsApp transport remains OFF.
+
 2026-10-25 — Booking requests collect only the main driver's selected age group:
 21–23 or 24+ (age 24 is in 24+). It is stored in `bookings.driver_age_range`;
 the admin booking sheet shows that group. No birth date is requested or stored

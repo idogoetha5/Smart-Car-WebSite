@@ -21,6 +21,61 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('remembers a numeric date range from a WhatsApp-style short answer', async () => {
+    const chat = memory(() => null);
+    await chat.send('אני רוצה לשכור רכב פנאי');
+    const dates = await chat.send('15/11-26/11');
+    expect(dates.state.booking.pickupDate).toMatch(/-11-15$/);
+    expect(dates.state.booking.returnDate).toMatch(/-11-26$/);
+    expect(dates.reply).toContain('מאיפה');
+    const price = await chat.send('כמה זה יעלה?');
+    expect(price.reply).not.toMatch(/באתר|מלאי|אין לי/);
+  });
+
+  it.each([
+    'אין לי גישה למלאי כרגע. מאיפה תרצו לאסוף?',
+    'המחיר באתר הוא הערכה, לא הצעה סופית. מה התאריכים?',
+    'זה כיוון לבדיקה, הצוות צריך לבדוק. מה התאריכים?',
+  ])('does not expose internal process wording drafted by Gemini: %s', async draftedReply => {
+    const chat = memory(() => ({ ...base, reply: draftedReply }));
+    const result = await chat.send('אני מחפש רכב פנאי לטיול');
+    expect(result.reply).not.toMatch(/אין לי גישה|המחיר באתר|כיוון לבדיקה|הצוות צריך לבדוק/);
+    expect(result.reply).toContain('SmartCar');
+  });
+
+  it('remembers useful consultation details when the customer later asks to proceed', async () => {
+    const chat = memory(() => base);
+    const advice = await chat.send('אני מחפש רכב פנאי');
+    expect(advice.state.phase).toBe('explore');
+    expect(advice.state.booking.vehicleNeed).toBe('רכב פנאי');
+    const details = await chat.send('אני צריך אותו מ-10 עד 13 בנובמבר, איסוף בתל אביב והחזרה באותו מקום');
+    expect(details.state.booking).toMatchObject({ vehicleNeed: 'רכב פנאי', pickupLocation: 'תל אביב', returnLocation: 'תל אביב' });
+    expect(details.state.booking.pickupDate).toMatch(/-11-10$/);
+    expect(details.state.booking.returnDate).toMatch(/-11-13$/);
+    const proceed = await chat.send('בוא נתקדם');
+    expect(proceed.state.phase).toBe('booking');
+    expect(proceed.state.step).toBe('rental_age');
+    expect(proceed.reply).not.toMatch(/תאריך|מאיפה|איזה סוג רכב/);
+  });
+
+  it('finishes the rental after a vehicle-only opener and short answers', async () => {
+    const chat = memory(() => ({ ...base, reply: 'רכב פנאי הוא בחירה נוחה. באילו תאריכים תרצה לאסוף את הרכב?' }));
+    const first = await chat.send('אני רוצה רכב פנאי');
+    expect(first.state.phase).toBe('booking');
+    expect(first.state.booking.vehicleNeed).toBe('רכב פנאי');
+    expect(first.reply).toBe('באיזה תאריך תרצו לאסוף את הרכב?');
+    expect((await chat.send('כן')).reply).toBe('באיזה תאריך תרצו לאסוף את הרכב?');
+    expect((await chat.send('10 בנובמבר')).state.booking.pickupDate).toMatch(/-11-10$/);
+    expect((await chat.send('13 בנובמבר')).state.booking.returnDate).toMatch(/-11-13$/);
+    expect((await chat.send('תל אביב')).state.booking.pickupLocation).toBe('תל אביב');
+    expect((await chat.send('אותו מקום')).state.booking.returnLocation).toBe('תל אביב');
+    expect((await chat.send('24+')).state.step).toBe('rental_name');
+    expect((await chat.send('דני בדיקה')).state.step).toBe('rental_email');
+    expect((await chat.send('dani.test@example.com')).state.step).toBe('rental_confirm');
+    expect((await chat.send('אני מאשר')).escalate).toBe(true);
+    expect(chat.create).toHaveBeenCalledOnce();
+  });
+
   it('moves past the exact repeated yes pattern reported by the owner', async () => {
     const offer = 'בסדר גמור, ללא ציוד נוסף. האם נמשיך לבדיקת זמינות לרכב פנאי (SUV) לתאריכים שבחרת?';
     const chat = memory(() => ({ ...base, reply: offer }));
@@ -138,7 +193,7 @@ describe('replacement SmartCar conversation core', () => {
     const hold = memory(() => null);
     const request = await hold.send('תשריין לי רכב');
     expect(request.state.phase).toBe('booking');
-    expect(request.reply).toContain('אין לי אפשרות לשריין');
+    expect(request.reply).toContain('האישור הסופי יינתן לאחר בדיקת זמינות');
     expect(hold.create).not.toHaveBeenCalled();
   });
 
@@ -148,7 +203,7 @@ describe('replacement SmartCar conversation core', () => {
     const handoff = await chat.send('אני רוצה לדבר עם נציג');
     expect(handoff.escalate).toBe(true);
     expect(handoff.state.handoffKind).toBe('human');
-    expect(handoff.reply).toContain('טיפול צוות');
+    expect(handoff.reply).toContain('נציג SmartCar');
   });
 
   it('handles an English sale lead and the customer’s explicit team request', async () => {
@@ -183,7 +238,7 @@ describe('replacement SmartCar conversation core', () => {
     const chat = memory(() => null);
     const result = await chat.send('אני רוצה לקנות את הטויוטה שראיתי באתר, היא במלאי?');
     expect(result.state.interest).toBe('sale');
-    expect(result.reply).toContain('אין לי רשימת מלאי מכירה');
+    expect(result.reply).toContain('נשמח לבדוק');
   });
 
   it('acknowledges a vehicle correction during the rental form', async () => {
@@ -230,7 +285,7 @@ describe('replacement SmartCar conversation core', () => {
     const chat = memory(() => null);
     await chat.send('אני רוצה לשכור רכב משפחתי מ-10 עד 13 בנובמבר, איסוף בהרצליה והחזרה באותו מקום');
     const underage = await chat.send('בן 20');
-    expect(underage.reply).toContain('המינימלי להשכרה הוא 21');
+    expect(underage.reply).toContain('השכרה אפשרית לנהגים מגיל 21');
     expect(underage.state.booking.driverAgeRange).toBeUndefined();
     expect(underage.state.step).toBe('rental_age');
     expect(chat.create).not.toHaveBeenCalled();
@@ -268,7 +323,7 @@ describe('replacement SmartCar conversation core', () => {
     const result = await chat.send('יש לי הזמנה קיימת ואני צריך לדחות את ההחזרה ביום');
     expect(result.escalate).toBe(true);
     expect(result.state.handoffKind).toBe('booking_change');
-    expect(result.reply).toContain('לא שיניתי');
+    expect(result.reply).toContain('תיכנס לתוקף לאחר');
   });
 
   it('answers a follow-up about the customer’s child seat instead of repeating vehicle advice', async () => {
@@ -276,7 +331,7 @@ describe('replacement SmartCar conversation core', () => {
     await chat.send('אנחנו זוג עם תינוק ושלוש מזוודות. כדאי לשכור משפחתית?');
     const answer = await chat.send('יש לי כיסא בטיחות משלי. מה חשוב לוודא?');
     expect(answer.reply).toContain('להתקין אותו');
-    expect(answer.reply).toContain('אין לי אישור התאמה');
+    expect(answer.reply).toContain('כיסא הבטיחות מתאים לרכב המסוים');
     expect(answer.reply).not.toContain('הייתי מתחיל');
   });
 
@@ -301,7 +356,7 @@ describe('replacement SmartCar conversation core', () => {
     const chat = memory(() => null);
     await chat.send('כמה עולה יונדאי i20 לשלושה ימים והאם הוא פנוי?');
     const offer = await chat.send('אפשר לקבל מחיר סופי עכשיו?');
-    expect(offer.reply).toContain('תרצה להתחיל בקשה');
+    expect(offer.reply).toContain('נתחיל בקשה');
     const accept = await chat.send('כן');
     expect(accept.state.phase).toBe('booking');
     expect(accept.state.step).toBe('rental_dates');
@@ -332,7 +387,8 @@ describe('replacement SmartCar conversation core', () => {
   it('answers a daily-price question without inventing a final quote or starting a request', async () => {
     const chat = memory(() => ({ ...base, reply: 'המחיר הסופי הוא 250 ₪ ליום.' }));
     const result = await chat.send('כמה זה עולה ליום?');
-    expect(result.reply).toContain('המחיר באתר הוא הערכה');
+    expect(result.reply).toContain('המחיר המדויק תלוי');
+    expect(result.reply).not.toContain('באתר');
     expect(result.reply).not.toContain('250');
     expect(result.state.phase).toBe('explore');
     expect(chat.create).not.toHaveBeenCalled();
@@ -341,7 +397,7 @@ describe('replacement SmartCar conversation core', () => {
   it('answers a specific website car availability question without a price detour', async () => {
     const chat = memory(() => ({ ...base, reply: 'יש לנו רכב פנוי עכשיו.' }));
     const result = await chat.send('האם ה־Kia Sportage מהאתר פנוי?');
-    expect(result.reply).toContain('אין לי גישה למלאי חי');
+    expect(result.reply).toContain('נשמח לבדוק זמינות');
     expect(result.reply).not.toContain('המחיר באתר');
   });
 
@@ -452,7 +508,7 @@ describe('replacement SmartCar conversation core', () => {
     expect(first.escalate).toBe(true);
     expect(update.escalate).toBe(false);
     expect(tow.escalate).toBe(false);
-    expect(tow.reply).toContain('לא אוכל לאשר שנשלח גרר');
+    expect(tow.reply).toContain('לתיאום גרר');
     expect(chat.readTurn).not.toHaveBeenCalled();
   });
 
@@ -483,9 +539,9 @@ describe('replacement SmartCar conversation core', () => {
     const details = await chat.send('משפחתית יד שנייה עד 80 אלף שקל');
     expect(details.reply).not.toMatch(/איזה סוג רכב/);
     const stock = await chat.send('איזה דגמים זמינים עכשיו?');
-    expect(stock.reply).toContain('אין לי רשימת מלאי מכירה עדכנית');
+    expect(stock.reply).toContain('נשמח לבדוק');
     const drive = await chat.send('אפשר נסיעת מבחן?');
-    expect(drive.reply).toContain('לא נקבע תור');
+    expect(drive.reply).toContain('לאישור התור');
   });
 
   it('asks for a vehicle category rather than treating used condition as a category, then hands off an accepted sales lead', async () => {
@@ -496,7 +552,7 @@ describe('replacement SmartCar conversation core', () => {
     const handoff = await chat.send('כן, שהצוות יבדוק לפי מה שכבר כתבתי');
     expect(handoff.escalate).toBe(true);
     expect(handoff.state.handedOff).toBe(true);
-    expect(handoff.reply).toContain('אשאיר את פרטי השיחה');
+    expect(handoff.reply).toContain('נציג SmartCar');
     const followUp = await chat.send('מה קורה עם זה?');
     expect(followUp.reply).toContain('רכישת רכב');
     expect(followUp.reply).not.toContain('לא שיניתי את ההזמנה');
@@ -507,7 +563,7 @@ describe('replacement SmartCar conversation core', () => {
     await chat.send('אני מחפש רכב לקנייה');
     const request = await chat.send('אני רוצה לקבוע נסיעת מבחן');
     expect(request.escalate).toBe(true);
-    expect(request.reply).toContain('לא נקבע תור');
+    expect(request.reply).toContain('לאישור התור');
   });
 
   it('passes a sales lead to staff when the customer has no further preferences', async () => {
@@ -515,7 +571,7 @@ describe('replacement SmartCar conversation core', () => {
     await chat.send('אני מחפש משפחתית לקנייה עד 80 אלף שקל');
     const handoff = await chat.send('אין לי העדפה לשנתון, תבדקו לפי מה שכתבתי');
     expect(handoff.escalate).toBe(true);
-    expect(handoff.reply).toContain('לטיפול הצוות');
+    expect(handoff.reply).toContain('נציג SmartCar');
   });
 
   it('passes an existing booking date change to staff only once', async () => {
@@ -523,9 +579,9 @@ describe('replacement SmartCar conversation core', () => {
     const first = await chat.send('יש לי הזמנה קיימת ואני צריך לשנות את יום ההחזרה');
     const second = await chat.send('אפשר לשנות אותה עכשיו?');
     expect(first.escalate).toBe(true);
-    expect(first.reply).toContain('לא שיניתי');
+    expect(first.reply).toContain('תיכנס לתוקף לאחר');
     expect(second.escalate).toBe(false);
-    expect(second.reply).toContain('לא שיניתי');
+    expect(second.reply).toContain('תיכנס לתוקף רק לאחר');
   });
 
   it('passes a specific billing problem to staff instead of repeatedly asking for a booking number', async () => {
@@ -533,11 +589,11 @@ describe('replacement SmartCar conversation core', () => {
     const problem = await chat.send('יש לי הזמנה קיימת וחויבתי פעמיים, אפשר לבדוק?');
     expect(problem.escalate).toBe(true);
     expect(problem.state.handedOff).toBe(true);
-    expect(problem.reply).toContain('לא פתרתי את הבעיה');
+    expect(problem.reply).toContain('נציג SmartCar יבדוק');
     expect(problem.reply).not.toContain('נדרש מספר ההזמנה');
     const detail = await chat.send('מספר ההזמנה שלי TEST-123');
     expect(detail.escalate).toBe(false);
-    expect(detail.reply).toContain('פרטי הפנייה נשמרו');
+    expect(detail.reply).toContain('נציג SmartCar יטפל');
     expect(detail.reply).not.toContain('לא שיניתי את ההזמנה');
   });
 
@@ -546,7 +602,7 @@ describe('replacement SmartCar conversation core', () => {
     const problem = await chat.send('חויבתי פעמיים על אותה השכרה');
     expect(problem.escalate).toBe(true);
     expect(problem.state.handoffKind).toBe('service_issue');
-    expect(problem.reply).toContain('לא פתרתי את הבעיה');
+    expect(problem.reply).toContain('נציג SmartCar יבדוק');
   });
 
   it('recognizes a booking reference supplied after a generic service enquiry', async () => {
@@ -555,7 +611,7 @@ describe('replacement SmartCar conversation core', () => {
     expect(first.reply).toContain('מספר ההזמנה');
     const reference = await chat.send('מספר ההזמנה שלי TEST-123');
     expect(reference.escalate).toBe(true);
-    expect(reference.reply).toContain('צוות SmartCar');
+    expect(reference.reply).toContain('נציג SmartCar');
     expect(reference.reply).not.toContain('נדרש מספר ההזמנה');
   });
 

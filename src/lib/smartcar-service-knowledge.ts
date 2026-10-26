@@ -65,8 +65,8 @@ export const ANSWERS: Record<ServiceKnowledgeTopic, LocalisedAnswer> = {
   },
   cancellation: {
     topic: 'cancellation', href: '/terms', linkLabelHe: 'למדיניות הביטול', linkLabelEn: 'Cancellation policy',
-    he: 'לפי תנאי ההשכרה: יותר מ־72 שעות לפני האיסוף — החזר מלא; 72–48 שעות — 25% מדמי השכירות הבסיסיים; 48–24 שעות — 50%; פחות מ־24 שעות או אי־הופעה — 100%. שינוי תאריכים ללא חיוב אפשרי עד 48 שעות לפני האיסוף, בכפוף לזמינות. אם זו הזמנה קיימת, שלחו את מספר ההזמנה ונשמור את ההקשר לנציג.',
-    en: 'Under the rental terms: more than 72 hours before pickup — full refund; 72–48 hours — 25% of the base rental fee; 48–24 hours — 50%; under 24 hours or a no-show — 100%. Date changes are free up to 48 hours before pickup, subject to availability. For an existing booking, send the reference and we will retain the context for the representative.',
+    he: 'לפי תנאי ההשכרה: יותר מ־72 שעות לפני האיסוף — החזר מלא; 72–48 שעות — 25% מדמי השכירות הבסיסיים; 48–24 שעות — 50%; פחות מ־24 שעות או אי־הופעה — 100%. שינוי תאריכים ללא חיוב אפשרי עד 48 שעות לפני האיסוף, בכפוף לזמינות. אם זו הזמנה קיימת, שלחו את מספר ההזמנה ונשמח לעזור.',
+    en: 'Under the rental terms: more than 72 hours before pickup — full refund; 72–48 hours — 25% of the base rental fee; 48–24 hours — 50%; under 24 hours or a no-show — 100%. Date changes are free up to 48 hours before pickup, subject to availability. For an existing booking, send the reference and we will be happy to help.',
   },
   availability: {
     topic: 'availability', href: '/terms', linkLabelHe: 'לתנאי הזמינות', linkLabelEn: 'Availability terms',
