@@ -21,6 +21,124 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('starts a request from natural closing language and retains a stated family car', async () => {
+    const chat = memory(() => null);
+    await chat.send('אנחנו זוג עם תינוק ו-3 מזוודות, איזה רכב כדאי?');
+    const start = await chat.send('אני רוצה להתקדם עם בקשה להשכרה');
+    expect(start.state.phase).toBe('booking');
+    const details = await chat.send('אני רוצה לשכור רכב משפחתי מ-10 עד 13 בנובמבר, איסוף בהרצליה והחזרה באותו מקום');
+    expect(details.state.booking.vehicleNeed).toBe('רכב משפחתי');
+    expect(details.state.booking.pickupLocation).toBe('הרצליה');
+    expect(details.state.booking.returnLocation).toBe('הרצליה');
+    expect(details.state.step).toBe('rental_age');
+  });
+
+  it('completes a model-free rental conversation only after age, contact details and consent', async () => {
+    const chat = memory(() => null);
+    const start = await chat.send('אני רוצה לשכור רכב משפחתי מ-10 עד 13 בנובמבר, איסוף בהרצליה והחזרה באותו מקום');
+    expect(start.state.step).toBe('rental_age');
+    expect(chat.create).not.toHaveBeenCalled();
+    const age = await chat.send('24+');
+    expect(age.state.booking.driverAgeRange).toBe('24-plus');
+    expect(age.state.step).toBe('rental_name');
+    const name = await chat.send('דני בדיקה');
+    expect(name.state.step).toBe('rental_email');
+    const email = await chat.send('dani.test@example.com');
+    expect(email.state.step).toBe('rental_confirm');
+    expect(email.reply).toContain('לא הזמנה מאושרת');
+    expect(chat.create).not.toHaveBeenCalled();
+    const confirmed = await chat.send('אני מאשר');
+    expect(confirmed.escalate).toBe(true);
+    expect(confirmed.state.completedRequestId).toBe('SIM-123');
+    expect(chat.create).toHaveBeenCalledOnce();
+  });
+
+  it('explains the age limit instead of repeating an unrelated form question', async () => {
+    const chat = memory(() => null);
+    await chat.send('אני רוצה לשכור רכב משפחתי מ-10 עד 13 בנובמבר, איסוף בהרצליה והחזרה באותו מקום');
+    const underage = await chat.send('בן 20');
+    expect(underage.reply).toContain('המינימלי להשכרה הוא 21');
+    expect(underage.state.booking.driverAgeRange).toBeUndefined();
+    expect(chat.create).not.toHaveBeenCalled();
+  });
+
+  it('accepts a natural request to prepare a rental application', async () => {
+    const chat = memory(() => null);
+    const start = await chat.send('טוב, תכין לי בקשת השכרה');
+    expect(start.state.phase).toBe('booking');
+    expect(start.state.step).toBe('rental_dates');
+  });
+
+  it('recognizes a pickup in an English rental request and return there', async () => {
+    const chat = memory(() => null);
+    const result = await chat.send('I want to book a family car from 10 to 13 November 2026, pickup in Herzliya and return there');
+    expect(result.state.booking.pickupLocation).toBe('Herzliya');
+    expect(result.state.booking.returnLocation).toBe('Herzliya');
+    expect(result.state.booking.vehicleNeed).toBe('רכב משפחתי');
+  });
+
+  it('moves leasing from term to mileage to vehicle and then asks to send the lead', async () => {
+    const chat = memory(() => ({ ...base, route: 'leasing' }));
+    const term = await chat.send('אני רוצה ליסינג פרטי לשנתיים');
+    expect(term.reply).toContain('קילומטרים');
+    const mileage = await chat.send('אסע בערך 15 אלף קמ בשנה');
+    expect(mileage.reply).toContain('איזה סוג רכב');
+    const vehicle = await chat.send('רכב משפחתי');
+    expect(vehicle.reply).toContain('תרצה שהצוות יבדוק');
+    const handoff = await chat.send('כן');
+    expect(handoff.escalate).toBe(true);
+  });
+
+  it('routes a natural return postponement to staff immediately', async () => {
+    const chat = memory(() => null);
+    const result = await chat.send('יש לי הזמנה קיימת ואני צריך לדחות את ההחזרה ביום');
+    expect(result.escalate).toBe(true);
+    expect(result.state.handoffKind).toBe('booking_change');
+    expect(result.reply).toContain('לא שיניתי');
+  });
+
+  it('answers a follow-up about the customer’s child seat instead of repeating vehicle advice', async () => {
+    const chat = memory(() => ({ ...base, direction: 'family' }));
+    await chat.send('אנחנו זוג עם תינוק ושלוש מזוודות. כדאי לשכור משפחתית?');
+    const answer = await chat.send('יש לי כיסא בטיחות משלי. מה חשוב לוודא?');
+    expect(answer.reply).toContain('להתקין אותו');
+    expect(answer.reply).toContain('אין לי אישור התאמה');
+    expect(answer.reply).not.toContain('הייתי מתחיל');
+  });
+
+  it('keeps a purchase lead when the customer asks the team to call back', async () => {
+    const chat = memory(message => ({ ...base, route: message.includes('צוות') ? 'human' : 'sale' }));
+    await chat.send('אני מחפש רכב יד שנייה בתקציב של 70 אלף שקל');
+    const handoff = await chat.send('משפחתית. אפשר שהצוות יחזור אלי?');
+    expect(handoff.escalate).toBe(true);
+    expect(handoff.state.handoffKind).toBe('commercial');
+    expect(handoff.reply).toContain('רכישת הרכב');
+  });
+
+  it('starts a request only after accepting a direct offer following a final-price question', async () => {
+    const chat = memory(() => null);
+    await chat.send('כמה עולה יונדאי i20 לשלושה ימים והאם הוא פנוי?');
+    const offer = await chat.send('אפשר לקבל מחיר סופי עכשיו?');
+    expect(offer.reply).toContain('תרצה להתחיל בקשה');
+    const accept = await chat.send('כן');
+    expect(accept.state.phase).toBe('booking');
+    expect(accept.state.step).toBe('rental_dates');
+  });
+
+  it('responds to a price objection with a budget question', async () => {
+    const chat = memory(() => null);
+    const answer = await chat.send('יקר לי, אולי יש רכב חסכוני יותר?');
+    expect(answer.reply).toContain('התקציב היומי');
+    expect(answer.reply).not.toContain('לאילו תאריכים');
+  });
+
+  it('routes a request to move a return date without asking for the booking number first', async () => {
+    const chat = memory(() => null);
+    const result = await chat.send('יש לי הזמנה קיימת ואני רוצה להזיז את ההחזרה ביומיים');
+    expect(result.escalate).toBe(true);
+    expect(result.state.handoffKind).toBe('booking_change');
+  });
+
   it('treats a rental question as exploration, not booking consent', async () => {
     const chat = memory(() => ({ ...base, route: 'book', direction: 'compact' }));
     const result = await chat.send('כדאי לי לשכור רכב לפגישות בירושלים?');
