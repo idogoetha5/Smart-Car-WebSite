@@ -21,6 +21,53 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('starts a rental from natural Hebrew wording and keeps all details', async () => {
+    const chat = memory(() => base);
+    const started = await chat.send('רוצה לשכור רכב קטן 15/11-18/11 איסוף מהרצליה החזרה בתל אביב, נהג בן 24');
+    expect(started.state.phase).toBe('booking');
+    expect(started.state.booking.pickupLocation).toBe('הרצליה');
+    expect(started.state.booking.returnLocation).toBe('תל אביב');
+    expect(started.state.booking.driverAgeRange).toBe('24-plus');
+    expect(started.reply).toContain('שם');
+  });
+
+  it('starts an English rental with stated passenger and luggage needs', async () => {
+    const chat = memory(() => base);
+    const started = await chat.send('Hi, I need a rental car for five people and three bags');
+    expect(started.state.phase).toBe('booking');
+    expect(started.state.booking.passengers).toBe(5);
+    expect(started.state.booking.luggage).toBe(3);
+    expect(started.reply).toContain('date');
+    const dates = await chat.send('12/11-16/11');
+    expect(dates.state.booking.pickupDate).toMatch(/-11-12$/);
+    expect(dates.reply).toContain('pick');
+  });
+
+  it('pauses when rental dates are unknown instead of asking again', async () => {
+    const chat = memory(() => base);
+    await chat.send('אני מחפש רכב קטן להשכרה');
+    await chat.send('כן, תתקדמו');
+    const unknown = await chat.send('אני לא יודע תאריך עדיין');
+    expect(unknown.reply).toContain('כשתדעו');
+    const vague = await chat.send('אולי בשבוע הבא');
+    expect(vague.reply).toContain('כשתדעו');
+    const unsure = await chat.send('גם לא בטוח');
+    expect(unsure.reply).toContain('כשתדעו');
+    expect(unsure.state.booking.pickupDate).toBeUndefined();
+  });
+
+  it('moves a cancellation request from policy advice to reference and handoff', async () => {
+    const chat = memory(() => null);
+    const policy = await chat.send('איך מבטלים הזמנה?');
+    expect(policy.reply).toContain('72 שעות');
+    const request = await chat.send('אני רוצה לבטל את ההזמנה שלי');
+    expect(request.reply).toContain('מספר ההזמנה');
+    expect(request.reply).not.toContain('72 שעות');
+    const handoff = await chat.send('מספר הזמנה 123456');
+    expect(handoff.escalate).toBe(true);
+    expect(handoff.reply).toContain('בקשת הביטול');
+  });
+
   it('keeps family needs and both cities without claiming a seven-seat fit', async () => {
     const chat = memory(() => ({ ...base, direction: 'seven_seat', reply: 'רכב בעל 7 מקומות יתאים לכם מצוין, ויעניק לכם מרחב נוח לכל הנוסעים והציוד. באיזה תאריכים תרצו לצאת לדרך?' }));
     const advice = await chat.send('אנחנו חמישה עם שלוש מזוודות, איזה רכב יתאים?');

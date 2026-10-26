@@ -25,6 +25,15 @@ passenger/bag counts now uses a qualified local answer, stating that luggage
 space must be checked for the actual model and bag sizes. The customer facts
 remain in the rental draft and the request continues through consent.
 
+Another live progression audit showed "רוצה לשכור" and "I need a rental car"
+staying in consultation even after dates, locations and age, because the
+booking-intent boundary missed those natural phrasings. They now enter the
+persisted rental request. English number words for passengers and bags are
+captured. When a customer cannot give dates yet, the bot pauses instead of
+repeating the pickup-date question. A customer asking to cancel an existing
+booking now moves from policy explanation to collecting the reference and a
+human review; it never claims to have cancelled the booking itself.
+
 2026-10-26 — Live user demo showed approximate dates ("מעוד שבוע", "עוד
 חודש") being acknowledged as if exact, followed by location questions and a
 return to the missing pickup date. The conversation core now retains that
