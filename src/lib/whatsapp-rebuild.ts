@@ -41,6 +41,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const OUTSIDE = /מוני(?:ת|ות)|אוטובוס|רכבת|תחבורה ציבורית|אוויס|אלדן|סיקסט|הרץ|מתחר|חברת השכרה אחרת|\btaxi\b|\bbus\b|\btrain\b|\buber\b|\bavis\b|\bhertz\b|\bsixt\b|competitor|another rental company/i;
 const UNSAFE_CLAIM = /(?:יש לנו|יש אצלנו|זמין עכשיו|זמין בדיוק|פנוי עכשיו|מובטח|בטוח ש|בהחלט ייכנס|בהחלט יתאים|מזווד.{0,25}(?:ייכנס|יספיק)|(?:חיסכון|חסכון) בדלק|צריכת דלק.{0,25}(?:מעולה|נמוכה|טובה|חסכונית)|we have available|available for (?:your|the) (?:trip|dates)|guaranteed|(?:definitely|easily) fits?|fits? (?:your|two|three|the) (?:bags|suitcases|luggage)|great fuel efficiency|fuel savings|confirmed booking)/i;
 const INTERNAL_VOICE = /המחיר באתר|באתר (?:הוא|מופיע)|אין לי (?:גישה|אישור|מלאי|אפשרות)|לא אישרתי|לא פתרתי|בשיחה הזו|כיוון לבדיקה|הצוות צריך לבדוק|נשמר.{0,25}(?:לטיפול|לנציג)|תהליך פנימי|בדיקה פנימית|המודל|סימולציה|website price|on the website|I (?:do not|don't) have (?:access|approval|inventory)|I have not (?:confirmed|resolved)|internal (?:check|process|system)|simulation|backend/i;
+const VOLUNTEERED_IDENTITY = /אני (?:בוט|רובוט|עוזר דיגיטלי|בינה מלאכותית)|אני לא (?:בן אדם|אדם)|I am (?:a bot|an AI|a digital assistant)|I'm (?:a bot|an AI|a digital assistant)/i;
 const PRICE_OR_AVAILABILITY = /מחיר|עלות|כמה.{0,12}(?:עול|יעל)|(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:price|cost|rate|available|availability)\b/iu;
 const AVAILABILITY_ONLY = /(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:available|availability|in stock)\b/iu;
 const MONTHS: Record<string, number> = { ינואר: 1, פברואר: 2, מרץ: 3, אפריל: 4, מאי: 5, יוני: 6, יולי: 7, אוגוסט: 8, ספטמבר: 9, אוקטובר: 10, נובמבר: 11, דצמבר: 12, january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12 };
@@ -210,6 +211,12 @@ function greeting(input: string, locale: Locale): string | null {
   return null;
 }
 
+function identityQuestion(input: string): 'name' | 'digital' | null {
+  if (/איך קוראים לך|מה השם שלך|what(?:'s| is) your name/i.test(input)) return 'name';
+  if (/את[ה]? (?:בוט|רובוט|בן אדם|אדם אמיתי|AI)|מדבר(?:ת)? עם (?:בוט|אדם)|עוזר דיגיטלי|are you (?:a bot|an AI|human|a real person)|am I (?:speaking|talking) to (?:a bot|a person)/i.test(input)) return 'digital';
+  return null;
+}
+
 function affirms(input: string): boolean {
   return /^(?:כן(?:\s+כן)?|נו\s*כן|כן בבקשה|יאללה|בטח|yes|yeah|sure|go ahead)[!?.\s]*$/i.test(input);
 }
@@ -362,6 +369,7 @@ function safeModelReply(reading: BotReading | null, input: string, state: Rebuil
   if (PRICE_OR_AVAILABILITY.test(input)) return null;
   const reply = reading.reply;
   if (OUTSIDE.test(reply) || UNSAFE_CLAIM.test(reply) || INTERNAL_VOICE.test(reply) || /₪|\b\d{2,}\b/.test(reply)) return null;
+  if (VOLUNTEERED_IDENTITY.test(reply) && !identityQuestion(input)) return null;
   if (!hasVehicleContext(state.booking, input) && /רכב (?:קטן|קומפקטי|משפחתי|פנאי|שבעה מקומות)|משפחתית|ג[׳'י]?יפון|קטגוריית רכבים קומפקטיים|compact car|family car|SUV/i.test(reply)) return null;
   if (/באיזו שעה|באיזה שעה|מה השעה|שעת (?:ה?איסוף|ה?החזרה)|what time|pickup time|drop.?off time|return time/i.test(reply)) return null;
   if (state.booking.pickupDate && /באיזה תאריך.{0,25}לאסוף|תאריך איסוף|what date.{0,25}pick.?up/i.test(reply)) return null;
@@ -464,6 +472,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : (he ? `אם הרכב אינו בטוח, אל תמשיכו לנסוע. עצרו במקום בטוח אם אפשר; אם יש סכנה מיידית או נפגעים, פנו לגורמי החירום. התקשרו עכשיו ל־SmartCar: ${OFFICE_PHONE}.` : `If the car may be unsafe, do not continue driving. Stop somewhere safe if you can; call emergency services if anyone is hurt or in immediate danger. Call SmartCar now: ${OFFICE_PHONE}.`);
     source = 'safety'; escalate = !recentAlert;
     if (escalate) state.safetyAlertAt = new Date().toISOString();
+  } else if (identityQuestion(input)) {
+    reply = identityQuestion(input) === 'name'
+      ? (he ? 'אפשר לקרוא לי SmartCar 🙂 איך אוכל לעזור?' : 'You can call me SmartCar 🙂 How can I help?')
+      : (he ? 'אני העוזר הדיגיטלי של SmartCar. אני כאן לעזור, ואם צריך אעביר את הפנייה לנציג.' : 'I am SmartCar’s digital assistant. I am here to help, and I can pass your enquiry to a representative when needed.');
   } else if (state.handedOff) {
     const handoffKind = state.handoffKind ?? (state.safetyAlertAt && (!state.handoffAt || Date.parse(state.safetyAlertAt) >= Date.parse(state.handoffAt)) ? 'safety' : state.interest ? 'commercial' : 'booking_change');
     reply = /תודה|thanks|thank you/i.test(input)

@@ -68,6 +68,14 @@ replies. The Gemini reply gate also rejects references to a model,
 simulation, or internal checks in customer-facing drafts. These are
 customer-copy changes; routing and the WhatsApp kill switch are unchanged.
 
+2026-10-26 — Owner preferred a human-sounding representative without
+voluntary bot disclosure and asked for a name. The visible identity remains
+the existing SmartCar brand. Gemini is instructed not to volunteer bot/AI or
+invent an employee identity; the reply gate rejects such unsolicited claims.
+If a customer asks the name, the reply is SmartCar. If asked directly whether
+it is a bot/person, the assistant answers truthfully as SmartCar's digital
+assistant and can offer a human representative.
+
 2026-10-25 — Booking requests collect only the main driver's selected age group:
 21–23 or 24+ (age 24 is in 24+). It is stored in `bookings.driver_age_range`;
 the admin booking sheet shows that group. No birth date is requested or stored

@@ -21,6 +21,17 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('uses the SmartCar name and answers direct identity questions truthfully', async () => {
+    const chat = memory(() => ({ ...base, reply: 'אני בוט של SmartCar. במה אוכל לעזור?' }));
+    const opener = await chat.send('מחפש רכב קטן בעיר');
+    expect(opener.reply).not.toMatch(/אני בוט|עוזר דיגיטלי/);
+    const name = await chat.send('איך קוראים לך?');
+    expect(name.reply).toContain('SmartCar');
+    expect(name.reply).not.toContain('בוט');
+    const identity = await chat.send('אתה בוט?');
+    expect(identity.reply).toContain('העוזר הדיגיטלי של SmartCar');
+  });
+
   it.each([
     'רכב קטן ייתן לך חסכון בדלק. באילו תאריכים תרצה אותו?',
     'רכב קטן מציע צריכת דלק מעולה. באילו תאריכים תרצה אותו?',
