@@ -358,7 +358,8 @@ describe('replacement SmartCar conversation core', () => {
     expect(name.state.step).toBe('rental_email');
     const email = await chat.send('dani.test@example.com');
     expect(email.state.step).toBe('rental_confirm');
-    expect(email.reply).toContain('לא הזמנה מאושרת');
+    expect(email.reply).toContain('הבקשה תועבר לאישור SmartCar');
+    expect(email.reply).toContain('10/11/2026–13/11/2026');
     expect(chat.create).not.toHaveBeenCalled();
     const confirmed = await chat.send('אני מאשר');
     expect(confirmed.escalate).toBe(true);
@@ -740,7 +741,7 @@ describe('replacement SmartCar conversation core', () => {
     expect(third.reply).toMatch(/מייל/);
     const fourth = await chat.send('daniel@example.com');
     expect(fourth.reply).toMatch(/אני מאשר/);
-    expect(fourth.reply).toContain('גיל נהג 24+');
+    expect(fourth.reply).toContain('גיל הנהג: 24+');
     expect(fourth.reply).toContain('קראתי ואני מסכים/ה לתנאי השימוש ולמדיניות הפרטיות של SmartCar.');
     expect(fourth.reply).toContain('https://www.smartcar.co.il/he/terms');
     expect(chat.create).not.toHaveBeenCalled();

@@ -55,6 +55,13 @@ specific vehicle direction when the customer has provided a vehicle or a
 concrete passenger, luggage or trip need; a generic weekend request receives
 a neutral SmartCar response and the next useful date question.
 
+The rental confirmation summary now presents dates in the customer's local
+day/month/year form, one detail per line, and frames the unchanged canonical
+terms-consent sentence as a statement for the customer to approve. It still
+displays that exact sentence, preserves its consent hash and requires the
+customer's explicit "אני מאשר" before creating a request. The summary says
+SmartCar must confirm the request; it does not imply a booked car.
+
 2026-10-25 — Booking requests collect only the main driver's selected age group:
 21–23 or 24+ (age 24 is in 24+). It is stored in `bookings.driver_age_range`;
 the admin booking sheet shows that group. No birth date is requested or stored
