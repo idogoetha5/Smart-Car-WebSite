@@ -68,7 +68,10 @@ export async function sendHandoffEmail(messageId: string, customerPhone: string,
       method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `smartcar-handoff/${key}` },
       body, signal: AbortSignal.timeout(4000),
     });
-    if (!response.ok) return false;
+    if (!response.ok) {
+      console.error(`[whatsapp][handoff-email] provider rejected test or alert: ${response.status}`);
+      return false;
+    }
     const result = await response.json().catch(() => null) as { id?: string } | null;
     return Boolean(result?.id);
   } catch { return false; }
