@@ -22,6 +22,7 @@ export type RebuildState = {
   safetyAlertAt?: string;
   handedOff?: boolean;
   handoffAt?: string;
+  handoffKind?: 'safety' | 'booking_change' | 'service_issue' | 'commercial' | 'human';
   completedRequestId?: string;
 };
 
@@ -290,6 +291,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   if (state.handedOff && (!state.handoffAt || !Number.isFinite(Date.parse(state.handoffAt)) || Date.now() - Date.parse(state.handoffAt) >= 24 * 60 * 60 * 1000)) {
     state.handedOff = false;
     state.handoffAt = undefined;
+    state.handoffKind = undefined;
     state.phase = 'explore';
     state.step = 'menu';
   }
@@ -303,7 +305,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
 
   const incident = safety(input);
   if (incident) {
-    state.phase = 'service'; state.handedOff = true; state.handoffAt ??= new Date().toISOString();
+    state.phase = 'service'; state.handedOff = true; state.handoffAt ??= new Date().toISOString(); state.handoffKind = 'safety';
     const recentAlert = state.safetyAlertAt && Date.now() - Date.parse(state.safetyAlertAt) < 24 * 60 * 60 * 1000;
     reply = /גרר|tow|roadside/i.test(input) && recentAlert
       ? (he ? `לא אוכל לאשר שנשלח גרר. הישארו במקום בטוח והתקשרו עכשיו ל־SmartCar לתיאום סיוע: ${OFFICE_PHONE}.` : `I cannot confirm a tow has been dispatched. Stay somewhere safe and call SmartCar now to arrange help: ${OFFICE_PHONE}.`)
@@ -311,12 +313,15 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     source = 'safety'; escalate = !recentAlert;
     if (escalate) state.safetyAlertAt = new Date().toISOString();
   } else if (state.handedOff) {
+    const handoffKind = state.handoffKind ?? (state.safetyAlertAt && (!state.handoffAt || Date.parse(state.safetyAlertAt) >= Date.parse(state.handoffAt)) ? 'safety' : state.interest ? 'commercial' : 'booking_change');
     reply = /תודה|thanks|thank you/i.test(input)
       ? (he ? 'בשמחה. שמרו על עצמכם.' : 'You are welcome. Take care.')
-      : state.safetyAlertAt && (!state.handoffAt || Date.parse(state.safetyAlertAt) >= Date.parse(state.handoffAt))
+      : handoffKind === 'safety'
         ? (he ? `תודה על העדכון. אל תמשיכו לנסוע אם יש חשש בטיחותי; לתיאום עזרה התקשרו עכשיו ל־${OFFICE_PHONE}.` : `Thanks for the update. Do not keep driving if the car may be unsafe; call ${OFFICE_PHONE} now to arrange help.`)
-        : state.interest
+        : handoffKind === 'commercial' && state.interest
           ? (he ? `הפרטים שמסרת על ${state.interest === 'sale' ? 'רכישת רכב' : 'ליסינג'} נשמרו לבדיקת הצוות. לא אישרתי דגם, מחיר או תור בשיחה הזו; אפשר להתקשר ל־${OFFICE_PHONE}.` : `Your ${state.interest === 'sale' ? 'car purchase' : 'leasing'} details are saved for the team to review. I have not confirmed a vehicle, price or appointment here; you can call ${OFFICE_PHONE}.`)
+        : handoffKind === 'service_issue' || handoffKind === 'human'
+          ? (he ? `תודה, פרטי הפנייה נשמרו לבדיקת צוות SmartCar. לא פתרתי את המקרה בשיחה הזו; אפשר להתקשר ל־${OFFICE_PHONE}.` : `Thanks, the details are saved for the SmartCar team to review. I have not resolved the case here; you can call ${OFFICE_PHONE}.`)
         : (he ? `השינוי מחייב בדיקה ואישור של הצוות; לא שיניתי את ההזמנה בשיחה הזו. אפשר להתקשר ל־${OFFICE_PHONE}.` : `The change needs team review and approval; I have not changed your booking here. Please call ${OFFICE_PHONE}.`);
   } else if (state.completedRequestId && state.history.at(-2)?.text === input && /^(?:אני מאשר(?:ת)?|מאשר(?:ת)?|כן,? מאשר(?:ת)?|i confirm|confirm)$/i.test(input)) {
     reply = store.isSimulation ? (he ? 'בסימולציה הבקשה נקלטה לצורכי בדיקה בלבד; לא נוצרה הזמנה אמיתית.' : 'The request was recorded in this simulation only; no real booking was created.') : (he ? `בקשת ההשכרה נשלחה לבדיקה, מספר ${state.completedRequestId}. היא עדיין אינה הזמנה מאושרת.` : `Your rental request was sent for review, reference ${state.completedRequestId}. It is not a confirmed booking yet.`);
@@ -385,7 +390,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         reply = `${policy ? `${policy}\n\n` : prefix}${question(missing, state.locale)}`;
       }
     } else if (reading?.route === 'human' || /(?:דבר|לדבר|נציג|בן אדם|human|representative|person)/i.test(input) && /רוצה|אפשר|need|want|speak/i.test(input)) {
-      state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); escalate = true;
+      state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'human'; escalate = true;
       reply = he ? `כדי שהצוות יטפל בזה, התקשרו ל־SmartCar: ${OFFICE_PHONE}.` : `Please call SmartCar so the team can handle this: ${OFFICE_PHONE}.`;
     } else if (state.phase === 'service' || reading?.route === 'service' || /הזמנה קיימת|ההזמנה שלי|שכרתי|existing booking|my booking|I rented/i.test(input)) {
       state.phase = 'service';
@@ -395,10 +400,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         || (/^[A-Z0-9-]*\d[A-Z0-9-]{2,}$/i.test(input) && /מספר הזמנה|booking reference/i.test(state.history.at(-1)?.text ?? ''));
       const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|רכב מלוכלך|לא קיבלתי|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input);
       if (/לשנות|לשינוי|להאריך|יום ההחזרה|יום מאוחר|change|extend|return date/i.test(input)) {
-        state.handedOff = true; state.handoffAt = new Date().toISOString(); escalate = true;
+        state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'booking_change'; escalate = true;
         reply = he ? `שינוי הזמנה דורש בדיקת זמינות ואישור של הצוות; לא שיניתי אותה עכשיו. השיחה נשמרת לטיפול, ואפשר להתקשר ל־${OFFICE_PHONE}.` : `A booking change needs the team's availability check and approval; I have not changed it. This conversation is retained for the team, and you can call ${OFFICE_PHONE}.`;
       } else if (specificProblem || suppliedReference) {
-        state.handedOff = true; state.handoffAt = new Date().toISOString(); escalate = true;
+        state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'service_issue'; escalate = true;
         reply = he ? `קיבלתי את פרטי הפנייה ואעביר אותם לבדיקה של צוות SmartCar. לא פתרתי את הבעיה או שיניתי חיוב בשיחה הזו. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `I have recorded your details for the SmartCar team to review. I have not resolved the issue or changed a charge here. You can also call ${OFFICE_PHONE}.`;
       } else if (answer) reply = answer.reply;
       else if (booking) reply = he ? `מצאתי הזמנה במצב ${booking.status}. שינוי או בירור ספציפי דורשים טיפול צוות; התקשרו ל־${OFFICE_PHONE}.` : `I found a booking with status ${booking.status}. A specific change or case review needs the team; please call ${OFFICE_PHONE}.`;
@@ -406,7 +411,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else if (state.interest && (!reading || reading.route === state.interest || reading.route === 'explore' || reading.route === 'policy' || reading.route === 'social')) {
       const answer = commercialReply(input, state);
       reply = answer.reply; escalate = answer.escalate;
-      if (escalate) { state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); }
+      if (escalate) { state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'commercial'; }
     } else if (/נהג צעיר|young driver/i.test(input) && /תוספת|מחיר|עלות|כמה|surcharge|extra|price|cost/i.test(input)) {
       reply = he ? 'ייתכן שתנאי המחיר והביטוח ישתנו לפי גיל הנהג וקבוצת הרכב. אין לי תוספת מאושרת לנקוב בה; הצוות יאשר אותה בהצעה האישית.' : 'Price and insurance terms may vary by driver age and vehicle group. I cannot quote an approved surcharge here; the team will confirm it in your offer.';
     } else if (/ביטוח|כיסוי|insurance|covered/i.test(input) && /אותי|בשבילי|בוודאות|personal|me|definitely/i.test(input)) {

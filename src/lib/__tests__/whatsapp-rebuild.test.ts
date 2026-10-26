@@ -227,6 +227,10 @@ describe('replacement SmartCar conversation core', () => {
     expect(problem.state.handedOff).toBe(true);
     expect(problem.reply).toContain('לא פתרתי את הבעיה');
     expect(problem.reply).not.toContain('נדרש מספר ההזמנה');
+    const detail = await chat.send('מספר ההזמנה שלי TEST-123');
+    expect(detail.escalate).toBe(false);
+    expect(detail.reply).toContain('פרטי הפנייה נשמרו');
+    expect(detail.reply).not.toContain('לא שיניתי את ההזמנה');
   });
 
   it('recognizes a booking reference supplied after a generic service enquiry', async () => {

@@ -51,8 +51,9 @@ describe('bot incident notification', () => {
     expect(await sendHandoffEmail('fictional-wamid-1', '972500000001')).toBe(true);
     const options = send.mock.calls[0][1];
     const message = JSON.parse(options.body);
-    expect(message.to).toEqual(['operator@example.com']);
-    expect(message.text).toContain('972500000001');
+    expect(message.to).toEqual(['operator@example.com', 'owner@example.com']);
+    expect(message.text).toContain('0001');
+    expect(message.text).not.toContain('972500000001');
     expect(message.text).not.toContain('fictional-wamid-1');
     expect(options.headers['Idempotency-Key']).toMatch(/^smartcar-handoff\/[0-9a-f]{32}$/);
   });
