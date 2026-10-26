@@ -21,6 +21,23 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('remembers approximate dates without skipping to locations or repeating the date question', async () => {
+    const chat = memory(message => ({ ...base, reply: message === 'מה אתם מציעים?' ? base.reply : 'רשמתי את התאריך. מאיפה תרצו לאסוף את הרכב?' }));
+    await chat.send('מה אתם מציעים?');
+    const first = await chat.send('מעוד שבוע');
+    expect(first.state.booking.pickupDate).toBeUndefined();
+    expect(first.reply).toContain('תאריכים מדויקים');
+    expect(first.reply).not.toContain('מאיפה');
+    const second = await chat.send('עוד חודש');
+    expect(second.state.booking.datePreference).toContain('מעוד שבוע עד עוד חודש');
+    expect(second.state.booking.returnDate).toBeUndefined();
+    expect(second.reply).not.toMatch(/מאיפה|באילו תאריכים/);
+    const exact = await chat.send('2/11-26/11');
+    expect(exact.state.booking.pickupDate).toMatch(/-11-02$/);
+    expect(exact.state.booking.returnDate).toMatch(/-11-26$/);
+    expect(exact.reply).toContain('מאיפה');
+  });
+
   it('uses the SmartCar name and answers direct identity questions truthfully', async () => {
     const chat = memory(() => ({ ...base, reply: 'אני בוט של SmartCar. במה אוכל לעזור?' }));
     const opener = await chat.send('מחפש רכב קטן בעיר');

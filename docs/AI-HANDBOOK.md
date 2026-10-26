@@ -1,5 +1,12 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-26 — Live user demo showed approximate dates ("מעוד שבוע", "עוד
+חודש") being acknowledged as if exact, followed by location questions and a
+return to the missing pickup date. The conversation core now retains that
+approximate timing as a preference, asks once for exact pickup and return
+dates, and waits if the answer is still approximate. It does not advance to
+locations or create a rental request from an unconfirmed calendar date.
+
 2026-10-26 — Live browser review found the simulator's fixed first bubble still
 listed service categories before the customer spoke. It now opens with a short,
 human greeting. A synchronous in-flight guard prevents two near-simultaneous

@@ -7,7 +7,7 @@ import { readBotTurn, type BotReading, type GeminiBotContext, type VehicleDirect
 type Locale = 'he' | 'en';
 type Phase = 'explore' | 'booking' | 'service';
 type BookingKey = 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'driverAgeRange' | 'customerName' | 'customerEmail';
-type BookingDraft = Partial<Record<BookingKey, string>> & { passengers?: number; luggage?: number; childSeats?: number };
+type BookingDraft = Partial<Record<BookingKey, string>> & { passengers?: number; luggage?: number; childSeats?: number; datePreference?: string };
 type HistoryEntry = { from: 'customer' | 'bot'; text: string; private?: boolean };
 
 export type RebuildState = {
@@ -168,6 +168,11 @@ function singleDateAnswer(input: string, after?: string): string | null {
   const limit = new Date(`${today}T00:00:00Z`);
   limit.setUTCFullYear(limit.getUTCFullYear() + 2);
   return candidate && validDate(candidate) && candidate >= today && (!after || candidate > after) && candidate <= limit.toISOString().slice(0, 10) ? candidate : null;
+}
+
+function vagueDateAnswer(input: string): boolean {
+  return /\b(?:next week|next month|in a week|in a month|about a week|about a month)\b|(?:מ|ב)?עוד\s+(?:כשבוע|כחודש|שבוע|חודש)|(?:ב|מ)שבוע הבא|(?:ב|מ)חודש הבא/iu.test(input)
+    && !explicitDateRange(input) && !singleDateAnswer(input);
 }
 
 function applyPromptedDate(input: string, state: RebuildState, lastBot: string): void {
@@ -377,6 +382,7 @@ function safeModelReply(reading: BotReading | null, input: string, state: Rebuil
   if (state.booking.pickupDate && state.booking.returnDate && asksRentalDates(reply)) return null;
   if (state.booking.pickupLocation && /מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף|עיר האיסוף|where.{0,30}pick.?up/i.test(reply)) return null;
   if (state.booking.returnLocation && /איפה.{0,30}להחזיר|עיר ההחזרה|where.{0,30}return/i.test(reply)) return null;
+  if ((!state.booking.pickupDate || !state.booking.returnDate) && /מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף|עיר האיסוף|איפה.{0,30}להחזיר|עיר ההחזרה|where.{0,30}(?:pick.?up|return)/i.test(reply)) return null;
   if (!state.booking.pickupDate && /תאריכים (?:שכבר )?(?:ציינ|בחרת|שבחרת)|dates (?:you(?:'ve| have) )?(?:already )?(?:mentioned|chosen)/i.test(reply)) return null;
   const earlierBotReplies = state.history.filter(entry => entry.from === 'bot').slice(-4).map(entry => entry.text);
   if (offersRentalRequest(reply) && earlierBotReplies.some(offersRentalRequest)) return null;
@@ -508,6 +514,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     reply = state.phase === 'booking'
       ? (he ? 'היי 🙂 מה נשמע? הפרטים שכבר מסרת שמורים, ונוכל להמשיך מתי שנוח לך.' : 'Hi 🙂 How are you? The details you gave are saved, and we can continue when you are ready.')
       : greeting(input, state.locale)!;
+  } else if (vagueDateAnswer(input) && (asksRentalDates(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
+    const previous = state.booking.datePreference;
+    state.booking.datePreference = [previous, input].filter(Boolean).join(' עד ').slice(0, 120);
+    const clarifiedAlready = state.history.some(entry => entry.from === 'bot' && /באילו תאריכים מדויקים|which exact pickup and return dates/i.test(entry.text));
+    reply = clarifiedAlready
+      ? (he ? 'הבנתי את הטווח המשוער. כשתדעו את התאריכים המדויקים, כתבו אותם כאן ונמשיך.' : 'I understand the approximate timing. Send the exact dates here when you know them and we can continue.')
+      : (he ? 'הבנתי את הכיוון. כדי לבדוק זמינות ולהכין בקשה, באילו תאריכים מדויקים תרצו לאסוף ולהחזיר את הרכב? אפשר לכתוב למשל 2/11–26/11.' : 'I understand the approximate timing. Which exact pickup and return dates would you like? For example, 2/11–26/11.');
   } else if (state.phase === 'explore' && (/באיזו שעה|באיזה שעה|what time/i.test(lastBotReply) && /^\d{1,2}(?::\d{2})?$/.test(input) || /אמרתי לך כבר|שאלת כבר|כבר אמרתי|already told you|asked me already/i.test(input))) {
     const consented = state.history.some((entry, index) => entry.from === 'customer' && affirms(entry.text) && index > 0 && offersRentalRequest(state.history[index - 1].text));
     if (consented) {
@@ -525,7 +538,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // subsequent short answers drift back into open-ended model chat.
     const priorVehicleRequest = [...state.history].reverse().find(entry => entry.from === 'customer' && directVehicleRequest(entry.text, state.locale));
     const acceptsDateIntake = affirms(input) || Boolean(singleDateAnswer(input)) || Boolean(explicitDateRange(input));
-    const resumedIntake = state.phase === 'explore' && !state.interest && asksRentalDates(lastBot) && acceptsDateIntake;
+    const resumedIntake = state.phase === 'explore' && !state.interest && (asksRentalDates(lastBot) || Boolean(state.booking.datePreference)) && acceptsDateIntake;
     if (resumedIntake) {
       state.phase = 'booking';
       state.requestKey ??= randomUUID();
