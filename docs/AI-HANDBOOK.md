@@ -1,5 +1,11 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-26 — Live browser review found the simulator's fixed first bubble still
+listed service categories before the customer spoke. It now opens with a short,
+human greeting. A synchronous in-flight guard prevents two near-simultaneous
+submit events from adding duplicate turns while the request is pending. The
+simulator remains isolated from customer WhatsApp.
+
 2026-10-26 — Owner's production demo showed that “אני רוצה רכב פנאי”
 could remain in free-form advice after the bot asked for rental dates. Short
 answers then had no request state, repeated questions and never reached

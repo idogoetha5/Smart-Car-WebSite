@@ -17,7 +17,7 @@ type FlowState = {
 
 const initial: Message[] = [{
   from: 'bot',
-  body: 'שלום, הגעתם ל־SmartCar 👋\nאיך אפשר לעזור? אפשר לשאול על השכרה, הזמנה קיימת, ליסינג, רכישת רכב או עזרה בדרך.',
+  body: 'היי, הגעתם ל־SmartCar 👋\nמה נשמע? איך אפשר לעזור לכם היום?',
 }];
 
 const initialReplies: QuickReply[] = [
@@ -59,6 +59,7 @@ export default function WhatsAppSimulator({ endpoint = '/api/whatsapp/simulator'
   const sessionId = useRef(newSessionId()).current;
   const endOfConversation = useRef<HTMLDivElement>(null);
   const resetVersion = useRef(0);
+  const sendInFlight = useRef(false);
   const [messages, setMessages] = useState<Message[]>(initial);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -73,7 +74,9 @@ export default function WhatsAppSimulator({ endpoint = '/api/whatsapp/simulator'
   async function send(event?: FormEvent, selectedMessage?: string, displayMessage?: string) {
     event?.preventDefault();
     const message = (selectedMessage ?? draft).trim();
-    if (!message || sending) return;
+    if (!message || sendInFlight.current) return;
+
+    sendInFlight.current = true;
 
     const requestVersion = resetVersion.current;
     setDraft('');
@@ -103,12 +106,16 @@ export default function WhatsAppSimulator({ endpoint = '/api/whatsapp/simulator'
         setMessages((current) => [...current, { from: 'bot', body: error instanceof Error && error.message === 'simulation-limit' ? 'הגעתם למכסת הודעות הבדיקה של הסימולציה. אפשר לנסות שוב בהמשך.' : 'הסימולציה אינה זמינה כרגע. אפשר לנסות שוב בעוד רגע.', error: true }]);
       }
     } finally {
-      if (requestVersion === resetVersion.current) setSending(false);
+      if (requestVersion === resetVersion.current) {
+        sendInFlight.current = false;
+        setSending(false);
+      }
     }
   }
 
   function reset() {
     resetVersion.current += 1;
+    sendInFlight.current = false;
     setMessages(initial);
     setDraft('');
     setSending(false);
