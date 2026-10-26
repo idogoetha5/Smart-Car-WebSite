@@ -159,18 +159,25 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
   const he = state.locale === 'he';
   const previous = state.history.filter(item => item.from === 'customer').map(item => item.text).join(' ');
   const context = `${previous} ${input}`;
+  const lastBot = [...state.history].reverse().find(item => item.from === 'bot')?.text ?? '';
+  const acceptsTeamCheck = /(?:הצוות יבדוק|team (?:check|review))/i.test(lastBot)
+    && /^(?:כן|בטח|אפשר|yes|sure)(?:[\s,.!]|$)|שהצוות|שיבדקו|תבדקו|תעביר|לפי מה שכבר|go ahead|please do/i.test(input);
+  const asksTeamReview = /תעביר(?:ו)?\s+(?:את זה|את הפרטים|לצוות)|שהצוות יבדוק|שיבדקו בשבילי|pass (?:this|it|the details) to (?:the )?team|send (?:this|it) to (?:the )?team/i.test(input);
   if (state.interest === 'leasing') {
     if (/הבדל|difference|compare/i.test(input)) return { reply: he ? 'ליסינג פרטי מיועד לשימוש אישי, ועסקי לצורכי העסק. ההתחייבויות, השירותים והמחיר נקבעים רק בהצעה ובחוזה של המסלול המתאים. תרצה לבדוק מסלול פרטי או עסקי?' : 'Private leasing serves personal use; business leasing serves a company. Commitments, services and price are set in the specific offer and contract. Which route would you like us to check?', escalate: false };
     if (/מחיר|חודשי|תשלום|כמה|price|monthly|cost/i.test(input)) return { reply: he ? 'אי אפשר להבטיח תשלום חודשי לפני הצעה אישית. המחיר תלוי במסלול, ברכב, בתקופה ובקילומטראז׳. אפשר להעביר לצוות את הפרטים שכבר ציינת כדי שיבדוק הצעה.' : 'I cannot promise a monthly payment before a tailored offer. It depends on the plan, car, term and mileage. I can pass the details you supplied to the team for a quote.', escalate: false };
-    if (/הצעה|צעד הבא|להתקדם|quote|next step|proposal/i.test(input)) return { reply: he ? `כדי לקבל הצעת ליסינג, הצוות צריך לבדוק את המסלול, התקופה, הקילומטראז׳ וסוג הרכב. אשאיר את פרטי השיחה לטיפול הצוות; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `For a leasing quote, the team needs to check the plan, term, mileage and vehicle. I will leave this conversation for the team; you can also call ${OFFICE_PHONE}.`, escalate: true };
+    if (acceptsTeamCheck || asksTeamReview || /הצעה|צעד הבא|להתקדם|quote|next step|proposal/i.test(input)) return { reply: he ? `כדי לקבל הצעת ליסינג, הצוות צריך לבדוק את המסלול, התקופה, הקילומטראז׳ וסוג הרכב. אשאיר את פרטי השיחה לטיפול הצוות; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `For a leasing quote, the team needs to check the plan, term, mileage and vehicle. I will leave this conversation for the team; you can also call ${OFFICE_PHONE}.`, escalate: true };
     if (!/לשנה|שנה|חודש|year|month/i.test(context)) return { reply: he ? 'ב־SmartCar אפשר לבדוק ליסינג פרטי או עסקי. לכמה זמן תרצה את הרכב?' : 'SmartCar can check private or business leasing. What term do you have in mind?', escalate: false };
     if (!/קילומ|ק״מ|קמ|mileage|km/i.test(context)) return { reply: he ? 'רשמתי את משך הליסינג. כמה קילומטרים בערך תיסע בשנה?' : 'I have the term. Roughly how many kilometres would you drive each year?', escalate: false };
     return { reply: he ? 'רשמתי את התקופה ואת הקילומטראז׳ שציינת. איזה סוג רכב מתאים לך כדי שהצוות יוכל לבדוק הצעה?' : 'I have the term and mileage you mentioned. What kind of car should the team check for your offer?', escalate: false };
   }
   if (/דגמים|מלאי|זמינ|what cars|models|stock|available/i.test(input)) return { reply: he ? 'אין לי רשימת מלאי מכירה עדכנית, ולכן לא אציג דגם כזמין. אפשר להעביר לצוות את סוג הרכב והתקציב שכבר ציינת לבדיקה.' : 'I do not have live sales stock, so I cannot confirm a model is available. I can pass the vehicle type and budget you mentioned to the team.', escalate: false };
-  if (/נסיעת מבחן|test drive/i.test(input)) return { reply: he ? `נסיעת מבחן דורשת תיאום ואישור מול הצוות לפי הרכב הזמין. אפשר לברר זאת בטלפון ${OFFICE_PHONE}; לא נקבע תור בשיחה הזו.` : `A test drive needs team coordination and confirmation for an available car. Please call ${OFFICE_PHONE}; no appointment has been booked here.`, escalate: false };
-  if (/מה תצטרכו|לבדוק|הצעה|next step|what do you need|quote/i.test(input)) return { reply: he ? `הסוג, התקציב והעדפות השנתון או הקילומטראז׳ יעזרו לצוות לבדוק רכבים למכירה. אשאיר את פרטי השיחה לטיפול הצוות; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Vehicle type, budget, and preferred year or mileage help the team check sale cars. I will leave the conversation for the team; you can also call ${OFFICE_PHONE}.`, escalate: true };
-  if (!/משפחת|קומפקט|עירונ|ג[׳'י]?יפ|סדאן|רכב.{0,12}יד שנייה|family|compact|suv|sedan/i.test(context)) return { reply: he ? 'איזה סוג רכב תרצה לקנות?' : 'What kind of car would you like to buy?', escalate: false };
+  if (/נסיעת מבחן|test drive/i.test(input)) {
+    const requested = /רוצה לקבוע|תתאמו|תקבעו|book|schedule|arrange/i.test(input);
+    return { reply: he ? `נסיעת מבחן דורשת תיאום ואישור מול הצוות לפי הרכב הזמין. ${requested ? 'אשאיר את הבקשה שלך לטיפול הצוות; ' : ''}אפשר גם להתקשר ל־${OFFICE_PHONE}; לא נקבע תור בשיחה הזו.` : `A test drive needs team coordination and confirmation for an available car. ${requested ? 'I will leave your request for the team; ' : ''}you can also call ${OFFICE_PHONE}. No appointment has been booked here.`, escalate: requested };
+  }
+  if (acceptsTeamCheck || asksTeamReview || /מה תצטרכו|לבדוק|הצעה|next step|what do you need|quote/i.test(input)) return { reply: he ? `הסוג, התקציב והעדפות השנתון או הקילומטראז׳ יעזרו לצוות לבדוק רכבים למכירה. אשאיר את פרטי השיחה לטיפול הצוות; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Vehicle type, budget, and preferred year or mileage help the team check sale cars. I will leave the conversation for the team; you can also call ${OFFICE_PHONE}.`, escalate: true };
+  if (!/משפחת|קומפקט|עירונ|ג[׳'י]?יפ|סדאן|family|compact|suv|sedan/i.test(context)) return { reply: he ? 'איזה סוג רכב תרצה לקנות?' : 'What kind of car would you like to buy?', escalate: false };
   if (!/תקציב|אלף|שקל|₪|budget|shekel/i.test(context)) return { reply: he ? 'איזה תקציב תרצה שנבדוק?' : 'What budget should we check?', escalate: false };
   return { reply: he ? 'רשמתי את סוג הרכב והתקציב שציינת. יש שנתון או קילומטראז׳ שחשובים לך, או שתרצה שהצוות יבדוק לפי מה שכבר כתבת?' : 'I have the vehicle type and budget you mentioned. Do you have a preferred year or mileage, or should the team check with these details?', escalate: false };
 }
@@ -306,8 +313,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   } else if (state.handedOff) {
     reply = /תודה|thanks|thank you/i.test(input)
       ? (he ? 'בשמחה. שמרו על עצמכם.' : 'You are welcome. Take care.')
-      : state.safetyAlertAt
+      : state.safetyAlertAt && (!state.handoffAt || Date.parse(state.safetyAlertAt) >= Date.parse(state.handoffAt))
         ? (he ? `תודה על העדכון. אל תמשיכו לנסוע אם יש חשש בטיחותי; לתיאום עזרה התקשרו עכשיו ל־${OFFICE_PHONE}.` : `Thanks for the update. Do not keep driving if the car may be unsafe; call ${OFFICE_PHONE} now to arrange help.`)
+        : state.interest
+          ? (he ? `הפרטים שמסרת על ${state.interest === 'sale' ? 'רכישת רכב' : 'ליסינג'} נשמרו לבדיקת הצוות. לא אישרתי דגם, מחיר או תור בשיחה הזו; אפשר להתקשר ל־${OFFICE_PHONE}.` : `Your ${state.interest === 'sale' ? 'car purchase' : 'leasing'} details are saved for the team to review. I have not confirmed a vehicle, price or appointment here; you can call ${OFFICE_PHONE}.`)
         : (he ? `השינוי מחייב בדיקה ואישור של הצוות; לא שיניתי את ההזמנה בשיחה הזו. אפשר להתקשר ל־${OFFICE_PHONE}.` : `The change needs team review and approval; I have not changed your booking here. Please call ${OFFICE_PHONE}.`);
   } else if (state.completedRequestId && state.history.at(-2)?.text === input && /^(?:אני מאשר(?:ת)?|מאשר(?:ת)?|כן,? מאשר(?:ת)?|i confirm|confirm)$/i.test(input)) {
     reply = store.isSimulation ? (he ? 'בסימולציה הבקשה נקלטה לצורכי בדיקה בלבד; לא נוצרה הזמנה אמיתית.' : 'The request was recorded in this simulation only; no real booking was created.') : (he ? `בקשת ההשכרה נשלחה לבדיקה, מספר ${state.completedRequestId}. היא עדיין אינה הזמנה מאושרת.` : `Your rental request was sent for review, reference ${state.completedRequestId}. It is not a confirmed booking yet.`);
@@ -321,7 +330,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else {
     const id = await store.createRentalRequest(phone, state);
     if (id) {
-      state.completedRequestId = id; state.phase = 'explore'; state.step = 'menu'; state.booking = {};
+      state.completedRequestId = id; state.phase = 'explore'; state.step = 'menu'; state.booking = {}; escalate = true;
       delete state.requestKey;
       reply = store.isSimulation ? (he ? 'בסימולציה הבקשה נקלטה לצורכי בדיקה בלבד; לא נוצרה הזמנה אמיתית.' : 'The request was recorded in this simulation only; no real booking was created.') : (he ? `בקשת ההשכרה נשלחה לבדיקה, מספר ${id}. היא עדיין אינה הזמנה מאושרת.` : `Your rental request was sent for review, reference ${id}. It is not a confirmed booking yet.`);
     } else reply = he ? 'לא הצלחתי לשמור את הבקשה כרגע. לא נוצרה הזמנה; אפשר לנסות שוב או להתקשר למשרד.' : 'I could not save the request. No booking was created; please try again or call the office.';
@@ -362,6 +371,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = he ? 'הבנתי, נחזור לבדוק השכרה. לחודש וחצי חשוב להתאים רכב וקילומטראז׳ למסלול ההשכרה; באילו תאריכים תרצה לאסוף ולהחזיר?' : 'Understood, let us check a rental instead. For a longer rental, the vehicle and mileage terms matter. What pickup and return dates do you need?';
     } else if (wantsBooking) {
       state.phase = 'booking';
+      state.interest = undefined;
       state.requestKey ??= randomUUID();
       const missing = nextMissing(state.booking);
       state.step = bookingStep(missing);
@@ -377,13 +387,19 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else if (reading?.route === 'human' || /(?:דבר|לדבר|נציג|בן אדם|human|representative|person)/i.test(input) && /רוצה|אפשר|need|want|speak/i.test(input)) {
       state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); escalate = true;
       reply = he ? `כדי שהצוות יטפל בזה, התקשרו ל־SmartCar: ${OFFICE_PHONE}.` : `Please call SmartCar so the team can handle this: ${OFFICE_PHONE}.`;
-    } else if (reading?.route === 'service' || /הזמנה קיימת|ההזמנה שלי|שכרתי|existing booking|my booking|I rented/i.test(input)) {
+    } else if (state.phase === 'service' || reading?.route === 'service' || /הזמנה קיימת|ההזמנה שלי|שכרתי|existing booking|my booking|I rented/i.test(input)) {
       state.phase = 'service';
       const booking = await store.activeBooking(phone);
       const answer = getSmartCarServiceAnswer(input, state.locale);
+      const suppliedReference = /(?:מספר\s+ה?הזמנה|booking\s+(?:number|reference)|reference)\s*(?:שלי|הוא|:|#|is)?\s*[A-Z0-9-]*\d[A-Z0-9-]{2,}/i.test(input)
+        || (/^[A-Z0-9-]*\d[A-Z0-9-]{2,}$/i.test(input) && /מספר הזמנה|booking reference/i.test(state.history.at(-1)?.text ?? ''));
+      const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|רכב מלוכלך|לא קיבלתי|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input);
       if (/לשנות|לשינוי|להאריך|יום ההחזרה|יום מאוחר|change|extend|return date/i.test(input)) {
         state.handedOff = true; state.handoffAt = new Date().toISOString(); escalate = true;
         reply = he ? `שינוי הזמנה דורש בדיקת זמינות ואישור של הצוות; לא שיניתי אותה עכשיו. השיחה נשמרת לטיפול, ואפשר להתקשר ל־${OFFICE_PHONE}.` : `A booking change needs the team's availability check and approval; I have not changed it. This conversation is retained for the team, and you can call ${OFFICE_PHONE}.`;
+      } else if (specificProblem || suppliedReference) {
+        state.handedOff = true; state.handoffAt = new Date().toISOString(); escalate = true;
+        reply = he ? `קיבלתי את פרטי הפנייה ואעביר אותם לבדיקה של צוות SmartCar. לא פתרתי את הבעיה או שיניתי חיוב בשיחה הזו. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `I have recorded your details for the SmartCar team to review. I have not resolved the issue or changed a charge here. You can also call ${OFFICE_PHONE}.`;
       } else if (answer) reply = answer.reply;
       else if (booking) reply = he ? `מצאתי הזמנה במצב ${booking.status}. שינוי או בירור ספציפי דורשים טיפול צוות; התקשרו ל־${OFFICE_PHONE}.` : `I found a booking with status ${booking.status}. A specific change or case review needs the team; please call ${OFFICE_PHONE}.`;
       else reply = he ? `כדי לבדוק מקרה מסוים נדרש מספר ההזמנה. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `To check a specific case, please send the booking reference or call ${OFFICE_PHONE}.`;

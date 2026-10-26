@@ -7,6 +7,8 @@ type PendingDelivery = { phone: string; status: string; updated_at: string };
 export default function BotAlertsPage() {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState('');
+  const [handoffSending, setHandoffSending] = useState(false);
+  const [handoffResult, setHandoffResult] = useState('');
   const [pending, setPending] = useState<PendingDelivery[]>([]);
   const [pendingError, setPendingError] = useState(false);
   useEffect(() => {
@@ -33,6 +35,19 @@ export default function BotAlertsPage() {
       setSending(false);
     }
   }
+  async function testHandoff() {
+    if (handoffSending) return;
+    setHandoffSending(true);
+    setHandoffResult('');
+    try {
+      const response = await fetch('/api/admin/whatsapp/handoff-test', { method: 'POST' });
+      const body = await response.json();
+      setHandoffResult(response.ok && body.data?.accepted === true
+        ? 'ספק המייל אישר את התרעת הנציג לדוגמה. יש לבדוק שהיא הגיעה לתיבה.'
+        : 'שליחת התרעת הנציג לא אושרה. יש לבדוק את כתובת ההתרעות.');
+    } catch { setHandoffResult('לא התקבל אישור לשליחת התרעת הנציג.'); }
+    finally { setHandoffSending(false); }
+  }
   return (
     <div className="mx-auto max-w-2xl p-4 sm:p-8" dir="rtl">
       <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 sm:p-8">
@@ -42,6 +57,10 @@ export default function BotAlertsPage() {
           {sending ? 'שולח בדיקה…' : 'שליחת התרעת בדיקה'}
         </button>
         <p role="status" aria-live="polite" className="mt-4 text-base leading-7 text-slate-700">{result}</p>
+        <button type="button" disabled={handoffSending} onClick={testHandoff} className="mt-4 min-h-12 w-full rounded-2xl border border-[#2D5F5F] px-5 py-3 text-base font-bold text-[#2D5F5F] disabled:opacity-60 sm:w-auto">
+          {handoffSending ? 'שולח בדיקת נציג…' : 'בדיקת התרעה לנציג'}
+        </button>
+        <p role="status" aria-live="polite" className="mt-2 text-base leading-7 text-slate-700">{handoffResult}</p>
         <p className="mt-5 text-sm leading-6 text-slate-600">בדיקה זו מאמתת רק את מסלול המייל. היא אינה בודקת התאוששות מתקלות או ניטור חיצוני של האתר. בקשות חוזרות באותו חלון של רבע שעה עשויות להפיק הודעה אחת בלבד.</p>
       </section>
       <section className="mt-5 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/5 sm:p-8" aria-label="הודעות הדורשות בדיקה">

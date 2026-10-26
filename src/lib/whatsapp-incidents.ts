@@ -52,15 +52,15 @@ export async function reportBotIncident(kind: BotIncident): Promise<boolean> {
 }
 
 /** Existing approved operator inbox is the handoff fallback when SMS is unavailable. */
-export async function sendHandoffEmail(messageId: string, customerPhone: string): Promise<boolean> {
+export async function sendHandoffEmail(messageId: string, customerPhone: string, test = false): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   const to = process.env.WHATSAPP_ALERT_EMAIL;
   if (!apiKey || !to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return false;
   const key = createHash('sha256').update(messageId).digest('hex').slice(0, 32);
   const body = JSON.stringify({
     from: `SmartCar <${OFFICE_EMAIL}>`, to: [to],
-    subject: '[SmartCar] שיחת WhatsApp ממתינה לנציג',
-    text: `נדרשת בדיקת נציג לשיחה עם ${customerPhone}.\nפתחו את תיבת השיחות: https://www.smartcar.co.il/he/admin/inbox\nתוכן השיחה אינו נשלח במייל.`,
+    subject: test ? '[SmartCar] בדיקת התרעת נציג — אין פנייה אמיתית' : '[SmartCar] שיחת WhatsApp ממתינה לנציג',
+    text: test ? 'זו בדיקת התרעת נציג בלבד. אין פנייה אמיתית ואין לקוח שצריך לחזור אליו.' : `נדרשת בדיקת נציג לשיחה עם ${customerPhone}.\nפתחו את תיבת השיחות: https://www.smartcar.co.il/he/admin/inbox\nתוכן השיחה אינו נשלח במייל.`,
   });
   try {
     const response = await fetch('https://api.resend.com/emails', {

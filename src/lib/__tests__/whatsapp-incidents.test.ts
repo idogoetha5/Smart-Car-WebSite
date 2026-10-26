@@ -56,4 +56,12 @@ describe('bot incident notification', () => {
     expect(message.text).not.toContain('fictional-wamid-1');
     expect(options.headers['Idempotency-Key']).toMatch(/^smartcar-handoff\/[0-9a-f]{32}$/);
   });
+  it('clearly marks the handoff probe as fictional', async () => {
+    const send = setup().mockResolvedValue(accepted());
+    vi.stubEnv('WHATSAPP_ALERT_EMAIL', 'operator@example.com');
+    expect(await sendHandoffEmail('fictional-test', 'fictional', true)).toBe(true);
+    const message = JSON.parse(send.mock.calls[0][1].body);
+    expect(message.subject).toContain('אין פנייה אמיתית');
+    expect(message.text).not.toContain('fictional');
+  });
 });

@@ -169,6 +169,14 @@ describe('replacement SmartCar conversation core', () => {
     expect(quote.state.handedOff).toBe(true);
   });
 
+  it('hands a leasing enquiry to staff when the customer asks to pass it on', async () => {
+    const chat = memory(() => ({ ...base, route: 'leasing' }));
+    await chat.send('אני מחפש ליסינג עסקי לשנה, בערך 25 אלף קילומטר');
+    const handoff = await chat.send('תעבירו את הפרטים לצוות בבקשה');
+    expect(handoff.escalate).toBe(true);
+    expect(handoff.state.handedOff).toBe(true);
+  });
+
   it('keeps sale context without inventing stock or a test drive appointment', async () => {
     const chat = memory(() => ({ ...base, route: 'sale' }));
     await chat.send('אני מחפש רכב לקנייה');
@@ -180,6 +188,28 @@ describe('replacement SmartCar conversation core', () => {
     expect(drive.reply).toContain('לא נקבע תור');
   });
 
+  it('asks for a vehicle category rather than treating used condition as a category, then hands off an accepted sales lead', async () => {
+    const chat = memory(() => ({ ...base, route: 'sale' }));
+    const first = await chat.send('אני רוצה לקנות רכב יד שנייה');
+    expect(first.reply).toContain('איזה סוג רכב');
+    await chat.send('משפחתית עד 80 אלף שקל');
+    const handoff = await chat.send('כן, שהצוות יבדוק לפי מה שכבר כתבתי');
+    expect(handoff.escalate).toBe(true);
+    expect(handoff.state.handedOff).toBe(true);
+    expect(handoff.reply).toContain('אשאיר את פרטי השיחה');
+    const followUp = await chat.send('מה קורה עם זה?');
+    expect(followUp.reply).toContain('רכישת רכב');
+    expect(followUp.reply).not.toContain('לא שיניתי את ההזמנה');
+  });
+
+  it('passes an explicit test-drive request to staff without claiming an appointment was booked', async () => {
+    const chat = memory(() => ({ ...base, route: 'sale' }));
+    await chat.send('אני מחפש רכב לקנייה');
+    const request = await chat.send('אני רוצה לקבוע נסיעת מבחן');
+    expect(request.escalate).toBe(true);
+    expect(request.reply).toContain('לא נקבע תור');
+  });
+
   it('passes an existing booking date change to staff only once', async () => {
     const chat = memory(() => ({ ...base, route: 'service' }));
     const first = await chat.send('יש לי הזמנה קיימת ואני צריך לשנות את יום ההחזרה');
@@ -188,6 +218,25 @@ describe('replacement SmartCar conversation core', () => {
     expect(first.reply).toContain('לא שיניתי');
     expect(second.escalate).toBe(false);
     expect(second.reply).toContain('לא שיניתי');
+  });
+
+  it('passes a specific billing problem to staff instead of repeatedly asking for a booking number', async () => {
+    const chat = memory(() => ({ ...base, route: 'service' }));
+    const problem = await chat.send('יש לי הזמנה קיימת וחויבתי פעמיים, אפשר לבדוק?');
+    expect(problem.escalate).toBe(true);
+    expect(problem.state.handedOff).toBe(true);
+    expect(problem.reply).toContain('לא פתרתי את הבעיה');
+    expect(problem.reply).not.toContain('נדרש מספר ההזמנה');
+  });
+
+  it('recognizes a booking reference supplied after a generic service enquiry', async () => {
+    const chat = memory(() => ({ ...base, route: 'service' }));
+    const first = await chat.send('יש לי הזמנה קיימת ואני צריך עזרה');
+    expect(first.reply).toContain('מספר ההזמנה');
+    const reference = await chat.send('מספר ההזמנה שלי TEST-123');
+    expect(reference.escalate).toBe(true);
+    expect(reference.reply).toContain('צוות SmartCar');
+    expect(reference.reply).not.toContain('נדרש מספר ההזמנה');
   });
 
   it('lets a new enquiry resume after the 24-hour handoff window', async () => {
@@ -234,7 +283,8 @@ describe('replacement SmartCar conversation core', () => {
     expect(fourth.reply).toContain('קראתי ואני מסכים/ה לתנאי השימוש ולמדיניות הפרטיות של SmartCar.');
     expect(fourth.reply).toContain('https://www.smartcar.co.il/he/terms');
     expect(chat.create).not.toHaveBeenCalled();
-    await chat.send('אני מאשר');
+    const confirmed = await chat.send('אני מאשר');
+    expect(confirmed.escalate).toBe(true);
     expect(chat.create).toHaveBeenCalledTimes(1);
     const repeated = await chat.send('אני מאשר');
     expect(repeated.reply).toContain('לא נוצרה הזמנה אמיתית');
