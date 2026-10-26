@@ -121,6 +121,8 @@ describe('replacement SmartCar conversation core', () => {
     'אין לי גישה למלאי כרגע. מאיפה תרצו לאסוף?',
     'המחיר באתר הוא הערכה, לא הצעה סופית. מה התאריכים?',
     'זה כיוון לבדיקה, הצוות צריך לבדוק. מה התאריכים?',
+    'המודל לא יודע מה המחיר כרגע. מה התאריכים?',
+    'זו בדיקה פנימית לפני שנוכל לענות. מה התאריכים?',
   ])('does not expose internal process wording drafted by Gemini: %s', async draftedReply => {
     const chat = memory(() => ({ ...base, reply: draftedReply }));
     const result = await chat.send('אני מחפש רכב פנאי לטיול');
@@ -306,7 +308,7 @@ describe('replacement SmartCar conversation core', () => {
     const chat = memory(() => null);
     await chat.send('I need business leasing for two years and 20,000 km a year');
     const offer = await chat.send('A family car');
-    expect(offer.reply).toContain('team to review');
+    expect(offer.reply).toContain('representative to follow up');
     const handoff = await chat.send('Yes');
     expect(handoff.escalate).toBe(true);
   });
@@ -399,7 +401,7 @@ describe('replacement SmartCar conversation core', () => {
     const mileage = await chat.send('אסע בערך 15 אלף קמ בשנה');
     expect(mileage.reply).toContain('איזה סוג רכב');
     const vehicle = await chat.send('רכב משפחתי');
-    expect(vehicle.reply).toContain('תרצה שהצוות יבדוק');
+    expect(vehicle.reply).toContain('נציג SmartCar יחזור');
     const handoff = await chat.send('כן');
     expect(handoff.escalate).toBe(true);
   });
@@ -667,7 +669,7 @@ describe('replacement SmartCar conversation core', () => {
     expect(first.escalate).toBe(true);
     expect(first.reply).toContain('תיכנס לתוקף לאחר');
     expect(second.escalate).toBe(false);
-    expect(second.reply).toContain('תיכנס לתוקף רק לאחר');
+    expect(second.reply).toContain('השינוי תקף רק לאחר אישור');
   });
 
   it('passes a specific billing problem to staff instead of repeatedly asking for a booking number', async () => {

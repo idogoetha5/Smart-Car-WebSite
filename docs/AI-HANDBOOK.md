@@ -62,6 +62,12 @@ displays that exact sentence, preserves its consent hash and requires the
 customer's explicit "אני מאשר" before creating a request. The summary says
 SmartCar must confirm the request; it does not imply a booked car.
 
+A further customer-language audit removed remaining internal team wording
+from leasing and sale follow-ups and raw booking-status wording from service
+replies. The Gemini reply gate also rejects references to a model,
+simulation, or internal checks in customer-facing drafts. These are
+customer-copy changes; routing and the WhatsApp kill switch are unchanged.
+
 2026-10-25 — Booking requests collect only the main driver's selected age group:
 21–23 or 24+ (age 24 is in 24+). It is stored in `bookings.driver_age_range`;
 the admin booking sheet shows that group. No birth date is requested or stored
