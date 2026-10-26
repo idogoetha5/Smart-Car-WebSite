@@ -35,6 +35,19 @@ price copy is customer-facing, and direct test-drive requests enter the sales
 handoff path with appointment confirmation still pending. Child-seat advice
 was tightened to avoid implying a particular model's fit.
 
+2026-10-26 — A broader live dialogue probe reproduced the owner's repeated
+"כן" loop across SUV, family, compact, weekend, price and availability
+conversations. The model could ask for rental dates while the application
+remained in open advice. Affirming a rental-date question now enters a
+persisted, reversible request draft; repeated affirmations receive a clear
+example of the needed date, then a pause instead of another model question.
+Gemini is skipped for these control replies. Vague phrases such as "next
+week" cannot be converted by the model into a fabricated exact date. The
+same probe found missing routing for "איך מבטלים", "אני בן 22" and "לא
+התניע"; cancellation and age now use the approved knowledge answer, and a
+rented car that will not start enters urgent safety handoff. Discount and
+installment questions receive direct customer-facing answers.
+
 2026-10-25 — Booking requests collect only the main driver's selected age group:
 21–23 or 24+ (age 24 is in 24+). It is stored in `bookings.driver_age_range`;
 the admin booking sheet shows that group. No birth date is requested or stored

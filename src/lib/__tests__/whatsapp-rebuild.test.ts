@@ -21,6 +21,45 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it.each([
+    'אילו תאריכים תרצה לבדוק?',
+    'לאילו תאריכים תצטרכו את הרכב?',
+    'באיזה תאריכים תרצה שההשכרה תתחיל ותסתיים?',
+    'באילו תאריכים ומאיזה סניף תרצו את הרכב?',
+    'איזה תאריך תרצה לאסוף את הרכב?',
+  ])('leaves free-form date advice after yes instead of repeating it: %s', async prompt => {
+    const chat = memory(() => ({ ...base, reply: prompt }));
+    await chat.send('מחפש רכב קטן לסוף שבוע');
+    const accepted = await chat.send('כן');
+    expect(accepted.state.phase).toBe('booking');
+    expect(accepted.reply).toContain('תאריך');
+    const repeated = await chat.send('כן');
+    expect(repeated.reply).toContain('כתבו את תאריך האיסוף');
+    const later = await chat.send('כן');
+    expect(later.reply).toContain('כשתדעו את תאריך האיסוף');
+    expect(chat.create).not.toHaveBeenCalled();
+  });
+
+  it('does not turn a vague next-week availability question into an invented exact date', async () => {
+    const chat = memory(() => ({ ...base, fields: { pickupDate: { value: '2026-11-01', evidence: 'בשבוע הבא' } } }));
+    const answer = await chat.send('יש רכב בשבוע הבא?');
+    expect(answer.state.booking.pickupDate).toBeUndefined();
+  });
+
+  it('answers common policy questions and escalates a car that will not start', async () => {
+    const cancellation = await memory(() => null).send('איך מבטלים הזמנה?');
+    expect(cancellation.reply).toContain('72 שעות');
+    const age = await memory(() => null).send('אני בן 22, יכול לשכור?');
+    expect(age.reply).toContain('מגיל 21');
+    const discount = await memory(() => null).send('אפשר הנחה?');
+    expect(discount.reply).toContain('הטבות');
+    const installments = await memory(() => null).send('אפשר לשלם בתשלומים על רכב?');
+    expect(installments.reply).toContain('אפשרויות התשלום');
+    const breakdown = await memory(() => null).send('הרכב ששכרתי לא התניע');
+    expect(breakdown.state.handoffKind).toBe('safety');
+    expect(breakdown.escalate).toBe(true);
+  });
+
   it('uses sales preferences already given when asked about available models', async () => {
     const chat = memory(() => null);
     await chat.send('אני רוצה לקנות רכב משפחתי עד 80 אלף שקל');
@@ -99,7 +138,7 @@ describe('replacement SmartCar conversation core', () => {
     expect(first.state.phase).toBe('booking');
     expect(first.state.booking.vehicleNeed).toBe('רכב פנאי');
     expect(first.reply).toBe('באיזה תאריך תרצו לאסוף את הרכב?');
-    expect((await chat.send('כן')).reply).toBe('באיזה תאריך תרצו לאסוף את הרכב?');
+    expect((await chat.send('כן')).reply).toContain('כתבו את תאריך האיסוף');
     expect((await chat.send('10 בנובמבר')).state.booking.pickupDate).toMatch(/-11-10$/);
     expect((await chat.send('13 בנובמבר')).state.booking.returnDate).toMatch(/-11-13$/);
     expect((await chat.send('תל אביב')).state.booking.pickupLocation).toBe('תל אביב');
@@ -117,7 +156,7 @@ describe('replacement SmartCar conversation core', () => {
     const first = await chat.send('אני מחפש רכב פנאי לסוף שבוע');
     expect(first.reply).not.toContain('לתאריכים שבחרת');
     const next = await chat.send('כן');
-    expect(next.state.phase).toBe('explore');
+    expect(next.state.phase).toBe('booking');
 
     const direct = memory(() => ({ ...base, reply: 'האם נמשיך לבדיקת זמינות לרכב פנאי (SUV)?' }));
     await direct.send('אני מחפש רכב פנאי לסוף שבוע');
@@ -436,11 +475,11 @@ describe('replacement SmartCar conversation core', () => {
     expect(result.reply).not.toContain('המחיר באתר');
   });
 
-  it('does not treat a bare yes or an explicit refusal as booking consent', async () => {
+  it('lets a yes start a reversible draft but never submits without final confirmation', async () => {
     const chat = memory(() => ({ ...base, route: 'book' }));
     await chat.send('אני מתלבט על רכב לסופ״ש');
     const yes = await chat.send('כן');
-    expect(yes.state.phase).toBe('explore');
+    expect(yes.state.phase).toBe('booking');
     const no = await chat.send('רק מתעניין, לא רוצה להזמין עכשיו');
     expect(no.state.phase).toBe('explore');
     expect(no.reply).toContain('לא שלחתי בקשה');

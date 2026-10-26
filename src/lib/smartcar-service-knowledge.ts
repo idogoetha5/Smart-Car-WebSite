@@ -94,13 +94,13 @@ export const ANSWERS: Record<ServiceKnowledgeTopic, LocalisedAnswer> = {
 
 const TOPIC_PATTERNS: Array<[ServiceKnowledgeTopic, RegExp]> = [
   ['damage_accident', /תאונה|התנגשות|נזק|פגיעה|גניבה|accident|collision|damage|theft/i],
-  ['cancellation', /ביטול|לבטל|מדיניות ביטול|cancel|cancellation|refund policy/i],
+  ['cancellation', /ביטול|לבטל|מבטל|מבוטל|מדיניות ביטול|cancel|cancellation|refund policy/i],
   ['availability', /לא זמין|אין רכב|זמינות|unavailable|no car|availability/i],
   ['deposit', /פיקדון|כרטיס אשראי|דביט|deposit|security hold|credit card|debit/i],
   ['fuel', /דלק|תדלוק|מלא.?מלא|fuel|refuel|full.?full/i],
   ['mileage', /קילומ|קמ|mileage|kilomet/i],
   ['driver_documents', /נהג נוסף|מסמכים|תעודת זהות|דרכון|additional driver|extra driver|documents?|passport/i],
-  ['age_licence', /גיל|ותק רישיון|נהג חדש|רישיון|minimum age|licen[cs]e experience|young driver/i],
+  ['age_licence', /גיל|בן\s*\d{2}|בת\s*\d{2}|ותק רישיון|נהג חדש|רישיון|minimum age|licen[cs]e experience|young driver/i],
   ['different_location', /מקום אחר|החזרה אחרת|איסוף אחר|שדה תעופה|נתב.?ג|one way|different location|airport|drop.?off/i],
   ['insurance', /ביטוח|כיסוי|השתתפות עצמית|insurance|cover(?:age)?|waiver|excess/i],
   ['opening_hours', /מתי (?:אתם )?פתוח|שעות ה?פתיחה|שעות ה?פעילות|באיזה שעות|עד איזה שעה|עד איזו שעה|מתי נפתחים|מתי סוגרים|פתוחים|עד מתי אתם|מתי עובדים|opening hours|open on|when do you close|when are you open/i],
