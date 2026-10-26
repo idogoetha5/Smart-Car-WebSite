@@ -114,6 +114,13 @@ describe('replacement SmartCar conversation core', () => {
     expect(followup.reply).not.toContain('רכב');
   });
 
+  it.each(['היי מה נשמע?', 'שלום, מה קורה?', 'היי, אפשר לשאול שאלה?'])('keeps a social opener conversational: %s', async message => {
+    const chat = memory(() => ({ ...base, route: 'explore' }));
+    const result = await chat.send(message);
+    expect(result.reply).not.toMatch(/רכב|תאריכים|נסיעה/);
+    expect(chat.readTurn).not.toHaveBeenCalled();
+  });
+
   it('does not restart sales when a customer says hello in the middle of a request', async () => {
     const chat = memory(() => null);
     await chat.send('אני רוצה לשכור רכב ל-10 עד 13 בנובמבר');

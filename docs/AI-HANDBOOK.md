@@ -587,6 +587,8 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 
 ### Change log
 
+- 2026-10-26 — Additional short social openers (“היי מה נשמע?”, “שלום, מה קורה?”, “היי, אפשר לשאול שאלה?”) now receive conversational replies without invoking Gemini or proposing a vehicle before the customer states a need. Added exact phrase regressions after the owner's live greeting feedback. Customer WhatsApp remains disabled.
+
 - 2026-10-26 — Owner's first live conversation exposed a repeated yes/booking-offer loop, an unnecessary pickup-hour question, and repeated location/vehicle prompts. The v2 core now turns an affirmative reply to a concrete rental offer into deterministic request intake, blocks model-generated hour questions and unsupported claims that dates were supplied, captures short answers to date/location prompts, and recovers a previously stalled time-question thread. A complete model-free guided request regression found and fixed “same place” being stored literally rather than copying the pickup city. Gemini instructions now explicitly forbid hours and repeated booking consent. No WhatsApp connection or customer activation.
 
 - 2026-10-26 — Owner's live Safari demo exposed a greeting failure: bare “היי” triggered generic vehicle advice before the customer stated a need. The conversation core now handles short Hebrew/English greetings and “how are you” directly, with a warm open question and no sales pitch. A greeting during rental intake retains its context. Focused regressions use the owner's exact phrase. No schema or credential change; WhatsApp remains OFF.
