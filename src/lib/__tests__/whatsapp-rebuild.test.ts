@@ -101,7 +101,9 @@ describe('replacement SmartCar conversation core', () => {
     expect(locations.state.booking.vehicleNeed).toContain('5 נוסעים ול־3 מזוודות');
     expect(locations.reply).toContain('קבוצת הגיל');
     await chat.send('24+');
-    await chat.send('רותם לוי');
+    const emailQuestion = await chat.send('רותם לוי');
+    expect(emailQuestion.reply).toContain('ליצירת קשר');
+    expect(emailQuestion.reply).not.toContain('לשלוח את סיכום');
     const summary = await chat.send('rotem@example.com');
     expect(summary.reply).toContain('נוסעים: 5');
     expect(summary.reply).toContain('מזוודות: 3');

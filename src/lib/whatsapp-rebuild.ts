@@ -89,13 +89,13 @@ function question(key: BookingKey, locale: Locale): string {
     pickupDate: 'באיזה תאריך תרצו לאסוף את הרכב?', returnDate: 'באיזה תאריך תחזירו את הרכב?',
     pickupLocation: 'מאיפה תרצו לאסוף את הרכב?', returnLocation: 'איפה תרצו להחזיר אותו?',
     vehicleNeed: 'איזה סוג רכב תרצו, או כמה נוסעים וציוד יהיו?', driverAgeRange: 'מה קבוצת הגיל של הנהג? בחרו 21–23 או 24+ (גיל 24 שייך ל־24+).', customerName: 'על איזה שם לרשום את הבקשה?',
-    customerEmail: 'לאיזו כתובת מייל לשלוח את סיכום הבקשה?',
+    customerEmail: 'מה כתובת המייל ליצירת קשר לגבי הבקשה?',
   };
   const en: Record<BookingKey, string> = {
     pickupDate: 'What date would you like to pick up the car?', returnDate: 'What date will you return it?',
     pickupLocation: 'Where would you like to pick it up?', returnLocation: 'Where will you return it?',
     vehicleNeed: 'What kind of car do you need, or how many passengers and bags?', driverAgeRange: 'What is the driver age group: 21–23 or 24+? Age 24 belongs to 24+.', customerName: 'What name should I put on the request?',
-    customerEmail: 'What email address should receive the request summary?',
+    customerEmail: 'What email address can we use to contact you about the request?',
   };
   return (locale === 'he' ? he : en)[key];
 }

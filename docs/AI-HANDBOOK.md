@@ -43,6 +43,8 @@ and bag counts, and generic AI vehicle wording cannot replace those needs.
 Live production verification then found that a natural “12/11 עד 16/11”
 range was missed and a standalone “24+” could be interpreted as 24 November.
 The conversation core now accepts that range and rejects age-only date fields.
+The rental email question now asks for a contact address; it no longer promises
+an emailed request summary because that send is not part of this intake path.
 
 2026-10-26 — Live user demo showed approximate dates ("מעוד שבוע", "עוד
 חודש") being acknowledged as if exact, followed by location questions and a
