@@ -19,6 +19,12 @@ reply is treated as an actionable offer. This remains scoped to an explicit
 offer or intake question and does not treat corrections such as "כן אבל..."
 as unconditional consent.
 
+Post-deploy real-model rehearsal still produced an overconfident SUV fit
+claim for five passengers and three bags. Vehicle-fit advice that depends on
+passenger/bag counts now uses a qualified local answer, stating that luggage
+space must be checked for the actual model and bag sizes. The customer facts
+remain in the rental draft and the request continues through consent.
+
 2026-10-26 — Live user demo showed approximate dates ("מעוד שבוע", "עוד
 חודש") being acknowledged as if exact, followed by location questions and a
 return to the missing pickup date. The conversation core now retains that

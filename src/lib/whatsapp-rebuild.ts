@@ -375,6 +375,18 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
       ? 'המקום למזוודות תלוי בדגם ובגודל המזוודות. כמה נוסעים ומזוודות יהיו? כך נוכל להציע רכב מתאים.'
       : 'Luggage fit depends on the actual model and suitcase sizes. I can suggest a vehicle group to check, but cannot promise fit without checking that car. How many passengers and suitcases will you have?';
   }
+  if ((state.booking.passengers ?? 0) >= 5 && (state.booking.luggage ?? 0) >= 3) {
+    const people = state.booking.passengers ?? 0;
+    const bags = state.booking.luggage ?? 0;
+    const next = !state.booking.pickupDate ? (he ? 'לאילו תאריכים תצטרכו את הרכב?' : 'What dates do you need the car?')
+      : !state.booking.returnDate ? question('returnDate', state.locale)
+      : !state.booking.pickupLocation ? question('pickupLocation', state.locale)
+      : !state.booking.returnLocation ? question('returnLocation', state.locale)
+      : (he ? 'תרצו שנתקדם לבקשה עם הפרטים שכבר מסרתם?' : 'Shall we continue with the details you already gave?');
+    return he
+      ? `ל־${people} נוסעים ו־${bags} מזוודות כדאי לבדוק ${people >= 6 ? 'רכב שבעה מקומות' : 'רכב משפחתי מרווח או רכב פנאי'}. את המקום לציוד נוודא לפי הדגם וגודל המזוודות. ${next}`
+      : `For ${people} passengers and ${bags} bags, ${people >= 6 ? 'a seven-seat car' : 'a roomy family car or SUV'} is worth checking. We will confirm luggage space for the specific model and bag sizes. ${next}`;
+  }
   const group = direction(reading, state.booking, input);
   const topic = /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input) || Boolean(state.booking.childSeats) ? 'child' :
     /פגיש|עיר|חניה|city|meeting|parking/i.test(input) ? 'city' : 'trip';
@@ -393,6 +405,7 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
 
 function safeModelReply(reading: BotReading | null, input: string, state: RebuildState): string | null {
   if (!reading || OUTSIDE.test(input) || /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input)) return null;
+  if ((state.booking.passengers || state.booking.luggage) && /איזה רכב|יתאים|מתאים|מספיק|ממליץ|recommend|fit|suit/i.test(input)) return null;
   if (/מזווד|מטען|תא מטען|luggage|suitcase|boot|trunk/i.test(input) && /כמה|נכנס|יספיק|מקום|יכול|fit|space|room|how many/i.test(input)) return null;
   if (PRICE_OR_AVAILABILITY.test(input)) return null;
   const reply = reading.reply;

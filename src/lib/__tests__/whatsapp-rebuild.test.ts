@@ -26,7 +26,8 @@ describe('replacement SmartCar conversation core', () => {
     const advice = await chat.send('אנחנו חמישה עם שלוש מזוודות, איזה רכב יתאים?');
     expect(advice.state.booking.passengers).toBe(5);
     expect(advice.state.booking.luggage).toBe(3);
-    expect(advice.reply).not.toContain('יתאים לכם מצוין');
+    expect(advice.reply).toContain('נוודא לפי הדגם');
+    expect(advice.reply).not.toMatch(/יתאים לכם מצוין|יהיה מעולה/);
     await chat.send('אני צריך אותו 12/11-16/11');
     const locations = await chat.send('איסוף מהרצליה והחזרה בתל אביב');
     expect(locations.state.booking.pickupLocation).toBe('הרצליה');
