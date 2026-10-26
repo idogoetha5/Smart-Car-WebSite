@@ -62,6 +62,11 @@ and electric-car charging. These now use the relevant published facts or a
 qualified answer. Direct requests for a test drive, travel outside Israel,
 or paid passenger transport are passed to a representative without implying
 availability, legal eligibility, insurance coverage or a confirmed booking.
+Live retest caught one more extraction error: a request for seven seats was
+mistaken for a statement that seven passengers would travel. Seat count is now
+kept as a vehicle requirement; passenger counts require explicit passenger
+wording and a matching number in the customer's evidence. The advice explains
+that luggage fit must be checked with the actual seating configuration.
 
 2026-10-26 — Live user demo showed approximate dates ("מעוד שבוע", "עוד
 חודש") being acknowledged as if exact, followed by location questions and a

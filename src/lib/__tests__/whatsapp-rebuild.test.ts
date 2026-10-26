@@ -22,13 +22,15 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 
 describe('replacement SmartCar conversation core', () => {
   it('qualifies luggage space when seven seats and four bags are requested', async () => {
-    const chat = memory(() => ({ ...base, direction: 'family', reply: 'משפחתית תתאים לכם מצוין. לאילו תאריכים?' }));
+    const chat = memory(() => ({ ...base, direction: 'family', reply: 'משפחתית תתאים לכם מצוין. לאילו תאריכים?', fields: { passengers: { value: '7', evidence: '7 מקומות' } } }));
     const result = await chat.send('אני צריך 7 מקומות ו-4 מזוודות');
     expect(result.state.booking.vehicleNeed).toBe('רכב שבעה מקומות');
     expect(result.state.booking.luggage).toBe(4);
+    expect(result.state.booking.passengers).toBeUndefined();
     expect(result.reply).toContain('שבעה מקומות');
     expect(result.reply).toContain('נוודא');
     expect(result.reply).not.toContain('משפחתית תתאים');
+    expect(result.reply).not.toContain('7 נוסעים');
   });
 
   it('answers a foreign-licence question with the required documents', async () => {

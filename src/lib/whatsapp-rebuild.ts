@@ -469,9 +469,14 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
       : field.value;
   }
   for (const name of ['passengers', 'luggage', 'childSeats'] as const) {
+    if (state.booking[name] !== undefined) continue;
     const field = fields[name];
     const count = Number(field?.value);
-    if (field && input.toLocaleLowerCase().includes(field.evidence.toLocaleLowerCase()) && Number.isInteger(count) && count >= 0 && count <= 20) state.booking[name] = count;
+    const evidenceMatches = name === 'passengers' ? /נוסע|אנשים|מבוגרים|אנחנו|נהיה|passenger|people|adults|we are/i.test(field?.evidence ?? '')
+      : name === 'luggage' ? /מזווד|תיק|bags?|suitcases?|luggage/i.test(field?.evidence ?? '')
+      : /כיסא|מושב בטיחות|child seat|car seat|booster/i.test(field?.evidence ?? '');
+    const statedValues = field?.evidence.match(/\d{1,2}|אחד|אחת|שניים|שתיים|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש|שבעה|שבע|שמונה|one|two|three|four|five|six|seven|eight/gi) ?? [];
+    if (field && evidenceMatches && statedValues.some(value => statedCount(value) === count) && input.toLocaleLowerCase().includes(field.evidence.toLocaleLowerCase()) && Number.isInteger(count) && count >= 0 && count <= 20) state.booking[name] = count;
   }
   if (!state.booking.returnLocation && state.booking.pickupLocation && /אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input)) state.booking.returnLocation = state.booking.pickupLocation;
   if (state.booking.pickupDate && state.booking.returnDate && state.booking.returnDate < state.booking.pickupDate) delete state.booking.returnDate;
