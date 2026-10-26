@@ -236,6 +236,9 @@ describe('replacement SmartCar conversation core', () => {
     expect(chat.create).not.toHaveBeenCalled();
     await chat.send('אני מאשר');
     expect(chat.create).toHaveBeenCalledTimes(1);
+    const repeated = await chat.send('אני מאשר');
+    expect(repeated.reply).toContain('לא נוצרה הזמנה אמיתית');
+    expect(chat.create).toHaveBeenCalledTimes(1);
     expect(chat.state()?.completedRequestId).toBe('SIM-123');
     expect(chat.state()?.booking).toEqual({});
     expect(chat.state()?.requestKey).toBeUndefined();

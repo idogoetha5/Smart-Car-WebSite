@@ -12,6 +12,12 @@ const mocks = vi.hoisted(() => ({
   classify: vi.fn(),
   incident: vi.fn(),
   settings: vi.fn(),
+  claim: vi.fn(),
+  prepare: vi.fn(),
+  record: vi.fn(),
+  suppressOff: vi.fn(),
+  suppressSend: vi.fn(),
+  handoffEmail: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -43,7 +49,14 @@ vi.mock('@/lib/whatsapp-rebuild', () => ({
 }));
 vi.mock('@/lib/whatsapp-rebuild-store', () => ({ persistentRebuildStore: {} }));
 vi.mock('@/lib/sms-alert', () => ({ sendEscalationSms: mocks.sms }));
-vi.mock('@/lib/whatsapp-incidents', () => ({ reportBotIncident: mocks.incident }));
+vi.mock('@/lib/whatsapp-incidents', () => ({ reportBotIncident: mocks.incident, sendHandoffEmail: mocks.handoffEmail }));
+vi.mock('@/lib/whatsapp-inbound-journal', () => ({
+  claimInboundMessage: mocks.claim,
+  prepareInboundReply: mocks.prepare,
+  recordInboundSend: mocks.record,
+  suppressInboundWhileOff: mocks.suppressOff,
+  suppressClaimedSend: mocks.suppressSend,
+}));
 
 import { POST } from './route';
 
@@ -100,6 +113,17 @@ beforeEach(() => {
   mocks.sms.mockResolvedValue(true);
   mocks.incident.mockResolvedValue(true);
   mocks.settings.mockResolvedValue({ data: { enabled: true }, error: null });
+  mocks.prepare.mockResolvedValue(undefined);
+  mocks.record.mockResolvedValue(undefined);
+  mocks.suppressOff.mockResolvedValue(undefined);
+  mocks.suppressSend.mockResolvedValue(undefined);
+  mocks.handoffEmail.mockResolvedValue(true);
+  mocks.claim.mockImplementation(async () => {
+    const prepared = mocks.prepare.mock.calls.at(-1);
+    return prepared
+      ? { action: 'send', reply: prepared[1], escalate: prepared[2], providerReplyId: null }
+      : { action: 'prepare', reply: null, escalate: false, providerReplyId: null };
+  });
 });
 
 afterEach(() => {
@@ -118,6 +142,7 @@ describe('local WhatsApp webhook boundary', () => {
     expect(mocks.log).toHaveBeenCalledWith(expect.objectContaining({ source: 'customer_inbound', body: 'שלום' }));
     expect(mocks.flow).not.toHaveBeenCalled();
     expect(mocks.send).not.toHaveBeenCalled();
+    expect(mocks.suppressOff).toHaveBeenCalledWith('wamid-1', '972501234567');
   });
 
   it.each([{ data: null, error: null }, { data: null, error: { message: 'unavailable' } }])('fails closed when the kill switch cannot be verified', async settings => {
@@ -173,11 +198,46 @@ describe('local WhatsApp webhook boundary', () => {
 
   it('does not answer a provider retry of the same message', async () => {
     mocks.log.mockResolvedValueOnce(false);
+    mocks.claim.mockResolvedValue({ action: 'done', reply: null, escalate: false, providerReplyId: null });
     const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
     const response = await POST(metaRequest(signature));
     expect(response.status).toBe(200);
     expect(mocks.flow).not.toHaveBeenCalled();
     expect(mocks.send).not.toHaveBeenCalled();
+  });
+
+  it('never resends an uncertain provider outcome on a webhook retry', async () => {
+    mocks.send.mockResolvedValue({ ok: false, waMessageId: null, status: null, outcome: 'uncertain' });
+    const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
+    expect((await POST(metaRequest(signature))).status).toBe(200);
+    expect(mocks.record).toHaveBeenCalledWith('wamid-1', expect.objectContaining({ outcome: 'uncertain' }));
+    mocks.claim.mockResolvedValue({ action: 'done', reply: 'ברוכים הבאים ל־SmartCar', escalate: false, providerReplyId: null });
+    expect((await POST(metaRequest(signature))).status).toBe(200);
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('repairs a missing outbound log after an accepted send without resending', async () => {
+    mocks.claim.mockResolvedValue({ action: 'accepted', reply: 'תשובה שמורה', escalate: false, providerReplyId: 'outbound-1' });
+    const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
+    expect((await POST(metaRequest(signature))).status).toBe(200);
+    expect(mocks.log).toHaveBeenCalledWith(expect.objectContaining({ source: 'bot_outbound', body: 'תשובה שמורה', waMessageId: 'outbound-1' }));
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+
+  it('does not send when the prepared reply could not be saved', async () => {
+    mocks.prepare.mockRejectedValueOnce(new Error('database unavailable'));
+    const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
+    expect((await POST(metaRequest(signature))).status).toBe(503);
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+
+  it('does not send again after a provider acceptance whose journal update failed', async () => {
+    mocks.record.mockRejectedValueOnce(new Error('database unavailable'));
+    const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
+    expect((await POST(metaRequest(signature))).status).toBe(503);
+    mocks.claim.mockResolvedValue({ action: 'uncertain', reply: 'ברוכים הבאים ל־SmartCar', escalate: false, providerReplyId: null });
+    expect((await POST(metaRequest(signature))).status).toBe(200);
+    expect(mocks.send).toHaveBeenCalledTimes(1);
   });
 
   it('keeps an ordinary conversation silent after a human takes over', async () => {
@@ -325,6 +385,24 @@ describe('local WhatsApp webhook boundary', () => {
     expect(response.status).toBe(200);
     expect(mocks.sms).toHaveBeenCalledWith(expect.objectContaining({ customerPhone: '972501234567', reason: 'בקשת שירות או בטיחות' }));
     expect(mocks.log).toHaveBeenLastCalledWith(expect.objectContaining({ escalatedAt: expect.any(String) }));
+  });
+
+  it('uses the configured operator email when SMS is unavailable', async () => {
+    mocks.flow.mockResolvedValue({ reply: 'נדרש נציג', escalate: true });
+    mocks.sms.mockResolvedValue(false);
+    const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
+    expect((await POST(metaRequest(signature))).status).toBe(200);
+    expect(mocks.handoffEmail).toHaveBeenCalledWith('wamid-1', '972501234567');
+    expect(mocks.incident).not.toHaveBeenCalledWith('handoff_alert_failed');
+  });
+
+  it('checks the kill switch again immediately before provider send', async () => {
+    mocks.settings.mockResolvedValueOnce({ data: { enabled: true }, error: null })
+      .mockResolvedValueOnce({ data: { enabled: false }, error: null });
+    const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
+    expect((await POST(metaRequest(signature))).status).toBe(200);
+    expect(mocks.suppressSend).toHaveBeenCalledWith('wamid-1');
+    expect(mocks.send).not.toHaveBeenCalled();
   });
 
   it('lets a new accident bypass the recent-human-reply silence window', async () => {

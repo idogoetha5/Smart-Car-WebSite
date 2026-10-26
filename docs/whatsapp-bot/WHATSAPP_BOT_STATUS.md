@@ -1,5 +1,12 @@
 # WhatsApp Bot Status & Handover
 
+## 26 Oct 2026 — current implementation and remaining external gate
+
+- The rebuilt Gemini conversation core, public demo, mandatory driver age group, website transport boundary, message logging and database kill switch are published. A full fictional rental conversation was verified on the production demo through explicit confirmation; the demo did not create a real booking.
+- The webhook now has a durable inbound journal keyed by provider message ID. A prepared reply is persisted before sending. Once a provider call starts, an ambiguous result is marked for operator review and never sent again automatically. A provider retry can repair an outbound log after an accepted send without resending. Parallel claims and the kill switch are checked before delivery. The schema/RPC migration is applied; a transaction-rolled-back database fixture verified the claim transitions. The matching code must be deployed before the journal protects production traffic.
+- A handoff email can use the already configured `WHATSAPP_ALERT_EMAIL` when SMS is unavailable. It contains the customer phone and inbox link but no conversation text. This is provider acceptance only; receipt in the operator inbox still needs a live check.
+- **The real WhatsApp connection is absent.** Vercel Production has no `WHATSAPP_TRANSPORT`, YCloud key, business phone or webhook secret. The `whatsapp_bot_settings.enabled` row is false. No customer WhatsApp traffic reaches the bot. Keep it off until Daniel links the existing WhatsApp Business App via YCloud Coexistence QR, the endpoint and secrets are configured, and a real inbound/reply/phone echo/handoff check passes. Do not claim the demo is the live bot.
+
 ## Audit on 15 Oct 2026
 
 - **Decision after Ido's review:** Daniel will see and test the public simulator before any Meta/YCloud connection of his business number. The Meta signup window was opened only to inspect the steps, then closed without entering a number, accepting terms, scanning a QR code, or linking an account. Do not resume onboarding without Daniel's final approval.

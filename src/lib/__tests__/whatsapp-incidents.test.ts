@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { reportBotIncident } from '@/lib/whatsapp-incidents';
+import { reportBotIncident, sendHandoffEmail } from '@/lib/whatsapp-incidents';
 
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.useRealTimers(); });
 function setup() {
@@ -44,5 +44,16 @@ describe('bot incident notification', () => {
     const send = setup(); vi.stubEnv('WHATSAPP_INCIDENT_EMAIL', '');
     expect(await reportBotIncident('test')).toBe(false);
     expect(send).not.toHaveBeenCalled();
+  });
+  it('alerts the configured operator about a handoff without email content from the conversation', async () => {
+    const send = setup().mockResolvedValue(accepted());
+    vi.stubEnv('WHATSAPP_ALERT_EMAIL', 'operator@example.com');
+    expect(await sendHandoffEmail('fictional-wamid-1', '972500000001')).toBe(true);
+    const options = send.mock.calls[0][1];
+    const message = JSON.parse(options.body);
+    expect(message.to).toEqual(['operator@example.com']);
+    expect(message.text).toContain('972500000001');
+    expect(message.text).not.toContain('fictional-wamid-1');
+    expect(options.headers['Idempotency-Key']).toMatch(/^smartcar-handoff\/[0-9a-f]{32}$/);
   });
 });
