@@ -21,6 +21,70 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('starts a rental request from natural closing and reservation language without claiming a hold', async () => {
+    const close = memory(() => null);
+    await close.send('אנחנו ארבעה נוסעים, צריך רכב לסוף שבוע');
+    const accepted = await close.send('יאללה נסגור');
+    expect(accepted.state.phase).toBe('booking');
+    const hold = memory(() => null);
+    const request = await hold.send('תשריין לי רכב');
+    expect(request.state.phase).toBe('booking');
+    expect(request.reply).toContain('אין לי אפשרות לשריין');
+    expect(hold.create).not.toHaveBeenCalled();
+  });
+
+  it('lets a customer reach a person while a rental form is in progress', async () => {
+    const chat = memory(() => null);
+    await chat.send('אני רוצה לשכור רכב ל-10 עד 13 בנובמבר');
+    const handoff = await chat.send('אני רוצה לדבר עם נציג');
+    expect(handoff.escalate).toBe(true);
+    expect(handoff.state.handoffKind).toBe('human');
+    expect(handoff.reply).toContain('טיפול צוות');
+  });
+
+  it('handles an English sale lead and the customer’s explicit team request', async () => {
+    const chat = memory(() => null);
+    const first = await chat.send('I want to buy a used family car with a budget of 80,000 shekels');
+    expect(first.state.interest).toBe('sale');
+    expect(first.reply).not.toContain('dates');
+    const handoff = await chat.send('Please have the team check what is available');
+    expect(handoff.escalate).toBe(true);
+    expect(handoff.state.handoffKind).toBe('commercial');
+    expect(handoff.reply).not.toContain('stock');
+  });
+
+  it('accepts yes to an English leasing team-review offer', async () => {
+    const chat = memory(() => null);
+    await chat.send('I need business leasing for two years and 20,000 km a year');
+    const offer = await chat.send('A family car');
+    expect(offer.reply).toContain('team to review');
+    const handoff = await chat.send('Yes');
+    expect(handoff.escalate).toBe(true);
+  });
+
+  it('treats a broken air conditioner in the rental car as service', async () => {
+    const chat = memory(() => null);
+    const result = await chat.send('המזגן ברכב השכור לא עובד, מה עושים?');
+    expect(result.escalate).toBe(true);
+    expect(result.state.handoffKind).toBe('service_issue');
+    expect(result.reply).not.toContain('לאילו תאריכים');
+  });
+
+  it('treats a direct car purchase as sale without suggesting a rental', async () => {
+    const chat = memory(() => null);
+    const result = await chat.send('אני רוצה לקנות את הטויוטה שראיתי באתר, היא במלאי?');
+    expect(result.state.interest).toBe('sale');
+    expect(result.reply).toContain('אין לי רשימת מלאי מכירה');
+  });
+
+  it('acknowledges a vehicle correction during the rental form', async () => {
+    const chat = memory(() => null);
+    await chat.send('אני רוצה לשכור רכב קטן מ-10 עד 13 בנובמבר, איסוף בהרצליה והחזרה באותו מקום');
+    const correction = await chat.send('בעצם אני מעדיף רכב משפחתי');
+    expect(correction.state.booking.vehicleNeed).toBe('רכב משפחתי');
+    expect(correction.reply).toContain('עדכנתי את סוג הרכב');
+  });
+
   it('starts a request from natural closing language and retains a stated family car', async () => {
     const chat = memory(() => null);
     await chat.send('אנחנו זוג עם תינוק ו-3 מזוודות, איזה רכב כדאי?');
@@ -75,7 +139,7 @@ describe('replacement SmartCar conversation core', () => {
     const result = await chat.send('I want to book a family car from 10 to 13 November 2026, pickup in Herzliya and return there');
     expect(result.state.booking.pickupLocation).toBe('Herzliya');
     expect(result.state.booking.returnLocation).toBe('Herzliya');
-    expect(result.state.booking.vehicleNeed).toBe('רכב משפחתי');
+    expect(result.state.booking.vehicleNeed).toBe('family car');
   });
 
   it('moves leasing from term to mileage to vehicle and then asks to send the lead', async () => {

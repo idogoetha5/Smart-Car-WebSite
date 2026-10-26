@@ -1,6 +1,6 @@
 # WhatsApp Bot — Credentials Needed
 
-**Status on 15 Oct 2026: YCloud Coexistence is the selected onboarding path.** It keeps the business number in the WhatsApp Business App on the owner's phone while the SmartCar bot works through the official API. The code has local tests, but the real YCloud channel is not yet connected. Complete the live preview and delivery checks before connecting 09-9509757.
+**Status on 26 Oct 2026: YCloud Coexistence is the selected onboarding path, but onboarding is on hold until preconnection conversation acceptance is complete.** It keeps the business number in the WhatsApp Business App on the owner's phone while the SmartCar bot works through the official API. The real YCloud channel is not yet connected.
 
 **Daniel reviews first:** `https://www.smartcar.co.il/he/whatsapp-demo` is a public simulation with fictional details. It does not connect the business number or send WhatsApp messages. Do not start Meta signup, register a webhook, or enable the transport until Daniel gives final approval. The Meta popup was closed before any number, terms acceptance, or QR authorization.
 
@@ -35,7 +35,7 @@ When the local test checklist is complete:
 | `WHATSAPP_BUSINESS_PHONE` | The connected business number, e.g. `+97299509757` |
 | `WHATSAPP_YCLOUD_WEBHOOK_SECRET` | The secret generated for the YCloud webhook endpoint |
 
-After the scan, keep the WhatsApp Business App installed and active. YCloud says prolonged app inactivity or signing into a different device can unlink Coexistence. The bot cannot notify Daniel of a handoff by SMS until the Twilio settings below are configured and a real SMS has been received. Also resolve the webhook's send-failure retry caveat in `WHATSAPP_BOT_STATUS.md` before enabling the business number.
+After the scan, keep the WhatsApp Business App installed and active. The production webhook now journals inbound messages and never resends an uncertain provider attempt automatically. A Resend email fallback for staff handoff was accepted and received in the owner inbox with a fictional test; a real connected-channel handoff still needs acceptance. SMS remains unavailable until the optional Twilio settings below are configured and a real SMS has been received.
 
 ---
 
@@ -66,7 +66,7 @@ No middleman, no monthly fee — but migrating 09-9509757 here permanently delet
 
 ---
 
-## Twilio (escalation SMS to Daniel) — needed regardless of path
+## Optional Twilio SMS (the configured email fallback is currently available)
 
 1. [twilio.com](https://www.twilio.com), sign up, add payment.
 2. Console dashboard → "Account Info" panel → Account SID + Auth Token (reveal).
