@@ -604,6 +604,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     reply = clarifiedAlready
       ? (he ? 'הבנתי את הטווח המשוער. כשתדעו את התאריכים המדויקים, כתבו אותם כאן ונמשיך.' : 'I understand the approximate timing. Send the exact dates here when you know them and we can continue.')
       : (he ? 'הבנתי את הכיוון. כדי לבדוק זמינות ולהכין בקשה, באילו תאריכים מדויקים תרצו לאסוף ולהחזיר את הרכב? אפשר לכתוב למשל 2/11–26/11.' : 'I understand the approximate timing. Which exact pickup and return dates would you like? For example, 2/11–26/11.');
+  } else if (state.phase === 'booking' && state.step === 'rental_age' && /אני לא מבין|לא הבנתי|מה זאת אומרת|i don'?t understand|what do you mean/i.test(input) && /מגיל 21|aged 21 or older/i.test(lastBotReply)) {
+    reply = he ? 'אם הנהג הראשי בן 20, אי אפשר להשכיר על שמו. אם אדם אחר בן 21 ומעלה יהיה הנהג הראשי, אפשר להמשיך עם קבוצת הגיל שלו בכפוף לתנאי הרכב והביטוח.' : 'A 20-year-old cannot be the main renter. If someone aged 21 or older will be the main driver, we can continue with that person’s age group, subject to the vehicle and insurance terms.';
+  } else if (state.phase === 'booking' && state.step === 'rental_dates' && affirms(input) && /כשתדעו את התאריכים המדויקים|when you know the exact dates/i.test(lastBotReply)) {
+    reply = he ? 'בסדר. כשתדעו את התאריכים, כתבו אותם כאן ונמשיך מהפרטים שכבר מסרתם.' : 'Of course. Send the dates when you know them and we will continue with the details already shared.';
   } else if (state.phase === 'explore' && (/באיזו שעה|באיזה שעה|what time/i.test(lastBotReply) && /^\d{1,2}(?::\d{2})?$/.test(input) || /אמרתי לך כבר|שאלת כבר|כבר אמרתי|already told you|asked me already/i.test(input))) {
     const consented = state.history.some((entry, index) => entry.from === 'customer' && affirms(entry.text) && index > 0 && offersRentalRequest(state.history[index - 1].text));
     if (consented) {

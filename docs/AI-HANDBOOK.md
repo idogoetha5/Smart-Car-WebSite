@@ -67,6 +67,11 @@ mistaken for a statement that seven passengers would travel. Seat count is now
 kept as a vehicle requirement; passenger counts require explicit passenger
 wording and a matching number in the customer's evidence. The advice explains
 that luggage fit must be checked with the actual seating configuration.
+Longer live dialogues also showed a repeated age-group prompt after an
+ineligible 20-year-old asked for clarification, and a repeated date prompt
+after the customer acknowledged that dates were still unknown. The bot now
+explains the age condition in plain customer language and pauses the date
+intake until an actual date is supplied.
 
 2026-10-26 — Live user demo showed approximate dates ("מעוד שבוע", "עוד
 חודש") being acknowledged as if exact, followed by location questions and a

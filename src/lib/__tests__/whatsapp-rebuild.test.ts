@@ -98,6 +98,24 @@ describe('replacement SmartCar conversation core', () => {
     expect(vague.reply).toContain('התאריכים המדויקים');
   });
 
+  it('explains underage eligibility and pauses rather than repeating a missing date', async () => {
+    const age = memory(() => base);
+    await age.send('אני רוצה לשכור רכב קטן 15/11-18/11 איסוף מהרצליה החזרה בתל אביב');
+    await age.send('אני בן 20');
+    const explanation = await age.send('אני לא מבין');
+    expect(explanation.reply).toContain('בן 20');
+    expect(explanation.reply).not.toContain('בחרו 21–23');
+    const otherDriver = await age.send('אחותי בת 25 תנהג');
+    expect(otherDriver.state.booking.driverAgeRange).toBe('24-plus');
+
+    const dates = memory(() => base);
+    await dates.send('אני צריך רכב קטן להשכרה');
+    await dates.send('לא יודע תאריך');
+    const acknowledged = await dates.send('כן');
+    expect(acknowledged.reply).toContain('כשתדעו');
+    expect(acknowledged.reply).not.toContain('כתבו את תאריך האיסוף');
+  });
+
   it('starts a rental from natural Hebrew wording and keeps all details', async () => {
     const chat = memory(() => base);
     const started = await chat.send('רוצה לשכור רכב קטן 15/11-18/11 איסוף מהרצליה החזרה בתל אביב, נהג בן 24');
