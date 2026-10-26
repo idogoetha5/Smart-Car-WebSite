@@ -121,6 +121,50 @@ function explicitDateRange(input: string): { pickupDate: string; returnDate: str
     ? { pickupDate, returnDate } : null;
 }
 
+function singleDateAnswer(input: string, after?: string): string | null {
+  const value = input.trim();
+  const today = israelDate();
+  const reference = after ?? today;
+  const relative = /^(?:היום|מחר|מחרתיים|today|tomorrow|day after tomorrow)$/i.test(value);
+  if (relative) {
+    const date = new Date(`${today}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + (/מחרתיים|day after tomorrow/i.test(value) ? 2 : /מחר|tomorrow/i.test(value) ? 1 : 0));
+    const result = date.toISOString().slice(0, 10);
+    return result > reference || !after && result >= today ? result : null;
+  }
+  let candidate = value.match(/^(20\d{2})-(\d{2})-(\d{2})$/)?.[0] ?? null;
+  if (!candidate) {
+    const numeric = value.match(/^(\d{1,2})[./](\d{1,2})(?:[./](20\d{2}))?$/);
+    const named = value.match(new RegExp(`^(\\d{1,2})\\s+(?:ב)?(${Object.keys(MONTHS).join('|')})(?:\\s+(20\\d{2}))?$`, 'iu'));
+    const day = numeric?.[1] ?? named?.[1];
+    const month = numeric ? Number(numeric[2]) : named ? MONTHS[named[2].toLocaleLowerCase()] : undefined;
+    const year = numeric?.[3] ?? named?.[3];
+    if (day && month && month >= 1 && month <= 12) {
+      let numberYear = year ? Number(year) : Number(reference.slice(0, 4));
+      candidate = `${numberYear}-${String(month).padStart(2, '0')}-${day.padStart(2, '0')}`;
+      if (!year && candidate <= reference) {
+        if (after && month === Number(after.slice(5, 7))) return null;
+        numberYear += 1;
+        candidate = `${numberYear}-${String(month).padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+    }
+  }
+  if (!candidate && after && /^\d{1,2}$/.test(value)) candidate = `${after.slice(0, 8)}${value.padStart(2, '0')}`;
+  const limit = new Date(`${today}T00:00:00Z`);
+  limit.setUTCFullYear(limit.getUTCFullYear() + 2);
+  return candidate && validDate(candidate) && candidate >= today && (!after || candidate > after) && candidate <= limit.toISOString().slice(0, 10) ? candidate : null;
+}
+
+function applyPromptedDate(input: string, state: RebuildState, lastBot: string): void {
+  if (/באיזה תאריך.{0,25}לאסוף|תאריך איסוף|what date.{0,25}pick.?up/i.test(lastBot)) {
+    const date = singleDateAnswer(input);
+    if (date) state.booking.pickupDate = date;
+  } else if (/באיזה תאריך.{0,25}תחזיר|תאריך החזרה|what date.{0,25}return/i.test(lastBot)) {
+    const date = singleDateAnswer(input, state.booking.pickupDate);
+    if (date) state.booking.returnDate = date;
+  }
+}
+
 function applyExplicitLocations(input: string, draft: BookingDraft): void {
   const stop = '(?=\\s+(?:ו?החזרה|להחזיר|(?:and\\s+)?return|(?:and\\s+)?drop.?off)|[,.!?]|$)';
   const hePickup = input.match(new RegExp(`(?:איסוף|לאסוף)\\s+[במ]([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
@@ -146,11 +190,30 @@ function greeting(input: string, locale: Locale): string | null {
   return null;
 }
 
+function affirms(input: string): boolean {
+  return /^(?:כן(?:\s+כן)?|נו\s*כן|כן בבקשה|יאללה|בטח|yes|yeah|sure|go ahead)[!?.\s]*$/i.test(input);
+}
+
+function offersRentalRequest(reply: string): boolean {
+  return /(?:נמשיך|נתקדם|להתקדם|נתחיל|להתחיל|שנתחיל|נאסוף|לאסוף).{0,85}(?:הזמנה|בקשה|פרטים|זמינות)|(?:הזמנה|בקשה).{0,55}(?:נתקדם|נתחיל|נמשיך)|(?:continue|proceed|start|prepare|check).{0,70}(?:booking|rental|request|availability)/i.test(reply);
+}
+
+function applyPromptedLocation(input: string, state: RebuildState, lastBot: string): void {
+  const location = input.trim();
+  if (/^(?:אותו מקום|שם גם|same place|same location)$/i.test(location)) {
+    if (state.booking.pickupLocation) state.booking.returnLocation = state.booking.pickupLocation;
+    return;
+  }
+  if (!/^[\p{L}'׳״ -]{2,45}$/u.test(location) || /^(?:כן|לא|לא יודע|תודה|yes|no|not sure)$/i.test(location)) return;
+  if (/מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף|עיר האיסוף|pickup (?:city|location)|where.{0,30}pick.?up/i.test(lastBot)) state.booking.pickupLocation = location;
+  else if (/איפה.{0,30}להחזיר|עיר ההחזרה|מקום ההחזרה|return (?:city|location)|where.{0,30}return/i.test(lastBot)) state.booking.returnLocation = location;
+}
+
 function explicitVehicleNeed(input: string, locale: Locale): string | null {
   if (/שבעה מקומות|7[- ]?seater|seven[- ]?seater/i.test(input)) return locale === 'he' ? 'רכב שבעה מקומות' : 'seven-seat car';
   if (/משפחתי|משפחתית|family car/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
   if (/קומפקטי|קומפקטית|רכב קטן|compact car|small car/i.test(input)) return locale === 'he' ? 'רכב קומפקטי' : 'compact car';
-  if (/ג[׳'י]?יפון|suv/i.test(input)) return locale === 'he' ? 'רכב פנאי' : 'SUV';
+  if (/רכב פנאי|ג[׳'י]?יפ(?:ון)?|suv/i.test(input)) return locale === 'he' ? 'רכב פנאי' : 'SUV';
   return null;
 }
 
@@ -250,7 +313,10 @@ function safeModelReply(reading: BotReading | null, input: string, state: Rebuil
   if (PRICE_OR_AVAILABILITY.test(input)) return null;
   const reply = reading.reply;
   if (OUTSIDE.test(reply) || UNSAFE_CLAIM.test(reply) || /₪|\b\d{2,}\b/.test(reply)) return null;
-  if (!state.booking.pickupDate && /תאריכים (?:שכבר )?ציינ|dates (?:you(?:'ve| have) )?(?:already )?mentioned/i.test(reply)) return null;
+  if (/באיזו שעה|באיזה שעה|מה השעה|שעת (?:ה?איסוף|ה?החזרה)|what time|pickup time|drop.?off time|return time/i.test(reply)) return null;
+  if (!state.booking.pickupDate && /תאריכים (?:שכבר )?(?:ציינ|בחרת|שבחרת)|dates (?:you(?:'ve| have) )?(?:already )?(?:mentioned|chosen)/i.test(reply)) return null;
+  const earlierBotReplies = state.history.filter(entry => entry.from === 'bot').slice(-4).map(entry => entry.text);
+  if (offersRentalRequest(reply) && earlierBotReplies.some(offersRentalRequest)) return null;
   if (reply.length > 40 && !/[.!?…]$/.test(reply)) return null;
   if ((reply.match(/[?؟]/g) ?? []).length > 1) return null;
   if (state.locale === 'he' && (!/[א-ת]/.test(reply) || /[\u0600-\u06ff]/u.test(reply))) return null;
@@ -328,6 +394,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   let model: string | undefined;
   let escalate = false;
   let privateTurn = false;
+  const lastBotReply = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
 
   const incident = safety(input);
   if (incident) {
@@ -370,12 +437,22 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     reply = state.phase === 'booking'
       ? (he ? 'היי 🙂 מה נשמע? הפרטים שכבר מסרת שמורים, ונוכל להמשיך מתי שנוח לך.' : 'Hi 🙂 How are you? The details you gave are saved, and we can continue when you are ready.')
       : greeting(input, state.locale)!;
+  } else if (state.phase === 'explore' && (/באיזו שעה|באיזה שעה|what time/i.test(lastBotReply) && /^\d{1,2}(?::\d{2})?$/.test(input) || /אמרתי לך כבר|שאלת כבר|כבר אמרתי|already told you|asked me already/i.test(input))) {
+    const consented = state.history.some((entry, index) => entry.from === 'customer' && affirms(entry.text) && index > 0 && offersRentalRequest(state.history[index - 1].text));
+    if (consented) {
+      state.phase = 'booking'; state.requestKey ??= randomUUID();
+      const missing = nextMissing(state.booking);
+      state.step = bookingStep(missing);
+      reply = `${he ? 'סליחה על החזרה. אין צורך בשעת איסוף בשלב הזה. ' : 'Sorry for repeating myself. I do not need a pickup time now. '}${missing ? question(missing, state.locale) : summary(state)}`;
+    } else reply = he ? 'סליחה, חזרתי על שאלה. לא צריך לציין שעה כרגע. איך תרצה שאעזור מכאן?' : 'Sorry, I repeated a question. I do not need a time now. How would you like me to help?';
   } else {
+    const lastBot = lastBotReply;
+    const confirmedOffer = affirms(input) && offersRentalRequest(lastBot);
     privateTurn = state.phase === 'booking' && (state.step === 'rental_name' || state.step === 'rental_email');
     const gotPrivate = privateDetail(input, state);
     privateTurn ||= gotPrivate;
     let reading: BotReading | null = null;
-    if (!gotPrivate && !(state.phase === 'booking' && state.step === 'rental_age' && driverAgeRange(input, state)) && !EMAIL.test(input) && !/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/.test(input)) {
+    if (!gotPrivate && !confirmedOffer && !(state.phase === 'booking' && state.step === 'rental_age' && driverAgeRange(input, state)) && !EMAIL.test(input) && !/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/.test(input)) {
       const context: GeminiBotContext = {
         locale: state.locale, phase: state.phase, today: israelDate(),
         recent: state.history.filter(item => !item.private).slice(-8).map(({ from, text }) => ({ from, text })),
@@ -386,21 +463,25 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     }
     const statedRange = explicitDateRange(input);
     if (statedRange) Object.assign(state.booking, statedRange);
+    applyPromptedDate(input, state, lastBot);
     applyExplicitLocations(input, state.booking);
+    applyPromptedLocation(input, state, lastBot);
     const statedAgeRange = driverAgeRange(input, state);
     if (statedAgeRange) state.booking.driverAgeRange = statedAgeRange;
     const declines = /לא רוצה להזמין|לא מבקש להזמין|אל תזמין|לא עכשיו|רק מתעניין|עדיין בודק|don't book|cancel this request|not ready to book|just looking/i.test(input);
-    const lastBot = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
     const modelSupportedProceed = reading?.route === 'book' && /^(?:כן|יאללה|בוא|בואי|yes|okay|ok|go ahead|let's proceed)/i.test(input)
       && /להתחיל.{0,25}(?:בקשה|הזמנה)|start.{0,25}(?:request|booking)/i.test(lastBot);
-    const acceptsRentalOffer = /^(?:כן|כן בבקשה|יאללה|yes|sure)$/i.test(input)
-      && /(?:תרצה|תרצי|would you like).{0,35}(?:להתחיל בקשה|שאתחיל בקשה|start a request)/i.test(lastBot);
+    const acceptsRentalOffer = confirmedOffer;
     const asksHuman = /(?:דבר|לדבר|נציג|בן אדם|human|representative|person)/i.test(input) && /רוצה|אפשר|need|want|speak/i.test(input);
     const clearlyRental = /לשכור|השכרה|rental|rent/i.test(input);
     const wantsBooking = !declines && !asksHuman && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || acceptsRentalOffer || state.phase === 'booking');
     const rentalPivot = /מעדיף (?:את ה)?השכרה|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|back to renting/i.test(input);
     const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|רכב מלוכלך|לא קיבלתי|(?:מזגן|מיזוג).{0,25}(?:לא עובד|מקולקל)|(?:air conditioning|car ac).{0,25}(?:not working|broken)|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input);
     const statedVehicle = explicitVehicleNeed(input, state.locale);
+    if (acceptsRentalOffer && !state.booking.vehicleNeed) {
+      const offeredVehicle = explicitVehicleNeed(lastBot, state.locale);
+      if (offeredVehicle) state.booking.vehicleNeed = offeredVehicle;
+    }
     if (statedVehicle && (wantsBooking || state.phase === 'booking') && (!state.booking.vehicleNeed || /בעצם|מעדיף|במקום|actually|instead|prefer/i.test(input))) state.booking.vehicleNeed = statedVehicle;
     if (rentalPivot) state.interest = undefined;
     else if (reading?.route === 'leasing' || /ליסינג|leasing/i.test(input)) state.interest = 'leasing';

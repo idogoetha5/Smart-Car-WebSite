@@ -21,6 +21,88 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('moves past the exact repeated yes pattern reported by the owner', async () => {
+    const offer = 'בסדר גמור, ללא ציוד נוסף. האם נמשיך לבדיקת זמינות לרכב פנאי (SUV) לתאריכים שבחרת?';
+    const chat = memory(() => ({ ...base, reply: offer }));
+    const first = await chat.send('אני מחפש רכב פנאי לסוף שבוע');
+    expect(first.reply).not.toContain('לתאריכים שבחרת');
+    const next = await chat.send('כן');
+    expect(next.state.phase).toBe('explore');
+
+    const direct = memory(() => ({ ...base, reply: 'האם נמשיך לבדיקת זמינות לרכב פנאי (SUV)?' }));
+    await direct.send('אני מחפש רכב פנאי לסוף שבוע');
+    const accepted = await direct.send('נו כן');
+    expect(accepted.state.phase).toBe('booking');
+    expect(accepted.state.booking.vehicleNeed).toBe('רכב פנאי');
+    expect(accepted.reply).toContain('תאריך');
+    expect(accepted.reply).not.toMatch(/האם נמשיך|האם תרצה/);
+    expect(direct.readTurn).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    'האם נמשיך לבדיקת זמינות לרכב פנאי לתאריכים שבחרת?',
+    'האם תרצה שנתקדם בהזמנה?',
+    'האם תרצה שנתחיל להסדיר את פרטי ההזמנה הסופיים?',
+    'האם תרצה שנתחיל לאסוף את הפרטים הנדרשים להשלמת ההזמנה?',
+  ])('advances after yes to a booking offer: %s', async offer => {
+    let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [{ from: 'bot', text: offer }] };
+    const readTurn = vi.fn(async () => ({ ...base, reply: 'האם תרצה שנתקדם בהזמנה?' }));
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_phone, next) => { state = next; }, activeBooking: async () => null, createRentalRequest: async () => 'SIM-123', readTurn };
+    const result = await getRebuiltBotReply('fictional', 'כן', store);
+    expect(result.state.phase).toBe('booking');
+    expect(result.reply).toContain('תאריך');
+    expect(result.reply).not.toContain('האם תרצה');
+    expect(readTurn).not.toHaveBeenCalled();
+  });
+
+  it('never asks for pickup hour even when Gemini drafts that question', async () => {
+    const chat = memory(() => ({ ...base, reply: 'מעולה! באיזו שעה תרצה לאסוף את הרכב?' }));
+    const result = await chat.send('אני מחפש רכב לסוף שבוע');
+    expect(result.reply).not.toMatch(/שעה|שעת איסוף/);
+    expect(result.reply).toContain('תאריכים');
+  });
+
+  it('records a short pickup city when it answers the previous question', async () => {
+    const chat = memory(() => null);
+    const first = await chat.send('אני רוצה לשכור רכב קטן מ-10 עד 13 בנובמבר');
+    expect(first.reply).toContain('מאיפה');
+    const city = await chat.send('תל אביב');
+    expect(city.state.booking.pickupLocation).toBe('תל אביב');
+    expect(city.reply).toContain('להחזיר');
+  });
+
+  it('completes a guided request from separate short date and city answers without Gemini', async () => {
+    const chat = memory(() => null);
+    expect((await chat.send('אני רוצה לשכור רכב קטן')).state.step).toBe('rental_dates');
+    expect((await chat.send('10 בנובמבר')).state.booking.pickupDate).toMatch(/-11-10$/);
+    expect((await chat.send('13 בנובמבר')).state.booking.returnDate).toMatch(/-11-13$/);
+    expect((await chat.send('תל אביב')).state.booking.pickupLocation).toBe('תל אביב');
+    expect((await chat.send('אותו מקום')).state.booking.returnLocation).toBe('תל אביב');
+    expect((await chat.send('24+')).state.step).toBe('rental_name');
+    expect((await chat.send('דני בדיקה')).state.step).toBe('rental_email');
+    const summary = await chat.send('dani.test@example.com');
+    expect(summary.state.step).toBe('rental_confirm');
+    expect(chat.create).not.toHaveBeenCalled();
+    const complete = await chat.send('אני מאשר');
+    expect(complete.escalate).toBe(true);
+    expect(chat.create).toHaveBeenCalledOnce();
+  });
+
+  it('recovers a previously stalled conversation after an unnecessary time question', async () => {
+    let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [
+      { from: 'bot', text: 'האם נמשיך לבדיקת זמינות לרכב פנאי?' },
+      { from: 'customer', text: 'כן' },
+      { from: 'bot', text: 'באיזו שעה תרצה לאסוף את הרכב?' },
+    ] };
+    const readTurn = vi.fn(async () => null);
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_phone, next) => { state = next; }, activeBooking: async () => null, createRentalRequest: async () => 'SIM-123', readTurn };
+    const recovered = await getRebuiltBotReply('fictional', '9', store);
+    expect(recovered.state.phase).toBe('booking');
+    expect(recovered.reply).toContain('אין צורך בשעת איסוף');
+    expect(recovered.reply).toContain('תאריך');
+    expect(readTurn).not.toHaveBeenCalled();
+  });
+
   it('greets a customer naturally before offering any vehicle advice', async () => {
     const chat = memory(() => ({ ...base, route: 'explore' }));
     const hello = await chat.send('היי');
