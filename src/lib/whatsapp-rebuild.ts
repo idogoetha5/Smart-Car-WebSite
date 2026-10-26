@@ -365,6 +365,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       && /להתחיל.{0,25}(?:בקשה|הזמנה)|start.{0,25}(?:request|booking)/i.test(lastBot);
     const wantsBooking = !declines && (explicitBooking(input) || modelSupportedProceed || state.phase === 'booking');
     const rentalPivot = /מעדיף (?:את ה)?השכרה|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|back to renting/i.test(input);
+    const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|רכב מלוכלך|לא קיבלתי|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input);
     if (rentalPivot) state.interest = undefined;
     else if (reading?.route === 'leasing' || /ליסינג|leasing/i.test(input)) state.interest = 'leasing';
     else if (reading?.route === 'sale' || /לקנייה|למכירה|רכב לקנות|buy a car|car for sale/i.test(input)) state.interest = 'sale';
@@ -374,6 +375,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else if (rentalPivot) {
       state.phase = 'explore'; state.step = 'menu';
       reply = he ? 'הבנתי, נחזור לבדוק השכרה. לחודש וחצי חשוב להתאים רכב וקילומטראז׳ למסלול ההשכרה; באילו תאריכים תרצה לאסוף ולהחזיר?' : 'Understood, let us check a rental instead. For a longer rental, the vehicle and mileage terms matter. What pickup and return dates do you need?';
+    } else if (specificProblem) {
+      state.phase = 'service'; state.step = 'menu'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'service_issue'; escalate = true;
+      reply = he ? `קיבלתי את פרטי הפנייה ואעביר אותם לבדיקה של צוות SmartCar. לא פתרתי את הבעיה או שיניתי חיוב בשיחה הזו. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `I have recorded your details for the SmartCar team to review. I have not resolved the issue or changed a charge here. You can also call ${OFFICE_PHONE}.`;
     } else if (wantsBooking) {
       state.phase = 'booking';
       state.interest = undefined;
@@ -398,7 +402,6 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const answer = getSmartCarServiceAnswer(input, state.locale);
       const suppliedReference = /(?:מספר\s+ה?הזמנה|booking\s+(?:number|reference)|reference)\s*(?:שלי|הוא|:|#|is)?\s*[A-Z0-9-]*\d[A-Z0-9-]{2,}/i.test(input)
         || (/^[A-Z0-9-]*\d[A-Z0-9-]{2,}$/i.test(input) && /מספר הזמנה|booking reference/i.test(state.history.at(-1)?.text ?? ''));
-      const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|רכב מלוכלך|לא קיבלתי|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input);
       if (/לשנות|לשינוי|להאריך|יום ההחזרה|יום מאוחר|change|extend|return date/i.test(input)) {
         state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'booking_change'; escalate = true;
         reply = he ? `שינוי הזמנה דורש בדיקת זמינות ואישור של הצוות; לא שיניתי אותה עכשיו. השיחה נשמרת לטיפול, ואפשר להתקשר ל־${OFFICE_PHONE}.` : `A booking change needs the team's availability check and approval; I have not changed it. This conversation is retained for the team, and you can call ${OFFICE_PHONE}.`;

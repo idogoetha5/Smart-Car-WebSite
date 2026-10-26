@@ -241,6 +241,14 @@ describe('replacement SmartCar conversation core', () => {
     expect(detail.reply).not.toContain('לא שיניתי את ההזמנה');
   });
 
+  it('recognizes a billing complaint without an explicit existing-booking phrase', async () => {
+    const chat = memory(() => ({ ...base, route: 'explore' }));
+    const problem = await chat.send('חויבתי פעמיים על אותה השכרה');
+    expect(problem.escalate).toBe(true);
+    expect(problem.state.handoffKind).toBe('service_issue');
+    expect(problem.reply).toContain('לא פתרתי את הבעיה');
+  });
+
   it('recognizes a booking reference supplied after a generic service enquiry', async () => {
     const chat = memory(() => ({ ...base, route: 'service' }));
     const first = await chat.send('יש לי הזמנה קיימת ואני צריך עזרה');
