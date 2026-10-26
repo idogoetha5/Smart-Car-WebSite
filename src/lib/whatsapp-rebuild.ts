@@ -108,7 +108,7 @@ function validDate(value: string): boolean {
 }
 
 function explicitDateRange(input: string): { pickupDate: string; returnDate: string } | null {
-  const numeric = input.match(/(?:^|\s)(\d{1,2})[./](\d{1,2})(?:[./](20\d{2}))?\s*[-–־]\s*(\d{1,2})[./](\d{1,2})(?:[./](20\d{2}))?(?=\s|$|[,.!?])/u);
+  const numeric = input.match(/(?:^|\s)(\d{1,2})[./](\d{1,2})(?:[./](20\d{2}))?\s*(?:[-–־]|עד|to)\s*(\d{1,2})[./](\d{1,2})(?:[./](20\d{2}))?(?=\s|$|[,.!?])/iu);
   if (numeric) {
     const today = israelDate();
     let year = Number(numeric[3] ?? today.slice(0, 4));
@@ -441,10 +441,12 @@ function safeModelReply(reading: BotReading | null, input: string, state: Rebuil
 function applyFields(input: string, state: RebuildState, reading: BotReading | null): void {
   if (!reading) return;
   const fields = reading.fields;
+  const ageOnly = /^\s*(?:24\s*\+|21\s*[-–]\s*23)\s*$/u.test(input);
   for (const [source, target] of [['pickupDate', 'pickupDate'], ['returnDate', 'returnDate'], ['pickupLocation', 'pickupLocation'], ['returnLocation', 'returnLocation'], ['vehicleNeed', 'vehicleNeed']] as const) {
     const field = fields[source];
     if (!field || !input.toLocaleLowerCase().includes(field.evidence.toLocaleLowerCase())) continue;
     if (source === 'pickupDate' || source === 'returnDate') {
+      if (ageOnly) continue;
       if (!/\d{1,2}|היום|מחר|מחרתיים|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|today|tomorrow|(?:mon|tues|wed|thurs|fri|sat|sun)/i.test(field.evidence)) continue;
       const latest = new Date(`${israelDate()}T00:00:00Z`);
       latest.setUTCFullYear(latest.getUTCFullYear() + 2);
@@ -668,7 +670,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       state.phase = 'booking';
       state.interest = undefined;
       state.requestKey ??= randomUUID();
-      if (state.booking.passengers && (!state.booking.vehicleNeed || /^(?:rental car|car|vehicle|רכב|רכב להשכרה)$/i.test(state.booking.vehicleNeed))) {
+      if (state.booking.passengers && (!state.booking.vehicleNeed || /^(?:rental car|car|vehicle|רכב|רכב להשכרה|\d{1,2}\s+(?:אנשים|נוסעים|people|passengers)(?:\s|$).*)$/i.test(state.booking.vehicleNeed))) {
         const people = state.booking.passengers;
         const bags = state.booking.luggage;
         state.booking.vehicleNeed = he ? `רכב ל־${people} נוסעים${bags ? ` ול־${bags} מזוודות` : ''}` : `car for ${people} passengers${bags ? ` and ${bags} bags` : ''}`;

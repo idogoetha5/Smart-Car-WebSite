@@ -44,6 +44,24 @@ describe('replacement SmartCar conversation core', () => {
     expect(dates.reply).toContain('pick');
   });
 
+  it('reads a natural Hebrew date range and never treats the age group as a date', async () => {
+    const chat = memory(message => ({ ...base, fields: message.trim() === '24+' ? { pickupDate: { value: '2026-11-24', evidence: '24' } } : message.includes('5 אנשים') ? { vehicleNeed: { value: '5 אנשים ו-3 מזוודות', evidence: '5 אנשים ו-3 מזוודות' } } : {} }));
+    const started = await chat.send('אני רוצה לשכור רכב ל-5 אנשים ו-3 מזוודות, 12/11 עד 16/11, איסוף בהרצליה והחזרה בתל אביב');
+    expect(started.state.booking.pickupDate).toMatch(/-11-12$/);
+    expect(started.state.booking.returnDate).toMatch(/-11-16$/);
+    expect(started.state.booking.vehicleNeed).toBe('רכב ל־5 נוסעים ול־3 מזוודות');
+    expect(started.reply).toContain('קבוצת הגיל');
+    const age = await chat.send('24+');
+    expect(age.state.booking.pickupDate).toMatch(/-11-12$/);
+    expect(age.state.booking.driverAgeRange).toBe('24-plus');
+    expect(age.reply).toContain('שם');
+    const missingDates = memory(message => ({ ...base, fields: message.trim() === '24+' ? { pickupDate: { value: '2026-11-24', evidence: '24' } } : {} }));
+    await missingDates.send('אני רוצה לשכור רכב קטן');
+    const prematureAge = await missingDates.send('24+');
+    expect(prematureAge.state.booking.driverAgeRange).toBe('24-plus');
+    expect(prematureAge.state.booking.pickupDate).toBeUndefined();
+  });
+
   it('pauses when rental dates are unknown instead of asking again', async () => {
     const chat = memory(() => base);
     await chat.send('אני מחפש רכב קטן להשכרה');

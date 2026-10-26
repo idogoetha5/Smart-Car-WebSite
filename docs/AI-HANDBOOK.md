@@ -40,6 +40,9 @@ time. A schema migration makes those request fields nullable and the bot
 omits them. The separate trip-needs note still says times need coordination;
 existing rows are unchanged. Request summaries also show stated passenger
 and bag counts, and generic AI vehicle wording cannot replace those needs.
+Live production verification then found that a natural “12/11 עד 16/11”
+range was missed and a standalone “24+” could be interpreted as 24 November.
+The conversation core now accepts that range and rejects age-only date fields.
 
 2026-10-26 — Live user demo showed approximate dates ("מעוד שבוע", "עוד
 חודש") being acknowledged as if exact, followed by location questions and a
