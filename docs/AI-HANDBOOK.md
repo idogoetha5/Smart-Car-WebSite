@@ -587,6 +587,8 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 
 ### Change log
 
+- 2026-10-26 — SmartCar conversation core completes rental requests for representative review, and qualifies sale, leasing, service and breakdown enquiries for the team. The customer-facing demo now labels a completed rental request as awaiting team review; it never represents a confirmed booking. Sale follow-up accepts that the customer has no further preferences. Branch `codex/bot-rebuild-20261025`; no migration in this increment. Full suite: 727 tests, typecheck and lint pass (one pre-existing warning). Production publication pending at this entry; WhatsApp customer transport remains disabled pending YCloud onboarding and real-message acceptance.
+
 - 2026-10-23 — PR3 progress published/verified as `1e5fab4` (bot control fixes, all8 service advice pages, rental schema and distinct leasing hub metadata). Next branch adds bounded/uncertainty-aware send handling, honest post-acceptance history failure, private bounded older-quote retrieval; actual loopback API/UI mobile test loaded all1020fictional messages and prevented duplicate-send advice. No real transport, schema, auth, asset or price change. Local1157 tests/typecheck/lint budget passed; next release pending.
 
 - 2026-10-23 — Third search-content pass locked and reviewed: distinct bilingual title/description/share metadata for `/leasing` catalogue/quote hub vs `/services/leasing` explainer. Both URLs and all catalogue/form behaviour retained. Scoped tests now cover the distinction; final combined checks and publication pending. No routes removed or canonical consolidation performed.

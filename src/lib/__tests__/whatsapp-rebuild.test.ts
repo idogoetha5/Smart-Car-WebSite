@@ -210,6 +210,14 @@ describe('replacement SmartCar conversation core', () => {
     expect(request.reply).toContain('לא נקבע תור');
   });
 
+  it('passes a sales lead to staff when the customer has no further preferences', async () => {
+    const chat = memory(() => ({ ...base, route: 'sale' }));
+    await chat.send('אני מחפש משפחתית לקנייה עד 80 אלף שקל');
+    const handoff = await chat.send('אין לי העדפה לשנתון, תבדקו לפי מה שכתבתי');
+    expect(handoff.escalate).toBe(true);
+    expect(handoff.reply).toContain('לטיפול הצוות');
+  });
+
   it('passes an existing booking date change to staff only once', async () => {
     const chat = memory(() => ({ ...base, route: 'service' }));
     const first = await chat.send('יש לי הזמנה קיימת ואני צריך לשנות את יום ההחזרה');

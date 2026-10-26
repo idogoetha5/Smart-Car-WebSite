@@ -161,8 +161,8 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
   const previous = state.history.filter(item => item.from === 'customer').map(item => item.text).join(' ');
   const context = `${previous} ${input}`;
   const lastBot = [...state.history].reverse().find(item => item.from === 'bot')?.text ?? '';
-  const acceptsTeamCheck = /(?:הצוות יבדוק|team (?:check|review))/i.test(lastBot)
-    && /^(?:כן|בטח|אפשר|yes|sure)(?:[\s,.!]|$)|שהצוות|שיבדקו|תבדקו|תעביר|לפי מה שכבר|go ahead|please do/i.test(input);
+  const acceptsTeamCheck = /(?:הצוות יבדוק|הצוות יוכל לבדוק|team (?:check|review))/i.test(lastBot)
+    && /^(?:כן|בטח|אפשר|yes|sure)(?:[\s,.!]|$)|שהצוות|שיבדקו|תבדקו|תעביר|לפי מה שכבר|אין לי העדפה|אין העדפה|לא משנה|no preference|go ahead|please do/i.test(input);
   const asksTeamReview = /תעביר(?:ו)?\s+(?:את זה|את הפרטים|לצוות)|שהצוות יבדוק|שיבדקו בשבילי|pass (?:this|it|the details) to (?:the )?team|send (?:this|it) to (?:the )?team/i.test(input);
   if (state.interest === 'leasing') {
     if (/הבדל|difference|compare/i.test(input)) return { reply: he ? 'ליסינג פרטי מיועד לשימוש אישי, ועסקי לצורכי העסק. ההתחייבויות, השירותים והמחיר נקבעים רק בהצעה ובחוזה של המסלול המתאים. תרצה לבדוק מסלול פרטי או עסקי?' : 'Private leasing serves personal use; business leasing serves a company. Commitments, services and price are set in the specific offer and contract. Which route would you like us to check?', escalate: false };

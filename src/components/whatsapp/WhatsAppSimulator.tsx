@@ -11,6 +11,7 @@ type FlowState = {
   step: string;
   locale: 'he' | 'en';
   handedOff?: boolean;
+  completedRequestId?: string;
   interest?: 'leasing' | 'sale';
 } | null;
 
@@ -35,6 +36,7 @@ function newSessionId() {
 function conversationStatus(state: FlowState) {
   if (!state) return { label: 'אפשר להתחיל בכל נושא', detail: 'בחירת התחלה מהירה או הודעה חופשית', tone: 'neutral' as const };
   if (state.handedOff) return { label: state.locale === 'en' ? 'Representative context prepared' : 'ההקשר מוכן לנציג', detail: state.locale === 'en' ? 'The simulation will not contact anyone.' : 'בסימולציה לא מתבצעת פנייה לאיש צוות.', tone: 'handoff' as const };
+  if (state.completedRequestId && state.step === 'menu') return { label: state.locale === 'en' ? 'Request ready for team review' : 'הבקשה מוכנה לבדיקת הצוות', detail: state.locale === 'en' ? 'Simulation only; no real booking was created.' : 'זו סימולציה בלבד; לא נוצרה הזמנה אמיתית.', tone: 'active' as const };
   if (state.phase === 'service') return { label: state.locale === 'en' ? 'Service enquiry' : 'פניית שירות', detail: state.locale === 'en' ? 'Specific changes need team review.' : 'שינויים מסוימים דורשים בדיקת צוות.', tone: 'active' as const };
   if (state.interest) return { label: state.locale === 'en' ? 'Commercial enquiry' : 'בירור מסחרי', detail: state.locale === 'en' ? 'The team checks leasing and sale offers.' : 'הצעות ליסינג ומכירה נבדקות מול הצוות.', tone: 'active' as const };
 
