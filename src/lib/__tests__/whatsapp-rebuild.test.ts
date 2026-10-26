@@ -21,6 +21,47 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('qualifies luggage space when seven seats and four bags are requested', async () => {
+    const chat = memory(() => ({ ...base, direction: 'family', reply: 'משפחתית תתאים לכם מצוין. לאילו תאריכים?' }));
+    const result = await chat.send('אני צריך 7 מקומות ו-4 מזוודות');
+    expect(result.state.booking.vehicleNeed).toBe('רכב שבעה מקומות');
+    expect(result.state.booking.luggage).toBe(4);
+    expect(result.reply).toContain('שבעה מקומות');
+    expect(result.reply).toContain('נוודא');
+    expect(result.reply).not.toContain('משפחתית תתאים');
+  });
+
+  it('answers a foreign-licence question with the required documents', async () => {
+    const result = await memory(() => null).send('יש לי רישיון זר, אפשר לשכור?');
+    expect(result.reply).toContain('רישיון בינלאומי');
+  });
+
+  it('passes an explicit test-drive request to a representative', async () => {
+    const result = await memory(() => null).send('אני רוצה נסיעת מבחן לרכב למכירה');
+    expect(result.escalate).toBe(true);
+    expect(result.reply).toContain('כפוף לזמינות');
+  });
+
+  it('does not approve a border crossing or paid passenger use', async () => {
+    const border = await memory(() => null).send('אפשר להיכנס לירדן עם הרכב?');
+    expect(border.escalate).toBe(true);
+    expect(border.reply).toContain('צריך לבדוק');
+    const paid = await memory(() => null).send('אני צריך רכב להסיע נוסעים בתשלום');
+    expect(paid.escalate).toBe(true);
+    expect(paid.reply).toContain('תנאי השימוש');
+  });
+
+  it('answers home delivery, young-driver price and EV charging without unrelated price copy', async () => {
+    const delivery = await memory(() => null).send('אתם מביאים את הרכב אליי הביתה?');
+    expect(delivery.reply).toContain('מסירה לכתובת');
+    const young = await memory(() => null).send('אני בן 22, אפשר לשכור ומה המחיר?');
+    expect(young.reply).toContain('מגיל 21');
+    expect(young.reply).toContain('המחיר המדויק');
+    const ev = await memory(() => null).send('ברכב חשמלי איך מטעינים וכמה עולה?');
+    expect(ev.reply).toContain('הטעינה');
+    expect(ev.reply).not.toContain('המחיר המדויק תלוי בתאריכים');
+  });
+
   it('completes a natural need statement without leaving the customer in advice', async () => {
     const chat = memory(() => base);
     const started = await chat.send('אני צריך רכב קטן מ-15/11 עד 18/11');

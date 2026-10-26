@@ -8,6 +8,7 @@ describe('SmartCar service knowledge — bilingual, published facts only', () =>
     ['מה מדיניות הדלק מלא מלא?', 'he', 'fuel', '/terms'], ['What is the full to full fuel policy?', 'en', 'fuel', '/terms'],
     ['כמה קילומטרים כלולים?', 'he', 'mileage', '/terms'], ['What is the mileage allowance?', 'en', 'mileage', '/terms'],
     ['נהג נוסף ואילו מסמכים צריך?', 'he', 'driver_documents', '/insurance'], ['Can I add an additional driver and what documents are needed?', 'en', 'driver_documents', '/insurance'],
+    ['יש לי רישיון זר, אפשר לשכור?', 'he', 'driver_documents', '/insurance'], ['Can I rent with a foreign licence?', 'en', 'driver_documents', '/insurance'],
     ['מה גיל המינימום וותק הרישיון?', 'he', 'age_licence', '/terms'], ['What is the minimum age and licence experience?', 'en', 'age_licence', '/terms'],
     ['אפשר לאסוף בנתבג ולהחזיר בירושלים?', 'he', 'different_location', '/terms'], ['Can I collect at the airport and return elsewhere?', 'en', 'different_location', '/terms'],
     ['איסוף בנתב״ג והחזרה בתל אביב אפשרי?', 'he', 'different_location', '/terms'],

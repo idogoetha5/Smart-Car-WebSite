@@ -283,7 +283,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
 }
 
 function explicitVehicleNeed(input: string, locale: Locale): string | null {
-  if (/שבעה מקומות|7[- ]?seater|seven[- ]?seater/i.test(input)) return locale === 'he' ? 'רכב שבעה מקומות' : 'seven-seat car';
+  if (/שבעה מקומות|7\s*מקומות|7[- ]?seater|seven[- ]?seater/i.test(input)) return locale === 'he' ? 'רכב שבעה מקומות' : 'seven-seat car';
   if (/משפחתי|משפחתית|family car/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
   if (/קומפקטי|קומפקטית|רכב קטן|compact car|small car/i.test(input)) return locale === 'he' ? 'רכב קומפקטי' : 'compact car';
   if (/רכב פנאי|ג[׳'י]?יפ(?:ון)?|suv/i.test(input)) return locale === 'he' ? 'רכב פנאי' : 'SUV';
@@ -336,7 +336,7 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
     return { reply: he ? `נשמח לבדוק אילו רכבים מתאימים לכם. ${hasType ? 'מה התקציב שתרצו שנביא בחשבון?' : 'איזה סוג רכב מעניין אתכם?'}` : `We will be happy to check suitable cars. ${hasType ? 'What budget should we consider?' : 'What kind of car interests you?'}`, escalate: false };
   }
   if (/נסיעת מבחן|test drive/i.test(input)) {
-    const requested = /רוצה לקבוע|תתאמו|תקבעו|book|schedule|arrange/i.test(input);
+    const requested = /רוצה (?:לקבוע|לתאם|נסיעת מבחן)|תתאמו|תקבעו|book|schedule|arrange/i.test(input);
     return { reply: he ? `${requested ? 'קיבלנו את הבקשה לנסיעת מבחן. ' : ''}נשמח לתאם נסיעת מבחן בכפוף לזמינות הרכב ולאישור התור. אפשר להתקשר ל־${OFFICE_PHONE}.` : `${requested ? 'We have your test drive request. ' : ''}We will be happy to arrange a test drive, subject to vehicle availability and appointment confirmation. You can call ${OFFICE_PHONE}.`, escalate: requested };
   }
   if (/מה תצטרכו|לבדוק|הצעה|נסגור|יאללה|תתקדמו|next step|what do you need|quote|let's close/i.test(input)) return { reply: he ? `תודה, קיבלנו את הפרטים לבדיקת רכישה. נציג SmartCar יחזור אליכם עם האפשרויות המתאימות; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Thank you. We have your purchase enquiry. A SmartCar representative will follow up with suitable options; you can also call ${OFFICE_PHONE}.`, escalate: true };
@@ -395,6 +395,13 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
       ? `ל־${people} נוסעים ו־${bags} מזוודות כדאי לבדוק ${people >= 6 ? 'רכב שבעה מקומות' : 'רכב משפחתי מרווח או רכב פנאי'}. את המקום לציוד נוודא לפי הדגם וגודל המזוודות. ${next}`
       : `For ${people} passengers and ${bags} bags, ${people >= 6 ? 'a seven-seat car' : 'a roomy family car or SUV'} is worth checking. We will confirm luggage space for the specific model and bag sizes. ${next}`;
   }
+  if (/שבעה מקומות|7\s*מקומות|seven[- ]?seat|7[- ]?seat/i.test(state.booking.vehicleNeed ?? input) && (state.booking.luggage ?? 0) >= 3) {
+    const bags = state.booking.luggage;
+    const next = !state.booking.pickupDate ? (he ? 'לאילו תאריכים תצטרכו את הרכב?' : 'What dates do you need the car?') : !state.booking.returnDate ? question('returnDate', state.locale) : (he ? 'תרצו שנמשיך לבדוק רכב מתאים?' : 'Shall we continue checking a suitable car?');
+    return he
+      ? `לשבעה מקומות ו־${bags} מזוודות כדאי לבדוק דגם שבו נשאר מספיק מקום לציוד גם כשהמושבים בשימוש. נוודא את ההתאמה לפי הדגם וגודל המזוודות. ${next}`
+      : `For seven seats and ${bags} bags, we should check a model with enough luggage space when the seats are in use. We will confirm the fit for the specific car and bag sizes. ${next}`;
+  }
   const group = direction(reading, state.booking, input);
   const topic = /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input) || Boolean(state.booking.childSeats) ? 'child' :
     /פגיש|עיר|חניה|city|meeting|parking/i.test(input) ? 'city' : 'trip';
@@ -413,6 +420,7 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
 
 function safeModelReply(reading: BotReading | null, input: string, state: RebuildState): string | null {
   if (!reading || OUTSIDE.test(input) || /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input)) return null;
+  if (/שבעה מקומות|7\s*מקומות|seven[- ]?seat|7[- ]?seat/i.test(input) && state.booking.luggage) return null;
   if ((state.booking.passengers || state.booking.luggage) && /איזה רכב|יתאים|מתאים|מספיק|ממליץ|recommend|fit|suit/i.test(input)) return null;
   if (/מזווד|מטען|תא מטען|luggage|suitcase|boot|trunk/i.test(input) && /כמה|נכנס|יספיק|מקום|יכול|fit|space|room|how many/i.test(input)) return null;
   if (PRICE_OR_AVAILABILITY.test(input)) return null;
@@ -532,6 +540,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     reply = identityQuestion(input) === 'name'
       ? (he ? 'אפשר לקרוא לי SmartCar 🙂 איך אוכל לעזור?' : 'You can call me SmartCar 🙂 How can I help?')
       : (he ? 'אני העוזר הדיגיטלי של SmartCar. אני כאן לעזור, ואם צריך אעביר את הפנייה לנציג.' : 'I am SmartCar’s digital assistant. I am here to help, and I can pass your enquiry to a representative when needed.');
+  } else if (/ירדן|מצרים|לחו.?ל|מחוץ לישראל|חציית גבול|cross.?border|outside israel|to jordan|to egypt/i.test(input) && /רכב|השכר|לנסוע|להיכנס|rent|car|drive|enter/i.test(input)) {
+    state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'human'; escalate = true;
+    reply = he ? `לפני נסיעה עם רכב שכור מחוץ לישראל צריך לבדוק את אפשרות היציאה, הביטוח והתנאים לרכב המסוים. נציג SmartCar יחזור אליכם עם תשובה; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Before taking a rental car outside Israel, the border crossing, insurance and terms for the specific car need checking. A SmartCar representative will follow up; you can also call ${OFFICE_PHONE}.`;
+  } else if (/להסיע.{0,25}(?:נוסעים|אנשים).{0,20}בתשלום|הסעת נוסעים בתשלום|paid passenger|passengers? for hire|commercial passenger/i.test(input)) {
+    state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'human'; escalate = true;
+    reply = he ? `השכרה להסעת נוסעים בתשלום דורשת בדיקה של תנאי השימוש והכיסוי לרכב המתאים. נציג SmartCar יחזור אליכם כדי לברר אם אפשר להציע פתרון; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `A rental for paid passenger transport requires checking the vehicle terms and cover. A SmartCar representative will follow up to see whether a suitable option is possible; you can also call ${OFFICE_PHONE}.`;
   } else if (!state.handedOff && cancellationRequest(input)) {
     state.phase = 'service';
     const knownBooking = await store.activeBooking(phone);
@@ -744,6 +758,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = he ? 'נשמח לבדוק אילו הטבות מתאימות לתאריכים ולרכב שתבחרו. לאילו תאריכים תצטרכו את הרכב?' : 'We will be happy to check which offers fit your dates and vehicle choice. What dates do you need the car?';
     } else if (/תשלומים|פריסת תשלום|installments?|payment plan/i.test(input)) {
       reply = he ? 'אפשרויות התשלום תלויות בסוג העסקה ובהצעה האישית. מדובר בהשכרה, בליסינג או ברכישת רכב?' : 'Payment options depend on the type of transaction and personal offer. Are you asking about rental, leasing or a car purchase?';
+    } else if (/טעינה|להטעין|מטעינ|עמדת טעינה|\bcharg(?:e|ing|er)\b/i.test(input) && /חשמל|חשמלי|electric|\bEV\b/i.test(input)) {
+      reply = he ? 'אופן הטעינה והעלות תלויים בדגם ובעמדת הטעינה. לפני ההשכרה נוכל להסביר את אופן הטעינה של הרכב המסוים ואת התנאים הרלוונטיים. האם מדובר ברכב שכבר שכרתם או שאתם מחפשים רכב חשמלי?' : 'Charging steps and cost depend on the car and charging station. Before a rental, we can explain the specific car and relevant terms. Is this about a car you already rented or are you looking for an electric car?';
+    } else if (/(?:בן|בת|גיל|aged?)\s*(?:21|22|23)(?!\d)/i.test(input) && PRICE_OR_AVAILABILITY.test(input)) {
+      reply = he ? `${getSmartCarServiceAnswer(input, 'he')?.reply ?? 'אפשר לשכור מגיל 21, בכפוף לתנאי הרכב והביטוח.'} המחיר המדויק תלוי ברכב, בתאריכים ובתנאים האישיים. לאילו תאריכים תצטרכו אותו?` : `${getSmartCarServiceAnswer(input, 'en')?.reply ?? 'Rental is available from age 21, subject to vehicle and insurance terms.'} The exact price depends on the car, dates and applicable terms. What dates do you need it?`;
+    } else if (/מסירה.{0,20}(?:בית|כתובת)|(?:מביאים|תביאו|להביא).{0,25}(?:בית|כתובת)|עד הבית|deliver(?:y)? (?:to )?(?:my |our )?(?:home|address)|bring (?:the )?car to (?:my |our )?(?:home|address)/i.test(input)) {
+      reply = he ? 'אפשר לתאם מסירה לכתובת בארץ מראש, בכפוף לזמינות ולתנאי ההצעה. באיזו עיר ובאילו תאריכים תצטרכו את הרכב?' : 'Delivery to an address in Israel can be arranged in advance, subject to availability and the quote terms. Which city and dates do you need the car for?';
     } else if (PRICE_OR_AVAILABILITY.test(input)) {
       reply = /מחיר סופי|הצעה סופית|final (?:price|quote)/i.test(input) && state.history.at(-1)?.text.includes(priceAnswer(state.locale))
         ? (he ? 'נשמח להכין הצעה מדויקת לפי התאריכים, הרכב והתוספות שתבחרו. תרצו שנתחיל בקשה?' : 'We will be happy to prepare an accurate offer for your dates, vehicle and chosen extras. Shall we start a request?')

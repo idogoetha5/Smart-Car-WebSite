@@ -55,6 +55,14 @@ parses date ranges prefixed by מ־, stops city extraction before age details,
 and retains approximate timing after a pause. Consent and customer-facing
 wording remain unchanged.
 
+A 15-topic production dialogue audit then found customer questions that
+received an unrelated generic answer: seven seats with four bags, foreign
+licence, home delivery, a young driver's eligibility together with price,
+and electric-car charging. These now use the relevant published facts or a
+qualified answer. Direct requests for a test drive, travel outside Israel,
+or paid passenger transport are passed to a representative without implying
+availability, legal eligibility, insurance coverage or a confirmed booking.
+
 2026-10-26 — Live user demo showed approximate dates ("מעוד שבוע", "עוד
 חודש") being acknowledged as if exact, followed by location questions and a
 return to the missing pickup date. The conversation core now retains that
