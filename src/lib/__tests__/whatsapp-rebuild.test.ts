@@ -21,6 +21,40 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('completes a natural need statement without leaving the customer in advice', async () => {
+    const chat = memory(() => base);
+    const started = await chat.send('אני צריך רכב קטן מ-15/11 עד 18/11');
+    expect(started.state.phase).toBe('booking');
+    expect(started.state.booking.pickupDate).toMatch(/-11-15$/);
+    expect(started.reply).toContain('מאיפה');
+    await chat.send('איסוף מהרצליה והחזרה בתל אביב');
+    await chat.send('24+');
+    await chat.send('נועה כהן');
+    const summary = await chat.send('noa@example.invalid');
+    expect(summary.state.step).toBe('rental_confirm');
+    expect(summary.reply).toContain('החזרה: תל אביב');
+    const confirmed = await chat.send('אני מאשרת');
+    expect(confirmed.state.completedRequestId).toBe('SIM-123');
+  });
+
+  it('extracts the return city before a driver-age clause in a full request', async () => {
+    const chat = memory(() => base);
+    const started = await chat.send('אני רוצה לשכור רכב משפחתי 15/11-18/11 איסוף מהרצליה החזרה בתל אביב נהג בן 24');
+    expect(started.state.booking.returnLocation).toBe('תל אביב');
+    expect(started.state.booking.driverAgeRange).toBe('24-plus');
+    expect(started.reply).toContain('שם');
+  });
+
+  it('keeps approximate timing after the customer says dates are unknown', async () => {
+    const chat = memory(() => base);
+    await chat.send('מחפש רכב פנאי להשכרה');
+    await chat.send('לא יודע תאריכים כרגע');
+    const vague = await chat.send('אולי בחודש הבא');
+    expect(vague.state.booking.pickupDate).toBeUndefined();
+    expect(vague.state.booking.datePreference).toContain('בחודש הבא');
+    expect(vague.reply).toContain('התאריכים המדויקים');
+  });
+
   it('starts a rental from natural Hebrew wording and keeps all details', async () => {
     const chat = memory(() => base);
     const started = await chat.send('רוצה לשכור רכב קטן 15/11-18/11 איסוף מהרצליה החזרה בתל אביב, נהג בן 24');

@@ -108,7 +108,7 @@ function validDate(value: string): boolean {
 }
 
 function explicitDateRange(input: string): { pickupDate: string; returnDate: string } | null {
-  const numeric = input.match(/(?:^|\s)(\d{1,2})[./](\d{1,2})(?:[./](20\d{2}))?\s*(?:[-–־]|עד|to)\s*(\d{1,2})[./](\d{1,2})(?:[./](20\d{2}))?(?=\s|$|[,.!?])/iu);
+  const numeric = input.match(/(?:^|\s)(?:מ-?)?(\d{1,2})[./](\d{1,2})(?:[./](20\d{2}))?\s*(?:[-–־]|עד|to)\s*(\d{1,2})[./](\d{1,2})(?:[./](20\d{2}))?(?=\s|$|[,.!?])/iu);
   if (numeric) {
     const today = israelDate();
     let year = Number(numeric[3] ?? today.slice(0, 4));
@@ -199,7 +199,7 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
   const enPickup = input.match(new RegExp(`pick.?up\\s+(?:at|from|in)\\s+([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
   const pickup = (hePickup ?? enPickup)?.trim();
   if (pickup) draft.pickupLocation = pickup;
-  const heReturn = input.match(/(?:החזרה|להחזיר)\s+[במ]([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=[,.!?]|$)/iu)?.[1];
+  const heReturn = input.match(/(?:החזרה|להחזיר)\s+[במ]([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:נהג|גיל|בן|בת|למשך|לתאריכים)|[,.!?]|$)/iu)?.[1];
   const enReturn = input.match(/(?:return|drop.?off)\s+(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=[,.!?]|$)/iu)?.[1];
   const returnLocation = (heReturn ?? enReturn)?.trim();
   if (returnLocation) draft.returnLocation = returnLocation;
@@ -209,7 +209,7 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
 function explicitBooking(input: string): boolean {
   if (/לא רוצה להזמין|לא רוצה לשכור|רק מתעניין|רק שואל|לא עכשיו|not ready|just asking|don't book|do not book/i.test(input)) return false;
   if (/[?؟]/.test(input) && /כדאי|האם|should|would it|how/i.test(input)) return false;
-  return /אני רוצה (?:להזמין|לשכור|להתקדם עם בקש(?:ה להשכרה|ת השכרה))|(?:^|[.!?]\s*)רוצה לשכור|צריך(?:ה)? (?:רכב להשכרה|לשכור רכב)|בוא(?:ו)? נתקדם|בוא(?:ו)? (?:נלך על זה|נסגור)|יאללה נסגור|תשריין לי|שריין לי|אפשר להתחיל (?:הזמנה|בקשה)|תכין(?:ו)? (?:לי )?(?:בקש(?:ה|ת השכרה)|הצעה)|אני (?:אזמין|אשכור)|I(?:'d| would) like to (?:book|rent)|let'?s (?:book|proceed|close)|I want to (?:book|rent)|I need (?:a )?(?:rental car|to rent(?: a car)?)|go ahead with (?:the )?(?:rental|request)/i.test(input);
+  return /אני רוצה (?:להזמין|לשכור|להתקדם עם בקש(?:ה להשכרה|ת השכרה))|(?:^|[.!?]\s*)רוצה לשכור|(?:אני\s+)?צריך(?:ה)? (?:רכב להשכרה|לשכור רכב|רכב (?:קטן|קומפקטי|משפחתי|פנאי|שבעה מקומות)(?:\s|$))|בוא(?:ו)? נתקדם|בוא(?:ו)? (?:נלך על זה|נסגור)|יאללה נסגור|תשריין לי|שריין לי|אפשר להתחיל (?:הזמנה|בקשה)|תכין(?:ו)? (?:לי )?(?:בקש(?:ה|ת השכרה)|הצעה)|אני (?:אזמין|אשכור)|I(?:'d| would) like to (?:book|rent)|let'?s (?:book|proceed|close)|I want to (?:book|rent)|I need (?:a )?(?:rental car|to rent(?: a car)?)|go ahead with (?:the )?(?:rental|request)/i.test(input);
 }
 
 function greeting(input: string, locale: Locale): string | null {
@@ -235,7 +235,7 @@ function identityQuestion(input: string): 'name' | 'digital' | null {
 }
 
 function affirms(input: string): boolean {
-  return /^(?:כן(?:\s+כן)?|נו\s*כן|יאללה|בטח|סבבה|מעולה|אפשר|yes|yeah|sure|go ahead)(?:[,\s]+(?:בבקשה|תודה|תתקדמו|נתקדם|קדימה|תתחילו|תעבירו|please|go ahead|let'?s proceed))*[!?.\s]*$/i.test(input);
+  return /^(?:כן(?:\s+כן)?|נו\s*כן|אני\s+מאשר(?:ת)?|מאשר(?:ת)?|יאללה|בטח|סבבה|מעולה|אפשר|yes|yeah|sure|go ahead)(?:[,\s]+(?:בבקשה|תודה|תתקדמו|נתקדם|קדימה|תתחילו|תעבירו|please|go ahead|let'?s proceed))*[!?.\s]*$/i.test(input);
 }
 
 function offersRentalRequest(reply: string): boolean {
@@ -248,7 +248,7 @@ function asksRentalDates(reply: string): boolean {
 }
 
 function directVehicleRequest(input: string, locale: Locale): boolean {
-  return !/[?؟]/.test(input) && /^(?:אני רוצה|אנחנו רוצים|רוצה|I want|we want)\s+(?:לשכור\s+)?(?:רכב|ג[׳'י]?יפ(?:ון)?|SUV|a\s+(?:car|SUV))/i.test(input)
+  return !/[?؟]/.test(input) && /^(?:אני רוצה|אנחנו רוצים|אני צריך|אני צריכה|צריך|צריכה|רוצה|I want|I need|we want)\s+(?:לשכור\s+)?(?:רכב|ג[׳'י]?יפ(?:ון)?|SUV|a\s+(?:car|SUV))/i.test(input)
     && Boolean(explicitVehicleNeed(input, locale));
 }
 
@@ -578,7 +578,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : greeting(input, state.locale)!;
   } else if (uncertainDateAnswer(input) && (asksRentalDates(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
     reply = he ? 'אין בעיה. כשתדעו את התאריכים המדויקים, כתבו אותם כאן ונוכל להמשיך מהפרטים שכבר מסרתם.' : 'No problem. When you know the exact dates, send them here and we can continue with the details you already shared.';
-  } else if (vagueDateAnswer(input) && (asksRentalDates(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
+  } else if (vagueDateAnswer(input) && (asksRentalDates(lastBotReply) || /כשתדעו את התאריכים המדויקים|when you know the exact dates/i.test(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
     const previous = state.booking.datePreference;
     state.booking.datePreference = [previous, input].filter(Boolean).join(' עד ').slice(0, 120);
     const clarifiedAlready = state.history.some(entry => entry.from === 'bot' && /באילו תאריכים מדויקים|כשתדעו את התאריכים המדויקים|which exact pickup and return dates|when you know the exact dates/i.test(entry.text));

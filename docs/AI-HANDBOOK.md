@@ -46,6 +46,15 @@ The conversation core now accepts that range and rejects age-only date fields.
 The rental email question now asks for a contact address; it no longer promises
 an emailed request summary because that send is not part of this intake path.
 
+A further 12-dialogue production simulator matrix exposed three remaining
+progression failures: “אני צריך רכב קטן מ-15/11 עד 18/11” stayed in advice,
+a complete request lost the return city when a driver-age clause followed it,
+and an approximate date after “I don't know the dates yet” fell back to
+free-form advice. The core now treats the natural need as a rental draft,
+parses date ranges prefixed by מ־, stops city extraction before age details,
+and retains approximate timing after a pause. Consent and customer-facing
+wording remain unchanged.
+
 2026-10-26 — Live user demo showed approximate dates ("מעוד שבוע", "עוד
 חודש") being acknowledged as if exact, followed by location questions and a
 return to the missing pickup date. The conversation core now retains that
