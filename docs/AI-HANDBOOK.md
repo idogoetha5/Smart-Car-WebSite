@@ -1,5 +1,14 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-26 — Added a repeatable 250-dialogue rehearsal covering 50 rental
+requests, 50 advice-to-rental conversations, 50 leasing enquiries, 50 sale
+enquiries, and 50 service/roadside cases. The scenarios run against the actual
+conversation core with isolated in-memory state and simulated request/handoff
+outputs. Rental dates, locations, and age groups vary across cases. The first
+run exposed a real service-routing gap: “הרכב ששכרתי מלוכלך” did not reach a
+representative. It now does. These tests do not connect YCloud or prove
+customer delivery; see `docs/whatsapp-bot/250-DIALOGUE-REHEARSAL-2026-10-26.md`.
+
 2026-10-26 — Additional production simulator dialogues found five concrete
 conversation defects: an unsupported seven-seat fit claim for five people and
 three bags, an explicit pickup/return sentence overwritten as the pickup
