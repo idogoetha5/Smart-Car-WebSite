@@ -284,7 +284,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
 
 function explicitVehicleNeed(input: string, locale: Locale): string | null {
   if (/שבעה מקומות|7\s*מקומות|7[- ]?seater|seven[- ]?seater/i.test(input)) return locale === 'he' ? 'רכב שבעה מקומות' : 'seven-seat car';
-  if (/משפחתי|משפחתית|family car/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
+  if (/רכב\s+משפחתי|^\s*משפחתית\s*$|(?:רוצה|מחפש|צריך|מעדיף)\s+(?:רכב\s+)?משפחתית|(?:רוצה|מחפש|צריך|מעדיף)\s+משפחתי|family car/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
   if (/קומפקטי|קומפקטית|רכב קטן|compact car|small car/i.test(input)) return locale === 'he' ? 'רכב קומפקטי' : 'compact car';
   if (/רכב פנאי|ג[׳'י]?יפ(?:ון)?|suv/i.test(input)) return locale === 'he' ? 'רכב פנאי' : 'SUV';
   return null;
@@ -361,6 +361,7 @@ function direction(reading: BotReading | null, draft: BookingDraft, input: strin
   if (people >= 6) return 'seven_seat';
   if (draft.childSeats || /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input)) return 'family';
   if (people >= 3 || (draft.luggage ?? 0) >= 3) return 'family';
+  if (/טיול משפחתי|נסיעה משפחתית|family trip/i.test(input)) return 'family';
   if (/פגיש|עיר|חניה|city|meeting|parking/i.test(input)) return 'compact';
   return hasVehicleContext(draft, input) && reading?.direction && reading.direction !== 'none' ? reading.direction : 'none';
 }
@@ -420,6 +421,7 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
 
 function safeModelReply(reading: BotReading | null, input: string, state: RebuildState): string | null {
   if (!reading || OUTSIDE.test(input) || /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input)) return null;
+  if (/איזה רכב|מה כדאי|what (?:car|vehicle)|recommend/i.test(input) && !state.booking.passengers && !state.booking.luggage && !state.booking.vehicleNeed) return null;
   if (/שבעה מקומות|7\s*מקומות|seven[- ]?seat|7[- ]?seat/i.test(input) && state.booking.luggage) return null;
   if ((state.booking.passengers || state.booking.luggage) && /איזה רכב|יתאים|מתאים|מספיק|ממליץ|recommend|fit|suit/i.test(input)) return null;
   if (/מזווד|מטען|תא מטען|luggage|suitcase|boot|trunk/i.test(input) && /כמה|נכנס|יספיק|מקום|יכול|fit|space|room|how many/i.test(input)) return null;

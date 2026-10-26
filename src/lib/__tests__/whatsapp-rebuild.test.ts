@@ -33,6 +33,14 @@ describe('replacement SmartCar conversation core', () => {
     expect(result.reply).not.toContain('7 נוסעים');
   });
 
+  it('does not turn a family trip into a chosen SUV or repeat a strong model claim', async () => {
+    const chat = memory(() => ({ ...base, direction: 'suv', reply: 'רכב פנאי (SUV) יהיה בחירה מצוינת בזכות הישיבה הגבוהה והנוחות בדרכים מתפתלות. באיזה תאריכים תרצו לצאת לטיול?' }));
+    const advice = await chat.send('איזה רכב כדאי לי לטיול משפחתי בצפון?');
+    expect(advice.state.booking.vehicleNeed).toBeUndefined();
+    expect(advice.reply).toContain('משפחתית');
+    expect(advice.reply).not.toContain('בחירה מצוינת');
+  });
+
   it('answers a foreign-licence question with the required documents', async () => {
     const result = await memory(() => null).send('יש לי רישיון זר, אפשר לשכור?');
     expect(result.reply).toContain('רישיון בינלאומי');

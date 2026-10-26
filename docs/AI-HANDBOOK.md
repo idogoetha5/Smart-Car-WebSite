@@ -72,6 +72,11 @@ ineligible 20-year-old asked for clarification, and a repeated date prompt
 after the customer acknowledged that dates were still unknown. The bot now
 explains the age condition in plain customer language and pauses the date
 intake until an actual date is supplied.
+A final advice-language probe found that a generic family trip could be
+treated as the customer's selection of a family car and receive an
+overconfident SUV recommendation. A family trip now remains an advice need;
+the bot suggests a vehicle group cautiously and does not write a selected
+vehicle into the request without an actual choice.
 
 2026-10-26 — Live user demo showed approximate dates ("מעוד שבוע", "עוד
 חודש") being acknowledged as if exact, followed by location questions and a
