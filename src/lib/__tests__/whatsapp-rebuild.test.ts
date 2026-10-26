@@ -21,6 +21,28 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('uses sales preferences already given when asked about available models', async () => {
+    const chat = memory(() => null);
+    await chat.send('אני רוצה לקנות רכב משפחתי עד 80 אלף שקל');
+    const models = await chat.send('איזה דגמים זמינים?');
+    expect(models.reply).toContain('להעדפות שכבר מסרתם');
+    expect(models.reply).not.toMatch(/איזה סוג רכב|מה התקציב/);
+    const accepted = await chat.send('כן');
+    expect(accepted.escalate).toBe(true);
+  });
+
+  it('answers leasing price in customer language and handles a direct test-drive request', async () => {
+    const leasing = memory(() => null);
+    await leasing.send('אני מחפש ליסינג פרטי לשנתיים');
+    const price = await leasing.send('כמה זה עולה בחודש?');
+    expect(price.reply).toContain('התשלום החודשי תלוי');
+    expect(price.reply).not.toMatch(/אי אפשר להבטיח|להעביר לצוות|כדי שיבדוק/);
+    const sale = memory(() => ({ ...base, route: 'explore', reply: 'באיזה סניף תרצה לקבוע נסיעת מבחן?' }));
+    const drive = await sale.send('אני רוצה לקבוע נסיעת מבחן לרכב משפחתי');
+    expect(drive.escalate).toBe(true);
+    expect(drive.reply).toContain('לאישור התור');
+  });
+
   it('remembers a numeric date range from a WhatsApp-style short answer', async () => {
     const chat = memory(() => null);
     await chat.send('אני רוצה לשכור רכב');
@@ -448,7 +470,7 @@ describe('replacement SmartCar conversation core', () => {
     const chat = memory(() => ({ ...base, direction: 'family', reply: 'משפחתית תספיק בוודאות לכיסא הבטיחות.' }));
     const result = await chat.send('אנחנו זוג עם תינוק וכיסא בטיחות לטיול בצפון. מה מתאים?');
     expect(result.reply).toContain('משפחתית');
-    expect(result.reply).toMatch(/התאמת כיסא הבטיחות צריך לוודא/);
+    expect(result.reply).toMatch(/לוודא שכיסא הבטיחות מתאים/);
     expect(result.reply).not.toMatch(/בוודאות|לתא המטען.*כיסא/);
   });
 
@@ -482,7 +504,7 @@ describe('replacement SmartCar conversation core', () => {
     const chat = memory(() => ({ ...base, direction: 'suv', reply: 'רכב הפנאי יתאים למרחב הנדרש בוודאות.' }));
     const result = await chat.send('אנחנו ארבעה עם שלוש מזוודות ונצטרך כיסא בטיחות.');
     expect(result.source).toBe('local');
-    expect(result.reply).toContain('בדגם המסוים');
+    expect(result.reply).toContain('לוודא שכיסא הבטיחות מתאים לו');
     expect(result.reply).not.toContain('בוודאות');
   });
 
@@ -532,7 +554,7 @@ describe('replacement SmartCar conversation core', () => {
     const second = await chat.send('כ-25 אלף קילומטר בשנה');
     expect(second.reply).toMatch(/סוג רכב/);
     const price = await chat.send('אפשר להבטיח מחיר חודשי עכשיו?');
-    expect(price.reply).toMatch(/אי אפשר להבטיח תשלום חודשי/);
+    expect(price.reply).toMatch(/התשלום החודשי תלוי/);
     const quote = await chat.send('מה הצעד הבא לקבלת הצעה?');
     expect(quote.escalate).toBe(true);
     expect(quote.state.handedOff).toBe(true);

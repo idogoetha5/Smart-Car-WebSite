@@ -26,6 +26,15 @@ The live production rehearsal additionally found a model-derived English
 are now normalized from the customer's explicit wording, and a short vehicle
 choice during intake receives an acknowledgement before the next question.
 
+Eight additional live production-demo scenarios revealed repeat questions
+after a sale customer had already given car type and budget, an awkward
+leasing-price answer, and a direct test-drive request left in open advice.
+Sale availability now asks only for missing preferences or offers a
+representative follow-up; a simple yes to that offer advances it. Leasing
+price copy is customer-facing, and direct test-drive requests enter the sales
+handoff path with appointment confirmation still pending. Child-seat advice
+was tightened to avoid implying a particular model's fit.
+
 2026-10-25 — Booking requests collect only the main driver's selected age group:
 21–23 or 24+ (age 24 is in 24+). It is stored in `bookings.driver_age_range`;
 the admin booking sheet shows that group. No birth date is requested or stored
