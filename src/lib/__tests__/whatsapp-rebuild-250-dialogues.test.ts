@@ -440,6 +440,23 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(handoff.state.handedOff).toBe(true);
   });
 
+  it('answers change-request preparation and approval questions after handoff', async () => {
+    const chat = conversation(439);
+    await chat.send('יש לי הזמנה קיימת');
+    const request = await chat.send('רוצה לדחות את ההחזרה ביום');
+    expect(request.state.handedOff).toBe(true);
+    const next = await chat.send('מה הצעד הבא?');
+    expect(next.reply).toContain('תאריך ההחזרה הקיים');
+    await chat.send('מספר ההזמנה 123456');
+    const prepare = await chat.send('יש משהו שכדאי להכין?');
+    expect(prepare.reply).toContain('מספר ההזמנה כבר צורף');
+    const approved = await chat.send('זה כבר מאושר?');
+    expect(approved.reply).toContain('עדיין לא אושר');
+    const prepareAgain = await chat.send('מה צריך להכין?');
+    expect(prepareAgain.reply).toContain('תאריך ההחזרה הרצוי');
+    expect(prepareAgain.reply).not.toBe(approved.reply);
+  });
+
   it('answers purchase process questions and waits for explicit handoff', async () => {
     const chat = conversation(414);
     await chat.send('אני רוצה לקנות רכב משפחתי עד 80 אלף שקל');

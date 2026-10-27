@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-27 — A live booking-change service chat repeated the same “request received, pending approval” message four times in response to next-step, preparation and approval questions. The handoff path now answers each question directly, remembers whether the booking reference was given, and keeps the existing return date in force until approval. A full service regression covers those turns; live replay remains required.
+
 2026-10-27 — Manual review of the first clean undecided-purchase replay caught a semantic repeat: after asking for a budget, the bot answered “יש רכב זמין עכשיו?” by asking for the same budget again. It now explains that availability requires checking a specific car and offers to narrow options using a budget, without restating the question. Regression covers the follow-up; live replay remains required.
 
 2026-10-27 — A live purchase chat with a customer undecided on vehicle type repeated the exact type question three times, ignored “מה אתה מציע למשפחה?”, and kept asking for a type after the budget was supplied. The sale flow now accepts uncertainty, recommends a family group conditionally for family use, moves to budget or representative help, and acknowledges a later explicit type choice. The full conversation is a regression; live replay remains required.

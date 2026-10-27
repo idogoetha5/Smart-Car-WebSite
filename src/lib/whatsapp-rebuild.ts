@@ -767,6 +767,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   } else if (state.handedOff) {
     const handoffKind = state.handoffKind ?? (state.safetyAlertAt && (!state.handoffAt || Date.parse(state.safetyAlertAt) >= Date.parse(state.handoffAt)) ? 'safety' : state.interest ? 'commercial' : 'booking_change');
     const cancellationPending = handoffKind === 'booking_change' && state.history.some(entry => entry.from === 'customer' && cancellationRequest(entry.text));
+    const hasBookingReference = state.history.some(entry => entry.from === 'customer' && /מספר\s+ה?הזמנה\s*[:#]?\s*[A-Z0-9-]*\d[A-Z0-9-]{2,}|booking\s+(?:number|reference)\s*[:#]?\s*[A-Z0-9-]*\d[A-Z0-9-]{2,}/i.test(entry.text));
     const safetyKind = state.safetyKind ?? (state.history.some(entry => entry.from === 'customer' && /תאונה|התנגשות|accident|collision|crash/i.test(entry.text)) ? 'accident' : 'breakdown');
     reply = handoffKind === 'commercial' && state.interest && /מה כלול|מה כולל|תשלום ראשוני|מקדמה|מחיר|כמה עולה|נסיעת מבחן|what.*included|initial payment|down payment|price|test drive/i.test(input)
       ? commercialReply(input, state).reply
@@ -786,6 +787,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         ? (he ? `בקשת הביטול הועברה לנציג SmartCar. הוא יבדוק אותה ויחזור אליכם; הביטול ייכנס לתוקף רק לאחר אישור.` : `Your cancellation request has been passed to a SmartCar representative. They will review it and follow up; cancellation takes effect only after confirmation.`)
       : cancellationPending && /מה (?:כדאי|צריך) להכין|כדאי להכין|יש (?:משהו|פרטים).{0,15}להכין|what.*(?:prepare|have ready)/i.test(input)
         ? (he ? 'מספר ההזמנה שכבר מסרתם שמור בפנייה. אם הפנייה כוללת חיוב, כדאי להכין גם את פרטי החיוב כדי שנציג SmartCar יוכל לבדוק הכול יחד.' : 'The booking reference you gave is included in the enquiry. If it also concerns a charge, have the charge details ready so the SmartCar representative can review both together.')
+      : handoffKind === 'booking_change' && /מה (?:כדאי|צריך) להכין|כדאי להכין|יש (?:משהו|פרטים).{0,15}(?:להכין|שכדאי להכין)|what.*(?:prepare|have ready)/i.test(input)
+        ? (he ? `${hasBookingReference ? 'מספר ההזמנה כבר צורף לפנייה.' : 'כדאי לשלוח את מספר ההזמנה.'} כדאי לציין גם את תאריך ההחזרה הרצוי כדי שנציג SmartCar יוכל לבדוק את השינוי.` : `${hasBookingReference ? 'Your booking reference is already included.' : 'Please send your booking reference.'} It also helps to state the return date you want so a SmartCar representative can check the change.`)
+      : handoffKind === 'booking_change' && /(?:זה|השינוי|הדחייה).{0,12}(?:כבר )?מאושר|כבר אישרתם|is (?:it|the change) (?:already )?approved|has (?:it|the change) been approved/i.test(input)
+        ? (he ? 'השינוי עדיין לא אושר. נציג SmartCar יבדוק את הזמינות ויחזור אליכם; רק לאחר אישורו תאריך ההחזרה יתעדכן.' : 'The change is not approved yet. A SmartCar representative will check availability and follow up; the return date changes only after confirmation.')
+      : handoffKind === 'booking_change' && /מה הצעד הבא|מה עושים עכשיו|איך ממשיכים|what(?: is)? next|next step/i.test(input)
+        ? (he ? 'נציג SmartCar יבדוק אם אפשר לדחות את ההחזרה ויחזור אליכם עם תשובה. עד לאישור, תאריך ההחזרה הקיים נשאר בתוקף.' : 'A SmartCar representative will check whether the return can be moved and follow up. Until confirmed, the current return date remains in effect.')
       : handoffKind === 'safety' && /גרר|tow|roadside/i.test(input)
       ? (he ? `לתיאום גרר, הישארו במקום בטוח והתקשרו עכשיו ל־SmartCar: ${OFFICE_PHONE}.` : `To arrange a tow, stay somewhere safe and call SmartCar now: ${OFFICE_PHONE}.`)
       : /חויבתי|חיוב כפול|שילמתי פעמיים|charged twice|double charg/i.test(input)
