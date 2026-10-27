@@ -551,8 +551,15 @@ describe('regressions found in 15 live Gemini conversations', () => {
     const request = await chat.send('I need a compact rental car for one person');
     expect(request.state.phase).toBe('booking');
     expect(request.state.handedOff).not.toBe(true);
+    const insurance = await chat.send('How does insurance work?');
+    const insuranceAgain = await chat.send('What about insurance?');
+    expect(insuranceAgain.reply).not.toBe(insurance.reply);
     await chat.send('Pickup 10/12 and return 14/12');
+    const payment = await chat.send('How does payment work?');
+    expect(payment.reply).toMatch(/payment timing/);
     await chat.send('Pickup in Tel Aviv and return in Herzliya');
+    const continueReply = await chat.send('I would like to make a request');
+    expect(continueReply.reply).toContain('To move forward');
     await chat.send('24+');
     await chat.send('Noa Cohen');
     await chat.send('noa@example.invalid');

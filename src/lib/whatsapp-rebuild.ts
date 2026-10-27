@@ -861,6 +861,14 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           reply = he
             ? `לפי מה שתיארתם, הייתי מתחיל בבדיקת ${state.booking.vehicleNeed}; התאמה לכיסא בטיחות ולציוד נוודא לפי הדגם. ${policy} ${question(missing, state.locale)}`
             : `From what you described, I would start by checking a ${state.booking.vehicleNeed}; child-seat and luggage fit depend on the model. ${policy} ${question(missing, state.locale)}`;
+        } else if (/איך עובד התשלום|איך משלמים|how does payment work|how do (?:i|we) pay/i.test(input)) {
+          reply = he
+            ? 'הסכום, מועד התשלום ותנאי הפיקדון יפורטו בהצעה ובחוזה לפני אישור ההשכרה. אפשר לשאול כל שאלה על התנאים כשנקבל את ההצעה.'
+            : 'The amount, payment timing and deposit terms are set out in the quote and agreement before the rental is confirmed. You can ask about any of those terms when you receive the quote.';
+        } else if (policy && /ביטוח|insurance/i.test(input) && lastBot === policy) {
+          reply = he
+            ? 'הכיסוי הבסיסי כולל ביטוח חובה וכיסוי לנזקי תאונה, אש וגניבה, בכפוף להשתתפות עצמית. בהצעה יופיעו סכום ההשתתפות והאפשרויות להפחתתה.'
+            : 'The basic cover includes compulsory liability and accident, fire and theft cover, subject to an excess. Your quote will show that excess and any available reduction options.';
         } else if (/מה עוד צריך|איזה פרטים חסרים|what else do you need|what details are missing/i.test(input)) {
           const labels: Record<BookingKey, string> = { pickupDate: 'תאריך איסוף', returnDate: 'תאריך החזרה', pickupLocation: 'מקום איסוף', returnLocation: 'מקום החזרה', vehicleNeed: 'צרכי הרכב', driverAgeRange: 'קבוצת גיל הנהג', customerName: 'שם', customerEmail: 'מייל' };
           const remaining = ORDER.filter(key => !state.booking[key]);
@@ -880,7 +888,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
             : `The ${statedAgeRange === '24-plus' ? '24+' : '21–23'} age group is already noted. ${question('customerName', state.locale)}`;
         } else if (policy && missing === 'pickupLocation' && /מאיפה אפשר לאסוף|איפה אפשר לאסוף|where can (?:i|we) pick up/i.test(input)) {
           reply = `${policy} ${question('pickupLocation', state.locale)}`;
-        } else if (wasBooking && /^(?:אני רוצה להתקדם|רוצה להתקדם|let'?s proceed|I want to proceed)[.!\s]*$/i.test(input)
+        } else if (wasBooking && /^(?:אני רוצה להתקדם|רוצה להתקדם|let'?s proceed|I want to proceed|I would like to make a request)[.!\s]*$/i.test(input)
           && lastBot.includes(question(missing, state.locale))) {
           reply = he ? `בשמחה. כדי להתקדם נשאר לי הפרט הזה: ${question(missing, state.locale)}` : `Of course. To move forward I still need this detail: ${question(missing, state.locale)}`;
         } else {
