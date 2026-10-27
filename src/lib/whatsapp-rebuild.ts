@@ -40,7 +40,7 @@ export type RebuildStore = {
 const ORDER: BookingKey[] = ['pickupDate', 'returnDate', 'pickupLocation', 'returnLocation', 'vehicleNeed', 'driverAgeRange', 'customerName', 'customerEmail'];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const OUTSIDE = /מוני(?:ת|ות)|אוטובוס|רכבת|תחבורה ציבורית|אוויס|אלדן|סיקסט|הרץ|מתחר|חברת השכרה אחרת|\btaxi\b|\bbus\b|\btrain\b|\buber\b|\bavis\b|\bhertz\b|\bsixt\b|competitor|another rental company/i;
-const UNSAFE_CLAIM = /(?:יש לנו|יש אצלנו|זמין עכשיו|זמין בדיוק|פנוי עכשיו|מובטח|בטוח ש|בהחלט ייכנס|בהחלט יתאים|יתאים לכם מצוין|מזווד.{0,25}(?:ייכנס|יספיק)|(?:חיסכון|חסכון) בדלק|(?:נסיעה|רכב).{0,18}חסכוני(?:ת)?|צריכת דלק.{0,25}(?:מעולה|נמוכה|טובה|חסכונית)|we have available|available for (?:your|the) (?:trip|dates)|guaranteed|(?:definitely|easily) fits?|fits? (?:your|two|three|the) (?:bags|suitcases|luggage)|great fuel efficiency|fuel savings|confirmed booking)/i;
+const UNSAFE_CLAIM = /(?:יש לנו|יש אצלנו|זמין עכשיו|זמין בדיוק|פנוי עכשיו|מובטח|בטוח ש|בהחלט ייכנס|בהחלט יתאים|יתאים לכם (?:מצוין|בול)|מזווד.{0,25}(?:ייכנס|יספיק)|(?:חיסכון|חסכון) בדלק|(?:נסיעה|רכב).{0,18}חסכוני(?:ת)?|צריכת דלק.{0,25}(?:מעולה|נמוכה|טובה|חסכונית)|we have available|available for (?:your|the) (?:trip|dates)|guaranteed|(?:definitely|easily) fits?|fits? (?:your|two|three|the) (?:bags|suitcases|luggage)|great fuel efficiency|fuel savings|confirmed booking)/i;
 const INTERNAL_VOICE = /המחיר באתר|באתר (?:הוא|מופיע)|אין לי (?:גישה|אישור|מלאי|אפשרות)|לא אישרתי|לא פתרתי|בשיחה הזו|כיוון לבדיקה|הצוות צריך לבדוק|נשמר.{0,25}(?:לטיפול|לנציג)|תהליך פנימי|בדיקה פנימית|המודל|סימולציה|website price|on the website|I (?:do not|don't) have (?:access|approval|inventory)|I have not (?:confirmed|resolved)|internal (?:check|process|system)|simulation|backend/i;
 const VOLUNTEERED_IDENTITY = /אני (?:בוט|רובוט|עוזר דיגיטלי|בינה מלאכותית)|אני לא (?:בן אדם|אדם)|I am (?:a bot|an AI|a digital assistant)|I'm (?:a bot|an AI|a digital assistant)/i;
 const PRICE_OR_AVAILABILITY = /מחיר|עלות|כמה.{0,12}(?:עול|יעל)|(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:price|cost|rate|available|availability)\b/iu;
@@ -403,6 +403,15 @@ function direction(reading: BotReading | null, draft: BookingDraft, input: strin
 
 function advice(input: string, state: RebuildState, reading: BotReading | null): string {
   const he = state.locale === 'he';
+  if (/איזה גודל תמליצו|איזה סוג רכב תמליצו|מה תמליצו לנו|what size (?:car|vehicle) (?:do you )?recommend/i.test(input) && state.booking.passengers) {
+    const recommended = direction(reading, state.booking, input);
+    const group = recommended === 'seven_seat' ? (he ? 'רכב שבעה מקומות' : 'a seven-seat car')
+      : recommended === 'family' || recommended === 'suv' ? (he ? 'רכב משפחתי מרווח' : 'a roomy family car')
+      : (he ? 'רכב קומפקטי' : 'a compact car');
+    return he
+      ? `ל־${state.booking.passengers} נוסעים הייתי מתחיל ב${group}. את המקום למזוודות נוודא בדגם המסוים לפני שנאשר התאמה. אם יש העדפה נוספת, כתבו לי ונשלב אותה בבקשה.`
+      : `For ${state.booking.passengers} travellers I would start with ${group}. We will check luggage space in the actual model before confirming the fit. Tell me any other preference and I will include it in the request.`;
+  }
   if (/מה (?:אתם|אתה|את) (?:מציע(?:ים|ה)?|ממליצ(?:ים|ה)?)|מה תציעו|what (?:do you|would you) (?:suggest|recommend)/i.test(input)
       && !state.booking.passengers && !state.booking.vehicleNeed && !state.booking.luggage) return he
     ? 'בשמחה אעזור לבחור. כמה אנשים ומזוודות יהיו בנסיעה, והאם היא בעיקר בעיר או גם מחוץ לעיר?'
@@ -483,6 +492,8 @@ function safeModelReply(reading: BotReading | null, input: string, state: Rebuil
   if ((state.booking.passengers || state.booking.luggage) && /איזה רכב|יתאים|מתאים|מספיק|ממליץ|recommend|fit|suit/i.test(input)) return null;
   if (/מזווד|מטען|תא מטען|luggage|suitcase|boot|trunk/i.test(input) && /כמה|נכנס|יספיק|מקום|יכול|fit|space|room|how many/i.test(input)) return null;
   if (PRICE_OR_AVAILABILITY.test(input)) return null;
+  if (state.booking.pickupLocation && state.booking.returnLocation
+    && /איסוף|לאסוף|pick.?up/i.test(input) && /החזרה|להחזיר|return|drop.?off/i.test(input)) return null;
   const reply = reading.reply;
   if (OUTSIDE.test(reply) || UNSAFE_CLAIM.test(reply) || INTERNAL_VOICE.test(reply) || /₪|\b\d{2,}\b/.test(reply)) return null;
   if (VOLUNTEERED_IDENTITY.test(reply) && !identityQuestion(input)) return null;
@@ -760,7 +771,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const acceptsRentalOffer = confirmedOffer;
     const asksHuman = /(?:דבר|לדבר|נציג|בן אדם|human|representative|person)/i.test(input) && /רוצה|אפשר|need|want|speak/i.test(input);
     const clearlyRental = /לשכור|השכרה|rental|rent/i.test(input);
-    const wantsBooking = !declines && !asksHuman && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || acceptsRentalOffer || state.phase === 'booking');
+    const wantsToContinueRental = !state.interest && /^(?:אני רוצה להתקדם|רוצה להתקדם|בוא(?:ו)? נתקדם|I want to proceed|let'?s continue)[.!\s]*$/i.test(input)
+      && Boolean(state.booking.pickupDate || state.booking.vehicleNeed || state.booking.passengers || offersRentalRequest(lastBot));
+    const wantsBooking = !declines && !asksHuman && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || acceptsRentalOffer || wantsToContinueRental || state.phase === 'booking');
     const rentalPivot = /מעדיף (?:את ה)?השכרה|מעדיף לשכור|עדיף לי לשכור|אעדיף לשכור|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|prefer to rent|back to renting/i.test(input);
     const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|(?:רכב|הרכב).{0,35}מלוכלך|לא קיבלתי|(?:מזגן|מיזוג).{0,25}(?:לא עובד|מקולקל)|(?:air conditioning|car ac).{0,25}(?:not working|broken)|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input);
     const statedVehicle = explicitVehicleNeed(input, state.locale);

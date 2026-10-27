@@ -32,6 +32,12 @@ stored (with a history fallback for existing state), and cancellation context
 is preserved in follow-up answers. Regression tests pass. Current evidence:
 15 first-pass long chats and 12 replays across changing versions, not 1,500
 acceptance chats on a final release.
+The service follow-ups were rechecked in three long production transcripts on
+release `1b00461`: accident, breakdown and cancellation now stay distinct.
+The long-chat runner was expanded to 44 scenario archetypes and now records
+the deployed release, stops on a flagged transcript or the public rate limit,
+and resumes only clean cases from the same release. Scripted volume still
+requires manual free-form review; no 1,500 final-version result exists yet.
 
 2026-10-26 — Added a repeatable 250-dialogue rehearsal covering 50 rental
 requests, 50 advice-to-rental conversations, 50 leasing enquiries, 50 sale

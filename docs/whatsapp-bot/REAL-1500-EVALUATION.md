@@ -10,7 +10,8 @@ state between turns, and writes each full transcript to
 `evidence/whatsapp-live-1500.jsonl` (ignored by Git). The simulator uses the
 production Gemini model but sends no WhatsApp message and creates no real
 rental request. The script runs at most 180 turns per hour under the demo's
-200-turn visitor limit and resumes from completed case indexes. Do not spoof
+200-turn visitor limit and resumes from completed case indexes for the same
+source release. Do not spoof
 an IP or disable the public rate limit to increase throughput.
 
 Run from the canonical repository checkout with:
@@ -20,7 +21,10 @@ SMARTCAR_EVAL_MAX_CASES=1500 node scripts/whatsapp/live-1500-eval.mjs
 ```
 
 For a small review batch, set `SMARTCAR_EVAL_MAX_CASES` to the desired total
-index. Preserve the JSONL file between runs. Count a conversation as provider
+index. Set `SMARTCAR_EVAL_RELEASE` to the verified deployed commit and
+`SMARTCAR_EVAL_MAX_TURNS` to bound hourly batches. Preserve the JSONL file
+between runs. A flagged case stops the run for review and will be retried;
+HTTP 429 stops the batch until the public limit resets. Count a conversation as provider
 tested only if it has a successful HTTP transcript, at least one `model`
 reading, at least eight customer turns, and an end state relevant to its goal.
 Safety and existing-service flows can intentionally use the deterministic
@@ -32,10 +36,11 @@ Manual review must cover failures and a meaningful sample of completed cases,
 including rental advice, booking, leasing, purchase, accidents and service.
 Stop and repair systemic failures before continuing volume runs.
 
-The runner currently varies 15 scenario archetypes. Repeating their details
-does not give 1,500 independent conversation patterns. Broaden the scenario
-catalogue and run adaptive free-form customer turns before treating the volume
-target as evidence of readiness. The production WhatsApp connection remains
+The runner now covers 44 scenario archetypes and varies their locations,
+dates and side questions. This improves breadth but is still scripted; 1,500
+variants alone do not prove performance on arbitrary free-form customer turns.
+Run adaptive free-form customer turns and manual owner review before treating
+the volume target as evidence of readiness. The production WhatsApp connection remains
 off until the owner accepts real transcripts and transport checks.
 
 On 27 October a local direct-provider attempt using Vercel-injected

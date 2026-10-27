@@ -430,6 +430,25 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(age.reply).toContain('שם');
   });
 
+  it('takes an explicit wish to continue through a complete saved family request', async () => {
+    const chat = conversation(418);
+    await chat.send('אנחנו ארבעה עם שתי מזוודות ומחפשים רכב לשבוע');
+    const recommendation = await chat.send('איזה גודל תמליצו?');
+    expect(recommendation.reply).toContain('רכב משפחתי');
+    await chat.send('רוצים 11/12-18/12');
+    const locations = await chat.send('איסוף בנתבג והחזרה בתל אביב');
+    expect(locations.reply).not.toMatch(/כתובת בתל אביב|איזו סביבה/);
+    const proceed = await chat.send('אני רוצה להתקדם');
+    expect(proceed.state.phase).toBe('booking');
+    expect(proceed.reply).toContain('קבוצת הגיל');
+    await chat.send('24+');
+    await chat.send('שני כהן');
+    await chat.send('shani@example.invalid');
+    const finish = await chat.send('אני מאשרת');
+    expect(finish.state.completedRequestId).toBeDefined();
+    expect(chat.requests()).toBe(1);
+  });
+
   it('acknowledges a vehicle correction while age remains missing', async () => {
     const chat = conversation(411);
     await chat.send('אני רוצה לשכור רכב 10/12-14/12');
