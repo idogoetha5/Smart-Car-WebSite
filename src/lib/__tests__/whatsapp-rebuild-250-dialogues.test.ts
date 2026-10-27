@@ -334,4 +334,13 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(location.reply).toContain('המיקום');
     expect(location.reply).not.toBe(safe.reply);
   });
+
+  it('answers the additional-driver question during a rental consultation', async () => {
+    const chat = conversation(408);
+    await chat.send('מה אתה ממליץ לאדם אחד לשבוע?');
+    const answer = await chat.send('יש אפשרות להוסיף נהג?');
+    expect(answer.reply).toContain('נהג נוסף');
+    expect(answer.reply).toContain('רישיון');
+    expect(answer.reply).not.toContain('מה בדיוק חשוב לך לברר');
+  });
 });

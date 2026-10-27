@@ -108,6 +108,17 @@ const TOPIC_PATTERNS: Array<[ServiceKnowledgeTopic, RegExp]> = [
 ];
 
 export function getSmartCarServiceAnswer(input: string, locale: ServiceLocale): ServiceKnowledgeAnswer | null {
+  if (/להוסיף.{0,12}נהג|לצרף.{0,12}נהג|נהג.{0,10}נוסף|add (?:an? )?(?:additional|extra|second) driver/i.test(input)
+      && /אפשר|יכול|ניתן|can|could|possible/i.test(input)
+      && !/מסמכים|documents?|מה צריך|what.*need/i.test(input)) {
+    return {
+      topic: 'driver_documents', href: '/insurance',
+      linkLabel: locale === 'he' ? 'לפרטי הנהגים' : 'Driver details',
+      reply: locale === 'he'
+        ? 'אפשר לבקש לצרף נהג נוסף להשכרה. עליו להציג רישיון נהיגה בתוקף ולהירשם בחוזה לפני שינהג; ההתאמה והתנאים יאושרו עם פרטי ההשכרה.'
+        : 'You can ask to add another driver to the rental. They must show a valid licence and be named in the agreement before driving; eligibility and terms are confirmed with the rental details.',
+    };
+  }
   const match = TOPIC_PATTERNS.find(([, pattern]) => pattern.test(input));
   if (!match) return null;
   const answer = ANSWERS[match[0]];

@@ -26,4 +26,9 @@ describe('SmartCar service knowledge — bilingual, published facts only', () =>
     expect(getSmartCarServiceAnswer('cancel', 'en')?.reply).toContain('72');
   });
 
+  it('answers an additional-driver question directly', () => {
+    expect(getSmartCarServiceAnswer('יש אפשרות להוסיף נהג?', 'he')?.reply).toMatch(/אפשר לבקש לצרף נהג נוסף/);
+    expect(getSmartCarServiceAnswer('Can I add an extra driver?', 'en')?.reply).toMatch(/add another driver/);
+  });
+
 });

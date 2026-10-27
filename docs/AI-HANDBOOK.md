@@ -1,5 +1,17 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-27 — The owner raised the live conversation target to 1,500 after
+finding failures in 15 different manual chats. Added a rate-compliant,
+resumable production-simulator runner and an evidence protocol in
+`docs/whatsapp-bot/REAL-1500-EVALUATION.md`. Only successful real Gemini
+readings count; synthetic core tests and a failed local provider attempt do
+not. The script preserves full fictional transcripts for review and has no
+customer WhatsApp transport or database rental write. The 1,500 target is in
+progress, not a readiness claim. Keep the real customer bot off.
+The first new 16-turn live dialogue exposed a vague answer to "אפשר להוסיף
+נהג?". The published driver terms now supply a direct answer, with a regression
+test; live re-verification follows deployment.
+
 2026-10-26 — Added a repeatable 250-dialogue rehearsal covering 50 rental
 requests, 50 advice-to-rental conversations, 50 leasing enquiries, 50 sale
 enquiries, and 50 service/roadside cases. The scenarios run against the actual
