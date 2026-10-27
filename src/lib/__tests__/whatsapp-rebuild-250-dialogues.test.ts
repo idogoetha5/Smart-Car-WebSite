@@ -467,6 +467,16 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(chat.requests()).toBe(1);
   });
 
+  it('does not promise luggage comfort without checking a specific seven-seat car', async () => {
+    const chat = conversation(421, {
+      ...modelReading,
+      reply: 'לרכב עם 7 מקומות יהיה נוח ומרווח לכל הנוסעים והמטען שלכם. באילו תאריכים?',
+    });
+    const answer = await chat.send('אנחנו שישה עם שלוש מזוודות');
+    expect(answer.reply).not.toContain('יהיה נוח ומרווח לכל הנוסעים והמטען');
+    expect(answer.reply).toMatch(/לבדוק|לוודא/);
+  });
+
   it('acknowledges a vehicle correction while age remains missing', async () => {
     const chat = conversation(411);
     await chat.send('אני רוצה לשכור רכב 10/12-14/12');
