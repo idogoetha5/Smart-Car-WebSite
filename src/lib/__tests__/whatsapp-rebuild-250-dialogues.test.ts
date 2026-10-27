@@ -544,6 +544,22 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(chat.requests()).toBe(1);
   });
 
+  it('does not mistake one person in an English rental enquiry for a human handoff', async () => {
+    const chat = conversation(425, { ...modelReading, route: 'human', reply: 'I can help with a compact rental.' });
+    const hello = await chat.send('Hi');
+    expect(hello.reply).toMatch(/^Hi/);
+    const request = await chat.send('I need a compact rental car for one person');
+    expect(request.state.phase).toBe('booking');
+    expect(request.state.handedOff).not.toBe(true);
+    await chat.send('Pickup 10/12 and return 14/12');
+    await chat.send('Pickup in Tel Aviv and return in Herzliya');
+    await chat.send('24+');
+    await chat.send('Noa Cohen');
+    await chat.send('noa@example.invalid');
+    const finish = await chat.send('I confirm');
+    expect(finish.state.completedRequestId).toBeDefined();
+  });
+
   it('acknowledges a vehicle correction while age remains missing', async () => {
     const chat = conversation(411);
     await chat.send('אני רוצה לשכור רכב 10/12-14/12');

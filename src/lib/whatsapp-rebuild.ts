@@ -63,6 +63,7 @@ function availabilityAnswer(locale: Locale): string {
 function language(input: string, previous: Locale): Locale {
   if (/עברית|hebrew/i.test(input)) return 'he';
   if (/english|אנגלית/i.test(input)) return 'en';
+  if (/^(?:hi|hey|yes|ok)[!?.\s]*$/i.test(input)) return 'en';
   if (EMAIL.test(input.trim()) || /(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/.test(input)) return previous;
   return /[א-ת]/.test(input) ? 'he' : /[a-z]{3,}/i.test(input) ? 'en' : previous;
 }
@@ -109,6 +110,8 @@ function validDate(value: string): boolean {
 }
 
 function explicitDateRange(input: string): { pickupDate: string; returnDate: string } | null {
+  const labelled = input.match(/(?:pickup|איסוף)\s+(\d{1,2}[./]\d{1,2}(?:[./]20\d{2})?).{0,30}(?:return|החזרה)\s+(\d{1,2}[./]\d{1,2}(?:[./]20\d{2})?)/i);
+  if (labelled) return explicitDateRange(`${labelled[1]}-${labelled[2]}`);
   const numeric = input.match(/(?:^|\s)(?:מ-?)?(\d{1,2})[./](\d{1,2})(?:[./](20\d{2}))?\s*(?:[-–־]|עד|to)\s*(\d{1,2})[./](\d{1,2})(?:[./](20\d{2}))?(?=\s|$|[,.!?])/iu);
   if (numeric) {
     const today = israelDate();
@@ -212,6 +215,7 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
 function explicitBooking(input: string): boolean {
   if (/לא רוצה להזמין|לא רוצה לשכור|רק מתעניין|רק שואל|לא עכשיו|not ready|just asking|don't book|do not book/i.test(input)) return false;
   if (/[?؟]/.test(input) && /כדאי|האם|should|would it|how/i.test(input)) return false;
+  if (/^I need (?:a )?(?:(?:compact|small|family|SUV|seven[- ]?seat) )?rental car\b/i.test(input)) return true;
   return /אני רוצה (?:להזמין|לשכור|לשלוח בקשה|לסיים את הבקשה|להתקדם עם בקש(?:ה להשכרה|ת השכרה))|(?:^|[.!?]\s*)רוצה (?:לשכור|לשלוח בקשה|לסיים את הבקשה)|(?:אני\s+)?צריך(?:ה)? (?:רכב להשכרה|לשכור רכב|רכב (?:קטן|קומפקטי|משפחתי|פנאי|שבעה מקומות)(?:\s|$))|בוא(?:ו)? נתקדם|בוא(?:ו)? (?:נלך על זה|נסגור)|יאללה נסגור|תשריין לי|שריין לי|אפשר להתחיל (?:הזמנה|בקשה)|תכין(?:ו)? (?:לי )?(?:בקש(?:ה|ת השכרה)|הצעה)|אני (?:אזמין|אשכור)|I(?:'d| would) like to (?:book|rent|make a request)|let'?s (?:book|proceed|close)|I want to (?:book|rent|make a request)|I need (?:a )?(?:rental car|to rent(?: a car)?)|go ahead with (?:the )?(?:rental|request)/i.test(input);
 }
 
@@ -297,7 +301,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
 function explicitVehicleNeed(input: string, locale: Locale): string | null {
   if (/שבעה מקומות|7\s*מקומות|7[- ]?seater|seven[- ]?seater/i.test(input)) return locale === 'he' ? 'רכב שבעה מקומות' : 'seven-seat car';
   if (/רכב\s+משפחתי|רכב\s+למשפחה|^\s*משפחתית\s*$|(?:רוצה|מחפש|צריך|מעדיף)\s+(?:רכב\s+)?משפחתית|(?:רוצה|מחפש|צריך|מעדיף)\s+משפחתי|family car/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
-  if (/קומפקטי|קומפקטית|רכב קטן|compact car|small car/i.test(input)) return locale === 'he' ? 'רכב קומפקטי' : 'compact car';
+  if (/קומפקטי|קומפקטית|רכב קטן|compact (?:rental )?car|small (?:rental )?car/i.test(input)) return locale === 'he' ? 'רכב קומפקטי' : 'compact car';
   if (/רכב פנאי|ג[׳'י]?יפ(?:ון)?|suv/i.test(input)) return locale === 'he' ? 'רכב פנאי' : 'SUV';
   return null;
 }
@@ -783,7 +787,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const modelSupportedProceed = reading?.route === 'book' && /^(?:כן|יאללה|בוא|בואי|yes|okay|ok|go ahead|let's proceed)/i.test(input)
       && /להתחיל.{0,25}(?:בקשה|הזמנה)|start.{0,25}(?:request|booking)/i.test(lastBot);
     const acceptsRentalOffer = confirmedOffer;
-    const asksHuman = /(?:דבר|לדבר|נציג|בן אדם|human|representative|person)/i.test(input) && /רוצה|אפשר|need|want|speak/i.test(input);
+    const asksHuman = /(?:רוצה|אפשר|צריך|צריכה).{0,22}(?:לדבר|נציג|בן אדם)|(?:לדבר|נציג|בן אדם).{0,22}(?:בבקשה|אפשר|רוצה)|\b(?:speak|talk|connect)\b.{0,28}\b(?:human|representative|person)\b|\b(?:human|representative|real person)\b.{0,20}\b(?:please|help)\b/i.test(input);
     const clearlyRental = /לשכור|השכרה|rental|rent/i.test(input);
     const wantsToContinueRental = !state.interest && /^(?:אני רוצה להתקדם|רוצה להתקדם|בוא(?:ו)? נתקדם|I want to proceed|let'?s continue)[.!\s]*$/i.test(input)
       && Boolean(state.booking.pickupDate || state.booking.vehicleNeed || state.booking.passengers || offersRentalRequest(lastBot));
