@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-27 — The live same-place replay still failed after a side insurance question: the bot lost the pending pickup city, stored “אותו מקום” literally as the return location, then treated a customer's name as the pickup city. It now recognizes a city answer against recent pickup prompts, resolves same-place returns only from a known pickup, and keeps the pickup question after listing branches. The regression includes the intervening side questions.
+
 2026-10-27 — A live same-place rental chat showed two repeated questions: “מאיפה אפשר לאסוף?” was answered by asking the pickup city again, and “אני רוצה להתקדם” repeated the age question verbatim. The bot now gives the confirmed branch/delivery options, retains a clear pickup question for the next city answer, and acknowledges progress before requesting the one still-missing detail.
 
 2026-10-27 — After replacing an unsafe seven-seat claim, the next live replay exposed identical replies to “אנחנו שישה עם שלוש מזוודות” and “צריך שבעה מקומות?”. A direct follow-up answer now acknowledges the recommendation already given, keeps luggage fit conditional and avoids repeating the same prompt.

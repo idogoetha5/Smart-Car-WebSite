@@ -268,6 +268,11 @@ function applyPromptedLocation(input: string, state: RebuildState, lastBot: stri
   if (/איסוף|לאסוף|להחזיר|החזרה|pick.?up|drop.?off|return/i.test(location)) return;
   if (/מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף|עיר האיסוף|pickup (?:city|location)|where.{0,30}pick.?up/i.test(lastBot)) state.booking.pickupLocation = location;
   else if (/איפה.{0,30}להחזיר|עיר ההחזרה|מקום ההחזרה|return (?:city|location)|where.{0,30}return/i.test(lastBot)) state.booking.returnLocation = location;
+  else if (/^(?:הרצליה|תל אביב|ירושלים|נתב["״']?ג|חיפה|רמת גן|פתח תקווה|נתניה|ראשון לציון|רעננה)$/i.test(location)) {
+    const recentBot = state.history.filter(entry => entry.from === 'bot').slice(-4).map(entry => entry.text).join(' ');
+    if (!state.booking.pickupLocation && /מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף|באיזה סניף.{0,30}לאסוף|הסניפים שלנו|pickup (?:city|location)/i.test(recentBot)) state.booking.pickupLocation = location;
+    else if (state.booking.pickupLocation && !state.booking.returnLocation && /איפה.{0,30}להחזיר|עיר ההחזרה|מקום ההחזרה|where.{0,30}return/i.test(recentBot)) state.booking.returnLocation = location;
+  }
 }
 
 function statedCount(value: string): number | null {
@@ -771,6 +776,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     }
     applyExplicitLocations(input, state.booking);
     applyPromptedLocation(input, state, lastBot);
+    if (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input)) state.booking.returnLocation = state.booking.pickupLocation;
     const statedAgeRange = driverAgeRange(input, state);
     if (statedAgeRange) state.booking.driverAgeRange = statedAgeRange;
     const declines = /לא רוצה להזמין|לא מבקש להזמין|אל תזמין|לא עכשיו|רק מתעניין|עדיין בודק|don't book|cancel this request|not ready to book|just looking/i.test(input);
@@ -930,7 +936,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         : `${priceAnswer(state.locale)} ${!state.booking.pickupDate ? (he ? 'לאילו תאריכים תצטרכו את הרכב?' : 'What dates do you need the car?') : !state.booking.returnDate ? question('returnDate', state.locale) : !state.booking.pickupLocation ? question('pickupLocation', state.locale) : !state.booking.returnLocation ? question('returnLocation', state.locale) : (he ? 'תרצו שנתקדם לבקשה עם הפרטים שכבר מסרתם?' : 'Shall we continue with the details you already gave?')}`;
     } else if ((reading?.route === 'policy' || /[?؟]/.test(input)) && getSmartCarServiceAnswer(input, state.locale)) {
       const fact = getSmartCarServiceAnswer(input, state.locale);
-      reply = fact!.reply;
+      reply = fact!.topic === 'branches' && state.booking.pickupDate && !state.booking.pickupLocation
+        ? `${fact!.reply} ${question('pickupLocation', state.locale)}` : fact!.reply;
     } else if (/^(?:תודה(?: רבה)?[.!\s]*|thanks?(?: a lot)?[.!\s]*|thank you[.!\s]*)$/i.test(input)) {
       reply = he ? 'בשמחה. כשתרצו להמשיך, אני כאן.' : 'You are welcome. I am here when you are ready.';
     } else if (/איזה פרטים|מה (?:צריך|תצטרכו)|what details|what do you need/i.test(input)) {
