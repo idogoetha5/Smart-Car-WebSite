@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-27 — A live no-dates advice conversation repeated generic date prompts when a couple with a baby and a bag asked for a recommendation, an alternative and a child seat. The advice flow now retains the baby/seat need, gives distinct family and compact guidance, treats seat supply as subject to checking, and does not force dates to answer these questions.
+
 2026-10-27 — The next live English replay completed a request but repeated the insurance answer verbatim, ignored a payment question, and repeated the age question after “I would like to make a request”. Booking now gives a concise second insurance explanation, answers payment terms without inventing amounts, and acknowledges the request while asking for the missing age. The regression runs the full chat including those detours.
 
 2026-10-27 — A live English rental chat went straight to human handoff because “one person” was mistaken for a request to speak with a person. Human handoff now requires an actual request for a representative, short “Hi” opens in English, and labelled “Pickup 10/12 and return 14/12” dates are captured. A full English booking regression protects the route.

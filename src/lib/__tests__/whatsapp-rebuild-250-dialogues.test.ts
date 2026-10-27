@@ -567,6 +567,36 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(finish.state.completedRequestId).toBeDefined();
   });
 
+  it('keeps advising a couple with a baby even before dates are known', async () => {
+    const chat = conversation(426);
+    await chat.send('אני מתלבט איזה רכב לשכור');
+    const needs = await chat.send('אנחנו זוג עם תינוק ומזוודה');
+    expect(needs.state.booking.passengers).toBe(2);
+    expect(needs.state.booking.luggage).toBe(1);
+    expect(needs.state.booking.childSeats).toBe(1);
+    const recommendation = await chat.send('מה הכי מתאים לדעתך?');
+    expect(recommendation.reply).toContain('רכב משפחתי');
+    const followUp = await chat.send('מה מתאים לנו?');
+    expect(followUp.reply).not.toBe(recommendation.reply);
+    const alternative = await chat.send('אולי יש כיוון אחר?');
+    expect(alternative.reply).toContain('קומפקטי');
+    await chat.send('אין לי עדיין תאריכים');
+    const seat = await chat.send('אפשר להוסיף כיסא בטיחות?');
+    expect(seat.reply).toContain('נבדוק אפשרות');
+    expect(seat.reply).not.toContain('לאילו תאריכים');
+    const compact = await chat.send('היית ממליץ על קטן?');
+    expect(compact.reply).toContain('משפחתית');
+    expect(compact.reply).not.toContain('לאילו תאריכים');
+  });
+
+  it('does not let generic model advice erase the baby and luggage context', async () => {
+    const chat = conversation(427, { ...modelReading, reply: 'לאילו תאריכים תצטרכו את הרכב?' });
+    await chat.send('אנחנו זוג עם תינוק ומזוודה');
+    const alternative = await chat.send('אולי יש כיוון אחר?');
+    expect(alternative.reply).toContain('קומפקטי');
+    expect(alternative.reply).not.toContain('לאילו תאריכים');
+  });
+
   it('acknowledges a vehicle correction while age remains missing', async () => {
     const chat = conversation(411);
     await chat.send('אני רוצה לשכור רכב 10/12-14/12');

@@ -295,6 +295,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   if (luggageCount !== null) draft.luggage = luggageCount;
   if (/אנחנו זוג|זוג עם|שני אנשים|שני נוסעים|we are a couple|two of us/i.test(input)) draft.passengers = 2;
   if (draft.luggage === undefined && /מזוודה(?!ות)|תיק נסיעה אחד|one suitcase|one bag/i.test(input)) draft.luggage = 1;
+  if (/תינוק|baby|infant/i.test(input)) draft.childSeats ??= 1;
   if (/אדם אחד|איש אחד|נוסע אחד|נוסעת אחת|אני לבד|(?:^|\s)לבד(?:\s|$)|\b(?:one person|solo|travelling alone|traveling alone)\b/i.test(input)) draft.passengers = 1;
 }
 
@@ -412,6 +413,25 @@ function direction(reading: BotReading | null, draft: BookingDraft, input: strin
 
 function advice(input: string, state: RebuildState, reading: BotReading | null): string {
   const he = state.locale === 'he';
+  if (/אפשר להוסיף כיסא בטיחות|can (?:i|we) add (?:a )?child seat/i.test(input)) return he
+    ? 'אפשר לציין בבקשה צורך בכיסא בטיחות. נבדוק אפשרות לצרף כיסא מתאים ואת תנאיו לפני אישור ההשכרה; גם התאמת הכיסא לרכב המסוים תיבדק.'
+    : 'We can include a child-seat request. We will check a suitable seat, its terms and its fit with the specific car before confirming the rental.';
+  if (/היית ממליץ על קטן|האם קטן יתאים|would you recommend a (?:small|compact) car/i.test(input) && state.booking.childSeats) return he
+    ? 'אפשר לבדוק גם רכב קטן, אבל עם תינוק, כיסא ומזוודה הייתי מתחיל במשפחתית כדי להשאיר יותר מקום. אם רכב קטן חשוב לכם, נבדוק את מקום הכיסא והציוד בדגם המסוים.'
+    : 'A compact is worth checking, but with a baby, child seat and bag I would start with a family car for more space. If you prefer a compact, we will check the seat and luggage fit in the actual model.';
+  if (/אולי יש כיוון אחר|יש אופציה אחרת|any other option|another direction/i.test(input) && state.booking.childSeats) return he
+    ? 'אפשר לבדוק גם רכב קומפקטי אם חשובים לכם חניה קלה וגודל קטן. עם התינוק והמזוודה נוודא קודם שבדגם המסוים יש מקום מתאים לכיסא ולציוד.'
+    : 'We can also check a compact if easy parking and a smaller car matter most. With the baby and bag, we will first confirm seat and luggage space in the actual model.';
+  if (/מה הכי מתאים לדעתך|מה מתאים לנו|what (?:fits|suits) us best/i.test(input) && state.booking.childSeats) {
+    const recommendedBefore = state.history.some(entry => entry.from === 'bot' && /הייתי מתחיל.*משפחת|משפחתית.*נקודת|I would start.*family/i.test(entry.text));
+    return he
+      ? recommendedBefore
+        ? 'משפחתית עדיין תהיה נקודת הפתיחה שלי עבורכם. אם יש עגלה בנוסף למזוודה, כדאי לציין גם אותה כדי שנבדוק את תא המטען בדגם המסוים.'
+        : 'לזוג עם תינוק ומזוודה הייתי מתחיל ברכב משפחתי: הוא נותן כיוון טוב למקום לכיסא ולציוד. לפני שנאשר התאמה, נבדוק את הדגם המסוים ואת גודל המזוודה.'
+      : recommendedBefore
+        ? 'A family car is still my starting point. If you also have a stroller, tell me so we can check boot space in the actual model.'
+        : 'For two adults, a baby and a bag I would start with a family car. We will check the child seat and luggage fit in the actual model before confirming it.';
+  }
   if (/צריך (?:רכב )?שבעה מקומות|do (?:we|i) need (?:a )?seven[- ]?seat/i.test(input)
     && (state.booking.passengers ?? 0) >= 6
     && state.history.some(entry => entry.from === 'bot' && /כדאי לבדוק רכב שבעה מקומות|check a seven[- ]?seat/i.test(entry.text))) {
@@ -503,6 +523,7 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
 
 function safeModelReply(reading: BotReading | null, input: string, state: RebuildState): string | null {
   if (!reading || OUTSIDE.test(input) || /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input)) return null;
+  if (state.booking.childSeats && /אולי יש כיוון אחר|יש אופציה אחרת|any other option|another direction|היית ממליץ על קטן|would you recommend a (?:small|compact) car/i.test(input)) return null;
   if (/איזה רכב|מה כדאי|what (?:car|vehicle)|recommend/i.test(input) && !state.booking.passengers && !state.booking.luggage && !state.booking.vehicleNeed) return null;
   if (/שבעה מקומות|7\s*מקומות|seven[- ]?seat|7[- ]?seat/i.test(input) && state.booking.luggage) return null;
   if ((state.booking.passengers || state.booking.luggage) && /איזה רכב|יתאים|מתאים|מספיק|ממליץ|recommend|fit|suit/i.test(input)) return null;
