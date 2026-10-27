@@ -109,7 +109,8 @@ function findings(rows, category) {
   if (replies.some((reply, index) => /המחיר באתר|אין לי גישה|המודל|כיוון לבדיקה|website price|internal process/i.test(reply)
     || /סימולציה|simulation/i.test(reply) && index !== replies.length - 1)) issues.push('internal_language');
   for (let i = 1; i < replies.length; i++) if (replies[i] === replies[i - 1]) issues.push('adjacent_repeat');
-  if (category === 'rental' && /^(solo_screenshot|family_advice|city_advice|rental_|leasing_switch)/.test(last?.name ?? '') && !last?.completedRequestId && /אני מאשר/.test(rows.at(-1)?.message ?? '')) issues.push('rental_not_completed');
+  if (replies.some(reply => replies.filter(other => other === reply).length >= 3)) issues.push('repeated_reply_three_times');
+  if (category === 'rental' && /^(solo_screenshot|family_advice|city_advice|rental_|leasing_switch)/.test(last?.name ?? '') && !last?.completedRequestId && /אני מאשר|i confirm/i.test(rows.at(-1)?.message ?? '')) issues.push('rental_not_completed');
   if (category === 'commercial' && !last?.handedOff) issues.push('commercial_not_handed_off');
   if (category === 'service' && !last?.handedOff) issues.push('service_not_handed_off');
   return [...new Set(issues)];
