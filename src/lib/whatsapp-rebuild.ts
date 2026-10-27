@@ -386,7 +386,8 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
         ? (he ? 'כדי לתת תשובה מדויקת על זמינות נבדוק דגמים מסוימים שמתאימים לסוג ולתקציב שציינת. נציג SmartCar יוכל לחזור עם האפשרויות העדכניות.' : 'Availability needs checking for specific cars matching the type and budget you gave. A SmartCar representative can follow up with current options.')
         : (he ? 'נשמח לבדוק דגמים שמתאימים לסוג הרכב ולתקציב שציינת. תרצה שנציג SmartCar יחזור אליך עם האפשרויות הזמינות?' : 'We can check models matching the type and budget you gave. Would you like a SmartCar representative to follow up with available options?'), escalate: false };
     }
-    return { reply: he ? `נשמח לבדוק אילו רכבים מתאימים לכם. ${hasType ? 'מה התקציב שתרצו שנביא בחשבון?' : 'איזה סוג רכב מעניין אתכם?'}` : `We will be happy to check suitable cars. ${hasType ? 'What budget should we consider?' : 'What kind of car interests you?'}`, escalate: false };
+    if (hasType) return { reply: he ? 'כדי לענות על זמינות צריך לבדוק רכב מסוים. נוכל לחפש רכב מהסוג שמעניין אותך, ואם תציין טווח תקציב נוכל לצמצם את האפשרויות.' : 'Availability needs checking for a specific car. We can look for the type you want, and a budget range would help narrow the options.', escalate: false };
+    return { reply: he ? 'נשמח לבדוק אילו רכבים מתאימים לכם. איזה סוג רכב מעניין אתכם?' : 'We will be happy to check suitable cars. What kind of car interests you?', escalate: false };
   }
   if (/נסיעת מבחן|test drive/i.test(input)) {
     const requested = /רוצה (?:לקבוע|לתאם|נסיעת מבחן)|תתאמו|תקבעו|book|schedule|arrange/i.test(input);

@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-27 — Manual review of the first clean undecided-purchase replay caught a semantic repeat: after asking for a budget, the bot answered “יש רכב זמין עכשיו?” by asking for the same budget again. It now explains that availability requires checking a specific car and offers to narrow options using a budget, without restating the question. Regression covers the follow-up; live replay remains required.
+
 2026-10-27 — A live purchase chat with a customer undecided on vehicle type repeated the exact type question three times, ignored “מה אתה מציע למשפחה?”, and kept asking for a type after the budget was supplied. The sale flow now accepts uncertainty, recommends a family group conditionally for family use, moves to budget or representative help, and acknowledges a later explicit type choice. The full conversation is a regression; live replay remains required.
 
 2026-10-27 — Manual review of the apparently clean SUV sale replay found that “תעבירו את הבקשה” was ignored after a test-drive question; only the later “תודה” caused handoff, hiding the failure from the final-state check. Direct requests to transfer the enquiry now hand off immediately. The regression includes the intervening test-drive turn, and the live evaluator checks handoff on the exact transfer turn. Live replay remains required.

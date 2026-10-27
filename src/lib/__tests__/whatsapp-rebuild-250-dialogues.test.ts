@@ -429,6 +429,8 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(next.reply).not.toContain('איזה סוג רכב');
     const stock = await chat.send('יש רכב זמין עכשיו?');
     expect(stock.reply).not.toContain('איזה סוג רכב');
+    expect(stock.reply).not.toContain('מה התקציב');
+    expect(stock.reply).toContain('זמינות');
     const budget = await chat.send('התקציב סביב 80 אלף');
     expect(budget.reply).not.toContain('איזה סוג רכב');
     const vehicle = await chat.send('רכב משפחתי');
