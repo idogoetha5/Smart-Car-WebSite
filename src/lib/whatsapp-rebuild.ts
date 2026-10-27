@@ -768,6 +768,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const handoffKind = state.handoffKind ?? (state.safetyAlertAt && (!state.handoffAt || Date.parse(state.safetyAlertAt) >= Date.parse(state.handoffAt)) ? 'safety' : state.interest ? 'commercial' : 'booking_change');
     const cancellationPending = handoffKind === 'booking_change' && state.history.some(entry => entry.from === 'customer' && cancellationRequest(entry.text));
     const hasBookingReference = state.history.some(entry => entry.from === 'customer' && /מספר\s+ה?הזמנה\s*[:#]?\s*[A-Z0-9-]*\d[A-Z0-9-]{2,}|booking\s+(?:number|reference)\s*[:#]?\s*[A-Z0-9-]*\d[A-Z0-9-]{2,}/i.test(entry.text));
+    const billingIssue = handoffKind === 'service_issue' && state.history.some(entry => entry.from === 'customer' && /חויבתי פעמיים|חיוב כפול|שילמתי פעמיים|charged twice|double charg/i.test(entry.text));
     const safetyKind = state.safetyKind ?? (state.history.some(entry => entry.from === 'customer' && /תאונה|התנגשות|accident|collision|crash/i.test(entry.text)) ? 'accident' : 'breakdown');
     reply = handoffKind === 'commercial' && state.interest && /מה כלול|מה כולל|תשלום ראשוני|מקדמה|מחיר|כמה עולה|נסיעת מבחן|what.*included|initial payment|down payment|price|test drive/i.test(input)
       ? commercialReply(input, state).reply
@@ -806,6 +807,18 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         ? (he ? `נציג SmartCar יחזור אליכם בהקדם. אם העניין דחוף, אפשר להתקשר עכשיו ל־${OFFICE_PHONE}.` : `A SmartCar representative will follow up as soon as possible. If it is urgent, please call ${OFFICE_PHONE} now.`)
       : /מספר\s+ה?הזמנה\s*[:#]?\s*[A-Z0-9-]*\d[A-Z0-9-]{2,}|booking\s+(?:number|reference)\s*[:#]?\s*[A-Z0-9-]*\d[A-Z0-9-]{2,}/i.test(input)
         ? (he ? 'תודה, קיבלנו את מספר ההזמנה וצירפנו אותו לפנייה.' : 'Thank you, we have added your booking reference to the enquiry.')
+      : billingIssue && /מה הצעד הבא|מה עושים עכשיו|איך ממשיכים|what(?: is)? next|next step/i.test(input)
+        ? /שני החיובים|both charges/i.test(lastBotReply)
+          ? (he ? 'כרגע לא נדרשת מכם פעולה נוספת. אם יש אסמכתא לחיוב הכפול, כדאי לשמור אותה לבדיקת הנציג.' : 'There is nothing else you need to do now. If you have a record of the duplicate charge, keep it for the representative to review.')
+          : (he ? 'נציג SmartCar יבדוק את פרטי ההזמנה מול שני החיובים ויחזור אליכם עם תשובה. אם יש לכם תאריכים או סכומים של החיובים, אפשר לציין אותם כאן.' : 'A SmartCar representative will review the booking and both charges, then follow up. You can share the charge dates and amounts here if available.')
+      : billingIssue && /מה (?:כדאי|צריך) להכין|כדאי להכין|יש (?:משהו|פרטים).{0,15}להכין|what.*(?:prepare|have ready)/i.test(input)
+        ? (he ? `${hasBookingReference ? 'מספר ההזמנה כבר צורף לפנייה.' : 'כדאי לציין את מספר ההזמנה.'} אם יש אסמכתאות לשני החיובים, שמרו אותן לבדיקה. אין צורך לשלוח מספר כרטיס מלא.` : `${hasBookingReference ? 'Your booking reference is already included.' : 'Please provide the booking reference.'} Keep records of both charges for review. Do not send a full card number.`)
+      : billingIssue && /אסמכתא|קבלה|צילום מסך|receipt|screenshot|proof/i.test(input)
+        ? (he ? 'כן, אסמכתאות לשני החיובים יעזרו לנציג לבדוק את המקרה. אפשר לציין גם את התאריכים והסכומים; אין צורך לשלוח מספר כרטיס מלא.' : 'Yes, records of both charges will help the representative review this. You can include their dates and amounts; do not send a full card number.')
+      : billingIssue && /כמה זמן לוקח|מתי (?:תבדקו|אקבל תשובה)|how long.*(?:check|review)/i.test(input)
+        ? (he ? `נציג SmartCar יחזור אליכם לאחר בדיקת החיובים. אם זה דחוף, אפשר להתקשר ל־${OFFICE_PHONE}.` : `A SmartCar representative will follow up after reviewing the charges. If urgent, call ${OFFICE_PHONE}.`)
+      : billingIssue && /תעביר|נציג|pass.*representative|send.*team/i.test(input)
+        ? (he ? 'הפנייה על שני החיובים כבר הועברה לנציג SmartCar. הוא יחזור אליכם לאחר הבדיקה.' : 'The enquiry about both charges has been passed to a SmartCar representative. They will follow up after review.')
       : handoffKind === 'safety'
         ? (he ? `תודה על העדכון. אל תמשיכו לנסוע אם יש חשש בטיחותי; לתיאום עזרה התקשרו עכשיו ל־${OFFICE_PHONE}.` : `Thanks for the update. Do not keep driving if the car may be unsafe; call ${OFFICE_PHONE} now to arrange help.`)
         : handoffKind === 'commercial' && state.interest
