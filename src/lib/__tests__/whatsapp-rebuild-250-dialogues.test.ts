@@ -383,6 +383,25 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(prepare.reply).not.toBe(next.reply);
   });
 
+  it('keeps roadside breakdown advice separate from accident reporting', async () => {
+    const chat = conversation(416);
+    await chat.send('הרכב לא מניע ואני בצד הדרך');
+    const next = await chat.send('מה הצעד הבא?');
+    expect(next.reply).toContain('עזרה או גרר');
+    expect(next.reply).not.toMatch(/תאונה|דוח תאונה/);
+  });
+
+  it('keeps a cancellation labelled correctly after handoff', async () => {
+    const chat = conversation(417);
+    await chat.send('אני רוצה לבטל את ההזמנה שלי');
+    await chat.send('מספר הזמנה 123456');
+    const next = await chat.send('מה הצעד הבא?');
+    expect(next.reply).toContain('בקשת הביטול');
+    expect(next.reply).not.toContain('בקשת השינוי');
+    const prepare = await chat.send('יש משהו שכדאי להכין?');
+    expect(prepare.reply).toContain('מספר ההזמנה שכבר מסרתם');
+  });
+
   it('answers the additional-driver question during a rental consultation', async () => {
     const chat = conversation(408);
     await chat.send('מה אתה ממליץ לאדם אחד לשבוע?');

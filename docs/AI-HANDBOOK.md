@@ -24,6 +24,14 @@ concrete accident reporting steps based on the published terms. Service and
 safety flows may correctly use local deterministic logic without Gemini.
 There are 13 first-pass long chats and six separate replays so far; neither
 number is the 1,500 final-version acceptance target.
+Six further leasing, purchase and accident replays on release `c90a596` show
+the commercial corrections working. The final two first-pass service chats
+found that breakdown next steps falsely mentioned an accident report and a
+cancellation follow-up was mislabelled as a change. Incident kind is now
+stored (with a history fallback for existing state), and cancellation context
+is preserved in follow-up answers. Regression tests pass. Current evidence:
+15 first-pass long chats and 12 replays across changing versions, not 1,500
+acceptance chats on a final release.
 
 2026-10-26 — Added a repeatable 250-dialogue rehearsal covering 50 rental
 requests, 50 advice-to-rental conversations, 50 leasing enquiries, 50 sale

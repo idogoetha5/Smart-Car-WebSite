@@ -26,6 +26,7 @@ const cases = [
 // language and branch details. This is a first volume pass, not human review.
 const RESULT_FILE = resolve(process.env.SMARTCAR_EVAL_RESULTS ?? 'evidence/whatsapp-live-1500.jsonl');
 const DELAY_MS = Math.max(0, Number(process.env.SMARTCAR_EVAL_DELAY_MS ?? 20_000)); // Default: 180 requests/hour, below the public 200/hour limit.
+const START_INDEX = Math.max(0, Number(process.env.SMARTCAR_EVAL_START_INDEX ?? 0));
 const MAX_CASES = Number(process.env.SMARTCAR_EVAL_MAX_CASES ?? 1500);
 const sleep = ms => new Promise(resolveSleep => setTimeout(resolveSleep, ms));
 const cities = ['תל אביב', 'הרצליה', 'ירושלים', 'נתבג', 'רמת גן', 'פתח תקווה', 'חיפה', 'נתניה', 'ראשון לציון', 'רעננה'];
@@ -78,7 +79,7 @@ async function run() {
   mkdirSync(resolve(RESULT_FILE, '..'), { recursive: true });
   const finished = new Set(existsSync(RESULT_FILE)
     ? readFileSync(RESULT_FILE, 'utf8').split('\n').filter(Boolean).map(line => JSON.parse(line).index) : []);
-  for (let index = 0; index < MAX_CASES; index++) {
+  for (let index = START_INDEX; index < MAX_CASES; index++) {
     if (finished.has(index)) continue;
     const { name, messages, category, cycle } = variant(index);
     let state = null;

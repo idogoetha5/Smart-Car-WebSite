@@ -79,3 +79,16 @@ list. Those are actual failures despite reaching a simulated endpoint. The
 source now has focused fixes and regression cases; they need production replay.
 The cumulative first-pass count is 13 distinct long conversations, plus six
 separate replays, not 1,500 final-version passes.
+
+The commercial and accident fixes in release `c90a596` were replayed in six
+long chats on production: two leasing, three purchase, one accident. Their
+full transcripts show that the repeated leasing inclusions answer changed,
+next-step questions did not trigger handoff, purchase process questions were
+answered, and the accident follow-up gave concrete instructions. Two final
+first-pass chats then exposed new service errors: a breakdown was given
+accident-report instructions, and a cancellation follow-up was labelled a
+booking change. The source now stores the safety incident type and keeps
+cancellation wording through follow-up turns; this version still needs a live
+replay. The first-pass collection has 15 long chats, with earlier-release
+failures retained as evidence, plus 12 separate replays. It is not a readiness
+pass for the latest source.

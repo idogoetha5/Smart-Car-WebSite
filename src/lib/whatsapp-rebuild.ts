@@ -20,6 +20,7 @@ export type RebuildState = {
   history: HistoryEntry[];
   interest?: 'leasing' | 'sale';
   safetyAlertAt?: string;
+  safetyKind?: 'accident' | 'breakdown';
   handedOff?: boolean;
   handoffAt?: string;
   handoffKind?: 'safety' | 'booking_change' | 'service_issue' | 'commercial' | 'human';
@@ -580,6 +581,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     state.handedOff = false;
     state.handoffAt = undefined;
     state.handoffKind = undefined;
+    state.safetyKind = undefined;
     state.phase = 'explore';
     state.step = 'menu';
   }
@@ -595,6 +597,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   const incident = safety(input);
   if (incident) {
     state.phase = 'service'; state.handedOff = true; state.handoffAt ??= new Date().toISOString(); state.handoffKind = 'safety';
+    state.safetyKind = incident;
     const recentAlert = state.safetyAlertAt && Date.now() - Date.parse(state.safetyAlertAt) < 24 * 60 * 60 * 1000;
     reply = /גרר|tow|roadside/i.test(input) && recentAlert
       ? (he ? `לתיאום גרר הישארו במקום בטוח והתקשרו עכשיו ל־SmartCar: ${OFFICE_PHONE}.` : `To arrange a tow, stay somewhere safe and call SmartCar now: ${OFFICE_PHONE}.`)
@@ -621,6 +624,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else reply = he ? 'בשמחה אעזור עם בקשת הביטול. מה מספר ההזמנה?' : 'I can help with the cancellation request. What is your booking reference?';
   } else if (state.handedOff) {
     const handoffKind = state.handoffKind ?? (state.safetyAlertAt && (!state.handoffAt || Date.parse(state.safetyAlertAt) >= Date.parse(state.handoffAt)) ? 'safety' : state.interest ? 'commercial' : 'booking_change');
+    const cancellationPending = handoffKind === 'booking_change' && state.history.some(entry => entry.from === 'customer' && cancellationRequest(entry.text));
+    const safetyKind = state.safetyKind ?? (state.history.some(entry => entry.from === 'customer' && /תאונה|התנגשות|accident|collision|crash/i.test(entry.text)) ? 'accident' : 'breakdown');
     reply = handoffKind === 'commercial' && state.interest && /מה כלול|מה כולל|תשלום ראשוני|מקדמה|מחיר|כמה עולה|נסיעת מבחן|what.*included|initial payment|down payment|price|test drive/i.test(input)
       ? commercialReply(input, state).reply
       : handoffKind === 'commercial' && state.interest && /רכב (?:משפחתי|קטן|פנאי|קומפקטי)|\b(?:family car|small car|SUV|compact car)\b|\d[\d, .]*\s*(?:קמ|ק״מ|km)/i.test(input)
@@ -628,11 +633,17 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : handoffKind === 'commercial' && /תעביר|נציג|pass.*representative|send.*team/i.test(input)
         ? (he ? 'הפנייה כבר הועברה להמשך טיפול. נציג SmartCar יחזור אליכם.' : 'Your enquiry has already been passed on. A SmartCar representative will follow up.')
       : handoffKind === 'safety' && /מה הצעד הבא|מה עושים עכשיו|איך ממשיכים|what (?:next|should I do)|next step/i.test(input)
-        ? (he ? `התקשרו עכשיו ל־SmartCar במספר ${OFFICE_PHONE}, מסרו את מיקומכם ואת מספר ההזמנה ודווחו על התאונה בתוך שעה. לאחר מכן מלאו דוח תאונה. אם יש סכנה או נפגעים, פנו קודם לגורמי החירום.` : `Call SmartCar now on ${OFFICE_PHONE} with your location and booking reference, and report the accident within one hour. Then complete an accident report. If anyone is hurt or in danger, contact emergency services first.`)
+        ? safetyKind === 'accident'
+          ? (he ? `התקשרו עכשיו ל־SmartCar במספר ${OFFICE_PHONE}, מסרו את מיקומכם ואת מספר ההזמנה ודווחו על התאונה בתוך שעה. לאחר מכן מלאו דוח תאונה. אם יש סכנה או נפגעים, פנו קודם לגורמי החירום.` : `Call SmartCar now on ${OFFICE_PHONE} with your location and booking reference, and report the accident within one hour. Then complete an accident report. If anyone is hurt or in danger, contact emergency services first.`)
+          : (he ? `התקשרו עכשיו ל־SmartCar במספר ${OFFICE_PHONE}, מסרו את המיקום ומספר ההזמנה כדי שנתאם עזרה או גרר. אל תמשיכו לנסוע אם הרכב אינו בטוח; במקרה של סכנה מיידית פנו לגורמי החירום.` : `Call SmartCar now on ${OFFICE_PHONE} with your location and booking reference so we can arrange help or a tow. Do not drive if the car is unsafe; contact emergency services if there is immediate danger.`)
       : handoffKind === 'safety' && /מה (?:כדאי|צריך) להכין|כדאי להכין|יש (?:משהו|פרטים).{0,15}להכין|איזה פרטים|what (?:should I|do I need to) (?:prepare|have ready)|what details/i.test(input)
         ? (he ? `כדאי להכין את מספר ההזמנה, המיקום ותיאור קצר של מה שקרה. התקשרו ל־SmartCar ב־${OFFICE_PHONE} כדי לדווח ולתאם את המשך הטיפול.` : `Have your booking reference, location and a short description of what happened ready. Call SmartCar on ${OFFICE_PHONE} to report it and arrange the next steps.`)
       : handoffKind === 'safety' && /אני במקום בטוח|אנחנו במקום בטוח|I'm safe|we are safe/i.test(input)
         ? (he ? `טוב שאתם במקום בטוח. התקשרו עכשיו ל־SmartCar ב־${OFFICE_PHONE} כדי לדווח על האירוע ולתאם עזרה.` : `I am glad you are safe. Call SmartCar now on ${OFFICE_PHONE} to report the incident and arrange help.`)
+      : cancellationPending && /מה הצעד הבא|מה עושים עכשיו|איך ממשיכים|next step|what next/i.test(input)
+        ? (he ? `בקשת הביטול הועברה לנציג SmartCar. הוא יבדוק אותה ויחזור אליכם; הביטול ייכנס לתוקף רק לאחר אישור.` : `Your cancellation request has been passed to a SmartCar representative. They will review it and follow up; cancellation takes effect only after confirmation.`)
+      : cancellationPending && /מה (?:כדאי|צריך) להכין|כדאי להכין|יש (?:משהו|פרטים).{0,15}להכין|what.*(?:prepare|have ready)/i.test(input)
+        ? (he ? 'מספר ההזמנה שכבר מסרתם שמור בפנייה. אם הפנייה כוללת חיוב, כדאי להכין גם את פרטי החיוב כדי שנציג SmartCar יוכל לבדוק הכול יחד.' : 'The booking reference you gave is included in the enquiry. If it also concerns a charge, have the charge details ready so the SmartCar representative can review both together.')
       : handoffKind === 'safety' && /גרר|tow|roadside/i.test(input)
       ? (he ? `לתיאום גרר, הישארו במקום בטוח והתקשרו עכשיו ל־SmartCar: ${OFFICE_PHONE}.` : `To arrange a tow, stay somewhere safe and call SmartCar now: ${OFFICE_PHONE}.`)
       : /חויבתי|חיוב כפול|שילמתי פעמיים|charged twice|double charg/i.test(input)
