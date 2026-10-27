@@ -568,6 +568,19 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(again.reply).not.toBe(next.reply);
   });
 
+  it('recognizes a roadside location stated as I am in a city', async () => {
+    const chat = conversation(420);
+    await chat.send('הרכב לא מניע בצד הדרך');
+    await chat.send('אני במקום בטוח');
+    const next = await chat.send('מה הצעד הבא?');
+    const help = await chat.send('צריך עזרה');
+    const location = await chat.send('אני בתל אביב ליד התחנה');
+    expect(help.reply).toContain('לתאם עזרה לרכב');
+    expect(location.reply).toContain('קיבלנו את המיקום');
+    expect(location.reply).not.toBe(help.reply);
+    expect(location.reply).not.toBe(next.reply);
+  });
+
   it('acknowledges a roadside location instead of repeating the previous safety answer', async () => {
     const chat = conversation(407);
     await chat.send('הרכב לא מניע ואני בצד הדרך');
