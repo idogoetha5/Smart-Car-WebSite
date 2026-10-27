@@ -387,6 +387,23 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(repeat.reply).toContain('כבר הועברה');
   });
 
+  it('retains low-mileage sale preference and advances the next step without recycling questions', async () => {
+    const chat = conversation(436, { ...modelReading, route: 'sale' });
+    await chat.send('מחפש רכב משומש קטן');
+    await chat.send('עד 60 אלף');
+    const firstService = await chat.send('מה כולל השירות?');
+    const preference = await chat.send('חשוב לי קילומטראז נמוך');
+    expect(preference.reply).toContain('קילומטראז׳ נמוך');
+    expect(preference.reply).not.toContain('יש שנתון או קילומטראז׳ שחשובים');
+    const next = await chat.send('מה השלב הבא?');
+    expect(next.reply).toContain('ההעדפה לקילומטראז׳ נמוך');
+    expect(next.reply).toContain('נציג');
+    const secondService = await chat.send('מה כולל השירות?');
+    expect(secondService.reply).not.toBe(firstService.reply);
+    const handoff = await chat.send('כן, שיחזרו אליי');
+    expect(handoff.escalate).toBe(true);
+  });
+
   it('answers purchase process questions and waits for explicit handoff', async () => {
     const chat = conversation(414);
     await chat.send('אני רוצה לקנות רכב משפחתי עד 80 אלף שקל');
