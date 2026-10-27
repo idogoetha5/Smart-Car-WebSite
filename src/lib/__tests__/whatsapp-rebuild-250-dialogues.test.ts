@@ -373,6 +373,20 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(handoff.state.handedOff).toBe(true);
   });
 
+  it('hands off an explicit leasing offer request instead of asking consent again', async () => {
+    const chat = conversation(435, { ...modelReading, reply: 'תרצו שנציג יחזור אליכם עם הצעה?' });
+    await chat.send('ליסינג לרכב קטן לשלוש שנים');
+    await chat.send('20 אלף קמ בשנה');
+    await chat.send('תן לי מחיר חודשי');
+    const quote = await chat.send('אפשר לקבל הצעה?');
+    expect(quote.escalate).toBe(true);
+    expect(quote.state.handedOff).toBe(true);
+    expect(quote.reply).toContain('נציג SmartCar');
+    expect(quote.reply).not.toContain('תרצו');
+    const repeat = await chat.send('כן, נציג יכול לחזור אליי');
+    expect(repeat.reply).toContain('כבר הועברה');
+  });
+
   it('answers purchase process questions and waits for explicit handoff', async () => {
     const chat = conversation(414);
     await chat.send('אני רוצה לקנות רכב משפחתי עד 80 אלף שקל');

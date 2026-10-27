@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-27 — Manual review of a live leasing price discussion found that an explicit “אפשר לקבל הצעה?” received yet another consent question after the bot had already offered to prepare one. The core now treats a direct proposal request as consent to pass the enquiry to a representative and acknowledges any later confirmation as already sent. Regression includes the post-handoff turn; production replay remains required.
+
 2026-10-27 — The next live private-leasing chat was automatically marked clean but manual review found that “לא יודע איזה סוג רכב” triggered a rental-date response and “מה אתה ממליץ?” repeated the vehicle-type question. The commercial path now handles an undecided car group, compares compact and family starting points without promising a model, and makes the mileage next-step answer informative instead of repeating the same question. Rental-date uncertainty handling no longer overrides a leasing or sale conversation. The live evaluator now flags rental-date drift inside commercial chats; live replay remains required.
 
 2026-10-27 — A live business-leasing chat failed to advance: “רכב פנאי” was ignored, the vehicle question was repeated, and “כן, תעבירו להצעה” led to rental-date questions rather than a leasing handoff. Leasing now recognizes the SUV preference and the proposal request, and retains the commercial route even if Gemini labels the follow-up as booking. A full regression covers the handoff; live replay is required.
