@@ -418,6 +418,26 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(handoff.state.handedOff).toBe(true);
   });
 
+  it('develops an undecided family purchase instead of repeating the car-type question', async () => {
+    const chat = conversation(438, { ...modelReading, route: 'sale' });
+    await chat.send('אני חושב לקנות רכב');
+    const unsure = await chat.send('לא החלטתי על סוג');
+    expect(unsure.reply).toContain('אין צורך לבחור');
+    const family = await chat.send('מה אתה מציע למשפחה?');
+    expect(family.reply).toContain('רכב משפחתי');
+    const next = await chat.send('מה צריך בשביל להתקדם?');
+    expect(next.reply).not.toContain('איזה סוג רכב');
+    const stock = await chat.send('יש רכב זמין עכשיו?');
+    expect(stock.reply).not.toContain('איזה סוג רכב');
+    const budget = await chat.send('התקציב סביב 80 אלף');
+    expect(budget.reply).not.toContain('איזה סוג רכב');
+    const vehicle = await chat.send('רכב משפחתי');
+    expect(vehicle.reply).not.toContain('איזה סוג רכב');
+    const handoff = await chat.send('תעביר לנציג שיעזור לי');
+    expect(handoff.escalate).toBe(true);
+    expect(handoff.state.handedOff).toBe(true);
+  });
+
   it('answers purchase process questions and waits for explicit handoff', async () => {
     const chat = conversation(414);
     await chat.send('אני רוצה לקנות רכב משפחתי עד 80 אלף שקל');
