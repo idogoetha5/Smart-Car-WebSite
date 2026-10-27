@@ -260,7 +260,8 @@ function applyPromptedLocation(input: string, state: RebuildState, lastBot: stri
     if (state.booking.pickupLocation) state.booking.returnLocation = state.booking.pickupLocation;
     return;
   }
-  if (!/^[\p{L}'׳״ -]{2,45}$/u.test(location) || /^(?:כן|לא|לא יודע|תודה|yes|no|not sure)$/i.test(location)) return;
+  if (!/^[\p{L}'׳״ -]{2,45}$/u.test(location) || location.split(/\s+/).length > 3 || /^(?:כן|לא|לא יודע|תודה|yes|no|not sure)$/i.test(location)
+    || /רכב|מעדיף|בעצם|רוצה|צריך|מחפש|מחיר|תאריך|זמינ|שאלה|ליסינג|לקנות|rent|prefer|price|booking/i.test(location)) return;
   // A sentence containing both locations has already been parsed by
   // applyExplicitLocations; it must never become the pickup-city value.
   if (/איסוף|לאסוף|להחזיר|החזרה|pick.?up|drop.?off|return/i.test(location)) return;
@@ -282,6 +283,8 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   const luggageCount = statedCount(luggage?.[1] ?? '');
   if (passengerCount !== null) draft.passengers = passengerCount;
   if (luggageCount !== null) draft.luggage = luggageCount;
+  if (/אנחנו זוג|זוג עם|שני אנשים|שני נוסעים|we are a couple|two of us/i.test(input)) draft.passengers = 2;
+  if (draft.luggage === undefined && /מזוודה(?!ות)|תיק נסיעה אחד|one suitcase|one bag/i.test(input)) draft.luggage = 1;
   if (/אדם אחד|איש אחד|נוסע אחד|נוסעת אחת|אני לבד|(?:^|\s)לבד(?:\s|$)|\b(?:one person|solo|travelling alone|traveling alone)\b/i.test(input)) draft.passengers = 1;
 }
 
@@ -323,7 +326,10 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
       || /שהצוות|שיבדקו|תבדקו|תעביר|לפי מה שכבר|אין לי העדפה|אין העדפה|לא משנה|no preference|go ahead|please do/i.test(input));
   const asksTeamReview = /תעביר(?:ו)?\s+(?:את זה|את הפרטים|לצוות)|שהצוות יבדוק|שיבדקו בשבילי|שהצוות יחזור אלי|שיחזרו אלי|תחזרו אלי|(?:have|ask) the team (?:check|review)|pass (?:this|it|the details) to (?:the )?team|send (?:this|it) to (?:the )?team|(?:team|someone).{0,15}call me back/i.test(input);
   if (state.interest === 'leasing') {
+    if (/הבדל|difference|compare/i.test(input) && /השכרה|לשכור|rent/i.test(input)) return { reply: he ? 'השכרה מתאימה בדרך כלל לתקופה קצרה וגמישה יותר; ליסינג הוא מסלול לתקופה ארוכה יותר עם תנאים ותשלום שנקבעים בהצעה. אם מדובר בחודש אחד, נוכל לבדוק השכרה. לכמה זמן תצטרך את הרכב?' : 'Rental usually fits a shorter, more flexible period; leasing is a longer plan with terms and payments set in an offer. For a month, we can check a rental. How long do you need the car?', escalate: false };
     if (/הבדל|difference|compare/i.test(input)) return { reply: he ? 'ליסינג פרטי מיועד לשימוש אישי, ועסקי לצורכי העסק. ההתחייבויות, השירותים והמחיר נקבעים רק בהצעה ובחוזה של המסלול המתאים. תרצה לבדוק מסלול פרטי או עסקי?' : 'Private leasing serves personal use; business leasing serves a company. Commitments, services and price are set in the specific offer and contract. Which route would you like us to check?', escalate: false };
+    if (/מה כלול|מה כולל|מה מקבלים|what(?:'s| is) included|what does it include/i.test(input)) return { reply: he ? 'מה שכלול בליסינג תלוי במסלול ובהצעה האישית, למשל שירותים, ביטוח ומגבלת קילומטרים. נציג SmartCar יפרט את התנאים בהצעה לפני החלטה. תרצה שנכין הצעה לפי הפרטים שכבר מסרת?' : 'What is included depends on the plan and personal offer, including services, insurance and mileage. A SmartCar representative will set out the terms before you decide. Would you like an offer using the details you gave?', escalate: false };
+    if (/תשלום ראשוני|מקדמה|דמי פתיחה|initial payment|down payment|deposit/i.test(input)) return { reply: he ? 'תשלום ראשוני, אם נדרש, יופיע בהצעה של המסלול והרכב שתבחרו. נשמח לצרף את השאלה להצעה האישית כדי שתקבלו פירוט ברור.' : 'Any initial payment will be stated in the offer for your chosen plan and car. We can include this question so the proposal clearly sets out the terms.', escalate: false };
     if (/מחיר|חודשי|תשלום|כמה|price|monthly|cost/i.test(input)) return { reply: he ? 'התשלום החודשי תלוי במסלול, בסוג הרכב, בתקופה ובקילומטראז׳. נשמח להכין לכם הצעה אישית לפי הפרטים שכבר מסרתם.' : 'The monthly payment depends on the plan, vehicle, term and mileage. We will be happy to prepare a personal offer using the details you have given.', escalate: false };
     if (acceptsTeamCheck || asksTeamReview || /הצעה|צעד הבא|להתקדם|תתקדמו|נסגור|יאללה|quote|next step|proposal|let's close/i.test(input)) return { reply: he ? `תודה, קיבלנו את הפרטים להצעת ליסינג אישית. נציג SmartCar יחזור אליכם להמשך; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Thank you. We have your details for a personal leasing offer. A SmartCar representative will follow up; you can also call ${OFFICE_PHONE}.`, escalate: true };
     if (!/לשנה|שנה|שנתיים|שנים|חודש|year|month/i.test(context)) return { reply: he ? 'ב־SmartCar אפשר לבדוק ליסינג פרטי או עסקי. לכמה זמן תרצה את הרכב?' : 'SmartCar can check private or business leasing. What term do you have in mind?', escalate: false };
@@ -332,10 +338,11 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
     return { reply: he ? 'יש לנו את התקופה, הקילומטראז׳ וסוג הרכב שביקשתם. תרצו שנציג SmartCar יחזור אליכם עם הצעת ליסינג?' : 'We have the term, mileage and vehicle type you requested. Would you like a SmartCar representative to follow up with a leasing offer?', escalate: false };
   }
   if (acceptsTeamCheck || asksTeamReview) return { reply: he ? `תודה, קיבלנו את ההעדפות שלכם לרכישת רכב. נציג SmartCar יחזור אליכם עם האפשרויות המתאימות; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Thank you. We have your vehicle preferences. A SmartCar representative will follow up with suitable options; you can also call ${OFFICE_PHONE}.`, escalate: true };
-  if (/דגמים|מלאי|זמינ|מה יש לכם|איזה רכבים יש|what cars|models|stock|available/i.test(input)) {
-    const hasType = /משפחת|קומפקט|עירונ|ג[׳'י]?יפ|סדאן|family|compact|suv|sedan/i.test(context);
-    const hasBudget = /תקציב|אלף|שקל|₪|budget|shekel/i.test(context);
-    if (hasType && hasBudget) return { reply: he ? 'נשמח לבדוק דגמים שמתאימים להעדפות שכבר מסרתם. תרצו שנציג SmartCar יחזור אליכם עם אפשרויות?' : 'We will be happy to check models that match the preferences you shared. Would you like a SmartCar representative to follow up with options?', escalate: false };
+  const hasType = /משפחת|קומפקט|עירונ|פנאי|קטן|ג[׳'י]?יפ|סדאן|family|compact|small car|suv|sedan/i.test(context);
+  const hasBudget = /תקציב|אלף|שקל|₪|budget|shekel/i.test(context);
+  if (/מחיר|כמה עולה|עלות|price|cost/i.test(input)) return { reply: he ? `המחיר תלוי ברכב המסוים, במצבו ובתנאי העסקה. ${hasBudget ? 'נוכל לבדוק אפשרויות שמתאימות לתקציב שכבר ציינת. תרצה שנציג SmartCar יחזור אליך עם הצעה?' : 'איזה תקציב תרצה שנביא בחשבון?'}` : `The price depends on the specific car, its condition and the sale terms. ${hasBudget ? 'We can check options within the budget you gave. Would you like a SmartCar representative to follow up with an offer?' : 'What budget would you like us to consider?'}`, escalate: false };
+  if (/דגמים|מלאי|זמינ|זמין|פנוי|אפשרויות|מה יש לכם|איזה רכבים יש|מה יש|what cars|what options|models|stock|available/i.test(input)) {
+    if (hasType && hasBudget) return { reply: he ? 'נשמח לבדוק דגמים שמתאימים לסוג הרכב ולתקציב שציינת. תרצה שנציג SmartCar יחזור אליך עם האפשרויות הזמינות?' : 'We can check models matching the type and budget you gave. Would you like a SmartCar representative to follow up with available options?', escalate: false };
     return { reply: he ? `נשמח לבדוק אילו רכבים מתאימים לכם. ${hasType ? 'מה התקציב שתרצו שנביא בחשבון?' : 'איזה סוג רכב מעניין אתכם?'}` : `We will be happy to check suitable cars. ${hasType ? 'What budget should we consider?' : 'What kind of car interests you?'}`, escalate: false };
   }
   if (/נסיעת מבחן|test drive/i.test(input)) {
@@ -343,8 +350,8 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
     return { reply: he ? `${requested ? 'קיבלנו את הבקשה לנסיעת מבחן. ' : ''}נשמח לתאם נסיעת מבחן בכפוף לזמינות הרכב ולאישור התור. אפשר להתקשר ל־${OFFICE_PHONE}.` : `${requested ? 'We have your test drive request. ' : ''}We will be happy to arrange a test drive, subject to vehicle availability and appointment confirmation. You can call ${OFFICE_PHONE}.`, escalate: requested };
   }
   if (/מה תצטרכו|לבדוק|הצעה|נסגור|יאללה|תתקדמו|next step|what do you need|quote|let's close/i.test(input)) return { reply: he ? `תודה, קיבלנו את הפרטים לבדיקת רכישה. נציג SmartCar יחזור אליכם עם האפשרויות המתאימות; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Thank you. We have your purchase enquiry. A SmartCar representative will follow up with suitable options; you can also call ${OFFICE_PHONE}.`, escalate: true };
-  if (!/משפחת|קומפקט|עירונ|ג[׳'י]?יפ|סדאן|family|compact|suv|sedan/i.test(context)) return { reply: he ? 'איזה סוג רכב תרצה לקנות?' : 'What kind of car would you like to buy?', escalate: false };
-  if (!/תקציב|אלף|שקל|₪|budget|shekel/i.test(context)) return { reply: he ? 'איזה תקציב תרצה שנבדוק?' : 'What budget should we check?', escalate: false };
+  if (!hasType) return { reply: he ? 'איזה סוג רכב תרצה לקנות?' : 'What kind of car would you like to buy?', escalate: false };
+  if (!hasBudget) return { reply: he ? 'איזה תקציב תרצה שנבדוק?' : 'What budget should we check?', escalate: false };
   return { reply: he ? 'רשמתי את סוג הרכב והתקציב שציינתם. יש שנתון או קילומטראז׳ שחשובים לכם, או שתרצו שנציג SmartCar יחזור אליכם עם אפשרויות?' : 'I have the vehicle type and budget you mentioned. Do you have a preferred year or mileage, or would you like a SmartCar representative to follow up with options?', escalate: false };
 }
 
@@ -372,6 +379,18 @@ function direction(reading: BotReading | null, draft: BookingDraft, input: strin
 
 function advice(input: string, state: RebuildState, reading: BotReading | null): string {
   const he = state.locale === 'he';
+  if (explicitDateRange(input) && state.booking.pickupDate && state.booking.returnDate) return he
+    ? `הבנתי את תאריכי האיסוף וההחזרה. ${state.booking.pickupLocation ? question('returnLocation', 'he') : question('pickupLocation', 'he')}`
+    : `I have the pickup and return dates. ${state.booking.pickupLocation ? question('returnLocation', 'en') : question('pickupLocation', 'en')}`;
+  if (state.booking.pickupLocation && state.booking.returnLocation && /איסוף|לאסוף|החזרה|להחזיר|pick.?up|drop.?off|return/i.test(input)) {
+    const next = state.booking.passengers === 1
+      ? (he ? 'כמה ציוד תביא לנסיעה?' : 'How much luggage will you bring?')
+      : (he ? 'תרצו שנתקדם לבקשה עם הפרטים שמסרתם?' : 'Would you like to proceed with the details you gave?');
+    return he ? `הבנתי: איסוף ב${state.booking.pickupLocation} והחזרה ב${state.booking.returnLocation}. ${next}` : `Got it: pickup in ${state.booking.pickupLocation} and return in ${state.booking.returnLocation}. ${next}`;
+  }
+  if (/מה חשוב לבדוק ברכב קטן|מה חשוב ברכב קטן|what(?: should I| to) (?:check|look for) in a (?:small|compact) car/i.test(input)) return he
+    ? 'ברכב קטן כדאי לבדוק נוחות ישיבה, מקום לציוד, סוג גיר ותנאי ההשכרה. את המקום למזוודות נוודא בדגם המסוים. מה הכי חשוב לך מביניהם?'
+    : 'In a small car, check seating comfort, luggage space, gearbox and rental terms. We will confirm luggage fit for the actual model. Which matters most to you?';
   if (state.booking.passengers === 1 && state.booking.pickupDate && /מה אתה ממליץ|מה את ממליצה|מה היית ממליץ|איזה רכב כדאי|what (?:car|vehicle) (?:do you )?recommend/i.test(input)) return he
     ? `לנסיעה לבד${state.booking.pickupLocation ? ` עם איסוף ב${state.booking.pickupLocation}` : ''} הייתי מתחיל ברכב קומפקטי. אם יש ציוד רב או חשובה לך יותר נוחות, אפשר לבדוק גם משפחתית. כמה ציוד תביא?`
     : `For a solo trip${state.booking.pickupLocation ? ` picking up in ${state.booking.pickupLocation}` : ''}, I would start with a compact car. If you have a lot of luggage or want more space, we can check a family car. How much luggage will you bring?`;
@@ -387,6 +406,9 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
       : 'A child seat must be fitted in a suitable seat following the car and seat makers’ instructions, never in the boot. We need to check luggage space in the actual model before promising a fit. What dates do you need the car?';
   }
   if (/מזווד|מטען|תא מטען|luggage|suitcase|boot|trunk/i.test(input) && /כמה|נכנס|יספיק|מקום|יכול|fit|space|room|how many/i.test(input)) {
+    if (state.booking.passengers && state.booking.luggage) return he
+      ? `ל־${state.booking.passengers} נוסעים ו־${state.booking.luggage} מזוודות נבדוק את המקום בדגם המסוים לפני שנבטיח התאמה. האם אלה מזוודות גדולות?`
+      : `For ${state.booking.passengers} passengers and ${state.booking.luggage} bags, we will check space in the actual model before promising a fit. Are they large suitcases?`;
     return he
       ? 'המקום למזוודות תלוי בדגם ובגודל המזוודות. כמה נוסעים ומזוודות יהיו? כך נוכל להציע רכב מתאים.'
       : 'Luggage fit depends on the actual model and suitcase sizes. I can suggest a vehicle group to check, but cannot promise fit without checking that car. How many passengers and suitcases will you have?';
@@ -443,6 +465,7 @@ function safeModelReply(reading: BotReading | null, input: string, state: Rebuil
   if (state.booking.returnDate && /באיזה תאריך.{0,25}תחזיר|תאריך החזרה|what date.{0,25}return/i.test(reply)) return null;
   if (state.booking.pickupDate && state.booking.returnDate && asksRentalDates(reply)) return null;
   if (state.booking.pickupLocation && /מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף|עיר האיסוף|where.{0,30}pick.?up/i.test(reply)) return null;
+  if (state.booking.pickupLocation && /(?:מאיפה|איפה|מהו|מה|איזה|which|what|where).{0,35}(?:יעד האיסוף|מקום האיסוף|עיר האיסוף|pick.?up (?:place|city|location))/i.test(reply)) return null;
   if (state.booking.returnLocation && /איפה.{0,30}להחזיר|עיר ההחזרה|where.{0,30}return/i.test(reply)) return null;
   if ((!state.booking.pickupDate || !state.booking.returnDate) && /מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף|עיר האיסוף|איפה.{0,30}להחזיר|עיר ההחזרה|where.{0,30}(?:pick.?up|return)/i.test(reply)) return null;
   if (!state.booking.pickupDate && /תאריכים (?:שכבר )?(?:ציינ|בחרת|שבחרת)|dates (?:you(?:'ve| have) )?(?:already )?(?:mentioned|chosen)/i.test(reply)) return null;
@@ -572,6 +595,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const handoffKind = state.handoffKind ?? (state.safetyAlertAt && (!state.handoffAt || Date.parse(state.safetyAlertAt) >= Date.parse(state.handoffAt)) ? 'safety' : state.interest ? 'commercial' : 'booking_change');
     reply = handoffKind === 'safety' && /גרר|tow|roadside/i.test(input)
       ? (he ? `לתיאום גרר, הישארו במקום בטוח והתקשרו עכשיו ל־SmartCar: ${OFFICE_PHONE}.` : `To arrange a tow, stay somewhere safe and call SmartCar now: ${OFFICE_PHONE}.`)
+      : /חויבתי|חיוב כפול|שילמתי פעמיים|charged twice|double charg/i.test(input)
+        ? (he ? 'תודה שציינת גם את החיוב. צירפנו את הפרטים לפנייה כדי שנציג SmartCar יוכל לטפל בהם יחד עם הבקשה הקודמת.' : 'Thank you for flagging the charge as well. We have added it to your enquiry so a SmartCar representative can review it with your earlier request.')
+      : handoffKind === 'safety' && /כתובת|מיקום|נמצא ב|נמצאת ב|location|address/i.test(input)
+        ? (he ? `תודה, קיבלנו את המיקום וצירפנו אותו לפנייה. לתיאום עזרה דחופה התקשרו עכשיו ל־${OFFICE_PHONE}.` : `Thank you. We have added your location to the enquiry. For urgent help call ${OFFICE_PHONE} now.`)
       : /תודה|thanks|thank you/i.test(input)
       ? (he ? 'בשמחה. שמרו על עצמכם.' : 'You are welcome. Take care.')
       : /מתי.{0,25}(?:חוזר|חוזרים|יחזרו|תענו)|תוך כמה זמן|when.{0,25}(?:call|reply|hear back)|how long.{0,25}(?:response|reply)/i.test(input)
@@ -682,7 +709,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const asksHuman = /(?:דבר|לדבר|נציג|בן אדם|human|representative|person)/i.test(input) && /רוצה|אפשר|need|want|speak/i.test(input);
     const clearlyRental = /לשכור|השכרה|rental|rent/i.test(input);
     const wantsBooking = !declines && !asksHuman && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || acceptsRentalOffer || state.phase === 'booking');
-    const rentalPivot = /מעדיף (?:את ה)?השכרה|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|back to renting/i.test(input);
+    const rentalPivot = /מעדיף (?:את ה)?השכרה|מעדיף לשכור|עדיף לי לשכור|אעדיף לשכור|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|prefer to rent|back to renting/i.test(input);
     const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|(?:רכב|הרכב).{0,35}מלוכלך|לא קיבלתי|(?:מזגן|מיזוג).{0,25}(?:לא עובד|מקולקל)|(?:air conditioning|car ac).{0,25}(?:not working|broken)|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input);
     const statedVehicle = explicitVehicleNeed(input, state.locale);
     if (acceptsRentalOffer && !state.booking.vehicleNeed) {
@@ -691,7 +718,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     }
     const commercialVehicle = reading?.route === 'sale' || reading?.route === 'leasing' || /ליסינג|לקנות|למכירה|לרכישה|buy|purchase|leasing/i.test(input);
     if (statedVehicle && (wantsBooking || state.phase === 'booking' || !commercialVehicle && !state.interest)
-      && (!state.booking.vehicleNeed || /בעצם|מעדיף|במקום|actually|instead|prefer/i.test(input))) state.booking.vehicleNeed = statedVehicle;
+      && (!state.booking.vehicleNeed || /^רכב (?:לנוסע אחד|ל־\d+ נוסעים)|^car for \d+ passengers?/i.test(state.booking.vehicleNeed)
+        || /בעצם|מעדיף|במקום|actually|instead|prefer/i.test(input))) state.booking.vehicleNeed = statedVehicle;
     if (rentalPivot) state.interest = undefined;
     else if (reading?.route === 'leasing' || /ליסינג|leasing/i.test(input)) state.interest = 'leasing';
     else if (reading?.route === 'sale' || state.phase !== 'booking' && /נסיעת מבחן|test drive/i.test(input) || /לקנייה|למכירה|רכב לקנות|רוצה לקנות|לקנות (?:את ה)?רכב|buy (?:a |the )?(?:used |new )?(?:family |compact |small |suv )?(?:car|vehicle)|purchase (?:a |the )?car|car for sale|used car/i.test(input)) state.interest = 'sale';

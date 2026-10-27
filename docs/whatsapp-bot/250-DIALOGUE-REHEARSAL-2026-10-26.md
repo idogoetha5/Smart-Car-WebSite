@@ -42,3 +42,19 @@ and model-reading paths. The core must retain facts without treating advice as
 booking consent, answer the recommendation and uncertainty, and advance only
 when the customer explicitly accepts preparing the request. No claim of 100%
 coverage follows from a passing suite.
+
+## 27 October — real Gemini simulator review
+
+Fifteen different public-demo sessions (122 customer turns, 60 Gemini readings)
+were run against the production site with fictional details. Every simulated
+request/handoff reached an end state, and the API returned no HTTP failures.
+Manual review still found visible faults: generic replies to a leasing
+inclusions question and an up-front-payment question, repeated sale type and
+options questions, a leasing-to-rental switch that stayed on leasing, a vehicle
+correction interpreted as a city, baggage counts asked again after they were
+given, a compact-car question answered with another date prompt, and generic
+replies to a billing complaint or roadside location. The live transcript is
+saved outside the release tree at `/tmp/smartcar-live15-results.jsonl` for this
+session. Targeted regression tests were added, and the fixes require a fresh
+live replay before they count as verified in production. The 250 synthetic
+dialogues were useful for state transitions, not for judging naturalness.

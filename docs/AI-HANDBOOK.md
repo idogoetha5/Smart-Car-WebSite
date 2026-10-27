@@ -21,6 +21,17 @@ follow-up also now gives a specific instruction instead of repeating the prior
 safety line. This entry supersedes any assumption that the 250 scenarios alone
 prove unrestricted conversation quality.
 
+2026-10-27 — Ran 15 separate conversations (122 turns) through the public
+production simulator with real Gemini enabled; 60 turns returned a Gemini
+reading. Manual transcript review found further customer-visible failures:
+repeated sales questions, a leasing answer that skipped what is included,
+a rental correction parsed as a pickup city, a known luggage count asked again,
+an unanswered compact-car advice question, and generic handoff replies to a
+billing complaint or roadside location. These paths now have targeted fixes and
+regressions. The 15 scenarios reached their simulated actions, but that is
+not sufficient to activate the customer bot; the corrected version still
+needs live replay and owner acceptance.
+
 2026-10-26 — Additional production simulator dialogues found five concrete
 conversation defects: an unsupported seven-seat fit claim for five people and
 three bags, an explicit pickup/return sentence overwritten as the pickup

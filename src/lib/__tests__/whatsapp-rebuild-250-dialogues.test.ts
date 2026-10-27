@@ -17,7 +17,7 @@ function futureRange(index: number): string {
   return `${format(start)}-${format(end)}`;
 }
 
-function conversation(index: number) {
+function conversation(index: number, readingOverride?: BotReading) {
   let state: RebuildState | null = null;
   let requests = 0;
   const turns: Array<{ message: string; result: RebuildResult }> = [];
@@ -27,7 +27,7 @@ function conversation(index: number) {
     saveState: async (_phone, next) => { state = structuredClone(next); },
     activeBooking: async () => null,
     createRentalRequest: async () => { requests += 1; return `SIM-${index}`; },
-    readTurn: async () => index % 2 === 0 ? null : modelReading,
+    readTurn: async () => readingOverride ?? (index % 2 === 0 ? null : modelReading),
   };
   const send = async (message: string) => {
     const result = await getRebuiltBotReply(`scenario-${index}`, message, store);
@@ -251,5 +251,83 @@ describe('owner-reported consultation regression', () => {
     const completed = await chat.send('אני מאשרת');
     expect(completed.escalate).toBe(true);
     expect(chat.requests()).toBe(1);
+  });
+});
+
+describe('regressions found in 15 live Gemini conversations', () => {
+  it('does not accept a model question for a pickup city already supplied', async () => {
+    const chat = conversation(400, { ...modelReading, reply: 'בטח, איסוף והחזרה בתל אביב. מהו יעד האיסוף המועדף עליך?' });
+    await chat.send('מה אתה ממליץ לאדם אחד לשבוע');
+    await chat.send(futureRange(1));
+    const place = await chat.send('תל אביב גם להחזיר גם לאסוף');
+    expect(place.state.booking.pickupLocation).toBe('תל אביב');
+    expect(place.reply).not.toMatch(/מהו יעד האיסוף|מאיפה.*לאסוף/);
+  });
+
+  it('answers known family luggage without asking for the counts again', async () => {
+    const chat = conversation(401);
+    await chat.send('אנחנו חמישה עם שלוש מזוודות, שני ילדים, מה מתאים?');
+    const fit = await chat.send('זה באמת יספיק למזוודות?');
+    expect(fit.reply).toContain('5 נוסעים ו־3 מזוודות');
+    expect(fit.reply).not.toContain('כמה נוסעים ומזוודות');
+  });
+
+  it('answers a compact-car advice question instead of returning to dates', async () => {
+    const chat = conversation(402);
+    await chat.send('נוסע אחד לעבודה בעיר. איזה רכב כדאי?');
+    const advice = await chat.send('מה חשוב לבדוק ברכב קטן?');
+    expect(advice.reply).toMatch(/נוחות ישיבה|גיר/);
+  });
+
+  it('does not treat a vehicle correction as a pickup city', async () => {
+    const chat = conversation(403);
+    await chat.send('רוצה לשכור רכב קטן 12/12-16/12');
+    const corrected = await chat.send('בעצם מעדיף רכב פנאי');
+    expect(corrected.state.booking.pickupLocation).toBeUndefined();
+    expect(corrected.state.booking.vehicleNeed).toBe('רכב פנאי');
+    expect(corrected.reply).toContain('מאיפה');
+  });
+
+  it('answers what leasing includes and handles the switch to rental', async () => {
+    const chat = conversation(404);
+    await chat.send('מה ההבדל בין ליסינג פרטי להשכרה?');
+    const answer = await chat.send('מה כלול בליסינג?');
+    expect(answer.reply).toContain('מה שכלול בליסינג');
+    const switchToRental = await chat.send('נראה לי עדיף לי לשכור לחודש');
+    expect(switchToRental.state.interest).toBeUndefined();
+    expect(switchToRental.reply).toContain('השכרה');
+  });
+
+  it('remembers a sale vehicle type, answers price and availability, then hands off', async () => {
+    const chat = conversation(405);
+    const opening = await chat.send('אני רוצה לקנות רכב פנאי');
+    expect(opening.reply).toContain('תקציב');
+    const price = await chat.send('מה המחיר?');
+    expect(price.reply).toContain('המחיר תלוי');
+    const budget = await chat.send('יש משהו עד 100 אלף?');
+    expect(budget.reply).not.toContain('איזה סוג רכב תרצה');
+    const options = await chat.send('מה האפשרויות?');
+    expect(options.reply).not.toBe(budget.reply);
+    const handoff = await chat.send('אני רוצה שיחזרו אליי');
+    expect(handoff.escalate).toBe(true);
+  });
+
+  it('adds a later billing complaint to an existing service request', async () => {
+    const chat = conversation(406);
+    await chat.send('אני רוצה לבטל את ההזמנה שלי');
+    await chat.send('מספר הזמנה 123456');
+    const billing = await chat.send('בנוסף חויבתי פעמיים');
+    expect(billing.reply).toContain('החיוב');
+    expect(billing.reply).not.toContain('בקשת השינוי');
+  });
+
+  it('acknowledges a roadside location instead of repeating the previous safety answer', async () => {
+    const chat = conversation(407);
+    await chat.send('הרכב לא מניע ואני בצד הדרך');
+    await chat.send('צריך גרר');
+    const safe = await chat.send('אני במקום בטוח');
+    const location = await chat.send('הכתובת היא תל אביב');
+    expect(location.reply).toContain('המיקום');
+    expect(location.reply).not.toBe(safe.reply);
   });
 });

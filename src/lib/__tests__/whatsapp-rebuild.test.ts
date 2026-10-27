@@ -333,7 +333,7 @@ describe('replacement SmartCar conversation core', () => {
     const chat = memory(() => null);
     await chat.send('אני רוצה לקנות רכב משפחתי עד 80 אלף שקל');
     const models = await chat.send('איזה דגמים זמינים?');
-    expect(models.reply).toContain('להעדפות שכבר מסרתם');
+    expect(models.reply).toContain('לסוג הרכב ולתקציב שציינת');
     expect(models.reply).not.toMatch(/איזה סוג רכב|מה התקציב/);
     const accepted = await chat.send('כן');
     expect(accepted.escalate).toBe(true);
