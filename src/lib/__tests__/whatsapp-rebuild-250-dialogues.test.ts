@@ -354,6 +354,25 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(handoff.reply).not.toContain('תאריכי האיסוף');
   });
 
+  it('helps choose a leasing group without turning uncertainty into a rental-date loop', async () => {
+    const chat = conversation(434, { ...modelReading, reply: 'מהם תאריכי האיסוף וההחזרה?' });
+    await chat.send('אולי ליסינג פרטי');
+    await chat.send('אני צריך רכב לשנתיים');
+    const mileageQuestion = await chat.send('מה צריך בשביל להתקדם?');
+    expect(mileageQuestion.reply).toContain('קילומטראז׳');
+    expect(mileageQuestion.reply).not.toContain('כמה קילומטרים');
+    await chat.send('20 אלף קמ בשנה');
+    const unsure = await chat.send('לא יודע איזה סוג רכב');
+    expect(unsure.reply).toContain('אין צורך לבחור');
+    expect(unsure.reply).not.toContain('תאריכים');
+    const recommendation = await chat.send('מה אתה ממליץ?');
+    expect(recommendation.reply).toContain('קומפקטית');
+    expect(recommendation.reply).not.toContain('איזה סוג רכב');
+    const handoff = await chat.send('תעביר לנציג שידבר איתי');
+    expect(handoff.escalate).toBe(true);
+    expect(handoff.state.handedOff).toBe(true);
+  });
+
   it('answers purchase process questions and waits for explicit handoff', async () => {
     const chat = conversation(414);
     await chat.send('אני רוצה לקנות רכב משפחתי עד 80 אלף שקל');
