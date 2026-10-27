@@ -536,6 +536,26 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(urgent.reply).not.toBe(timing.reply);
   });
 
+  it('keeps cancellation status and a later billing question together', async () => {
+    const chat = conversation(418);
+    await chat.send('אני רוצה לבטל הזמנה');
+    await chat.send('מספר הזמנה 123456');
+    const next = await chat.send('מה הצעד הבא?');
+    const status = await chat.send('האם הביטול נכנס לתוקף?');
+    const prepare = await chat.send('יש משהו שכדאי להכין?');
+    const again = await chat.send('מה הצעד הבא?');
+    const billing = await chat.send('יש גם חיוב שאני רוצה לבדוק');
+    const timing = await chat.send('מתי נציג יחזור?');
+    expect(next.reply).toContain('בקשת הביטול');
+    expect(status.reply).toContain('הביטול עדיין לא אושר');
+    expect(prepare.reply).toContain('מספר ההזמנה');
+    expect(again.reply).toContain('לא נדרשת מכם פעולה נוספת');
+    expect(billing.reply).toContain('שאלת החיוב');
+    expect(timing.reply).toContain('יחזור אליכם בהקדם');
+    expect(again.reply).not.toBe(next.reply);
+    expect(billing.reply).not.toContain('בקשת השינוי');
+  });
+
   it('acknowledges a roadside location instead of repeating the previous safety answer', async () => {
     const chat = conversation(407);
     await chat.send('הרכב לא מניע ואני בצד הדרך');
