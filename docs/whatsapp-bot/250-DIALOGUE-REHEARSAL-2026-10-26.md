@@ -29,3 +29,16 @@ It verifies final simulated actions, not YCloud delivery, operator inbox
 receipt, real stock, an accepted quote, or zero errors in arbitrary language.
 Keep the customer-traffic kill switch off until the owner accepts the live
 conversation and transport checks, and Daniel completes the phone connection.
+
+## Owner phone transcript found a gap after this pass
+
+The owner supplied an actual demo transcript: solo-car advice, `25/11-16/1`,
+“תל אביב גם להחזיר גם לאסוף”, a repeated recommendation question, and “לא
+יודע”. A live Gemini-backed simulator run reproduced the repeated vehicle-type
+question. The initial 250 conversations did not cover facts supplied during
+consultation before booking consent. Three additional regression cases now
+exercise the sequence through a completed simulated request, using both local
+and model-reading paths. The core must retain facts without treating advice as
+booking consent, answer the recommendation and uncertainty, and advance only
+when the customer explicitly accepts preparing the request. No claim of 100%
+coverage follows from a passing suite.

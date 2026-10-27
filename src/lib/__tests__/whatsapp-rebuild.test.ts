@@ -978,6 +978,9 @@ describe('replacement SmartCar conversation core', () => {
   });
 
   it('retains booking facts and requires explicit confirmation before a request', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-25T12:00:00Z'));
+    try {
     const chat = memory(message => {
       if (message.includes('להזמין')) return { ...base, route: 'book', direction: 'compact', fields: {
         pickupDate: { value: '2026-10-26', evidence: 'מחר' }, returnDate: { value: '2026-10-28', evidence: 'יום רביעי' },
@@ -1017,9 +1020,13 @@ describe('replacement SmartCar conversation core', () => {
     const newRequest = await chat.send('אני רוצה להזמין רכב קטן לנסיעה נוספת');
     expect(newRequest.state.requestKey).toMatch(/^[0-9a-f-]{36}$/);
     expect(newRequest.state.requestKey).not.toBe(first.state.requestKey);
+    } finally { vi.useRealTimers(); }
   });
 
   it('does not send name and email collection turns to Gemini', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-25T12:00:00Z'));
+    try {
     const chat = memory(() => ({ ...base, route: 'book', fields: { pickupDate: { value: '2026-10-26', evidence: 'מחר' }, returnDate: { value: '2026-10-28', evidence: 'רביעי' }, pickupLocation: { value: 'הרצליה', evidence: 'בהרצליה' }, returnLocation: { value: 'הרצליה', evidence: 'אותו מקום' }, vehicleNeed: { value: 'משפחתית', evidence: 'משפחתית' } } }));
     await chat.send('אני רוצה להזמין משפחתית מחר עד רביעי, איסוף בהרצליה והחזרה באותו מקום.');
     const calls = chat.readTurn.mock.calls.length;
@@ -1027,6 +1034,7 @@ describe('replacement SmartCar conversation core', () => {
     await chat.send('דניאל כהן');
     await chat.send('daniel@example.com');
     expect(chat.readTurn).toHaveBeenCalledTimes(calls);
+    } finally { vi.useRealTimers(); }
   });
 
   it('ignores a model field without direct customer evidence', async () => {

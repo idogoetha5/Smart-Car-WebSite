@@ -31,6 +31,7 @@ function conversation(index: number) {
   };
   const send = async (message: string) => {
     const result = await getRebuiltBotReply(`scenario-${index}`, message, store);
+    if (turns.length > 0 && !/^(?:שלום|היי|Hi)$/i.test(message)) expect(result.reply).not.toBe(turns.at(-1)?.result.reply);
     turns.push({ message, result });
     expect(result.reply.trim()).not.toBe('');
     expect(result.reply).not.toMatch(/אין לי גישה|תהליך פנימי|המחיר באתר|I don't have access/i);
@@ -191,4 +192,64 @@ describe('250 complete SmartCar customer dialogues', () => {
       expect(chat.turns.length).toBeGreaterThanOrEqual(4);
     });
   }
+});
+
+describe('owner-reported consultation regression', () => {
+  for (const route of [0, 1]) {
+    it(`answers a solo traveller and advances the full request (${route === 0 ? 'local' : 'model reading'})`, async () => {
+      const chat = conversation(300 + route);
+      await chat.send('היי');
+      const recommendation = await chat.send('מה אתה ממליץ לאדם אחד לשבוע');
+      expect(recommendation.reply).toMatch(/קומפקט|קטן/);
+      const dates = await chat.send(futureRange(route));
+      expect(dates.state.booking.pickupDate).toBeTruthy();
+      expect(dates.state.booking.returnDate).toBeTruthy();
+      const places = await chat.send('תל אביב גם להחזיר גם לאסוף');
+      expect(places.state.booking.pickupLocation).toBe('תל אביב');
+      expect(places.state.booking.returnLocation).toBe('תל אביב');
+      expect(places.reply).not.toMatch(/באיזה תאריך|מאיפה.*לאסוף|איפה.*להחזיר/);
+      const challenge = await chat.send('מה אתה ממליץ לאדם אחד');
+      expect(challenge.reply).toMatch(/קומפקט|קטן/);
+      expect(challenge.reply).not.toMatch(/איזה סוג רכב תרצו|כמה נוסעים וציוד/);
+      const uncertain = await chat.send('לא יודע');
+      expect(uncertain.reply).not.toBe(challenge.reply);
+    });
+  }
+
+  it('keeps the exact screenshot facts in advice and completes only after a clear request', async () => {
+    const chat = conversation(302);
+    await chat.send('היי');
+    const secondGreeting = await chat.send('היי');
+    expect(secondGreeting.reply).toContain('היי שוב');
+    await chat.send('נעים מאוד');
+    const recommendation = await chat.send('מה אתה ממליץ לאדם אחד לשבוע');
+    expect(recommendation.reply).toContain('קומפקטי');
+    const dates = await chat.send('25/11-16/1');
+    expect(dates.state.phase).toBe('explore');
+    expect(dates.state.booking.pickupDate).toMatch(/-11-25$/);
+    expect(dates.state.booking.returnDate).toMatch(/-01-16$/);
+    const locations = await chat.send('תל אביב גם להחזיר גם לאסוף');
+    expect(locations.state.phase).toBe('explore');
+    expect(locations.state.booking.pickupLocation).toBe('תל אביב');
+    expect(locations.state.booking.returnLocation).toBe('תל אביב');
+    const followup = await chat.send('מה אתה ממליץ לאדם אחד');
+    expect(followup.reply).toContain('קומפקטי');
+    const uncertain = await chat.send('לא יודע');
+    expect(uncertain.reply).not.toContain('איזה סוג רכב תרצו');
+    const clarification = await chat.send('אתה סוגר לי רכב?');
+    expect(clarification.reply).toContain('הרכב והמחיר יאושרו');
+    expect(chat.state()?.phase).toBe('explore');
+    const start = await chat.send('כן');
+    expect(start.state.phase).toBe('booking');
+    expect(start.state.step).toBe('rental_age');
+    await chat.send('24+');
+    await chat.send('נועה כהן');
+    const summary = await chat.send('noa@example.invalid');
+    expect(summary.state.step).toBe('rental_confirm');
+    expect(summary.reply).toContain('איסוף: תל אביב');
+    expect(summary.reply).toContain('החזרה: תל אביב');
+    const completed = await chat.send('אני מאשרת');
+    expect(completed.escalate).toBe(true);
+    expect(chat.requests()).toBe(1);
+  });
 });

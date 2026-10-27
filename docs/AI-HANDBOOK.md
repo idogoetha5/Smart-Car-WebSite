@@ -9,6 +9,18 @@ run exposed a real service-routing gap: “הרכב ששכרתי מלוכלך”
 representative. It now does. These tests do not connect YCloud or prove
 customer delivery; see `docs/whatsapp-bot/250-DIALOGUE-REHEARSAL-2026-10-26.md`.
 
+Owner's later phone screenshots exposed a blind spot in the first 250 cases:
+open-ended solo-traveller advice with dates and pickup/return supplied before
+booking consent. The live Gemini simulator reproduced the loop. The core now
+keeps those facts in consultation, recommends a compact car for one traveller,
+parses a same-city pickup/return sentence, answers repeat recommendations and
+uncertainty without asking the same question, explains that a car is not yet
+confirmed, and starts the saved request only after an explicit yes. The exact
+phone sequence plus model/local paths are regression tests. A roadside tow
+follow-up also now gives a specific instruction instead of repeating the prior
+safety line. This entry supersedes any assumption that the 250 scenarios alone
+prove unrestricted conversation quality.
+
 2026-10-26 — Additional production simulator dialogues found five concrete
 conversation defects: an unsupported seven-seat fit claim for five people and
 three bags, an explicit pickup/return sentence overwritten as the pickup
