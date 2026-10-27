@@ -516,6 +516,26 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(representative.reply).not.toBe(timing.reply);
   });
 
+  it('handles a dirty rental car complaint through distinct service followups', async () => {
+    const chat = conversation(417);
+    await chat.send('הרכב ששכרתי היה מלוכלך');
+    await chat.send('מספר הזמנה 123456');
+    const next = await chat.send('מה הצעד הבא?');
+    const remedy = await chat.send('מה תעשו עם זה?');
+    const prepare = await chat.send('יש משהו שכדאי להכין?');
+    const human = await chat.send('אפשר לדבר עם נציג?');
+    const urgent = await chat.send('אני צריך פתרון היום');
+    const timing = await chat.send('מתי תחזרו אליי?');
+    expect(next.reply).toContain('תלונת הניקיון');
+    expect(remedy.reply).toContain('פתרון מתאים');
+    expect(prepare.reply).toContain('תמונות');
+    expect(human.reply).toContain('נציג SmartCar');
+    expect(urgent.reply).toContain('התקשרו עכשיו');
+    expect(timing.reply).toContain('יחזור אליכם בהקדם');
+    expect(next.reply).not.toBe(remedy.reply);
+    expect(urgent.reply).not.toBe(timing.reply);
+  });
+
   it('acknowledges a roadside location instead of repeating the previous safety answer', async () => {
     const chat = conversation(407);
     await chat.send('הרכב לא מניע ואני בצד הדרך');

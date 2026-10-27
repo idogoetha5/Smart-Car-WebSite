@@ -769,6 +769,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const cancellationPending = handoffKind === 'booking_change' && state.history.some(entry => entry.from === 'customer' && cancellationRequest(entry.text));
     const hasBookingReference = state.history.some(entry => entry.from === 'customer' && /מספר\s+ה?הזמנה\s*[:#]?\s*[A-Z0-9-]*\d[A-Z0-9-]{2,}|booking\s+(?:number|reference)\s*[:#]?\s*[A-Z0-9-]*\d[A-Z0-9-]{2,}/i.test(entry.text));
     const billingIssue = handoffKind === 'service_issue' && state.history.some(entry => entry.from === 'customer' && /חויבתי פעמיים|חיוב כפול|שילמתי פעמיים|charged twice|double charg/i.test(entry.text));
+    const cleanlinessIssue = handoffKind === 'service_issue' && state.history.some(entry => entry.from === 'customer' && /הרכב.{0,25}מלוכלך|רכב מלוכלך|dirty car|car was dirty/i.test(entry.text));
     const safetyKind = state.safetyKind ?? (state.history.some(entry => entry.from === 'customer' && /תאונה|התנגשות|accident|collision|crash/i.test(entry.text)) ? 'accident' : 'breakdown');
     reply = handoffKind === 'commercial' && state.interest && /מה כלול|מה כולל|תשלום ראשוני|מקדמה|מחיר|כמה עולה|נסיעת מבחן|what.*included|initial payment|down payment|price|test drive/i.test(input)
       ? commercialReply(input, state).reply
@@ -803,7 +804,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : /תודה|thanks|thank you/i.test(input)
       ? handoffKind === 'safety' ? (he ? 'בשמחה. שמרו על עצמכם.' : 'You are welcome. Take care.')
         : (he ? 'בשמחה. נציג SmartCar יחזור אליכם בהקדם.' : 'You are welcome. A SmartCar representative will follow up as soon as possible.')
-      : /מתי.{0,25}(?:חוזר|חוזרים|יחזרו|תענו)|תוך כמה זמן|when.{0,25}(?:call|reply|hear back)|how long.{0,25}(?:response|reply)/i.test(input)
+      : /מתי.{0,25}(?:חוזר|חוזרים|יחזרו|תחזרו|תענו)|תוך כמה זמן|when.{0,25}(?:call|reply|hear back)|how long.{0,25}(?:response|reply)/i.test(input)
         ? (he ? `נציג SmartCar יחזור אליכם בהקדם. אם העניין דחוף, אפשר להתקשר עכשיו ל־${OFFICE_PHONE}.` : `A SmartCar representative will follow up as soon as possible. If it is urgent, please call ${OFFICE_PHONE} now.`)
       : /מספר\s+ה?הזמנה\s*[:#]?\s*[A-Z0-9-]*\d[A-Z0-9-]{2,}|booking\s+(?:number|reference)\s*[:#]?\s*[A-Z0-9-]*\d[A-Z0-9-]{2,}/i.test(input)
         ? (he ? 'תודה, קיבלנו את מספר ההזמנה וצירפנו אותו לפנייה.' : 'Thank you, we have added your booking reference to the enquiry.')
@@ -819,6 +820,16 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         ? (he ? `נציג SmartCar יחזור אליכם לאחר בדיקת החיובים. אם זה דחוף, אפשר להתקשר ל־${OFFICE_PHONE}.` : `A SmartCar representative will follow up after reviewing the charges. If urgent, call ${OFFICE_PHONE}.`)
       : billingIssue && /תעביר|נציג|pass.*representative|send.*team/i.test(input)
         ? (he ? 'הפנייה על שני החיובים כבר הועברה לנציג SmartCar. הוא יחזור אליכם לאחר הבדיקה.' : 'The enquiry about both charges has been passed to a SmartCar representative. They will follow up after review.')
+      : cleanlinessIssue && /מה הצעד הבא|מה עושים עכשיו|איך ממשיכים|what(?: is)? next|next step/i.test(input)
+        ? (he ? 'נציג SmartCar יבדוק את תלונת הניקיון ויחזור אליכם. אם יש תמונות של מצב הרכב בעת הקבלה, כדאי לשמור אותן לבדיקה.' : 'A SmartCar representative will review the cleanliness complaint and follow up. If you took photos when you received the car, keep them for review.')
+      : cleanlinessIssue && /מה תעשו|איך תטפלו|מה הפתרון|what will you do|how will you handle/i.test(input)
+        ? (he ? 'נציג SmartCar יבדוק את פרטי המקרה ויחזור אליכם כדי להציע פתרון מתאים. אפשר לציין מתי והיכן קיבלתם את הרכב.' : 'A SmartCar representative will review the details and follow up to discuss a suitable solution. You can share when and where you received the car.')
+      : cleanlinessIssue && /מה (?:כדאי|צריך) להכין|כדאי להכין|יש (?:משהו|פרטים).{0,15}להכין|what.*(?:prepare|have ready)/i.test(input)
+        ? (he ? `${hasBookingReference ? 'מספר ההזמנה כבר צורף לפנייה.' : 'כדאי לציין את מספר ההזמנה.'} תמונות של מצב הרכב בעת הקבלה, אם יש, ומועד קבלתו יעזרו בבדיקה.` : `${hasBookingReference ? 'Your booking reference is already included.' : 'Please provide your booking reference.'} Photos of the car when collected, if available, and the collection time will help the review.`)
+      : cleanlinessIssue && /נציג|לדבר עם|representative|speak to someone/i.test(input)
+        ? (he ? `בוודאי. נציג SmartCar יחזור אליכם לגבי מצב הרכב. אם זה דחוף, אפשר להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up about the car's condition. If urgent, call ${OFFICE_PHONE}.`)
+      : cleanlinessIssue && /היום|דחוף|עכשיו|today|urgent|right now/i.test(input)
+        ? (he ? `אני מבין שזה דחוף. לבירור מיידי, התקשרו עכשיו ל־SmartCar ב־${OFFICE_PHONE}; נציג יבדוק את הפנייה.` : `I understand this is urgent. For immediate help, call SmartCar now on ${OFFICE_PHONE}; a representative will review your enquiry.`)
       : handoffKind === 'safety'
         ? (he ? `תודה על העדכון. אל תמשיכו לנסוע אם יש חשש בטיחותי; לתיאום עזרה התקשרו עכשיו ל־${OFFICE_PHONE}.` : `Thanks for the update. Do not keep driving if the car may be unsafe; call ${OFFICE_PHONE} now to arrange help.`)
         : handoffKind === 'commercial' && state.interest

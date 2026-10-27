@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-27 — The double-charge chat passed a 10-turn production replay on release `1cb5d5f` with manual transcript review. The next live cleanliness complaint repeated the same generic response to six different questions. The service handoff now gives specific next steps, explains that a representative will review the complaint without promising a remedy, requests optional photos, answers urgent and timing questions, and has a full-turn regression. Production replay remains required.
+
 2026-10-27 — The production replay of the booking-change service chat passed manual review on release `0115cda`. The next live double-charge service chat exposed a new stall: after receiving the booking reference, the bot repeated one generic handoff message for next steps, preparation, proof, timing, and representative requests. The billing handoff now answers those questions separately, keeps the booking reference, avoids requesting full card numbers, and has a full-turn regression. Production replay of this billing fix remains required; customer WhatsApp remains off.
 
 2026-10-27 — A live booking-change service chat repeated the same “request received, pending approval” message four times in response to next-step, preparation and approval questions. The handoff path now answers each question directly, remembers whether the booking reference was given, and keeps the existing return date in force until approval. A full service regression covers those turns; live replay remains required.
