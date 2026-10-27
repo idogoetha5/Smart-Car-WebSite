@@ -23,6 +23,9 @@ For a small review batch, set `SMARTCAR_EVAL_MAX_CASES` to the desired total
 index. Preserve the JSONL file between runs. Count a conversation as provider
 tested only if it has a successful HTTP transcript, at least one `model`
 reading, at least eight customer turns, and an end state relevant to its goal.
+Safety and existing-service flows can intentionally use the deterministic
+emergency path without a Gemini reading; count them separately as real
+production-core conversations and inspect their instructions closely.
 Automatically flagged issues require transcript review; the absence of a flag
 is **not** a pass for tone, truthfulness or a sensible sales conversation.
 Manual review must cover failures and a meaningful sample of completed cases,
@@ -63,3 +66,16 @@ Those changes still require live re-verification after deployment.
 As of this entry, only six new long conversations have actually completed;
 the 1,500 target is not met. Transcripts from earlier releases cannot be
 treated as a final-version readiness pass.
+
+After release `c8ed196`, six full rental replays (75 turns) had no automatic
+repeat flag. Manual review still found that a compact-car advice question was
+misclassified as policy and answered vaguely. Seven more production chats
+expanded coverage to leasing, purchase and accidents. Leasing repeated its
+inclusions text, treated a next-step question as consent to hand off, then
+ignored a payment question after handoff. Purchase repeated the same options
+question and did not answer what its service includes. The accident branch
+repeated a generic safety line instead of giving next steps or a preparation
+list. Those are actual failures despite reaching a simulated endpoint. The
+source now has focused fixes and regression cases; they need production replay.
+The cumulative first-pass count is 13 distinct long conversations, plus six
+separate replays, not 1,500 final-version passes.

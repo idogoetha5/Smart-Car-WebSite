@@ -16,6 +16,14 @@ to "מה תציעו לי?", unnecessary repeated age prompts after side question
 and an unsupported fuel-savings claim in a model reply. The conversation core
 now gathers trip needs, acknowledges a changed vehicle, and filters that
 claim; regression checks pass. These fixes need a new release and live replay.
+Further live leasing, purchase and accident chats exposed repeated commercial
+questions, a next-step question incorrectly treated as handoff consent, no
+answer to payment after handoff, and generic accident follow-ups. The core now
+answers those questions, waits for an explicit handoff request, and gives
+concrete accident reporting steps based on the published terms. Service and
+safety flows may correctly use local deterministic logic without Gemini.
+There are 13 first-pass long chats and six separate replays so far; neither
+number is the 1,500 final-version acceptance target.
 
 2026-10-26 — Added a repeatable 250-dialogue rehearsal covering 50 rental
 requests, 50 advice-to-rental conversations, 50 leasing enquiries, 50 sale

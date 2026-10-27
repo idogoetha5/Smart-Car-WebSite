@@ -283,6 +283,14 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(advice.reply).toMatch(/נוחות ישיבה|גיר/);
   });
 
+  it('keeps car advice specific when Gemini classifies it as policy', async () => {
+    const chat = conversation(412, { ...modelReading, route: 'policy' });
+    await chat.send('נוסע אחד לעבודה בעיר. איזה רכב כדאי?');
+    const advice = await chat.send('מה חשוב לבדוק ברכב קטן?');
+    expect(advice.reply).toMatch(/נוחות ישיבה|גיר/);
+    expect(advice.reply).not.toContain('מה בדיוק חשוב לך לברר');
+  });
+
   it('does not treat a vehicle correction as a pickup city', async () => {
     const chat = conversation(403);
     await chat.send('רוצה לשכור רכב קטן 12/12-16/12');
@@ -300,6 +308,35 @@ describe('regressions found in 15 live Gemini conversations', () => {
     const switchToRental = await chat.send('נראה לי עדיף לי לשכור לחודש');
     expect(switchToRental.state.interest).toBeUndefined();
     expect(switchToRental.reply).toContain('השכרה');
+  });
+
+  it('keeps a leasing enquiry useful before and after a representative handoff', async () => {
+    const chat = conversation(413);
+    await chat.send('מחפש ליסינג פרטי לשנתיים, 20 אלף קמ בשנה, רכב קטן');
+    const included = await chat.send('מה כלול?');
+    const repeated = await chat.send('מה כולל השירות?');
+    expect(repeated.reply).not.toBe(included.reply);
+    const next = await chat.send('מה צריך בשביל להתקדם?');
+    expect(next.escalate).toBe(false);
+    const handoff = await chat.send('כן תתקדמו עם הצעה');
+    expect(handoff.escalate).toBe(true);
+    const payment = await chat.send('יש תשלום ראשוני?');
+    expect(payment.reply).toContain('תשלום ראשוני');
+    expect(payment.reply).not.toContain('קיבלנו את הפרטים על ליסינג');
+  });
+
+  it('answers purchase process questions and waits for explicit handoff', async () => {
+    const chat = conversation(414);
+    await chat.send('אני רוצה לקנות רכב משפחתי עד 80 אלף שקל');
+    const options = await chat.send('מה יש לכם?');
+    const service = await chat.send('מה כולל השירות?');
+    expect(service.reply).toContain('נסיעת מבחן');
+    const availability = await chat.send('יש רכב זמין עכשיו?');
+    expect(availability.reply).not.toBe(options.reply);
+    const next = await chat.send('מה צריך בשביל להתקדם?');
+    expect(next.escalate).toBe(false);
+    const handoff = await chat.send('תעבירו לנציג שיחזור אליי');
+    expect(handoff.escalate).toBe(true);
   });
 
   it('remembers a sale vehicle type, answers price and availability, then hands off', async () => {
@@ -333,6 +370,17 @@ describe('regressions found in 15 live Gemini conversations', () => {
     const location = await chat.send('הכתובת היא תל אביב');
     expect(location.reply).toContain('המיקום');
     expect(location.reply).not.toBe(safe.reply);
+  });
+
+  it('gives concrete next steps after a rental accident', async () => {
+    const chat = conversation(415);
+    await chat.send('הייתה לי תאונה עם הרכב השכור');
+    await chat.send('אני במקום בטוח');
+    const next = await chat.send('מה הצעד הבא?');
+    expect(next.reply).toContain('דווחו על התאונה בתוך שעה');
+    const prepare = await chat.send('יש משהו שכדאי להכין?');
+    expect(prepare.reply).toContain('מספר ההזמנה');
+    expect(prepare.reply).not.toBe(next.reply);
   });
 
   it('answers the additional-driver question during a rental consultation', async () => {

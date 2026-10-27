@@ -867,8 +867,12 @@ describe('replacement SmartCar conversation core', () => {
     const price = await chat.send('אפשר להבטיח מחיר חודשי עכשיו?');
     expect(price.reply).toMatch(/התשלום החודשי תלוי/);
     const quote = await chat.send('מה הצעד הבא לקבלת הצעה?');
-    expect(quote.escalate).toBe(true);
-    expect(quote.state.handedOff).toBe(true);
+    expect(quote.escalate).toBe(false);
+    expect(quote.reply).toContain('איזה סוג רכב');
+    await chat.send('רכב משפחתי');
+    const requested = await chat.send('כן תתקדמו עם הצעה');
+    expect(requested.escalate).toBe(true);
+    expect(requested.state.handedOff).toBe(true);
   });
 
   it('hands a leasing enquiry to staff when the customer asks to pass it on', async () => {
