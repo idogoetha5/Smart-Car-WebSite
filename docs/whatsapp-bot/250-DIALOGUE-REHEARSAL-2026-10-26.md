@@ -58,3 +58,9 @@ saved outside the release tree at `/tmp/smartcar-live15-results.jsonl` for this
 session. Targeted regression tests were added, and the fixes require a fresh
 live replay before they count as verified in production. The 250 synthetic
 dialogues were useful for state transitions, not for judging naturalness.
+
+An eight-session, 66-turn replay of the first live fixes still found a model
+question asking for an already supplied pickup point, a hard-coded “month and
+a half” after the customer said one month, and a repeated sale budget question.
+The corresponding reply guard and wording were changed afterward. This is
+another reason to assess full customer transcripts, not final status alone.

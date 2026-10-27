@@ -32,6 +32,13 @@ regressions. The 15 scenarios reached their simulated actions, but that is
 not sufficient to activate the customer bot; the corrected version still
 needs live replay and owner acceptance.
 
+The first corrected production replay covered eight of those sessions (66
+turns, 30 Gemini readings). It confirmed most targeted fixes, but Gemini still
+asked for the pickup point after both locations were supplied, a leasing pivot
+hard-coded the wrong duration, and a sale price reply repeated the prior
+budget question. Those were corrected next; do not call the bot ready from the
+replay's completed simulated requests.
+
 2026-10-26 — Additional production simulator dialogues found five concrete
 conversation defects: an unsupported seven-seat fit claim for five people and
 three bags, an explicit pickup/return sentence overwritten as the pickup

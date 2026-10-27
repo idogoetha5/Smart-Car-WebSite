@@ -255,13 +255,17 @@ describe('owner-reported consultation regression', () => {
 });
 
 describe('regressions found in 15 live Gemini conversations', () => {
-  it('does not accept a model question for a pickup city already supplied', async () => {
-    const chat = conversation(400, { ...modelReading, reply: 'בטח, איסוף והחזרה בתל אביב. מהו יעד האיסוף המועדף עליך?' });
+  it.each([
+    'בטח, איסוף והחזרה בתל אביב. מהו יעד האיסוף המועדף עליך?',
+    'נרשם איסוף והחזרה מתל אביב. באיזה סניף בתל אביב תרצה לאסוף את הרכב?',
+    'איסוף מהרצליה והחזרה בתל אביב. באיזו עיר תרצו שנחפש את נקודת האיסוף?',
+  ])('does not accept a model question for an already supplied pickup: %s', async modelReply => {
+    const chat = conversation(400, { ...modelReading, reply: modelReply });
     await chat.send('מה אתה ממליץ לאדם אחד לשבוע');
     await chat.send(futureRange(1));
     const place = await chat.send('תל אביב גם להחזיר גם לאסוף');
     expect(place.state.booking.pickupLocation).toBe('תל אביב');
-    expect(place.reply).not.toMatch(/מהו יעד האיסוף|מאיפה.*לאסוף/);
+    expect(place.reply).not.toMatch(/מהו יעד האיסוף|מאיפה.*לאסוף|באיזה סניף.*לאסוף|באיזו עיר.*נקודת האיסוף/);
   });
 
   it('answers known family luggage without asking for the counts again', async () => {

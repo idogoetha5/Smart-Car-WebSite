@@ -340,7 +340,7 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
   if (acceptsTeamCheck || asksTeamReview) return { reply: he ? `תודה, קיבלנו את ההעדפות שלכם לרכישת רכב. נציג SmartCar יחזור אליכם עם האפשרויות המתאימות; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Thank you. We have your vehicle preferences. A SmartCar representative will follow up with suitable options; you can also call ${OFFICE_PHONE}.`, escalate: true };
   const hasType = /משפחת|קומפקט|עירונ|פנאי|קטן|ג[׳'י]?יפ|סדאן|family|compact|small car|suv|sedan/i.test(context);
   const hasBudget = /תקציב|אלף|שקל|₪|budget|shekel/i.test(context);
-  if (/מחיר|כמה עולה|עלות|price|cost/i.test(input)) return { reply: he ? `המחיר תלוי ברכב המסוים, במצבו ובתנאי העסקה. ${hasBudget ? 'נוכל לבדוק אפשרויות שמתאימות לתקציב שכבר ציינת. תרצה שנציג SmartCar יחזור אליך עם הצעה?' : 'איזה תקציב תרצה שנביא בחשבון?'}` : `The price depends on the specific car, its condition and the sale terms. ${hasBudget ? 'We can check options within the budget you gave. Would you like a SmartCar representative to follow up with an offer?' : 'What budget would you like us to consider?'}`, escalate: false };
+  if (/מחיר|כמה עולה|עלות|price|cost/i.test(input)) return { reply: he ? `המחיר תלוי ברכב המסוים, בשנתון ובמצבו. ${hasBudget ? 'נוכל לבדוק אפשרויות שמתאימות לתקציב שכבר ציינת. תרצה שנציג SmartCar יחזור אליך עם הצעה?' : /תקציב|budget/i.test(lastBot) ? 'נשמח לבדוק רכבים מתאימים ולהציג לך את המחיר המדויק לכל אפשרות.' : 'איזה תקציב תרצה שנביא בחשבון?'}` : `The price depends on the specific car, its year and condition. ${hasBudget ? 'We can check options within the budget you gave. Would you like a SmartCar representative to follow up with an offer?' : /budget/i.test(lastBot) ? 'We can check suitable cars and show you the exact price for each option.' : 'What budget would you like us to consider?'}`, escalate: false };
   if (/דגמים|מלאי|זמינ|זמין|פנוי|אפשרויות|מה יש לכם|איזה רכבים יש|מה יש|what cars|what options|models|stock|available/i.test(input)) {
     if (hasType && hasBudget) return { reply: he ? 'נשמח לבדוק דגמים שמתאימים לסוג הרכב ולתקציב שציינת. תרצה שנציג SmartCar יחזור אליך עם האפשרויות הזמינות?' : 'We can check models matching the type and budget you gave. Would you like a SmartCar representative to follow up with available options?', escalate: false };
     return { reply: he ? `נשמח לבדוק אילו רכבים מתאימים לכם. ${hasType ? 'מה התקציב שתרצו שנביא בחשבון?' : 'איזה סוג רכב מעניין אתכם?'}` : `We will be happy to check suitable cars. ${hasType ? 'What budget should we consider?' : 'What kind of car interests you?'}`, escalate: false };
@@ -466,6 +466,7 @@ function safeModelReply(reading: BotReading | null, input: string, state: Rebuil
   if (state.booking.pickupDate && state.booking.returnDate && asksRentalDates(reply)) return null;
   if (state.booking.pickupLocation && /מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף|עיר האיסוף|where.{0,30}pick.?up/i.test(reply)) return null;
   if (state.booking.pickupLocation && /(?:מאיפה|איפה|מהו|מה|איזה|which|what|where).{0,35}(?:יעד האיסוף|מקום האיסוף|עיר האיסוף|pick.?up (?:place|city|location))/i.test(reply)) return null;
+  if (state.booking.pickupLocation && /(?:באיזה|באיזו|איזה|מהו|מה|איפה|מאיפה|where|which|what)[^?؟]{0,90}(?:איסוף|לאסוף|pick.?up)[^?؟]*[?؟]/i.test(reply)) return null;
   if (state.booking.returnLocation && /איפה.{0,30}להחזיר|עיר ההחזרה|where.{0,30}return/i.test(reply)) return null;
   if ((!state.booking.pickupDate || !state.booking.returnDate) && /מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף|עיר האיסוף|איפה.{0,30}להחזיר|עיר ההחזרה|where.{0,30}(?:pick.?up|return)/i.test(reply)) return null;
   if (!state.booking.pickupDate && /תאריכים (?:שכבר )?(?:ציינ|בחרת|שבחרת)|dates (?:you(?:'ve| have) )?(?:already )?(?:mentioned|chosen)/i.test(reply)) return null;
@@ -600,7 +601,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : handoffKind === 'safety' && /כתובת|מיקום|נמצא ב|נמצאת ב|location|address/i.test(input)
         ? (he ? `תודה, קיבלנו את המיקום וצירפנו אותו לפנייה. לתיאום עזרה דחופה התקשרו עכשיו ל־${OFFICE_PHONE}.` : `Thank you. We have added your location to the enquiry. For urgent help call ${OFFICE_PHONE} now.`)
       : /תודה|thanks|thank you/i.test(input)
-      ? (he ? 'בשמחה. שמרו על עצמכם.' : 'You are welcome. Take care.')
+      ? handoffKind === 'safety' ? (he ? 'בשמחה. שמרו על עצמכם.' : 'You are welcome. Take care.')
+        : (he ? 'בשמחה. נציג SmartCar יחזור אליכם בהקדם.' : 'You are welcome. A SmartCar representative will follow up as soon as possible.')
       : /מתי.{0,25}(?:חוזר|חוזרים|יחזרו|תענו)|תוך כמה זמן|when.{0,25}(?:call|reply|hear back)|how long.{0,25}(?:response|reply)/i.test(input)
         ? (he ? `נציג SmartCar יחזור אליכם בהקדם. אם העניין דחוף, אפשר להתקשר עכשיו ל־${OFFICE_PHONE}.` : `A SmartCar representative will follow up as soon as possible. If it is urgent, please call ${OFFICE_PHONE} now.`)
       : /מספר\s+ה?הזמנה\s*[:#]?\s*[A-Z0-9-]*\d[A-Z0-9-]{2,}|booking\s+(?:number|reference)\s*[:#]?\s*[A-Z0-9-]*\d[A-Z0-9-]{2,}/i.test(input)
@@ -728,7 +730,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = he ? 'בסדר, לא שלחתי בקשה. הפרטים יישארו כאן אם תרצה להמשיך להתלבט.' : 'Okay, I have not sent a request. The details stay here if you want to think it over.';
     } else if (rentalPivot) {
       state.phase = 'explore'; state.step = 'menu';
-      reply = he ? 'הבנתי, נחזור לבדוק השכרה. לחודש וחצי חשוב להתאים רכב וקילומטראז׳ למסלול ההשכרה; באילו תאריכים תרצה לאסוף ולהחזיר?' : 'Understood, let us check a rental instead. For a longer rental, the vehicle and mileage terms matter. What pickup and return dates do you need?';
+      reply = he ? 'הבנתי, נחזור לבדוק השכרה. לתקופה שתבחר חשוב להתאים רכב וקילומטראז׳ למסלול; באילו תאריכים תרצה לאסוף ולהחזיר?' : 'Understood, let us check a rental. The vehicle and mileage terms should fit the period you choose. What pickup and return dates do you need?';
     } else if (specificProblem) {
       state.phase = 'service'; state.step = 'menu'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'service_issue'; escalate = true;
       reply = he ? `תודה שפניתם אלינו. נציג SmartCar יבדוק את המקרה ויחזור אליכם; לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `Thank you for contacting us. A SmartCar representative will review your case and follow up; for immediate help call ${OFFICE_PHONE}.`;
