@@ -325,6 +325,19 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(payment.reply).not.toContain('קיבלנו את הפרטים על ליסינג');
   });
 
+  it('explains the next leasing step without asking the same vehicle question again', async () => {
+    const chat = conversation(432);
+    await chat.send('אני בודק ליסינג פרטי');
+    await chat.send('לשנתיים');
+    const vehicleQuestion = await chat.send('בערך 18 אלף קמ בשנה');
+    expect(vehicleQuestion.reply).toContain('איזה סוג רכב');
+    const next = await chat.send('מה צריך בשביל להתקדם?');
+    expect(next.reply).toContain('אין העדפה');
+    expect(next.reply).not.toBe(vehicleQuestion.reply);
+    const handoff = await chat.send('אין לי העדפה, תעביר לנציג');
+    expect(handoff.escalate).toBe(true);
+  });
+
   it('answers purchase process questions and waits for explicit handoff', async () => {
     const chat = conversation(414);
     await chat.send('אני רוצה לקנות רכב משפחתי עד 80 אלף שקל');
@@ -662,7 +675,9 @@ describe('regressions found in 15 live Gemini conversations', () => {
     const chat = conversation(431, { ...modelReading, reply: 'קומפקטיים שלנו מציעים חיסכון נהדר בדלק. לאילו תאריכים תרצו?' });
     const opening = await chat.send('מחפש רכב זול לשבוע');
     expect(opening.reply).not.toContain('חיסכון נהדר בדלק');
-    await chat.send('מה תציעו לי?');
+    const suggestion = await chat.send('מה תציעו לי?');
+    expect(suggestion.reply).toContain('קומפקטית');
+    expect(suggestion.reply).not.toContain('כמה אנשים ומזוודות');
     const best = await chat.send('מה הכי מתאים לדעתך?');
     expect(best.reply).toContain('קומפקטית');
     const alone = await chat.send('אני נוסע לבד');

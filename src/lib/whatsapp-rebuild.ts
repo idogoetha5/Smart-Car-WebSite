@@ -336,7 +336,7 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
   const acceptsTeamCheck = /(?:הצוות יבדוק|הצוות יוכל לבדוק|נציג.{0,25}יחזור|נשמח להכין.{0,50}הצעה|team (?:check|review)|team to review|representative.{0,25}follow up|happy to prepare.{0,50}(?:quote|offer))/i.test(lastBot)
     && (affirms(input)
       || /שהצוות|שיבדקו|תבדקו|תעביר|לפי מה שכבר|אין לי העדפה|אין העדפה|לא משנה|no preference|go ahead|please do/i.test(input));
-  const asksTeamReview = /תעביר(?:ו)?\s+(?:את זה|את הפרטים|לצוות)|שהצוות יבדוק|שיבדקו בשבילי|שהצוות יחזור אלי|שיחזרו אלי|תחזרו אלי|(?:have|ask) the team (?:check|review)|pass (?:this|it|the details) to (?:the )?team|send (?:this|it) to (?:the )?team|(?:team|someone).{0,15}call me back/i.test(input);
+  const asksTeamReview = /תעביר(?:ו)?\s+(?:את זה|את הפרטים|לצוות|לנציג)|שהצוות יבדוק|שיבדקו בשבילי|שהצוות יחזור אלי|שיחזרו אלי|תחזרו אלי|(?:have|ask) the team (?:check|review)|pass (?:this|it|the details) to (?:the )?team|send (?:this|it) to (?:the )?team|(?:team|someone).{0,15}call me back/i.test(input);
   const asksNextStep = /מה (?:צריך|הצעד הבא|תצטרכו).{0,25}(?:להתקדם|הלאה|הצעה)?|איך (?:מתקדמים|ממשיכים)|what.*(?:need|next step|proceed)|how.*(?:proceed|continue)/i.test(input);
   if (state.interest === 'leasing') {
     if (/הבדל|difference|compare/i.test(input) && /השכרה|לשכור|rent/i.test(input)) return { reply: he ? 'השכרה מתאימה בדרך כלל לתקופה קצרה וגמישה יותר; ליסינג הוא מסלול לתקופה ארוכה יותר עם תנאים ותשלום שנקבעים בהצעה. אם מדובר בחודש אחד, נוכל לבדוק השכרה. לכמה זמן תצטרך את הרכב?' : 'Rental usually fits a shorter, more flexible period; leasing is a longer plan with terms and payments set in an offer. For a month, we can check a rental. How long do you need the car?', escalate: false };
@@ -352,7 +352,7 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
     if (asksNextStep) {
       if (!/לשנה|שנה|שנתיים|שנים|חודש|year|month/i.test(context)) return { reply: he ? 'כדי להתקדם להצעת ליסינג, נתחיל במשך התקופה הרצוי. לכמה זמן תצטרכו את הרכב?' : 'To prepare a leasing proposal, let us start with the term. How long do you need the car?', escalate: false };
       if (!/קילומ|ק״מ|קמ|mileage|km/i.test(context)) return { reply: he ? 'רשמתי את התקופה. כמה קילומטרים תיסעו בערך בשנה?' : 'I have the term. About how many kilometres would you drive each year?', escalate: false };
-      if (!/משפחת|קומפקט|עירונ|ג[׳'י]?יפ|סדאן|קטן|family|compact|suv|sedan|small car/i.test(context)) return { reply: he ? 'רשמתי את התקופה והקילומטראז׳. איזה סוג רכב תרצו בהצעה?' : 'I have the term and mileage. What vehicle type would you like in the proposal?', escalate: false };
+      if (!/משפחת|קומפקט|עירונ|ג[׳'י]?יפ|סדאן|קטן|family|compact|suv|sedan|small car/i.test(context)) return { reply: he ? 'כדי להתקדם להצעה יש לי כבר את התקופה והקילומטראז׳. השלב הבא הוא לבחור איזה סוג רכב תרצו בהצעה; אם עדיין אין העדפה אוכל להעביר את הפרטים לנציג שיעזור לבחור.' : 'I have your term and mileage. The next step is to choose a vehicle type for the proposal; if you have no preference, I can pass the details to a representative to help you choose.', escalate: false };
       return { reply: he ? 'יש לי את משך התקופה, הקילומטראז׳ וסוג הרכב שציינת. תרצה שאעביר אותם לנציג להכנת הצעה מפורטת?' : 'I have your term, mileage and vehicle type. Would you like me to pass them to a representative for a detailed offer?', escalate: false };
     }
     if (acceptsTeamCheck || asksTeamReview || /תתקדמו|נסגור|יאללה|go ahead|let's close/i.test(input)) return { reply: he ? `תודה, קיבלנו את הפרטים להצעת ליסינג אישית. נציג SmartCar יחזור אליכם להמשך; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Thank you. We have your details for a personal leasing offer. A SmartCar representative will follow up; you can also call ${OFFICE_PHONE}.`, escalate: true };
@@ -419,6 +419,9 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
   if (/מחפש רכב זול לשבוע|מחפשת רכב זול לשבוע|looking for a cheap rental for a week/i.test(input)) return he
     ? 'לשבוע השכרה הייתי מתחיל בבדיקת קבוצה קומפקטית, ואז משווה הצעה לפי התאריכים והתנאים. כמה אנשים וציוד יהיו בנסיעה?'
     : 'For a week I would start by checking the compact group, then compare a quote for your dates and terms. How many people and bags will travel?';
+  if (budgetLed && /מה תציעו לי|מה היית מציע|what (?:would you|do you) (?:suggest|recommend)/i.test(input)) return he
+    ? 'הייתי מתחיל מקבוצה קומפקטית, שבדרך כלל מתאימה לנסיעה של אדם אחד או שניים עם מעט ציוד. אם תספר כמה נוסעים וציוד יש, אדייק את ההמלצה; אפשר גם להמשיך בלי זה.'
+    : 'I would start with the compact group for one or two people with light luggage. Tell me your group and luggage if you want a more specific recommendation; we can continue without that too.';
   if (budgetLed && /מה הכי מתאים לדעתך|איזו קבוצה הכי מתאימה|which (?:group|class) fits best/i.test(input)) return he
     ? state.booking.passengers === 1
       ? 'לנסיעה לבד, כשחשוב לשמור על התקציב, קומפקטית היא הקבוצה הראשונה שהייתי בודק. מחיר מדויק נקבע לפי התאריכים וההצעה.'
