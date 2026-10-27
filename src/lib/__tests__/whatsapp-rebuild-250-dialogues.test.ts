@@ -404,6 +404,18 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(handoff.escalate).toBe(true);
   });
 
+  it('answers a viewing request before a specific sale car is selected', async () => {
+    const chat = conversation(437, { ...modelReading, route: 'sale' });
+    await chat.send('רוצה לקנות רכב פנאי');
+    await chat.send('התקציב שלי 110 אלף');
+    const viewing = await chat.send('אפשר לראות אותו?');
+    expect(viewing.reply).toContain('רכב מסוים');
+    expect(viewing.reply).toContain('צפייה ונסיעת מבחן');
+    expect(viewing.reply).not.toContain('יש שנתון או קילומטראז׳');
+    const handoff = await chat.send('תעבירו את הבקשה');
+    expect(handoff.escalate).toBe(true);
+  });
+
   it('answers purchase process questions and waits for explicit handoff', async () => {
     const chat = conversation(414);
     await chat.send('אני רוצה לקנות רכב משפחתי עד 80 אלף שקל');

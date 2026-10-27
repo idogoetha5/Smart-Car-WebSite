@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-27 — Manual review of a live SUV purchase chat found that “אפשר לראות אותו?” received the generic year/mileage prompt, despite no specific car having been offered. The bot now explains that a matching car can be shown and a test drive arranged once an option is identified, subject to availability, and offers a representative follow-up. A regression covers the viewing request and sale handoff; live replay remains required.
+
 2026-10-27 — A live used-car purchase chat repeated the same optional year/mileage question three times, even after the customer said low mileage mattered and asked for the next step. Purchase advice now retains that preference from the conversation, acknowledges it, answers “מה השלב הבא?” directly and avoids a verbatim repeat when service inclusions are asked again. A full regression covers the preference, next step and handoff; live replay is required.
 
 2026-10-27 — Manual review of a live leasing price discussion found that an explicit “אפשר לקבל הצעה?” received yet another consent question after the bot had already offered to prepare one. The core now treats a direct proposal request as consent to pass the enquiry to a representative and acknowledges any later confirmation as already sent. Regression includes the post-handoff turn; production replay remains required.
