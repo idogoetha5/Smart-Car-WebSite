@@ -864,6 +864,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           reply = he
             ? `קבוצת הגיל ${statedAgeRange === '24-plus' ? '24+' : '21–23'} כבר רשומה. ${question('customerName', state.locale)}`
             : `The ${statedAgeRange === '24-plus' ? '24+' : '21–23'} age group is already noted. ${question('customerName', state.locale)}`;
+        } else if (policy && missing === 'pickupLocation' && /מאיפה אפשר לאסוף|איפה אפשר לאסוף|where can (?:i|we) pick up/i.test(input)) {
+          reply = `${policy} ${question('pickupLocation', state.locale)}`;
+        } else if (wasBooking && /^(?:אני רוצה להתקדם|רוצה להתקדם|let'?s proceed|I want to proceed)[.!\s]*$/i.test(input)
+          && lastBot.includes(question(missing, state.locale))) {
+          reply = he ? `בשמחה. כדי להתקדם נשאר לי הפרט הזה: ${question(missing, state.locale)}` : `Of course. To move forward I still need this detail: ${question(missing, state.locale)}`;
         } else {
           const alreadyAsked = state.history.filter(entry => entry.from === 'bot').slice(-2)
             .some(entry => entry.text.includes(question(missing, state.locale)));

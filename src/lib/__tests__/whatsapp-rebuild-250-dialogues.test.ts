@@ -480,6 +480,26 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(followUp.reply).toMatch(/כן, ל־6 נוסעים/);
   });
 
+  it('answers where pickup is possible and continues a same-place request', async () => {
+    const chat = conversation(422);
+    await chat.send('רוצה רכב משפחתי לתאריכים 10/12-14/12');
+    const pickup = await chat.send('מאיפה אפשר לאסוף?');
+    expect(pickup.reply).toContain('הרצליה');
+    expect(pickup.reply).toContain('תל אביב');
+    expect(pickup.reply).toContain('מאיפה תרצו לאסוף');
+    await chat.send('הרצליה');
+    const samePlace = await chat.send('להחזיר לאותו מקום');
+    expect(samePlace.state.booking.returnLocation).toBe('הרצליה');
+    const continueReply = await chat.send('אני רוצה להתקדם');
+    expect(continueReply.reply).toContain('כדי להתקדם');
+    expect(continueReply.reply).not.toBe(samePlace.reply);
+    await chat.send('24+');
+    await chat.send('ניר כהן');
+    await chat.send('nir@example.invalid');
+    const finish = await chat.send('אני מאשר');
+    expect(finish.state.completedRequestId).toBeDefined();
+  });
+
   it('acknowledges a vehicle correction while age remains missing', async () => {
     const chat = conversation(411);
     await chat.send('אני רוצה לשכור רכב 10/12-14/12');

@@ -104,7 +104,7 @@ const TOPIC_PATTERNS: Array<[ServiceKnowledgeTopic, RegExp]> = [
   ['different_location', /מקום אחר|החזרה אחרת|איסוף אחר|שדה תעופה|נתב.?ג|one way|different location|airport|drop.?off/i],
   ['insurance', /ביטוח|כיסוי|השתתפות עצמית|insurance|cover(?:age)?|waiver|excess/i],
   ['opening_hours', /מתי (?:אתם )?פתוח|שעות ה?פתיחה|שעות ה?פעילות|באיזה שעות|עד איזה שעה|עד איזו שעה|מתי נפתחים|מתי סוגרים|פתוחים|עד מתי אתם|מתי עובדים|opening hours|open on|when do you close|when are you open/i],
-  ['branches', /איפה אתם|איפה יש סניפים|באיזו עיר|כתובות|סניפים|סניף שלכם|branches|locations|where are you located/i],
+  ['branches', /איפה אתם|איפה יש סניפים|באיזו עיר|כתובות|סניפים|סניף שלכם|מאיפה אפשר לאסוף|איפה אפשר לאסוף|where can (?:i|we) pick up|branches|locations|where are you located/i],
 ];
 
 export function getSmartCarServiceAnswer(input: string, locale: ServiceLocale): ServiceKnowledgeAnswer | null {
