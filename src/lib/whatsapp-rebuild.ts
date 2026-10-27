@@ -180,7 +180,7 @@ function vagueDateAnswer(input: string): boolean {
 }
 
 function uncertainDateAnswer(input: string): boolean {
-  return /(?:לא יודע|לא יודעת|לא בטוח|לא בטוחה|אין לי תאריך|אין תאריך סופי|עדיין אין תאריך|not sure|don'?t know|no dates? yet|haven'?t decided)/i.test(input);
+  return /(?:לא יודע|לא יודעת|לא בטוח|לא בטוחה|אין לי (?:עדיין )?תאריכ|אין תאריך סופי|עדיין אין תאריך|not sure|don'?t know|no dates? yet|haven'?t decided)/i.test(input);
 }
 
 function cancellationRequest(input: string): boolean {
@@ -753,7 +753,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : lastBotReply === greeting(input, state.locale)
         ? (he ? 'היי שוב 🙂 מה תרצה לבדוק?' : 'Hi again 🙂 What would you like to check?')
         : greeting(input, state.locale)!;
-  } else if (uncertainDateAnswer(input) && (/אין (?:לי )?תאריך|עדיין אין תאריך|no dates? yet/i.test(input) || asksRentalDates(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
+  } else if (uncertainDateAnswer(input) && (/אין לי (?:עדיין )?תאריכ|אין תאריך סופי|עדיין אין תאריך|no dates? yet/i.test(input) || asksRentalDates(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
     reply = he ? 'אין בעיה. כשתדעו את התאריכים המדויקים, כתבו אותם כאן ונוכל להמשיך מהפרטים שכבר מסרתם.' : 'No problem. When you know the exact dates, send them here and we can continue with the details you already shared.';
   } else if (vagueDateAnswer(input) && (asksRentalDates(lastBotReply) || /כשתדעו את התאריכים המדויקים|when you know the exact dates/i.test(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
     const previous = state.booking.datePreference;
@@ -995,7 +995,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const fact = getSmartCarServiceAnswer(input, state.locale);
       reply = fact!.topic === 'branches' && state.booking.pickupDate && !state.booking.pickupLocation
         ? `${fact!.reply} ${question('pickupLocation', state.locale)}` : fact!.reply;
-    } else if (/^(?:תודה(?: רבה)?[.!\s]*|thanks?(?: a lot)?[.!\s]*|thank you[.!\s]*)$/i.test(input)) {
+    } else if (/^(?:תודה(?: רבה)?[.!\s]*|תודה[,!]?\s*אעדכן כש(?:אדע|יהיו לי) תאריכים[.!\s]*|thanks?(?: a lot)?[.!\s]*|thank you[.!\s]*)$/i.test(input)) {
       reply = he ? 'בשמחה. כשתרצו להמשיך, אני כאן.' : 'You are welcome. I am here when you are ready.';
     } else if (/איזה פרטים|מה (?:צריך|תצטרכו)|what details|what do you need/i.test(input)) {
       reply = he ? 'כדי לבדוק השכרה נצטרך תאריכי איסוף והחזרה, מיקומים, סוג רכב או מספר נוסעים וציוד, וקבוצת גיל נהג 21–23 או 24+. שם ומייל נבקש רק אם תרצו לשלוח בקשה.' : 'To check a rental we need pickup and return dates, locations, a vehicle type or passenger and luggage details, and the driver age group: 21–23 or 24+. We only ask for name and email if you choose to send a request.';

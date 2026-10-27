@@ -580,13 +580,18 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(followUp.reply).not.toBe(recommendation.reply);
     const alternative = await chat.send('אולי יש כיוון אחר?');
     expect(alternative.reply).toContain('קומפקטי');
-    await chat.send('אין לי עדיין תאריכים');
+    const noDates = await chat.send('אין לי עדיין תאריכים');
+    expect(noDates.reply).toContain('כשתדעו');
+    expect(noDates.reply).not.toContain('לאילו תאריכים');
     const seat = await chat.send('אפשר להוסיף כיסא בטיחות?');
     expect(seat.reply).toContain('נבדוק אפשרות');
     expect(seat.reply).not.toContain('לאילו תאריכים');
     const compact = await chat.send('היית ממליץ על קטן?');
     expect(compact.reply).toContain('משפחתית');
     expect(compact.reply).not.toContain('לאילו תאריכים');
+    const closing = await chat.send('תודה, אעדכן כשאדע תאריכים');
+    expect(closing.reply).toContain('בשמחה');
+    expect(closing.reply).not.toContain('לאילו תאריכים');
   });
 
   it('does not let generic model advice erase the baby and luggage context', async () => {
