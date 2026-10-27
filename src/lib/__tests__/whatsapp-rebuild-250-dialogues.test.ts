@@ -338,6 +338,22 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(handoff.escalate).toBe(true);
   });
 
+  it('keeps a business leasing proposal out of rental booking even when Gemini suggests booking', async () => {
+    const chat = conversation(433, { ...modelReading, route: 'book', reply: 'בשמחה! מהם תאריכי האיסוף וההחזרה?' });
+    await chat.send('מחפש ליסינג לעסק');
+    await chat.send('לשלוש שנים');
+    await chat.send('בערך 30 אלף קמ בשנה');
+    const vehicle = await chat.send('רכב פנאי');
+    expect(vehicle.reply).not.toContain('איזה סוג רכב');
+    const next = await chat.send('מה צריך כדי להתקדם?');
+    expect(next.reply).toContain('נציג');
+    const handoff = await chat.send('כן, תעבירו להצעה');
+    expect(handoff.escalate).toBe(true);
+    expect(handoff.state.handedOff).toBe(true);
+    expect(handoff.state.phase).not.toBe('booking');
+    expect(handoff.reply).not.toContain('תאריכי האיסוף');
+  });
+
   it('answers purchase process questions and waits for explicit handoff', async () => {
     const chat = conversation(414);
     await chat.send('אני רוצה לקנות רכב משפחתי עד 80 אלף שקל');
