@@ -412,8 +412,10 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(viewing.reply).toContain('רכב מסוים');
     expect(viewing.reply).toContain('צפייה ונסיעת מבחן');
     expect(viewing.reply).not.toContain('יש שנתון או קילומטראז׳');
+    await chat.send('איך מתאמים נסיעת מבחן?');
     const handoff = await chat.send('תעבירו את הבקשה');
     expect(handoff.escalate).toBe(true);
+    expect(handoff.state.handedOff).toBe(true);
   });
 
   it('answers purchase process questions and waits for explicit handoff', async () => {

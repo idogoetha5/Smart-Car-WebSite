@@ -114,6 +114,7 @@ function findings(rows, category) {
   if (replies.some(reply => replies.filter(other => other === reply).length >= 3)) issues.push('repeated_reply_three_times');
   if (category === 'rental' && /^(solo_screenshot|family_advice|city_advice|rental_|leasing_switch)/.test(last?.name ?? '') && !last?.completedRequestId && /אני מאשר|i confirm/i.test(rows.at(-1)?.message ?? '')) issues.push('rental_not_completed');
   if (category === 'commercial' && !last?.handedOff) issues.push('commercial_not_handed_off');
+  if (category === 'commercial' && rows.some(row => /תעביר(?:ו)?\s+(?:את הבקשה|את הפנייה|את הפרטים|לנציג|לצוות)|אפשר לקבל הצעה/i.test(row.message ?? '') && !row.handedOff)) issues.push('commercial_handoff_delayed');
   if (category === 'service' && !last?.handedOff) issues.push('service_not_handed_off');
   return [...new Set(issues)];
 }
