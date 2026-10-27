@@ -403,6 +403,13 @@ function direction(reading: BotReading | null, draft: BookingDraft, input: strin
 
 function advice(input: string, state: RebuildState, reading: BotReading | null): string {
   const he = state.locale === 'he';
+  if (/צריך (?:רכב )?שבעה מקומות|do (?:we|i) need (?:a )?seven[- ]?seat/i.test(input)
+    && (state.booking.passengers ?? 0) >= 6
+    && state.history.some(entry => entry.from === 'bot' && /כדאי לבדוק רכב שבעה מקומות|check a seven[- ]?seat/i.test(entry.text))) {
+    return he
+      ? `כן, ל־${state.booking.passengers} נוסעים הייתי מתחיל בבדיקת רכב שבעה מקומות. מקום למזוודות נבדוק בדגם המסוים; תאריכי הנסיעה יעזרו לנו להתקדם.`
+      : `Yes, for ${state.booking.passengers} travellers I would start with a seven-seat car. We will check luggage space in the actual model; your travel dates will help us move forward.`;
+  }
   if (/איזה גודל תמליצו|איזה סוג רכב תמליצו|מה תמליצו לנו|what size (?:car|vehicle) (?:do you )?recommend/i.test(input) && state.booking.passengers) {
     const recommended = direction(reading, state.booking, input);
     const group = recommended === 'seven_seat' ? (he ? 'רכב שבעה מקומות' : 'a seven-seat car')

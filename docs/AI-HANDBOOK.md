@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-27 — After replacing an unsafe seven-seat claim, the next live replay exposed identical replies to “אנחנו שישה עם שלוש מזוודות” and “צריך שבעה מקומות?”. A direct follow-up answer now acknowledges the recommendation already given, keeps luggage fit conditional and avoids repeating the same prompt.
+
 2026-10-27 — The live seven-seat replay used a second wording to promise that all passengers and bags would fit. When the customer supplies both passenger and luggage counts, the visible answer now uses the capacity-aware core response, which keeps fit subject to a specific model. The live evaluator also flags broader fit guarantees.
 
 2026-10-27 — Manual review of a long seven-seat conversation found an unsupported promise that all passengers and luggage would fit comfortably, despite automatic checks marking the chat clean. Model replies making this claim are now rejected and the live runner flags it for review. Capacity remains subject to the specific car and luggage.

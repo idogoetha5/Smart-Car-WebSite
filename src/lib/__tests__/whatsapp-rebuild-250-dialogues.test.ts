@@ -475,6 +475,9 @@ describe('regressions found in 15 live Gemini conversations', () => {
     const answer = await chat.send('אנחנו שישה עם שלוש מזוודות');
     expect(answer.reply).not.toContain('יהיה מספיק מרחב לכל הנוסעים והמזוודות');
     expect(answer.reply).toMatch(/לבדוק|לוודא/);
+    const followUp = await chat.send('צריך שבעה מקומות?');
+    expect(followUp.reply).not.toBe(answer.reply);
+    expect(followUp.reply).toMatch(/כן, ל־6 נוסעים/);
   });
 
   it('acknowledges a vehicle correction while age remains missing', async () => {
