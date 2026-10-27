@@ -490,6 +490,7 @@ function safeModelReply(reading: BotReading | null, input: string, state: Rebuil
   if (/איזה רכב|מה כדאי|what (?:car|vehicle)|recommend/i.test(input) && !state.booking.passengers && !state.booking.luggage && !state.booking.vehicleNeed) return null;
   if (/שבעה מקומות|7\s*מקומות|seven[- ]?seat|7[- ]?seat/i.test(input) && state.booking.luggage) return null;
   if ((state.booking.passengers || state.booking.luggage) && /איזה רכב|יתאים|מתאים|מספיק|ממליץ|recommend|fit|suit/i.test(input)) return null;
+  if (state.booking.passengers && state.booking.luggage && /מזווד|מטען|luggage|suitcase|bags/i.test(input)) return null;
   if (/מזווד|מטען|תא מטען|luggage|suitcase|boot|trunk/i.test(input) && /כמה|נכנס|יספיק|מקום|יכול|fit|space|room|how many/i.test(input)) return null;
   if (PRICE_OR_AVAILABILITY.test(input)) return null;
   if (state.booking.pickupLocation && state.booking.returnLocation
