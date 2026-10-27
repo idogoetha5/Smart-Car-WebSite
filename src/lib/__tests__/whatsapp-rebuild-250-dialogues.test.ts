@@ -457,6 +457,9 @@ describe('regressions found in 15 live Gemini conversations', () => {
     const proceed = await chat.send('אני רוצה לשלוח בקשה');
     expect(proceed.state.phase).toBe('booking');
     expect(proceed.state.booking.driverAgeRange).toBe('21-23');
+    const repeatedAge = await chat.send('21-23');
+    expect(repeatedAge.reply).toMatch(/כבר רשומה/);
+    expect(repeatedAge.reply).toContain('שם');
     await chat.send('איתן לוי');
     await chat.send('eitan@example.invalid');
     const finish = await chat.send('אני מאשר');

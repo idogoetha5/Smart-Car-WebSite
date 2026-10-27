@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-27 — A live young-driver replay exposed the age group being followed by an identical repeated name question. Booking now acknowledges the recorded age and moves to the name; the full request regression covers this turn.
+
 2026-10-27 — A broader production replay found another rental stall: “אני רוצה לשלוח בקשה” was treated as advice despite collected dates and pickup details. The intake now recognizes this explicit request, “אני רוצה לסיים את הבקשה”, and the English equivalent, with a young-driver end-to-end regression. The 1,500-chat target remains open; WhatsApp customer delivery remains off.
 
 2026-10-27 — The owner raised the live conversation target to 1,500 after

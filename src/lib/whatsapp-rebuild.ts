@@ -852,6 +852,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           reply = he
             ? `${changedChoice ? `עדכנתי את סוג הרכב ל${state.booking.vehicleNeed}` : `רשמתי ${state.booking.vehicleNeed}`}. נשארה קבוצת הגיל של הנהג — 21–23 או 24+?`
             : `${changedChoice ? `I updated the vehicle to ${state.booking.vehicleNeed}` : `I have ${state.booking.vehicleNeed}`}. Which driver age group applies: 21–23 or 24+?`;
+        } else if (wasBooking && statedAgeRange && missing === 'customerName' && lastBot.includes(question('customerName', state.locale))) {
+          reply = he
+            ? `קבוצת הגיל ${statedAgeRange === '24-plus' ? '24+' : '21–23'} כבר רשומה. ${question('customerName', state.locale)}`
+            : `The ${statedAgeRange === '24-plus' ? '24+' : '21–23'} age group is already noted. ${question('customerName', state.locale)}`;
         } else {
           const alreadyAsked = state.history.filter(entry => entry.from === 'bot').slice(-2)
             .some(entry => entry.text.includes(question(missing, state.locale)));
