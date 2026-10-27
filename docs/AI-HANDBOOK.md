@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-27 — A live family request with child seat and a combined advice/insurance question stalled at vehicle selection because “רכב למשפחה” was never saved as a vehicle preference. The bot now retains that family preference, answers both parts of the question, and reaches the request summary without reasking for a vehicle that was already specified.
+
 2026-10-27 — The live same-place replay still failed after a side insurance question: the bot lost the pending pickup city, stored “אותו מקום” literally as the return location, then treated a customer's name as the pickup city. It now recognizes a city answer against recent pickup prompts, resolves same-place returns only from a known pickup, and keeps the pickup question after listing branches. The regression includes the intervening side questions.
 
 2026-10-27 — A live same-place rental chat showed two repeated questions: “מאיפה אפשר לאסוף?” was answered by asking the pickup city again, and “אני רוצה להתקדם” repeated the age question verbatim. The bot now gives the confirmed branch/delivery options, retains a clear pickup question for the next city answer, and acknowledges progress before requesting the one still-missing detail.

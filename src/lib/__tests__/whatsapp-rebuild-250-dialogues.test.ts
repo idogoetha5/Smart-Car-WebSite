@@ -524,6 +524,26 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(finish.state.completedRequestId).toBeDefined();
   });
 
+  it('answers both recommendation and insurance, then finishes the family request', async () => {
+    const chat = conversation(424);
+    const first = await chat.send('רוצה רכב למשפחה עם ילד וכיסא בטיחות');
+    expect(first.state.booking.vehicleNeed).toBe('רכב משפחתי');
+    const combined = await chat.send('מה כדאי וגם מה עם הביטוח?');
+    expect(combined.reply).toContain('רכב משפחתי');
+    expect(combined.reply).toContain('ביטוח');
+    const repeatedInsurance = await chat.send('מה עם ביטוח?');
+    expect(repeatedInsurance.reply).not.toBe(combined.reply);
+    await chat.send('אני רוצה לשכור');
+    await chat.send('10/12-14/12');
+    await chat.send('איסוף מתל אביב והחזרה בהרצליה');
+    await chat.send('24+');
+    await chat.send('ענבר כהן');
+    await chat.send('inbar@example.invalid');
+    const finish = await chat.send('אני מאשרת');
+    expect(finish.state.completedRequestId).toBeDefined();
+    expect(chat.requests()).toBe(1);
+  });
+
   it('acknowledges a vehicle correction while age remains missing', async () => {
     const chat = conversation(411);
     await chat.send('אני רוצה לשכור רכב 10/12-14/12');

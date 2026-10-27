@@ -296,7 +296,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
 
 function explicitVehicleNeed(input: string, locale: Locale): string | null {
   if (/שבעה מקומות|7\s*מקומות|7[- ]?seater|seven[- ]?seater/i.test(input)) return locale === 'he' ? 'רכב שבעה מקומות' : 'seven-seat car';
-  if (/רכב\s+משפחתי|^\s*משפחתית\s*$|(?:רוצה|מחפש|צריך|מעדיף)\s+(?:רכב\s+)?משפחתית|(?:רוצה|מחפש|צריך|מעדיף)\s+משפחתי|family car/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
+  if (/רכב\s+משפחתי|רכב\s+למשפחה|^\s*משפחתית\s*$|(?:רוצה|מחפש|צריך|מעדיף)\s+(?:רכב\s+)?משפחתית|(?:רוצה|מחפש|צריך|מעדיף)\s+משפחתי|family car/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
   if (/קומפקטי|קומפקטית|רכב קטן|compact car|small car/i.test(input)) return locale === 'he' ? 'רכב קומפקטי' : 'compact car';
   if (/רכב פנאי|ג[׳'י]?יפ(?:ון)?|suv/i.test(input)) return locale === 'he' ? 'רכב פנאי' : 'SUV';
   return null;
@@ -853,6 +853,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         if (reportedAge && Number(reportedAge) < 21) {
           state.step = 'rental_age';
           reply = he ? 'השכרה אפשרית לנהגים מגיל 21. אם ינהג אדם אחר שעומד בתנאים, אפשר לציין את קבוצת הגיל שלו ונשמח להמשיך.' : 'Rental is available to drivers aged 21 or older. If another eligible person will drive, please tell us their age group and we will be happy to continue.';
+        } else if (policy && /מה כדאי|מה תמליצ|what (?:would you )?recommend/i.test(input) && /ביטוח|insurance/i.test(input) && state.booking.vehicleNeed) {
+          reply = he
+            ? `לפי מה שתיארתם, הייתי מתחיל בבדיקת ${state.booking.vehicleNeed}; התאמה לכיסא בטיחות ולציוד נוודא לפי הדגם. ${policy} ${question(missing, state.locale)}`
+            : `From what you described, I would start by checking a ${state.booking.vehicleNeed}; child-seat and luggage fit depend on the model. ${policy} ${question(missing, state.locale)}`;
         } else if (/מה עוד צריך|איזה פרטים חסרים|what else do you need|what details are missing/i.test(input)) {
           const labels: Record<BookingKey, string> = { pickupDate: 'תאריך איסוף', returnDate: 'תאריך החזרה', pickupLocation: 'מקום איסוף', returnLocation: 'מקום החזרה', vehicleNeed: 'צרכי הרכב', driverAgeRange: 'קבוצת גיל הנהג', customerName: 'שם', customerEmail: 'מייל' };
           const remaining = ORDER.filter(key => !state.booking[key]);
@@ -908,6 +912,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const answer = commercialReply(input, state);
       reply = answer.reply; escalate = answer.escalate;
       if (escalate) { state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'commercial'; }
+    } else if (/מה כדאי|מה תמליצ|what (?:would you )?recommend/i.test(input) && /ביטוח|insurance/i.test(input) && state.booking.vehicleNeed) {
+      const insurance = getSmartCarServiceAnswer(input, state.locale)?.reply ?? '';
+      reply = he ? `לפי מה שתיארתם, הייתי מתחיל בבדיקת ${state.booking.vehicleNeed}; התאמה לכיסא בטיחות ולציוד נוודא לפי הדגם. ${insurance}` : `From what you described, I would start by checking a ${state.booking.vehicleNeed}; child-seat and luggage fit depend on the model. ${insurance}`;
     } else if (/כיסא(?:\s+ה?)?בטיחות|child seat|car seat/i.test(input) && /מה חשוב|מה צריך|מה לוודא|what.*(?:check|verify)|what matters/i.test(input)) {
       reply = advice(input, state, reading);
     } else if (/מה חשוב לבדוק ברכב קטן|מה חשוב ברכב קטן|what(?: should I| to) (?:check|look for) in a (?:small|compact) car/i.test(input)) {
