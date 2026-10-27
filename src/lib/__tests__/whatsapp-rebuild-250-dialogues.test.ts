@@ -449,6 +449,21 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(chat.requests()).toBe(1);
   });
 
+  it('starts the rental request when a young driver asks to send it', async () => {
+    const chat = conversation(419);
+    await chat.send('אני בן 23 ורוצה לשכור רכב קטן');
+    await chat.send('12/12-16/12');
+    await chat.send('איסוף מתל אביב והחזרה בתל אביב');
+    const proceed = await chat.send('אני רוצה לשלוח בקשה');
+    expect(proceed.state.phase).toBe('booking');
+    expect(proceed.state.booking.driverAgeRange).toBe('21-23');
+    await chat.send('איתן לוי');
+    await chat.send('eitan@example.invalid');
+    const finish = await chat.send('אני מאשר');
+    expect(finish.state.completedRequestId).toBeDefined();
+    expect(chat.requests()).toBe(1);
+  });
+
   it('acknowledges a vehicle correction while age remains missing', async () => {
     const chat = conversation(411);
     await chat.send('אני רוצה לשכור רכב 10/12-14/12');

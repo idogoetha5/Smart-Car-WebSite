@@ -212,7 +212,7 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
 function explicitBooking(input: string): boolean {
   if (/לא רוצה להזמין|לא רוצה לשכור|רק מתעניין|רק שואל|לא עכשיו|not ready|just asking|don't book|do not book/i.test(input)) return false;
   if (/[?؟]/.test(input) && /כדאי|האם|should|would it|how/i.test(input)) return false;
-  return /אני רוצה (?:להזמין|לשכור|להתקדם עם בקש(?:ה להשכרה|ת השכרה))|(?:^|[.!?]\s*)רוצה לשכור|(?:אני\s+)?צריך(?:ה)? (?:רכב להשכרה|לשכור רכב|רכב (?:קטן|קומפקטי|משפחתי|פנאי|שבעה מקומות)(?:\s|$))|בוא(?:ו)? נתקדם|בוא(?:ו)? (?:נלך על זה|נסגור)|יאללה נסגור|תשריין לי|שריין לי|אפשר להתחיל (?:הזמנה|בקשה)|תכין(?:ו)? (?:לי )?(?:בקש(?:ה|ת השכרה)|הצעה)|אני (?:אזמין|אשכור)|I(?:'d| would) like to (?:book|rent)|let'?s (?:book|proceed|close)|I want to (?:book|rent)|I need (?:a )?(?:rental car|to rent(?: a car)?)|go ahead with (?:the )?(?:rental|request)/i.test(input);
+  return /אני רוצה (?:להזמין|לשכור|לשלוח בקשה|לסיים את הבקשה|להתקדם עם בקש(?:ה להשכרה|ת השכרה))|(?:^|[.!?]\s*)רוצה (?:לשכור|לשלוח בקשה|לסיים את הבקשה)|(?:אני\s+)?צריך(?:ה)? (?:רכב להשכרה|לשכור רכב|רכב (?:קטן|קומפקטי|משפחתי|פנאי|שבעה מקומות)(?:\s|$))|בוא(?:ו)? נתקדם|בוא(?:ו)? (?:נלך על זה|נסגור)|יאללה נסגור|תשריין לי|שריין לי|אפשר להתחיל (?:הזמנה|בקשה)|תכין(?:ו)? (?:לי )?(?:בקש(?:ה|ת השכרה)|הצעה)|אני (?:אזמין|אשכור)|I(?:'d| would) like to (?:book|rent|make a request)|let'?s (?:book|proceed|close)|I want to (?:book|rent|make a request)|I need (?:a )?(?:rental car|to rent(?: a car)?)|go ahead with (?:the )?(?:rental|request)/i.test(input);
 }
 
 function greeting(input: string, locale: Locale): string | null {

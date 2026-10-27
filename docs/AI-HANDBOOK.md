@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-27 — A broader production replay found another rental stall: “אני רוצה לשלוח בקשה” was treated as advice despite collected dates and pickup details. The intake now recognizes this explicit request, “אני רוצה לסיים את הבקשה”, and the English equivalent, with a young-driver end-to-end regression. The 1,500-chat target remains open; WhatsApp customer delivery remains off.
+
 2026-10-27 — The owner raised the live conversation target to 1,500 after
 finding failures in 15 different manual chats. Added a rate-compliant,
 resumable production-simulator runner and an evidence protocol in
