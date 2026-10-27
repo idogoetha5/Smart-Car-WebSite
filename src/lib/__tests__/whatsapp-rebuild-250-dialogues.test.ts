@@ -597,6 +597,24 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(alternative.reply).not.toContain('לאילו תאריכים');
   });
 
+  it('compares compact and family cars for a solo city driver without demanding dates', async () => {
+    const chat = conversation(428, { ...modelReading, reply: 'לאילו תאריכים תצטרכו את הרכב?' });
+    await chat.send('אני נוסע בעיקר בעיר לבד');
+    const comparison = await chat.send('קטן או משפחתי?');
+    expect(comparison.reply).toContain('קומפקטי');
+    expect(comparison.reply).toContain('משפחתית');
+    const recommendation = await chat.send('מה הכי מתאים לדעתך?');
+    expect(recommendation.reply).not.toBe(comparison.reply);
+    const parking = await chat.send('ומה לגבי חניה?');
+    expect(parking.reply).toContain('לחניה');
+    const alternative = await chat.send('אולי יש כיוון אחר?');
+    expect(alternative.reply).toContain('משפחתית');
+    const later = await chat.send('אולי אשכור בסוף החודש');
+    expect(later.reply).not.toContain('לאילו תאריכים');
+    const noDate = await chat.send('אין תאריך סופי');
+    expect(noDate.reply).not.toMatch(/איזה תאריכים|לאילו תאריכים/);
+  });
+
   it('acknowledges a vehicle correction while age remains missing', async () => {
     const chat = conversation(411);
     await chat.send('אני רוצה לשכור רכב 10/12-14/12');

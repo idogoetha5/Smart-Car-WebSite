@@ -180,7 +180,7 @@ function vagueDateAnswer(input: string): boolean {
 }
 
 function uncertainDateAnswer(input: string): boolean {
-  return /(?:לא יודע|לא יודעת|לא בטוח|לא בטוחה|אין לי תאריך|עדיין אין תאריך|not sure|don'?t know|no dates? yet|haven'?t decided)/i.test(input);
+  return /(?:לא יודע|לא יודעת|לא בטוח|לא בטוחה|אין לי תאריך|אין תאריך סופי|עדיין אין תאריך|not sure|don'?t know|no dates? yet|haven'?t decided)/i.test(input);
 }
 
 function cancellationRequest(input: string): boolean {
@@ -413,6 +413,21 @@ function direction(reading: BotReading | null, draft: BookingDraft, input: strin
 
 function advice(input: string, state: RebuildState, reading: BotReading | null): string {
   const he = state.locale === 'he';
+  if (state.booking.passengers === 1 && /קטן או משפחתי|קומפקטי או משפחתי|small or family|compact or family/i.test(input)) return he
+    ? 'לנסיעה לבד ובעיקר בעיר הייתי מתחיל ברכב קומפקטי: קל יותר לתמרן ולחנות. משפחתית תהיה טובה אם חשוב לך יותר מקום לנוסעים או לציוד.'
+    : 'For solo city driving I would start with a compact, which is easier to park and manoeuvre. A family car makes sense if you need more passenger or luggage space.';
+  if (state.booking.passengers === 1 && /מה הכי מתאים לדעתך|מה מתאים לי|what (?:suits|fits) me best/i.test(input)) return he
+    ? 'בשביל נסיעות עירוניות לבד, קומפקטי הוא הכיוון הראשון שלי. אם יש ציוד גדול או נסיעות ארוכות במיוחד, אפשר להשוות גם משפחתית.'
+    : 'For solo city trips, a compact is my first choice. If you carry larger gear or take long trips, we can compare a family car too.';
+  if (state.booking.passengers === 1 && /מה לגבי חניה|ומה לגבי חניה|parking/i.test(input)) return he
+    ? 'רכב קומפקטי נוח בדרך כלל יותר לתמרון ולחניה בעיר. אם יש חניון עם מגבלת גובה או אורך, נבדוק את המידות של הדגם המסוים.'
+    : 'A compact is generally easier to manoeuvre and park in town. If your garage has a height or length limit, we will check the exact model dimensions.';
+  if (state.booking.passengers === 1 && /אולי יש כיוון אחר|יש אופציה אחרת|another direction|other option/i.test(input)) return he
+    ? 'הכיוון השני הוא משפחתית, אם תרצה יותר מקום או נוחות בנסיעות ארוכות. לנסיעות עירוניות לבד עדיין הייתי מתחיל בקומפקטי.'
+    : 'A family car is the other direction if you want more room or comfort on longer drives. For solo city use, I would still start with a compact.';
+  if (/אולי אשכור בסוף החודש|אולי בסוף החודש|maybe (?:rent|later) this month/i.test(input)) return he
+    ? 'נשמע טוב. אפשר לבחור את קבוצת הרכב כבר עכשיו, וכשתדע את ימי האיסוף וההחזרה נבדוק זמינות והצעה מדויקת.'
+    : 'That works. We can choose the vehicle group now, then check availability and a precise quote once you know your pickup and return dates.';
   if (/אפשר להוסיף כיסא בטיחות|can (?:i|we) add (?:a )?child seat/i.test(input)) return he
     ? 'אפשר לציין בבקשה צורך בכיסא בטיחות. נבדוק אפשרות לצרף כיסא מתאים ואת תנאיו לפני אישור ההשכרה; גם התאמת הכיסא לרכב המסוים תיבדק.'
     : 'We can include a child-seat request. We will check a suitable seat, its terms and its fit with the specific car before confirming the rental.';
@@ -524,6 +539,8 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
 function safeModelReply(reading: BotReading | null, input: string, state: RebuildState): string | null {
   if (!reading || OUTSIDE.test(input) || /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input)) return null;
   if (state.booking.childSeats && /אולי יש כיוון אחר|יש אופציה אחרת|any other option|another direction|היית ממליץ על קטן|would you recommend a (?:small|compact) car/i.test(input)) return null;
+  if (state.booking.passengers === 1 && /קטן או משפחתי|קומפקטי או משפחתי|מה הכי מתאים לדעתך|מה מתאים לי|מה לגבי חניה|ומה לגבי חניה|אולי יש כיוון אחר|יש אופציה אחרת|small or family|compact or family|parking|another direction|other option/i.test(input)) return null;
+  if (/אולי אשכור בסוף החודש|אולי בסוף החודש|maybe (?:rent|later) this month/i.test(input)) return null;
   if (/איזה רכב|מה כדאי|what (?:car|vehicle)|recommend/i.test(input) && !state.booking.passengers && !state.booking.luggage && !state.booking.vehicleNeed) return null;
   if (/שבעה מקומות|7\s*מקומות|seven[- ]?seat|7[- ]?seat/i.test(input) && state.booking.luggage) return null;
   if ((state.booking.passengers || state.booking.luggage) && /איזה רכב|יתאים|מתאים|מספיק|ממליץ|recommend|fit|suit/i.test(input)) return null;
@@ -736,7 +753,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : lastBotReply === greeting(input, state.locale)
         ? (he ? 'היי שוב 🙂 מה תרצה לבדוק?' : 'Hi again 🙂 What would you like to check?')
         : greeting(input, state.locale)!;
-  } else if (uncertainDateAnswer(input) && (asksRentalDates(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
+  } else if (uncertainDateAnswer(input) && (/אין (?:לי )?תאריך|עדיין אין תאריך|no dates? yet/i.test(input) || asksRentalDates(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
     reply = he ? 'אין בעיה. כשתדעו את התאריכים המדויקים, כתבו אותם כאן ונוכל להמשיך מהפרטים שכבר מסרתם.' : 'No problem. When you know the exact dates, send them here and we can continue with the details you already shared.';
   } else if (vagueDateAnswer(input) && (asksRentalDates(lastBotReply) || /כשתדעו את התאריכים המדויקים|when you know the exact dates/i.test(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
     const previous = state.booking.datePreference;

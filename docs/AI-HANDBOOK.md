@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-27 — A live solo-city advice transcript repeated date prompts instead of comparing compact and family cars, explaining parking, or answering an alternative request. It now addresses each question directly, keeps approximate “end of month” timing without demanding a date, and understands “אין תאריך סופי”. The public simulator reached its hourly limit during this transcript; no rate-limit workaround was used.
+
 2026-10-27 — A live no-dates advice conversation repeated generic date prompts when a couple with a baby and a bag asked for a recommendation, an alternative and a child seat. The advice flow now retains the baby/seat need, gives distinct family and compact guidance, treats seat supply as subject to checking, and does not force dates to answer these questions.
 
 2026-10-27 — The next live English replay completed a request but repeated the insurance answer verbatim, ignored a payment question, and repeated the age question after “I would like to make a request”. Booking now gives a concise second insurance explanation, answers payment terms without inventing amounts, and acknowledges the request while asking for the missing age. The regression runs the full chat including those detours.
