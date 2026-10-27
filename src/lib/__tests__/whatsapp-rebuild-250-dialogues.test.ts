@@ -620,6 +620,25 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(noDate.reply).not.toMatch(/איזה תאריכים|לאילו תאריכים/);
   });
 
+  it('keeps large-bag details and answers five-passenger fit questions without looping', async () => {
+    const chat = conversation(429, { ...modelReading, reply: 'רכב פנאי גבוה יעניק לכם מרחב מרווח. אילו תאריכים תרצו לבדוק?' });
+    await chat.send('אנחנו חמישה ושלוש מזוודות');
+    const suv = await chat.send('האם גיפון יתאים?');
+    expect(suv.reply).toContain('דגם מסוים');
+    const best = await chat.send('מה הכי מתאים לדעתך?');
+    expect(best.reply).not.toBe(suv.reply);
+    const bags = await chat.send('המזוודות גדולות');
+    expect(bags.state.booking.luggageSize).toBe('large');
+    const alternative = await chat.send('אולי יש כיוון אחר?');
+    expect(alternative.reply).not.toBe(best.reply);
+    const suggestion = await chat.send('אז מה היית מציע?');
+    expect(suggestion.reply).toContain('גדולות');
+    await chat.send('לא רוצה להזמין עדיין');
+    const fit = await chat.send('איך נוודא מקום למטען?');
+    expect(fit.reply).toContain('המזוודות הגדולות');
+    expect(fit.reply).not.toContain('האם אלה מזוודות גדולות');
+  });
+
   it('acknowledges a vehicle correction while age remains missing', async () => {
     const chat = conversation(411);
     await chat.send('אני רוצה לשכור רכב 10/12-14/12');

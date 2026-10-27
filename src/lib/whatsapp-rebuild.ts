@@ -7,7 +7,7 @@ import { readBotTurn, type BotReading, type GeminiBotContext, type VehicleDirect
 type Locale = 'he' | 'en';
 type Phase = 'explore' | 'booking' | 'service';
 type BookingKey = 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'driverAgeRange' | 'customerName' | 'customerEmail';
-type BookingDraft = Partial<Record<BookingKey, string>> & { passengers?: number; luggage?: number; childSeats?: number; datePreference?: string };
+type BookingDraft = Partial<Record<BookingKey, string>> & { passengers?: number; luggage?: number; luggageSize?: 'large'; childSeats?: number; datePreference?: string };
 type HistoryEntry = { from: 'customer' | 'bot'; text: string; private?: boolean };
 
 export type RebuildState = {
@@ -293,6 +293,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   const luggageCount = statedCount(luggage?.[1] ?? '');
   if (passengerCount !== null) draft.passengers = passengerCount;
   if (luggageCount !== null) draft.luggage = luggageCount;
+  if (/מזווד.{0,18}גדול|large (?:bags|suitcases|luggage)/i.test(input)) draft.luggageSize = 'large';
   if (/אנחנו זוג|זוג עם|שני אנשים|שני נוסעים|we are a couple|two of us/i.test(input)) draft.passengers = 2;
   if (draft.luggage === undefined && /מזוודה(?!ות)|תיק נסיעה אחד|one suitcase|one bag/i.test(input)) draft.luggage = 1;
   if (/תינוק|baby|infant/i.test(input)) draft.childSeats ??= 1;
@@ -413,6 +414,23 @@ function direction(reading: BotReading | null, draft: BookingDraft, input: strin
 
 function advice(input: string, state: RebuildState, reading: BotReading | null): string {
   const he = state.locale === 'he';
+  if ((state.booking.passengers ?? 0) >= 5 && (state.booking.luggage ?? 0) >= 3) {
+    if (/המזוודות גדולות|מזוודות גדולות|large suitcases|large bags/i.test(input)) return he
+      ? `רשמתי שמדובר ב־${state.booking.luggage} מזוודות גדולות. ל־${state.booking.passengers} נוסעים הייתי בודק רכב פנאי מרווח או רכב שבעה מקומות, ולפני בחירה נוודא מקום לציוד בדגם המסוים.`
+      : `I have noted ${state.booking.luggage} large bags. For ${state.booking.passengers} passengers I would check a roomy SUV or seven-seat car, then verify luggage space in the actual model.`;
+    if (/איך נוודא מקום למטען|איך בודקים מקום למזוודות|how (?:can|do) we check luggage space/i.test(input)) return he
+      ? `נבדוק את תא המטען בדגם המסוים כשהמושבים הנחוצים בשימוש, לפי שלוש המזוודות${state.booking.luggageSize === 'large' ? ' הגדולות' : ''} שציינת. אם יש מידות למזוודות, אפשר לצרף אותן לבקשה.`
+      : `We will check boot space in the actual model with the needed seats in use, for the ${state.booking.luggage}${state.booking.luggageSize === 'large' ? ' large' : ''} bags you mentioned. You can include their dimensions if you have them.`;
+    if (/האם ג[׳'י]?יפון יתאים|ג[׳'י]?יפון יתאים|will an? (?:small )?suv fit/i.test(input)) return he
+      ? `ג׳יפון יכול להיות כיוון, אבל עם ${state.booking.passengers} נוסעים ו־${state.booking.luggage} מזוודות אי אפשר להבטיח מקום בלי לבדוק דגם מסוים. הייתי משווה רכב פנאי מרווח למשפחתית גדולה.`
+      : `An SUV could work, but with ${state.booking.passengers} passengers and ${state.booking.luggage} bags we need to check the actual model before promising a fit. I would compare a roomy SUV and a large family car.`;
+    if (/אולי יש כיוון אחר|יש אופציה אחרת|another direction|other option/i.test(input)) return he
+      ? 'אפשר לבדוק גם רכב שבעה מקומות כדי להשאיר יותר גמישות למטען, אבל גם בו חשוב לבדוק את תא המטען כשהמושבים בשימוש.'
+      : 'A seven-seat car is another option for more flexibility, though we still need to check boot space with the seats in use.';
+    if (/מה הכי מתאים לדעתך|אז מה היית מציע|מה היית ממליץ|what (?:fits|suits) best|what would you suggest/i.test(input)) return he
+      ? `ל־${state.booking.passengers} נוסעים ו־${state.booking.luggage} מזוודות${state.booking.luggageSize === 'large' ? ' גדולות' : ''} הייתי מתחיל בבדיקת רכב פנאי מרווח. נשווה גם משפחתית גדולה או שבעה מקומות לפי תא המטען בדגמים הזמינים.`
+      : `For ${state.booking.passengers} passengers and ${state.booking.luggage}${state.booking.luggageSize === 'large' ? ' large' : ''} bags I would start with a roomy SUV, then compare a large family car or seven-seater by actual boot space.`;
+  }
   if (state.booking.passengers === 1 && /קטן או משפחתי|קומפקטי או משפחתי|small or family|compact or family/i.test(input)) return he
     ? 'לנסיעה לבד ובעיקר בעיר הייתי מתחיל ברכב קומפקטי: קל יותר לתמרן ולחנות. משפחתית תהיה טובה אם חשוב לך יותר מקום לנוסעים או לציוד.'
     : 'For solo city driving I would start with a compact, which is easier to park and manoeuvre. A family car makes sense if you need more passenger or luggage space.';
@@ -495,8 +513,8 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
   }
   if (/מזווד|מטען|תא מטען|luggage|suitcase|boot|trunk/i.test(input) && /כמה|נכנס|יספיק|מקום|יכול|fit|space|room|how many/i.test(input)) {
     if (state.booking.passengers && state.booking.luggage) return he
-      ? `ל־${state.booking.passengers} נוסעים ו־${state.booking.luggage} מזוודות נבדוק את המקום בדגם המסוים לפני שנבטיח התאמה. האם אלה מזוודות גדולות?`
-      : `For ${state.booking.passengers} passengers and ${state.booking.luggage} bags, we will check space in the actual model before promising a fit. Are they large suitcases?`;
+      ? `ל־${state.booking.passengers} נוסעים ו־${state.booking.luggage} מזוודות נבדוק את המקום בדגם המסוים לפני שנבטיח התאמה.${state.booking.luggageSize === 'large' ? ' רשמתי שהמזוודות גדולות.' : ' האם אלה מזוודות גדולות?'}`
+      : `For ${state.booking.passengers} passengers and ${state.booking.luggage} bags, we will check space in the actual model before promising a fit.${state.booking.luggageSize === 'large' ? ' I have noted that the bags are large.' : ' Are they large suitcases?'}`;
     return he
       ? 'המקום למזוודות תלוי בדגם ובגודל המזוודות. כמה נוסעים ומזוודות יהיו? כך נוכל להציע רכב מתאים.'
       : 'Luggage fit depends on the actual model and suitcase sizes. I can suggest a vehicle group to check, but cannot promise fit without checking that car. How many passengers and suitcases will you have?';
@@ -538,6 +556,7 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
 
 function safeModelReply(reading: BotReading | null, input: string, state: RebuildState): string | null {
   if (!reading || OUTSIDE.test(input) || /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input)) return null;
+  if ((state.booking.passengers ?? 0) >= 5 && (state.booking.luggage ?? 0) >= 3 && /האם ג[׳'י]?יפון יתאים|ג[׳'י]?יפון יתאים|מה הכי מתאים לדעתך|המזוודות גדולות|אולי יש כיוון אחר|אז מה היית מציע|איך נוודא מקום למטען|SUV fit|large suitcases|another direction|luggage space/i.test(input)) return null;
   if (state.booking.childSeats && /אולי יש כיוון אחר|יש אופציה אחרת|any other option|another direction|היית ממליץ על קטן|would you recommend a (?:small|compact) car/i.test(input)) return null;
   if (state.booking.passengers === 1 && /קטן או משפחתי|קומפקטי או משפחתי|מה הכי מתאים לדעתך|מה מתאים לי|מה לגבי חניה|ומה לגבי חניה|אולי יש כיוון אחר|יש אופציה אחרת|small or family|compact or family|parking|another direction|other option/i.test(input)) return null;
   if (/אולי אשכור בסוף החודש|אולי בסוף החודש|maybe (?:rent|later) this month/i.test(input)) return null;
@@ -628,8 +647,8 @@ function summary(state: RebuildState): string {
   const consent = termsConsent(state.locale);
   const date = (value?: string) => value ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : '';
   const needs = state.locale === 'en'
-    ? `${b.passengers ? `Passengers: ${b.passengers}\n` : ''}${b.luggage ? `Bags: ${b.luggage}\n` : ''}`
-    : `${b.passengers ? `נוסעים: ${b.passengers}\n` : ''}${b.luggage ? `מזוודות: ${b.luggage}\n` : ''}`;
+    ? `${b.passengers ? `Passengers: ${b.passengers}\n` : ''}${b.luggage ? `Bags: ${b.luggage}${b.luggageSize === 'large' ? ' (large)' : ''}\n` : ''}`
+    : `${b.passengers ? `נוסעים: ${b.passengers}\n` : ''}${b.luggage ? `מזוודות: ${b.luggage}${b.luggageSize === 'large' ? ' (גדולות)' : ''}\n` : ''}`;
   if (state.locale === 'en') return `Here are your request details:\nVehicle: ${b.vehicleNeed}\n${needs}Dates: ${date(b.pickupDate)}–${date(b.returnDate)}\nPickup: ${b.pickupLocation}\nReturn: ${b.returnLocation}\nDriver age: ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}\nName: ${b.customerName}\nEmail: ${b.customerEmail}\n\nThis request is subject to SmartCar's review and confirmation. Before sending it, please confirm the following statement:\n“${consent.text}”\nTerms: https://www.smartcar.co.il/en/terms\nPrivacy: https://www.smartcar.co.il/en/privacy\nIf everything is correct and you agree, reply “I confirm” to send the request.`;
   return `אלה פרטי הבקשה שלכם:\nרכב: ${b.vehicleNeed}\n${needs}תאריכים: ${date(b.pickupDate)}–${date(b.returnDate)}\nאיסוף: ${b.pickupLocation}\nהחזרה: ${b.returnLocation}\nגיל הנהג: ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}\nשם: ${b.customerName}\nמייל: ${b.customerEmail}\n\nהבקשה תועבר לאישור SmartCar. לפני השליחה, אנא אשרו את ההצהרה:\n״${consent.text}״\nתנאי השימוש: https://www.smartcar.co.il/he/terms\nמדיניות הפרטיות: https://www.smartcar.co.il/he/privacy\nאם הכול נכון ואתם מסכימים, שלחו ״אני מאשר/ת״ כדי לשלוח את הבקשה.`;
 }

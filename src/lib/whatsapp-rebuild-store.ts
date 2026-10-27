@@ -44,7 +44,7 @@ async function createRentalRequest(phone: string, state: RebuildState): Promise<
     pickup_date: b.pickupDate, dropoff_date: b.returnDate,
     pickup_location: b.pickupLocation, dropoff_location: b.returnLocation,
     vehicle_preference: b.vehicleNeed, driver_age_range: b.driverAgeRange,
-    trip_needs: [b.passengers && `${b.passengers} passengers`, b.luggage && `${b.luggage} luggage`, b.childSeats && `${b.childSeats} child seats`, 'times not given — coordinate with customer'].filter(Boolean).join(', '),
+    trip_needs: [b.passengers && `${b.passengers} passengers`, b.luggage && `${b.luggage} ${b.luggageSize === 'large' ? 'large ' : ''}luggage`, b.childSeats && `${b.childSeats} child seats`, 'times not given — coordinate with customer'].filter(Boolean).join(', '),
     locale: state.locale, status: 'PENDING', terms_version: consent.version,
     terms_text_hash: consent.hash, terms_accepted_at: new Date().toISOString(), consent_source: 'whatsapp',
   }).select('id').single();
