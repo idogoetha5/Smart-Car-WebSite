@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-27 — The next live one-day work-rental advice chat repeated date prompts after questions about compact fit, solo travel and one bag, emitted malformed Hebrew from Gemini, and asked for a date immediately after “אחזור עם תאריך”. The conversation core now answers those workday follow-ups from retained trip facts and closes politely until a date is known. A production replay remains required.
+
 2026-10-27 — A production Gemini advice chat with five passengers and three bags repeated the same generic date prompt four times, then promised SUV comfort and asked whether the bags were large after the customer had already said so. The core now answers each luggage-fit follow-up directly, keeps large-bag size in the draft and request summary, and rejects model answers on these constrained capacity questions. A live replay is required before counting this version as repaired.
 
 2026-10-27 — Manual review of the supposedly clean baby-and-bag advice transcript caught two missed end states: “אין לי עדיין תאריכים” was followed by another date demand, and “תודה, אעדכן כשאדע תאריכים” reopened sales. The bot now acknowledges that dates are undecided and closes politely when the customer says they will return later.

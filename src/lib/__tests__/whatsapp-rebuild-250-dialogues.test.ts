@@ -639,6 +639,25 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(fit.reply).not.toContain('האם אלה מזוודות גדולות');
   });
 
+  it('advises a solo workday renter and closes when dates are unknown', async () => {
+    const chat = conversation(430, { ...modelReading, reply: 'לאילו תאריכים תרצו לבדוק את הרכב?' });
+    const opening = await chat.send('צריך רכב ליום אחד לעבודה');
+    expect(opening.reply).toContain('כמה אנשים וציוד');
+    const compact = await chat.send('רכב קטן יספיק?');
+    expect(compact.reply).not.toBe(opening.reply);
+    const best = await chat.send('מה הכי מתאים לדעתך?');
+    expect(best.reply).toContain('קומפקטי');
+    const alone = await chat.send('אני נוסע לבד');
+    expect(alone.state.booking.passengers).toBe(1);
+    const bag = await chat.send('יש גם תיק אחד');
+    expect(bag.state.booking.luggage).toBe(1);
+    expect(bag.reply).not.toContain('לאילו תאריכים');
+    await chat.send('מה לגבי ביטוח?');
+    const close = await chat.send('אחזור עם תאריך');
+    expect(close.reply).toContain('כשתדע את התאריך');
+    expect(close.reply).not.toContain('מתי');
+  });
+
   it('acknowledges a vehicle correction while age remains missing', async () => {
     const chat = conversation(411);
     await chat.send('אני רוצה לשכור רכב 10/12-14/12');

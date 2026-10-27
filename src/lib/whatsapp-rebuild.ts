@@ -295,7 +295,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   if (luggageCount !== null) draft.luggage = luggageCount;
   if (/מזווד.{0,18}גדול|large (?:bags|suitcases|luggage)/i.test(input)) draft.luggageSize = 'large';
   if (/אנחנו זוג|זוג עם|שני אנשים|שני נוסעים|we are a couple|two of us/i.test(input)) draft.passengers = 2;
-  if (draft.luggage === undefined && /מזוודה(?!ות)|תיק נסיעה אחד|one suitcase|one bag/i.test(input)) draft.luggage = 1;
+  if (draft.luggage === undefined && /מזוודה(?!ות)|תיק(?: נסיעה)? אחד|one suitcase|one bag/i.test(input)) draft.luggage = 1;
   if (/תינוק|baby|infant/i.test(input)) draft.childSeats ??= 1;
   if (/אדם אחד|איש אחד|נוסע אחד|נוסעת אחת|אני לבד|(?:^|\s)לבד(?:\s|$)|\b(?:one person|solo|travelling alone|traveling alone)\b/i.test(input)) draft.passengers = 1;
 }
@@ -414,6 +414,23 @@ function direction(reading: BotReading | null, draft: BookingDraft, input: strin
 
 function advice(input: string, state: RebuildState, reading: BotReading | null): string {
   const he = state.locale === 'he';
+  const workDay = /יום אחד לעבודה|one day for work/i.test(input)
+    || state.history.some(entry => entry.from === 'customer' && /יום אחד לעבודה|one day for work/i.test(entry.text));
+  if (workDay && /צריך רכב ליום אחד לעבודה|need a car for one day for work/i.test(input)) return he
+    ? 'בשמחה. ליום עבודה אפשר להתחיל בבדיקת רכב קומפקטי, ולבחור לפי מספר הנוסעים והציוד. כמה אנשים וציוד יהיו איתך?'
+    : 'Of course. For one workday a compact is a good starting point, depending on passengers and luggage. How many people and bags will travel?';
+  if (workDay && /רכב קטן יספיק|will a (?:small|compact) car be enough/i.test(input)) return he
+    ? 'רכב קטן יכול להתאים ליום עבודה, אבל כדי לוודא צריך לדעת כמה נוסעים וכמה ציוד תביא. אם תיסע לבד עם תיק אחד, קומפקטי יהיה הכיוון הראשון לבדיקה.'
+    : 'A compact could work for a workday, depending on passengers and luggage. If you travel alone with one bag, it is the first group I would check.';
+  if (workDay && /מה הכי מתאים לדעתך|מה מתאים לי|what (?:fits|suits) me best/i.test(input)) return he
+    ? 'ליום עבודה הייתי מתחיל ברכב קומפקטי, במיוחד אם מדובר בנסיעה לבד. אם יש הרבה ציוד או עוד נוסעים, נשווה גם משפחתית.'
+    : 'For one workday I would start with a compact, especially for a solo trip. With more people or gear, we can compare a family car.';
+  if (workDay && /אני נוסע לבד|אני נוסעת לבד|I(?:'m| am) travelling alone/i.test(input)) return he
+    ? 'רשמתי שתיסע לבד. רכב קומפקטי הוא כיוון מתאים להתחיל ממנו ליום העבודה; אם יש ציוד גדול, נבדוק גם משפחתית.'
+    : 'I have noted that you are travelling alone. A compact is a sensible starting point for the workday; with larger gear we can check a family car too.';
+  if (workDay && /יש גם תיק אחד|one bag(?: as well)?/i.test(input)) return he
+    ? 'רשמתי גם תיק אחד. לנסיעה לבד עם תיק, קומפקטי הוא כיוון טוב; את המקום לציוד נוודא בדגם המסוים כשתבחר רכב.'
+    : 'I have noted one bag too. For a solo trip with one bag, a compact is a good direction; we will check space in the actual model.';
   if ((state.booking.passengers ?? 0) >= 5 && (state.booking.luggage ?? 0) >= 3) {
     if (/המזוודות גדולות|מזוודות גדולות|large suitcases|large bags/i.test(input)) return he
       ? `רשמתי שמדובר ב־${state.booking.luggage} מזוודות גדולות. ל־${state.booking.passengers} נוסעים הייתי בודק רכב פנאי מרווח או רכב שבעה מקומות, ולפני בחירה נוודא מקום לציוד בדגם המסוים.`
@@ -556,6 +573,8 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
 
 function safeModelReply(reading: BotReading | null, input: string, state: RebuildState): string | null {
   if (!reading || OUTSIDE.test(input) || /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input)) return null;
+  if ((/יום אחד לעבודה|one day for work/i.test(input) || state.history.some(entry => entry.from === 'customer' && /יום אחד לעבודה|one day for work/i.test(entry.text)))
+    && /צריך רכב|רכב קטן יספיק|מה הכי מתאים לדעתך|אני נוסע לבד|אני נוסעת לבד|יש גם תיק אחד|need a car|small car be enough|what (?:fits|suits) me best|travelling alone|one bag/i.test(input)) return null;
   if ((state.booking.passengers ?? 0) >= 5 && (state.booking.luggage ?? 0) >= 3 && /האם ג[׳'י]?יפון יתאים|ג[׳'י]?יפון יתאים|מה הכי מתאים לדעתך|המזוודות גדולות|אולי יש כיוון אחר|אז מה היית מציע|איך נוודא מקום למטען|SUV fit|large suitcases|another direction|luggage space/i.test(input)) return null;
   if (state.booking.childSeats && /אולי יש כיוון אחר|יש אופציה אחרת|any other option|another direction|היית ממליץ על קטן|would you recommend a (?:small|compact) car/i.test(input)) return null;
   if (state.booking.passengers === 1 && /קטן או משפחתי|קומפקטי או משפחתי|מה הכי מתאים לדעתך|מה מתאים לי|מה לגבי חניה|ומה לגבי חניה|אולי יש כיוון אחר|יש אופציה אחרת|small or family|compact or family|parking|another direction|other option/i.test(input)) return null;
@@ -772,6 +791,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : lastBotReply === greeting(input, state.locale)
         ? (he ? 'היי שוב 🙂 מה תרצה לבדוק?' : 'Hi again 🙂 What would you like to check?')
         : greeting(input, state.locale)!;
+  } else if (/^(?:אחזור עם תאריך|אחזור כשאדע תאריך|I'll come back with a date)[.!\s]*$/i.test(input)) {
+    reply = he ? 'בשמחה. כשתדע את התאריך, כתוב לי כאן ונמשיך מהפרטים שכבר מסרת.' : 'Of course. Send the date when you know it and we can continue from the details you already shared.';
   } else if (uncertainDateAnswer(input) && (/אין לי (?:עדיין )?תאריכ|אין תאריך סופי|עדיין אין תאריך|no dates? yet/i.test(input) || asksRentalDates(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
     reply = he ? 'אין בעיה. כשתדעו את התאריכים המדויקים, כתבו אותם כאן ונוכל להמשיך מהפרטים שכבר מסרתם.' : 'No problem. When you know the exact dates, send them here and we can continue with the details you already shared.';
   } else if (vagueDateAnswer(input) && (asksRentalDates(lastBotReply) || /כשתדעו את התאריכים המדויקים|when you know the exact dates/i.test(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
