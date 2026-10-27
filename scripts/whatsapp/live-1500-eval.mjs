@@ -105,6 +105,7 @@ function findings(rows, category) {
   if (rows.some(row => row.status && row.status !== 200)) issues.push('http_failure');
   if (category !== 'service' && !rows.some(row => row.model)) issues.push('no_gemini_reading');
   if (replies.some(reply => /באיזו שעה|באיזה שעה|what time/i.test(reply))) issues.push('asked_pickup_hour');
+  if (replies.some(reply => /(?:חיסכון|חסכון).{0,18}בדלק|fuel savings|great fuel efficiency/i.test(reply))) issues.push('unsupported_fuel_claim');
   if (replies.some(reply => /(?:יהיה|תהיה).{0,35}(?:נוח|נוחה|מרווח|מרווחת|מספיק מרחב|מספיק מקום).{0,45}(?:לכל|ל)(?:\s+ה)?(?:נוסעים|מטען|מזוודות)/i.test(reply))) issues.push('unsupported_fit_claim');
   if (replies.some((reply, index) => /המחיר באתר|אין לי גישה|המודל|כיוון לבדיקה|website price|internal process/i.test(reply)
     || /סימולציה|simulation/i.test(reply) && index !== replies.length - 1)) issues.push('internal_language');

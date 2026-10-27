@@ -40,7 +40,7 @@ export type RebuildStore = {
 const ORDER: BookingKey[] = ['pickupDate', 'returnDate', 'pickupLocation', 'returnLocation', 'vehicleNeed', 'driverAgeRange', 'customerName', 'customerEmail'];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const OUTSIDE = /מוני(?:ת|ות)|אוטובוס|רכבת|תחבורה ציבורית|אוויס|אלדן|סיקסט|הרץ|מתחר|חברת השכרה אחרת|\btaxi\b|\bbus\b|\btrain\b|\buber\b|\bavis\b|\bhertz\b|\bsixt\b|competitor|another rental company/i;
-const UNSAFE_CLAIM = /(?:יש לנו|יש אצלנו|זמין עכשיו|זמין בדיוק|פנוי עכשיו|מובטח|בטוח ש|בהחלט ייכנס|בהחלט יתאים|יתאים לכם (?:מצוין|בול)|מזווד.{0,25}(?:ייכנס|יספיק)|(?:יהיה|תהיה).{0,20}(?:נוח|נוחה|מרווח|מרווחת).{0,35}(?:לכל|ל)(?:\s+ה)?(?:נוסעים|מטען|מזוודות)|(?:חיסכון|חסכון) בדלק|(?:נסיעה|רכב).{0,18}חסכוני(?:ת)?|צריכת דלק.{0,25}(?:מעולה|נמוכה|טובה|חסכונית)|we have available|available for (?:your|the) (?:trip|dates)|guaranteed|(?:definitely|easily) fits?|fits? (?:your|two|three|the) (?:bags|suitcases|luggage)|great fuel efficiency|fuel savings|confirmed booking)/i;
+const UNSAFE_CLAIM = /(?:יש לנו|יש אצלנו|זמין עכשיו|זמין בדיוק|פנוי עכשיו|מובטח|בטוח ש|בהחלט ייכנס|בהחלט יתאים|יתאים לכם (?:מצוין|בול)|מזווד.{0,25}(?:ייכנס|יספיק)|(?:יהיה|תהיה).{0,20}(?:נוח|נוחה|מרווח|מרווחת).{0,35}(?:לכל|ל)(?:\s+ה)?(?:נוסעים|מטען|מזוודות)|(?:חיסכון|חסכון).{0,18}בדלק|(?:נסיעה|רכב).{0,18}חסכוני(?:ת)?|צריכת דלק.{0,25}(?:מעולה|נמוכה|טובה|חסכונית)|we have available|available for (?:your|the) (?:trip|dates)|guaranteed|(?:definitely|easily) fits?|fits? (?:your|two|three|the) (?:bags|suitcases|luggage)|great fuel efficiency|fuel savings|confirmed booking)/i;
 const INTERNAL_VOICE = /המחיר באתר|באתר (?:הוא|מופיע)|אין לי (?:גישה|אישור|מלאי|אפשרות)|לא אישרתי|לא פתרתי|בשיחה הזו|כיוון לבדיקה|הצוות צריך לבדוק|נשמר.{0,25}(?:לטיפול|לנציג)|תהליך פנימי|בדיקה פנימית|המודל|סימולציה|website price|on the website|I (?:do not|don't) have (?:access|approval|inventory)|I have not (?:confirmed|resolved)|internal (?:check|process|system)|simulation|backend/i;
 const VOLUNTEERED_IDENTITY = /אני (?:בוט|רובוט|עוזר דיגיטלי|בינה מלאכותית)|אני לא (?:בן אדם|אדם)|I am (?:a bot|an AI|a digital assistant)|I'm (?:a bot|an AI|a digital assistant)/i;
 const PRICE_OR_AVAILABILITY = /מחיר|עלות|כמה.{0,12}(?:עול|יעל)|(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:price|cost|rate|available|availability)\b/iu;
@@ -414,6 +414,24 @@ function direction(reading: BotReading | null, draft: BookingDraft, input: strin
 
 function advice(input: string, state: RebuildState, reading: BotReading | null): string {
   const he = state.locale === 'he';
+  const budgetLed = /רכב זול|זול לשבוע|מחיר חשוב|lowest price|cheap rental/i.test(input)
+    || state.history.some(entry => entry.from === 'customer' && /רכב זול|זול לשבוע|מחיר חשוב|lowest price|cheap rental/i.test(entry.text));
+  if (/מחפש רכב זול לשבוע|מחפשת רכב זול לשבוע|looking for a cheap rental for a week/i.test(input)) return he
+    ? 'לשבוע השכרה הייתי מתחיל בבדיקת קבוצה קומפקטית, ואז משווה הצעה לפי התאריכים והתנאים. כמה אנשים וציוד יהיו בנסיעה?'
+    : 'For a week I would start by checking the compact group, then compare a quote for your dates and terms. How many people and bags will travel?';
+  if (budgetLed && /מה הכי מתאים לדעתך|איזו קבוצה הכי מתאימה|which (?:group|class) fits best/i.test(input)) return he
+    ? state.booking.passengers === 1
+      ? 'לנסיעה לבד, כשחשוב לשמור על התקציב, קומפקטית היא הקבוצה הראשונה שהייתי בודק. מחיר מדויק נקבע לפי התאריכים וההצעה.'
+      : 'כשמחיר חשוב והצרכים עוד לא סגורים, קומפקטית היא נקודת פתיחה לבדיקה. אם יהיו כמה נוסעים או ציוד רב, נשווה גם קבוצה גדולה יותר.'
+    : state.booking.passengers === 1
+      ? 'For solo travel with a budget in mind, a compact is the first group I would check. The exact price depends on your dates and quote.'
+      : 'With price in mind, a compact is a starting point. If more people or bags are travelling, we can compare a larger group.';
+  if (budgetLed && /אני נוסע לבד|אני נוסעת לבד|I(?:'m| am) travelling alone/i.test(input)) return he
+    ? 'רשמתי שתיסע לבד. קומפקטית היא הקבוצה הראשונה שהייתי בודק עבורך, בלי לקבוע מחיר לפני שנדע תאריכים ותנאים.'
+    : 'I have noted that you are travelling alone. A compact is the first group I would check, with the price confirmed once dates and terms are known.';
+  if (/זה נשמע יקר|נשמע יקר|sounds expensive/i.test(input)) return he
+    ? 'מבין. נוכל להתחיל מקבוצה קומפקטית ולבדוק הצעה לפי התאריכים כשתדע אותם. אם יש תקציב יומי שנוח לך, אוכל לציין אותו בבקשה.'
+    : 'I understand. We can start with a compact group and check a quote when you know the dates. If you have a daily budget, I can include it in the request.';
   const workDay = /יום אחד לעבודה|one day for work/i.test(input)
     || state.history.some(entry => entry.from === 'customer' && /יום אחד לעבודה|one day for work/i.test(entry.text));
   if (workDay && /צריך רכב ליום אחד לעבודה|need a car for one day for work/i.test(input)) return he
@@ -458,8 +476,8 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
     ? 'רכב קומפקטי נוח בדרך כלל יותר לתמרון ולחניה בעיר. אם יש חניון עם מגבלת גובה או אורך, נבדוק את המידות של הדגם המסוים.'
     : 'A compact is generally easier to manoeuvre and park in town. If your garage has a height or length limit, we will check the exact model dimensions.';
   if (state.booking.passengers === 1 && /אולי יש כיוון אחר|יש אופציה אחרת|another direction|other option/i.test(input)) return he
-    ? 'הכיוון השני הוא משפחתית, אם תרצה יותר מקום או נוחות בנסיעות ארוכות. לנסיעות עירוניות לבד עדיין הייתי מתחיל בקומפקטי.'
-    : 'A family car is the other direction if you want more room or comfort on longer drives. For solo city use, I would still start with a compact.';
+    ? 'הכיוון השני הוא משפחתית, אם תרצה יותר מקום או נוחות בנסיעות ארוכות. לנסיעה לבד עדיין הייתי מתחיל בקומפקטי.'
+    : 'A family car is the other direction if you want more room or comfort on longer drives. For solo travel, I would still start with a compact.';
   if (/אולי אשכור בסוף החודש|אולי בסוף החודש|maybe (?:rent|later) this month/i.test(input)) return he
     ? 'נשמע טוב. אפשר לבחור את קבוצת הרכב כבר עכשיו, וכשתדע את ימי האיסוף וההחזרה נבדוק זמינות והצעה מדויקת.'
     : 'That works. We can choose the vehicle group now, then check availability and a precise quote once you know your pickup and return dates.';
@@ -573,6 +591,9 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
 
 function safeModelReply(reading: BotReading | null, input: string, state: RebuildState): string | null {
   if (!reading || OUTSIDE.test(input) || /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input)) return null;
+  if (/מחפש רכב זול לשבוע|מחפשת רכב זול לשבוע|זה נשמע יקר|נשמע יקר|איזו קבוצה הכי מתאימה|looking for a cheap rental for a week|sounds expensive|which (?:group|class) fits best/i.test(input)) return null;
+  if (state.history.some(entry => entry.from === 'customer' && /רכב זול|cheap rental/i.test(entry.text))
+    && /מה הכי מתאים לדעתך|אני נוסע לבד|אני נוסעת לבד|אחשוב על זה|what fits best|travelling alone|think about it/i.test(input)) return null;
   if ((/יום אחד לעבודה|one day for work/i.test(input) || state.history.some(entry => entry.from === 'customer' && /יום אחד לעבודה|one day for work/i.test(entry.text)))
     && /צריך רכב|רכב קטן יספיק|מה הכי מתאים לדעתך|אני נוסע לבד|אני נוסעת לבד|יש גם תיק אחד|need a car|small car be enough|what (?:fits|suits) me best|travelling alone|one bag/i.test(input)) return null;
   if ((state.booking.passengers ?? 0) >= 5 && (state.booking.luggage ?? 0) >= 3 && /האם ג[׳'י]?יפון יתאים|ג[׳'י]?יפון יתאים|מה הכי מתאים לדעתך|המזוודות גדולות|אולי יש כיוון אחר|אז מה היית מציע|איך נוודא מקום למטען|SUV fit|large suitcases|another direction|luggage space/i.test(input)) return null;
@@ -791,6 +812,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : lastBotReply === greeting(input, state.locale)
         ? (he ? 'היי שוב 🙂 מה תרצה לבדוק?' : 'Hi again 🙂 What would you like to check?')
         : greeting(input, state.locale)!;
+  } else if (/^(?:אחשוב על זה|I'll think about it)[.!\s]*$/i.test(input)) {
+    reply = he ? 'בשמחה. קח את הזמן; כשתרצה להמשיך, נוכל לחזור להעדפות שכבר ציינת.' : 'Of course. Take your time; when you are ready, we can continue from the preferences you already shared.';
   } else if (/^(?:אחזור עם תאריך|אחזור כשאדע תאריך|I'll come back with a date)[.!\s]*$/i.test(input)) {
     reply = he ? 'בשמחה. כשתדע את התאריך, כתוב לי כאן ונמשיך מהפרטים שכבר מסרת.' : 'Of course. Send the date when you know it and we can continue from the details you already shared.';
   } else if (uncertainDateAnswer(input) && (/אין לי (?:עדיין )?תאריכ|אין תאריך סופי|עדיין אין תאריך|no dates? yet/i.test(input) || asksRentalDates(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
