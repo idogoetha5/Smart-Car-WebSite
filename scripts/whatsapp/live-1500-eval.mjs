@@ -25,7 +25,7 @@ const cases = [
 // The 15 initial archetypes are expanded through varied corrections, questions,
 // language and branch details. This is a first volume pass, not human review.
 const RESULT_FILE = resolve(process.env.SMARTCAR_EVAL_RESULTS ?? 'evidence/whatsapp-live-1500.jsonl');
-const DELAY_MS = 20_000; // 180 requests/hour, below the public 200/hour limit.
+const DELAY_MS = Math.max(0, Number(process.env.SMARTCAR_EVAL_DELAY_MS ?? 20_000)); // Default: 180 requests/hour, below the public 200/hour limit.
 const MAX_CASES = Number(process.env.SMARTCAR_EVAL_MAX_CASES ?? 1500);
 const sleep = ms => new Promise(resolveSleep => setTimeout(resolveSleep, ms));
 const cities = ['תל אביב', 'הרצליה', 'ירושלים', 'נתבג', 'רמת גן', 'פתח תקווה', 'חיפה', 'נתניה', 'ראשון לציון', 'רעננה'];
@@ -108,7 +108,7 @@ async function run() {
       rows.push({ name, turn: turn + 1, message: messages[turn], reply: data.reply, source: data.source, model: data.model, phase: state?.phase, step: state?.step, booking: state?.booking, handedOff: state?.handedOff, handoffKind: state?.handoffKind, completedRequestId: state?.completedRequestId });
       await sleep(DELAY_MS);
     }
-    const record = { index, name, cycle, category, turns: rows.length, geminiReadings: rows.filter(row => row.model).length, issues: findings(rows, category), rows, finishedAt: new Date().toISOString() };
+    const record = { index, name, cycle, category, release: process.env.SMARTCAR_EVAL_RELEASE ?? 'unknown', turns: rows.length, geminiReadings: rows.filter(row => row.model).length, issues: findings(rows, category), rows, finishedAt: new Date().toISOString() };
     appendFileSync(RESULT_FILE, JSON.stringify(record) + '\n', { mode: 0o600 });
     console.log(`${index + 1}/${MAX_CASES} ${name}: ${record.turns} turns, ${record.geminiReadings} Gemini, ${record.issues.join(',') || 'no automatic issue'}`);
     if (record.issues.includes('http_failure')) break;

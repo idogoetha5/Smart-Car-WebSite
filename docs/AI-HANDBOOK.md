@@ -11,6 +11,11 @@ progress, not a readiness claim. Keep the real customer bot off.
 The first new 16-turn live dialogue exposed a vague answer to "אפשר להוסיף
 נהג?". The published driver terms now supply a direct answer, with a regression
 test; live re-verification follows deployment.
+Five further full production-Gemini rental dialogues found a repeated answer
+to "מה תציעו לי?", unnecessary repeated age prompts after side questions,
+and an unsupported fuel-savings claim in a model reply. The conversation core
+now gathers trip needs, acknowledges a changed vehicle, and filters that
+claim; regression checks pass. These fixes need a new release and live replay.
 
 2026-10-26 — Added a repeatable 250-dialogue rehearsal covering 50 rental
 requests, 50 advice-to-rental conversations, 50 leasing enquiries, 50 sale

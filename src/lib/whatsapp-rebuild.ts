@@ -39,7 +39,7 @@ export type RebuildStore = {
 const ORDER: BookingKey[] = ['pickupDate', 'returnDate', 'pickupLocation', 'returnLocation', 'vehicleNeed', 'driverAgeRange', 'customerName', 'customerEmail'];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const OUTSIDE = /מוני(?:ת|ות)|אוטובוס|רכבת|תחבורה ציבורית|אוויס|אלדן|סיקסט|הרץ|מתחר|חברת השכרה אחרת|\btaxi\b|\bbus\b|\btrain\b|\buber\b|\bavis\b|\bhertz\b|\bsixt\b|competitor|another rental company/i;
-const UNSAFE_CLAIM = /(?:יש לנו|יש אצלנו|זמין עכשיו|זמין בדיוק|פנוי עכשיו|מובטח|בטוח ש|בהחלט ייכנס|בהחלט יתאים|יתאים לכם מצוין|מזווד.{0,25}(?:ייכנס|יספיק)|(?:חיסכון|חסכון) בדלק|צריכת דלק.{0,25}(?:מעולה|נמוכה|טובה|חסכונית)|we have available|available for (?:your|the) (?:trip|dates)|guaranteed|(?:definitely|easily) fits?|fits? (?:your|two|three|the) (?:bags|suitcases|luggage)|great fuel efficiency|fuel savings|confirmed booking)/i;
+const UNSAFE_CLAIM = /(?:יש לנו|יש אצלנו|זמין עכשיו|זמין בדיוק|פנוי עכשיו|מובטח|בטוח ש|בהחלט ייכנס|בהחלט יתאים|יתאים לכם מצוין|מזווד.{0,25}(?:ייכנס|יספיק)|(?:חיסכון|חסכון) בדלק|(?:נסיעה|רכב).{0,18}חסכוני(?:ת)?|צריכת דלק.{0,25}(?:מעולה|נמוכה|טובה|חסכונית)|we have available|available for (?:your|the) (?:trip|dates)|guaranteed|(?:definitely|easily) fits?|fits? (?:your|two|three|the) (?:bags|suitcases|luggage)|great fuel efficiency|fuel savings|confirmed booking)/i;
 const INTERNAL_VOICE = /המחיר באתר|באתר (?:הוא|מופיע)|אין לי (?:גישה|אישור|מלאי|אפשרות)|לא אישרתי|לא פתרתי|בשיחה הזו|כיוון לבדיקה|הצוות צריך לבדוק|נשמר.{0,25}(?:לטיפול|לנציג)|תהליך פנימי|בדיקה פנימית|המודל|סימולציה|website price|on the website|I (?:do not|don't) have (?:access|approval|inventory)|I have not (?:confirmed|resolved)|internal (?:check|process|system)|simulation|backend/i;
 const VOLUNTEERED_IDENTITY = /אני (?:בוט|רובוט|עוזר דיגיטלי|בינה מלאכותית)|אני לא (?:בן אדם|אדם)|I am (?:a bot|an AI|a digital assistant)|I'm (?:a bot|an AI|a digital assistant)/i;
 const PRICE_OR_AVAILABILITY = /מחיר|עלות|כמה.{0,12}(?:עול|יעל)|(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:price|cost|rate|available|availability)\b/iu;
@@ -379,6 +379,10 @@ function direction(reading: BotReading | null, draft: BookingDraft, input: strin
 
 function advice(input: string, state: RebuildState, reading: BotReading | null): string {
   const he = state.locale === 'he';
+  if (/מה (?:אתם|אתה|את) (?:מציע(?:ים|ה)?|ממליצ(?:ים|ה)?)|מה תציעו|what (?:do you|would you) (?:suggest|recommend)/i.test(input)
+      && !state.booking.passengers && !state.booking.vehicleNeed && !state.booking.luggage) return he
+    ? 'בשמחה אעזור לבחור. כמה אנשים ומזוודות יהיו בנסיעה, והאם היא בעיקר בעיר או גם מחוץ לעיר?'
+    : 'Happy to help choose. How many people and bags will travel, and is the driving mainly in town or beyond it?';
   if (explicitDateRange(input) && state.booking.pickupDate && state.booking.returnDate) return he
     ? `הבנתי את תאריכי האיסוף וההחזרה. ${state.booking.pickupLocation ? question('returnLocation', 'he') : question('pickupLocation', 'he')}`
     : `I have the pickup and return dates. ${state.booking.pickupLocation ? question('returnLocation', 'en') : question('pickupLocation', 'en')}`;
@@ -772,7 +776,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
               : /תשריין|שריין|reserve|hold (?:a |the )?car/i.test(input)
                 ? (he ? 'בשמחה, נוכל להעביר בקשה לשריון; האישור הסופי יינתן לאחר בדיקת זמינות. ' : 'Gladly, we can pass on a reservation request; final confirmation follows an availability check. ')
                 : '';
-        const policy = reading?.route === 'policy' ? getSmartCarServiceAnswer(input, state.locale)?.reply : null;
+        const policy = reading?.route === 'policy' || /[?؟]/.test(input) ? getSmartCarServiceAnswer(input, state.locale)?.reply : null;
         if (reportedAge && Number(reportedAge) < 21) {
           state.step = 'rental_age';
           reply = he ? 'השכרה אפשרית לנהגים מגיל 21. אם ינהג אדם אחר שעומד בתנאים, אפשר לציין את קבוצת הגיל שלו ונשמח להמשיך.' : 'Rental is available to drivers aged 21 or older. If another eligible person will drive, please tell us their age group and we will be happy to continue.';
@@ -784,7 +788,16 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           reply = /כתבו את תאריך האיסוף|type the pickup date/i.test(lastBot)
             ? (he ? 'כשתדעו את תאריך האיסוף, כתבו לי אותו ונמשיך.' : 'When you know the pickup date, send it here and we can continue.')
             : (he ? 'כדי להתקדם, כתבו את תאריך האיסוף עצמו, למשל 15/11.' : 'To continue, please send the pickup date itself, for example 15/11.');
-        } else reply = `${policy ? `${policy}\n\n` : prefix}${question(missing, state.locale)}`;
+        } else if (wasBooking && statedVehicle && missing === 'driverAgeRange' && state.booking.vehicleNeed !== previousVehicleNeed) {
+          const changedChoice = /בעצם|מעדיף|במקום|actually|instead|prefer/i.test(input);
+          reply = he
+            ? `${changedChoice ? `עדכנתי את סוג הרכב ל${state.booking.vehicleNeed}` : `רשמתי ${state.booking.vehicleNeed}`}. נשארה קבוצת הגיל של הנהג — 21–23 או 24+?`
+            : `${changedChoice ? `I updated the vehicle to ${state.booking.vehicleNeed}` : `I have ${state.booking.vehicleNeed}`}. Which driver age group applies: 21–23 or 24+?`;
+        } else {
+          const alreadyAsked = state.history.filter(entry => entry.from === 'bot').slice(-2)
+            .some(entry => entry.text.includes(question(missing, state.locale)));
+          reply = policy && alreadyAsked ? policy : `${policy ? `${policy}\n\n` : prefix}${question(missing, state.locale)}`;
+        }
       }
     } else if (reading?.route === 'human' || asksHuman) {
       state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = state.interest ? 'commercial' : 'human'; escalate = true;

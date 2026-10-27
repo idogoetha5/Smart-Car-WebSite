@@ -343,4 +343,34 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(answer.reply).toContain('רישיון');
     expect(answer.reply).not.toContain('מה בדיוק חשוב לך לברר');
   });
+
+  it('moves from vague rental timing to trip needs when asked for a suggestion', async () => {
+    const chat = conversation(409);
+    await chat.send('אני שוקל השכרה בשבוע הבא');
+    const suggestion = await chat.send('מה תציעו לי?');
+    expect(suggestion.reply).toMatch(/כמה אנשים ומזוודות/);
+    expect(suggestion.reply).not.toContain('לאילו תאריכים');
+  });
+
+  it('answers a side question without repeating the last booking question', async () => {
+    const chat = conversation(410);
+    await chat.send('אני רוצה לשכור רכב משפחתי 10/12-14/12');
+    await chat.send('איסוף מהרצליה והחזרה בתל אביב');
+    const answer = await chat.send('יש אפשרות להוסיף נהג?');
+    expect(answer.reply).toContain('נהג נוסף');
+    expect(answer.reply).not.toContain('מה קבוצת הגיל');
+    const age = await chat.send('24+');
+    expect(age.reply).toContain('שם');
+  });
+
+  it('acknowledges a vehicle correction while age remains missing', async () => {
+    const chat = conversation(411);
+    await chat.send('אני רוצה לשכור רכב 10/12-14/12');
+    await chat.send('איסוף מהרצליה והחזרה בהרצליה');
+    const before = chat.turns.at(-1)!.result.reply;
+    const corrected = await chat.send('רכב קטן');
+    expect(corrected.reply).toContain('רשמתי');
+    expect(corrected.reply).toContain('21–23');
+    expect(corrected.reply).not.toBe(before);
+  });
 });

@@ -46,5 +46,20 @@ answer based on the published driver terms was added, plus a conversation
 regression. That first transcript remains in the JSONL file. Its automated
 `internal_language` flag came only from the demo's required final simulation
 notice; the flagger now excludes that notice while continuing to flag
-behind-the-scenes wording within the conversation. Neither correction has
-been counted as live-verified yet.
+behind-the-scenes wording within the conversation. The response fix was
+subsequently checked live; the flagger is a local evaluation aid.
+
+The direct additional-driver answer was then verified on the production
+domain in a two-turn real-Gemini consultation. Five further full conversations
+completed 59 customer turns and 33 Gemini readings. All five reached their
+simulated rental request, but manual review found a verbatim repeated answer
+after “מה תציעו לי?”, repeated age prompts after side questions, and an
+unsupported claim that a compact trip would be fuel efficient. The next
+source change moves vague advice to passengers/bags, suppresses a recently
+asked booking question after a policy answer, acknowledges a later vehicle
+choice, and rejects unsupported fuel-efficiency wording from model replies.
+Those changes still require live re-verification after deployment.
+
+As of this entry, only six new long conversations have actually completed;
+the 1,500 target is not met. Transcripts from earlier releases cannot be
+treated as a final-version readiness pass.
