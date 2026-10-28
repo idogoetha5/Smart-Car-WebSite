@@ -1096,6 +1096,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           reply = /כתבו את תאריך האיסוף|type the pickup date/i.test(lastBot)
             ? (he ? 'כשתדעו את תאריך האיסוף, כתבו לי אותו ונמשיך.' : 'When you know the pickup date, send it here and we can continue.')
             : (he ? 'כדי להתקדם, כתבו את תאריך האיסוף עצמו, למשל 15/11.' : 'To continue, please send the pickup date itself, for example 15/11.');
+        } else if (wasBooking && missing === 'pickupDate' && explicitBooking(input)
+          && state.history.some(entry => entry.from === 'bot' && entry.text.includes(question('pickupDate', state.locale)))) {
+          reply = he ? 'בשמחה, נכין בקשת השכרה. כדי לבדוק את הרכב שביקשתם דרושים תאריכי האיסוף וההחזרה; כתבו לי את שניהם ונמשיך.' : 'Of course, we can prepare a rental request. I need the pickup and return dates to check the car you want; send both and we can continue.';
         } else if (wasBooking && statedVehicle && missing === 'driverAgeRange' && state.booking.vehicleNeed !== previousVehicleNeed) {
           const changedChoice = /בעצם|מעדיף|במקום|actually|instead|prefer/i.test(input);
           reply = he

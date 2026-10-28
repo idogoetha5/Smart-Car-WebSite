@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-28 — The same-location age explanation passed an 11-turn live replay on `683ac1d`; the following vehicle correction also completed. In the next family-and-child-seat rental, the bot answered vehicle and insurance questions but repeated the exact pickup-date question after the customer restated “אני רוצה לשכור”. The booking path now explains that both pickup and return dates are needed and retains the earlier vehicle context. A full-sequence regression was added; live replay remains required.
+
 2026-10-28 — The detailed rental-quote reply passed an 11-turn live replay on `5439d43`. A same-location rental then completed, but “אני רוצה להתקדם” after the age question repeated that question in full. When age is the missing detail, the reply now explains why the age group is still needed and what follows, without repeating the question verbatim. A regression covers the same-location path; live replay remains required.
 
 2026-10-28 — The vehicle-correction replay passed ten live turns on `0604432`. The next rental budget chat completed but manual review found that “אפשר לקבל הצעה מסודרת?” received only the repeated pickup-date question. The booking path now acknowledges the quote request and explains the missing dates or locations needed for price and availability. A regression covers the full preceding price and date-change sequence. Live replay remains required.
