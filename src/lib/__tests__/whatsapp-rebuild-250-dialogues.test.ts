@@ -803,6 +803,20 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(dates.reply).toContain('pick it up');
   });
 
+  it('does not repeat the identical insurance paragraph in an advice chat', async () => {
+    const chat = conversation(468);
+    await chat.send('שלום');
+    await chat.send('צריך רכב ליום אחד לעבודה');
+    const first = await chat.send('מה לגבי ביטוח?');
+    await chat.send('אני נוסע לבד');
+    await chat.send('יש גם תיק אחד');
+    const second = await chat.send('מה לגבי ביטוח?');
+    expect(second.reply).not.toBe(first.reply);
+    expect(second.reply).toContain('ביטוח חובה');
+    expect(second.reply).toContain('השתתפות עצמית');
+    expect(second.reply).not.toContain('לאילו תאריכים');
+  });
+
   it('takes an explicit wish to continue through a complete saved family request', async () => {
     const chat = conversation(418);
     await chat.send('אנחנו ארבעה עם שתי מזוודות ומחפשים רכב לשבוע');

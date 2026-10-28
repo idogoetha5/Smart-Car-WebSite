@@ -1190,7 +1190,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         : `${priceAnswer(state.locale)} ${!state.booking.pickupDate ? (he ? 'לאילו תאריכים תצטרכו את הרכב?' : 'What dates do you need the car?') : !state.booking.returnDate ? question('returnDate', state.locale) : !state.booking.pickupLocation ? question('pickupLocation', state.locale) : !state.booking.returnLocation ? question('returnLocation', state.locale) : (he ? 'תרצו שנתקדם לבקשה עם הפרטים שכבר מסרתם?' : 'Shall we continue with the details you already gave?')}`;
     } else if ((reading?.route === 'policy' || /[?؟]/.test(input)) && getSmartCarServiceAnswer(input, state.locale)) {
       const fact = getSmartCarServiceAnswer(input, state.locale);
-      reply = fact!.topic === 'branches' && state.booking.pickupDate && !state.booking.pickupLocation
+      const alreadyAnsweredInsurance = fact!.topic === 'insurance'
+        && state.history.some(entry => entry.from === 'bot' && entry.text === fact!.reply);
+      reply = alreadyAnsweredInsurance
+        ? (he
+          ? 'הכיסוי הבסיסי כולל ביטוח חובה וכיסוי לנזקי תאונה, אש וגניבה, בכפוף להשתתפות עצמית. בהצעה יפורטו סכום ההשתתפות והאפשרויות להפחתתו. יש חלק מסוים בביטוח שתרצו שאסביר?'
+          : 'Basic cover includes compulsory liability and accident, fire and theft cover, subject to an excess. The quote will show that excess and any reduction options. Is there a particular part you would like me to explain?')
+        : fact!.topic === 'branches' && state.booking.pickupDate && !state.booking.pickupLocation
         ? `${fact!.reply} ${question('pickupLocation', state.locale)}` : fact!.reply;
     } else if (/^(?:תודה(?: רבה)?[.!\s]*|תודה[,!]?\s*אעדכן כש(?:אדע|יהיו לי) תאריכים[.!\s]*|thanks?(?: a lot)?[.!\s]*|thank you[.!\s]*)$/i.test(input)) {
       reply = he ? 'בשמחה. כשתרצו להמשיך, אני כאן.' : 'You are welcome. I am here when you are ready.';
