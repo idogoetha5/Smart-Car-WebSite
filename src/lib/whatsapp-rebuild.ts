@@ -964,7 +964,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     if (statedRange) Object.assign(state.booking, statedRange);
     const statedDays = statedRange ? Math.round((Date.parse(statedRange.returnDate) - Date.parse(statedRange.pickupDate)) / 86_400_000) : 0;
     const mentionedOneWeek = state.history.some(entry => entry.from === 'customer' && /(?:לשבוע|למשך שבוע|לשבוע אחד|for (?:one |a )week|for one week)/i.test(entry.text));
-    const durationMismatch = statedDays > 14 && mentionedOneWeek && !/למעשה|בעצם|שיניתי|actually|changed my plans/i.test(input);
+    const mentionedOneMonth = state.history.some(entry => entry.from === 'customer' && /(?:לשכור|השכרה|רכב).{0,20}לחודש|למשך חודש|for (?:one |a )month/i.test(entry.text));
+    const durationMismatch = Boolean(statedRange) && (statedDays > 14 && mentionedOneWeek || mentionedOneMonth && (statedDays < 21 || statedDays > 45)) && !/למעשה|בעצם|שיניתי|actually|changed my plans/i.test(input);
     if (durationMismatch) state.durationClarification = true;
     applyPromptedDate(input, state, lastBot);
     if (state.phase === 'booking' && !state.booking.pickupDate) {
@@ -1003,7 +1004,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     else if (reading?.route === 'leasing' || /ליסינג|leasing/i.test(input)) state.interest = 'leasing';
     else if (reading?.route === 'sale' || state.phase !== 'booking' && /נסיעת מבחן|test drive/i.test(input) || /לקנייה|למכירה|רכב לקנות|רוצה לקנות|לקנות (?:את ה)?רכב|buy (?:a |the )?(?:used |new )?(?:family |compact |small |suv )?(?:car|vehicle)|purchase (?:a |the )?car|car for sale|used car/i.test(input)) state.interest = 'sale';
     if (durationMismatch) {
-      reply = he ? `ציינת נסיעה של כשבוע, אבל התאריכים ששלחת הם לתקופה ארוכה יותר. אלה התאריכים הרצויים?` : `You mentioned a trip of about a week, but the dates you sent cover a longer period. Are those the dates you want?`;
+      reply = mentionedOneMonth
+        ? (he ? 'ציינת השכרה לחודש, אבל התאריכים ששלחת הם לתקופה אחרת. אלה התאריכים הרצויים?' : 'You mentioned a month-long rental, but the dates you sent cover a different period. Are those the dates you want?')
+        : (he ? 'ציינת נסיעה של כשבוע, אבל התאריכים ששלחת הם לתקופה ארוכה יותר. אלה התאריכים הרצויים?' : 'You mentioned a trip of about a week, but the dates you sent cover a longer period. Are those the dates you want?');
     } else if (declines) {
       state.phase = 'explore'; state.step = 'menu';
       reply = he ? 'בסדר, לא שלחתי בקשה. הפרטים יישארו כאן אם תרצה להמשיך להתלבט.' : 'Okay, I have not sent a request. The details stay here if you want to think it over.';

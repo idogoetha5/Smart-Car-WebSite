@@ -653,6 +653,23 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(mileage.reply).toContain('איזה סוג רכב');
   });
 
+  it('clarifies a month-long rental that later has only ten rental days', async () => {
+    const chat = conversation(428);
+    await chat.send('מה ההבדל בין ליסינג פרטי להשכרה?');
+    await chat.send('נראה לי עדיף לי לשכור לחודש');
+    await chat.send('אני רוצה לשכור רכב קטן');
+    const pickup = new Date();
+    pickup.setUTCDate(pickup.getUTCDate() + 60);
+    const dropoff = new Date(pickup);
+    dropoff.setUTCDate(dropoff.getUTCDate() + 10);
+    const format = (date: Date) => `${date.getUTCDate()}/${date.getUTCMonth() + 1}/${date.getUTCFullYear()}`;
+    const mismatch = await chat.send(`${format(pickup)}-${format(dropoff)}`);
+    expect(mismatch.reply).toContain('ציינת השכרה לחודש');
+    const confirmed = await chat.send('כן');
+    expect(confirmed.reply).toContain('מאיפה תרצו לאסוף');
+    expect(confirmed.state.booking.pickupDate).toBeDefined();
+  });
+
   it('acknowledges a roadside location instead of repeating the previous safety answer', async () => {
     const chat = conversation(407);
     await chat.send('הרכב לא מניע ואני בצד הדרך');

@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-28 — The business-leasing wording correction passed an eight-turn Gemini production replay on release `a5f1622`. The next customer switched from leasing to a one-month rental, then supplied dates covering only ten days; the bot accepted the mismatch without checking. Duration clarification now covers month-long requests as well as one-week requests, while allowing explicit confirmation or revised dates. Regression covers the leasing-to-rental path; live replay remains required.
+
 2026-10-28 — The business-leasing partial-detail repair passed an eight-turn Gemini production replay on release `2a1c8ea` after manual review. The content was correct, but the Hebrew conjunction in the missing-details list rendered awkwardly as “ו־העדפת”. The list now uses a natural conjunction; regression checks the wording. A production replay of this wording correction remains required.
 
 2026-10-28 — The private-leasing quote/viewing repair passed an eight-turn Gemini production replay on release `1b316d7`. The following business-leasing chat revealed a false memory: when asked how to get an offer after only giving the term, the bot said the customer had already supplied mileage and vehicle preference. It now checks which details were actually supplied, names only missing details, and allows the customer to say there is no preference. A regression covers the partial-detail case; live replay remains required.
