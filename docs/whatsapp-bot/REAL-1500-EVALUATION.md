@@ -32,8 +32,9 @@ manual review; a truncated breakdown network attempt was excluded. The next
 cancellation chat still called urgent and callback follow-ups a booking change.
 Its repair passed an eight-turn live replay on `24ddbb6`. The next family-rental
 chat completed a simulated request, but manual review found an unsupported
-luggage-fit promise and a Hebrew typo in the first Gemini reply. Its source
-repair needs a live replay. No
+luggage-fit promise and a Hebrew typo in the first Gemini reply. The first
+repair replay on `a5a0050` still promised luggage fit in different words; the
+broader source repair needs a live replay. No
 1,500-conversation claim or readiness claim is supported.
 
 

@@ -839,6 +839,16 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(answer.reply).toContain('תאריכים');
   });
 
+  it('rejects a natural-sounding luggage guarantee even without the word enough', async () => {
+    const chat = conversation(443, {
+      ...modelReading,
+      reply: 'לרכב משפחתי יהיה מקום נוח לארבעה נוסעים ולשתי המזוודות שלכם לנסיעה נעימה לשבוע. באילו תאריכים תרצו לקחת את הרכב?',
+    });
+    const answer = await chat.send('אנחנו ארבעה עם שתי מזוודות ומחפשים רכב לשבוע');
+    expect(answer.reply).not.toContain('יהיה מקום נוח');
+    expect(answer.reply).toContain('תאריכים');
+  });
+
   it('answers where pickup is possible and continues a same-place request', async () => {
     const chat = conversation(422);
     await chat.send('רוצה רכב משפחתי לתאריכים 10/12-14/12');

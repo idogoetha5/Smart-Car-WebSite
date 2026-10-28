@@ -642,7 +642,7 @@ function safeModelReply(reading: BotReading | null, input: string, state: Rebuil
   if (state.booking.pickupLocation && state.booking.returnLocation
     && /איסוף|לאסוף|pick.?up/i.test(input) && /החזרה|להחזיר|return|drop.?off/i.test(input)) return null;
   const reply = reading.reply;
-  if (OUTSIDE.test(reply) || UNSAFE_CLAIM.test(reply) || /(?:יהיה|יש).{0,35}מספיק מקום.{0,55}מזווד|באזו/i.test(reply) || INTERNAL_VOICE.test(reply) || /₪|\b\d{2,}\b/.test(reply)) return null;
+  if (OUTSIDE.test(reply) || UNSAFE_CLAIM.test(reply) || /(?:יהיה|יש).{0,55}מקום.{0,75}מזווד|באזו/i.test(reply) || INTERNAL_VOICE.test(reply) || /₪|\b\d{2,}\b/.test(reply)) return null;
   if (VOLUNTEERED_IDENTITY.test(reply) && !identityQuestion(input)) return null;
   if (!hasVehicleContext(state.booking, input) && /רכב (?:קטן|קומפקטי|משפחתי|פנאי|שבעה מקומות)|משפחתית|ג[׳'י]?יפון|קטגוריית רכבים קומפקטיים|compact car|family car|SUV/i.test(reply)) return null;
   if (state.booking.passengers && state.booking.passengers < 6 && !/שבעה מקומות|7\s*מקומות|seven.?seat/i.test(input) && /שבעה מקומות|7\s*מקומות|seven.?seat/i.test(reply)) return null;
