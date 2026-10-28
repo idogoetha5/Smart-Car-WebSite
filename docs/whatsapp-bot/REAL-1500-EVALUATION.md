@@ -7,7 +7,7 @@ with at least one complete production-simulator transcript: 48 indexes have a
 Gemini reading and four have a service/safety transcript without Gemini. These
 are spread over multiple releases; they are **not** 52 final-release passes or
 52 owner-approved conversations. The latest deployed release before the next
-repair is `1b316d7`. The roadside breakdown replay on `2a951a6` was manually
+repair is `2a1c8ea`. The roadside breakdown replay on `2a951a6` was manually
 reviewed and passed after one truncated network attempt, which is not counted. Its next
 15-turn rental chat exposed a one-week-versus-seven-week date inconsistency.
 The repair passed a 15-turn Gemini replay on release `65f0704`. A following
@@ -19,7 +19,8 @@ question. That repair passed a 9-turn Gemini replay on `d6f6d3c`. The latest
 leasing chat exposed repeated and generic answers; its repair passed an
 eight-turn Gemini replay on `1b316d7`. The next business-leasing chat exposed
 a false claim that mileage and vehicle preference had already been supplied;
-its source repair still needs production replay. No
+its source repair passed an eight-turn Gemini replay on `2a1c8ea`; a small
+Hebrew wording repair still needs production replay. No
 1,500-conversation claim or readiness claim is supported.
 
 

@@ -648,6 +648,7 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(process.reply).toContain('הערכת קילומטראז׳ לשנה');
     expect(process.reply).toContain('העדפת סוג רכב');
     expect(process.reply).not.toContain('שכבר מסרת');
+    expect(process.reply).not.toContain('ו־העדפת');
     const mileage = await chat.send('25 אלף קמ בשנה');
     expect(mileage.reply).toContain('איזה סוג רכב');
   });
