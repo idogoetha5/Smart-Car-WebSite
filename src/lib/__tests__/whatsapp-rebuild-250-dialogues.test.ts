@@ -1056,6 +1056,18 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(closing.reply).not.toContain('לאילו תאריכים');
   });
 
+  it('answers a combined family recommendation and undecided-dates message without asking for dates', async () => {
+    const chat = conversation(469, { ...modelReading, reply: 'משפחתית יכולה להתאים. לאילו תאריכים תצטרכו את הרכב?' });
+    const first = await chat.send('היי, אנחנו זוג עם תינוק ומחפשים רכב נוח לסוף שבוע. לא סגורים על התאריכים. מה היית ממליץ?');
+    expect(first.reply).toContain('משפחתית');
+    expect(first.reply).not.toContain('לאילו תאריכים');
+    expect(first.state.booking.passengers).toBe(2);
+    expect(first.state.booking.childSeats).toBe(1);
+    const followUp = await chat.send('ומה אם ניקח גם עגלה?');
+    expect(followUp.reply).toContain('עגלה');
+    expect(followUp.reply).not.toContain('לאילו תאריכים');
+  });
+
   it('does not let generic model advice erase the baby and luggage context', async () => {
     const chat = conversation(427, { ...modelReading, reply: 'לאילו תאריכים תצטרכו את הרכב?' });
     await chat.send('אנחנו זוג עם תינוק ומזוודה');

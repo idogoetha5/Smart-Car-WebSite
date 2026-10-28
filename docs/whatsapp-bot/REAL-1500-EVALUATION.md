@@ -2,12 +2,12 @@
 
 ## Current evidence snapshot — 28 October 2026
 
-The ignored evidence JSONL files contain 82 distinct scenario indexes (0–81)
-with at least one complete production-simulator transcript: 76 indexes have a
+The ignored evidence JSONL files contain 85 distinct scripted scenario indexes (0–84)
+with at least one complete production-simulator transcript: 79 indexes have a
 Gemini reading and six have a service/safety transcript without Gemini. These
 are spread over multiple releases; they are **not** final-release passes or
 owner-approved conversations. The latest deployed release before the next
-repair is `21e4991`. The roadside breakdown replay on `2a951a6` was manually
+repair is `e3a7610`. The roadside breakdown replay on `2a951a6` was manually
 reviewed and passed after one truncated network attempt, which is not counted. Its next
 15-turn rental chat exposed a one-week-versus-seven-week date inconsistency.
 The repair passed a 15-turn Gemini replay on release `65f0704`. A following
@@ -57,7 +57,13 @@ reviewed. The latest undecided-purchase chat falsely claimed the customer had
 chosen a vehicle type while explaining the quote and after receiving a budget.
 The corrected choice tracking passed a nine-turn Gemini replay on `21e4991`.
 Manual review found awkward grammar in its optional-budget quote response;
-the source wording correction and regression need another live replay. No
+the source wording correction passed a nine-turn production replay on `e3a7610`.
+Three service scripts then completed. The first adaptive customer-style turn,
+stored separately in `evidence/adaptive-rental-family-1.json`, immediately
+exposed a real failure: the customer said the dates were undecided while asking
+for a family-car recommendation, and the bot pressed for dates. The source
+repair and exact-message regression need a live replay. Scripted transcripts
+are diagnostic evidence, not proof of a successful open-ended customer chat. No
 1,500-conversation claim or readiness claim is supported.
 
 

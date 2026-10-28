@@ -181,7 +181,7 @@ function vagueDateAnswer(input: string): boolean {
 }
 
 function uncertainDateAnswer(input: string): boolean {
-  return /(?:לא יודע|לא יודעת|לא בטוח|לא בטוחה|אין לי (?:עדיין )?תאריכ|אין תאריך סופי|עדיין אין תאריך|not sure|don'?t know|no dates? yet|haven'?t decided)/i.test(input);
+  return /(?:לא יודע|לא יודעת|לא בטוח|לא בטוחה|לא סגור(?:ים|ות)? על (?:ה)?תאריכ|לא סגרנו תאריכ|אין לי (?:עדיין )?תאריכ|אין תאריך סופי|עדיין אין תאריך|not sure|don'?t know|no dates? yet|haven'?t decided)/i.test(input);
 }
 
 function cancellationRequest(input: string): boolean {
@@ -453,6 +453,11 @@ function direction(reading: BotReading | null, draft: BookingDraft, input: strin
 
 function advice(input: string, state: RebuildState, reading: BotReading | null): string {
   const he = state.locale === 'he';
+  const datesUndecided = !state.booking.pickupDate && (uncertainDateAnswer(input)
+    || state.history.some(entry => entry.from === 'customer' && uncertainDateAnswer(entry.text)));
+  const waitForDates = he
+    ? 'אפשר לבחור כיוון לרכב כבר עכשיו; זמינות ומחיר נבדוק כשתדעו את התאריכים.'
+    : 'We can choose a car group now and check availability and price when you know the dates.';
   const budgetLed = /רכב זול|זול לשבוע|מחיר חשוב|lowest price|cheap rental/i.test(input)
     || state.history.some(entry => entry.from === 'customer' && /רכב זול|זול לשבוע|מחיר חשוב|lowest price|cheap rental/i.test(entry.text));
   if (/מחפש רכב זול לשבוע|מחפשת רכב זול לשבוע|looking for a cheap rental for a week/i.test(input)) return he
@@ -526,6 +531,9 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
   if (/אפשר להוסיף כיסא בטיחות|can (?:i|we) add (?:a )?child seat/i.test(input)) return he
     ? 'אפשר לציין בבקשה צורך בכיסא בטיחות. נבדוק אפשרות לצרף כיסא מתאים ואת תנאיו לפני אישור ההשכרה; גם התאמת הכיסא לרכב המסוים תיבדק.'
     : 'We can include a child-seat request. We will check a suitable seat, its terms and its fit with the specific car before confirming the rental.';
+  if (state.booking.childSeats && /עגלה|stroller|pushchair/i.test(input)) return he
+    ? 'אם תביאו גם עגלה, משפחתית עדיין תהיה כיוון טוב לבדיקה. לפני שנבחר דגם נוודא שכיסא הבטיחות, העגלה ושאר הציוד מתאימים בו יחד.'
+    : 'If you bring a stroller too, I would still start by checking a family car. We will verify the child seat, stroller and other luggage fit together in the actual model before choosing one.';
   if (/היית ממליץ על קטן|האם קטן יתאים|would you recommend a (?:small|compact) car/i.test(input) && state.booking.childSeats) return he
     ? 'אפשר לבדוק גם רכב קטן, אבל עם תינוק, כיסא ומזוודה הייתי מתחיל במשפחתית כדי להשאיר יותר מקום. אם רכב קטן חשוב לכם, נבדוק את מקום הכיסא והציוד בדגם המסוים.'
     : 'A compact is worth checking, but with a baby, child seat and bag I would start with a family car for more space. If you prefer a compact, we will check the seat and luggage fit in the actual model.';
@@ -599,7 +607,7 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
   if ((state.booking.passengers ?? 0) >= 5 && (state.booking.luggage ?? 0) >= 3) {
     const people = state.booking.passengers ?? 0;
     const bags = state.booking.luggage ?? 0;
-    const next = !state.booking.pickupDate ? (he ? 'לאילו תאריכים תצטרכו את הרכב?' : 'What dates do you need the car?')
+    const next = !state.booking.pickupDate ? (datesUndecided ? waitForDates : he ? 'לאילו תאריכים תצטרכו את הרכב?' : 'What dates do you need the car?')
       : !state.booking.returnDate ? question('returnDate', state.locale)
       : !state.booking.pickupLocation ? question('pickupLocation', state.locale)
       : !state.booking.returnLocation ? question('returnLocation', state.locale)
@@ -610,7 +618,7 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
   }
   if (/שבעה מקומות|7\s*מקומות|seven[- ]?seat|7[- ]?seat/i.test(state.booking.vehicleNeed ?? input) && (state.booking.luggage ?? 0) >= 3) {
     const bags = state.booking.luggage;
-    const next = !state.booking.pickupDate ? (he ? 'לאילו תאריכים תצטרכו את הרכב?' : 'What dates do you need the car?') : !state.booking.returnDate ? question('returnDate', state.locale) : (he ? 'תרצו שנמשיך לבדוק רכב מתאים?' : 'Shall we continue checking a suitable car?');
+    const next = !state.booking.pickupDate ? (datesUndecided ? waitForDates : he ? 'לאילו תאריכים תצטרכו את הרכב?' : 'What dates do you need the car?') : !state.booking.returnDate ? question('returnDate', state.locale) : (he ? 'תרצו שנמשיך לבדוק רכב מתאים?' : 'Shall we continue checking a suitable car?');
     return he
       ? `לשבעה מקומות ו־${bags} מזוודות כדאי לבדוק דגם שבו נשאר מספיק מקום לציוד גם כשהמושבים בשימוש. נוודא את ההתאמה לפי הדגם וגודל המזוודות. ${next}`
       : `For seven seats and ${bags} bags, we should check a model with enough luggage space when the seats are in use. We will confirm the fit for the specific car and bag sizes. ${next}`;
@@ -622,7 +630,7 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
     : ({ compact: 'I would start with a SmartCar compact', family: 'I would start with a SmartCar family car', suv: 'A SmartCar SUV is a direction to check', seven_seat: 'I would check a SmartCar seven-seater', none: 'We can choose a SmartCar car around your trip' } as const)[group];
   const benefit = he ? topic === 'child' ? 'נוכל לבחור יחד דגם עם מקום לנוסעים ולציוד, ולוודא שכיסא הבטיחות מתאים לו.' : topic === 'city' ? 'רכב שיעמוד לרשותכם בין היעדים נותן גמישות לאורך היום.' : 'כך אפשר להתאים את המרחב והנוחות למשך הנסיעה ולציוד שלכם.'
     : topic === 'child' ? 'It is a good starting point for passenger and luggage space; the child seat must be checked against the actual car.' : topic === 'city' ? 'Having the car at your disposal gives flexibility between stops during the day.' : 'We can match passenger space and comfort to the trip and your luggage.';
-  const next = !state.booking.pickupDate ? (he ? 'לאילו תאריכים תצטרכו את הרכב?' : 'What dates do you need the car?')
+  const next = !state.booking.pickupDate ? (datesUndecided ? waitForDates : he ? 'לאילו תאריכים תצטרכו את הרכב?' : 'What dates do you need the car?')
     : !state.booking.returnDate ? question('returnDate', state.locale)
     : !state.booking.pickupLocation ? question('pickupLocation', state.locale)
     : !state.booking.returnLocation ? question('returnLocation', state.locale)
@@ -659,6 +667,8 @@ function safeModelReply(reading: BotReading | null, input: string, state: Rebuil
   if (state.booking.pickupDate && /באיזה תאריך.{0,25}לאסוף|תאריך איסוף|what date.{0,25}pick.?up/i.test(reply)) return null;
   if (state.booking.returnDate && /באיזה תאריך.{0,25}תחזיר|תאריך החזרה|what date.{0,25}return/i.test(reply)) return null;
   if (state.booking.pickupDate && state.booking.returnDate && asksRentalDates(reply)) return null;
+  if (!state.booking.pickupDate && asksRentalDates(reply)
+    && (uncertainDateAnswer(input) || state.history.some(entry => entry.from === 'customer' && uncertainDateAnswer(entry.text)))) return null;
   if (state.booking.pickupLocation && /מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף|עיר האיסוף|where.{0,30}pick.?up/i.test(reply)) return null;
   if (state.booking.pickupLocation && /(?:מאיפה|איפה|מהו|מה|איזה|which|what|where).{0,35}(?:יעד האיסוף|מקום האיסוף|עיר האיסוף|pick.?up (?:place|city|location))/i.test(reply)) return null;
   if (state.booking.pickupLocation && /(?:באיזה|באיזו|איזה|מהו|מה|איפה|מאיפה|where|which|what)[^?؟]{0,90}(?:איסוף|לאסוף|pick.?up)[^?؟]*[?؟]/i.test(reply)) return null;
