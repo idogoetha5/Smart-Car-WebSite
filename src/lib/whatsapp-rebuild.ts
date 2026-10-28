@@ -373,7 +373,12 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
     if (!/משפחת|קומפקט|עירונ|פנאי|ג[׳'י]?יפ|סדאן|קטן|family|compact|suv|sedan|small car/i.test(context)) return { reply: he ? 'רשמתי את התקופה ואת הקילומטראז׳ שציינת. איזה סוג רכב תרצו בהצעה האישית?' : 'I have the term and mileage you mentioned. What vehicle type would you like in your personal offer?', escalate: false };
     return { reply: he ? 'יש לנו את התקופה, הקילומטראז׳ וסוג הרכב שביקשתם. תרצו שנציג SmartCar יחזור אליכם עם הצעת ליסינג?' : 'We have the term, mileage and vehicle type you requested. Would you like a SmartCar representative to follow up with a leasing offer?', escalate: false };
   }
-  if (/איך (?:אני )?מקבל(?:ת)? הצעה|איך (?:אפשר|מקבלים) לקבל הצעה|how (?:do|can) I get (?:a |an )?(?:quote|offer)/i.test(input)) return { reply: he ? 'כדי לקבל הצעה, נציג SmartCar יכול לבדוק רכבים לפי הסוג והתקציב שכבר מסרת ולחזור עם פרטי האפשרויות והמחירים. תרצה שאעביר לו את הפנייה?' : 'A SmartCar representative can check cars against the type and budget you gave, then follow up with details and prices. Would you like me to pass on your enquiry?', escalate: false };
+  if (/איך (?:אני )?מקבל(?:ת)? הצעה|איך (?:אפשר|מקבלים) לקבל הצעה|how (?:do|can) I get (?:a |an )?(?:quote|offer)/i.test(input)) {
+    const budgetGiven = /תקציב|אלף|שקל|₪|budget|shekel/i.test(context);
+    return { reply: budgetGiven
+      ? (he ? 'כדי לקבל הצעה, נציג SmartCar יכול לבדוק רכבים לפי הסוג והתקציב שכבר מסרת ולחזור עם פרטי האפשרויות והמחירים. תרצה שאעביר לו את הפנייה?' : 'A SmartCar representative can check cars against the type and budget you gave, then follow up with details and prices. Would you like me to pass on your enquiry?')
+      : (he ? 'כדי לקבל הצעה, נציג SmartCar יבדוק רכבים מהסוג שביקשת ויחזור עם האפשרויות והמחירים. אם יש לך תקציב רצוי, אפשר לציין אותו כדי למקד את הבדיקה. תרצה שאעביר לו את הפנייה?' : 'A SmartCar representative can check the vehicle type you requested and follow up with options and prices. If you have a budget, you can share it to narrow the search. Would you like me to pass on your enquiry?'), escalate: false };
+  }
   if (acceptsTeamCheck || asksTeamReview) return { reply: he ? `תודה, קיבלנו את ההעדפות שלכם לרכישת רכב. נציג SmartCar יחזור אליכם עם האפשרויות המתאימות; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Thank you. We have your vehicle preferences. A SmartCar representative will follow up with suitable options; you can also call ${OFFICE_PHONE}.`, escalate: true };
   const hasType = /משפחת|משפחה|קומפקט|עירונ|פנאי|קטן|ג[׳'י]?יפ|סדאן|family|compact|small car|suv|sedan/i.test(context);
   const hasBudget = /תקציב|אלף|שקל|₪|budget|shekel/i.test(context);

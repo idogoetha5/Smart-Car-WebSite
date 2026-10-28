@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-28 — The sale-family and used-car production replays on `a16b4e6` passed manual review. A later sale-price replay exposed a false budget memory: after the customer had only supplied a vehicle type, the quote-process reply claimed a budget had already been given. The reply now checks the customer history for an actual budget and asks for one optionally when absent. Regression covers the full type, price, quote, budget sequence. Live replay remains required; customer WhatsApp stays off.
+
 2026-10-28 — A live eight-turn Gemini family-purchase chat on `aee4d99` exposed repeated year/mileage intake after the customer asked how to get an offer and whether a car could be viewed. The sale flow now answers those two questions directly, preserves the supplied vehicle type and budget, and waits for explicit representative handoff. Regression covers the complete sequence. Production replay remains required; the bot is not ready for customers.
 
 2026-10-28 — The business-leasing wording correction passed an eight-turn Gemini production replay on release `a5f1622`. The next customer switched from leasing to a one-month rental, then supplied dates covering only ten days; the bot accepted the mismatch without checking. Duration clarification now covers month-long requests as well as one-week requests, while allowing explicit confirmation or revised dates. Regression covers the leasing-to-rental path; live replay remains required.

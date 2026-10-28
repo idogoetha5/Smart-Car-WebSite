@@ -488,6 +488,17 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(handoff.escalate).toBe(true);
   });
 
+  it('does not claim a purchase budget was supplied when only the vehicle type is known', async () => {
+    const chat = conversation(440, { ...modelReading, route: 'sale' });
+    await chat.send('אני רוצה לקנות רכב פנאי');
+    await chat.send('מה המחיר?');
+    const quote = await chat.send('איך אני מקבל הצעה?');
+    expect(quote.reply).toContain('אם יש לך תקציב רצוי');
+    expect(quote.reply).not.toContain('התקציב שכבר מסרת');
+    const budget = await chat.send('יש משהו עד 100 אלף?');
+    expect(budget.reply).toContain('התקציב שציינתם');
+  });
+
   it('remembers a sale vehicle type, answers price and availability, then hands off', async () => {
     const chat = conversation(405);
     const opening = await chat.send('אני רוצה לקנות רכב פנאי');
