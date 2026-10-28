@@ -181,7 +181,7 @@ function vagueDateAnswer(input: string): boolean {
 }
 
 function uncertainDateAnswer(input: string): boolean {
-  return /(?:לא יודע|לא יודעת|לא בטוח|לא בטוחה|לא סגור(?:ים|ות)? על (?:ה)?תאריכ|לא סגרנו תאריכ|אין לי (?:עדיין )?תאריכ|אין תאריך סופי|עדיין אין תאריך|not sure|don'?t know|no dates? yet|haven'?t decided)/i.test(input);
+  return /(?:לא יודע|לא יודעת|לא בטוח|לא בטוחה|לא סגור(?:ים|ות)? על (?:ה)?תאריכ|לא סגרנו תאריכ|אין לי (?:עדיין )?תאריכ|אין תאריך סופי|עדיין אין תאריך|not sure|don'?t know|no dates? yet|haven'?t decided|(?:have|has) not (?:chosen|picked|decided on) dates? yet)/i.test(input);
 }
 
 function cancellationRequest(input: string): boolean {
@@ -296,6 +296,10 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   if (luggageCount !== null) draft.luggage = luggageCount;
   if (/מזווד.{0,18}גדול|large (?:bags|suitcases|luggage)/i.test(input)) draft.luggageSize = 'large';
   if (/אנחנו זוג|זוג עם|שני אנשים|שני נוסעים|we are a couple|two of us/i.test(input)) draft.passengers = 2;
+  // Count the child as a passenger when the customer explicitly describes a
+  // couple travelling with one. A five-year-old is not luggage or a seat count.
+  const coupleWithChild = /(?:זוג|שני (?:מבוגרים|אנשים)).{0,45}(?:עם|ו[- ]?).{0,20}(?:תינוק|ילד(?:ה)?(?: אחד(?:ת)?)?)|(?:my (?:wife|husband|partner|spouse) and I|myself and my (?:wife|husband|partner|spouse)|two adults?).{0,90}(?:with (?:our|a|one) \d{1,2}[- ]year[- ]old|with (?:our|a|one) (?:child|kid|baby|infant|son|daughter)|and (?:one|a) (?:child|kid|baby|infant))/i.test(input);
+  if (coupleWithChild) draft.passengers = 3;
   if (draft.luggage === undefined && /מזוודה(?!ות)|תיק(?: נסיעה)? אחד|one suitcase|one bag/i.test(input)) draft.luggage = 1;
   if (/תינוק|baby|infant/i.test(input)) draft.childSeats ??= 1;
   if (/אדם אחד|איש אחד|נוסע אחד|נוסעת אחת|אני לבד|(?:^|\s)לבד(?:\s|$)|\b(?:one person|solo|travelling alone|traveling alone)\b/i.test(input)) draft.passengers = 1;
@@ -325,9 +329,15 @@ function safety(input: string): 'accident' | 'breakdown' | null {
   if (/(?:יש לכם שירות|האם אתם מציעים שירות|do you offer|do you have).{0,30}(?:פנצ|גרר|flat tire|tow)/i.test(input)) return null;
   if (/הרכב שלי.{0,35}(?:במוסך|אחרי תאונה)|my own car.{0,35}(?:accident|crash)/i.test(input) && /לשכור|להשכיר|רכב חלופי|rent|replacement car/i.test(input)) return null;
   const noInjuries = /אין נפגעים|לא (?:היו )?נפגעים|אף אחד לא נפגע|no injuries|nobody was injured|no one was injured/i.test(input);
+  if (reportedRentalDamage(input)) return 'accident';
   if (/תאונה|התנגשות|פצוע|accident|crash|collision/i.test(input) || !noInjuries && /(?<!לא )נפגע|(?<!not )injured/i.test(input)) return 'accident';
   if (/פנצ[׳']?ר|נתקעתי|לא (?:מניע|מתניע|התניע|נדלק)|רעש.{0,25}בלמ|בלמ.{0,25}רעש|עשן|תקלה ברכב|flat tire|breakdown|won'?t start|brake.{0,25}(?:noise|problem)|(?:noise|problem).{0,25}brake|(?:אני צריך|אני זקוק|תשלחו|שולחים).{0,25}גרר|גרר.{0,15}(?:עכשיו|דחוף)|(?:need|send).{0,25}tow|tow.{0,15}(?:now|urgent)/i.test(input)) return 'breakdown';
   return null;
+}
+
+function reportedRentalDamage(input: string): boolean {
+  return /(?:רכב(?:י|נו)? השכור|הרכב השכור|רכב ששכרתי|שכרתי (?:את )?הרכב|(?:my|the|our) rental car|car (?:i|we) rented)/i.test(input)
+    && /שרט|שריט|שפשוף|נזק|מכה בדלת|scratch|scrap(?:e|ed)|dent|damage/i.test(input);
 }
 
 function commercialReply(input: string, state: RebuildState): { reply: string; escalate: boolean } {
@@ -531,6 +541,9 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
   if (/אפשר להוסיף כיסא בטיחות|can (?:i|we) add (?:a )?child seat/i.test(input)) return he
     ? 'אפשר לציין בבקשה צורך בכיסא בטיחות. נבדוק אפשרות לצרף כיסא מתאים ואת תנאיו לפני אישור ההשכרה; גם התאמת הכיסא לרכב המסוים תיבדק.'
     : 'We can include a child-seat request. We will check a suitable seat, its terms and its fit with the specific car before confirming the rental.';
+  if (state.booking.childSeats && /(?:מה אם|ומה אם|what if).{0,24}(?:רכב קטן|קומפקט|small car|compact)/i.test(input)) return he
+    ? 'רכב קטן עשוי להיות נוח יותר לחניה, אבל עם תינוק, עגלה ומזוודה הייתי מתחיל בבדיקת משפחתית. אפשר להשוות גם רכב קטן ולוודא בדגם המסוים שיש מקום מתאים לכיסא ולציוד.'
+    : 'A compact may be easier to park, but with a child and luggage I would start by checking a family car. We can compare a compact too and verify seat and luggage space in the actual model.';
   if (state.booking.childSeats && /עגלה|stroller|pushchair/i.test(input)) return he
     ? 'אם תביאו גם עגלה, משפחתית עדיין תהיה כיוון טוב לבדיקה. לפני שנבחר דגם נוודא שכיסא הבטיחות, העגלה ושאר הציוד מתאימים בו יחד.'
     : 'If you bring a stroller too, I would still start by checking a family car. We will verify the child seat, stroller and other luggage fit together in the actual model before choosing one.';
@@ -647,7 +660,7 @@ function safeModelReply(reading: BotReading | null, input: string, state: Rebuil
   if ((/יום אחד לעבודה|one day for work/i.test(input) || state.history.some(entry => entry.from === 'customer' && /יום אחד לעבודה|one day for work/i.test(entry.text)))
     && /צריך רכב|רכב קטן יספיק|מה הכי מתאים לדעתך|אני נוסע לבד|אני נוסעת לבד|יש גם תיק אחד|need a car|small car be enough|what (?:fits|suits) me best|travelling alone|one bag/i.test(input)) return null;
   if ((state.booking.passengers ?? 0) >= 5 && (state.booking.luggage ?? 0) >= 3 && /האם ג[׳'י]?יפון יתאים|ג[׳'י]?יפון יתאים|מה הכי מתאים לדעתך|המזוודות גדולות|אולי יש כיוון אחר|אז מה היית מציע|איך נוודא מקום למטען|SUV fit|large suitcases|another direction|luggage space/i.test(input)) return null;
-  if (state.booking.childSeats && /אולי יש כיוון אחר|יש אופציה אחרת|any other option|another direction|היית ממליץ על קטן|would you recommend a (?:small|compact) car/i.test(input)) return null;
+  if (state.booking.childSeats && /אולי יש כיוון אחר|יש אופציה אחרת|any other option|another direction|היית ממליץ על קטן|would you recommend a (?:small|compact) car|(?:מה אם|ומה אם|what if).{0,24}(?:רכב קטן|קומפקט|small car|compact)/i.test(input)) return null;
   if (state.booking.passengers === 1 && /קטן או משפחתי|קומפקטי או משפחתי|מה הכי מתאים לדעתך|מה מתאים לי|מה לגבי חניה|ומה לגבי חניה|אולי יש כיוון אחר|יש אופציה אחרת|small or family|compact or family|parking|another direction|other option/i.test(input)) return null;
   if (/אולי אשכור בסוף החודש|אולי בסוף החודש|maybe (?:rent|later) this month/i.test(input)) return null;
   if (/איזה רכב|מה כדאי|what (?:car|vehicle)|recommend/i.test(input) && !state.booking.passengers && !state.booking.luggage && !state.booking.vehicleNeed) return null;
@@ -782,7 +795,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     state.phase = 'service'; state.handedOff = true; state.handoffAt ??= new Date().toISOString(); state.handoffKind = 'safety';
     state.safetyKind = incident;
     const recentAlert = state.safetyAlertAt && Date.now() - Date.parse(state.safetyAlertAt) < 24 * 60 * 60 * 1000;
-    reply = /גרר|tow|roadside/i.test(input) && recentAlert
+    reply = reportedRentalDamage(input)
+      ? (he ? `מצטער לשמוע. טוב שאיש לא נפגע. צלמו את הנזק ואת מקום האירוע אם בטוח לעשות זאת, והתקשרו ל־SmartCar בתוך שעה לדיווח ולהנחיות: ${OFFICE_PHONE}. את מספר ההזמנה אפשר למסור גם בהמשך.` : `I am sorry this happened. I am glad no one was hurt. If it is safe, photograph the damage and the scene, then call SmartCar within one hour to report it and get guidance: ${OFFICE_PHONE}. You can provide the booking reference later.`)
+      : /גרר|tow|roadside/i.test(input) && recentAlert
       ? (he ? `לתיאום גרר הישארו במקום בטוח והתקשרו עכשיו ל־SmartCar: ${OFFICE_PHONE}.` : `To arrange a tow, stay somewhere safe and call SmartCar now: ${OFFICE_PHONE}.`)
       : (he ? `אם הרכב אינו בטוח, אל תמשיכו לנסוע. עצרו במקום בטוח אם אפשר; אם יש סכנה מיידית או נפגעים, פנו לגורמי החירום. התקשרו עכשיו ל־SmartCar: ${OFFICE_PHONE}.` : `If the car may be unsafe, do not continue driving. Stop somewhere safe if you can; call emergency services if anyone is hurt or in immediate danger. Call SmartCar now: ${OFFICE_PHONE}.`);
     source = 'safety'; escalate = !recentAlert;
@@ -812,6 +827,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const billingIssue = handoffKind === 'service_issue' && state.history.some(entry => entry.from === 'customer' && /חויבתי פעמיים|חיוב כפול|שילמתי פעמיים|charged twice|double charg/i.test(entry.text));
     const cleanlinessIssue = handoffKind === 'service_issue' && state.history.some(entry => entry.from === 'customer' && /הרכב.{0,25}מלוכלך|רכב מלוכלך|dirty car|car was dirty/i.test(entry.text));
     const safetyKind = state.safetyKind ?? (state.history.some(entry => entry.from === 'customer' && /תאונה|התנגשות|accident|collision|crash/i.test(entry.text)) ? 'accident' : 'breakdown');
+    const rentalDamage = state.history.some(entry => entry.from === 'customer' && reportedRentalDamage(entry.text));
     reply = handoffKind === 'commercial' && state.interest && /מה כלול|מה כולל|תשלום ראשוני|מקדמה|מחיר|כמה עולה|נסיעת מבחן|what.*included|initial payment|down payment|price|test drive/i.test(input)
       ? commercialReply(input, state).reply
       : handoffKind === 'commercial' && state.interest && /רכב (?:משפחתי|קטן|פנאי|קומפקטי)|\b(?:family car|small car|SUV|compact car)\b|\d[\d, .]*\s*(?:קמ|ק״מ|km)/i.test(input)
@@ -820,6 +836,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         ? (he ? 'כן, אפשר לבדוק עם נציג SmartCar אפשרות לראות רכב מתאים לאחר שיוצעו דגמים זמינים. הוא יחזור אליכם עם הפרטים ויתאם את הצעד הבא.' : 'Yes, a SmartCar representative can check how to view a suitable car once available options are identified. They will follow up with the details and next step.')
       : handoffKind === 'commercial' && /תעביר|נציג|pass.*representative|send.*team/i.test(input)
         ? (he ? 'הפנייה כבר הועברה להמשך טיפול. נציג SmartCar יחזור אליכם.' : 'Your enquiry has already been passed on. A SmartCar representative will follow up.')
+      : handoffKind === 'safety' && rentalDamage && /אין לי.{0,30}מספר|לא.{0,20}מספר הזמנה|לצלם|צילום|תמונה|photo|picture|don'?t have.{0,30}(?:reference|booking number)/i.test(input)
+        ? (he ? `כן, צלמו את השריטה ואת סביבת הרכב אם בטוח לעשות זאת. התקשרו ל־SmartCar בתוך שעה במספר ${OFFICE_PHONE} ודווחו גם בלי מספר הזמנה כרגע; תוכלו למסור אותו בהמשך. נציג ינחה אתכם לגבי דוח האירוע והמשך הטיפול.` : `Yes, photograph the damage and surroundings if it is safe. Call SmartCar within one hour on ${OFFICE_PHONE} even if you do not have the booking reference yet; you can provide it later. A representative will guide you on the incident report and next steps.`)
       : handoffKind === 'safety' && /מה הצעד הבא|מה עושים עכשיו|איך ממשיכים|what (?:next|should I do)|next step/i.test(input)
         ? safetyKind === 'accident'
           ? /דווחו על התאונה בתוך שעה|report the accident within one hour/i.test(lastBotReply)
@@ -1028,7 +1046,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       if (offeredVehicle) state.booking.vehicleNeed = offeredVehicle;
     }
     const commercialVehicle = reading?.route === 'sale' || reading?.route === 'leasing' || /ליסינג|לקנות|למכירה|לרכישה|buy|purchase|leasing/i.test(input);
-    if (statedVehicle && (wantsBooking || state.phase === 'booking' || !commercialVehicle && !state.interest)
+    const merelyConsideringVehicle = /(?:מה אם|ומה אם|האם|אולי|what if|would|could|should)/i.test(input)
+      && /[?؟]/.test(input) && !/אני רוצה|אנחנו רוצים|אני מעדיף|אני מעדיפה|I want|I prefer/i.test(input);
+    if (statedVehicle && !merelyConsideringVehicle && (wantsBooking || state.phase === 'booking' || !commercialVehicle && !state.interest)
       && (!state.booking.vehicleNeed || /^רכב (?:לנוסע אחד|ל־\d+ נוסעים)|^car for \d+ passengers?/i.test(state.booking.vehicleNeed)
         || /בעצם|מעדיף|במקום|actually|instead|prefer/i.test(input))) state.booking.vehicleNeed = statedVehicle;
     if (rentalPivot) state.interest = undefined;

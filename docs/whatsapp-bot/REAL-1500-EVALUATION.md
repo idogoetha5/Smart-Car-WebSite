@@ -2,6 +2,17 @@
 
 ## Current evidence snapshot — 28 October 2026
 
+Three open-ended customer-style chats on production `1a0abd0` are saved as
+`evidence/adaptive-israeli-family-rental.json`,
+`evidence/adaptive-tourist-rental-1.json`, and
+`evidence/adaptive-accident-service-1.json`. The next customer turn in each was
+chosen only after reading the actual bot answer. None is a complete success:
+the tourist opening re-asked the already supplied passenger count, the family
+chat saved a hypothetical compact as a choice, and the scratch report repeated
+a booking-number demand instead of guiding the renter. These failures have
+source and regression fixes awaiting production replay. The number of proven
+successful full adaptive chats remains zero.
+
 The ignored evidence JSONL files contain 85 distinct scripted scenario indexes (0–84)
 with at least one complete production-simulator transcript: 79 indexes have a
 Gemini reading and six have a service/safety transcript without Gemini. These

@@ -1033,7 +1033,7 @@ describe('regressions found in 15 live Gemini conversations', () => {
     const chat = conversation(426);
     await chat.send('אני מתלבט איזה רכב לשכור');
     const needs = await chat.send('אנחנו זוג עם תינוק ומזוודה');
-    expect(needs.state.booking.passengers).toBe(2);
+    expect(needs.state.booking.passengers).toBe(3);
     expect(needs.state.booking.luggage).toBe(1);
     expect(needs.state.booking.childSeats).toBe(1);
     const recommendation = await chat.send('מה הכי מתאים לדעתך?');
@@ -1061,11 +1061,43 @@ describe('regressions found in 15 live Gemini conversations', () => {
     const first = await chat.send('היי, אנחנו זוג עם תינוק ומחפשים רכב נוח לסוף שבוע. לא סגורים על התאריכים. מה היית ממליץ?');
     expect(first.reply).toContain('משפחתית');
     expect(first.reply).not.toContain('לאילו תאריכים');
-    expect(first.state.booking.passengers).toBe(2);
+    expect(first.state.booking.passengers).toBe(3);
     expect(first.state.booking.childSeats).toBe(1);
     const followUp = await chat.send('ומה אם ניקח גם עגלה?');
     expect(followUp.reply).toContain('עגלה');
     expect(followUp.reply).not.toContain('לאילו תאריכים');
+  });
+
+  it('counts a tourist couple and child and advises before undecided dates', async () => {
+    const chat = conversation(470, { ...modelReading, reply: 'How many people and bags will travel?' });
+    const first = await chat.send('Hi! My wife and I are visiting Israel with our 5-year-old next month. We need a car for a few days but have not chosen dates yet. What would you recommend?');
+    expect(first.state.booking.passengers).toBe(3);
+    expect(first.reply).toMatch(/family car/i);
+    expect(first.reply).not.toMatch(/How many people|What dates/);
+  });
+
+  it('does not treat a hypothetical small-car question as the family choice', async () => {
+    const chat = conversation(471, { ...modelReading, reply: 'A compact would be easy to park.' });
+    await chat.send('אנחנו זוג עם תינוק ומזוודה, מחפשים רכב נוח');
+    const comparison = await chat.send('ומה אם ניקח רכב קטן? יהיה לנו קל יותר לחנות בתל אביב.');
+    expect(comparison.state.booking.passengers).toBe(3);
+    expect(comparison.state.booking.vehicleNeed).toBeUndefined();
+  });
+
+  it('guides a renter with parked-car damage without repeating the booking-number demand', async () => {
+    const chat = conversation(472);
+    const first = await chat.send('היי, חזרתי לרכב השכור וראיתי שמישהו שרט את הדלת בחניה. אף אחד לא נפגע, מה אני אמור לעשות?');
+    expect(first.source).toBe('safety');
+    expect(first.escalate).toBe(true);
+    expect(first.reply).toMatch(/צלמו/);
+    expect(first.reply).toMatch(/בתוך שעה/);
+    const photo = await chat.send('אין לי את מספר ההזמנה לידי כרגע. מה כדאי לעשות עכשיו עם השריטה, לצלם אותה?');
+    expect(photo.reply).toMatch(/צלמו/);
+    expect(photo.reply).toMatch(/בלי מספר הזמנה/);
+    expect(photo.reply).not.toBe(first.reply);
+    const later = await chat.send('אני בחניון בהרצליה, אמצא את המספר אחר כך');
+    expect(later.reply).toMatch(/המיקום|הרצליה/);
+    expect(later.escalate).toBe(false);
   });
 
   it('does not let generic model advice erase the baby and luggage context', async () => {
