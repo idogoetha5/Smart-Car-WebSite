@@ -1042,7 +1042,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
                 ? (he ? 'בשמחה, נוכל להעביר בקשה לשריון; האישור הסופי יינתן לאחר בדיקת זמינות. ' : 'Gladly, we can pass on a reservation request; final confirmation follows an availability check. ')
                 : '';
         const policy = reading?.route === 'policy' || /[?؟]/.test(input) ? getSmartCarServiceAnswer(input, state.locale)?.reply : null;
-        if (reportedAge && Number(reportedAge) < 21) {
+        if (/אפשר לשנות.{0,20}תאריך|לשנות תאריך.{0,20}בהמשך|שינוי תאריכים|can (?:I|we) change (?:the )?dates?|change (?:the )?dates? later/i.test(input)) {
+          reply = he ? 'אפשר לבקש שינוי תאריכים בהמשך. השינוי תלוי בזמינות ובתנאי ההזמנה, ונציג SmartCar יאשר מה אפשרי ואם המחיר משתנה.' : 'You can request a date change later. It depends on availability and the booking terms; a SmartCar representative will confirm what is possible and whether the price changes.';
+        } else if (reportedAge && Number(reportedAge) < 21) {
           state.step = 'rental_age';
           reply = he ? 'השכרה אפשרית לנהגים מגיל 21. אם ינהג אדם אחר שעומד בתנאים, אפשר לציין את קבוצת הגיל שלו ונשמח להמשיך.' : 'Rental is available to drivers aged 21 or older. If another eligible person will drive, please tell us their age group and we will be happy to continue.';
         } else if (policy && /מה כדאי|מה תמליצ|what (?:would you )?recommend/i.test(input) && /ביטוח|insurance/i.test(input) && state.booking.vehicleNeed) {
