@@ -373,15 +373,22 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
     if (!/משפחת|קומפקט|עירונ|פנאי|ג[׳'י]?יפ|סדאן|קטן|family|compact|suv|sedan|small car/i.test(context)) return { reply: he ? 'רשמתי את התקופה ואת הקילומטראז׳ שציינת. איזה סוג רכב תרצו בהצעה האישית?' : 'I have the term and mileage you mentioned. What vehicle type would you like in your personal offer?', escalate: false };
     return { reply: he ? 'יש לנו את התקופה, הקילומטראז׳ וסוג הרכב שביקשתם. תרצו שנציג SmartCar יחזור אליכם עם הצעת ליסינג?' : 'We have the term, mileage and vehicle type you requested. Would you like a SmartCar representative to follow up with a leasing offer?', escalate: false };
   }
+  const saleMessages = [...state.history.filter(item => item.from === 'customer').map(item => item.text), input];
+  let hasType = false;
+  for (const message of saleMessages) {
+    if (/לא החלטתי על סוג|לא החלטתי איזה רכב|לא יודע איזה סוג|אין לי העדפה לסוג|not sure (?:which|what) (?:type|car|vehicle)|haven't decided (?:on|which) (?:type|car|vehicle)/i.test(message)) hasType = false;
+    else if (/^(?:רכב )?(?:משפחתי|משפחתית|קומפקטי|קטן|פנאי|ג[׳'י]?יפון|SUV|family car|compact car|small car)(?:\s+בתקציב.*)?[.!\s]*$/i.test(message)
+      || /(?:רוצה|מחפש(?:ת)?|צריך|מעדיף|מעוניין|לקנות|looking for|want|need|prefer|buy).{0,40}(?:רכב\s+)?(?:משפחתי|משפחתית|קומפקט|קטן|פנאי|ג[׳'י]?יפ|סדאן|family|compact|small car|suv|sedan)/i.test(message)) hasType = true;
+  }
+  const hasBudget = /תקציב|אלף|שקל|₪|budget|shekel/i.test(context);
   if (/איך (?:אני )?מקבל(?:ת)? הצעה|איך (?:אפשר|מקבלים) לקבל הצעה|how (?:do|can) I get (?:a |an )?(?:quote|offer)/i.test(input)) {
-    const budgetGiven = /תקציב|אלף|שקל|₪|budget|shekel/i.test(context);
-    return { reply: budgetGiven
+    return { reply: hasType && hasBudget
       ? (he ? 'כדי לקבל הצעה, נציג SmartCar יכול לבדוק רכבים לפי הסוג והתקציב שכבר מסרת ולחזור עם פרטי האפשרויות והמחירים. תרצה שאעביר לו את הפנייה?' : 'A SmartCar representative can check cars against the type and budget you gave, then follow up with details and prices. Would you like me to pass on your enquiry?')
-      : (he ? 'כדי לקבל הצעה, נציג SmartCar יבדוק רכבים מהסוג שביקשת ויחזור עם האפשרויות והמחירים. אם יש לך תקציב רצוי, אפשר לציין אותו כדי למקד את הבדיקה. תרצה שאעביר לו את הפנייה?' : 'A SmartCar representative can check the vehicle type you requested and follow up with options and prices. If you have a budget, you can share it to narrow the search. Would you like me to pass on your enquiry?'), escalate: false };
+      : hasType
+        ? (he ? 'כדי לקבל הצעה, נציג SmartCar יבדוק רכבים מהסוג שביקשת ויחזור עם האפשרויות והמחירים. אם יש לך תקציב רצוי, אפשר לציין אותו כדי למקד את הבדיקה. תרצה שאעביר לו את הפנייה?' : 'A SmartCar representative can check the vehicle type you requested and follow up with options and prices. If you have a budget, you can share it to narrow the search. Would you like me to pass on your enquiry?')
+        : (he ? `אפשר לקבל הצעה גם לפני שבוחרים סוג רכב. נציג SmartCar יוכל להציע אפשרויות לפי השימוש שלכם${hasBudget ? ' והתקציב שציינתם' : '; אם יש טווח תקציב, אפשר לציין אותו'} ולפרט מחירים לפני החלטה. תרצה שאעביר את הפנייה?` : `You can request an offer before choosing a car type. A SmartCar representative can suggest options based on your needs${hasBudget ? ' and the budget you gave' : '; a budget range can help narrow them'} and explain prices before you decide. Would you like me to pass on your enquiry?`), escalate: false };
   }
   if (acceptsTeamCheck || asksTeamReview) return { reply: he ? `תודה, קיבלנו את ההעדפות שלכם לרכישת רכב. נציג SmartCar יחזור אליכם עם האפשרויות המתאימות; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Thank you. We have your vehicle preferences. A SmartCar representative will follow up with suitable options; you can also call ${OFFICE_PHONE}.`, escalate: true };
-  const hasType = /משפחת|משפחה|קומפקט|עירונ|פנאי|קטן|ג[׳'י]?יפ|סדאן|family|compact|small car|suv|sedan/i.test(context);
-  const hasBudget = /תקציב|אלף|שקל|₪|budget|shekel/i.test(context);
   const lowMileage = /קילומטראז[׳'״]?\s+נמוך|קילומטרים נמוכים|low mileage/i.test(context);
   if (/לא החלטתי על סוג|לא החלטתי איזה רכב|לא יודע איזה סוג|אין לי העדפה לסוג|not sure (?:which|what) (?:type|car|vehicle)|haven't decided (?:on|which) (?:type|car|vehicle)/i.test(input)) return { reply: he ? 'אין צורך לבחור סוג עכשיו. אפשר להתחיל ממספר הנוסעים, אופי הנסיעות והתקציב, ואז להציע כיוון מתאים. מה השימוש העיקרי ברכב?' : 'You do not need to choose a type yet. We can start with passenger needs, driving and budget, then suggest a suitable group. How will you mainly use the car?', escalate: false };
   if (/מה (?:אתה|את|היית) (?:מציע|ממליץ)(?:ה)? למשפחה|what (?:would you |do you )?recommend for (?:a |my )?family/i.test(input)) return { reply: he ? 'לשימוש משפחתי הייתי מתחיל בבדיקת רכב משפחתי עם מקום שמתאים למספר הנוסעים ולציוד. אם מדובר בשישה נוסעים או יותר, נשווה גם שבעה מקומות. כמה אנשים נוסעים בדרך כלל?' : 'For family use I would start by checking a family car with space for your passengers and luggage. For six or more passengers, we can compare seven-seat cars too. How many people usually travel?', escalate: false };
@@ -403,7 +410,7 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
         : (he ? 'נשמח לבדוק דגמים שמתאימים לסוג הרכב ולתקציב שציינת. תרצה שנציג SmartCar יחזור אליך עם האפשרויות הזמינות?' : 'We can check models matching the type and budget you gave. Would you like a SmartCar representative to follow up with available options?'), escalate: false };
     }
     if (hasType) return { reply: he ? 'כדי לענות על זמינות צריך לבדוק רכב מסוים. נוכל לחפש רכב מהסוג שמעניין אותך, ואם תציין טווח תקציב נוכל לצמצם את האפשרויות.' : 'Availability needs checking for a specific car. We can look for the type you want, and a budget range would help narrow the options.', escalate: false };
-    return { reply: he ? 'נשמח לבדוק אילו רכבים מתאימים לכם. איזה סוג רכב מעניין אתכם?' : 'We will be happy to check suitable cars. What kind of car interests you?', escalate: false };
+    return { reply: he ? 'נשמח לבדוק אילו רכבים מתאימים לשימוש שלכם. זמינות מחייבת בדיקה של רכב מסוים; טווח תקציב יעזור למקד את האפשרויות גם בלי לבחור סוג עכשיו. תרצה שנציג SmartCar יחזור אליך עם אפשרויות?' : 'We can check cars that fit your needs. Availability must be checked for a specific car; a budget range can narrow the options even if you have not chosen a type yet. Would you like a SmartCar representative to follow up with options?', escalate: false };
   }
   if (/נסיעת מבחן|test drive/i.test(input)) {
     const requested = /רוצה (?:לקבוע|לתאם|נסיעת מבחן)|תתאמו|תקבעו|book|schedule|arrange/i.test(input);
@@ -415,7 +422,9 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
       ? { reply: he ? 'רשמתי את סוג הרכב. איזה תקציב תרצה שנביא בחשבון?' : 'I have the car type. What budget should we consider?', escalate: false }
       : { reply: he ? `יש לי את סוג הרכב, התקציב${lowMileage ? ' וההעדפה לקילומטראז׳ נמוך' : ''} שציינת. ${lowMileage ? 'השלב הבא הוא שנציג יבדוק אפשרויות מתאימות ויחזור אליך. תרצה שאעביר את הפנייה?' : 'אם יש העדפה לשנתון או לקילומטראז׳ אפשר להוסיף אותה; אפשר גם להעביר את הפרטים לנציג שיחזור עם אפשרויות. תרצה שאעביר?'}` : `I have your vehicle type, budget${lowMileage ? ' and low-mileage preference' : ''}. ${lowMileage ? 'The next step is for a representative to check suitable options and follow up. Would you like me to pass on your enquiry?' : 'You can add a preferred year or mileage, or I can pass the details to a representative for options. Would you like me to do that?'}`, escalate: false };
   if (/נסגור|יאללה|תתקדמו|go ahead|let's close/i.test(input)) return { reply: he ? `תודה, קיבלנו את הפרטים לבדיקת רכישה. נציג SmartCar יחזור אליכם עם האפשרויות המתאימות; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Thank you. We have your purchase enquiry. A SmartCar representative will follow up with suitable options; you can also call ${OFFICE_PHONE}.`, escalate: true };
-  if (!hasType) return { reply: he ? 'איזה סוג רכב תרצה לקנות?' : 'What kind of car would you like to buy?', escalate: false };
+  if (!hasType) return { reply: hasBudget
+    ? (he ? 'רשמתי את התקציב שציינת. עדיין לא בחרנו סוג רכב, וזה בסדר; נציג SmartCar יוכל לבדוק אפשרויות לפי השימוש שלכם ולחזור עם פרטים ומחירים. תרצה שאעביר את הפנייה?' : 'I have your budget. You have not chosen a vehicle type yet, and that is fine; a SmartCar representative can check options for your needs and follow up with details and prices. Would you like me to pass on the enquiry?')
+    : (he ? 'איזה סוג רכב תרצה לקנות?' : 'What kind of car would you like to buy?'), escalate: false };
   if (!hasBudget) return { reply: he ? 'איזה תקציב תרצה שנבדוק?' : 'What budget should we check?', escalate: false };
   return { reply: he ? lowMileage ? 'רשמתי את סוג הרכב, התקציב וההעדפה לקילומטראז׳ נמוך. תרצה שנציג SmartCar יחזור עם אפשרויות מתאימות?' : 'רשמתי את סוג הרכב והתקציב שציינתם. יש שנתון או קילומטראז׳ שחשובים לכם, או שתרצו שנציג SmartCar יחזור אליכם עם אפשרויות?' : lowMileage ? 'I have your vehicle type, budget and low-mileage preference. Would you like a SmartCar representative to follow up with matching options?' : 'I have the vehicle type and budget you mentioned. Do you have a preferred year or mileage, or would you like a SmartCar representative to follow up with options?', escalate: false };
 }

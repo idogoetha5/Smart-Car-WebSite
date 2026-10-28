@@ -423,6 +423,9 @@ describe('regressions found in 15 live Gemini conversations', () => {
     await chat.send('אני חושב לקנות רכב');
     const unsure = await chat.send('לא החלטתי על סוג');
     expect(unsure.reply).toContain('אין צורך לבחור');
+    const quote = await chat.send('איך אני מקבל הצעה?');
+    expect(quote.reply).toContain('לפני שבוחרים סוג רכב');
+    expect(quote.reply).not.toContain('מהסוג שביקשת');
     const family = await chat.send('מה אתה מציע למשפחה?');
     expect(family.reply).toContain('רכב משפחתי');
     const next = await chat.send('מה צריך בשביל להתקדם?');
@@ -433,8 +436,11 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(stock.reply).toContain('זמינות');
     const budget = await chat.send('התקציב סביב 80 אלף');
     expect(budget.reply).not.toContain('איזה סוג רכב');
+    expect(budget.reply).toContain('עדיין לא בחרנו סוג רכב');
+    expect(budget.reply).not.toContain('רשמתי את סוג הרכב');
     const vehicle = await chat.send('רכב משפחתי');
     expect(vehicle.reply).not.toContain('איזה סוג רכב');
+    expect(vehicle.reply).toContain('סוג הרכב שבחרת');
     const handoff = await chat.send('תעביר לנציג שיעזור לי');
     expect(handoff.escalate).toBe(true);
     expect(handoff.state.handedOff).toBe(true);
