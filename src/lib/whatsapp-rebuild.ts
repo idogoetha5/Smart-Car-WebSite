@@ -1114,7 +1114,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
             : `Of course. To finish the request, please give the driver's age group, 21–23 or 24+, then a name and email for the request.`;
         } else if (wasBooking && /^(?:אני רוצה להתקדם|רוצה להתקדם|let'?s proceed|I want to proceed|I would like to make a request)[.!\s]*$/i.test(input)
           && lastBot.includes(question(missing, state.locale))) {
-          reply = he ? `בשמחה. כדי להתקדם נשאר לי הפרט הזה: ${question(missing, state.locale)}` : `Of course. To move forward I still need this detail: ${question(missing, state.locale)}`;
+          reply = missing === 'driverAgeRange'
+            ? (he ? 'בשמחה. כדי להתקדם חסרה קבוצת הגיל של הנהג: 21–23 או 24+. אחריה נבקש שם ומייל ונציג את הבקשה לאישורכם.' : 'Of course. To move forward I need the driver age group, 21–23 or 24+. Then I will ask for a name and email and show the request for your confirmation.')
+            : (he ? `בשמחה. כדי להתקדם נשאר לי הפרט הזה: ${question(missing, state.locale)}` : `Of course. To move forward I still need this detail: ${question(missing, state.locale)}`);
         } else {
           const alreadyAsked = state.history.filter(entry => entry.from === 'bot').slice(-2)
             .some(entry => entry.text.includes(question(missing, state.locale)));

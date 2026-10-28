@@ -2,12 +2,12 @@
 
 ## Current evidence snapshot — 28 October 2026
 
-The ignored evidence JSONL files contain 64 distinct scenario indexes (0–63)
-with at least one complete production-simulator transcript: 58 indexes have a
+The ignored evidence JSONL files contain 65 distinct scenario indexes (0–64)
+with at least one complete production-simulator transcript: 59 indexes have a
 Gemini reading and six have a service/safety transcript without Gemini. These
 are spread over multiple releases; they are **not** 53 final-release passes or
-64 owner-approved conversations. The latest deployed release before the next
-repair is `0604432`. The roadside breakdown replay on `2a951a6` was manually
+65 owner-approved conversations. The latest deployed release before the next
+repair is `5439d43`. The roadside breakdown replay on `2a951a6` was manually
 reviewed and passed after one truncated network attempt, which is not counted. Its next
 15-turn rental chat exposed a one-week-versus-seven-week date inconsistency.
 The repair passed a 15-turn Gemini replay on release `65f0704`. A following
@@ -41,8 +41,9 @@ an 11-turn live replay on `94ea010`; a following seven-seat rental also
 completed. The next vehicle-correction chat repeated the driver-age question
 after the customer asked to finish the request. Its ten-turn replay passed on
 `0604432`. The next rental budget chat ignored a request for a detailed quote
-and repeated the pickup-date question. Its source repair needs a live replay.
-No
+and repeated the pickup-date question. Its 11-turn replay passed on `5439d43`.
+A same-location rental then repeated the driver-age question after the customer
+asked to proceed. Its source repair needs a live replay. No
 1,500-conversation claim or readiness claim is supported.
 
 

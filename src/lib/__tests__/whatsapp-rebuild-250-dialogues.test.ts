@@ -884,6 +884,17 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(dates.reply).toContain('מאיפה תרצו לאסוף');
   });
 
+  it('explains the remaining steps after a same-location rental instead of repeating the age prompt', async () => {
+    const chat = conversation(447);
+    await chat.send(`רוצה רכב משפחתי לתאריכים ${futureRange(447)}`);
+    await chat.send('רמת גן');
+    const agePrompt = await chat.send('להחזיר לאותו מקום');
+    expect(agePrompt.reply).toContain('קבוצת הגיל');
+    const proceed = await chat.send('אני רוצה להתקדם');
+    expect(proceed.reply).not.toContain('מה קבוצת הגיל של הנהג?');
+    expect(proceed.reply).toContain('אחריה נבקש שם ומייל');
+  });
+
   it('answers where pickup is possible and continues a same-place request', async () => {
     const chat = conversation(422);
     await chat.send('רוצה רכב משפחתי לתאריכים 10/12-14/12');
