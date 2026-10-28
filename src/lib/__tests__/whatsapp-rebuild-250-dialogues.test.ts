@@ -871,6 +871,19 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(age.reply).toContain('שם');
   });
 
+  it('acknowledges a detailed rental quote request before collecting dates', async () => {
+    const chat = conversation(446);
+    await chat.send('אני רוצה לשכור רכב פנאי לשבוע');
+    await chat.send('יש לכם מחיר?');
+    await chat.send('האם אפשר לשנות תאריך בהמשך?');
+    const quote = await chat.send('אפשר לקבל הצעה מסודרת?');
+    expect(quote.reply).toContain('הצעה מסודרת');
+    expect(quote.reply).toContain('תאריכי האיסוף וההחזרה');
+    expect(quote.reply).not.toBe('באיזה תאריך תרצו לאסוף את הרכב?');
+    const dates = await chat.send(futureRange(446));
+    expect(dates.reply).toContain('מאיפה תרצו לאסוף');
+  });
+
   it('answers where pickup is possible and continues a same-place request', async () => {
     const chat = conversation(422);
     await chat.send('רוצה רכב משפחתי לתאריכים 10/12-14/12');

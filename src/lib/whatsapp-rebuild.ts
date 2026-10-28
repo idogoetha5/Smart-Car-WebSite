@@ -1088,6 +1088,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           const labels: Record<BookingKey, string> = { pickupDate: 'תאריך איסוף', returnDate: 'תאריך החזרה', pickupLocation: 'מקום איסוף', returnLocation: 'מקום החזרה', vehicleNeed: 'צרכי הרכב', driverAgeRange: 'קבוצת גיל הנהג', customerName: 'שם', customerEmail: 'מייל' };
           const remaining = ORDER.filter(key => !state.booking[key]);
           reply = he ? `נשארו רק ${remaining.map(key => labels[key]).join(' ו־')}. ${question(missing, state.locale)}` : `I still need ${remaining.join(', ')}. ${question(missing, state.locale)}`;
+        } else if (/אפשר לקבל הצעה(?: מסודרת)?|רוצה הצעה(?: מסודרת)?|can (?:I|we) get (?:a )?(?:quote|offer)/i.test(input)) {
+          reply = he
+            ? `בשמחה, נכין בקשה להצעה מסודרת לפי הרכב שביקשתם. כדי לבדוק מחיר וזמינות, ${!state.booking.pickupDate || !state.booking.returnDate ? 'מה תאריכי האיסוף וההחזרה הרצויים?' : !state.booking.pickupLocation || !state.booking.returnLocation ? 'מאיפה תרצו לאסוף ולהחזיר את הרכב?' : 'נמשיך עם הפרטים החסרים לבקשה.'}`
+            : `Of course. We can prepare a detailed quote request for the car you want. To check price and availability, ${!state.booking.pickupDate || !state.booking.returnDate ? 'what pickup and return dates do you need?' : !state.booking.pickupLocation || !state.booking.returnLocation ? 'where would you like to collect and return the car?' : 'we can continue with the remaining request details.'}`;
         } else if (wasBooking && affirms(input) && missing === 'pickupDate') {
           reply = /כתבו את תאריך האיסוף|type the pickup date/i.test(lastBot)
             ? (he ? 'כשתדעו את תאריך האיסוף, כתבו לי אותו ונמשיך.' : 'When you know the pickup date, send it here and we can continue.')

@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-28 — The vehicle-correction replay passed ten live turns on `0604432`. The next rental budget chat completed but manual review found that “אפשר לקבל הצעה מסודרת?” received only the repeated pickup-date question. The booking path now acknowledges the quote request and explains the missing dates or locations needed for price and availability. A regression covers the full preceding price and date-change sequence. Live replay remains required.
+
 2026-10-28 — The young-driver date-order fix passed an 11-turn production replay on `94ea010`, and the following seven-seat rental completed cleanly. A vehicle-correction chat then repeated the driver-age question after the customer said they wanted to finish the request. The booking path now explains the remaining age, name and email steps without repeating the previous wording. Regression covers the correction and continuation; production replay remains required.
 
 2026-10-28 — The revised family-rental reply passed an 11-turn live replay on `b9ba35f` and completed a simulated request. A following young-driver rental also completed, but manual review found that a date-change side question asked for a pickup branch before the customer had supplied any dates. Explore-mode rental consultation now answers the policy and asks for dates first; a regression covers the observed sequence. Production replay remains required.
