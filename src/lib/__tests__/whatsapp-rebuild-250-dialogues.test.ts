@@ -640,6 +640,18 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(viewing.reply).not.toBe(handoff.reply);
   });
 
+  it('does not claim leasing mileage and vehicle preference were supplied before they were', async () => {
+    const chat = conversation(427);
+    await chat.send('אני רוצה ליסינג עסקי');
+    await chat.send('לשלוש שנים');
+    const process = await chat.send('איך אני מקבל הצעה?');
+    expect(process.reply).toContain('הערכת קילומטראז׳ לשנה');
+    expect(process.reply).toContain('העדפת סוג רכב');
+    expect(process.reply).not.toContain('שכבר מסרת');
+    const mileage = await chat.send('25 אלף קמ בשנה');
+    expect(mileage.reply).toContain('איזה סוג רכב');
+  });
+
   it('acknowledges a roadside location instead of repeating the previous safety answer', async () => {
     const chat = conversation(407);
     await chat.send('הרכב לא מניע ואני בצד הדרך');
