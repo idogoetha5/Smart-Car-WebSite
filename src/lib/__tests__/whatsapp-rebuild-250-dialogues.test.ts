@@ -640,6 +640,15 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(dates.reply).not.toContain('אפשר לעדכן בהמשך');
   });
 
+  it('keeps date intake ahead of pickup after a policy side question in consultation', async () => {
+    const chat = conversation(444, { ...modelReading, reply: 'בטח, אפשר לעדכן תאריכים. באיזה סניף תרצו לאסוף את הרכב?' });
+    await chat.send('אני בן 23 ורוצה לשכור רכב קטן');
+    const change = await chat.send('האם אפשר לשנות תאריך בהמשך?');
+    expect(change.reply).toContain('בכפוף לזמינות');
+    expect(change.reply).toContain('לאילו תאריכים');
+    expect(change.reply).not.toContain('מאיפה תרצו לאסוף');
+  });
+
   it('answers a date-change side question during booking without repeating the age prompt', async () => {
     const chat = conversation(425);
     await chat.send(`אני רוצה לשכור רכב משפחתי ${futureRange(425)}`);

@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-28 — The revised family-rental reply passed an 11-turn live replay on `b9ba35f` and completed a simulated request. A following young-driver rental also completed, but manual review found that a date-change side question asked for a pickup branch before the customer had supplied any dates. Explore-mode rental consultation now answers the policy and asks for dates first; a regression covers the observed sequence. Production replay remains required.
+
 2026-10-28 — The first rental-advice replay on `a5a0050` found a second wording of the same unsupported luggage-fit promise (“יהיה מקום נוח ... למזוודות”). The output guard now rejects any affirmative claim of room for luggage with that wording, not only “enough room”; a regression uses the exact live reply. This source revision still needs a production replay.
 
 2026-10-28 — The cancellation replay passed eight live turns on `24ddbb6`. In an 11-turn family-rental chat the bot completed the simulated request, but manual review found its first Gemini reply guaranteed luggage fit before a specific car was checked and contained a Hebrew typo. The reply guard now rejects that unsupported capacity wording and the malformed word, so the grounded consultation reply takes over. Regression covers the exact observed reply. Production replay remains required.

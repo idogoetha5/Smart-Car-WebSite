@@ -1139,6 +1139,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const answer = commercialReply(input, state);
       reply = answer.reply; escalate = answer.escalate;
       if (escalate) { state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'commercial'; }
+    } else if (state.phase === 'explore' && hasVehicleContext(state.booking, input) && /אפשר לשנות.{0,20}תאריך|לשנות תאריך.{0,20}בהמשך|שינוי תאריכים|can (?:I|we) change (?:the )?dates?|change (?:the )?dates? later/i.test(input)) {
+      reply = he
+        ? `אפשר לבקש שינוי תאריכים בהמשך, בכפוף לזמינות ולתנאי ההזמנה. ${!state.booking.pickupDate || !state.booking.returnDate ? 'לאילו תאריכים תצטרכו את הרכב?' : !state.booking.pickupLocation ? 'מאיפה תרצו לאסוף את הרכב?' : 'נוכל להמשיך לפי הפרטים שכבר מסרתם.'}`
+        : `You can request a date change later, subject to availability and the booking terms. ${!state.booking.pickupDate || !state.booking.returnDate ? 'What dates do you need the car?' : !state.booking.pickupLocation ? 'Where would you like to collect the car?' : 'We can continue with the details you already gave.'}`;
     } else if (statedRange && state.booking.pickupDate && state.booking.returnDate) {
       reply = advice(input, state, reading);
     } else if (/מה כדאי|מה תמליצ|what (?:would you )?recommend/i.test(input) && /ביטוח|insurance/i.test(input) && state.booking.vehicleNeed) {
