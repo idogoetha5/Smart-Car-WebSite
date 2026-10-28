@@ -471,6 +471,23 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(handoff.escalate).toBe(true);
   });
 
+  it('answers quote and viewing questions in a family purchase without restarting the intake', async () => {
+    const chat = conversation(439, { ...modelReading, route: 'sale' });
+    await chat.send('אני רוצה לקנות רכב משפחתי עד 80 אלף שקל');
+    await chat.send('מה יש לכם?');
+    const quote = await chat.send('איך אני מקבל הצעה?');
+    expect(quote.reply).toContain('הסוג והתקציב שכבר מסרת');
+    expect(quote.reply).not.toContain('שנתון או קילומטראז׳');
+    expect(quote.escalate).toBe(false);
+    await chat.send('יש רכב זמין עכשיו?');
+    await chat.send('אפשר נסיעת מבחן?');
+    const viewing = await chat.send('יש אפשרות לראות את הרכב?');
+    expect(viewing.reply).toContain('לתאם צפייה');
+    expect(viewing.reply).not.toContain('שנתון או קילומטראז׳');
+    const handoff = await chat.send('תעבירו לנציג שיחזור אליי');
+    expect(handoff.escalate).toBe(true);
+  });
+
   it('remembers a sale vehicle type, answers price and availability, then hands off', async () => {
     const chat = conversation(405);
     const opening = await chat.send('אני רוצה לקנות רכב פנאי');

@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-28 — A live eight-turn Gemini family-purchase chat on `aee4d99` exposed repeated year/mileage intake after the customer asked how to get an offer and whether a car could be viewed. The sale flow now answers those two questions directly, preserves the supplied vehicle type and budget, and waits for explicit representative handoff. Regression covers the complete sequence. Production replay remains required; the bot is not ready for customers.
+
 2026-10-28 — The business-leasing wording correction passed an eight-turn Gemini production replay on release `a5f1622`. The next customer switched from leasing to a one-month rental, then supplied dates covering only ten days; the bot accepted the mismatch without checking. Duration clarification now covers month-long requests as well as one-week requests, while allowing explicit confirmation or revised dates. Regression covers the leasing-to-rental path; live replay remains required.
 
 2026-10-28 — The business-leasing partial-detail repair passed an eight-turn Gemini production replay on release `2a1c8ea` after manual review. The content was correct, but the Hebrew conjunction in the missing-details list rendered awkwardly as “ו־העדפת”. The list now uses a natural conjunction; regression checks the wording. A production replay of this wording correction remains required.
