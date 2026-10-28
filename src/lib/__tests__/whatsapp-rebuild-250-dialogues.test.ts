@@ -625,6 +625,21 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(price.reply).toContain('קבוצת הגיל');
   });
 
+  it('explains how to get a leasing quote and answers viewing after handoff', async () => {
+    const chat = conversation(426);
+    const opening = await chat.send('מחפש ליסינג פרטי לשנתיים, 20 אלף קמ בשנה, רכב קטן');
+    await chat.send('כמה זה עולה בחודש?');
+    const process = await chat.send('איך אני מקבל הצעה?');
+    expect(process.reply).toContain('הוא יחזור אליך עם פירוט');
+    expect(process.reply).not.toBe(opening.reply);
+    await chat.send('מה כלול?');
+    const handoff = await chat.send('כן תתקדמו עם הצעה');
+    expect(handoff.escalate).toBe(true);
+    const viewing = await chat.send('יש אפשרות לראות את הרכב?');
+    expect(viewing.reply).toContain('אפשרות לראות רכב מתאים');
+    expect(viewing.reply).not.toBe(handoff.reply);
+  });
+
   it('acknowledges a roadside location instead of repeating the previous safety answer', async () => {
     const chat = conversation(407);
     await chat.send('הרכב לא מניע ואני בצד הדרך');
