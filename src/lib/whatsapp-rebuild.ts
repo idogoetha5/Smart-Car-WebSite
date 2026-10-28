@@ -1112,6 +1112,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const answer = commercialReply(input, state);
       reply = answer.reply; escalate = answer.escalate;
       if (escalate) { state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'commercial'; }
+    } else if (statedRange && state.booking.pickupDate && state.booking.returnDate) {
+      reply = advice(input, state, reading);
     } else if (/מה כדאי|מה תמליצ|what (?:would you )?recommend/i.test(input) && /ביטוח|insurance/i.test(input) && state.booking.vehicleNeed) {
       const insurance = getSmartCarServiceAnswer(input, state.locale)?.reply ?? '';
       reply = he ? `לפי מה שתיארתם, הייתי מתחיל בבדיקת ${state.booking.vehicleNeed}; התאמה לכיסא בטיחות ולציוד נוודא לפי הדגם. ${insurance}` : `From what you described, I would start by checking a ${state.booking.vehicleNeed}; child-seat and luggage fit depend on the model. ${insurance}`;

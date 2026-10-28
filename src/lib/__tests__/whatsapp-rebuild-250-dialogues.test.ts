@@ -603,6 +603,15 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(rejected.reply).toContain('לאילו תאריכים');
   });
 
+  it('acknowledges dates instead of repeating the preceding date-change policy', async () => {
+    const chat = conversation(424, { ...modelReading, reply: 'בטח, אפשר לעדכן בהמשך. באיזה סניף תרצו לאסוף את הרכב?' });
+    await chat.send('אנחנו חמישה עם שלוש מזוודות, מה מתאים?');
+    await chat.send('האם אפשר לשנות תאריך בהמשך?');
+    const dates = await chat.send(futureRange(424));
+    expect(dates.reply).toContain('הבנתי את תאריכי האיסוף וההחזרה');
+    expect(dates.reply).not.toContain('אפשר לעדכן בהמשך');
+  });
+
   it('acknowledges a roadside location instead of repeating the previous safety answer', async () => {
     const chat = conversation(407);
     await chat.send('הרכב לא מניע ואני בצד הדרך');
