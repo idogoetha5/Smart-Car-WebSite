@@ -7,7 +7,7 @@ with at least one complete production-simulator transcript: 76 indexes have a
 Gemini reading and six have a service/safety transcript without Gemini. These
 are spread over multiple releases; they are **not** final-release passes or
 owner-approved conversations. The latest deployed release before the next
-repair is `bf6bb96`. The roadside breakdown replay on `2a951a6` was manually
+repair is `21e4991`. The roadside breakdown replay on `2a951a6` was manually
 reviewed and passed after one truncated network attempt, which is not counted. Its next
 15-turn rental chat exposed a one-week-versus-seven-week date inconsistency.
 The repair passed a 15-turn Gemini replay on release `65f0704`. A following
@@ -55,7 +55,9 @@ shorter follow-up response passed a nine-turn Gemini replay on `bf6bb96`.
 Ten more advice, leasing and purchase chats completed and were manually
 reviewed. The latest undecided-purchase chat falsely claimed the customer had
 chosen a vehicle type while explaining the quote and after receiving a budget.
-The corrected choice tracking and full-sequence regression need a live replay. No
+The corrected choice tracking passed a nine-turn Gemini replay on `21e4991`.
+Manual review found awkward grammar in its optional-budget quote response;
+the source wording correction and regression need another live replay. No
 1,500-conversation claim or readiness claim is supported.
 
 

@@ -426,6 +426,7 @@ describe('regressions found in 15 live Gemini conversations', () => {
     const quote = await chat.send('איך אני מקבל הצעה?');
     expect(quote.reply).toContain('לפני שבוחרים סוג רכב');
     expect(quote.reply).not.toContain('מהסוג שביקשת');
+    expect(quote.reply).toContain('כדי למקד את הבדיקה. הנציג יפרט את המחירים');
     const family = await chat.send('מה אתה מציע למשפחה?');
     expect(family.reply).toContain('רכב משפחתי');
     const next = await chat.send('מה צריך בשביל להתקדם?');
