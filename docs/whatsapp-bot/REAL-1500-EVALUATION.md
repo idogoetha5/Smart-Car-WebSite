@@ -1,5 +1,19 @@
 # Real Gemini conversation evaluation
 
+## Current evidence snapshot — 28 October 2026
+
+The ignored evidence JSONL files contain 45 distinct scenario indexes (0–44)
+with at least one complete production-simulator transcript: 41 indexes have a
+Gemini reading and four have a service/safety transcript without Gemini. These
+are spread over multiple releases; they are **not** 45 final-release passes or
+45 owner-approved conversations. The latest deployed release before the next
+repair is `2a951a6`. Its roadside breakdown replay was manually reviewed and
+passed after one truncated network attempt, which is not counted. Its next
+15-turn rental chat completed a simulated request but manual review found a
+one-week-versus-seven-week date inconsistency; source repair and production
+replay are pending. No 1,500-conversation claim or readiness claim is supported.
+
+
 The owner requested 1,500 long conversations following failures in his own
 15 varied demo chats. The earlier 250 conversation core tests are simulated
 state tests. They do not count toward this target.

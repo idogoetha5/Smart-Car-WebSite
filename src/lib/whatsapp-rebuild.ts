@@ -25,6 +25,7 @@ export type RebuildState = {
   handoffAt?: string;
   handoffKind?: 'safety' | 'booking_change' | 'service_issue' | 'commercial' | 'human';
   completedRequestId?: string;
+  durationClarification?: boolean;
 };
 
 export type RebuildResult = { reply: string; state: RebuildState; escalate?: boolean; source: 'gemini' | 'local' | 'safety'; model?: string };
@@ -736,6 +737,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   let escalate = false;
   let privateTurn = false;
   const lastBotReply = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+  const confirmsDuration = affirms(input) || /^(?:כן|נכון|yes|correct)[,\s]+(?:אלה|אלו|זה|those|these|the dates)(?:\s|$)/i.test(input);
+  if (state.durationClarification && !confirmsDuration && !/^(?:לא|no|not quite|לא נכון)/i.test(input) && !explicitDateRange(input)) {
+    // A side answer can continue the conversation; the final request summary
+    // still shows the exact dates and requires explicit confirmation.
+    state.durationClarification = false;
+  }
 
   const incident = safety(input);
   if (incident) {
@@ -848,6 +855,21 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         : handoffKind === 'service_issue' || handoffKind === 'human'
           ? (he ? `תודה על העדכון. נציג SmartCar יטפל בפנייה שלכם; לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `Thanks for the update. A SmartCar representative will handle your enquiry; for immediate help call ${OFFICE_PHONE}.`)
         : (he ? `קיבלנו את בקשת השינוי. נציג SmartCar יחזור אליכם; השינוי תקף רק לאחר אישור. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `We have your change request. A SmartCar representative will follow up; the change takes effect only after confirmation. You can also call ${OFFICE_PHONE}.`);
+  } else if (state.durationClarification) {
+    const corrected = explicitDateRange(input);
+    if (corrected) {
+      Object.assign(state.booking, corrected);
+      state.durationClarification = false;
+      reply = he ? `עדכנתי את התאריכים. ${question('pickupLocation', state.locale)}` : `I have updated the dates. ${question('pickupLocation', state.locale)}`;
+    } else if (confirmsDuration) {
+      state.durationClarification = false;
+      reply = he ? `הבנתי, התאריכים שציינת הם הנכונים. ${question('pickupLocation', state.locale)}` : `Understood, the dates you gave are correct. ${question('pickupLocation', state.locale)}`;
+    } else if (/^(?:לא|no|not quite|לא נכון)/i.test(input)) {
+      state.booking.pickupDate = undefined;
+      state.booking.returnDate = undefined;
+      state.durationClarification = false;
+      reply = he ? 'תודה על התיקון. לאילו תאריכים תרצו את הרכב?' : 'Thanks for clarifying. What dates do you need the car?';
+    } else reply = he ? 'כדי לדייק: התכוונת לתאריכים שציינת, או לנסיעה של כשבוע?' : 'Just to be sure: did you mean the dates you gave, or a trip of about one week?';
   } else if (state.completedRequestId && state.history.at(-2)?.text === input && /^(?:אני מאשר(?:ת)?|מאשר(?:ת)?|כן,? מאשר(?:ת)?|i confirm|confirm)$/i.test(input)) {
     reply = store.isSimulation ? (he ? 'בסימולציה הבקשה נקלטה לצורכי בדיקה בלבד; לא נוצרה הזמנה אמיתית.' : 'The request was recorded in this simulation only; no real booking was created.') : (he ? `בקשת ההשכרה נשלחה לבדיקה, מספר ${state.completedRequestId}. היא עדיין אינה הזמנה מאושרת.` : `Your rental request was sent for review, reference ${state.completedRequestId}. It is not a confirmed booking yet.`);
   } else if (state.phase === 'booking' && state.step === 'rental_confirm' && /לא מאשר|לא מאשרת|not confirm|not yet/i.test(input)) {
@@ -930,6 +952,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     }
     const statedRange = explicitDateRange(input);
     if (statedRange) Object.assign(state.booking, statedRange);
+    const statedDays = statedRange ? Math.round((Date.parse(statedRange.returnDate) - Date.parse(statedRange.pickupDate)) / 86_400_000) : 0;
+    const mentionedOneWeek = state.history.some(entry => entry.from === 'customer' && /(?:לשבוע|למשך שבוע|לשבוע אחד|for (?:one |a )week|for one week)/i.test(entry.text));
+    const durationMismatch = statedDays > 14 && mentionedOneWeek && !/למעשה|בעצם|שיניתי|actually|changed my plans/i.test(input);
+    if (durationMismatch) state.durationClarification = true;
     applyPromptedDate(input, state, lastBot);
     if (state.phase === 'booking' && !state.booking.pickupDate) {
       const date = singleDateAnswer(input);
@@ -966,7 +992,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     if (rentalPivot) state.interest = undefined;
     else if (reading?.route === 'leasing' || /ליסינג|leasing/i.test(input)) state.interest = 'leasing';
     else if (reading?.route === 'sale' || state.phase !== 'booking' && /נסיעת מבחן|test drive/i.test(input) || /לקנייה|למכירה|רכב לקנות|רוצה לקנות|לקנות (?:את ה)?רכב|buy (?:a |the )?(?:used |new )?(?:family |compact |small |suv )?(?:car|vehicle)|purchase (?:a |the )?car|car for sale|used car/i.test(input)) state.interest = 'sale';
-    if (declines) {
+    if (durationMismatch) {
+      reply = he ? `ציינת נסיעה של כשבוע, אבל התאריכים ששלחת הם לתקופה ארוכה יותר. אלה התאריכים הרצויים?` : `You mentioned a trip of about a week, but the dates you sent cover a longer period. Are those the dates you want?`;
+    } else if (declines) {
       state.phase = 'explore'; state.step = 'menu';
       reply = he ? 'בסדר, לא שלחתי בקשה. הפרטים יישארו כאן אם תרצה להמשיך להתלבט.' : 'Okay, I have not sent a request. The details stay here if you want to think it over.';
     } else if (rentalPivot) {

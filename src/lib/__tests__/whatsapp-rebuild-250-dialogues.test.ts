@@ -581,6 +581,28 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(location.reply).not.toBe(next.reply);
   });
 
+  it('clarifies a week-long trip that conflicts with much longer dates', async () => {
+    const chat = conversation(422);
+    const pickup = new Date();
+    pickup.setUTCDate(pickup.getUTCDate() + 60);
+    const dropoff = new Date(pickup);
+    dropoff.setUTCDate(dropoff.getUTCDate() + 45);
+    const format = (date: Date) => `${date.getUTCDate()}/${date.getUTCMonth() + 1}/${date.getUTCFullYear()}`;
+    await chat.send('מה אתה ממליץ לאדם אחד לשבוע?');
+    const mismatch = await chat.send(`${format(pickup)}-${format(dropoff)}`);
+    expect(mismatch.reply).toContain('לתקופה ארוכה יותר');
+    const confirmed = await chat.send('כן, אלה התאריכים');
+    expect(confirmed.reply).toContain('התאריכים שציינת הם הנכונים');
+    expect(confirmed.reply).toContain('מאיפה תרצו לאסוף');
+    const correctedChat = conversation(423);
+    await correctedChat.send('רכב לאדם אחד לשבוע');
+    await correctedChat.send(`${format(pickup)}-${format(dropoff)}`);
+    const rejected = await correctedChat.send('לא');
+    expect(rejected.state.booking.pickupDate).toBeUndefined();
+    expect(rejected.state.booking.returnDate).toBeUndefined();
+    expect(rejected.reply).toContain('לאילו תאריכים');
+  });
+
   it('acknowledges a roadside location instead of repeating the previous safety answer', async () => {
     const chat = conversation(407);
     await chat.send('הרכב לא מניע ואני בצד הדרך');
