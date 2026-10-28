@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-28 — The family-rental restatement repair passed an 11-turn Gemini production replay on `b75746e` and completed a simulated request. The next English rental also completed, but manual review of its full 11-turn transcript found that “Can I add another driver?” was ignored and the pickup-date question repeated. The English service-knowledge matcher now recognizes “another driver” and answers with the published licence and agreement terms; a full-sequence regression was added. The source correction needs a production replay. Customer WhatsApp remains off.
+
 2026-10-28 — The same-location age explanation passed an 11-turn live replay on `683ac1d`; the following vehicle correction also completed. In the next family-and-child-seat rental, the bot answered vehicle and insurance questions but repeated the exact pickup-date question after the customer restated “אני רוצה לשכור”. The booking path now explains that both pickup and return dates are needed and retains the earlier vehicle context. A full-sequence regression was added; live replay remains required.
 
 2026-10-28 — The detailed rental-quote reply passed an 11-turn live replay on `5439d43`. A same-location rental then completed, but “אני רוצה להתקדם” after the age question repeated that question in full. When age is the missing detail, the reply now explains why the age group is still needed and what follows, without repeating the question verbatim. A regression covers the same-location path; live replay remains required.

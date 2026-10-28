@@ -99,7 +99,7 @@ const TOPIC_PATTERNS: Array<[ServiceKnowledgeTopic, RegExp]> = [
   ['deposit', /פיקדון|כרטיס אשראי|דביט|deposit|security hold|credit card|debit/i],
   ['fuel', /דלק|תדלוק|מלא.?מלא|fuel|refuel|full.?full/i],
   ['mileage', /קילומ|קמ|mileage|kilomet/i],
-  ['driver_documents', /נהג נוסף|מסמכים|תעודת זהות|דרכון|רישיון זר|רישיון בינלאומי|foreign licen[cs]e|international driving permit|additional driver|extra driver|documents?|passport/i],
+  ['driver_documents', /נהג נוסף|מסמכים|תעודת זהות|דרכון|רישיון זר|רישיון בינלאומי|foreign licen[cs]e|international driving permit|additional driver|extra driver|another driver|second driver|documents?|passport/i],
   ['age_licence', /גיל|בן\s*\d{2}|בת\s*\d{2}|ותק רישיון|נהג חדש|רישיון|minimum age|licen[cs]e experience|young driver/i],
   ['different_location', /מקום אחר|החזרה אחרת|איסוף אחר|שדה תעופה|נתב.?ג|one way|different location|airport|drop.?off/i],
   ['insurance', /ביטוח|כיסוי|השתתפות עצמית|insurance|cover(?:age)?|waiver|excess/i],
@@ -108,7 +108,7 @@ const TOPIC_PATTERNS: Array<[ServiceKnowledgeTopic, RegExp]> = [
 ];
 
 export function getSmartCarServiceAnswer(input: string, locale: ServiceLocale): ServiceKnowledgeAnswer | null {
-  if (/להוסיף.{0,12}נהג|לצרף.{0,12}נהג|נהג.{0,10}נוסף|add (?:an? )?(?:additional|extra|second) driver/i.test(input)
+  if (/להוסיף.{0,12}נהג|לצרף.{0,12}נהג|נהג.{0,10}נוסף|add (?:an? )?(?:additional|extra|second|another) driver/i.test(input)
       && /אפשר|יכול|ניתן|can|could|possible/i.test(input)
       && !/מסמכים|documents?|מה צריך|what.*need/i.test(input)) {
     return {

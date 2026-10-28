@@ -788,6 +788,21 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(age.reply).toContain('שם');
   });
 
+  it('answers an English additional-driver side question before collecting dates', async () => {
+    const chat = conversation(467);
+    await chat.send('Hi');
+    await chat.send('I need a compact rental car for one person');
+    const insurance = await chat.send('How does insurance work?');
+    expect(insurance.reply).toContain('basic cover');
+    const driver = await chat.send('Can I add another driver?');
+    expect(driver.reply).toContain('add another driver');
+    expect(driver.reply).toContain('valid licence');
+    expect(driver.reply).not.toContain('What date would you like to pick up');
+    const dates = await chat.send('Pickup 10/12 and return 14/12');
+    expect(dates.state.booking.pickupDate).toBeTruthy();
+    expect(dates.reply).toContain('pick it up');
+  });
+
   it('takes an explicit wish to continue through a complete saved family request', async () => {
     const chat = conversation(418);
     await chat.send('אנחנו ארבעה עם שתי מזוודות ומחפשים רכב לשבוע');
