@@ -738,6 +738,19 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(prepare.reply).toContain('מספר ההזמנה שכבר מסרתם');
   });
 
+  it('keeps urgent and callback follow-ups labelled as cancellation', async () => {
+    const chat = conversation(441);
+    await chat.send('אני רוצה לבטל את ההזמנה שלי');
+    await chat.send('מספר הזמנה 123456');
+    const urgent = await chat.send('אני צריך עזרה היום');
+    expect(urgent.reply).toContain('בקשת הביטול');
+    expect(urgent.reply).not.toContain('בקשת השינוי');
+    await chat.send('בנוסף חויבתי פעמיים');
+    const callback = await chat.send('תוכלו לחזור אליי?');
+    expect(callback.reply).toContain('בקשת הביטול');
+    expect(callback.reply).not.toContain('בקשת השינוי');
+  });
+
   it('answers the additional-driver question during a rental consultation', async () => {
     const chat = conversation(408);
     await chat.send('מה אתה ממליץ לאדם אחד לשבוע?');

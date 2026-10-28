@@ -835,6 +835,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         ? (he ? `תודה, קיבלנו את המיקום וצירפנו אותו לפנייה. לתיאום עזרה דחופה התקשרו עכשיו ל־${OFFICE_PHONE}.` : `Thank you. We have added your location to the enquiry. For urgent help call ${OFFICE_PHONE} now.`)
       : handoffKind === 'safety' && /צריך עזרה|צריכ(?:ה|ים) עזרה|need help|help me/i.test(input)
         ? (he ? `כדי לתאם עזרה לרכב, התקשרו עכשיו ל־SmartCar ב־${OFFICE_PHONE} ומסרו את המיקום ומספר ההזמנה. אם יש סכנה מיידית, פנו קודם לגורמי החירום.` : `To arrange help for the car, call SmartCar now on ${OFFICE_PHONE} with your location and booking reference. If there is immediate danger, contact emergency services first.`)
+      : cancellationPending && /היום|דחוף|עכשיו|today|urgent|right now/i.test(input)
+        ? (he ? `בקשת הביטול כבר הועברה לנציג, אבל הביטול עדיין דורש אישור. אם אתם צריכים מענה היום, התקשרו ל־${OFFICE_PHONE}.` : `Your cancellation request has been passed to a representative, but it still needs confirmation. If you need an answer today, call ${OFFICE_PHONE}.`)
+      : cancellationPending && /(?:תוכלו|אפשר|יכול(?:ים)?).{0,20}(?:לחזור|שיחזרו)|call (?:me|us) back/i.test(input)
+        ? (he ? 'כן, נציג SmartCar יחזור אליכם לגבי בקשת הביטול. עד לאישורו ההזמנה נשארת בתוקף.' : 'Yes, a SmartCar representative will follow up about the cancellation request. The booking remains in effect until it is confirmed.')
       : /תודה|thanks|thank you/i.test(input)
       ? handoffKind === 'safety' ? (he ? 'בשמחה. שמרו על עצמכם.' : 'You are welcome. Take care.')
         : (he ? 'בשמחה. נציג SmartCar יחזור אליכם בהקדם.' : 'You are welcome. A SmartCar representative will follow up as soon as possible.')
@@ -870,7 +874,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           ? (he ? `קיבלנו את הפרטים על ${state.interest === 'sale' ? 'רכישת רכב' : 'ליסינג'}. נציג SmartCar יחזור אליכם להמשך; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `We have your ${state.interest === 'sale' ? 'car purchase' : 'leasing'} details. A SmartCar representative will follow up; you can also call ${OFFICE_PHONE}.`)
         : handoffKind === 'service_issue' || handoffKind === 'human'
           ? (he ? `תודה על העדכון. נציג SmartCar יטפל בפנייה שלכם; לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `Thanks for the update. A SmartCar representative will handle your enquiry; for immediate help call ${OFFICE_PHONE}.`)
-        : (he ? `קיבלנו את בקשת השינוי. נציג SmartCar יחזור אליכם; השינוי תקף רק לאחר אישור. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `We have your change request. A SmartCar representative will follow up; the change takes effect only after confirmation. You can also call ${OFFICE_PHONE}.`);
+        : cancellationPending
+          ? (he ? `קיבלנו את בקשת הביטול. נציג SmartCar יחזור אליכם; הביטול תקף רק לאחר אישור. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `We have your cancellation request. A SmartCar representative will follow up; cancellation takes effect only after confirmation. You can also call ${OFFICE_PHONE}.`)
+          : (he ? `קיבלנו את בקשת השינוי. נציג SmartCar יחזור אליכם; השינוי תקף רק לאחר אישור. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `We have your change request. A SmartCar representative will follow up; the change takes effect only after confirmation. You can also call ${OFFICE_PHONE}.`);
   } else if (state.durationClarification) {
     const corrected = explicitDateRange(input);
     if (corrected) {
