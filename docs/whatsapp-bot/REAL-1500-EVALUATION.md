@@ -2,6 +2,23 @@
 
 ## Current evidence snapshot — 28 October 2026
 
+The damage replay on `480a834` failed at its third customer turn: “בדרך לצפון”
+was treated as a recorded location and a direct question about continuing to
+drive went unanswered. Its complete three-turn failure is in
+`evidence/adaptive-accident-service-2.json`. The source and regression now
+answer the driving question before location handling and exclude this vague
+direction from the location matcher. This is not a successful chat; production
+replay remains required.
+
+On release `480a834`, the adaptive tourist replay kept the three passengers in
+its first answer but failed at turn two: after the customer supplied two medium
+suitcases and asked about a stroller and child seat, it ignored the seat and
+re-asked for people and bags. The full two-turn record is
+`evidence/adaptive-tourist-rental-2.json`; this is a failed, incomplete chat.
+The source correction has a regression but still needs production replay.
+The damage replay in `evidence/adaptive-accident-service-2.json` has appropriate
+first and second answers; it remains in progress and is not a complete pass.
+
 Three open-ended customer-style chats on production `1a0abd0` are saved as
 `evidence/adaptive-israeli-family-rental.json`,
 `evidence/adaptive-tourist-rental-1.json`, and

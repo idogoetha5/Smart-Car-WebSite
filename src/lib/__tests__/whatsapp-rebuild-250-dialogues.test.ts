@@ -1074,6 +1074,14 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(first.state.booking.passengers).toBe(3);
     expect(first.reply).toMatch(/family car/i);
     expect(first.reply).not.toMatch(/How many people|What dates/);
+    const second = await chat.send('We will have two medium suitcases and a folding stroller. Would a family car fit those, and can you provide a child seat for our 5-year-old?');
+    expect(second.state.booking.passengers).toBe(3);
+    expect(second.state.booking.luggage).toBe(2);
+    expect(second.state.booking.childSeats).toBe(1);
+    expect(second.state.booking.vehicleNeed).toBeUndefined();
+    expect(second.reply).toMatch(/child-seat request/);
+    expect(second.reply).toMatch(/2 suitcases and a stroller/);
+    expect(second.reply).not.toMatch(/How many passengers|How many people|How many.*suitcases|What dates/);
   });
 
   it('does not treat a hypothetical small-car question as the family choice', async () => {
@@ -1095,6 +1103,10 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(photo.reply).toMatch(/צלמו/);
     expect(photo.reply).toMatch(/בלי מספר הזמנה/);
     expect(photo.reply).not.toBe(first.reply);
+    const drive = await chat.send('זו רק שריטה והדלת נפתחת רגיל. אנחנו בדרך לצפון, אפשר להמשיך לנסוע אחרי שמדווחים לכם?');
+    expect(drive.reply).toMatch(/המשך הנסיעה/);
+    expect(drive.reply).toMatch(/בתוך שעה/);
+    expect(drive.reply).not.toMatch(/קיבלנו את המיקום|צירפנו אותו לפנייה/);
     const later = await chat.send('אני בחניון בהרצליה, אמצא את המספר אחר כך');
     expect(later.reply).toMatch(/המיקום|הרצליה/);
     expect(later.escalate).toBe(false);

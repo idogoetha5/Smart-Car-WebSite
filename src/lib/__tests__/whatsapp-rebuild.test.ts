@@ -1049,15 +1049,19 @@ describe('replacement SmartCar conversation core', () => {
   });
 
   it('rejects impossible or reversed dates before they reach a rental request', async () => {
-    const chat = memory(() => ({ ...base, route: 'book', fields: {
-      pickupDate: { value: '2026-10-28', evidence: 'רביעי' },
-      returnDate: { value: '2026-10-26', evidence: 'שני' },
-    } }));
-    const result = await chat.send('אני רוצה להזמין מרביעי עד שני');
-    expect(result.state.booking.pickupDate).toBe('2026-10-28');
-    expect(result.state.booking.returnDate).toBeUndefined();
-    expect(result.reply).toMatch(/תאריך תחזירו/);
-    expect(chat.create).not.toHaveBeenCalled();
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-10-25T12:00:00Z'));
+      const chat = memory(() => ({ ...base, route: 'book', fields: {
+        pickupDate: { value: '2026-10-28', evidence: 'רביעי' },
+        returnDate: { value: '2026-10-26', evidence: 'שני' },
+      } }));
+      const result = await chat.send('אני רוצה להזמין מרביעי עד שני');
+      expect(result.state.booking.pickupDate).toBe('2026-10-28');
+      expect(result.state.booking.returnDate).toBeUndefined();
+      expect(result.reply).toMatch(/תאריך תחזירו/);
+      expect(chat.create).not.toHaveBeenCalled();
+    } finally { vi.useRealTimers(); }
   });
 
   it('has a useful bounded fallback when Gemini is unavailable', async () => {

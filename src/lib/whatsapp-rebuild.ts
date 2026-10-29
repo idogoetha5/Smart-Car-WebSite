@@ -289,7 +289,7 @@ function statedCount(value: string): number | null {
 function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   const count = '(\\d{1,2}|אחד|אחת|שניים|שתיים|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש|שבעה|שבע|שמונה|one|two|three|four|five|six|seven|eight)';
   const passengers = input.match(new RegExp(`(?:אנחנו|נהיה)\\s+${count}(?=\\s|$)|${count}\\s+(?:נוסעים|אנשים|מבוגרים|passengers|people)`, 'iu'));
-  const luggage = input.match(new RegExp(`${count}\\s+(?:מזוודות|מזוודה|תיקים|תיקי נסיעה|bags|suitcases)`, 'iu'));
+  const luggage = input.match(new RegExp(`${count}\\s+(?:(?:small|medium|large|קטנות|בינוניות|גדולות)\\s+)?(?:מזוודות|מזוודה|תיקים|תיקי נסיעה|bags|suitcases)`, 'iu'));
   const passengerCount = statedCount(passengers?.[1] ?? passengers?.[2] ?? '');
   const luggageCount = statedCount(luggage?.[1] ?? '');
   if (passengerCount !== null) draft.passengers = passengerCount;
@@ -302,6 +302,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   if (coupleWithChild) draft.passengers = 3;
   if (draft.luggage === undefined && /מזוודה(?!ות)|תיק(?: נסיעה)? אחד|one suitcase|one bag/i.test(input)) draft.luggage = 1;
   if (/תינוק|baby|infant/i.test(input)) draft.childSeats ??= 1;
+  if (/(?:can (?:you|we) (?:provide|add|include)|do you (?:provide|have|offer)|אפשר (?:לקבל|להוסיף)|תוכלו (?:לספק|להוסיף)).{0,18}(?:child seat|car seat|כיסא בטיחות)/i.test(input)) draft.childSeats ??= 1;
   if (/אדם אחד|איש אחד|נוסע אחד|נוסעת אחת|אני לבד|(?:^|\s)לבד(?:\s|$)|\b(?:one person|solo|travelling alone|traveling alone)\b/i.test(input)) draft.passengers = 1;
 }
 
@@ -541,6 +542,12 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
   if (/אפשר להוסיף כיסא בטיחות|can (?:i|we) add (?:a )?child seat/i.test(input)) return he
     ? 'אפשר לציין בבקשה צורך בכיסא בטיחות. נבדוק אפשרות לצרף כיסא מתאים ואת תנאיו לפני אישור ההשכרה; גם התאמת הכיסא לרכב המסוים תיבדק.'
     : 'We can include a child-seat request. We will check a suitable seat, its terms and its fit with the specific car before confirming the rental.';
+  if (/can (?:you|we) provide (?:a )?child seat|do you (?:provide|have|offer) (?:a )?child seat/i.test(input)) {
+    const party = state.booking.passengers ? `${state.booking.passengers} travellers` : 'your group';
+    const bags = state.booking.luggage ? `${state.booking.luggage} suitcases` : 'your luggage';
+    const stroller = /stroller|pushchair/i.test(input) || state.history.some(entry => entry.from === 'customer' && /stroller|pushchair/i.test(entry.text));
+    return `We can include a child-seat request and check its availability and terms before confirmation. For ${party}, ${bags}${stroller ? ' and a stroller' : ''}, I would start with a family car, then verify that everything fits in the specific model.`;
+  }
   if (state.booking.childSeats && /(?:מה אם|ומה אם|what if).{0,24}(?:רכב קטן|קומפקט|small car|compact)/i.test(input)) return he
     ? 'רכב קטן עשוי להיות נוח יותר לחניה, אבל עם תינוק, עגלה ומזוודה הייתי מתחיל בבדיקת משפחתית. אפשר להשוות גם רכב קטן ולוודא בדגם המסוים שיש מקום מתאים לכיסא ולציוד.'
     : 'A compact may be easier to park, but with a child and luggage I would start by checking a family car. We can compare a compact too and verify seat and luggage space in the actual model.';
@@ -838,6 +845,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         ? (he ? 'הפנייה כבר הועברה להמשך טיפול. נציג SmartCar יחזור אליכם.' : 'Your enquiry has already been passed on. A SmartCar representative will follow up.')
       : handoffKind === 'safety' && rentalDamage && /אין לי.{0,30}מספר|לא.{0,20}מספר הזמנה|לצלם|צילום|תמונה|photo|picture|don'?t have.{0,30}(?:reference|booking number)/i.test(input)
         ? (he ? `כן, צלמו את השריטה ואת סביבת הרכב אם בטוח לעשות זאת. התקשרו ל־SmartCar בתוך שעה במספר ${OFFICE_PHONE} ודווחו גם בלי מספר הזמנה כרגע; תוכלו למסור אותו בהמשך. נציג ינחה אתכם לגבי דוח האירוע והמשך הטיפול.` : `Yes, photograph the damage and surroundings if it is safe. Call SmartCar within one hour on ${OFFICE_PHONE} even if you do not have the booking reference yet; you can provide it later. A representative will guide you on the incident report and next steps.`)
+      : handoffKind === 'safety' && /אפשר.{0,30}להמשיך לנסוע|האם.{0,30}לנסוע|can (?:i|we).{0,25}(?:keep driving|continue driving)|safe to drive/i.test(input)
+        ? (he ? `אם הדלת או חלק אחר ברכב לא פועלים כרגיל, או שיש חשש בטיחותי, אל תמשיכו לנסוע. גם כשהנזק נראה קוסמטי, דווחו ל־SmartCar בתוך שעה במספר ${OFFICE_PHONE} וקבלו הנחיה לגבי המשך הנסיעה.` : `If the door or any part of the car is not working normally, or you have a safety concern, do not continue driving. Even if the damage looks cosmetic, report it to SmartCar within one hour on ${OFFICE_PHONE} and get guidance before continuing.`)
       : handoffKind === 'safety' && /מה הצעד הבא|מה עושים עכשיו|איך ממשיכים|what (?:next|should I do)|next step/i.test(input)
         ? safetyKind === 'accident'
           ? /דווחו על התאונה בתוך שעה|report the accident within one hour/i.test(lastBotReply)
@@ -868,7 +877,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       ? (he ? `לתיאום גרר, הישארו במקום בטוח והתקשרו עכשיו ל־SmartCar: ${OFFICE_PHONE}.` : `To arrange a tow, stay somewhere safe and call SmartCar now: ${OFFICE_PHONE}.`)
       : /חויבתי|חיוב כפול|שילמתי פעמיים|charged twice|double charg/i.test(input)
         ? (he ? 'תודה שציינת גם את החיוב. צירפנו את הפרטים לפנייה כדי שנציג SmartCar יוכל לטפל בהם יחד עם הבקשה הקודמת.' : 'Thank you for flagging the charge as well. We have added it to your enquiry so a SmartCar representative can review it with your earlier request.')
-      : handoffKind === 'safety' && /כתובת|מיקום|נמצא ב|נמצאת ב|(?:אני|אנחנו|הרכב)\s+(?:ב|ליד)(?!מקום בטוח)|location|address/i.test(input)
+      : handoffKind === 'safety' && /כתובת|מיקום|נמצא ב|נמצאת ב|(?:אני|אנחנו|הרכב)\s+(?:ב(?!דרך|נסיעה|טיול|אזור|מקום בטוח)|ליד(?! מקום בטוח))|location|address/i.test(input)
         ? (he ? `תודה, קיבלנו את המיקום וצירפנו אותו לפנייה. לתיאום עזרה דחופה התקשרו עכשיו ל־${OFFICE_PHONE}.` : `Thank you. We have added your location to the enquiry. For urgent help call ${OFFICE_PHONE} now.`)
       : handoffKind === 'safety' && /צריך עזרה|צריכ(?:ה|ים) עזרה|need help|help me/i.test(input)
         ? (he ? `כדי לתאם עזרה לרכב, התקשרו עכשיו ל־SmartCar ב־${OFFICE_PHONE} ומסרו את המיקום ומספר ההזמנה. אם יש סכנה מיידית, פנו קודם לגורמי החירום.` : `To arrange help for the car, call SmartCar now on ${OFFICE_PHONE} with your location and booking reference. If there is immediate danger, contact emergency services first.`)
