@@ -205,9 +205,9 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
   const hePickup = input.match(new RegExp(`(?:איסוף|לאסוף)\\s+[במ]([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
   const enPickup = input.match(new RegExp(`pick.?up\\s+(?:at|from|in)\\s+([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
   const pickup = (hePickup ?? enPickup)?.trim();
-  if (pickup) draft.pickupLocation = pickup;
+  if (pickup) draft.pickupLocation = /^(?:the )?airport$/i.test(pickup) && /Ben Gurion Airport/i.test(input) ? 'Ben Gurion Airport' : pickup;
   const heReturn = input.match(/(?:החזרה|להחזיר)\s+[במ]([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:נהג|גיל|בן|בת|למשך|לתאריכים)|[,.!?]|$)/iu)?.[1];
-  const enReturn = input.match(/(?:return|drop.?off)\s+(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=[,.!?]|$)/iu)?.[1];
+  const enReturn = input.match(/(?:return|drop.?off)\s+(?:(?:the car|it)\s+)?(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=[,.!?]|$)/iu)?.[1];
   const returnLocation = (heReturn ?? enReturn)?.trim();
   if (returnLocation) draft.returnLocation = returnLocation;
   if (draft.pickupLocation && /אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input)) draft.returnLocation = draft.pickupLocation;
@@ -847,6 +847,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         ? (he ? `כן, צלמו את השריטה ואת סביבת הרכב אם בטוח לעשות זאת. התקשרו ל־SmartCar בתוך שעה במספר ${OFFICE_PHONE} ודווחו גם בלי מספר הזמנה כרגע; תוכלו למסור אותו בהמשך. נציג ינחה אתכם לגבי דוח האירוע והמשך הטיפול.` : `Yes, photograph the damage and surroundings if it is safe. Call SmartCar within one hour on ${OFFICE_PHONE} even if you do not have the booking reference yet; you can provide it later. A representative will guide you on the incident report and next steps.`)
       : handoffKind === 'safety' && /אפשר.{0,30}להמשיך לנסוע|האם.{0,30}לנסוע|can (?:i|we).{0,25}(?:keep driving|continue driving)|safe to drive/i.test(input)
         ? (he ? `אם הדלת או חלק אחר ברכב לא פועלים כרגיל, או שיש חשש בטיחותי, אל תמשיכו לנסוע. גם כשהנזק נראה קוסמטי, דווחו ל־SmartCar בתוך שעה במספר ${OFFICE_PHONE} וקבלו הנחיה לגבי המשך הנסיעה.` : `If the door or any part of the car is not working normally, or you have a safety concern, do not continue driving. Even if the damage looks cosmetic, report it to SmartCar within one hour on ${OFFICE_PHONE} and get guidance before continuing.`)
+      : handoffKind === 'safety' && rentalDamage && /אצטרך.{0,20}לשלם|נצטרך.{0,20}לשלם|מי.{0,15}ישלם|השתתפות עצמית|אחריות.{0,20}נזק|חייב.{0,15}תיקון|pay for|liable|responsib(?:le|ility) for|excess/i.test(input)
+        ? (he ? 'התשלום על הנזק תלוי בנסיבות המקרה, בכיסוי הביטוחי ובהשתתפות העצמית שבהסכם ההשכרה. גם אם נראה שמישהו אחר פגע ברכב, אי אפשר לקבוע חיוב לפני בדיקת האירוע. דווחו ל־SmartCar ושמרו את התמונות; נציג יסביר לכם את התנאים שחלים על ההשכרה שלכם.' : 'Any charge for the damage depends on the circumstances, cover and excess in your rental agreement. Even if another person appears to have caused it, the charge cannot be determined before the incident is reviewed. Report it to SmartCar and keep the photos; a representative will explain the terms for your rental.')
       : handoffKind === 'safety' && /מה הצעד הבא|מה עושים עכשיו|איך ממשיכים|what (?:next|should I do)|next step/i.test(input)
         ? safetyKind === 'accident'
           ? /דווחו על התאונה בתוך שעה|report the accident within one hour/i.test(lastBotReply)
@@ -1240,7 +1242,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const fact = getSmartCarServiceAnswer(input, state.locale);
       const alreadyAnsweredInsurance = fact!.topic === 'insurance'
         && state.history.some(entry => entry.from === 'bot' && entry.text === fact!.reply);
-      reply = alreadyAnsweredInsurance
+      reply = fact!.topic === 'different_location' && state.booking.pickupLocation && state.booking.returnLocation
+        ? (he
+          ? `רשמתי איסוף ב${state.booking.pickupLocation} והחזרה ב${state.booking.returnLocation}. אפשר לבקש מסלול כזה בתיאום מראש; שירות נתב״ג עשוי להיות כרוך בתוספת. כשתדעו את התאריכים, נבדוק זמינות והצעה מתאימה.`
+          : `I have pickup at ${state.booking.pickupLocation} and return in ${state.booking.returnLocation}. We can check that route by prior arrangement; airport service may carry an additional charge. Once you know the dates, we can check availability and a quote.`)
+        : alreadyAnsweredInsurance
         ? (he
           ? 'הכיסוי הבסיסי כולל ביטוח חובה וכיסוי לנזקי תאונה, אש וגניבה, בכפוף להשתתפות עצמית. בהצעה יפורטו סכום ההשתתפות והאפשרויות להפחתתו. יש חלק מסוים בביטוח שתרצו שאסביר?'
           : 'Basic cover includes compulsory liability and accident, fire and theft cover, subject to an excess. The quote will show that excess and any reduction options. Is there a particular part you would like me to explain?')

@@ -2,6 +2,15 @@
 
 ## Current evidence snapshot — 28 October 2026
 
+Release `1562c65` fixed the earlier tourist luggage/seat reply and damage
+driving reply, but both adaptive conversations found later failures. In
+`evidence/adaptive-tourist-rental-3.json`, the bot retained Ben Gurion pickup
+and Tel Aviv return but asked for both locations again. In
+`evidence/adaptive-accident-service-3.json`, it ignored a payment/liability
+question after a scratch and returned generic safety text. Both chats stopped
+at the failure. Source and exact regressions now address these turns; live
+replay is required. No complete adaptive customer conversation has passed.
+
 The damage replay on `480a834` failed at its third customer turn: “בדרך לצפון”
 was treated as a recorded location and a direct question about continuing to
 drive went unanswered. Its complete three-turn failure is in

@@ -1082,6 +1082,11 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(second.reply).toMatch(/child-seat request/);
     expect(second.reply).toMatch(/2 suitcases and a stroller/);
     expect(second.reply).not.toMatch(/How many passengers|How many people|How many.*suitcases|What dates/);
+    const locations = await chat.send('That sounds good. We land at Ben Gurion Airport and will spend time in Jerusalem before returning to Tel Aviv. Could we pick up at the airport and return the car in Tel Aviv?');
+    expect(locations.state.booking.pickupLocation).toBe('Ben Gurion Airport');
+    expect(locations.state.booking.returnLocation).toBe('Tel Aviv');
+    expect(locations.reply).toMatch(/Ben Gurion Airport.*Tel Aviv/);
+    expect(locations.reply).not.toMatch(/Send both locations|What dates/);
   });
 
   it('does not treat a hypothetical small-car question as the family choice', async () => {
@@ -1107,6 +1112,9 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(drive.reply).toMatch(/המשך הנסיעה/);
     expect(drive.reply).toMatch(/בתוך שעה/);
     expect(drive.reply).not.toMatch(/קיבלנו את המיקום|צירפנו אותו לפנייה/);
+    const liability = await chat.send('אוקיי, אדבר איתם. אם מישהו אחר שרט את הרכב כשהוא חנה, אני אצטרך לשלם על התיקון?');
+    expect(liability.reply).toMatch(/השתתפות העצמית|ההסכם/);
+    expect(liability.reply).not.toMatch(/אל תמשיכו לנסוע|לתיאום עזרה/);
     const later = await chat.send('אני בחניון בהרצליה, אמצא את המספר אחר כך');
     expect(later.reply).toMatch(/המיקום|הרצליה/);
     expect(later.escalate).toBe(false);
