@@ -1142,10 +1142,14 @@ describe('replacement SmartCar conversation core', () => {
   });
 
   it('treats a hit in a parked rental as damage without demanding a booking reference first', async () => {
-    const result = await memory(() => null).send('הרכב השכור קיבל מכה בחניה ואין נפגעים. מה לעשות עכשיו?');
+    const chat = memory(() => null);
+    const result = await chat.send('הרכב השכור קיבל מכה בחניה ואין נפגעים. מה לעשות עכשיו?');
     expect(result.source).toBe('safety');
     expect(result.escalate).toBe(true);
     expect(result.reply).toContain('צלמו את הנזק');
     expect(result.reply).toContain('מספר ההזמנה אפשר למסור גם בהמשך');
+    const driving = await chat.send('הרכב נוסע כרגיל, מותר לי להמשיך לנסוע הביתה?');
+    expect(driving.reply).toContain('קבלו הנחיה לגבי המשך הנסיעה');
+    expect(driving.reply).not.toContain('תודה על העדכון');
   });
 });
