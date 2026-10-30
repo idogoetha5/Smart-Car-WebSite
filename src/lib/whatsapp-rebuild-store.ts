@@ -33,14 +33,14 @@ async function saveState(phone: string, state: RebuildState): Promise<void> {
 
 async function createRentalRequest(phone: string, state: RebuildState): Promise<string | null> {
   const b = state.booking;
-  if (!state.requestKey || !b.pickupDate || !b.returnDate || !b.pickupLocation || !b.returnLocation || !b.vehicleNeed || !['21-23', '24-plus'].includes(b.driverAgeRange ?? '') || !b.customerName || !b.customerEmail) return null;
+  if (!state.requestKey || !b.pickupDate || !b.returnDate || !b.pickupLocation || !b.returnLocation || !b.vehicleNeed || !['21-23', '24-plus'].includes(b.driverAgeRange ?? '') || !b.customerName) return null;
   const canonical = normalizeWhatsAppPhone(phone);
   if (!canonical) return null;
   const consent = termsConsent(state.locale);
   const db = createAdminClient();
   const { data, error } = await db.from('whatsapp_rental_requests').insert({
     request_key: state.requestKey,
-    phone: canonical, customer_name: b.customerName, customer_email: b.customerEmail,
+    phone: canonical, customer_name: b.customerName, customer_email: b.customerEmail ?? null,
     pickup_date: b.pickupDate, dropoff_date: b.returnDate,
     pickup_location: b.pickupLocation, dropoff_location: b.returnLocation,
     vehicle_preference: b.vehicleNeed, driver_age_range: b.driverAgeRange,

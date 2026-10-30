@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## New implementation finding — 30 October 2026
+
+Inspection after a production simulator replay found that, although the intake and confirmation correctly treated email as optional, the persistent request store still required it and would reject an otherwise complete request. The store now accepts the name and the WhatsApp sender number as the required contact details and records null email when none was supplied. A persistence regression covers the exact condition. Production replay remains required.
+
 ## New adaptive failure — 30 October 2026 (production `efdf8dc`)
 
 A Chrome tourist opening supplied two adults and a five-year-old, Ben Gurion pickup on 8 December, Tel Aviv return on 13 December, a stroller, and a request to arrange a child seat. The response acknowledged only the route and asked for dates, ignoring already stated named dates, the passenger count, stroller and child-seat request. After the initial correction was deployed, an adaptive follow-up asking about “prices” repeated the vehicle recommendation rather than answering the price question. After the price repair, “Yes, let us continue, but please leave the vehicle group open for now” repeated the consent question instead of progressing. The chat stopped as failed. The source now parses named English route dates and “arrange a child seat”, accepts plural “prices”, and starts intake from that clear continuation while preserving an open vehicle group; an exact regression covers all observed turns. Production replay is required.
