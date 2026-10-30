@@ -1097,6 +1097,21 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(comparison.state.booking.vehicleNeed).toBeUndefined();
   });
 
+  it('keeps the car group open through a real solo-customer comparison, then records a clear choice', async () => {
+    const chat = conversation(474, { ...modelReading, reply: 'רכב משפחתי מציע נוחות נסיעה גבוהה לאורך כל השבוע. האם תרצו לבדוק אפשרות לרכב משפחתי?' });
+    const first = await chat.send('היי, אני צריך רכב לשבוע אבל לא יודע איזה סוג מתאים לי. נוסע לבד עם מזוודה אחת. מה היית ממליץ?');
+    expect(first.state.booking.passengers).toBe(1);
+    expect(first.state.booking.luggage).toBe(1);
+    expect(first.state.booking.vehicleNeed).toBeUndefined();
+    const comparison = await chat.send('למה קומפקטי דווקא? משפחתי יהיה יותר נוח לשבוע כזה?');
+    expect(comparison.reply).toMatch(/קומפקטי.*משפחתי/);
+    expect(comparison.reply).toMatch(/תלוי|תלויות/);
+    expect(comparison.reply).not.toMatch(/נוחות נסיעה גבוהה לאורך כל השבוע|האם תרצו לבדוק/);
+    expect(comparison.state.booking.vehicleNeed).toBeUndefined();
+    const choice = await chat.send('תודה, אני רוצה לשכור רכב משפחתי');
+    expect(choice.state.booking.vehicleNeed).toBe('רכב משפחתי');
+  });
+
   it('guides a renter with parked-car damage without repeating the booking-number demand', async () => {
     const chat = conversation(472);
     const first = await chat.send('היי, חזרתי לרכב השכור וראיתי שמישהו שרט את הדלת בחניה. אף אחד לא נפגע, מה אני אמור לעשות?');

@@ -314,6 +314,22 @@ function explicitVehicleNeed(input: string, locale: Locale): string | null {
   return null;
 }
 
+function customerVehicleChoice(input: string, state: RebuildState): string | null {
+  if (/^(?:ו?מה אם|האם|אולי|למה|מה לגבי|what if|would|should|could)\s/iu.test(input)) return null;
+  const vehicle = '(?:רכב\\s+)?(?:שבעה\\s+מקומות|7\\s*מקומות|משפחתית|משפחתי|קטן|קומפקטית|קומפקטי|פנאי|ג[׳\'י]?יפ(?:ון)?|compact(?:\\s+rental)?\\s+car|small(?:\\s+rental)?\\s+car|family\\s+car|suv|seven[- ]?seat(?:er)?)';
+  const choice = new RegExp(`(?:רוצה|רוצים|צריך|צריכה|צריכים|מחפש|מחפשת|מעדיף|מעדיפה|בחרתי|בחרנו|נלך על|אלך על|אקח|want|need|prefer|choose|chose|looking for|would like|go with)\\s+(?:(?:לשכור|להזמין|to rent|to book|an?)\\s+)?(${vehicle})`, 'giu');
+  const matches = [...input.matchAll(choice)].filter(match => !/(?:לא|don'?t)\s*$/iu.test(input.slice(0, match.index)));
+  const chosen = matches.at(-1)?.[1];
+  if (chosen) return explicitVehicleNeed(chosen, state.locale);
+  if (explicitBooking(input) && !/(?:לא רוצה|don't want|do not want)/iu.test(input)) return explicitVehicleNeed(input, state.locale);
+  const statedPreference = input.match(new RegExp(`(${vehicle})\\s+(?:עדיף|עדיפה|מתאים\\s+לי|מתאים\\s+לנו|works better|is better for us)`, 'iu'))?.[1];
+  if (statedPreference && !/[?؟]/u.test(input)) return explicitVehicleNeed(statedPreference, state.locale);
+  if (/[?؟]/u.test(input) || /(?:לא רוצה|לא מעדיף|don't want|do not want)/iu.test(input)) return null;
+  const lastBot = state.history.at(-1)?.text ?? '';
+  return state.phase === 'booking' && (state.step === 'rental_vehicle' || /איזה סוג רכב|what kind of car/i.test(lastBot) || input.trim().length <= 20)
+    ? explicitVehicleNeed(input, state.locale) : null;
+}
+
 function driverAgeRange(input: string, state: RebuildState): '21-23' | '24-plus' | null {
   if (/(?:^|\D)21\s*[-–]\s*23(?:\D|$)/u.test(input)) return '21-23';
   if (/(?:^|\D)24\s*\+(?:\D|$)/u.test(input)) return '24-plus';
@@ -721,9 +737,9 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
     if ((source === 'pickupLocation' || source === 'returnLocation')
       && !/איסוף|לאסוף|להחזיר|החזרה|pick.?up|return|drop.?off/i.test(input)
       && !(state.phase === 'booking' && state.step === 'rental_locations' && input.trim().split(/\s+/).length <= 3)) continue;
-    if (source === 'vehicleNeed' && state.phase !== 'booking' && !explicitBooking(input)) continue;
+    if (source === 'vehicleNeed' && !customerVehicleChoice(input, state)) continue;
     state.booking[target] = source === 'vehicleNeed'
-      ? explicitVehicleNeed(field.evidence, state.locale) ?? explicitVehicleNeed(field.value, state.locale) ?? field.value
+      ? customerVehicleChoice(input, state)!
       : field.value;
   }
   for (const name of ['passengers', 'luggage', 'childSeats'] as const) {
@@ -1051,15 +1067,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const wantsBooking = !declines && !asksHuman && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || acceptsRentalOffer || wantsToContinueRental || state.phase === 'booking');
     const rentalPivot = /מעדיף (?:את ה)?השכרה|מעדיף לשכור|עדיף לי לשכור|אעדיף לשכור|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|prefer to rent|back to renting/i.test(input);
     const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|(?:רכב|הרכב).{0,35}מלוכלך|לא קיבלתי|(?:מזגן|מיזוג).{0,25}(?:לא עובד|מקולקל)|(?:air conditioning|car ac).{0,25}(?:not working|broken)|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input);
-    const statedVehicle = explicitVehicleNeed(input, state.locale);
+    const statedVehicle = customerVehicleChoice(input, state);
     if (acceptsRentalOffer && !state.booking.vehicleNeed) {
       const offeredVehicle = explicitVehicleNeed(lastBot, state.locale);
       if (offeredVehicle) state.booking.vehicleNeed = offeredVehicle;
     }
     const commercialVehicle = reading?.route === 'sale' || reading?.route === 'leasing' || /ליסינג|לקנות|למכירה|לרכישה|buy|purchase|leasing/i.test(input);
-    const merelyConsideringVehicle = /(?:מה אם|ומה אם|האם|אולי|what if|would|could|should)/i.test(input)
-      && /[?؟]/.test(input) && !/אני רוצה|אנחנו רוצים|אני מעדיף|אני מעדיפה|I want|I prefer/i.test(input);
-    if (statedVehicle && !merelyConsideringVehicle && (wantsBooking || state.phase === 'booking' || !commercialVehicle && !state.interest)
+    if (statedVehicle && (wantsBooking || state.phase === 'booking' || !commercialVehicle && !state.interest)
       && (!state.booking.vehicleNeed || /^רכב (?:לנוסע אחד|ל־\d+ נוסעים)|^car for \d+ passengers?/i.test(state.booking.vehicleNeed)
         || /בעצם|מעדיף|במקום|actually|instead|prefer/i.test(input))) state.booking.vehicleNeed = statedVehicle;
     if (rentalPivot) state.interest = undefined;
@@ -1203,6 +1217,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const answer = commercialReply(input, state);
       reply = answer.reply; escalate = answer.escalate;
       if (escalate) { state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'commercial'; }
+    } else if (state.phase === 'explore' && /קומפקט|רכב קטן|compact|small car/i.test(input)
+      && /משפחת|family car/i.test(input) && /למה|יותר|לעומת|הבדל|why|versus|compared|more comfortable/i.test(input)) {
+      reply = he
+        ? `ל${state.booking.passengers === 1 ? 'נסיעה לבד' : 'צרכים שתיארתם'}${state.booking.luggage === 1 ? ' עם מזוודה אחת' : ''}, קומפקטי הוא נקודת פתיחה בגלל הגודל והחניה. משפחתי מציע בדרך כלל יותר מקום; נוחות והתאמה לציוד תלויות בדגם המסוים. אפשר להשאיר את שתי האפשרויות פתוחות עד שתבחרו.`
+        : `For ${state.booking.passengers === 1 ? 'solo travel' : 'the needs you described'}${state.booking.luggage === 1 ? ' with one suitcase' : ''}, a compact is a starting point for easier parking. A family car usually offers more room; comfort and luggage fit depend on the actual model. We can keep both options open until you choose.`;
     } else if (state.phase === 'explore' && hasVehicleContext(state.booking, input) && /אפשר לשנות.{0,20}תאריך|לשנות תאריך.{0,20}בהמשך|שינוי תאריכים|can (?:I|we) change (?:the )?dates?|change (?:the )?dates? later/i.test(input)) {
       reply = he
         ? `אפשר לבקש שינוי תאריכים בהמשך, בכפוף לזמינות ולתנאי ההזמנה. ${!state.booking.pickupDate || !state.booking.returnDate ? 'לאילו תאריכים תצטרכו את הרכב?' : !state.booking.pickupLocation ? 'מאיפה תרצו לאסוף את הרכב?' : 'נוכל להמשיך לפי הפרטים שכבר מסרתם.'}`

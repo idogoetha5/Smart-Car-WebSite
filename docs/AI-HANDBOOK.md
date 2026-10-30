@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-30 — A new open-ended live customer conversation on production `1562c65` failed at turn two. A solo renter with one suitcase asked why a compact was recommended and whether a family car would be more comfortable. The bot made an unsupported comfort claim and stored a compact as the customer's selected vehicle, although no choice had been made. The source now records a vehicle choice only from a clear customer selection or a direct answer to the vehicle question, and answers compact-versus-family comparisons from known needs without promising model-specific comfort. The exact two-turn live transcript is in `evidence/adaptive-core-solo-advice-20261030.json`; the regression passes locally. This is a failed chat, not a readiness pass. Production replay is required.
+
 2026-10-29 — Two more live adaptive chats on `1562c65` failed after earlier fixes worked. The tourist supplied airport pickup and Tel Aviv return, but the bot asked for both locations again; the accident customer asked whether a third-party scratch would cost them and got a generic driving-safety reply. The source now acknowledges retained pickup/return locations and waits for unknown dates, and answers damage liability through the published agreement/cover/excess terms without promising a charge outcome. Exact live sequences have regressions. Neither chat counts as a success; production replay is required.
 
 2026-10-29 — The adaptive parked-car damage replay on `480a834` answered the first two turns appropriately, then failed on “can we keep driving after reporting?” It ignored the driving question and falsely said it had received a location from “on the way north.” A higher-priority safety answer now addresses driving conditionally and directs the customer to report and obtain guidance, while the location matcher no longer treats “בדרך” as a specific location. The exact three-turn regression passes locally; production replay is required.
@@ -947,6 +949,8 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
+
+- 2026-10-30 — Tightened the WhatsApp consultation core so a vehicle group is retained only after a clear customer selection (or a direct answer to the vehicle question); a compact-versus-family comparison for a solo traveller remains advice and gives only qualified, needs-based guidance. Added the exact production failure as a regression. No migration or customer-transport change; local checks pass and production replay is pending.
 
 - 2026-10-26 — Additional short social openers (“היי מה נשמע?”, “שלום, מה קורה?”, “היי, אפשר לשאול שאלה?”) now receive conversational replies without invoking Gemini or proposing a vehicle before the customer states a need. Added exact phrase regressions after the owner's live greeting feedback. Customer WhatsApp remains disabled.
 

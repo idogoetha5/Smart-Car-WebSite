@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## New adaptive failure — 30 October 2026
+
+`evidence/adaptive-core-solo-advice-20261030.json` records a two-turn, open-ended production Gemini conversation on `1562c65`. The next customer message was chosen after reading the bot's first answer. At turn two the bot claimed a family car would provide high comfort for the whole week without a model to support it, and saved a compact as the customer's choice even though the customer only asked for advice. The chat stopped as failed. A source correction and exact regression are pending production replay. There is still no complete adaptive customer conversation that passed end to end.
+
 ## Current evidence snapshot — 28 October 2026
 
 Release `1562c65` fixed the earlier tourist luggage/seat reply and damage
