@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-30 — A production Chrome replay found that rental intake still treated email as mandatory: after a customer declined to provide an email and asked to continue on WhatsApp, it repeated the email question. Rental requests now require the customer name and WhatsApp number only; email is captured only when the customer provides it and is omitted from the summary otherwise. The 250-dialogue rehearsal now completes every rental path without an email. Production replay is required.
+
 2026-10-30 — The production replay of the solo-renter advice repair on `c692e8c` answered the compact-versus-family comparison safely, then failed when the customer clearly said “I will choose a family car” and asked to start a request: the old compact recommendation repeated. The parser now accepts future-tense Hebrew selection and “I would like to start a request”; the exact observed sequence has a regression. The complete failed Chrome transcript is `evidence/adaptive-core-solo-advice-replay-c692e8c-20261030.json`. This repair requires a new production replay.
 
 2026-10-30 — A new open-ended live customer conversation on production `1562c65` failed at turn two. A solo renter with one suitcase asked why a compact was recommended and whether a family car would be more comfortable. The bot made an unsupported comfort claim and stored a compact as the customer's selected vehicle, although no choice had been made. The source now records a vehicle choice only from a clear customer selection or a direct answer to the vehicle question, and answers compact-versus-family comparisons from known needs without promising model-specific comfort. The exact two-turn live transcript is in `evidence/adaptive-core-solo-advice-20261030.json`; the regression passes locally. This is a failed chat, not a readiness pass. Production replay is required.
@@ -951,6 +953,8 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 3. Commit this file in the same commit or PR as the change.
 
 ### Change log
+
+- 2026-10-30 — Rental intake no longer requires an email address: the WhatsApp number and customer name remain the required contact details, and a supplied email remains optional. The regression rehearsal now reaches confirmation without email. No migration or customer-transport change; deployment and production replay are pending.
 
 - 2026-10-30 — Production Chrome replay of the compact-versus-family consultation exposed an unrecognised future-tense selection (“אני אבחר”) and an unrecognised request to begin intake (“אשמח להתחיל בקשה”). The rebuild now recognizes both only as clear customer intent; the exact failed replay is a regression. No migration or customer-transport change; redeployment and production replay are pending.
 

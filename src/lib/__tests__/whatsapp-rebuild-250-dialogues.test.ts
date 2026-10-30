@@ -57,12 +57,12 @@ async function completeRental(chat: ReturnType<typeof conversation>, english: bo
     else if (!draft.vehicleNeed) await chat.send(english ? 'A small car' : 'רכב קטן');
     else if (!draft.driverAgeRange) await chat.send(age);
     else if (!draft.customerName) await chat.send(english ? 'Noa Cohen' : 'נועה כהן');
-    else if (!draft.customerEmail) await chat.send('noa@example.invalid');
   }
   expect(chat.state()?.step).toBe('rental_confirm');
   const summary = chat.turns.at(-1)!.result.reply;
   expect(summary).toContain(english ? `Driver age: ${age}` : `גיל הנהג: ${age}`);
   expect(summary).toContain(english ? `Return: ${location.returnEn}` : `החזרה: ${location.returnHe}`);
+  expect(summary).not.toMatch(english ? /Email:/ : /מייל:/);
   const completed = await chat.send(english ? 'I confirm' : 'אני מאשרת');
   expect(completed.escalate).toBe(true);
   expect(chat.requests()).toBe(1);

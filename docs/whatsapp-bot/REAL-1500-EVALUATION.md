@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## New adaptive failure — 30 October 2026 (production `4b58c5e`)
+
+In the Chrome rental replay, after dates, locations, driver age and a fictional name, the customer said they had no email and asked to continue on WhatsApp. The bot repeated its email question. Email is optional for a rental request; the source now proceeds directly to the confirmation summary and shows an email only when it was supplied. This conversation stopped as failed and needs production replay.
+
 ## New adaptive failure — 30 October 2026 (production `c692e8c`)
 
 The Chrome replay in `evidence/adaptive-core-solo-advice-replay-c692e8c-20261030.json` confirmed that the compact-versus-family repair no longer makes the unsupported comfort claim or saves a hypothetical compact. At the next adaptive turn, however, “אני אבחר רכב משפחתי, ואשמח להתחיל בקשה מסודרת” repeated the old compact recommendation instead of retaining the explicit family-car choice and starting intake. This is a failed, incomplete chat. The source now recognizes the future-tense selection and request-to-start wording; production replay is required.
