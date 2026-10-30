@@ -1099,6 +1099,10 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(first.reply).toMatch(/child-seat request/i);
     expect(first.reply).toMatch(/stroller/i);
     expect(first.reply).not.toMatch(/Once you know the dates|What dates/i);
+    const price = await chat.send('That sounds sensible. We will have two medium suitcases, but I would rather not choose a car yet. Can we discuss prices before starting a request?');
+    expect(price.state.booking.luggage).toBe(2);
+    expect(price.reply).toMatch(/exact price depends|personal quote/i);
+    expect(price.reply).not.toMatch(/I would start with a SmartCar family car/i);
   });
 
   it('does not treat a hypothetical small-car question as the family choice', async () => {

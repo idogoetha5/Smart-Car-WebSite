@@ -2,7 +2,7 @@
 
 ## New adaptive failure — 30 October 2026 (production `efdf8dc`)
 
-A Chrome tourist opening supplied two adults and a five-year-old, Ben Gurion pickup on 8 December, Tel Aviv return on 13 December, a stroller, and a request to arrange a child seat. The response acknowledged only the route and asked for dates, ignoring already stated named dates, the passenger count, stroller and child-seat request. The chat stopped as failed. The source now parses named English route dates and “arrange a child seat”; an exact regression passes locally. Production replay is required.
+A Chrome tourist opening supplied two adults and a five-year-old, Ben Gurion pickup on 8 December, Tel Aviv return on 13 December, a stroller, and a request to arrange a child seat. The response acknowledged only the route and asked for dates, ignoring already stated named dates, the passenger count, stroller and child-seat request. After the initial correction was deployed, an adaptive follow-up asking about “prices” repeated the vehicle recommendation rather than answering the price question. The chat stopped as failed. The source now parses named English route dates and “arrange a child seat”, and accepts plural “prices”; an exact regression covers both observed turns. Production replay is required.
 
 ## New adaptive failure — 30 October 2026 (production `4b58c5e`)
 
