@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## New adaptive failure — 31 October 2026 (production `09a4d43`)
+
+An existing-rental customer provided booking reference 123456 and said they wanted to cancel, not change dates. The reply labelled it a change request because it matched the word “change” despite the explicit cancellation. The source now prioritizes cancellation context over a negated change phrase. Production replay is required.
+
 ## New adaptive failure — 31 October 2026 (production `acf7ef9`)
 
 The customer said a rented car received a hit while parked and nobody was injured. The production reply demanded a booking reference and did not give immediate damage guidance. After the first repair replay, a natural question about whether the renter may continue driving home received only generic safety wording. The chat stopped as failed. The safety matcher now recognizes the reported parked-car hit, gives the photo and urgent-call steps, makes clear that the booking reference can be supplied later, and gives the specific driving guidance for this wording. An exact regression covers both turns; production replay is required.

@@ -188,6 +188,12 @@ describe('replacement SmartCar conversation core', () => {
     const handoff = await chat.send('מספר הזמנה 123456');
     expect(handoff.escalate).toBe(true);
     expect(handoff.reply).toContain('בקשת הביטול');
+    const cancellationChat = memory(() => null);
+    await cancellationChat.send('אני רוצה לבטל את ההזמנה שלי');
+    const notChange = await cancellationChat.send('מספר ההזמנה הוא 123456. אני רוצה לבטל ולא לשנות תאריך.');
+    expect(notChange.escalate).toBe(true);
+    expect(notChange.reply).toContain('בקשת הביטול');
+    expect(notChange.reply).not.toContain('בקשת השינוי');
   });
 
   it('keeps family needs and both cities without claiming a seven-seat fit', async () => {
