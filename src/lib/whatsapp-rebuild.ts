@@ -112,6 +112,8 @@ function validDate(value: string): boolean {
 }
 
 function explicitDateRange(input: string): { pickupDate: string; returnDate: string } | null {
+  const englishRouteDates = input.match(/\b(?:from|pickup(?:\s+from)?)\b.{0,90}?\b(?:on\s+)?(\d{1,2}[./]\d{1,2}(?:[./]20\d{2})?).{0,110}?\b(?:return|drop.?off)\b.{0,70}?\b(?:on\s+)?(\d{1,2}[./]\d{1,2}(?:[./]20\d{2})?)/i);
+  if (englishRouteDates) return explicitDateRange(`${englishRouteDates[1]}-${englishRouteDates[2]}`);
   const labelled = input.match(/(?:pickup|איסוף)\s+(\d{1,2}[./]\d{1,2}(?:[./]20\d{2})?).{0,30}(?:return|החזרה)\s+(\d{1,2}[./]\d{1,2}(?:[./]20\d{2})?)/i);
   if (labelled) return explicitDateRange(`${labelled[1]}-${labelled[2]}`);
   const numeric = input.match(/(?:^|\s)(?:מ-?)?(\d{1,2})[./](\d{1,2})(?:[./](20\d{2}))?\s*(?:[-–־]|עד|to)\s*(\d{1,2})[./](\d{1,2})(?:[./](20\d{2}))?(?=\s|$|[,.!?])/iu);
