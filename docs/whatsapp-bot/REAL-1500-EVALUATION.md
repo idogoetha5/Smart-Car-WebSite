@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## New adaptive failure — 30 October 2026 (production `c692e8c`)
+
+The Chrome replay in `evidence/adaptive-core-solo-advice-replay-c692e8c-20261030.json` confirmed that the compact-versus-family repair no longer makes the unsupported comfort claim or saves a hypothetical compact. At the next adaptive turn, however, “אני אבחר רכב משפחתי, ואשמח להתחיל בקשה מסודרת” repeated the old compact recommendation instead of retaining the explicit family-car choice and starting intake. This is a failed, incomplete chat. The source now recognizes the future-tense selection and request-to-start wording; production replay is required.
+
 ## New adaptive failure — 30 October 2026
 
 `evidence/adaptive-core-solo-advice-20261030.json` records a two-turn, open-ended production Gemini conversation on `1562c65`. The next customer message was chosen after reading the bot's first answer. At turn two the bot claimed a family car would provide high comfort for the whole week without a model to support it, and saved a compact as the customer's choice even though the customer only asked for advice. The chat stopped as failed. A source correction and exact regression are pending production replay. There is still no complete adaptive customer conversation that passed end to end.

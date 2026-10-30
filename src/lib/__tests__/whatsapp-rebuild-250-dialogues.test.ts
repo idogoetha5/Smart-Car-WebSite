@@ -1108,8 +1108,10 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(comparison.reply).toMatch(/תלוי|תלויות/);
     expect(comparison.reply).not.toMatch(/נוחות נסיעה גבוהה לאורך כל השבוע|האם תרצו לבדוק/);
     expect(comparison.state.booking.vehicleNeed).toBeUndefined();
-    const choice = await chat.send('תודה, אני רוצה לשכור רכב משפחתי');
+    const choice = await chat.send('הבנתי. אני אבחר רכב משפחתי, ואשמח להתחיל בקשה מסודרת.');
     expect(choice.state.booking.vehicleNeed).toBe('רכב משפחתי');
+    expect(choice.state.phase).toBe('booking');
+    expect(choice.reply).not.toBe(first.reply);
   });
 
   it('guides a renter with parked-car damage without repeating the booking-number demand', async () => {
