@@ -1140,4 +1140,12 @@ describe('replacement SmartCar conversation core', () => {
     expect(result.reply).toContain('subject to advance coordination and availability');
     expect(result.reply).not.toContain('is available for your trip');
   });
+
+  it('treats a hit in a parked rental as damage without demanding a booking reference first', async () => {
+    const result = await memory(() => null).send('הרכב השכור קיבל מכה בחניה ואין נפגעים. מה לעשות עכשיו?');
+    expect(result.source).toBe('safety');
+    expect(result.escalate).toBe(true);
+    expect(result.reply).toContain('צלמו את הנזק');
+    expect(result.reply).toContain('מספר ההזמנה אפשר למסור גם בהמשך');
+  });
 });

@@ -364,7 +364,7 @@ function safety(input: string): 'accident' | 'breakdown' | null {
 
 function reportedRentalDamage(input: string): boolean {
   return /(?:רכב(?:י|נו)? השכור|הרכב השכור|רכב ששכרתי|שכרתי (?:את )?הרכב|(?:my|the|our) rental car|car (?:i|we) rented)/i.test(input)
-    && /שרט|שריט|שפשוף|נזק|מכה בדלת|scratch|scrap(?:e|ed)|dent|damage/i.test(input);
+    && /שרט|שריט|שפשוף|נזק|מכה(?:\s+(?:בדלת|בחניה|ברכב))?|פגיעה|scratch|scrap(?:e|ed)|dent|damage/i.test(input);
 }
 
 function commercialReply(input: string, state: RebuildState): { reply: string; escalate: boolean } {

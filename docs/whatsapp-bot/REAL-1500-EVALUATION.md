@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## New adaptive failure — 31 October 2026 (production `acf7ef9`)
+
+The customer said a rented car received a hit while parked and nobody was injured. The production reply demanded a booking reference and did not give immediate damage guidance. The chat stopped as failed. The safety matcher now recognizes the reported parked-car hit, gives the photo and urgent-call steps, and makes clear that the booking reference can be supplied later. An exact regression passes locally; production replay is required.
+
 ## New implementation finding — 30 October 2026
 
 Inspection after a production simulator replay found that, although the intake and confirmation correctly treated email as optional, the persistent request store still required it and would reject an otherwise complete request. The store now accepts the name and the WhatsApp sender number as the required contact details and records null email when none was supplied. A persistence regression covers the exact condition. Production replay remains required.
