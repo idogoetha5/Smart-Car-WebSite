@@ -1072,7 +1072,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const acceptsRentalOffer = confirmedOffer;
     const asksHuman = /(?:רוצה|אפשר|צריך|צריכה).{0,22}(?:לדבר|נציג|בן אדם)|(?:לדבר|נציג|בן אדם).{0,22}(?:בבקשה|אפשר|רוצה)|\b(?:speak|talk|connect)\b.{0,28}\b(?:human|representative|person)\b|\b(?:human|representative|real person)\b.{0,20}\b(?:please|help)\b/i.test(input);
     const clearlyRental = /לשכור|השכרה|rental|rent/i.test(input);
-    const wantsToContinueRental = !state.interest && /^(?:אני רוצה להתקדם|רוצה להתקדם|בוא(?:ו)? נתקדם|I want to proceed|let'?s continue)[.!\s]*$/i.test(input)
+    const leaveVehicleOpen = /(?:leave|keep).{0,30}(?:vehicle|car).{0,30}(?:open|undecided)|(?:not|don'?t).{0,30}(?:choose|decide).{0,30}(?:vehicle|car)/i.test(input);
+    const wantsToContinueRental = !state.interest && (/^(?:אני רוצה להתקדם|רוצה להתקדם|בוא(?:ו)? נתקדם|I want to proceed|let'?s continue)[.!\s]*$/i.test(input)
+      || /\b(?:let'?s|let us) continue\b/i.test(input))
       && Boolean(state.booking.pickupDate || state.booking.vehicleNeed || state.booking.passengers || offersRentalRequest(lastBot));
     const wantsBooking = !declines && !asksHuman && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || acceptsRentalOffer || wantsToContinueRental || state.phase === 'booking');
     const rentalPivot = /מעדיף (?:את ה)?השכרה|מעדיף לשכור|עדיף לי לשכור|אעדיף לשכור|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|prefer to rent|back to renting/i.test(input);
@@ -1108,7 +1110,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       state.phase = 'booking';
       state.interest = undefined;
       state.requestKey ??= randomUUID();
-      if (state.booking.passengers && (!state.booking.vehicleNeed || /^(?:rental car|car|vehicle|רכב|רכב להשכרה|\d{1,2}\s+(?:אנשים|נוסעים|people|passengers)(?:\s|$).*)$/i.test(state.booking.vehicleNeed))) {
+      if (leaveVehicleOpen) {
+        state.booking.vehicleNeed = he ? 'סוג רכב פתוח להתאמה' : 'vehicle group to be matched';
+      } else if (state.booking.passengers && (!state.booking.vehicleNeed || /^(?:rental car|car|vehicle|רכב|רכב להשכרה|\d{1,2}\s+(?:אנשים|נוסעים|people|passengers)(?:\s|$).*)$/i.test(state.booking.vehicleNeed))) {
         const people = state.booking.passengers;
         const bags = state.booking.luggage;
         state.booking.vehicleNeed = he ? `רכב ${people === 1 ? 'לנוסע אחד' : `ל־${people} נוסעים`}${bags ? ` ול־${bags} מזוודות` : ''}` : `car for ${people} ${people === 1 ? 'passenger' : 'passengers'}${bags ? ` and ${bags} bags` : ''}`;

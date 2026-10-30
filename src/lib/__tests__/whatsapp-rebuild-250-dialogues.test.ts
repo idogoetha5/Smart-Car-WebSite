@@ -1090,7 +1090,14 @@ describe('regressions found in 15 live Gemini conversations', () => {
   });
 
   it('retains named English route dates and answers the child-seat and stroller question', async () => {
-    const chat = conversation(472, { ...modelReading, reply: 'What dates do you need the car?' });
+    const chat = conversation(472, {
+      ...modelReading,
+      reply: 'What dates do you need the car?',
+      fields: {
+        pickupLocation: { value: 'Ben Gurion Airport', evidence: 'Ben Gurion Airport' },
+        returnLocation: { value: 'Tel Aviv', evidence: 'Tel Aviv' },
+      },
+    });
     const first = await chat.send('Hi, we are two adults and a five-year-old. We need a car from Ben Gurion Airport on 8 December and return it in Tel Aviv on 13 December. Will a stroller fit, and can you arrange a child seat?');
     expect(first.state.booking.pickupDate).toBe('2026-12-08');
     expect(first.state.booking.returnDate).toBe('2026-12-13');
@@ -1103,6 +1110,11 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(price.state.booking.luggage).toBe(2);
     expect(price.reply).toMatch(/exact price depends|personal quote/i);
     expect(price.reply).not.toMatch(/I would start with a SmartCar family car/i);
+    const continueOpen = await chat.send('Yes, let us continue, but please leave the vehicle group open for now.');
+    expect(continueOpen.state.phase).toBe('booking');
+    expect(continueOpen.state.booking.vehicleNeed).toBe('vehicle group to be matched');
+    expect(continueOpen.reply).toMatch(/driver age group/i);
+    expect(continueOpen.reply).not.toMatch(/Would you like to start a request/i);
   });
 
   it('does not treat a hypothetical small-car question as the family choice', async () => {
