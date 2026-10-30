@@ -1089,6 +1089,18 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(locations.reply).not.toMatch(/Send both locations|What dates/);
   });
 
+  it('retains named English route dates and answers the child-seat and stroller question', async () => {
+    const chat = conversation(472, { ...modelReading, reply: 'What dates do you need the car?' });
+    const first = await chat.send('Hi, we are two adults and a five-year-old. We need a car from Ben Gurion Airport on 8 December and return it in Tel Aviv on 13 December. Will a stroller fit, and can you arrange a child seat?');
+    expect(first.state.booking.pickupDate).toBe('2026-12-08');
+    expect(first.state.booking.returnDate).toBe('2026-12-13');
+    expect(first.state.booking.passengers).toBe(3);
+    expect(first.state.booking.childSeats).toBe(1);
+    expect(first.reply).toMatch(/child-seat request/i);
+    expect(first.reply).toMatch(/stroller/i);
+    expect(first.reply).not.toMatch(/Once you know the dates|What dates/i);
+  });
+
   it('does not treat a hypothetical small-car question as the family choice', async () => {
     const chat = conversation(471, { ...modelReading, reply: 'A compact would be easy to park.' });
     await chat.send('אנחנו זוג עם תינוק ומזוודה, מחפשים רכב נוח');

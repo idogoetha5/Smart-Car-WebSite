@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## New adaptive failure — 30 October 2026 (production `efdf8dc`)
+
+A Chrome tourist opening supplied two adults and a five-year-old, Ben Gurion pickup on 8 December, Tel Aviv return on 13 December, a stroller, and a request to arrange a child seat. The response acknowledged only the route and asked for dates, ignoring already stated named dates, the passenger count, stroller and child-seat request. The chat stopped as failed. The source now parses named English route dates and “arrange a child seat”; an exact regression passes locally. Production replay is required.
+
 ## New adaptive failure — 30 October 2026 (production `4b58c5e`)
 
 In the Chrome rental replay, after dates, locations, driver age and a fictional name, the customer said they had no email and asked to continue on WhatsApp. The bot repeated its email question. Email is optional for a rental request; the source now proceeds directly to the confirmation summary and shows an email only when it was supplied. This conversation stopped as failed and needs production replay.

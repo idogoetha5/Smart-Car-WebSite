@@ -112,6 +112,13 @@ function validDate(value: string): boolean {
 }
 
 function explicitDateRange(input: string): { pickupDate: string; returnDate: string } | null {
+  const namedRouteDates = input.match(new RegExp(`\\b(?:from|pickup(?:\\s+from)?)\\b.{0,90}?\\b(?:on\\s+)?(\\d{1,2})\\s+(${Object.keys(MONTHS).join('|')})(?:\\s+(20\\d{2}))?.{0,110}?\\b(?:return|drop.?off)\\b.{0,70}?\\b(?:on\\s+)?(\\d{1,2})\\s+(${Object.keys(MONTHS).join('|')})(?:\\s+(20\\d{2}))?`, 'iu'));
+  if (namedRouteDates) {
+    const year = namedRouteDates[3] ?? namedRouteDates[6] ?? israelDate().slice(0, 4);
+    const pickup = `${namedRouteDates[1]}/${MONTHS[namedRouteDates[2].toLowerCase()]}/${year}`;
+    const returned = `${namedRouteDates[4]}/${MONTHS[namedRouteDates[5].toLowerCase()]}/${year}`;
+    return explicitDateRange(`${pickup}-${returned}`);
+  }
   const englishRouteDates = input.match(/\b(?:from|pickup(?:\s+from)?)\b.{0,90}?\b(?:on\s+)?(\d{1,2}[./]\d{1,2}(?:[./]20\d{2})?).{0,110}?\b(?:return|drop.?off)\b.{0,70}?\b(?:on\s+)?(\d{1,2}[./]\d{1,2}(?:[./]20\d{2})?)/i);
   if (englishRouteDates) return explicitDateRange(`${englishRouteDates[1]}-${englishRouteDates[2]}`);
   const labelled = input.match(/(?:pickup|איסוף)\s+(\d{1,2}[./]\d{1,2}(?:[./]20\d{2})?).{0,30}(?:return|החזרה)\s+(\d{1,2}[./]\d{1,2}(?:[./]20\d{2})?)/i);
@@ -301,11 +308,11 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   if (/אנחנו זוג|זוג עם|שני אנשים|שני נוסעים|we are a couple|two of us/i.test(input)) draft.passengers = 2;
   // Count the child as a passenger when the customer explicitly describes a
   // couple travelling with one. A five-year-old is not luggage or a seat count.
-  const coupleWithChild = /(?:זוג|שני (?:מבוגרים|אנשים)).{0,45}(?:עם|ו[- ]?).{0,20}(?:תינוק|ילד(?:ה)?(?: אחד(?:ת)?)?)|(?:my (?:wife|husband|partner|spouse) and I|myself and my (?:wife|husband|partner|spouse)|two adults?).{0,90}(?:with (?:our|a|one) \d{1,2}[- ]year[- ]old|with (?:our|a|one) (?:child|kid|baby|infant|son|daughter)|and (?:one|a) (?:child|kid|baby|infant))/i.test(input);
+  const coupleWithChild = /(?:זוג|שני (?:מבוגרים|אנשים)).{0,45}(?:עם|ו[- ]?).{0,20}(?:תינוק|ילד(?:ה)?(?: אחד(?:ת)?)?)|(?:my (?:wife|husband|partner|spouse) and I|myself and my (?:wife|husband|partner|spouse)|two adults?).{0,90}(?:(?:with|and) (?:our|a|one) (?:\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)[- ]year[- ]old|with (?:our|a|one) (?:child|kid|baby|infant|son|daughter)|and (?:one|a) (?:child|kid|baby|infant))/i.test(input);
   if (coupleWithChild) draft.passengers = 3;
   if (draft.luggage === undefined && /מזוודה(?!ות)|תיק(?: נסיעה)? אחד|one suitcase|one bag/i.test(input)) draft.luggage = 1;
   if (/תינוק|baby|infant/i.test(input)) draft.childSeats ??= 1;
-  if (/(?:can (?:you|we) (?:provide|add|include)|do you (?:provide|have|offer)|אפשר (?:לקבל|להוסיף)|תוכלו (?:לספק|להוסיף)).{0,18}(?:child seat|car seat|כיסא בטיחות)/i.test(input)) draft.childSeats ??= 1;
+  if (/(?:can (?:you|we) (?:provide|add|include|arrange)|do you (?:provide|have|offer)|אפשר (?:לקבל|להוסיף)|תוכלו (?:לספק|להוסיף)).{0,18}(?:child seat|car seat|כיסא בטיחות)/i.test(input)) draft.childSeats ??= 1;
   if (/אדם אחד|איש אחד|נוסע אחד|נוסעת אחת|אני לבד|(?:^|\s)לבד(?:\s|$)|\b(?:one person|solo|travelling alone|traveling alone)\b/i.test(input)) draft.passengers = 1;
 }
 
@@ -561,7 +568,7 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
   if (/אפשר להוסיף כיסא בטיחות|can (?:i|we) add (?:a )?child seat/i.test(input)) return he
     ? 'אפשר לציין בבקשה צורך בכיסא בטיחות. נבדוק אפשרות לצרף כיסא מתאים ואת תנאיו לפני אישור ההשכרה; גם התאמת הכיסא לרכב המסוים תיבדק.'
     : 'We can include a child-seat request. We will check a suitable seat, its terms and its fit with the specific car before confirming the rental.';
-  if (/can (?:you|we) provide (?:a )?child seat|do you (?:provide|have|offer) (?:a )?child seat/i.test(input)) {
+  if (/can (?:you|we) (?:provide|arrange) (?:a )?child seat|do you (?:provide|have|offer) (?:a )?child seat/i.test(input)) {
     const party = state.booking.passengers ? `${state.booking.passengers} travellers` : 'your group';
     const bags = state.booking.luggage ? `${state.booking.luggage} suitcases` : 'your luggage';
     const stroller = /stroller|pushchair/i.test(input) || state.history.some(entry => entry.from === 'customer' && /stroller|pushchair/i.test(entry.text));
