@@ -315,7 +315,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   if (/my (?:wife|husband|partner|spouse) and I.{0,90}with our \d{1,2}[- ]year[- ]old/i.test(input)) draft.passengers = 3;
   if (draft.luggage === undefined && /מזוודה(?!ות)|תיק(?: נסיעה)? אחד|one suitcase|one bag/i.test(input)) draft.luggage = 1;
   if (/תינוק|baby|infant/i.test(input)) draft.childSeats ??= 1;
-  if (/(?:can (?:you|we) (?:provide|add|include|arrange)|do you (?:provide|have|offer)|אפשר (?:לקבל|להוסיף)|תוכלו (?:לספק|להוסיף)).{0,18}(?:child seat|car seat|כיסא בטיחות)/i.test(input)) draft.childSeats ??= 1;
+  if (/(?:can (?:you|we|i) (?:provide|add|include|arrange|request)|do you (?:provide|have|offer)|אפשר (?:לקבל|להוסיף)|תוכלו (?:לספק|להוסיף)).{0,18}(?:child seat|car seat|כיסא בטיחות)/i.test(input)) draft.childSeats ??= 1;
   if (/אדם אחד|איש אחד|נוסע אחד|נוסעת אחת|אני לבד|(?:^|\s)לבד(?:\s|$)|\b(?:one person|solo|travelling alone|traveling alone)\b/i.test(input)) draft.passengers = 1;
 }
 
@@ -355,10 +355,19 @@ function driverAgeRange(input: string, state: RebuildState): '21-23' | '24-plus'
 }
 
 function safety(input: string): 'accident' | 'breakdown' | null {
-  if (/\b(?:flat tyre|puncture)\b/i.test(input) && !/what if|do you offer|do you have|if (?:i|we) (?:get|have)/i.test(input)) return 'breakdown';
   if (/מה (?:קורה|יקרה|עושים)?\s*אם|אם (?:תהיה|יקרה|אעשה|הרכב ייתקע)|במקרה של|hypothetical|what if|if (?:I have|the car breaks down)/i.test(input)) return null;
   if (/(?:יש לכם שירות|האם אתם מציעים שירות|do you offer|do you have).{0,30}(?:פנצ|גרר|flat tire|tow)/i.test(input)) return null;
   if (/הרכב שלי.{0,35}(?:במוסך|אחרי תאונה)|my own car.{0,35}(?:accident|crash)/i.test(input) && /לשכור|להשכיר|רכב חלופי|rent|replacement car/i.test(input)) return null;
+  // A tyre mention may be a hypothetical question, negation, or the reason
+  // someone needs a replacement for their own car. Only an affirmative report
+  // should enter the immediate rental-roadside flow. Examine clauses so a
+  // negated mention does not hide a later affirmative correction.
+  const tyreReport = input.split(/[.!?;]|\bbut\b/i).some(clause =>
+    /\b(?:flat tyre|puncture)\b/i.test(clause)
+    && !/\bin case of\b|\bif (?:i|we|the car|our car) (?:get|gets|have|has|develop)|\b(?:do you offer|do you have)\b/i.test(clause)
+    && !/\b(?:(?:do not|don['’]?t|does not|doesn['’]?t|never) have\s+(?:a\s+)?|(?:no|not|without|isn['’]?t|aren['’]?t)\s+(?:a\s+)?)(?:flat tyre|puncture)\b/i.test(clause)
+    && !/\b(?:my|our) own (?:car|vehicle)\b/i.test(clause));
+  if (tyreReport) return 'breakdown';
   const noInjuries = /אין נפגעים|לא (?:היו )?נפגעים|אף אחד לא נפגע|no injuries|nobody was injured|no one was injured/i.test(input);
   if (reportedRentalDamage(input)) return 'accident';
   if (/תאונה|התנגשות|פצוע|accident|crash|collision/i.test(input) || !noInjuries && /(?<!לא )נפגע|(?<!not )injured/i.test(input)) return 'accident';
@@ -569,7 +578,7 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
   if (/אולי אשכור בסוף החודש|אולי בסוף החודש|maybe (?:rent|later) this month/i.test(input)) return he
     ? 'נשמע טוב. אפשר לבחור את קבוצת הרכב כבר עכשיו, וכשתדע את ימי האיסוף וההחזרה נבדוק זמינות והצעה מדויקת.'
     : 'That works. We can choose the vehicle group now, then check availability and a precise quote once you know your pickup and return dates.';
-  if (/אפשר להוסיף כיסא בטיחות|can (?:i|we) add (?:a )?child seat/i.test(input)) return he
+  if (/אפשר להוסיף כיסא בטיחות|can (?:i|we) (?:add|request|include) (?:a )?child seat/i.test(input)) return he
     ? 'אפשר לציין בבקשה צורך בכיסא בטיחות. נבדוק אפשרות לצרף כיסא מתאים ואת תנאיו לפני אישור ההשכרה; גם התאמת הכיסא לרכב המסוים תיבדק.'
     : 'We can include a child-seat request. We will check a suitable seat, its terms and its fit with the specific car before confirming the rental.';
   if (/can (?:you|we) (?:provide|arrange) (?:a )?child seat|do you (?:provide|have|offer) (?:a )?child seat/i.test(input)) {
@@ -870,7 +879,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const rentalDamage = state.history.some(entry => entry.from === 'customer' && reportedRentalDamage(entry.text));
     const commercialUpdate = (handoffKind === 'commercial' || state.interest) && /תקציב|budget|בעצם|שנים|years|לא החלטתי|not chosen|not decided/i.test(input);
     reply = commercialUpdate
-      ? (he ? 'רשמתי בפנייה את העדכון האחרון שמסרתם, והוא יחליף את הפרטים הקודמים בנושא הזה. נציג SmartCar יבדוק איתכם את ההעדפות לפני הצעה או התחייבות.' : 'I have noted your latest update in the enquiry; it replaces the earlier details on that point. A SmartCar representative will check your preferences with you before any offer or commitment.')
+      ? (he ? 'העדכון האחרון שמסרתם נשמר בשיחה לבדיקת הנציג. זו פנייה לבדיקה בלבד, ללא התחייבות לעסקה. אין צורך לשלוח מספר כרטיס מלא או קוד אבטחה.' : 'Your latest update is saved in the conversation for the representative to review. This is an enquiry only, with no commitment to a deal. Do not send a full card number or security code.')
       : /לא התחייבתי|לא סגרתם|רק פנייה|רק העברתם|עסקה מאושרת|signed deal|just an enquiry|not a signed|already.*refund|refund.*(?:done|processed)|זיכוי כבר|הזיכוי.*בוצע/i.test(input)
         ? (he ? 'זו פנייה לבדיקה בלבד. לא אושרו כאן עסקה, שינוי או זיכוי; נציג SmartCar יבדוק ויאשר איתכם את ההמשך.' : 'This is an enquiry for review only. No deal, change or refund has been approved here; a SmartCar representative will review and confirm the next steps with you.')
       : /מספר כרטיס|full card|card number/i.test(input)
