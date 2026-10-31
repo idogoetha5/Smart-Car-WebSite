@@ -34,6 +34,12 @@ describe('replacement SmartCar conversation core', () => {
     expect(result.reply).toContain('תאריכים');
   });
 
+  it('keeps a Hebrew couple, two children and two suitcases as four travellers and two bags', async () => {
+    const result = await memory(() => base).send('אנחנו זוג עם שני ילדים ושתי מזוודות');
+    expect(result.state.booking.passengers).toBe(4);
+    expect(result.state.booking.luggage).toBe(2);
+  });
+
   it('qualifies luggage space when seven seats and four bags are requested', async () => {
     const chat = memory(() => ({ ...base, direction: 'family', reply: 'משפחתית תתאים לכם מצוין. לאילו תאריכים?', fields: { passengers: { value: '7', evidence: '7 מקומות' } } }));
     const result = await chat.send('אני צריך 7 מקומות ו-4 מזוודות');
