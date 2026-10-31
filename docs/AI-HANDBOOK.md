@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-31 — Live-chat regressions: recognize explicit English unknown dates and stop-date requests, British flat tyre/puncture reports, commercial corrections following thanks, commitment/refund clarification and card-number questions after handoff. Updates remain in the saved conversation for representative review. Production replay required before declaring readiness.
+
 2026-10-31 — Two additional live adaptive rental chats exposed missed English “I am 35”, a Hebrew return correction retaining “instead of Tel Aviv” as part of the location, and a combined “השם הוא … ואין לי מייל” losing the supplied name. Targeted parsing fixes preserve the age, current return city and name without requiring email. Live transcripts are recorded by the current review chat; these changes require production replay before readiness.
 
 2026-10-31 — V1 boundary: Gemini may classify the customer's wording, extract only explicitly evidenced, non-private trip facts, and propose natural phrasing. The application rejects an untrusted draft when it contains a promise, price, availability claim, workflow decision, repeated intake prompt or unsupported vehicle claim. Rental, pricing/availability, service, safety, leasing, sale, request creation and human handoff remain governed by reviewed application rules and approved knowledge. Customer WhatsApp remains off pending final production checks and the owner's explicit activation approval.

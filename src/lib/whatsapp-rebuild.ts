@@ -191,6 +191,7 @@ function vagueDateAnswer(input: string): boolean {
 }
 
 function uncertainDateAnswer(input: string): boolean {
+  if (/\b(?:do not|don't|still do not|still don't) know (?:the )?dates|stop asking for dates/i.test(input)) return true;
   return /(?:לא יודע|לא יודעת|לא בטוח|לא בטוחה|לא סגור(?:ים|ות)? על (?:ה)?תאריכ|לא סגרנו תאריכ|אין לי (?:עדיין )?תאריכ|אין תאריך סופי|עדיין אין תאריך|not sure|don'?t know|no dates? yet|haven'?t decided|(?:have|has) not (?:chosen|picked|decided on) dates? yet)/i.test(input);
 }
 
@@ -354,6 +355,7 @@ function driverAgeRange(input: string, state: RebuildState): '21-23' | '24-plus'
 }
 
 function safety(input: string): 'accident' | 'breakdown' | null {
+  if (/\b(?:flat tyre|puncture)\b/i.test(input) && !/what if|do you offer|do you have|if (?:i|we) (?:get|have)/i.test(input)) return 'breakdown';
   if (/מה (?:קורה|יקרה|עושים)?\s*אם|אם (?:תהיה|יקרה|אעשה|הרכב ייתקע)|במקרה של|hypothetical|what if|if (?:I have|the car breaks down)/i.test(input)) return null;
   if (/(?:יש לכם שירות|האם אתם מציעים שירות|do you offer|do you have).{0,30}(?:פנצ|גרר|flat tire|tow)/i.test(input)) return null;
   if (/הרכב שלי.{0,35}(?:במוסך|אחרי תאונה)|my own car.{0,35}(?:accident|crash)/i.test(input) && /לשכור|להשכיר|רכב חלופי|rent|replacement car/i.test(input)) return null;
@@ -866,7 +868,14 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const cleanlinessIssue = handoffKind === 'service_issue' && state.history.some(entry => entry.from === 'customer' && /הרכב.{0,25}מלוכלך|רכב מלוכלך|dirty car|car was dirty/i.test(entry.text));
     const safetyKind = state.safetyKind ?? (state.history.some(entry => entry.from === 'customer' && /תאונה|התנגשות|accident|collision|crash/i.test(entry.text)) ? 'accident' : 'breakdown');
     const rentalDamage = state.history.some(entry => entry.from === 'customer' && reportedRentalDamage(entry.text));
-    reply = handoffKind === 'commercial' && state.interest && /מה כלול|מה כולל|תשלום ראשוני|מקדמה|מחיר|כמה עולה|נסיעת מבחן|what.*included|initial payment|down payment|price|test drive/i.test(input)
+    const commercialUpdate = (handoffKind === 'commercial' || state.interest) && /תקציב|budget|בעצם|שנים|years|לא החלטתי|not chosen|not decided/i.test(input);
+    reply = commercialUpdate
+      ? (he ? 'רשמתי בפנייה את העדכון האחרון שמסרתם, והוא יחליף את הפרטים הקודמים בנושא הזה. נציג SmartCar יבדוק איתכם את ההעדפות לפני הצעה או התחייבות.' : 'I have noted your latest update in the enquiry; it replaces the earlier details on that point. A SmartCar representative will check your preferences with you before any offer or commitment.')
+      : /לא התחייבתי|לא סגרתם|רק פנייה|רק העברתם|עסקה מאושרת|signed deal|just an enquiry|not a signed|already.*refund|refund.*(?:done|processed)|זיכוי כבר|הזיכוי.*בוצע/i.test(input)
+        ? (he ? 'זו פנייה לבדיקה בלבד. לא אושרו כאן עסקה, שינוי או זיכוי; נציג SmartCar יבדוק ויאשר איתכם את ההמשך.' : 'This is an enquiry for review only. No deal, change or refund has been approved here; a SmartCar representative will review and confirm the next steps with you.')
+      : /מספר כרטיס|full card|card number/i.test(input)
+        ? (he ? 'אין צורך לשלוח מספר כרטיס מלא או קוד אבטחה. שמרו אסמכתאות לחיובים, עם פרטי הכרטיס מוסתרים, לבדיקת הנציג.' : 'Do not send a full card number or security code. Keep charge records with card details hidden for the representative to review.')
+      : handoffKind === 'commercial' && state.interest && /מה כלול|מה כולל|תשלום ראשוני|מקדמה|מחיר|כמה עולה|נסיעת מבחן|what.*included|initial payment|down payment|price|test drive/i.test(input)
       ? commercialReply(input, state).reply
       : handoffKind === 'commercial' && state.interest && /רכב (?:משפחתי|קטן|פנאי|קומפקטי)|\b(?:family car|small car|SUV|compact car)\b|\d[\d, .]*\s*(?:קמ|ק״מ|km)/i.test(input)
         ? (he ? 'תודה, הוספתי את ההעדפה שציינת לפנייה. נציג SmartCar יוכל להתייחס אליה בהצעה.' : 'Thanks, I have added that preference to your enquiry so the SmartCar representative can include it in the offer.')
@@ -918,7 +927,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         ? (he ? `בקשת הביטול כבר הועברה לנציג, אבל הביטול עדיין דורש אישור. אם אתם צריכים מענה היום, התקשרו ל־${OFFICE_PHONE}.` : `Your cancellation request has been passed to a representative, but it still needs confirmation. If you need an answer today, call ${OFFICE_PHONE}.`)
       : cancellationPending && /(?:תוכלו|אפשר|יכול(?:ים)?).{0,20}(?:לחזור|שיחזרו)|call (?:me|us) back/i.test(input)
         ? (he ? 'כן, נציג SmartCar יחזור אליכם לגבי בקשת הביטול. עד לאישורו ההזמנה נשארת בתוקף.' : 'Yes, a SmartCar representative will follow up about the cancellation request. The booking remains in effect until it is confirmed.')
-      : /תודה|thanks|thank you/i.test(input)
+      : /^(?:תודה(?: רבה)?|thanks|thank you)[.!\s]*$/i.test(input)
       ? handoffKind === 'safety' ? (he ? 'בשמחה. שמרו על עצמכם.' : 'You are welcome. Take care.')
         : (he ? 'בשמחה. נציג SmartCar יחזור אליכם בהקדם.' : 'You are welcome. A SmartCar representative will follow up as soon as possible.')
       : /מתי.{0,25}(?:חוזר|חוזרים|יחזור|יחזרו|תחזרו|תענו)|תוך כמה זמן|when.{0,25}(?:call|reply|hear back)|how long.{0,25}(?:response|reply)/i.test(input)

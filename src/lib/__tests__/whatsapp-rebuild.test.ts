@@ -21,6 +21,29 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('pauses unknown English dates and never loops after the customer asks it to stop', async () => {
+    const chat = memory(() => null);
+    await chat.send('We are two adults with a baby. I do not know the dates yet.');
+    const result = await chat.send('I still do not know the dates. Please stop asking for dates.');
+    expect(result.reply).not.toMatch(/What dates|Which exact|How many/i);
+  });
+
+  it('routes British flat tyre wording to immediate safety handoff', async () => {
+    const result = await memory(() => null).send('My rental car has a flat tyre and I am in a safe car park.');
+    expect(result.source).toBe('safety');
+    expect(result.escalate).toBe(true);
+    expect(result.reply).not.toMatch(/send the booking reference/i);
+  });
+
+  it('reads a budget correction after thanks instead of swallowing it as a social closing', async () => {
+    const chat = memory(() => null);
+    await chat.send('אני רוצה לקנות רכב קטן, תקציב 60000, תעבירו לנציג');
+    const result = await chat.send('תודה, התקציב עכשיו 55000 במקום 60000');
+    expect(result.reply).toContain('העדכון האחרון');
+    expect(result.state.history.at(-2)?.text).toContain('55000');
+    const pending = await chat.send('לא התחייבתי פה לעסקה נכון?');
+    expect(pending.reply).toContain('לא אושרו');
+  });
   it('keeps corrected route and dates through an insurance detour and accepts a name without email', async () => {
     const chat = memory(() => null);
     await chat.send('אני רוצה לשכור רכב קטן מ-10/12 עד 14/12, איסוף מהרצליה והחזרה בתל אביב. אני בן 31.');
