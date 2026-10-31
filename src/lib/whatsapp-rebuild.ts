@@ -1118,7 +1118,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const modelSupportedProceed = reading?.route === 'book' && /^(?:כן|יאללה|בוא|בואי|yes|okay|ok|go ahead|let's proceed)/i.test(input)
       && /להתחיל.{0,25}(?:בקשה|הזמנה)|start.{0,25}(?:request|booking)/i.test(lastBot);
     const acceptsRentalOffer = confirmedOffer;
-    const declinesHuman = /(?:לא רוצה|לא רוצים|לא מוכן|לא מוכנה|לא מוכנים|לא עכשיו|עדיין לא).{0,45}(?:נציג|בן אדם|לדבר)|(?:not ready|do not want|don['’]?t want|not yet|no need).{0,60}(?:representative|human|person|call)|(?:representative|human|person).{0,25}(?:not yet|later)/i.test(input);
+    const declinesHuman = /(?:לא רוצה|לא רוצים|לא מוכן|לא מוכנה|לא מוכנים|לא עכשיו|עדיין לא|בלי).{0,45}(?:נציג|בן אדם|לדבר)|(?:not ready|do not want|don['’]?t want|not yet|no need).{0,60}(?:representative|human|person|call)|\bno\s+(?:representative|human|person|callback|call)\b|(?:representative|human|person).{0,25}(?:not yet|later)|נציג.{0,15}לא עכשיו/i.test(input);
     const asksHuman = !declinesHuman && /(?:רוצה|אפשר|צריך|צריכה).{0,22}(?:לדבר|נציג|בן אדם)|(?:לדבר|נציג|בן אדם).{0,22}(?:בבקשה|אפשר|רוצה)|\b(?:speak|talk|connect)\b.{0,28}\b(?:human|representative|person)\b|\b(?:human|representative|real person)\b.{0,20}\b(?:please|help)\b/i.test(input);
     // A model's human-route classification is not consent. Require an actual
     // callback request or acceptance of a preceding representative invitation.
@@ -1171,6 +1171,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else if (specificProblem) {
       state.phase = 'service'; state.step = 'menu'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'service_issue'; escalate = true;
       reply = he ? `תודה שפניתם אלינו. נציג SmartCar יבדוק את המקרה ויחזור אליכם; לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `Thank you for contacting us. A SmartCar representative will review your case and follow up; for immediate help call ${OFFICE_PHONE}.`;
+    } else if (declinesHuman && state.interest && !clearlyRental) {
+      const undecidedVehicle = /לא בחרתי|לא החלטתי|אין לי העדפה|not chosen|not decided|(?:keep|leave).{0,35}open/i.test(input);
+      if (undecidedVehicle) delete state.booking.vehicleNeed;
+      reply = he
+        ? `בסדר, נמשיך להשוות כאן בקצב שלכם, בלי להעביר כעת לנציג.${undecidedVehicle ? ' סוג הרכב נשאר פתוח עד שתחליטו.' : ''} אפשר לשאול כאן על ההבדלים בין האפשרויות.`
+        : `Of course. We can keep comparing here at your pace, without passing the enquiry to a representative now.${undecidedVehicle ? ' The vehicle type stays open until you decide.' : ''} You can ask about the differences between the options here.`;
     } else if (/את[ה]? סוגר(?:ת)? לי רכב|סוגר(?:ת)? לי (?:את ה)?רכב|האם (?:זה|הרכב) (?:כבר )?סגור|are you booking (?:me |the )?(?:a )?car|is (?:the )?car booked/i.test(input)) {
       reply = he ? 'אפשר להכין בקשת השכרה עם הפרטים שלך. הרכב והמחיר יאושרו לפני שההזמנה תהיה סופית. תרצה שנתקדם לבקשה?' : 'We can prepare a rental request with your details. The car and price are confirmed before the booking becomes final. Would you like to proceed with the request?';
     } else if (wantsBooking) {

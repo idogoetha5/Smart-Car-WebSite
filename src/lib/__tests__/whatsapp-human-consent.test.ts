@@ -25,6 +25,12 @@ describe('explicit consent before optional human handoff', () => {
     expect(result.state.handedOff).not.toBe(true);
     expect(result.state.interest).toBe('leasing');
     expect(result.state.history.at(-2)?.text).toContain('three years');
+    const repeated = await send('No representative yet please. I am only comparing options and have not chosen a vehicle type.');
+    expect(repeated.escalate).toBe(false);
+    expect(repeated.state.handedOff).not.toBe(true);
+    expect(repeated.state.booking.vehicleNeed).toBeUndefined();
+    expect(repeated.reply).toContain('vehicle type stays open');
+    expect(repeated.reply).not.toMatch(/would you like.*representative/i);
     const yes = await send('Please connect me to a representative now.');
     expect(yes.escalate).toBe(true);
   });
@@ -33,6 +39,7 @@ describe('explicit consent before optional human handoff', () => {
     'אני לא רוצה לדבר עם נציג עדיין, רק מתעניין בליסינג.',
     'I do not want a representative yet. I am considering leasing.',
     'I am considering leasing for two years.',
+    'No representative yet please. I am only comparing options and have not chosen a vehicle type.',
   ])('does not accept a bare model handoff classification as customer consent: %s', async message => {
     const result = await chat()(message);
     expect(result.escalate).toBe(false);
