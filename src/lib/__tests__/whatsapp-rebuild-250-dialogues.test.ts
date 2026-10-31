@@ -119,13 +119,15 @@ describe('250 complete SmartCar customer dialogues', () => {
       await chat.send(leasingOpenings[index % leasingOpenings.length]);
       const price = await chat.send('כמה זה עולה בחודש?');
       expect(price.reply).toMatch(/תשלום|הצעה|מחיר/);
-      const handoff = await chat.send('כן, תתקדמו');
+      const continued = await chat.send('כן, תתקדמו');
+      expect(continued.escalate).toBe(false);
+      const handoff = await chat.send('תעבירו את הפנייה לנציג');
       expect(handoff.escalate).toBe(true);
       expect(handoff.state.handoffKind).toBe('commercial');
       expect(handoff.reply).toContain('נציג SmartCar');
       const after = await chat.send('מתי חוזרים אליי?');
       expect(after.reply).toContain('בהקדם');
-      expect(chat.turns.length).toBe(5);
+      expect(chat.turns.length).toBe(6);
     });
   }
 
@@ -373,16 +375,17 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(handoff.state.handedOff).toBe(true);
   });
 
-  it('hands off an explicit leasing offer request instead of asking consent again', async () => {
+  it('continues a leasing quote question before an explicit representative request', async () => {
     const chat = conversation(435, { ...modelReading, reply: 'תרצו שנציג יחזור אליכם עם הצעה?' });
     await chat.send('ליסינג לרכב קטן לשלוש שנים');
     await chat.send('20 אלף קמ בשנה');
     await chat.send('תן לי מחיר חודשי');
     const quote = await chat.send('אפשר לקבל הצעה?');
-    expect(quote.escalate).toBe(true);
-    expect(quote.state.handedOff).toBe(true);
-    expect(quote.reply).toContain('נציג SmartCar');
-    expect(quote.reply).not.toContain('תרצו');
+    expect(quote.escalate).toBe(false);
+    expect(quote.state.handedOff).not.toBe(true);
+    const handoff = await chat.send('תעבירו את הפנייה לנציג');
+    expect(handoff.escalate).toBe(true);
+    expect(handoff.reply).toContain('נציג SmartCar');
     const repeat = await chat.send('כן, נציג יכול לחזור אליי');
     expect(repeat.reply).toContain('כבר הועברה');
   });
@@ -677,7 +680,9 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(process.reply).toContain('הוא יחזור אליך עם פירוט');
     expect(process.reply).not.toBe(opening.reply);
     await chat.send('מה כלול?');
-    const handoff = await chat.send('כן תתקדמו עם הצעה');
+    const continued = await chat.send('כן תתקדמו עם הצעה');
+    expect(continued.escalate).toBe(false);
+    const handoff = await chat.send('תעבירו את הפנייה לנציג');
     expect(handoff.escalate).toBe(true);
     const viewing = await chat.send('יש אפשרות לראות את הרכב?');
     expect(viewing.reply).toContain('אפשרות לראות רכב מתאים');

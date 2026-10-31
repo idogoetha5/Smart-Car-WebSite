@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-31 — Owner clarification: minimize human handoff during advisory conversations. Commercial quote requests and generic continuation/no-preference replies now continue collecting needs instead of escalating. Explicit human requests and clear acceptance of a direct handoff offer still work; safety/service exceptions remain. Rental intake recognizes “אני רוצה להתחיל בקשה” and a repeated request to start, retaining an explicit family-car selection. Regression cases now distinguish progressing a conversation from consenting to human handoff.
+
 2026-10-31 — Chrome UI follow-ups: recognize request/include a child seat without reasking unknown dates. Commercial corrections now accurately acknowledge saved conversation context and clarify no deal commitment, including combined budget/commitment/card questions. Safety review adds guards for hypothetical, negated and own-car tyre reports. Production UI replay required.
 
 2026-10-31 — Live-chat regressions: recognize explicit English unknown dates and stop-date requests, British flat tyre/puncture reports, commercial corrections following thanks, commitment/refund clarification and card-number questions after handoff. Updates remain in the saved conversation for representative review. Production replay required before declaring readiness.

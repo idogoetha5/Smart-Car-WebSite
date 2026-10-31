@@ -282,7 +282,9 @@ describe('replacement SmartCar conversation core', () => {
     await leasing.send('מחפש ליסינג פרטי לשנתיים, 20 אלף קמ בשנה, רכב קטן');
     await leasing.send('כמה זה עולה בחודש?');
     const advanced = await leasing.send('כן, תתקדמו');
-    expect(advanced.escalate).toBe(true);
+    expect(advanced.escalate).toBe(false);
+    const handoff = await leasing.send('תעבירו את הפנייה לנציג');
+    expect(handoff.escalate).toBe(true);
     const sale = memory(() => null);
     const first = await sale.send('רוצה לקנות רכב משפחתי עד 80 אלף שקל');
     const inventory = await sale.send('מה יש לכם?');
@@ -980,7 +982,9 @@ describe('replacement SmartCar conversation core', () => {
   it('passes a sales lead to staff when the customer has no further preferences', async () => {
     const chat = memory(() => ({ ...base, route: 'sale' }));
     await chat.send('אני מחפש משפחתית לקנייה עד 80 אלף שקל');
-    const handoff = await chat.send('אין לי העדפה לשנתון, תבדקו לפי מה שכתבתי');
+    const undecided = await chat.send('אין לי העדפה לשנתון, תבדקו לפי מה שכתבתי');
+    expect(undecided.escalate).toBe(false);
+    const handoff = await chat.send('תעבירו את הפנייה לנציג');
     expect(handoff.escalate).toBe(true);
     expect(handoff.reply).toContain('נציג SmartCar');
   });
