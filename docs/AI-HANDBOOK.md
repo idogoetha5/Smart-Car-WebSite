@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-10-31 — Chrome leasing follow-up: respect explicit refusal/not-ready to contact a representative; Gemini human classification alone no longer authorizes escalation. Explicit customer contact requests and safety handling remain supported. Leasing “what type would you suggest” is treated as a request for advice. Production Chrome replay required.
+
 2026-10-31 — Owner clarification: minimize human handoff during advisory conversations. Commercial quote requests and generic continuation/no-preference replies now continue collecting needs instead of escalating. Explicit human requests and clear acceptance of a direct handoff offer still work; safety/service exceptions remain. Rental intake recognizes “אני רוצה להתחיל בקשה” and a repeated request to start, retaining an explicit family-car selection. Regression cases now distinguish progressing a conversation from consenting to human handoff.
 
 2026-10-31 — Chrome UI follow-ups: recognize request/include a child seat without reasking unknown dates. Commercial corrections now accurately acknowledge saved conversation context and clarify no deal commitment, including combined budget/commitment/card questions. Safety review adds guards for hypothetical, negated and own-car tyre reports. Production UI replay required.

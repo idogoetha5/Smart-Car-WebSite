@@ -418,7 +418,13 @@ function commercialReply(input: string, state: RebuildState): { reply: string; e
     if (/הבדל|difference|compare/i.test(input) && /השכרה|לשכור|rent/i.test(input)) return { reply: he ? 'השכרה מתאימה בדרך כלל לתקופה קצרה וגמישה יותר; ליסינג הוא מסלול לתקופה ארוכה יותר עם תנאים ותשלום שנקבעים בהצעה. אם מדובר בחודש אחד, נוכל לבדוק השכרה. לכמה זמן תצטרך את הרכב?' : 'Rental usually fits a shorter, more flexible period; leasing is a longer plan with terms and payments set in an offer. For a month, we can check a rental. How long do you need the car?', escalate: false };
     if (/הבדל|difference|compare/i.test(input)) return { reply: he ? 'ליסינג פרטי מיועד לשימוש אישי, ועסקי לצורכי העסק. ההתחייבויות, השירותים והמחיר נקבעים רק בהצעה ובחוזה של המסלול המתאים. תרצה לבדוק מסלול פרטי או עסקי?' : 'Private leasing serves personal use; business leasing serves a company. Commitments, services and price are set in the specific offer and contract. Which route would you like us to check?', escalate: false };
     if (/לא יודע איזה סוג רכב|לא יודעת איזה סוג רכב|אין לי העדפה|אין העדפה|לא משנה|not sure (?:which|what) (?:car|vehicle)|no (?:vehicle )?preference/i.test(input)) return { reply: he ? 'אין צורך לבחור דגם עכשיו. אם תספר לי אם השימוש בעיקר עירוני, משפחתי או לנסיעות ארוכות, אוכל להציע קבוצה להתחיל ממנה. מה הכי חשוב לכם ברכב?' : 'You do not need to pick a model now. Tell me whether the driving is mainly urban, family trips or longer journeys and I can suggest a starting group. What matters most to you in the car?', escalate: false };
-    if (/מה אתה ממליץ|מה את ממליצה|מה היית ממליץ|what (?:do you|would you) recommend/i.test(input) && !/משפחת|קומפקט|עירונ|פנאי|ג[׳'י]?יפ|סדאן|קטן|family|compact|suv|sedan|small car/i.test(context)) return { reply: he ? 'בלי לדעת כמה נוסעים וציוד יהיו, הייתי משווה קומפקטית לשימוש עירוני מול משפחתית אם חשוב יותר מקום. אפשר לציין בהצעה שאין עדיין העדפה ולהתאים את הקבוצה עם נציג.' : 'Without passenger and luggage needs, I would compare a compact for urban use with a family car if more space matters. We can note that the group is still open and refine it with a representative.', escalate: false };
+    if (/מה (?:אתה ממליץ|את ממליצה|היית ממליץ|תציע)|what.{0,50}(?:recommend|suggest)|which.{0,40}(?:recommend|suggest)/i.test(input)) {
+      const cityUse = /עיר|חניה|city|urban|parking/i.test(context);
+      const soloOrCouple = /לבד|זוג|alone|solo|partner|two of us/i.test(context);
+      return { reply: cityUse && soloOrCouple
+        ? (he ? 'לנסיעות בעיר לבד או בזוג, הייתי מתחיל בהשוואת רכב קומפקטי בגלל הגודל והחניה. אם חשוב לכם יותר מקום לנוסעים או לציוד, נשווה גם משפחתית; ההתאמה תלויה בדגם המסוים. כמה ציוד אתם נושאים בדרך כלל?' : 'For city driving alone or as a couple, I would start by comparing a compact because of its size and parking. If passenger or luggage space matters more, we can compare a family car; suitability depends on the specific model. How much luggage do you usually carry?')
+        : (he ? 'אפשר להשוות קומפקטית לשימוש עירוני מול משפחתית אם חשוב יותר מקום. כדי למקד את ההמלצה, כמה אנשים וציוד נוסעים בדרך כלל?' : 'We can compare a compact for urban driving with a family car if more space matters. To narrow down the recommendation, how many people and bags usually travel?'), escalate: false };
+    }
     if (/מה כלול|מה כולל|מה מקבלים|what(?:'s| is) included|what does it include/i.test(input)) {
       const alreadyAnswered = state.history.some(item => item.from === 'bot' && /מה שכלול בליסינג|what is included depends/i.test(item.text));
       return { reply: alreadyAnswered
@@ -1112,7 +1118,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const modelSupportedProceed = reading?.route === 'book' && /^(?:כן|יאללה|בוא|בואי|yes|okay|ok|go ahead|let's proceed)/i.test(input)
       && /להתחיל.{0,25}(?:בקשה|הזמנה)|start.{0,25}(?:request|booking)/i.test(lastBot);
     const acceptsRentalOffer = confirmedOffer;
-    const asksHuman = /(?:רוצה|אפשר|צריך|צריכה).{0,22}(?:לדבר|נציג|בן אדם)|(?:לדבר|נציג|בן אדם).{0,22}(?:בבקשה|אפשר|רוצה)|\b(?:speak|talk|connect)\b.{0,28}\b(?:human|representative|person)\b|\b(?:human|representative|real person)\b.{0,20}\b(?:please|help)\b/i.test(input);
+    const declinesHuman = /(?:לא רוצה|לא רוצים|לא מוכן|לא מוכנה|לא מוכנים|לא עכשיו|עדיין לא).{0,45}(?:נציג|בן אדם|לדבר)|(?:not ready|do not want|don['’]?t want|not yet|no need).{0,60}(?:representative|human|person|call)|(?:representative|human|person).{0,25}(?:not yet|later)/i.test(input);
+    const asksHuman = !declinesHuman && /(?:רוצה|אפשר|צריך|צריכה).{0,22}(?:לדבר|נציג|בן אדם)|(?:לדבר|נציג|בן אדם).{0,22}(?:בבקשה|אפשר|רוצה)|\b(?:speak|talk|connect)\b.{0,28}\b(?:human|representative|person)\b|\b(?:human|representative|real person)\b.{0,20}\b(?:please|help)\b/i.test(input);
+    // A model's human-route classification is not consent. Require an actual
+    // callback request or acceptance of a preceding representative invitation.
+    const modelHumanConsent = reading?.route === 'human' && !declinesHuman
+      && (/call (?:me|us) back|תחזרו אלי|שיחזרו אלי/i.test(input)
+        || affirms(input) && /תרצ(?:ה|ו).{0,35}(?:שאעביר|שנציג)|would you like.{0,40}(?:representative|pass)/i.test(lastBot));
     const clearlyRental = /לשכור|השכרה|rental|rent/i.test(input);
     const leaveVehicleOpen = /(?:leave|keep).{0,30}(?:vehicle|car).{0,30}(?:open|undecided)|(?:not|don'?t).{0,30}(?:choose|decide).{0,30}(?:vehicle|car)/i.test(input);
     const wantsToContinueRental = !state.interest && (/^(?:אני רוצה להתקדם|רוצה להתקדם|בוא(?:ו)? נתקדם|I want to proceed|let'?s continue)[.!\s]*$/i.test(input)
@@ -1259,7 +1271,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           reply = policy && alreadyAsked ? policy : `${policy ? `${policy}\n\n` : prefix}${question(missing, state.locale)}`;
         }
       }
-    } else if (reading?.route === 'human' || asksHuman) {
+    } else if (modelHumanConsent || asksHuman) {
       state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = state.interest ? 'commercial' : 'human'; escalate = true;
       reply = state.interest
         ? (he ? `בשמחה, נציג SmartCar יחזור אליכם לגבי ${state.interest === 'sale' ? 'רכישת הרכב' : 'הליסינג'}. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up about your ${state.interest === 'sale' ? 'car purchase' : 'leasing'} enquiry. You can also call ${OFFICE_PHONE}.`)
