@@ -21,6 +21,19 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('uses Gemini to understand a rental message but keeps its business reply out of the customer response', async () => {
+    const chat = memory(() => ({
+      ...base,
+      reply: 'אפשר להבטיח לכם מחיר של 99 ש״ח ורכב פנוי היום.',
+    }));
+    const result = await chat.send('אני מחפש רכב להשכרה לשבוע');
+    expect(chat.readTurn).toHaveBeenCalled();
+    expect(result.source).toBe('local');
+    expect(result.reply).not.toContain('99');
+    expect(result.reply).not.toContain('פנוי היום');
+    expect(result.reply).toContain('תאריכים');
+  });
+
   it('qualifies luggage space when seven seats and four bags are requested', async () => {
     const chat = memory(() => ({ ...base, direction: 'family', reply: 'משפחתית תתאים לכם מצוין. לאילו תאריכים?', fields: { passengers: { value: '7', evidence: '7 מקומות' } } }));
     const result = await chat.send('אני צריך 7 מקומות ו-4 מזוודות');

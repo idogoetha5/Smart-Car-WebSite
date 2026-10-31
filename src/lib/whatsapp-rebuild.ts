@@ -186,7 +186,7 @@ function singleDateAnswer(input: string, after?: string): string | null {
 }
 
 function vagueDateAnswer(input: string): boolean {
-  return /\b(?:next week|next month|in a week|in a month|about a week|about a month)\b|(?:מ|ב)?עוד\s+(?:כשבוע|כחודש|שבוע|חודש)|(?:ב|מ)שבוע הבא|(?:ב|מ)חודש הבא/iu.test(input)
+  return /\b(?:next week|next month|in a week|in a month|about a week|about a month)\b|(?:מ|ב)?עוד\s+(?:כשבוע|כחודש|שבוע|חודש)|מ?עוד\s*שבוע|(?:ב|מ)שבוע הבא|(?:ב|מ)חודש הבא/iu.test(input)
     && !explicitDateRange(input) && !singleDateAnswer(input);
 }
 
@@ -310,6 +310,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   // couple travelling with one. A five-year-old is not luggage or a seat count.
   const coupleWithChild = /(?:זוג|שני (?:מבוגרים|אנשים)).{0,45}(?:עם|ו[- ]?).{0,20}(?:תינוק|ילד(?:ה)?(?: אחד(?:ת)?)?)|(?:my (?:wife|husband|partner|spouse) and I|myself and my (?:wife|husband|partner|spouse)|two adults?).{0,90}(?:(?:with|and) (?:our|a|one) (?:\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)[- ]year[- ]old|with (?:our|a|one) (?:child|kid|baby|infant|son|daughter)|and (?:one|a) (?:child|kid|baby|infant))/i.test(input);
   if (coupleWithChild) draft.passengers = 3;
+  if (/my (?:wife|husband|partner|spouse) and I.{0,90}with our \d{1,2}[- ]year[- ]old/i.test(input)) draft.passengers = 3;
   if (draft.luggage === undefined && /מזוודה(?!ות)|תיק(?: נסיעה)? אחד|one suitcase|one bag/i.test(input)) draft.luggage = 1;
   if (/תינוק|baby|infant/i.test(input)) draft.childSeats ??= 1;
   if (/(?:can (?:you|we) (?:provide|add|include|arrange)|do you (?:provide|have|offer)|אפשר (?:לקבל|להוסיף)|תוכלו (?:לספק|להוסיף)).{0,18}(?:child seat|car seat|כיסא בטיחות)/i.test(input)) draft.childSeats ??= 1;
@@ -687,6 +688,9 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
 
 function safeModelReply(reading: BotReading | null, input: string, state: RebuildState): string | null {
   if (!reading || OUTSIDE.test(input) || /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input)) return null;
+  // Gemini is only a language draft. The checks below reject anything that
+  // looks like a business promise, workflow decision, repeated intake prompt
+  // or ungrounded vehicle claim before it reaches the customer.
   if (/מחפש רכב זול לשבוע|מחפשת רכב זול לשבוע|זה נשמע יקר|נשמע יקר|איזו קבוצה הכי מתאימה|looking for a cheap rental for a week|sounds expensive|which (?:group|class) fits best/i.test(input)) return null;
   if (state.history.some(entry => entry.from === 'customer' && /רכב זול|cheap rental/i.test(entry.text))
     && /מה הכי מתאים לדעתך|אני נוסע לבד|אני נוסעת לבד|אחשוב על זה|what fits best|travelling alone|think about it/i.test(input)) return null;
@@ -993,9 +997,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     reply = he ? 'בשמחה. קח את הזמן; כשתרצה להמשיך, נוכל לחזור להעדפות שכבר ציינת.' : 'Of course. Take your time; when you are ready, we can continue from the preferences you already shared.';
   } else if (/^(?:אחזור עם תאריך|אחזור כשאדע תאריך|I'll come back with a date)[.!\s]*$/i.test(input)) {
     reply = he ? 'בשמחה. כשתדע את התאריך, כתוב לי כאן ונמשיך מהפרטים שכבר מסרת.' : 'Of course. Send the date when you know it and we can continue from the details you already shared.';
-  } else if (!state.interest && uncertainDateAnswer(input) && (/אין לי (?:עדיין )?תאריכ|אין תאריך סופי|עדיין אין תאריך|no dates? yet/i.test(input) || asksRentalDates(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
+  } else if (!state.interest && uncertainDateAnswer(input)
+    && !/מה כדאי|מה תמליצ|what (?:would you )?recommend/i.test(input)
+    && (/אין לי (?:עדיין )?תאריכ|אין תאריך סופי|עדיין אין תאריך|no dates? yet/i.test(input) || asksRentalDates(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
     reply = he ? 'אין בעיה. כשתדעו את התאריכים המדויקים, כתבו אותם כאן ונוכל להמשיך מהפרטים שכבר מסרתם.' : 'No problem. When you know the exact dates, send them here and we can continue with the details you already shared.';
-  } else if (!state.interest && vagueDateAnswer(input) && (asksRentalDates(lastBotReply) || /כשתדעו את התאריכים המדויקים|when you know the exact dates/i.test(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
+  } else if (!state.interest && vagueDateAnswer(input)
+    && !/מה כדאי|מה תמליצ|what (?:would you )?recommend/i.test(input)
+    && (!state.booking.pickupDate || !state.booking.returnDate)) {
     const previous = state.booking.datePreference;
     state.booking.datePreference = [previous, input].filter(Boolean).join(' עד ').slice(0, 120);
     const clarifiedAlready = state.history.some(entry => entry.from === 'bot' && /באילו תאריכים מדויקים|כשתדעו את התאריכים המדויקים|which exact pickup and return dates|when you know the exact dates/i.test(entry.text));
@@ -1240,6 +1248,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = he
         ? `אפשר לבקש שינוי תאריכים בהמשך, בכפוף לזמינות ולתנאי ההזמנה. ${!state.booking.pickupDate || !state.booking.returnDate ? 'לאילו תאריכים תצטרכו את הרכב?' : !state.booking.pickupLocation ? 'מאיפה תרצו לאסוף את הרכב?' : 'נוכל להמשיך לפי הפרטים שכבר מסרתם.'}`
         : `You can request a date change later, subject to availability and the booking terms. ${!state.booking.pickupDate || !state.booking.returnDate ? 'What dates do you need the car?' : !state.booking.pickupLocation ? 'Where would you like to collect the car?' : 'We can continue with the details you already gave.'}`;
+    } else if (statedRange && state.booking.pickupDate && state.booking.returnDate
+      && /אפשר (?:לבקש )?שינוי תאריכים|אפשר לשנות תאריך|can (?:I|we) (?:request a )?change (?:the )?dates?/i.test(lastBot)) {
+      reply = he
+        ? `הבנתי את תאריכי האיסוף וההחזרה. ${question('pickupLocation', state.locale)}`
+        : `I have noted the pickup and return dates. ${question('pickupLocation', state.locale)}`;
     } else if (statedRange && state.booking.pickupDate && state.booking.returnDate) {
       reply = advice(input, state, reading);
     } else if (/מה כדאי|מה תמליצ|what (?:would you )?recommend/i.test(input) && /ביטוח|insurance/i.test(input) && state.booking.vehicleNeed) {
