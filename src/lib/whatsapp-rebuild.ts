@@ -1104,11 +1104,18 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = mentionedOneMonth
         ? (he ? 'ציינת השכרה לחודש, אבל התאריכים ששלחת הם לתקופה אחרת. אלה התאריכים הרצויים?' : 'You mentioned a month-long rental, but the dates you sent cover a different period. Are those the dates you want?')
         : (he ? 'ציינת נסיעה של כשבוע, אבל התאריכים ששלחת הם לתקופה ארוכה יותר. אלה התאריכים הרצויים?' : 'You mentioned a trip of about a week, but the dates you sent cover a longer period. Are those the dates you want?');
-    } else if (completedRouteInCurrentTurn && state.phase === 'explore' && !state.interest
-      && !explicitBooking(input) && !state.booking.childSeats && !state.booking.luggage) {
+    } else if (completedRouteInCurrentTurn && state.phase === 'explore' && !state.interest && !explicitBooking(input)) {
+      const stroller = /עגלה|stroller|pushchair/i.test(input)
+        || state.history.some(entry => entry.from === 'customer' && /עגלה|stroller|pushchair/i.test(entry.text));
+      const childSeatNote = state.booking.childSeats
+        ? (he ? ` בקשת כיסא הבטיחות נשמרה ונבדוק את זמינותו והתאמתו לדגם${stroller ? ', יחד עם מקום לעגלה' : ''}.` : ` Your child-seat request is noted; we will check availability and fit for the specific car${stroller ? ', including space for the stroller' : ''}.`)
+        : '';
+      const luggageNote = state.booking.luggage
+        ? (he ? ` ל־${state.booking.passengers ?? ''} נוסעים ו־${state.booking.luggage} מזוודות${stroller ? ' ועגלה' : ''}, נוודא מקום בדגם המסוים.` : ` For ${state.booking.passengers ?? 'your group'} travellers and ${state.booking.luggage} suitcases${stroller ? ' and a stroller' : ''}, we will verify space in the specific model.`)
+        : '';
       reply = he
-        ? `הבנתי את תאריכי האיסוף וההחזרה, מאיסוף ב${state.booking.pickupLocation} להחזרה ב${state.booking.returnLocation}. זמינות והצעה מדויקת נבדוק לפני אישור. תרצו שנתחיל בקשה?`
-        : `I have the pickup and return dates, from ${state.booking.pickupLocation} to ${state.booking.returnLocation}. We will check availability and an exact quote before confirmation. Would you like to start a request?`;
+        ? `הבנתי את תאריכי האיסוף וההחזרה, מאיסוף ב${state.booking.pickupLocation} להחזרה ב${state.booking.returnLocation}.${childSeatNote}${luggageNote} זמינות והצעה מדויקת נבדוק לפני אישור. תרצו שנתחיל בקשה?`
+        : `I have the pickup and return dates, from ${state.booking.pickupLocation} to ${state.booking.returnLocation}.${childSeatNote}${luggageNote} We will check availability and an exact quote before confirmation. Would you like to start a request?`;
     } else if (declines) {
       state.phase = 'explore'; state.step = 'menu';
       reply = he ? 'בסדר, לא שלחתי בקשה. הפרטים יישארו כאן אם תרצה להמשיך להתלבט.' : 'Okay, I have not sent a request. The details stay here if you want to think it over.';
