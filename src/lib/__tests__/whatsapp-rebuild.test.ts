@@ -21,6 +21,24 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('keeps corrected route and dates through an insurance detour and accepts a name without email', async () => {
+    const chat = memory(() => null);
+    await chat.send('אני רוצה לשכור רכב קטן מ-10/12 עד 14/12, איסוף מהרצליה והחזרה בתל אביב. אני בן 31.');
+    const correction = await chat.send('רגע, בעצם אני מעדיף רכב משפחתי והחזרה בהרצליה במקום תל אביב. מה עם ביטוח?');
+    expect(correction.state.booking.returnLocation).toBe('הרצליה');
+    const result = await chat.send('בעצם התאריכים השתנו: 11/12 עד 16/12. השם הוא דניאל בדיקה ואין לי מייל.');
+    expect(result.state.booking.customerName).toBe('דניאל בדיקה');
+    expect(result.state.booking.pickupDate).toMatch(/-12-11$/);
+    expect(result.state.booking.returnDate).toMatch(/-12-16$/);
+    expect(result.state.step).toBe('rental_confirm');
+  });
+
+  it('accepts an English age statement before asking the age question', async () => {
+    const chat = memory(() => null);
+    const result = await chat.send('I want to rent a compact car 10/12-14/12, pickup in Herzliya and return in Tel Aviv. I am 35.');
+    expect(result.state.booking.driverAgeRange).toBe('24-plus');
+    expect(result.state.step).toBe('rental_name');
+  });
   it('uses Gemini to understand a rental message but keeps its business reply out of the customer response', async () => {
     const chat = memory(() => ({
       ...base,

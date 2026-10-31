@@ -218,7 +218,7 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
   if (pickup) draft.pickupLocation = /^(?:the )?airport$/i.test(pickup) && /Ben Gurion Airport/i.test(input) ? 'Ben Gurion Airport' : pickup;
   const heReturn = input.match(/(?:החזרה|להחזיר)\s+[במ]([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:נהג|גיל|בן|בת|למשך|לתאריכים)|[,.!?]|$)/iu)?.[1];
   const enReturn = input.match(/(?:return|drop.?off)\s+(?:(?:the car|it)\s+)?(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=[,.!?]|$)/iu)?.[1];
-  const returnLocation = (heReturn ?? enReturn)?.trim();
+  const returnLocation = (heReturn ?? enReturn)?.split(/\s+(?:במקום|instead of)\s+/i)[0].trim();
   if (returnLocation) draft.returnLocation = returnLocation;
   if (draft.pickupLocation && /אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input)) draft.returnLocation = draft.pickupLocation;
 }
@@ -345,8 +345,8 @@ function customerVehicleChoice(input: string, state: RebuildState): string | nul
 function driverAgeRange(input: string, state: RebuildState): '21-23' | '24-plus' | null {
   if (/(?:^|\D)21\s*[-–]\s*23(?:\D|$)/u.test(input)) return '21-23';
   if (/(?:^|\D)24\s*\+(?:\D|$)/u.test(input)) return '24-plus';
-  if (!/(?:בן|בת|גיל|age|aged)/i.test(input) && !(state.phase === 'booking' && state.step === 'rental_age')) return null;
-  const age = input.match(/(?:בן|בת|גיל|age(?:d)?(?: is)?)\s*(\d{2})(?!\d)/i)?.[1]
+  if (!/(?:בן|בת|גיל|age|aged|\bI am\b|\bI'm\b)/i.test(input) && !(state.phase === 'booking' && state.step === 'rental_age')) return null;
+  const age = input.match(/(?:בן|בת|גיל|age(?:d)?(?: is)?|\bI am|\bI'm)\s*(\d{2})(?!\d)/i)?.[1]
     ?? (state.phase === 'booking' && state.step === 'rental_age' ? input.trim().match(/^(\d{2})$/)?.[1] : undefined);
   if (!age) return null;
   const value = Number(age);
@@ -778,7 +778,7 @@ function privateDetail(input: string, state: RebuildState): boolean {
     if (email && EMAIL.test(email) && email.length <= 160) { state.booking.customerEmail = email; return true; }
   }
   if (state.step === 'rental_name' || state.step === 'rental_confirm') {
-    const explicit = input.match(/(?:קוראים לי|שמי|השם שלי|my name is|I am)\s+([\p{L}' -]{3,60})/iu)?.[1]?.trim();
+    const explicit = input.match(/(?:קוראים לי|שמי|השם שלי|השם הוא|my name is|I am)\s+([\p{L}' -]{3,60})/iu)?.[1]?.split(/\s+(?:ואין|אין לי|and I|but I)\s+/i)[0].trim();
     const candidate = explicit ?? (state.step === 'rental_name' && /^[\p{L}' -]{3,60}$/u.test(input.trim()) && !/^(?:מה|איך|למה|מתי|כמה)\s/u.test(input.trim()) ? input.trim() : '');
     if (candidate && candidate.split(/\s+/).length <= 4) { state.booking.customerName = candidate; return true; }
   }
