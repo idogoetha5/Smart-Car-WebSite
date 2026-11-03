@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { getRebuiltBotReply, type RebuildState, type RebuildStore } from '@/lib/whatsapp-rebuild';
 
 function conversation() {
@@ -13,6 +13,29 @@ function conversation() {
 }
 
 describe('cancellation object before cancel and corrections after handoff', () => {
+  it.each([
+    ['הבנתי. כדי לקבל החזר צריך שאשלח כאן מספר אשראי מלא או קוד אבטחה?', 'he'],
+    ['הביטול כבר אושר וההחזר בוצע, או שצריך לשלוח CVV או מספר אשראי?', 'he'],
+    ['Do I need to send my full credit card number or security code to get a refund?', 'en'],
+    ['Has cancellation been approved, and should I send a CVV or CVC for the refund?', 'en'],
+  ] as const)('retains the conditional refund answer and adds the payment privacy warning: %s', async (input, locale) => {
+    const create = vi.fn(async () => 'unexpected');
+    const readTurn = vi.fn(async () => null);
+    const state: RebuildState = { version: 2, phase: 'service', step: 'menu', locale, booking: {}, serviceReference: '654321', handedOff: true, handoffAt: new Date().toISOString(), handoffKind: 'booking_change', history: [{ from: 'customer', text: locale === 'he' ? 'אני רוצה לבטל את ההזמנה' : 'I want to cancel my booking' }] };
+    const result = await getRebuiltBotReply('fictional-refund-privacy', input, {
+      isSimulation: true, loadState: async () => state, saveState: async () => {}, activeBooking: async () => null,
+      createRentalRequest: create, readTurn,
+    });
+    expect(result.source).toBe('local');
+    expect(result.reply).toMatch(locale === 'he' ? /(?:אישור|אושר|לבדיקה|יבדוק|אוטומטית)/ : /confirm|review|automatically/i);
+    expect(result.reply).toMatch(locale === 'he' ? /אין צורך לשלוח.{0,60}(?:אשראי|כרטיס)/ : /Do not send a full (?:credit )?card number/i);
+    expect(result.reply).toMatch(/קוד אבטחה|security code|CVV|CVC/i);
+    expect(result.reply).not.toMatch(/ההזמנה נשארת בתוקף|booking remains in effect/i);
+    expect(result.state.serviceReference).toBe('654321');
+    expect(create).not.toHaveBeenCalled();
+    expect(readTurn).not.toHaveBeenCalled();
+  });
+
   it('routes the exact Hebrew existing-booking cancel-it request and keeps outcome/refund conditional', async () => {
     const send = conversation();
     const first = await send('יש לי הזמנה קיימת ואני רוצה לבטל אותה, לא לשנות תאריכים. מה צריך לעשות?');
@@ -34,7 +57,8 @@ describe('cancellation object before cancel and corrections after handoff', () =
     await send('יש לי הזמנה קיימת ואני רוצה לשנות את תאריך ההחזרה');
     const result = await send('לא שינוי. אני מבקש ביטול ההזמנה. מספר ההזמנה שלי הוא 654321. האם עכשיו זה מבוטל?');
     expect(result.reply).toContain('רשמתי בקשת ביטול');
-    expect(result.reply).toContain('ההזמנה נשארת בתוקף');
+    expect(result.reply).toContain('הביטול עדיין לא אושר במסגרת השיחה הזו');
+    expect(result.reply).not.toContain('ההזמנה נשארת בתוקף');
   });
 
   it('recognizes English cancel-it after an existing booking antecedent', async () => {

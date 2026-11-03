@@ -1,5 +1,12 @@
 # WhatsApp Bot Status & Handover
 
+## 4 Nov 2026 — active conversational implementation and remaining acceptance
+
+- The rebuilt core now uses grounded Gemini wording for ordinary advice, including service questions; local code still owns actions, consent, private details, safety and persistence. Rejected grounded wording receives one bounded correction, then local fallback. See the new current section of `BOT-BRAIN.md`; the 15/26 Oct architecture below is historical.
+- Native Chrome depth checks cover Hebrew/English sale and leasing (six turns each), Hebrew/English parked rental damage (six turns each), and English extension service (six turns). Rental conversations reached simulated submission with corrections, optional-email refusal, conditional child seat and post-submit route recall. Each result applies to its tested deployment; new status/payment refinements and the interrupted final Hebrew rental continuation still need replay. Do not turn these selected samples into a claim that every conversation works.
+- Latest local checks: 1,378 tests, scoped TypeScript and lint budget pass. Handoff outbox recovery uses existing production tables (metadata verified read-only), but actual handoff recipient/inbox delivery remains unverified. Daily retries do not promise emergency response time.
+- The production kill switch was read on 4 Nov: `whatsapp_bot_settings.enabled=false`. No customer activation, credentials change, DB test writes or real WhatsApp sends were performed. The connected YCloud inbound/reply/phone echo/human silence/handoff checks and explicit owner approval remain required. The Chrome demo is not evidence of those external effects.
+
 ## 26 Oct 2026 — current implementation and remaining external gate
 
 - The rebuilt Gemini conversation core, public demo, mandatory driver age group, website transport boundary, message logging and database kill switch are published. A full fictional rental conversation was verified on the production demo through explicit confirmation; the demo did not create a real booking.

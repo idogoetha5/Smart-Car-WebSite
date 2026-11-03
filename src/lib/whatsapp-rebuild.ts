@@ -49,6 +49,7 @@ export type RebuildStore = {
 // but must never block a rental request.
 const ORDER: BookingKey[] = ['pickupDate', 'returnDate', 'pickupLocation', 'returnLocation', 'vehicleNeed', 'driverAgeRange', 'customerName'];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PRIVATE_PAYMENT_DETAIL = /מספר (?:כרטיס|אשראי)|קוד אבטחה|\b(?:full card|(?:credit )?card number|security code|CVV|CVC)\b/i;
 const PRICE_OR_AVAILABILITY = /מחיר|עלות|כמה.{0,12}(?:עול|יעל)|(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:prices?|cost|rate|available|availability)\b/iu;
 const AVAILABILITY_ONLY = /(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:available|availability|in stock)\b/iu;
 const MONTHS: Record<string, number> = { ינואר: 1, פברואר: 2, מרץ: 3, אפריל: 4, מאי: 5, יוני: 6, יולי: 7, אוגוסט: 8, ספטמבר: 9, אוקטובר: 10, נובמבר: 11, דצמבר: 12, january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12 };
@@ -1012,7 +1013,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = /יוחזר|החזר|refund|money back/i.test(input)
         ? (he ? 'בקשת הביטול נרשמה לבדיקה. הביטול והחזר כספי אינם מתבצעים אוטומטית בשיחה; הנציג יבדוק את תנאי ההזמנה ומועד הביטול ויאשר אם מגיע החזר ובאיזה סכום.' : 'Your cancellation request is recorded for review. Cancellation and any refund are not processed automatically in this chat; a representative will check your booking terms and cancellation timing and confirm whether a refund applies and its amount.')
         : /מאושר|מבוטל|בוטל|cancelled|canceled|approved|effective/i.test(input)
-          ? (he ? 'רשמתי בקשת ביטול, ולא שינוי תאריכים. הביטול עדיין לא אושר ולכן ההזמנה נשארת בתוקף עד לאישור נציג SmartCar.' : 'I have recorded a cancellation request, not a date change. Cancellation has not been confirmed, so the booking remains in effect until SmartCar confirms it.')
+          ? (he ? 'רשמתי בקשת ביטול, ולא שינוי תאריכים. הביטול עדיין לא אושר במסגרת השיחה הזו; נציג SmartCar יבדוק את הבקשה ואת תנאי ההזמנה ויאשר את התוצאה.' : 'I have recorded a cancellation request, not a date change. Cancellation has not been confirmed in this chat; a SmartCar representative will review the request and booking terms and confirm the outcome.')
           : (he ? `קיבלנו את בקשת הביטול. נציג SmartCar יבדוק אותה ויחזור אליכם; הביטול תקף רק לאחר אישור. לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `We have your cancellation request. A SmartCar representative will review it and follow up; cancellation takes effect only after confirmation. For immediate help call ${OFFICE_PHONE}.`);
     } else reply = he ? 'בשמחה אעזור עם בקשת הביטול. מה מספר ההזמנה?' : 'I can help with the cancellation request. What is your booking reference?';
   } else if (state.handedOff && state.handoffKind === 'commercial' && declinesHumanHandoff(input)) {
@@ -1044,7 +1045,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       ? (he ? 'העדכון האחרון שמסרתם נשמר בשיחה לבדיקת הנציג. זו פנייה לבדיקה בלבד, ללא התחייבות לעסקה. אין צורך לשלוח מספר כרטיס מלא או קוד אבטחה.' : 'Your latest update is saved in the conversation for the representative to review. This is an enquiry only, with no commitment to a deal. Do not send a full card number or security code.')
       : /לא התחייבתי|לא סגרתם|רק פנייה|רק העברתם|עסקה מאושרת|signed deal|just an enquiry|not a signed|already.*refund|refund.*(?:done|processed)|זיכוי כבר|הזיכוי.*בוצע/i.test(input)
         ? (he ? 'זו פנייה לבדיקה בלבד. לא אושרו כאן עסקה, שינוי או זיכוי; נציג SmartCar יבדוק ויאשר איתכם את ההמשך.' : 'This is an enquiry for review only. No deal, change or refund has been approved here; a SmartCar representative will review and confirm the next steps with you.')
-      : /מספר כרטיס|full card|card number/i.test(input)
+      : PRIVATE_PAYMENT_DETAIL.test(input) && !/החזר|ביטול|אושר|אישור|refund|cancel|approv/i.test(input)
         ? (he ? 'אין צורך לשלוח מספר כרטיס מלא או קוד אבטחה. שמרו אסמכתאות לחיובים, עם פרטי הכרטיס מוסתרים, לבדיקת הנציג.' : 'Do not send a full card number or security code. Keep charge records with card details hidden for the representative to review.')
       : handoffKind === 'commercial' && state.interest && /מה כלול|מה כולל|תשלום ראשוני|מקדמה|מחיר|כמה עולה|נסיעת מבחן|what.*included|initial payment|down payment|price|test drive/i.test(input)
       ? commercialReply(input, state).reply
@@ -1075,14 +1076,14 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : handoffKind === 'safety' && /אני במקום בטוח|אנחנו במקום בטוח|I'm safe|we are safe/i.test(input)
         ? (he ? `טוב שאתם במקום בטוח. התקשרו עכשיו ל־SmartCar ב־${OFFICE_PHONE} כדי לדווח על האירוע ולתאם עזרה.` : `I am glad you are safe. Call SmartCar now on ${OFFICE_PHONE} to report the incident and arrange help.`)
       : cancellationPending && /(?:האם|זה|הביטול).{0,20}(?:נכנס לתוקף|בוטל|מאושר|אושר)|(?:is|has).{0,20}(?:cancelled|canceled|approved|effective)/i.test(input)
-        ? (he ? 'הביטול עדיין לא אושר ולכן ההזמנה נשארת בתוקף. נציג SmartCar יבדוק את הבקשה ויחזור אליכם עם תשובה.' : 'The cancellation has not been confirmed, so the booking remains in effect. A SmartCar representative will review the request and follow up.')
+        ? (he ? 'הביטול עדיין לא אושר במסגרת השיחה הזו. נציג SmartCar יבדוק את הבקשה ואת תנאי ההזמנה ויחזור אליכם עם תשובה.' : 'Cancellation has not been confirmed in this chat. A SmartCar representative will review the request and booking terms and follow up.')
       : cancellationPending && /יוחזר|החזר|refund|money back|דמי ביטול|קנס|עלות|מחיר|\b(?:cost|fee|penalty)\b/i.test(input)
         ? (he ? 'החזר או דמי ביטול תלויים בתנאי ההזמנה ובמועד הביטול. הם אינם מתבצעים אוטומטית בשיחה; הנציג יבדוק ויאשר את הסכום הרלוונטי לפני סיום הטיפול.' : 'Any refund or cancellation fee depends on your booking terms and cancellation timing. It is not processed automatically in this chat; a representative will review and confirm the applicable amount.')
       : cancellationPending && /חיוב|תשלום|charge|payment/i.test(input)
         ? (he ? 'צירפנו גם את שאלת החיוב לפנייה על הביטול כדי שנציג SmartCar יבדוק את שניהם יחד. אם יש פרטי חיוב או אסמכתא, כדאי לשמור אותם לבדיקה.' : 'We have added the charge question to the cancellation enquiry so a SmartCar representative can review both. Keep any charge details or records for review.')
       : cancellationPending && /מה הצעד הבא|מה עושים עכשיו|איך ממשיכים|next step|what next/i.test(input)
         ? state.history.some(entry => entry.from === 'bot' && /בקשת הביטול הועברה לנציג|cancellation request has been passed/i.test(entry.text))
-          ? (he ? 'כרגע לא נדרשת מכם פעולה נוספת. עד שנציג יאשר את הביטול, ההזמנה נשארת בתוקף.' : 'There is nothing else you need to do now. The booking remains in effect until a representative confirms cancellation.')
+          ? (he ? 'כרגע לא נדרשת מכם פעולה נוספת בשיחה. השיחה אינה אישור ביטול; נציג SmartCar יבדוק את הבקשה ואת תנאי ההזמנה ויאשר את התוצאה.' : 'There is nothing else you need to do in this chat now. This chat is not cancellation confirmation; a SmartCar representative will review the request and booking terms and confirm the outcome.')
           : (he ? `בקשת הביטול הועברה לנציג SmartCar. הוא יבדוק אותה ויחזור אליכם; הביטול ייכנס לתוקף רק לאחר אישור.` : `Your cancellation request has been passed to a SmartCar representative. They will review it and follow up; cancellation takes effect only after confirmation.`)
       : cancellationPending && /מה (?:כדאי|צריך) להכין|כדאי להכין|יש (?:משהו|פרטים).{0,15}להכין|what.*(?:prepare|have ready)/i.test(input)
         ? (he ? 'מספר ההזמנה שכבר מסרתם שמור בפנייה. אם הפנייה כוללת חיוב, כדאי להכין גם את פרטי החיוב כדי שנציג SmartCar יוכל לבדוק הכול יחד.' : 'The booking reference you gave is included in the enquiry. If it also concerns a charge, have the charge details ready so the SmartCar representative can review both together.')
@@ -1105,7 +1106,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : cancellationPending && /היום|דחוף|עכשיו|today|urgent|right now/i.test(input)
         ? (he ? `בקשת הביטול כבר הועברה לנציג, אבל הביטול עדיין דורש אישור. אם אתם צריכים מענה היום, התקשרו ל־${OFFICE_PHONE}.` : `Your cancellation request has been passed to a representative, but it still needs confirmation. If you need an answer today, call ${OFFICE_PHONE}.`)
       : cancellationPending && /(?:תוכלו|אפשר|יכול(?:ים)?).{0,20}(?:לחזור|שיחזרו)|call (?:me|us) back/i.test(input)
-        ? (he ? 'כן, נציג SmartCar יחזור אליכם לגבי בקשת הביטול. עד לאישורו ההזמנה נשארת בתוקף.' : 'Yes, a SmartCar representative will follow up about the cancellation request. The booking remains in effect until it is confirmed.')
+        ? (he ? 'כן, נציג SmartCar יחזור אליכם לגבי בקשת הביטול. השיחה אינה אישור ביטול; הנציג יבדוק את תנאי ההזמנה ויאשר את התוצאה.' : 'Yes, a SmartCar representative will follow up about the cancellation request. This chat is not cancellation confirmation; the representative will check the booking terms and confirm the outcome.')
       : /^(?:תודה(?: רבה)?|thanks|thank you)[.!\s]*$/i.test(input)
       ? handoffKind === 'safety' ? (he ? 'בשמחה. שמרו על עצמכם.' : 'You are welcome. Take care.')
         : (he ? 'בשמחה. נציג SmartCar יחזור אליכם בהקדם.' : 'You are welcome. A SmartCar representative will follow up as soon as possible.')
@@ -1648,6 +1649,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   if (asksReferenceRecall && state.serviceReference) {
     const acknowledgement = he ? `מספר ההזמנה ${state.serviceReference} כבר שמור בפנייה; אין צורך לשלוח אותו שוב.` : `Your booking reference ${state.serviceReference} is already saved in the enquiry; you do not need to send it again.`;
     reply = /מחיר|אישור|אושר|זיכוי|price|approv|refund/i.test(input) ? `${reply} ${acknowledgement}` : acknowledgement;
+  }
+  if (state.phase === 'service' && PRIVATE_PAYMENT_DETAIL.test(input)
+    && !/אין צורך לשלוח מספר כרטיס מלא או קוד אבטחה|Do not send a full card number or security code/i.test(reply)) {
+    reply += he ? ' אין צורך לשלוח כאן מספר כרטיס או אשראי מלא, קוד אבטחה, CVV או CVC.' : ' Do not send a full credit card number, security code, CVV or CVC here.';
   }
   pushHistory(state, input, reply, privateTurn);
   if (escalate && !store.isSimulation) await store.beforeEscalationSave?.(phone);

@@ -19,9 +19,10 @@ function numberTokens(text: string): string[] {
   return (text.match(/\d+(?:[,.]\d+)*/g) ?? []).map(value => value.replace(/,(?=\d{3}(?:\D|$))/g, '').replace(/^0+(?=\d)/, ''));
 }
 
-function hasAffirmativeMatch(text: string, pattern: RegExp): boolean {
+function hasAffirmativeMatch(text: string, pattern: RegExp, unverifiedPrefix?: RegExp): boolean {
   for (const match of text.matchAll(pattern)) {
     const prefix = text.slice(Math.max(0, match.index! - 55), match.index);
+    if (unverifiedPrefix?.test(prefix)) continue;
     if (/(?:cannot|can['’]?t|do not|don['’]?t)\s+(?:guarantee|promise|confirm|say)\s+(?:that\s+)?$|whether\s*$|אי אפשר (?:להבטיח|לאשר)\s*(?:ש)?$/i.test(prefix)) continue;
     if (/(?:\bnot|\bnever|\bno|\bcannot|\bcan['’]?t|\bisn['’]?t|\baren['’]?t|לא|אינו|אינה|איננו|אין)\s+(?:(?:be|been|being|already|yet|necessarily|a|the|כבר|עדיין|בהכרח)\s+){0,3}$/i.test(prefix)) continue;
     return true;
@@ -71,6 +72,10 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
     if (!/indicative|published|אינדיקטיבי|מפורסם/i.test(reply) || numberTokens(reply).some(token => !factNumbers.has(token))) return reject('price_assurance');
   }
 
+  if (hasAffirmativeMatch(reply,
+    /\b(?:(?:your|the|this)\s+)?(?:booking|reservation|rental)\s+(?:(?:is|was|has been|remains|stays|will remain|will stay)\s+)(?:(?:still|already|currently)\s+)?(?:active|valid|in effect|cancelled|canceled|extended)\b|ההזמנה(?:\s+(?:שלך|שלכם|הקיימת))?\s+(?:(?:עדיין|נשארת|נותרת|תישאר|היא)\s+){0,2}(?:פעילה|בתוקף|תקפה|מבוטלת|הוארכה|בוטלה)/gi,
+    /\b(?:if|whether)\s*$|(?:לא ניתן|אי אפשר)\s+לאשר\s*(?:ש)?$|לא (?:ידוע|ברור)\s*(?:אם|ש)?$|(?:אם|האם)\s*$/i,
+  )) return reject('transaction_status');
   if (hasAffirmativeMatch(reply, /\b(?:confirmed booking|booking is confirmed|car is confirmed|refund (?:has been|is) processed|refund is approved)\b|ההזמנה מאושרת|הרכב אושר|הזיכוי בוצע|ההחזר אושר/gi)) return reject('action_claim');
   if (hasAffirmativeMatch(reply, /\b(?:I|we)\s+(?:(?:have|already|will)\s+){0,2}(?:sent|send|submitted|submit|forwarded|forward|passed|pass|booked|reserved|refunded|cancelled|canceled|call|contact)\b|(?:שלחתי|שלחנו|העברתי|העברנו|הוזמן|שריינתי|ביטלתי|זיכיתי|אזמין|אעביר|נשלח את הפנייה)/gi)) return reject('action_claim');
   if (hasAffirmativeMatch(reply, /\b(?:request|enquiry|booking|refund|reservation) (?:has been|is|was) (?:sent|submitted|forwarded|passed|booked|processed|cancelled|canceled|confirmed|reserved)\b/gi)) return reject('action_claim');

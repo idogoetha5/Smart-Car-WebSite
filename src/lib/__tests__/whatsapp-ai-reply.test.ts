@@ -6,6 +6,32 @@ const check = (reply: string, rest: Partial<ConversationalReplyInput> = {}) => v
 
 describe('output checks for natural conversational drafts', () => {
   it.each([
+    'Your booking remains active until you decide.',
+    'The reservation is still valid.',
+    'The booking remains in effect until you decide.',
+    'Your rental has been extended.',
+    'The booking is cancelled.',
+    'עצם השיחה לא מבטלת את ההזמנה. ההזמנה נשארת פעילה עד שתחליט.',
+    'ההזמנה שלכם עדיין בתוקף.',
+    'ההזמנה הוארכה.',
+  ])('rejects unverified actual booking status: %s', reply => {
+    const onReject = vi.fn();
+    expect(check(reply, { locale: /[א-ת]/.test(reply) ? 'he' : 'en', onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledExactlyOnceWith('transaction_status');
+  });
+
+  it.each([
+    'I cannot confirm that your booking is active. Discussion itself does not cancel or change a booking.',
+    'Your booking is not active until its status is verified.',
+    'If your booking is active, discussion alone does not cancel it.',
+    'Discussion itself does not cancel or extend a booking. The original agreed return deadline remains binding until an extension is approved.',
+    'לא ניתן לאשר שההזמנה פעילה. השיחה עצמה אינה מבטלת או משנה הזמנה.',
+    'עצם השיחה וההתלבטות לא מבטלות הזמנה. מועד ההחזרה המקורי נשאר בתוקף עד לאישור הארכה.',
+  ])('allows explicit uncertainty, negation and deadline policy without claiming actual booking status: %s', reply => {
+    expect(check(reply, { locale: /[א-ת]/.test(reply) ? 'he' : 'en' })).toBe(reply);
+  });
+
+  it.each([
     ['', {}, 'empty'],
     ['A'.repeat(651), {}, 'too_long'],
     ['Which model? Which date?', {}, 'multiple_questions'],
