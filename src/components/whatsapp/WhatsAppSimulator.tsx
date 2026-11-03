@@ -60,6 +60,7 @@ export default function WhatsAppSimulator({ endpoint = '/api/whatsapp/simulator'
   const endOfConversation = useRef<HTMLDivElement>(null);
   const resetVersion = useRef(0);
   const sendInFlight = useRef(false);
+  const activeRequest = useRef<AbortController | null>(null);
   const [messages, setMessages] = useState<Message[]>(initial);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -83,12 +84,16 @@ export default function WhatsAppSimulator({ endpoint = '/api/whatsapp/simulator'
     setQuickReplies([]);
     setMessages((current) => [...current, { from: 'customer', body: displayMessage ?? message }]);
     setSending(true);
+    const controller = new AbortController();
+    activeRequest.current = controller;
+    const timeout = setTimeout(() => controller.abort(), 20_000);
 
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, message, state: flowState }),
+        signal: controller.signal,
       });
       const data = await response.json().catch(() => null) as { reply?: string; escalated?: boolean; quickReplies?: QuickReply[]; state?: FlowState } | null;
       if (response.status === 429) throw new Error('simulation-limit');
@@ -106,7 +111,9 @@ export default function WhatsAppSimulator({ endpoint = '/api/whatsapp/simulator'
         setMessages((current) => [...current, { from: 'bot', body: error instanceof Error && error.message === 'simulation-limit' ? 'הגעתם למכסת הודעות הבדיקה של הסימולציה. אפשר לנסות שוב בהמשך.' : 'הסימולציה אינה זמינה כרגע. אפשר לנסות שוב בעוד רגע.', error: true }]);
       }
     } finally {
+      clearTimeout(timeout);
       if (requestVersion === resetVersion.current) {
+        activeRequest.current = null;
         sendInFlight.current = false;
         setSending(false);
       }
@@ -115,6 +122,8 @@ export default function WhatsAppSimulator({ endpoint = '/api/whatsapp/simulator'
 
   function reset() {
     resetVersion.current += 1;
+    activeRequest.current?.abort();
+    activeRequest.current = null;
     sendInFlight.current = false;
     setMessages(initial);
     setDraft('');

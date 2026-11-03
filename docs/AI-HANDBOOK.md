@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-11-03 — Chrome demo remained indefinitely in the typing state after a request stalled. Simulator sends now abort after 20 seconds, release the composer through the existing error/finally handling, and cancel pending requests on reset. No customer WhatsApp transport changes.
+
 2026-11-01 — Depth follow-ups: keep deferred human handoff across commercial turns while answering same-turn comparison/inclusions/viewing questions. Service reference recall accepts “is/הוא” and extension price answers remain conditional. Damage-liability follow-ups recognize natural Hebrew payment/excess wording after safety instructions. Verify these sequences through the live Chrome demo.
 
 2026-10-31 — Chrome leasing follow-up: respect explicit refusal/not-ready to contact a representative; Gemini human classification alone no longer authorizes escalation. Explicit customer contact requests and safety handling remain supported. Leasing “what type would you suggest” is treated as a request for advice. Production Chrome replay required.
