@@ -1,0 +1,129 @@
+/** Explicit, non-contact commercial facts survive the short conversational window.
+ * No raw messages or free-text notes are retained here. Null means undecided. */
+export type CommercialMemory = {
+  budget?: { amount: number; currency: 'ILS' | 'USD' | 'EUR' | 'unspecified' };
+  termMonths?: number | null;
+  annualMileageKm?: number | null;
+  vehiclePreference?: 'compact' | 'family' | 'suv' | 'seven_seat' | null;
+  usage?: Array<'city' | 'family' | 'business' | 'long_distance'>;
+  passengers?: number;
+  luggage?: number;
+  lowMileagePreferred?: boolean;
+};
+
+const NUMBER = '(?<!\\d)(\\d{1,3}(?:[, ]\\d{3})+|\\d{1,7}(?:\\.\\d+)?)(?!\\d)';
+const amount = (value: string, scale?: string) => Number(value.replace(/[, ]/g, '')) * (scale ? 1000 : 1);
+function negatedBefore(text: string, index: number) {
+  return /(?:\bnot|\binstead of|\brather than|ולא|לא|במקום)\s*$/i.test(text.slice(Math.max(0, index - 25), index));
+}
+
+export function updateCommercialMemory(previous: CommercialMemory | undefined, message: string): CommercialMemory {
+  const next: CommercialMemory = structuredClone(previous ?? {});
+  // Contact details cannot accidentally become budget, mileage or usage facts.
+  const text = message.slice(0, 1000)
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '')
+    .replace(/(?<!\d)(?:\+972|0[2-9])[\d ()-]{7,}/g, '');
+  const budget = new RegExp(`(?:תקציב|budget)(?:\\s+(?:עכשיו|שלי|הוא|שלנו|עד|סביב|ירד|עלה|ל|is|now|of|up to|around|to|reduced|changed))*[ :₪$€־-]*${NUMBER}\\s*(אלף|thousand|k\\b)?`, 'giu');
+  for (const match of text.matchAll(budget)) {
+    if (negatedBefore(text, match.index!)) continue;
+    const value = amount(match[1], match[2]);
+    if (value < 100 || value > 10_000_000) continue;
+    const nearby = text.slice(match.index!, match.index! + match[0].length + 20);
+    const currency = /שקל|ש[״"׳']?ח|₪|shekel|\bILS\b|\bNIS\b/i.test(nearby) ? 'ILS'
+      : /\$|dollar|\bUSD\b/i.test(nearby) ? 'USD' : /€|euro|\bEUR\b/i.test(nearby) ? 'EUR' : next.budget?.currency ?? 'unspecified';
+    next.budget = { amount: value, currency };
+  }
+  const ceiling = new RegExp(`(?:עד|up to)\\s*${NUMBER}\\s*(אלף|thousand|k\\b)(?!\\s*(?:קמ|ק[״"]מ|km))`, 'giu');
+  for (const match of text.matchAll(ceiling)) {
+    if (!negatedBefore(text, match.index!)) next.budget = { amount: amount(match[1], match[2]), currency: next.budget?.currency ?? 'unspecified' };
+  }
+  // Currency-bearing amounts are also explicit budgets when called a limit or
+  // a correction to a previously supplied budget, never arbitrary bare digits.
+  if (!/תקציב|budget/i.test(text) && (next.budget || /עד|limit|spend|afford/i.test(text))) {
+    const money = new RegExp(`${NUMBER}\\s*(אלף|thousand|k\\b)?\\s*(שקל(?:ים)?|₪|shekels?|ILS|NIS|dollars?|USD|euros?|EUR)`, 'giu');
+    for (const match of text.matchAll(money)) {
+      if (negatedBefore(text, match.index!)) continue;
+      const value = amount(match[1], match[2]);
+      if (value >= 100 && value <= 10_000_000) next.budget = { amount: value, currency: /dollar|USD/i.test(match[3]) ? 'USD' : /euro|EUR/i.test(match[3]) ? 'EUR' : 'ILS' };
+    }
+  }
+
+  const termMatches: Array<{ value: number; index: number }> = [];
+  const namedYears = text.match(/(?:ל)?(שלוש|ארבע|חמש)\s+שנים/u);
+  if (namedYears && !negatedBefore(text, namedYears.index!)) termMatches.push({ value: ({ שלוש: 3, ארבע: 4, חמש: 5 }[namedYears[1]] ?? 0) * 12, index: namedYears.index! });
+  for (const match of text.matchAll(/\b(\d{1,3}|one|two|three|four|five)\s*(months?|years?)\b|(\d{1,3})\s*(חודשים|חודש|שנים|שנה)|שנתיים|לשנה/giu)) {
+    if (negatedBefore(text, match.index!)) continue;
+    if (match[0] === 'לשנה' && /(?:קמ|ק[״"]מ|קילומטר(?:ים)?|km)\s*$/i.test(text.slice(Math.max(0, match.index! - 18), match.index!))) continue;
+    const wordNumbers: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5 };
+    const number = match[1] ? wordNumbers[match[1].toLowerCase()] ?? Number(match[1]) : match[3] ? Number(match[3]) : /שנתיים/.test(match[0]) ? 2 : 1;
+    const months = /year|שנ/i.test(match[2] ?? match[4] ?? match[0]) ? number * 12 : number;
+    if (months >= 1 && months <= 120) termMatches.push({ value: months, index: match.index! });
+  }
+  const comparesTerms = /(?:\b24\b.{0,25}\b36\b|\b36\b.{0,25}\b24\b)/i.test(text)
+    && (/months|חודשים|term|תקופה/i.test(text) || previous?.termMonths !== undefined) && /\bor\b|\bvs\b|\/|compare|between|unsure|undecided|או|מול|מתלבט/i.test(text);
+  if (comparesTerms) next.termMonths = null;
+  else if (termMatches.length) next.termMonths = termMatches.at(-1)!.value;
+  else if (/(?:term|תקופה|משך).{0,30}(?:undecided|not decided|not sure|לא החלטתי|לא סגור)|(?:לא החלטתי|לא סגור|not decided).{0,25}(?:term|תקופה)/i.test(text)) next.termMonths = null;
+
+  const annual = /לשנה|בשנה|שנתי|a year|per year|annually|annual/i.test(text);
+  if (annual || previous?.annualMileageKm !== undefined) {
+    const mileage = new RegExp(`${NUMBER}\\s*(אלף|thousand|k\\b)?\\s*(?:קילומטר(?:ים)?|ק[״"]מ|קמ|km|kilometres?|kilometers?)`, 'giu');
+    for (const match of text.matchAll(mileage)) {
+      if (negatedBefore(text, match.index!)) continue;
+      const value = amount(match[1], match[2]);
+      if (value > 0 && value <= 200000) next.annualMileageKm = value;
+    }
+    const labelledMileage = new RegExp(`(?:annual mileage|קילומטראז[׳']?\\s+שנתי)(?:\\s+(?:is|now|הוא|עכשיו))*[ :]*${NUMBER}`, 'giu');
+    for (const match of text.matchAll(labelledMileage)) {
+      if (negatedBefore(text, match.index!)) continue;
+      const value = amount(match[1]);
+      if (value > 0 && value <= 200000) next.annualMileageKm = value;
+    }
+  }
+  if (/(?:לא יודע|לא בטוח|don't know|do not know|not sure).{0,35}(?:קילומ|קמ|ק״מ|mileage|km)/i.test(text)) next.annualMileageKm = null;
+
+  const vehicleUndecided = /לא (?:בחרתי|החלטתי|יודע).{0,25}(?:רכב|דגם|סוג)|אין לי העדפה|not (?:chosen|decided|sure).{0,25}(?:car|vehicle|model)|no (?:vehicle )?preference|(?:keep|leave).{0,25}(?:car|vehicle).{0,15}open/i.test(text);
+  const comparesVehicles = /(?:קטן|קומפקט|compact|small).{0,40}(?:או|מול|\bor\b|versus|\bvs\b).{0,30}(?:משפחת|family)|(?:משפחת|family).{0,40}(?:או|מול|\bor\b|versus|\bvs\b).{0,30}(?:קטן|קומפקט|compact|small)/i.test(text);
+  if (vehicleUndecided || comparesVehicles) next.vehiclePreference = null;
+  else {
+    const choice = text.match(/(?:מעדיף|בחרתי|החלטתי על|רוצה|מחפש|לקנות|prefer|choose|chosen|decided on|want|looking for|keep|probably)\s+(?:a |the |את ה|רכב )?(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות|compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)/iu)
+      ?? text.match(/(?:^|[,;.]\s*|ל)רכב\s+(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות)/iu)
+      ?? text.trim().match(/^(?:a |רכב )?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות|compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)[.!\s]*$/iu);
+    if (choice && !negatedBefore(text, choice.index!) && !/\bif\b|\bmaybe\b|אולי|מה אם/i.test(text.slice(Math.max(0, choice.index! - 20), choice.index! + choice[0].length))) {
+      next.vehiclePreference = /שבעה|seven/i.test(choice[1]) ? 'seven_seat' : /פנאי|SUV/i.test(choice[1]) ? 'suv' : /משפחת|family/i.test(choice[1]) ? 'family' : 'compact';
+    }
+  }
+  const usage = new Set(next.usage ?? []);
+  if (/בעיר|עירוני|\bcity\b|\burban\b/i.test(text)) usage.add('city');
+  if (/למשפחה|שימוש משפחתי|family (?:use|trips)|with (?:my |our )?(?:kids|children)/i.test(text)) usage.add('family');
+  if (/ל[עא]סק|עסקי|business (?:use|leasing)|for work/i.test(text)) usage.add('business');
+  if (/נסיעות ארוכות|long.distance|long (?:trips|journeys)/i.test(text)) usage.add('long_distance');
+  if (usage.size) next.usage = [...usage].slice(0, 4);
+  if (/חשוב לי קילומטראז[׳']?\s+נמוך|מעדיף קילומטראז[׳']?\s+נמוך|low mileage (?:matters|is important|preferred)/i.test(text)) next.lowMileagePreferred = true;
+  for (const match of text.matchAll(/(\d{1,2})\s*(נוסעים|אנשים|passengers?|people|מזוודות|תיקים|bags?|suitcases?)/giu)) {
+    if (negatedBefore(text, match.index!)) continue;
+    const count = Number(match[1]);
+    if (count > 0 && count <= 20) next[/נוסעים|אנשים|passenger|people/i.test(match[2]) ? 'passengers' : 'luggage'] = count;
+  }
+  if (/זוג (?:עם|ו)\s*שני ילדים|two adults and two children|two adults with two children/i.test(text)) next.passengers = 4;
+  return next;
+}
+
+export function renderCommercialMemory(memory: CommercialMemory | undefined, locale: 'he' | 'en'): string {
+  if (!memory) return locale === 'he' ? 'עדיין לא נשמרו העדפות מסחריות.' : 'No commercial preferences have been recorded yet.';
+  const he = locale === 'he';
+  const parts: string[] = [];
+  if (memory.budget) parts.push(`${he ? 'תקציב' : 'Budget'}: ${memory.budget.amount} ${memory.budget.currency === 'unspecified' ? (he ? '(מטבע לא צוין)' : '(currency not stated)') : memory.budget.currency}`);
+  if (memory.termMonths !== undefined) parts.push(`${he ? 'תקופה' : 'Term'}: ${memory.termMonths === null ? (he ? 'טרם הוחלט' : 'undecided') : `${memory.termMonths} ${he ? 'חודשים' : 'months'}`}`);
+  if (memory.annualMileageKm !== undefined) parts.push(`${he ? 'קילומטראז׳ שנתי' : 'Annual mileage'}: ${memory.annualMileageKm === null ? (he ? 'טרם הוחלט' : 'undecided') : `${memory.annualMileageKm} km`}`);
+  const names = he ? { compact: 'קומפקטי', family: 'משפחתי', suv: 'רכב פנאי', seven_seat: 'שבעה מקומות' } : { compact: 'compact', family: 'family', suv: 'SUV', seven_seat: 'seven-seat' };
+  if (memory.vehiclePreference !== undefined) parts.push(`${he ? 'העדפת רכב' : 'Vehicle preference'}: ${memory.vehiclePreference === null ? (he ? 'פתוחה' : 'open') : names[memory.vehiclePreference]}`);
+  if (memory.passengers !== undefined) parts.push(`${he ? 'נוסעים' : 'Passengers'}: ${memory.passengers}`);
+  if (memory.luggage !== undefined) parts.push(`${he ? 'מזוודות' : 'Bags'}: ${memory.luggage}`);
+  if (memory.lowMileagePreferred) parts.push(he ? 'העדפה לקילומטראז׳ נמוך' : 'low mileage preferred');
+  if (memory.usage?.length) {
+    const usageNames = he ? { city: 'עירוני', family: 'משפחתי', business: 'עסקי', long_distance: 'נסיעות ארוכות' } : { city: 'city', family: 'family', business: 'business', long_distance: 'long-distance' };
+    parts.push(`${he ? 'שימוש' : 'Use'}: ${memory.usage.map(item => usageNames[item]).join(', ')}`);
+  }
+  return parts.length ? parts.join('; ') : he ? 'עדיין לא נשמרו העדפות מסחריות.' : 'No commercial preferences have been recorded yet.';
+}

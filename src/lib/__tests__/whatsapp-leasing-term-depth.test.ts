@@ -12,6 +12,17 @@ function conversation() {
 }
 
 describe('leasing term questions ahead of repeated intake', () => {
+  it('does not mistake towards for an urgent tow request', async () => {
+    const send = conversation();
+    await send('I am considering leasing for 24 or 36 months, 12000 km a year.');
+    await send('No representative yet please.');
+    const result = await send('I am leaning towards 24 months now. Is maintenance included, or should I budget for it separately?');
+    expect(result.source).not.toBe('safety');
+    expect(result.escalate).toBe(false);
+    expect(result.reply).toMatch(/maintenance/i);
+    expect(result.reply).not.toMatch(/stop somewhere safe|emergency services/i);
+  });
+
   it('answers the exact English comparison, maintenance and commitment sequence without repeating vehicle intake', async () => {
     const send = conversation();
     await send('Hi, I am considering leasing a car, but I am unsure whether 24 or 36 months makes sense. Mostly city driving, around 12,000 km a year.');

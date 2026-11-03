@@ -14,6 +14,18 @@ function conversation() {
 }
 
 describe('combined rental consent, corrections and private name', () => {
+  it('retains English from/on route locations without model extraction and answers a model guarantee before intake', async () => {
+    const chat = conversation();
+    const first = await chat.send('Hi, I would like to rent a compact car from Ben Gurion Airport on 8 December 2026 and return it in Tel Aviv on 13 December 2026. I am 35 and travelling alone with one suitcase.');
+    expect(first.state.booking).toMatchObject({ pickupLocation: 'Ben Gurion Airport', returnLocation: 'Tel Aviv', pickupDate: '2026-12-08', returnDate: '2026-12-13', driverAgeRange: '24-plus', passengers: 1, luggage: 1 });
+    expect(first.state.step).toBe('rental_name');
+    expect(first.reply).not.toMatch(/Where would you like to pick|Where will you return/i);
+    const model = await chat.send('Before we continue, is the exact model guaranteed, or only a car group?');
+    expect(model.reply).toContain('exact model is not guaranteed unless SmartCar explicitly confirms it');
+    expect(model.state.booking.pickupLocation).toBe('Ben Gurion Airport');
+    expect(model.state.booking.returnLocation).toBe('Tel Aviv');
+    expect(model.reply).not.toMatch(/Where would you like to pick|Where will you return/i);
+  });
   it('handles the exact Hebrew advice-to-request turn with a new return date and city', async () => {
     const chat = conversation();
     await chat.send('היי אנחנו זוג עם שני ילדים ומזוודה גדולה, צריכים רכב מ־10 עד 14 בדצמבר 2026. איסוף בתל אביב והחזרה בנתבג. אני בן 35. לא סגור איזה רכב מתאים.');

@@ -159,7 +159,7 @@ export default function WhatsAppSimulator({ endpoint = '/api/whatsapp/simulator'
                 : message.error ? 'rounded-tl-sm bg-[#FFF2ED] text-[#8D3113] ring-[#E8743B]/25' : 'rounded-tl-sm bg-[#E5F0EE] text-[#0D2B2B] ring-[#B8D8D8]'}`}>
                 {message.warning && <span className="mb-1 flex items-center gap-1 text-xs font-semibold text-[#A9471E]"><ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" /> נדרש טיפול נציג</span>}
                 {message.error && <span className="mb-1 block text-xs font-semibold">בעיה זמנית בסימולציה</span>}
-                {message.body}
+                <div dir="auto">{message.body}</div>
               </div>
             </div>
           ))}
@@ -180,7 +180,7 @@ export default function WhatsAppSimulator({ endpoint = '/api/whatsapp/simulator'
         </section>
 
         <form onSubmit={send} className="flex shrink-0 items-center gap-2 border-t border-[#0D2B2B]/10 bg-[#FCFBF8] px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5" dir="rtl" aria-label="שליחת הודעה לסימולציה">
-          <input value={draft} onChange={(event) => setDraft(event.target.value)} disabled={sending} placeholder={flowState?.locale === 'en' ? 'Type a message to SmartCar' : 'כתבו הודעה ל־SmartCar'} className="min-w-0 flex-1 rounded-xl border border-[#0D2B2B]/15 bg-white px-4 py-2.5 text-base text-[#0D2B2B] outline-none transition placeholder:text-[#7A8B87] focus:border-[#2D5F5F] focus:ring-2 focus:ring-[#B8D8D8] disabled:cursor-not-allowed disabled:bg-slate-100" />
+          <input dir="auto" value={draft} onChange={(event) => setDraft(event.target.value)} disabled={sending} placeholder={flowState?.locale === 'en' ? 'Type a message to SmartCar' : 'כתבו הודעה ל־SmartCar'} className="min-w-0 flex-1 rounded-xl border border-[#0D2B2B]/15 bg-white px-4 py-2.5 text-base text-[#0D2B2B] outline-none transition placeholder:text-[#7A8B87] focus:border-[#2D5F5F] focus:ring-2 focus:ring-[#B8D8D8] disabled:cursor-not-allowed disabled:bg-slate-100" />
           <button type="submit" disabled={!draft.trim() || sending} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E8743B] text-white transition hover:bg-[#C65E2D] focus:outline-none focus:ring-2 focus:ring-[#2D5F5F] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40" aria-label="שליחה">
             <Send className="h-4 w-4" aria-hidden="true" />
           </button>
