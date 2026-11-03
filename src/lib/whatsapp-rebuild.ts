@@ -124,7 +124,7 @@ function conversationalKnown(state: RebuildState): GeminiBotContext['known'] {
   };
 }
 
-function groundedModelReply(reading: BotReading | null, input: string, state: RebuildState): string | null {
+function groundedModelReply(reading: BotReading | null, input: string, state: RebuildState, onReject?: (reason: string) => void): string | null {
   // The provider boundary attaches this flag only after approved facts were
   // actually supplied. It is context provenance, not a promise of correctness.
   if (!reading?.groundedContext) return null;
@@ -133,9 +133,10 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
     approvedFacts: getSmartCarApprovedFacts(state.locale).map(fact => fact.text),
     handoffDeferred: Boolean(state.humanHandoffDeferred), bookingPhase: state.phase === 'booking',
     nextMissingField: state.phase === 'booking' ? nextMissing(state.booking) ?? undefined : undefined,
-    onReject: process.env.NODE_ENV === 'production'
-      ? reason => { console.warn('WhatsApp AI draft fallback', { reason }); }
-      : undefined,
+    onReject: reason => {
+      onReject?.(reason);
+      if (process.env.NODE_ENV === 'production') console.warn('WhatsApp AI draft fallback', { reason });
+    },
   });
 }
 
@@ -245,12 +246,12 @@ function cancellationRequest(input: string): boolean {
 }
 
 function explicitServiceReference(input: string): string | undefined {
-  const value = input.match(/(?:מספר\s+ה?הזמנה|booking\s+(?:number|reference))\s*(?:(?:שלי|הוא|is)\s*)*[:#]?\s*([A-Z0-9-]*\d[A-Z0-9-]{2,})(?![A-Z0-9-])/i)?.[1];
+  const value = input.match(/(?:מספר\s+ה?הזמנה|booking\s+(?:number|reference))[\s,:#]*(?:(?:שלי|הוא|it\s+is|is)[\s,:#]*)*([A-Z0-9-]*\d[A-Z0-9-]{2,})(?![A-Z0-9-])/i)?.[1];
   return value && value.length <= 40 ? value : undefined;
 }
 
 function redactServiceReference(text: string, reference?: string): string {
-  const labelled = text.replace(/((?:מספר\s+ה?הזמנה|booking\s+(?:number|reference))\s*(?:(?:שלי|הוא|is)\s*)*[:#]?\s*)[A-Z0-9-]*\d[A-Z0-9-]{2,}/gi, '$1[booking reference removed]');
+  const labelled = text.replace(/((?:מספר\s+ה?הזמנה|booking\s+(?:number|reference))[\s,:#]*(?:(?:שלי|הוא|it\s+is|is)[\s,:#]*)*)[A-Z0-9-]*\d[A-Z0-9-]{2,}/gi, '$1[booking reference removed]');
   return reference ? labelled.split(reference).join('[booking reference removed]') : labelled;
 }
 
@@ -1053,6 +1054,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         ? (he ? 'כן, אפשר לבדוק עם נציג SmartCar אפשרות לראות רכב מתאים לאחר שיוצעו דגמים זמינים. הוא יחזור אליכם עם הפרטים ויתאם את הצעד הבא.' : 'Yes, a SmartCar representative can check how to view a suitable car once available options are identified. They will follow up with the details and next step.')
       : handoffKind === 'commercial' && /תעביר|נציג|pass.*representative|send.*team/i.test(input)
         ? (he ? 'הפנייה כבר הועברה להמשך טיפול. נציג SmartCar יחזור אליכם.' : 'Your enquiry has already been passed on. A SmartCar representative will follow up.')
+      : handoffKind === 'safety' && /גרר|רכב חלופי|\btow\b|replacement (?:car|vehicle)/i.test(input)
+        && /כבר|אושר|הוזמן|הזמנתם|תיאמתם|מתואם|already|have you|has .{0,35}been|arranged|booked|confirmed|dispatched/i.test(input)
+        ? (he ? `לא ניתן כאן אישור לתיאום גרר או לרכב חלופי. הישארו במקום בטוח והתקשרו ל־SmartCar במספר ${OFFICE_PHONE} לתיאום; הגרר והזמינות של רכב חלופי דורשים אישור מפורש של SmartCar.` : `This chat has not confirmed a tow or replacement car. Stay somewhere safe and call SmartCar on ${OFFICE_PHONE} to arrange assistance; towing arrangements and replacement-car availability require explicit confirmation from SmartCar.`)
       : handoffKind === 'safety' && rentalDamage && /אין לי.{0,30}מספר|לא.{0,20}מספר הזמנה|לצלם|צילום|תמונה|photo|picture|don'?t have.{0,30}(?:reference|booking number)/i.test(input)
         && !/(?:אפשר|מותר לי|האם).{0,30}להמשיך לנסוע|האם.{0,30}לנסוע|can (?:i|we).{0,25}(?:keep driving|continue driving)|safe to drive/i.test(input)
         ? (he ? `כן, צלמו את השריטה ואת סביבת הרכב אם בטוח לעשות זאת. התקשרו ל־SmartCar בתוך שעה במספר ${OFFICE_PHONE} ודווחו גם בלי מספר הזמנה כרגע; תוכלו למסור אותו בהמשך. נציג ינחה אתכם לגבי דוח האירוע והמשך הטיפול.` : `Yes, photograph the damage and surroundings if it is safe. Call SmartCar within one hour on ${OFFICE_PHONE} even if you do not have the booking reference yet; you can provide it later. A representative will guide you on the incident report and next steps.`)
@@ -1244,6 +1248,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const gotPrivate = privateDetail(input, state, !state.interest && explicitBooking(input));
     privateTurn ||= gotPrivate;
     let reading: BotReading | null = null;
+    let modelContext: GeminiBotContext | undefined;
     if (!gotPrivate && !confirmedOffer && !resumedIntake && !(state.phase === 'booking' && affirms(input)) && !(state.phase === 'booking' && state.step === 'rental_age' && driverAgeRange(input, state)) && !EMAIL.test(input) && !/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/.test(input)) {
       // Give Gemini the current turn's explicit facts and intended intake
       // state, rather than the stale pre-message state. This preview performs
@@ -1258,18 +1263,19 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       if (modelVehicle) modelState.booking.vehicleNeed = modelVehicle;
       if (!state.interest && explicitBooking(input)) modelState.phase = 'booking';
       if (modelState.phase === 'booking') modelState.step = bookingStep(nextMissing(modelState.booking));
-      const context: GeminiBotContext = {
+      modelContext = {
         locale: state.locale, phase: modelState.phase, today: israelDate(),
         recent: state.history.filter(item => !item.private).slice(-8).map(({ from, text }) => ({ from, text: redactServiceReference(text, state.serviceReference) })),
         known: conversationalKnown(modelState),
         approvedFacts: getSmartCarApprovedFacts(state.locale),
         conversation: {
           interest: state.interest, handoffDeferred: Boolean(state.humanHandoffDeferred) || declinesHumanHandoff(input),
+          hasServiceReference: Boolean(state.serviceReference),
           nextMissingField: modelState.phase === 'booking' ? nextMissing(modelState.booking) ?? undefined : undefined,
           step: modelState.step, completedRequest: Boolean(state.completedRequestId),
         },
       };
-      reading = await (store.readTurn ?? readBotTurn)(redactServiceReference(input, state.serviceReference), context);
+      reading = await (store.readTurn ?? readBotTurn)(redactServiceReference(input, state.serviceReference), modelContext);
       if (reading) { model = reading.model; applyFields(input, state, reading); }
     }
     const statedRange = explicitDateRange(input);
@@ -1583,14 +1589,31 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // application-owned. For ordinary discussion the grounded AI answer is the
     // default; deterministic paragraphs above are the outage/rejection backup.
     if (!escalate && !state.handedOff && !gotPrivate && !state.durationClarification
-      && !state.completedRequestId && state.phase !== 'service') {
-      const draft = groundedModelReply(reading, input, state);
+      && !state.completedRequestId) {
+      const questionTurn = /[?؟]/u.test(input) || reading?.route === 'policy';
+      const canUseDraft = state.phase !== 'booking' || questionTurn;
+      let rejectionReason: string | undefined;
+      let draft = groundedModelReply(reading, input, state, reason => { rejectionReason = reason; });
+      // One wording-only correction: no new extraction, routing or action.
+      // The rejected draft is never included in the correction request.
+      if (!draft && rejectionReason && reading?.groundedContext && modelContext && canUseDraft) {
+        const correction = await (store.readTurn ?? readBotTurn)(redactServiceReference(input, state.serviceReference), {
+          ...modelContext, phase: state.phase, known: conversationalKnown(state), replyCorrection: rejectionReason,
+          conversation: {
+            ...modelContext.conversation, interest: state.interest, handoffDeferred: Boolean(state.humanHandoffDeferred),
+            hasServiceReference: Boolean(state.serviceReference),
+            nextMissingField: state.phase === 'booking' ? nextMissing(state.booking) ?? undefined : undefined,
+            step: state.step, completedRequest: Boolean(state.completedRequestId),
+          },
+        });
+        draft = groundedModelReply(correction, input, state);
+        if (draft && correction) model = correction.model;
+      }
       if (draft) {
         const waitingForFinalConsent = state.phase === 'booking' && state.step === 'rental_confirm';
-        const questionTurn = /[?؟]/u.test(input) || reading?.route === 'policy';
         // A data-only intake turn must ask the one missing field chosen by the
         // application. The model answers side questions, not intake workflow.
-        if (state.phase !== 'booking' || questionTurn) {
+        if (canUseDraft) {
           const firstMissing = state.phase === 'booking' && !wasBooking ? nextMissing(state.booking) : null;
           // On entering intake, keep the model's substantive answer and let
           // code ask the single concrete missing field, including private ones.
@@ -1616,7 +1639,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   }
 
   const asksReferenceRecall = /(?:מספר\s+ה?הזמנה|booking\s+(?:number|reference))/i.test(input)
-    && /שוב|כבר יש|כבר מסרתי|צריך לשלוח|again|already have|already (?:gave|provided|sent)|need to (?:send|provide)/i.test(input);
+    && /שוב|כבר יש|כבר מסרתי|צריך לשלוח|תזכיר|הזכר|איזה.{0,30}(?:מסרתי|נתתי|שלחתי)|again|already have|already (?:gave|provided|sent)|need to (?:send|provide)|remind|which.{0,45}(?:gave|provided|sent)/i.test(input);
   if (asksReferenceRecall && state.serviceReference) {
     const acknowledgement = he ? `מספר ההזמנה ${state.serviceReference} כבר שמור בפנייה; אין צורך לשלוח אותו שוב.` : `Your booking reference ${state.serviceReference} is already saved in the enquiry; you do not need to send it again.`;
     reply = /מחיר|אישור|אושר|זיכוי|price|approv|refund/i.test(input) ? `${reply} ${acknowledgement}` : acknowledgement;

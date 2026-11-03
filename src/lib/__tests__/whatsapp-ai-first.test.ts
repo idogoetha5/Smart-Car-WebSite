@@ -27,6 +27,102 @@ function ready(): RebuildState {
 }
 
 describe('grounded AI voice with application-owned rental actions', () => {
+  it('answers current service driving, approval and price questions before a reference is available', async () => {
+    const session = chat();
+    const first = 'Plan to return at your original agreed time unless SmartCar confirms an extension beforehand. You cannot assume permission to keep driving past that deadline. Extra days may have a different rate.';
+    const second = 'Yes, keep the original return time in your plans until an extension is explicitly confirmed. The additional days may cost a different rate, so the current daily price is not guaranteed.';
+    session.readTurn.mockResolvedValueOnce(reading(first, 'service')).mockResolvedValueOnce(reading(second, 'service'));
+    const result = await session.send('Hi, I have an existing rental due back tomorrow. I am thinking of keeping it two more days, but have not decided. Can I just keep driving, or does an extension need approval first?');
+    expect(result.reply).toBe(first);
+    expect(result.source).toBe('gemini');
+    expect(result.state.phase).toBe('service');
+    expect(result.state.handedOff).not.toBe(true);
+    expect(result.escalate).not.toBe(true);
+    const followup = await session.send('I do not have the reference handy yet. Just to be clear, until I get approval should I still plan to return it at the original time, and could the extra days cost a different rate?');
+    expect(followup.reply).toBe(second);
+    expect(followup.reply).not.toMatch(/what.*reference|send.*reference/i);
+    expect(followup.source).toBe('gemini');
+    expect(followup.escalate).not.toBe(true);
+    expect(session.readTurn).toHaveBeenCalledTimes(2);
+    const context = session.readTurn.mock.calls[1][1];
+    expect(context.phase).toBe('service');
+    expect(context.conversation?.hasServiceReference).toBe(false);
+    expect(context.approvedFacts?.find(fact => fact.id === 'rental_extension')?.text).toContain('original agreed return deadline remains binding');
+    expect(session.create).not.toHaveBeenCalled();
+  });
+
+  it('keeps an explicit service change plus reference and a later cancellation code-owned', async () => {
+    const session = chat();
+    session.readTurn.mockResolvedValue(reading('You may discuss options without committing to a change.', 'service'));
+    await session.send('I have an existing rental and might need two extra days.');
+    const changed = await session.send('My booking reference is 654321. Please extend the rental by one day. Has the extension been approved?');
+    expect(changed.source).toBe('local');
+    expect(changed.escalate).toBe(true);
+    expect(changed.state.handoffKind).toBe('booking_change');
+    expect(changed.state.serviceReference).toBe('654321');
+    expect(changed.reply).toMatch(/not approved|until explicitly confirmed/i);
+    const referenceContext = session.readTurn.mock.calls.at(-1)![1];
+    expect(referenceContext.conversation?.hasServiceReference).toBe(true);
+    expect(JSON.stringify(referenceContext)).not.toContain('654321');
+    session.readTurn.mockClear();
+    const recall = await session.send('So you have not approved the extension automatically, right? Please remind me which booking reference I gave you.');
+    expect(recall.reply).toMatch(/not approved|until SmartCar explicitly confirms/i);
+    expect(recall.reply).toContain('654321');
+    expect(recall.reply).not.toMatch(/what is.*reference|please send.*reference/i);
+    const hebrewRecall = await session.send('תזכיר לי איזה מספר הזמנה נתתי לך? ההארכה עדיין לא אושרה נכון?');
+    expect(hebrewRecall.reply).toContain('654321');
+    expect(hebrewRecall.reply).toMatch(/לא אושר/);
+    const cancelled = await session.send('Actually please cancel this rental instead.');
+    expect(cancelled.source).toBe('local');
+    expect(cancelled.state.handoffKind).toBe('booking_change');
+    expect(cancelled.reply).toMatch(/cancel|confirm/i);
+    expect(session.readTurn).not.toHaveBeenCalled();
+    expect(session.create).not.toHaveBeenCalled();
+  });
+
+  it('corrects a rejected compound child-seat and price answer once using only its reason and public state', async () => {
+    const session = chat();
+    const unsafe = 'כיסא הבטיחות מובטח. המחיר תלוי ברכב.';
+    const corrected = 'אפשר לבקש כיסא בטיחות בכפוף לזמינות ולהתאמה לרכב המסוים. המחיר המדויק תלוי בתאריכים, בסוג הרכב ובתוספות המבוקשות, ונדרש אישור SmartCar להצעה.';
+    session.readTurn.mockResolvedValueOnce(reading(unsafe, 'policy')).mockResolvedValueOnce({ ...reading(corrected, 'book'), fields: { pickupDate: { value: '2027-01-10', evidence: 'fabricated' } } });
+    const result = await session.send('אנחנו זוג ושני ילדים עם מזוודה אחת. אפשר לבקש כיסא בטיחות, ומה קובע את המחיר?');
+    expect(session.readTurn).toHaveBeenCalledTimes(2);
+    const correctionContext = session.readTurn.mock.calls[1][1];
+    expect(correctionContext.replyCorrection).toBe('assurance');
+    expect(correctionContext.known).toMatchObject({ passengers: 4, luggage: 1 });
+    expect(correctionContext.conversation).toMatchObject({ step: 'menu', completedRequest: false });
+    expect(correctionContext.approvedFacts?.length).toBeGreaterThan(0);
+    expect(JSON.stringify(correctionContext)).not.toContain(unsafe);
+    expect(result.reply).toBe(corrected);
+    expect(result.source).toBe('gemini');
+    expect(result.state.phase).toBe('explore');
+    expect(result.state.booking.pickupDate).toBeUndefined();
+    expect(session.create).not.toHaveBeenCalled();
+    expect(result.escalate).not.toBe(true);
+  });
+
+  it.each([null, reading('The child seat is guaranteed.', 'policy')])('falls back safely after a null or rejected correction without a third call: %s', async correction => {
+    const session = chat();
+    session.readTurn.mockResolvedValueOnce(reading('The child seat is guaranteed.', 'policy')).mockResolvedValueOnce(correction);
+    const input = 'Can I request a child seat, and what determines the price?';
+    const result = await session.send(input);
+    const baseline = await chat().send(input);
+    expect(session.readTurn).toHaveBeenCalledTimes(2);
+    expect(result.reply).toBe(baseline.reply);
+    expect(result.source).toBe('local');
+    expect(session.create).not.toHaveBeenCalled();
+    expect(result.escalate).not.toBe(true);
+  });
+
+  it.each([null, { ...reading('The child seat is guaranteed.', 'policy'), groundedContext: false }])('does not retry a missing or ungrounded initial draft: %s', async first => {
+    const session = chat();
+    session.readTurn.mockResolvedValue(first);
+    const result = await session.send('Can I request a child seat, and what determines the price?');
+    expect(session.readTurn).toHaveBeenCalledTimes(1);
+    expect(result.source).toBe('local');
+    expect(session.create).not.toHaveBeenCalled();
+  });
+
   it.each([
     {
       locale: 'he' as const,

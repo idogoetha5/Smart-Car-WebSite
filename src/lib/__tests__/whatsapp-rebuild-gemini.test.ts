@@ -10,6 +10,16 @@ const context = { locale: 'he' as const, phase: 'explore' as const, recent: [], 
 beforeEach(() => { vi.clearAllMocks(); mocks.evaluation.mockReturnValue(undefined); });
 
 describe('replacement Gemini boundary', () => {
+  it('passes a correction category and asks for a fresh whole-question answer without rejected draft content', async () => {
+    mocks.generate.mockResolvedValue({ ok: true, text: JSON.stringify({ route: 'policy', direction: 'none', reply: 'A child seat can be requested subject to availability and fit; the exact price depends on the dates and extras.', fields: {} }) });
+    await readBotTurn('Can I request a child seat, and what determines the price?', { ...context, locale: 'en', approvedFacts: getSmartCarApprovedFacts('en'), replyCorrection: 'assurance' });
+    const body = mocks.generate.mock.calls[0][0].body;
+    const payload = JSON.parse(body.contents[0].parts[0].text);
+    expect(payload.replyCorrection).toBe('assurance');
+    expect(payload).not.toHaveProperty('rejectedDraft');
+    expect(body.systemInstruction.parts[0].text).toContain('Regenerate a fresh answer to ALL parts');
+  });
+
   it('supplies approved business grounding and conversation state while redacting customer contacts', async () => {
     const reply = 'For 24 versus 36 months, compare the same car and annual mileage, total payments and exit terms. A family car usually gives more room, while a compact is easier to park. Which matters more to you?';
     mocks.generate.mockResolvedValue({ ok: true, text: JSON.stringify({ route: 'leasing', direction: 'none', reply, fields: {} }) });

@@ -99,6 +99,9 @@ export type SmartCarApprovedFact = { id: string; text: string };
 export function getSmartCarApprovedFacts(locale: ServiceLocale): SmartCarApprovedFact[] {
   return [
     ...Object.values(ANSWERS).map(answer => ({ id: answer.topic, text: answer[locale] })),
+    { id: 'rental_extension', text: locale === 'he'
+      ? 'הארכת השכרה דורשת בדיקת זמינות ואישור מפורש של SmartCar לפני מועד ההחזרה הקיים. עד לאישור, מועד ההחזרה המקורי נשאר בתוקף; אין להניח שמותר להמשיך להחזיק ברכב מעבר לו. המחיר לימים הנוספים עשוי להשתנות ואינו מובטח כמחיר היומי המקורי. אפשר להסביר זאת גם אם מספר ההזמנה עדיין אינו זמין; שיחת בירור אינה אישור הארכה.'
+      : 'A rental extension requires an availability check and explicit SmartCar confirmation before the existing return deadline. Until confirmed, the original agreed return deadline remains binding; do not assume permission to keep the car beyond it. Extra days may have a different rate; the original daily price is not guaranteed. These conditions can be explained even when the booking reference is not handy. An advisory discussion is not extension approval.' },
     { id: 'request_boundary', text: locale === 'he'
       ? 'בקשת השכרה דורשת תאריכי איסוף והחזרה, מיקומים, צרכי רכב, קבוצת גיל נהג 21–23 או 24+, שם ומספר WhatsApp שמגיע מהשיחה. מייל אינו חובה. הבקשה, המחיר והרכב מחייבים אישור SmartCar; אין לאשר בשיחה הזמנה, שינוי, ביטול או זיכוי.'
       : 'A rental request needs pickup and return dates, locations, vehicle needs, driver age group 21–23 or 24+, a name and the WhatsApp number supplied by the channel. Email is optional. The request, price and vehicle require SmartCar confirmation; never approve a booking, change, cancellation or refund in chat.' },
