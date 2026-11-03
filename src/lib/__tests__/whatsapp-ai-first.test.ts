@@ -229,6 +229,26 @@ describe('grounded AI voice with application-owned rental actions', () => {
     expect(session.readTurn.mock.calls[0][1].known).not.toHaveProperty('customerName');
   });
 
+  it('keeps the seat and price answer but leaves final consent solely to the canonical summary', async () => {
+    const initial = ready();
+    initial.booking.childSeats = 1;
+    const session = chat(initial);
+    const answer = 'The child seat can be requested subject to availability and fit for the specific car. The exact price depends on the dates, vehicle and extras, and needs SmartCar confirmation.';
+    session.readTurn.mockResolvedValue(reading(`${answer} Would you like to proceed with adding the child seat?`, 'policy'));
+    const result = await session.send('Can you include a child seat, and what affects the price? Please do not send the request yet.');
+    expect(result.source).toBe('gemini');
+    expect(result.reply.startsWith(`${answer}\n\nHere are your request details:`)).toBe(true);
+    expect(result.reply).not.toContain('Would you like to proceed');
+    expect(result.reply).toContain('Requested child seats: 1');
+    expect(result.reply).toContain(termsConsent('en').text);
+    expect(result.reply).toContain('https://www.smartcar.co.il/en/terms');
+    expect(result.reply).toContain('reply “I confirm” to send the request');
+    expect(result.state.step).toBe('rental_confirm');
+    expect(result.state.booking).toEqual(initial.booking);
+    expect(result.escalate).not.toBe(true);
+    expect(session.create).not.toHaveBeenCalled();
+  });
+
   it.each([
     'The price is 99 shekels, guaranteed.',
     'We have a car available for your dates.',

@@ -1487,12 +1487,17 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const booking = await store.activeBooking(phone);
       const answer = getSmartCarServiceAnswer(input, state.locale);
       const cancellationPending = state.history.some(entry => entry.from === 'customer' && cancellationRequest(entry.text));
-      const suppliedReference = /(?:מספר\s+ה?הזמנה|booking\s+(?:number|reference)|reference)\s*(?:(?:שלי|הוא|is)\s*)*[:#]?\s*[A-Z0-9-]*\d[A-Z0-9-]{2,}/i.test(input)
-        || (/^[A-Z0-9-]*\d[A-Z0-9-]{2,}$/i.test(input) && /מספר הזמנה|booking reference/i.test(state.history.at(-1)?.text ?? ''));
+      // The reference was parsed and retained once above, including natural
+      // punctuation. Re-parsing here creates conflicting workflow decisions.
+      const suppliedReference = Boolean(state.serviceReference);
       const changePending = rentalChangeRequest(input) || state.history.some(entry => entry.from === 'customer' && rentalChangeRequest(entry.text));
       const directChangeVerb = /לשנות|לשינוי|להאריך|לדחות|לדחייה|להקדים|להזיז|יום ההחזרה|יום מאוחר|change|extend|postpone|move (?:the )?return|return date/i.test(input);
-      if (!cancellationPending && changePending && !directChangeVerb && !suppliedReference && !booking
-        && !state.history.some(entry => entry.from === 'customer' && /(?:booking\s+(?:number|reference)|מספר\s+ה?הזמנה).{0,25}\d{3,}/i.test(entry.text))) {
+      // A known reference is a fact, not consent to a hypothetical change.
+      // This narrow deferral boundary does not infer every service intent.
+      const advisoryChange = /\b(?:what if|if (?:I|we) (?:ever )?(?:need|needed|wanted)|may need|might need|not requesting|only asking|just asking)\b|מה (?:קורה |יקרה )?אם|אם (?:אצטרך|נצטרך|ארצה)|אולי (?:אצטרך|נצטרך)|רק (?:שואל|שואלת|מברר|מבררת)|לא מבקש(?:ת)? (?:שינוי|הארכה)/i.test(input);
+      if (!cancellationPending && changePending && advisoryChange) {
+        reply = he ? 'אפשר לברר על הארכה בלי להגיש בקשת שינוי כרגע. הארכה כפופה לזמינות, לתנאים ולאישור SmartCar; עד לאישור, מועד ההחזרה הקיים נשאר בתוקף והמחיר עשוי להשתנות.' : 'We can discuss an extension without submitting a change request now. An extension depends on availability, terms and SmartCar confirmation; until confirmed, the current return deadline remains in effect and the price may change.';
+      } else if (!cancellationPending && changePending && !directChangeVerb && !suppliedReference && !booking) {
         reply = he ? 'אפשר לבדוק בקשה להארכה; היא כפופה לזמינות ולאישור, וגם המחיר עשוי להשתנות. מה מספר ההזמנה?' : 'We can review an extension request; it is subject to availability and confirmation, and the price may change. What is your booking reference?';
       } else if (!cancellationPending && changePending) {
         state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'booking_change'; escalate = true;
@@ -1617,8 +1622,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           const firstMissing = state.phase === 'booking' && !wasBooking ? nextMissing(state.booking) : null;
           // On entering intake, keep the model's substantive answer and let
           // code ask the single concrete missing field, including private ones.
-          const answer = firstMissing ? draft.replace(/[^.!?؟]*[?؟]\s*$/u, '').trim() : draft;
-          reply = waitingForFinalConsent ? `${draft}\n\n${summary(state)}`
+          const answer = firstMissing || waitingForFinalConsent ? draft.replace(/[^.!?؟]*[?؟]\s*$/u, '').trim() : draft;
+          reply = waitingForFinalConsent ? `${answer ? `${answer}\n\n` : ''}${summary(state)}`
             : firstMissing ? `${answer ? `${answer}\n\n` : ''}${question(firstMissing, state.locale)}` : draft;
           source = 'gemini';
         }
