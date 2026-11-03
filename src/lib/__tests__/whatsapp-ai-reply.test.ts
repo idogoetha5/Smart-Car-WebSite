@@ -95,6 +95,22 @@ describe('output checks for natural conversational drafts', () => {
     expect(check('What name should I put on the request?', { bookingPhase: true, nextMissingField: 'customerName' })).not.toBeNull();
   });
 
+  it.each([
+    'Would you like to proceed with setting up your family car request for December?',
+    'Shall we continue with the booking?',
+    'Would you like to set up the request?',
+    'תרצו להתקדם עם בקשת ההזמנה?',
+    'האם לפתוח בקשה?',
+    'נתקדם לפתיחת בקשה?',
+  ])('rejects renewed workflow consent during active booking: %s', reply => {
+    expect(check(reply, { locale: /[א-ת]/.test(reply) ? 'he' : 'en', bookingPhase: true, nextMissingField: 'customerName' })).toBeNull();
+  });
+
+  it('allows a topical follow-up question during active booking', () => {
+    const reply = 'Is there any insurance part I can explain?';
+    expect(check(reply, { bookingPhase: true, nextMissingField: 'customerName' })).toBe(reply);
+  });
+
   it('checks language, length and question count', () => {
     expect(check('שלום')).toBeNull();
     expect(check('Hello', { locale: 'he' })).toBeNull();

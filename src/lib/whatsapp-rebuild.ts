@@ -264,7 +264,8 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
   if (sameCity) { draft.pickupLocation = sameCity; draft.returnLocation = sameCity; return; }
   const stop = '(?=\\s+(?:ו?החזרה|להחזיר|(?:and\\s+)?return|(?:and\\s+)?drop.?off|ב[-־]?\\s*\\d)|[,.!?]|$)';
   const hePickup = input.match(new RegExp(`(?:איסוף|לאסוף)\\s+[במ]([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
-  const enPickup = input.match(new RegExp(`pick.?up\\s+(?:at|from|in)\\s+([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
+  const enPickupStop = stop.replace('(?=', '(?=\\s+on\\s+\\d{1,2}|');
+  const enPickup = input.match(new RegExp(`pick.?up\\s+(?:at|from|in)\\s+([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${enPickupStop}`, 'iu'))?.[1];
   const enFromPickup = /rent|rental|pick.?up/i.test(input)
     ? input.match(/\bfrom\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+on\s+\d{1,2})/iu)?.[1]
     : undefined;
@@ -289,7 +290,7 @@ function explicitBooking(input: string): boolean {
   if (/(?:לא רוצה|לא רוצים|לא מעוניין|אל).{0,15}(?:להתחיל|להתחילו?|לפתוח).{0,12}(?:בקשה|הזמנה)/i.test(input)) return false;
   if (/לא רוצה להזמין|לא רוצה לשכור|רק מתעניין|רק שואל|לא עכשיו|not ready|just asking|don't book|do not book/i.test(input)) return false;
   if (/[?؟]/.test(input) && /כדאי|האם|should|would it|how/i.test(input)) return false;
-  if (/(?:כן[,\s]*)?נתחיל\s+(?:בקשה|הזמנה)|\b(?:let'?s|let us)\s+start\s+(?:a\s+)?(?:request|booking)\b/i.test(input)) return true;
+  if (/(?:כן[,\s]*)?נתחיל\s+(?:בקשה|הזמנה)|\b(?:let'?s|let us)\s+start\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b|\bI\s+(?:want|would like)\s+to\s+(?:start|open)\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b/i.test(input)) return true;
   if (/^(?:כן[,\s]*)?כבר ביקשתי להתחיל[.!\s]*$/i.test(input)) return true;
   if (/(?:אני רוצה|אנחנו רוצים|רוצה|רוצים|כבר ביקשתי)\s+(?:להתחיל|לפתוח)(?:\s+(?:את ה|את|ה))?\s*(?:בקשה|הזמנה)/i.test(input)) return true;
   if (/^I need (?:a )?(?:(?:compact|small|family|SUV|seven[- ]?seat) )?rental car\b/i.test(input)) return true;
@@ -1218,15 +1219,28 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     privateTurn ||= gotPrivate;
     let reading: BotReading | null = null;
     if (!gotPrivate && !confirmedOffer && !resumedIntake && !(state.phase === 'booking' && affirms(input)) && !(state.phase === 'booking' && state.step === 'rental_age' && driverAgeRange(input, state)) && !EMAIL.test(input) && !/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/.test(input)) {
+      // Give Gemini the current turn's explicit facts and intended intake
+      // state, rather than the stale pre-message state. This preview performs
+      // no persistence, consent, handoff or request-creation action.
+      const modelState = structuredClone(state);
+      const modelRange = explicitDateRange(input);
+      if (modelRange) Object.assign(modelState.booking, modelRange);
+      applyExplicitLocations(input, modelState.booking);
+      const modelAge = driverAgeRange(input, state);
+      if (modelAge) modelState.booking.driverAgeRange = modelAge;
+      const modelVehicle = customerVehicleChoice(input, state);
+      if (modelVehicle) modelState.booking.vehicleNeed = modelVehicle;
+      if (!state.interest && explicitBooking(input)) modelState.phase = 'booking';
+      if (modelState.phase === 'booking') modelState.step = bookingStep(nextMissing(modelState.booking));
       const context: GeminiBotContext = {
-        locale: state.locale, phase: state.phase, today: israelDate(),
+        locale: state.locale, phase: modelState.phase, today: israelDate(),
         recent: state.history.filter(item => !item.private).slice(-8).map(({ from, text }) => ({ from, text: redactServiceReference(text, state.serviceReference) })),
-        known: conversationalKnown(state),
+        known: conversationalKnown(modelState),
         approvedFacts: getSmartCarApprovedFacts(state.locale),
         conversation: {
           interest: state.interest, handoffDeferred: Boolean(state.humanHandoffDeferred) || declinesHumanHandoff(input),
-          nextMissingField: state.phase === 'booking' ? nextMissing(state.booking) ?? undefined : undefined,
-          step: state.step, completedRequest: Boolean(state.completedRequestId),
+          nextMissingField: modelState.phase === 'booking' ? nextMissing(modelState.booking) ?? undefined : undefined,
+          step: modelState.step, completedRequest: Boolean(state.completedRequestId),
         },
       };
       reading = await (store.readTurn ?? readBotTurn)(redactServiceReference(input, state.serviceReference), context);
@@ -1551,7 +1565,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         // A data-only intake turn must ask the one missing field chosen by the
         // application. The model answers side questions, not intake workflow.
         if (state.phase !== 'booking' || questionTurn) {
-          reply = waitingForFinalConsent ? `${draft}\n\n${summary(state)}` : draft;
+          const firstMissing = state.phase === 'booking' && !wasBooking ? nextMissing(state.booking) : null;
+          // On entering intake, keep the model's substantive answer and let
+          // code ask the single concrete missing field, including private ones.
+          const answer = firstMissing ? draft.replace(/[^.!?؟]*[?؟]\s*$/u, '').trim() : draft;
+          reply = waitingForFinalConsent ? `${draft}\n\n${summary(state)}`
+            : firstMissing ? `${answer ? `${answer}\n\n` : ''}${question(firstMissing, state.locale)}` : draft;
           source = 'gemini';
         }
       }

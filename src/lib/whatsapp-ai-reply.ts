@@ -92,5 +92,6 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (knownValue('commercialTermMonths', 'termMonths') && /how long.{0,35}(?:need|lease|term)|what term|לכמה זמן|מה התקופה/i.test(question)) return null;
   if (knownValue('commercialAnnualMileageKm', 'annualMileageKm') && /how many.{0,25}(?:kilometres|kilometers|km)|annual mileage|כמה.{0,15}(?:קילומטר|קמ|ק״מ)/i.test(question)) return null;
   if (args.bookingPhase && args.nextMissingField && /shall we start|would you like to start|שנתחיל בקשה|נתחיל בקשה/i.test(question)) return null;
+  if (args.bookingPhase && args.nextMissingField && /(?:would you like|do you want|shall we|should we|can we|ready to)[^.!?\n]{0,65}(?:proceed|continue|set(?:ting)? up|open|start)[^.!?\n]{0,75}(?:request|booking|reservation)|(?:תרצ(?:ה|ו)|רוצ(?:ה|ים)|אפשר|האם|שנמשיך|שנתקדם)[^.!?\n]{0,55}(?:להתקדם|נתקדם|להמשיך|לפתוח|להתחיל)[^.!?\n]{0,55}(?:בקשה|הזמנה)|(?:נתקדם|נמשיך|נפתח)[^.!?\n]{0,35}(?:בקשה|הזמנה)/i.test(question)) return null;
   return reply;
 }

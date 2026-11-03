@@ -28,6 +28,44 @@ function ready(): RebuildState {
 
 describe('grounded AI voice with application-owned rental actions', () => {
   it.each([
+    {
+      locale: 'he' as const,
+      input: 'בסדר, נבחר משפחתי ונתחיל בקשה. איסוף בתל אביב ב־10 בדצמבר 2026 והחזרה בנתבג ב־14 בדצמבר 2026. אני בן 35. איזה דגם משפחתי בדיוק אקבל?',
+      answer: 'אפשר לציין העדפה למשפחתית, אבל הדגם המסוים תלוי בזמינות ובאישור SmartCar.',
+      followup: 'חשוב לכם תא מטען גדול?',
+      question: 'על איזה שם לרשום את הבקשה?',
+      vehicle: 'רכב משפחתי', pickup: 'תל אביב', returned: 'נתבג',
+    },
+    {
+      locale: 'en' as const,
+      input: 'I choose a family car and I want to start a rental request. Pickup in Tel Aviv on 10 December 2026 and return at Ben Gurion Airport on 14 December 2026. I am 35. Which exact family model will I get?',
+      answer: 'You can state a family-car preference, but the specific model depends on availability and SmartCar confirmation.',
+      followup: 'Would extra luggage space help?',
+      question: 'What name should I put on the request?',
+      vehicle: 'family car', pickup: 'Tel Aviv', returned: 'Ben Gurion Airport',
+    },
+  ])('previews current intake facts and answers the exact-model question before requesting a name ($locale)', async scenario => {
+    const session = chat({ version: 2, locale: scenario.locale, phase: 'explore', step: 'menu', history: [], booking: { passengers: 4, luggage: 1 } });
+    session.readTurn.mockResolvedValue(reading(`${scenario.answer} ${scenario.followup}`, 'book'));
+    const result = await session.send(scenario.input);
+    expect(session.readTurn).toHaveBeenCalledTimes(1);
+    const context = session.readTurn.mock.calls[0][1];
+    expect(context.phase).toBe('booking');
+    expect(context.conversation).toMatchObject({ nextMissingField: 'customerName', step: 'rental_name', completedRequest: false });
+    const facts = { passengers: 4, luggage: 1, pickupDate: '2026-12-10', returnDate: '2026-12-14', pickupLocation: scenario.pickup, returnLocation: scenario.returned, vehicleNeed: scenario.vehicle, driverAgeRange: '24-plus' };
+    expect(context.known).toMatchObject(facts);
+    expect(context.known).not.toHaveProperty('customerName');
+    expect(result.state.booking).toMatchObject(facts);
+    expect(result.state.phase).toBe('booking');
+    expect(result.state.step).toBe('rental_name');
+    expect(result.reply).toBe(`${scenario.answer}\n\n${scenario.question}`);
+    expect(result.source).toBe('gemini');
+    expect(result.reply).not.toMatch(/shall we start|would you like to start|נתחיל בקשה|שנתחיל/i);
+    expect(session.create).not.toHaveBeenCalled();
+    expect(result.escalate).not.toBe(true);
+  });
+
+  it.each([
     'מעולה, מה שנותר הוא לאשר את שמות הנוסעים. מה שמות כל הנוסעים?',
     'מעולה, שמרנו את פרטי הנסיעה שציינת.',
   ])('keeps the next intake question application-owned when proceeding with a request: %s', async draft => {
