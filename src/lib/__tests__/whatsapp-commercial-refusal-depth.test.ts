@@ -12,6 +12,19 @@ function conversation() {
 }
 
 describe('commercial questions alongside a representative refusal', () => {
+  it.each([
+    ['אני רוצה לקנות רכב בתקציב 70000 שקל.', 'בלי נציג כרגע.', 'בעצם התקציב 60000. אפשר לראות רכב לפני שמחליטים, והאם המסירה של הפרטים פה מחייבת לקנות?', /צפייה/, /אינן מחייבות/],
+    ['I want to buy a car, budget 70000 shekels.', 'No representative yet please.', 'Actually my budget is 60000. Can I see the car before deciding, and does sharing my details commit me to a purchase?', /view|test drive/i, /does not commit/i],
+  ])('answers viewing and commitment in the same turn', async (opening, refusal, question, viewing, commitment) => {
+    const send = conversation();
+    await send(String(opening));
+    await send(String(refusal));
+    const result = await send(String(question));
+    expect(result.reply).toMatch(viewing);
+    expect(result.reply).toMatch(commitment);
+    expect(result.escalate).toBe(false);
+  });
+
   it('answers the Hebrew family comparison and viewing question while respecting refusal', async () => {
     const send = conversation();
     await send('אני רוצה לקנות רכב, תקציב 70000');
