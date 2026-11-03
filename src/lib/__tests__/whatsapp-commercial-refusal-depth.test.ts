@@ -12,6 +12,15 @@ function conversation() {
 }
 
 describe('commercial questions alongside a representative refusal', () => {
+  it('does not ask again about the stroller mentioned in the comparison question', async () => {
+    const send = conversation();
+    await send('אני רוצה לקנות רכב בתקציב של 70000 שקל.');
+    const result = await send('בלי נציג כרגע. רוצה להבין את ההבדל בין רכב קטן למשפחתי למשפחה של ארבעה, עם עגלה לפעמים.');
+    expect(result.reply).toContain('לציוד שכבר ציינתם');
+    expect(result.reply).not.toContain('איזה ציוד');
+    expect(result.escalate).toBe(false);
+  });
+
   it.each([
     ['אני רוצה לקנות רכב בתקציב 70000 שקל.', 'בלי נציג כרגע.', 'בעצם התקציב 60000. אפשר לראות רכב לפני שמחליטים, והאם המסירה של הפרטים פה מחייבת לקנות?', /צפייה/, /אינן מחייבות/],
     ['I want to buy a car, budget 70000 shekels.', 'No representative yet please.', 'Actually my budget is 60000. Can I see the car before deciding, and does sharing my details commit me to a purchase?', /view|test drive/i, /does not commit/i],

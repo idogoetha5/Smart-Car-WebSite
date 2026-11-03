@@ -2,6 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { updateCommercialMemory, renderCommercialMemory } from '@/lib/whatsapp-commercial-memory';
 
 describe('durable explicit commercial facts', () => {
+  it.each([
+    ['I prefer a family car.', 'Could I view a car in person before deciding? I have not chosen a specific model.'],
+    ['מעדיף משפחתי', 'אפשר לראות רכב לפני החלטה? עוד לא בוחר דגם.'],
+  ])('retains a category preference when only the exact model is undecided: %s', (choice, question) => {
+    const memory = updateCommercialMemory(updateCommercialMemory(undefined, choice), question);
+    expect(memory.vehiclePreference).toBe('family');
+    expect(updateCommercialMemory(memory, 'Not sure which car type yet.').vehiclePreference).toBeNull();
+    expect(updateCommercialMemory(memory, 'No vehicle preference.').vehiclePreference).toBeNull();
+  });
+  it('captures a natural Hebrew budget-of phrase while the vehicle choice is undecided', () => {
+    const memory = updateCommercialMemory(undefined, 'אני רוצה לקנות רכב בתקציב של 70000 שקל. רוב השבוע לבד בעיר ובסופשים זוג ושני ילדים. אני מתלבט בין קטן למשפחתי.');
+    expect(memory.budget).toEqual({ amount: 70000, currency: 'ILS' });
+  });
   it('retains latest English corrections beyond twelve advisory turns', () => {
     let memory = updateCommercialMemory(undefined, 'My budget is 70000 shekels. I want a compact car, leasing for two years and 12,000 km a year. Mostly city driving.');
     expect(memory).toMatchObject({ budget: { amount: 70000, currency: 'ILS' }, termMonths: 24, annualMileageKm: 12000, vehiclePreference: 'compact' });

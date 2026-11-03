@@ -23,7 +23,7 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   const text = message.slice(0, 1000)
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '')
     .replace(/(?<!\d)(?:\+972|0[2-9])[\d ()-]{7,}/g, '');
-  const budget = new RegExp(`(?:תקציב|budget)(?:\\s+(?:עכשיו|שלי|הוא|שלנו|עד|סביב|ירד|עלה|ל|is|now|of|up to|around|to|reduced|changed))*[ :₪$€־-]*${NUMBER}\\s*(אלף|thousand|k\\b)?`, 'giu');
+  const budget = new RegExp(`(?:תקציב|budget)(?:\\s+(?:עכשיו|שלי|הוא|שלנו|של|עד|סביב|ירד|עלה|ל|is|now|of|up to|around|to|reduced|changed))*[ :₪$€־-]*${NUMBER}\\s*(אלף|thousand|k\\b)?`, 'giu');
   for (const match of text.matchAll(budget)) {
     if (negatedBefore(text, match.index!)) continue;
     const value = amount(match[1], match[2]);
@@ -82,7 +82,12 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   }
   if (/(?:לא יודע|לא בטוח|don't know|do not know|not sure).{0,35}(?:קילומ|קמ|ק״מ|mileage|km)/i.test(text)) next.annualMileageKm = null;
 
-  const vehicleUndecided = /לא (?:בחרתי|החלטתי|יודע).{0,25}(?:רכב|דגם|סוג)|אין לי העדפה|not (?:chosen|decided|sure).{0,25}(?:car|vehicle|model)|no (?:vehicle )?preference|(?:keep|leave).{0,25}(?:car|vehicle).{0,15}open/i.test(text);
+  // A preferred category (family/compact) can be known while the exact model
+  // is still undecided. Only category-level uncertainty clears that preference.
+  const categoryUncertainty = text
+    .replace(/not (?:chosen|decided|sure).{0,30}(?:specific model|car model|vehicle model)/gi, '')
+    .replace(/לא (?:בחרתי|בוחר|בוחרת|החלטתי|יודע).{0,20}דגם/gu, '');
+  const vehicleUndecided = /לא (?:בחרתי|החלטתי|יודע).{0,25}(?:רכב|סוג)|אין לי העדפה(?!\s+ל?דגם)|not (?:chosen|decided|sure).{0,25}(?:car|vehicle)|no (?:vehicle )?preference|(?:keep|leave).{0,25}(?:car|vehicle).{0,15}open/i.test(categoryUncertainty);
   const comparesVehicles = /(?:קטן|קומפקט|compact|small).{0,40}(?:או|מול|\bor\b|versus|\bvs\b).{0,30}(?:משפחת|family)|(?:משפחת|family).{0,40}(?:או|מול|\bor\b|versus|\bvs\b).{0,30}(?:קטן|קומפקט|compact|small)/i.test(text);
   if (vehicleUndecided || comparesVehicles) next.vehiclePreference = null;
   else {
