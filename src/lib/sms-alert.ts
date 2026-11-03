@@ -37,6 +37,7 @@ export async function sendEscalationSms(params: {
         Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`,
       },
       body: new URLSearchParams({ From: fromNumber, To: toNumber, Body: body }),
+      signal: AbortSignal.timeout(4000),
     });
 
     if (!res.ok) {

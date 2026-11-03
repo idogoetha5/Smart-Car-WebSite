@@ -12,6 +12,8 @@ let updates: Array<{ key: string; fields: Record<string, unknown> }>;
 let sendResults: Record<string, boolean>;
 /** When set, the next update()...eq() call resolves with this error instead of succeeding. */
 let nextUpdateError: { message: string } | null;
+const handoffRetry = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/whatsapp-handoff-outbox', () => ({ HANDOFF_EMAIL_EVENT: 'whatsapp_handoff', retryHandoffEmail: handoffRetry }));
 
 vi.mock('@/lib/supabase/server', () => ({
   createAdminClient: () => ({
@@ -59,6 +61,7 @@ beforeEach(() => {
   updates = [];
   sendResults = {};
   nextUpdateError = null;
+  handoffRetry.mockReset().mockResolvedValue('delivered');
   process.env.CRON_SECRET = 'test-secret';
 });
 
@@ -74,6 +77,14 @@ function authedRequest(secret = 'test-secret') {
 }
 
 describe('GET /api/cron/email-retry', () => {
+  it('dispatches handoff events through their durable handler without EmailJS retries', async () => {
+    outboxRows = [{ idempotency_key: 'whatsapp_handoff:test', event: 'whatsapp_handoff', template_id: 'whatsapp_handoff_resend_v1', payload: {}, attempts: 1, created_at: new Date().toISOString() }];
+    const { GET } = await import('./route');
+    const response = await GET(authedRequest());
+    expect(await response.json()).toMatchObject({ delivered: 1, stillPending: 0 });
+    expect(handoffRetry).toHaveBeenCalledWith('whatsapp_handoff:test');
+    expect(updates).toHaveLength(0);
+  });
   it('rejects a request without the correct bearer token', async () => {
     const { GET } = await import('./route');
     const res = await GET(new Request('https://smartcar.co.il/api/cron/email-retry'));

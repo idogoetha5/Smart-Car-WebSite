@@ -58,6 +58,21 @@ describe('combined rental consent, corrections and private name', () => {
     expect(chat.createRentalRequest).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['Alex Demo. I would rather not give an email. Actually please return it on 14 December 2026 in Jerusalem instead of Tel Aviv.', 'Alex Demo'],
+    ['דני בדיקה. לא רוצה למסור מייל. בעצם נחזיר ב־14 בדצמבר 2026 בירושלים במקום תל אביב.', 'דני בדיקה'],
+  ])('keeps a prompted name private alongside optional-email refusal and return correction: %s', async (message, name) => {
+    const chat = conversation();
+    await chat.send('I want to rent a family car from Ben Gurion Airport on 8 December 2026 and return it in Tel Aviv on 13 December 2026. I am 35. Two adults and two children with two suitcases.');
+    chat.readTurn.mockClear();
+    const result = await chat.send(message);
+    expect(result.state.booking).toMatchObject({ customerName: name, returnDate: '2026-12-14', returnLocation: /[א-ת]/u.test(name) ? 'ירושלים' : 'Jerusalem', passengers: 4, luggage: 2 });
+    expect(result.state.step).toBe('rental_confirm');
+    expect(result.state.booking.customerEmail).toBeUndefined();
+    expect(chat.readTurn).not.toHaveBeenCalled();
+    expect(chat.createRentalRequest).not.toHaveBeenCalled();
+  });
+
   it('does not treat an explicit refusal to start as consent', async () => {
     const result = await conversation().send('לא נתחיל בקשה עכשיו, אני רק שואל על רכב משפחתי');
     expect(result.state.phase).toBe('explore');

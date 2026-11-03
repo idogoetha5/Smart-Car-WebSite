@@ -6,8 +6,8 @@ import { sendWhatsAppMessage, normalizeWhatsAppSender } from '@/lib/whatsapp';
 import { logWhatsAppMessage, isConversationSilenced } from '@/lib/whatsapp-conversations';
 import { getRebuiltBotReply, isRebuiltSafetyMessage } from '@/lib/whatsapp-rebuild';
 import { persistentRebuildStore } from '@/lib/whatsapp-rebuild-store';
-import { sendEscalationSms } from '@/lib/sms-alert';
-import { reportBotIncident, sendHandoffEmail } from '@/lib/whatsapp-incidents';
+import { reportBotIncident } from '@/lib/whatsapp-incidents';
+import { enqueueHandoffEmail, dispatchHandoffEmail } from '@/lib/whatsapp-handoff-outbox';
 import { claimInboundMessage, prepareInboundReply, recordInboundSend, suppressClaimedSend, suppressInboundWhileOff } from '@/lib/whatsapp-inbound-journal';
 
 /**
@@ -180,6 +180,12 @@ async function handleCustomerMessage(msg: InboundMessage, botEnabled: boolean) {
 
   let claim = await claimInboundMessage(msg.id, phone);
   if (claim.action === 'busy') throw new Error('[whatsapp] inbound processing already in progress');
+  // An alert is independent of customer-reply delivery. Recover a pending
+  // event even when the WhatsApp reply is already terminal or ambiguous.
+  if (claim.action !== 'prepare') {
+    if (claim.escalate) await enqueueHandoffEmail(msg.id, phone);
+    if (claim.action !== 'send') await dispatchHandoffEmail(msg.id, phone);
+  }
   if (claim.action === 'uncertain') {
     await reportBotIncident('delivery_failed');
     return;
@@ -212,7 +218,10 @@ async function handleCustomerMessage(msg: InboundMessage, botEnabled: boolean) {
 
   // The rebuilt core owns conversation state and verified actions. The
   // existing signed transport, message log and kill switch remain unchanged.
-  const flow = await getRebuiltBotReply(phone, body, persistentRebuildStore);
+  const flow = await getRebuiltBotReply(phone, body, {
+    ...persistentRebuildStore,
+    beforeEscalationSave: (customerPhone) => enqueueHandoffEmail(msg.id!, customerPhone),
+  });
   const reply = flow.reply || 'לא הצלחנו להבין את הבקשה. כתבו "תפריט" כדי להתחיל מחדש, או "נציג" כדי לעבור לצוות SmartCar.';
   await prepareInboundReply(msg.id, reply, Boolean(flow.escalate));
   claim = await claimInboundMessage(msg.id, phone);
@@ -226,24 +235,22 @@ async function handleCustomerMessage(msg: InboundMessage, botEnabled: boolean) {
     await suppressClaimedSend(msg.id);
     return;
   }
-  const send = await sendWhatsAppMessage(phone, claim.reply);
-  await recordInboundSend(msg.id, send);
-  if (claim.escalate) {
-    const alerted = await sendEscalationSms({
-      customerPhone: phone,
-      reason: send.ok ? 'בקשת שירות או בטיחות' : 'שליחת WhatsApp נכשלה בבקשת שירות או בטיחות',
-      lastMessage: body,
-    });
-    if (!alerted && !await sendHandoffEmail(msg.id, phone)) await reportBotIncident('handoff_alert_failed');
-  }
-  if (send.ok) {
-    await logWhatsAppMessage({
-      phone, source: 'bot_outbound', body: claim.reply, waMessageId: send.waMessageId,
-      escalatedAt: claim.escalate ? new Date().toISOString() : null,
-    });
-  } else {
-    console.error(`[whatsapp][ALERT] reply could not be delivered to ${phone}; outcome ${send.outcome}`);
-    await reportBotIncident('delivery_failed');
+  try {
+    const send = await sendWhatsAppMessage(phone, claim.reply);
+    await recordInboundSend(msg.id, send);
+    if (send.ok) {
+      await logWhatsAppMessage({
+        phone, source: 'bot_outbound', body: claim.reply, waMessageId: send.waMessageId,
+        escalatedAt: claim.escalate ? new Date().toISOString() : null,
+      });
+    } else {
+      console.error(`[whatsapp][ALERT] reply could not be delivered to ${phone}; outcome ${send.outcome}`);
+      await reportBotIncident('delivery_failed');
+    }
+  } finally {
+    // An unavailable alert provider must not block the fixed safety reply.
+    // The queue already survived the state commit and WhatsApp outcome.
+    await dispatchHandoffEmail(msg.id, phone);
   }
 }
 

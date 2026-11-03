@@ -8,6 +8,7 @@ import {
 import { retryPendingCustomerSheetSync } from "@/lib/customer-sheet";
 import { retryPendingInspectionOfficeEmails } from "@/lib/inspection-office-email";
 import { retryPendingBookingCustomerEmails } from "@/lib/booking-customer-email";
+import { HANDOFF_EMAIL_EVENT, retryHandoffEmail } from '@/lib/whatsapp-handoff-outbox';
 
 /**
  * Sweeps the email outbox (see database/migrations/add-email-outbox-table.sql) for
@@ -33,7 +34,7 @@ const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface OutboxRow {
   idempotency_key: string;
-  event: EmailEvent;
+  event: EmailEvent | typeof HANDOFF_EMAIL_EVENT;
   template_id: string;
   payload: Record<string, unknown>;
   attempts: number;
@@ -71,6 +72,18 @@ export async function GET(request: Request) {
   let stillPending = 0;
 
   for (const row of (rows ?? []) as OutboxRow[]) {
+    if (row.event === HANDOFF_EMAIL_EVENT) {
+      try {
+        const outcome = await retryHandoffEmail(row.idempotency_key);
+        if (outcome === 'delivered') delivered++;
+        else if (outcome === 'dead') dead++;
+        else if (outcome === 'pending') stillPending++;
+      } catch {
+        stillPending++;
+        console.error('[whatsapp-handoff][cron] alert retry failed');
+      }
+      continue;
+    }
     // Reuses sendTemplateEmail's own retry/backoff/idempotency logic — on
     // success it deletes this row itself (resolveRetry), so there is
     // nothing left to do here in that case.

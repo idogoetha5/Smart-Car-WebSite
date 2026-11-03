@@ -39,6 +39,16 @@ describe('rental status after simulated submission', () => {
     expect(status.reply).not.toMatch(/Would you like|What dates|תאריכים|שנתחיל/);
     expect(status.state.phase).toBe('explore');
     expect(status.state.step).toBe('menu');
+    const recall = await send(scenario.name === 'Danny Test'
+      ? 'So is the car confirmed already, and which return city and date did you keep?'
+      : 'הרכב כבר מאושר? ואיזה תאריך ועיר החזרה שמרת?');
+    expect(recall.reply).toContain(scenario.marker);
+    expect(recall.reply).toContain('15/12/2026');
+    expect(recall.reply).toContain(scenario.name === 'Danny Test' ? 'Jerusalem' : 'ירושלים');
+    expect(recall.state.completedRental).not.toHaveProperty('customerName');
+    expect(recall.state.completedRental).not.toHaveProperty('customerEmail');
+    expect(recall.state.booking).toEqual({});
+    expect(created).toBe(1);
     const repeated = await send(scenario.confirm);
     expect(repeated.state.completedRequestId).toBe('SIM-POST-SUBMIT');
     expect(created).toBe(1);

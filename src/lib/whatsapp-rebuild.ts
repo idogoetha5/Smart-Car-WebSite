@@ -29,6 +29,7 @@ export type RebuildState = {
   handoffAt?: string;
   handoffKind?: 'safety' | 'booking_change' | 'service_issue' | 'commercial' | 'human';
   completedRequestId?: string;
+  completedRental?: Pick<BookingDraft, 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'passengers' | 'luggage' | 'childSeats'>;
   durationClarification?: boolean;
   humanHandoffDeferred?: boolean;
 };
@@ -36,6 +37,7 @@ export type RebuildState = {
 export type RebuildResult = { reply: string; state: RebuildState; escalate?: boolean; source: 'gemini' | 'local' | 'safety'; model?: string };
 export type RebuildStore = {
   isSimulation?: boolean;
+  beforeEscalationSave?: (phone: string) => Promise<void>;
   loadState(phone: string): Promise<RebuildState | null>;
   saveState(phone: string, state: RebuildState): Promise<void>;
   activeBooking(phone: string): Promise<{ id: string; status: string; pickup_date: string; dropoff_date: string; pickup_location: string; dropoff_location: string } | null>;
@@ -131,6 +133,9 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
     approvedFacts: getSmartCarApprovedFacts(state.locale).map(fact => fact.text),
     handoffDeferred: Boolean(state.humanHandoffDeferred), bookingPhase: state.phase === 'booking',
     nextMissingField: state.phase === 'booking' ? nextMissing(state.booking) ?? undefined : undefined,
+    onReject: process.env.NODE_ENV === 'production'
+      ? reason => { console.warn('WhatsApp AI draft fallback', { reason }); }
+      : undefined,
   });
 }
 
@@ -452,15 +457,20 @@ function safety(input: string): 'accident' | 'breakdown' | null {
     && !/\b(?:my|our) own (?:car|vehicle)\b/i.test(clause));
   if (tyreReport) return 'breakdown';
   const noInjuries = /אין נפגעים|לא (?:היו )?נפגעים|אף אחד לא נפגע|no injuries|nobody was injured|no one was injured/i.test(input);
-  if (reportedRentalDamage(input)) return 'accident';
-  if (/תאונה|התנגשות|פצוע|accident|crash|collision/i.test(input) || !noInjuries && /(?<!לא )נפגע|(?<!not )injured/i.test(input)) return 'accident';
+  // A vehicle-history check is not a report of an incident. Remove only the
+  // historical phrase, so a separate current collision/damage report survives.
+  const incidentInput = input
+    .replace(/\b(?:accident|crash|collision|damage)\s+history\b|\bhistory\s+of\s+(?:(?:past|previous|prior)\s+)?(?:accidents?|crashes|collisions?|damage)\b|\b(?:past|previous|prior)\s+(?:accidents?|crashes|collisions?)(?:\s+damage)?\b/gi, 'vehicle history')
+    .replace(/היסטורי(?:ית|ה של)\s+(?:ה?תאונות|התנגשויות|נזקים)|עבר\s+תאונתי|תאונות\s+(?:ה?עבר|קודמות)|נזקי\s+תאונות\s+(?:ה?עבר|קודמות)/gu, 'עבר הרכב');
+  if (reportedRentalDamage(incidentInput)) return 'accident';
+  if (/תאונה|התנגשות|פצוע|accident|crash|collision/i.test(incidentInput) || !noInjuries && /(?<!לא )נפגע|(?<!not )injured/i.test(incidentInput)) return 'accident';
   if (/פנצ[׳']?ר|נתקעתי|לא (?:מניע|מתניע|התניע|נדלק)|רעש.{0,25}בלמ|בלמ.{0,25}רעש|עשן|תקלה ברכב|flat tire|breakdown|won'?t start|brake.{0,25}(?:noise|problem)|(?:noise|problem).{0,25}brake|(?:אני צריך|אני זקוק|תשלחו|שולחים).{0,25}גרר|גרר.{0,15}(?:עכשיו|דחוף)|\b(?:need|send)\b.{0,25}\btow\b|\btow\b.{0,15}\b(?:now|urgent)\b/i.test(input)) return 'breakdown';
   return null;
 }
 
 function reportedRentalDamage(input: string): boolean {
   return /(?:רכב(?:י|נו)? השכור|הרכב השכור|רכב ששכרתי|שכרתי (?:את )?הרכב|(?:my|the|our) rental car|car (?:i|we) rented)/i.test(input)
-    && /שרט|שריט|שפשוף|נזק|מכה(?:\s+(?:בדלת|בחניה|ברכב))?|פגיעה|scratch|scrap(?:e|ed)|dent|damage/i.test(input);
+    && /שרט|שריט|שפשוף|נזק|מכה(?:\s+(?:בדלת|בחניה|ברכב))?|פגיעה|\b(?:scratch(?:ed|es)?|scrap(?:e|ed)|dent(?:ed|s)?|damage(?:d)?)\b/i.test(input);
 }
 
 function commercialReply(input: string, state: RebuildState): { reply: string; escalate: boolean } {
@@ -897,7 +907,14 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
       ? input.match(/(?:קוראים לי|שמי|השם שלי|השם הוא|my name is)\s+([\p{L}' -]{3,60})/iu)?.[1]
       : input.match(/(?:קוראים לי|שמי|השם שלי|השם הוא|my name is|I am)\s+([\p{L}' -]{3,60})/iu)?.[1];
     const explicit = explicitName?.split(/\s+(?:ואין|אין לי|and I|but I)\s+/i)[0].trim();
-    const candidate = explicit ?? (!explicitStart && state.step === 'rental_name' && /^[\p{L}' -]{3,60}$/u.test(input.trim()) && !/^(?:מה|איך|למה|מתי|כמה)\s/u.test(input.trim()) ? input.trim() : '');
+    // A customer answering the name prompt may append a separate correction
+    // or decline optional email. Only the leading name clause is private data.
+    const leading = input.split(/[.!;\n]/u, 1)[0].trim();
+    const promptedName = !explicitStart && state.step === 'rental_name'
+      && /^[\p{L}' -]{3,60}$/u.test(leading)
+      && !/^(?:I|we|please|actually|no|yes|thanks?|before|after|not|do|don['’]?t|what|how|when|where|why|can|could|should|would|is|are|אני|אנחנו|לא|כן|תודה|בעצם|לפני|אחרי|אפשר|מה|איך|למה|מתי|כמה)(?:\s|$)/iu.test(leading)
+      ? leading : '';
+    const candidate = explicit ?? promptedName;
     if (candidate && candidate.split(/\s+/).length <= 4) { state.booking.customerName = candidate; return true; }
   }
   return false;
@@ -1141,10 +1158,17 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   } else if (state.completedRequestId && state.phase === 'explore' && /^(?:אני מאשר(?:ת)?|מאשר(?:ת)?|כן,? מאשר(?:ת)?|i confirm|confirm)$/i.test(input)) {
     reply = store.isSimulation ? (he ? 'בסימולציה הבקשה נקלטה לצורכי בדיקה בלבד; לא נוצרה הזמנה אמיתית.' : 'The request was recorded in this simulation only; no real booking was created.') : (he ? `בקשת ההשכרה נשלחה לבדיקה, מספר ${state.completedRequestId}. היא עדיין אינה הזמנה מאושרת.` : `Your rental request was sent for review, reference ${state.completedRequestId}. It is not a confirmed booking yet.`);
   } else if (state.completedRequestId && state.phase === 'explore' && !explicitBooking(input)
-    && /מאושר|מאושרת|אישרתם|אושר|סגור|סגורה|רק בקשה|עדיין בקשה|בקשה לבדיקה|\bconfirmed\b|\bconfirmation\b|still.{0,25}(?:request|review)|request for review/i.test(input)) {
+    && /מאושר|מאושרת|אישרתם|אושר|סגור|סגורה|רק בקשה|עדיין בקשה|בקשה לבדיקה|\bconfirmed\b|\bconfirmation\b|still.{0,25}(?:request|review)|request for review|(?:which|what).{0,40}(?:date|city|location|details).{0,30}(?:keep|kept|save|record)|(?:מה|איזה|אילו|לאיזה).{0,30}(?:תאריך|עיר|מיקום|פרט).{0,30}(?:שמר|רשמ|נקלט)/i.test(input)) {
     reply = store.isSimulation
       ? (he ? 'בסימולציה נקלטה בקשה לבדיקה בלבד. לא נוצרה הזמנה אמיתית ולא אושר רכב. בעבודה מול SmartCar, הבקשה והפרטים טעונים בדיקה ואישור של נציג.' : 'This simulation recorded a request for review only. No real booking was created and no car was confirmed. With SmartCar, the request and details still require review and confirmation by a representative.')
       : (he ? `בקשת ההשכרה מספר ${state.completedRequestId} נשלחה לבדיקה. שליחת הבקשה אינה אישור להזמנה או לרכב; נציג SmartCar יבדוק את הזמינות והתנאים ויאשר אותם איתכם.` : `Rental request ${state.completedRequestId} was sent for review. Sending a request is not confirmation of a booking or car; a SmartCar representative will check availability and terms and confirm them with you.`);
+    if (state.completedRental && /date|city|location|details|תאריך|עיר|מיקום|פרט/i.test(input)) {
+      const b = state.completedRental;
+      const format = (value?: string) => value ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : '';
+      reply += he
+        ? `\n\nהפרטים שנרשמו בבקשה: ${b.vehicleNeed ?? ''}; איסוף ${b.pickupLocation ?? ''} ב־${format(b.pickupDate)}; החזרה ${b.returnLocation ?? ''} ב־${format(b.returnDate)}.`
+        : `\n\nRecorded request details: ${b.vehicleNeed ?? ''}; pickup ${b.pickupLocation ?? ''} on ${format(b.pickupDate)}; return ${b.returnLocation ?? ''} on ${format(b.returnDate)}.`;
+    }
   } else if (state.phase === 'booking' && state.step === 'rental_confirm' && /לא מאשר|לא מאשרת|not confirm|not yet/i.test(input)) {
     reply = he ? 'לא שלחתי בקשה. הפרטים נשמרו בשיחה; אפשר לתקן אותם או לאשר רק כשתרצו.' : 'I have not sent a request. The details remain in this conversation; you can correct them or confirm when ready.';
   } else if (state.phase === 'booking' && state.step === 'rental_confirm' && /^(?:אני מאשר(?:ת)?|מאשר(?:ת)?|כן,? מאשר(?:ת)?|i confirm|confirm)$/i.test(input)) {
@@ -1155,6 +1179,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else {
     const id = await store.createRentalRequest(phone, state);
     if (id) {
+      const { pickupDate, returnDate, pickupLocation, returnLocation, vehicleNeed, passengers, luggage, childSeats } = state.booking;
+      state.completedRental = { pickupDate, returnDate, pickupLocation, returnLocation, vehicleNeed, passengers, luggage, childSeats };
       state.completedRequestId = id; state.phase = 'explore'; state.step = 'menu'; state.booking = {}; escalate = true;
       delete state.requestKey;
       reply = store.isSimulation ? (he ? 'בסימולציה הבקשה נקלטה לצורכי בדיקה בלבד; לא נוצרה הזמנה אמיתית.' : 'The request was recorded in this simulation only; no real booking was created.') : (he ? `בקשת ההשכרה נשלחה לבדיקה, מספר ${id}. היא עדיין אינה הזמנה מאושרת.` : `Your rental request was sent for review, reference ${id}. It is not a confirmed booking yet.`);
@@ -1596,6 +1622,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     reply = /מחיר|אישור|אושר|זיכוי|price|approv|refund/i.test(input) ? `${reply} ${acknowledgement}` : acknowledgement;
   }
   pushHistory(state, input, reply, privateTurn);
+  if (escalate && !store.isSimulation) await store.beforeEscalationSave?.(phone);
   await store.saveState(phone, state);
   return { reply, state, escalate, source, model };
 }

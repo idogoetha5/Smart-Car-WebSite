@@ -18,6 +18,8 @@ const mocks = vi.hoisted(() => ({
   suppressOff: vi.fn(),
   suppressSend: vi.fn(),
   handoffEmail: vi.fn(),
+  enqueueHandoff: vi.fn(),
+  dispatchHandoff: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -50,6 +52,7 @@ vi.mock('@/lib/whatsapp-rebuild', () => ({
 vi.mock('@/lib/whatsapp-rebuild-store', () => ({ persistentRebuildStore: {} }));
 vi.mock('@/lib/sms-alert', () => ({ sendEscalationSms: mocks.sms }));
 vi.mock('@/lib/whatsapp-incidents', () => ({ reportBotIncident: mocks.incident, sendHandoffEmail: mocks.handoffEmail }));
+vi.mock('@/lib/whatsapp-handoff-outbox', () => ({ enqueueHandoffEmail: mocks.enqueueHandoff, dispatchHandoffEmail: mocks.dispatchHandoff }));
 vi.mock('@/lib/whatsapp-inbound-journal', () => ({
   claimInboundMessage: mocks.claim,
   prepareInboundReply: mocks.prepare,
@@ -118,6 +121,8 @@ beforeEach(() => {
   mocks.suppressOff.mockResolvedValue(undefined);
   mocks.suppressSend.mockResolvedValue(undefined);
   mocks.handoffEmail.mockResolvedValue(true);
+  mocks.enqueueHandoff.mockResolvedValue(undefined);
+  mocks.dispatchHandoff.mockResolvedValue('absent');
   mocks.claim.mockImplementation(async () => {
     const prepared = mocks.prepare.mock.calls.at(-1);
     return prepared
@@ -383,16 +388,18 @@ describe('local WhatsApp webhook boundary', () => {
     const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
     const response = await POST(metaRequest(signature));
     expect(response.status).toBe(200);
-    expect(mocks.sms).toHaveBeenCalledWith(expect.objectContaining({ customerPhone: '972501234567', reason: 'בקשת שירות או בטיחות' }));
+    expect(mocks.dispatchHandoff).toHaveBeenCalledWith('wamid-1', '972501234567');
     expect(mocks.log).toHaveBeenLastCalledWith(expect.objectContaining({ escalatedAt: expect.any(String) }));
   });
 
-  it('uses the configured operator email when SMS is unavailable', async () => {
+  it('binds durable notification preparation before the core saves escalation', async () => {
     mocks.flow.mockResolvedValue({ reply: 'נדרש נציג', escalate: true });
     mocks.sms.mockResolvedValue(false);
     const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
     expect((await POST(metaRequest(signature))).status).toBe(200);
-    expect(mocks.handoffEmail).toHaveBeenCalledWith('wamid-1', '972501234567');
+    const store = mocks.flow.mock.calls[0][2];
+    await store.beforeEscalationSave('972501234567');
+    expect(mocks.enqueueHandoff).toHaveBeenCalledWith('wamid-1', '972501234567');
     expect(mocks.incident).not.toHaveBeenCalledWith('handoff_alert_failed');
   });
 
@@ -413,6 +420,30 @@ describe('local WhatsApp webhook boundary', () => {
     const response = await POST(metaRequest(signature));
     expect(response.status).toBe(200);
     expect(mocks.flow).toHaveBeenCalledOnce();
-    expect(mocks.sms).toHaveBeenCalledOnce();
+    expect(mocks.dispatchHandoff).toHaveBeenCalledWith('wamid-1', '972501234567');
+  });
+
+  it.each(['accepted', 'uncertain', 'done'])('recovers an alert on %s retry without another WhatsApp send', async action => {
+    mocks.claim.mockResolvedValue({ action, reply: 'saved', escalate: true, providerReplyId: 'outbound-1' });
+    const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
+    expect((await POST(metaRequest(signature))).status).toBe(200);
+    expect(mocks.enqueueHandoff).toHaveBeenCalledWith('wamid-1', '972501234567');
+    expect(mocks.dispatchHandoff).toHaveBeenCalledWith('wamid-1', '972501234567');
+    expect(mocks.send).not.toHaveBeenCalled();
+    expect(mocks.flow).not.toHaveBeenCalled();
+  });
+
+  it('preserves a queued alert after core state saved but reply preparation failed', async () => {
+    mocks.flow.mockImplementationOnce(async (_phone, _body, store) => {
+      await store.beforeEscalationSave('972501234567');
+      return { reply: 'saved handoff', escalate: true };
+    });
+    mocks.prepare.mockRejectedValueOnce(new Error('crash after state save'));
+    const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
+    expect((await POST(metaRequest(signature))).status).toBe(503);
+    expect(mocks.enqueueHandoff).toHaveBeenCalledOnce();
+    mocks.flow.mockResolvedValueOnce({ reply: 'handoff already saved', escalate: false });
+    expect((await POST(metaRequest(signature))).status).toBe(200);
+    expect(mocks.dispatchHandoff).toHaveBeenCalledWith('wamid-1', '972501234567');
   });
 });

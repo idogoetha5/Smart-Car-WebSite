@@ -1,10 +1,33 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { validateConversationalReply, type ConversationalReplyInput } from '@/lib/whatsapp-ai-reply';
 
 const base: ConversationalReplyInput = { reply: '', input: '', locale: 'en', known: {}, approvedFacts: [], handoffDeferred: false, bookingPhase: false };
 const check = (reply: string, rest: Partial<ConversationalReplyInput> = {}) => validateConversationalReply({ ...base, ...rest, reply });
 
 describe('output checks for natural conversational drafts', () => {
+  it.each([
+    ['', {}, 'empty'],
+    ['A'.repeat(651), {}, 'too_long'],
+    ['Which model? Which date?', {}, 'multiple_questions'],
+    ['Please contact private@example.invalid.', {}, 'contact_or_link'],
+    ['Your limit is 987654.', {}, 'unsupported_number'],
+    ['The price is 99.', { input: 'Can the price be 99?' }, 'price_assurance'],
+    ['I have sent your request.', {}, 'action_claim'],
+    ['What dates do you need?', { known: { pickupDate: '2027-01-10', returnDate: '2027-01-13' } }, 'known_or_undecided_dates'],
+  ] satisfies Array<[string, Partial<ConversationalReplyInput>, string]>)('reports a bounded reason without any customer or draft content: %s', (reply, rest, reason) => {
+    const onReject = vi.fn();
+    expect(check(reply, { input: 'My name is Private Customer, private@example.invalid, 0501234567.', ...rest, onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledExactlyOnceWith(reason);
+    expect(JSON.stringify(onReject.mock.calls)).not.toMatch(/Private|Customer|example|0501234567|987654|99|Which model|2027/);
+  });
+
+  it('does not emit a rejection diagnostic for an accepted draft', () => {
+    const onReject = vi.fn();
+    const reply = 'Compare the service record and consider an independent inspection before deciding.';
+    expect(check(reply, { onReject })).toBe(reply);
+    expect(onReject).not.toHaveBeenCalled();
+  });
+
   it.each([
     'A family car may offer more room for the stroller, but fit depends on the actual model. We can compare both groups.',
     'The child seat is not guaranteed. We can include it as a request and check availability and fit before confirmation.',
