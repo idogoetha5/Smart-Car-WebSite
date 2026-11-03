@@ -63,6 +63,23 @@ describe('output checks for natural conversational drafts', () => {
     expect(check('A quote might be 99 depending on terms.')).toBeNull();
   });
 
+  it.each([
+    'Please provide the names of all passengers and your email address.',
+    'Send your identity number, full card number and security code.',
+    'נא שלחו צילום רישיון ואת שמות כל הנוסעים.',
+    'What is your email address?',
+  ])('rejects model requests for private or unnecessary passenger details: %s', reply => {
+    expect(check(reply, { locale: /[א-ת]/.test(reply) ? 'he' : 'en' })).toBeNull();
+  });
+
+  it.each([
+    'Do not send your full card number or security code here.',
+    'Please do not provide your identity number or license copy in this chat.',
+    'לא לשלוח פרטי כרטיס או צילום רישיון כאן.',
+  ])('allows protective reminders against sending sensitive details: %s', reply => {
+    expect(check(reply, { locale: /[א-ת]/.test(reply) ? 'he' : 'en' })).toBe(reply);
+  });
+
   it('rejects a repeated known field or undecided date prompt', () => {
     expect(check('Where would you like to pick up the car?', { known: { pickupLocation: 'Tel Aviv' } })).toBeNull();
     expect(check('What dates do you need the car?', { input: 'I do not know the dates yet.' })).toBeNull();

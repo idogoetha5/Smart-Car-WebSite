@@ -1548,7 +1548,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       if (draft) {
         const waitingForFinalConsent = state.phase === 'booking' && state.step === 'rental_confirm';
         const questionTurn = /[?؟]/u.test(input) || reading?.route === 'policy';
-        if (!waitingForFinalConsent || questionTurn) {
+        // A data-only intake turn must ask the one missing field chosen by the
+        // application. The model answers side questions, not intake workflow.
+        if (state.phase !== 'booking' || questionTurn) {
           reply = waitingForFinalConsent ? `${draft}\n\n${summary(state)}` : draft;
           source = 'gemini';
         }

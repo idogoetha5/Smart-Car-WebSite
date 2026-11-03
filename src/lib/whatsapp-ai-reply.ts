@@ -40,6 +40,12 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (/\b(?:taxi|taxis|bus|buses|train|uber|avis|hertz|sixt|eldan)\b|מונית|מוניות|אוטובוס|רכבת|אוויס|הרץ|סיקסט|אלדן/i.test(reply)) return null;
   if (/\b(?:I am|I'm|as)\s+(?:a |an )?(?:bot|AI|artificial intelligence|digital assistant)\b|\b(?:I am|I'm).{0,25}\b(?:bot|AI|digital assistant)\b|אני (?:בוט|רובוט|ה?עוזר ה?דיגיטלי|בינה מלאכותית)/i.test(reply)) return null;
 
+  // Private collection belongs to the controlled intake, never a model draft.
+  // Match requests rather than mere mentions, so protective reminders remain useful.
+  if (hasAffirmativeMatch(reply, /\b(?:send|provide|share|enter|upload|give|confirm|need|require|collect)\b[^.!?\n]{0,90}\b(?:(?:all |the |your )*passengers?['’]? names?|names? of (?:all |the )?passengers|(?:identity|identification|ID) numbers?|(?:full |complete )?(?:credit |payment )?card (?:number|details)|security code|CVV|CVC|(?:driver['’]?s? |driving )?licen[cs]e (?:copy|copies|photo)|(?:a |your |customer )?email(?: address)?)\b|(?:שלח(?:ו|י)?|ספק(?:ו|י)?|העל(?:ו|י)?|מסור|מסרו|צריך|צריכים|נדרש|לאשר)[^.!?\n]{0,80}(?:שמות (?:כל )?(?:הנוסעים|נוסעים)|מספר(?:י)? (?:תעודת זהות|זהות)|פרטי (?:כרטיס|האשראי)|מספר (?:כרטיס|האשראי)|קוד אבטחה|צילום (?:רישיון|רשיון)|(?:כתובת )?(?:מייל|דוא[״"]?ל))/gi)) return null;
+  if (hasAffirmativeMatch(reply, /\b(?:send|provide|share|upload|need|require)\b[^.!?\n]{0,40}\b(?:copy|photo|scan) of (?:your |the |a )?(?:driver['’]?s? |driving )?licen[cs]e\b/gi)) return null;
+  if (/\bwhat (?:are|is)\b[^.!?\n]{0,45}\b(?:passengers?['’]? names?|names? of (?:all |the )?passengers|identity number|ID number|card number|security code|CVV|email address)\b|מה(?:ם|י)?[^.!?\n]{0,30}(?:שמות (?:כל )?הנוסעים|מספר תעודת הזהות|מספר האשראי|כתובת המייל)/i.test(reply)) return null;
+
   const allowedNumbers = new Set(numberTokens([input, ...Object.values(known).filter(value => value !== undefined).map(String), ...approvedFacts].join(' ')));
   if (numberTokens(reply).some(token => !allowedNumbers.has(token))) return null;
 

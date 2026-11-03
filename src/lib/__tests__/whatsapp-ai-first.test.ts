@@ -28,6 +28,23 @@ function ready(): RebuildState {
 
 describe('grounded AI voice with application-owned rental actions', () => {
   it.each([
+    'מעולה, מה שנותר הוא לאשר את שמות הנוסעים. מה שמות כל הנוסעים?',
+    'מעולה, שמרנו את פרטי הנסיעה שציינת.',
+  ])('keeps the next intake question application-owned when proceeding with a request: %s', async draft => {
+    const session = chat({ version: 2, locale: 'he', phase: 'explore', step: 'menu', history: [], booking: { passengers: 4, luggage: 1 } });
+    session.readTurn.mockResolvedValue(reading(draft, 'book'));
+    const result = await session.send('בסדר, נבחר משפחתי ונתחיל בקשה. איסוף בתל אביב ב־10 בדצמבר 2026 והחזרה בנתבג ב־14 בדצמבר 2026. אני בן 35.');
+    expect(result.reply).toBe('על איזה שם לרשום את הבקשה?');
+    expect(result.source).toBe('local');
+    expect(result.state.phase).toBe('booking');
+    expect(result.state.step).toBe('rental_name');
+    expect(result.state.booking).toMatchObject({ passengers: 4, luggage: 1, pickupDate: '2026-12-10', returnDate: '2026-12-14', pickupLocation: 'תל אביב', returnLocation: 'נתבג', vehicleNeed: 'רכב משפחתי', driverAgeRange: '24-plus' });
+    expect(result.state.booking.customerName).toBeUndefined();
+    expect(session.create).not.toHaveBeenCalled();
+    expect(result.escalate).not.toBe(true);
+  });
+
+  it.each([
     ['We are two adults with two children and a stroller. I do not know the dates yet. What would you recommend?', 'With children and a stroller, compare a family car for extra room against a compact for easier parking. Actual stroller fit depends on the model. Is the stroller foldable?'],
     ['אנחנו זוג עם שני ילדים ועגלה. עוד מתלבטים, מה כדאי?', 'לנסיעות בעיר קטן יכול להיות נוח לחניה, ולמשפחה עם עגלה משפחתית בדרך כלל מרווחת יותר. התאמת העגלה תלויה בדגם. העגלה מתקפלת?'],
   ])('shows the unique child/stroller draft exactly without converting advice into an order: %s', async (input, draft) => {
