@@ -14,6 +14,11 @@ function conversation() {
 }
 
 describe('combined rental consent, corrections and private name', () => {
+  it('retains the exact English family count alongside route dates and luggage', async () => {
+    const result = await conversation().send('Hi, we are two adults and two children with two suitcases. We need a rental from Ben Gurion Airport on 8 December 2026 and return it in Tel Aviv on 13 December 2026. I am 35. I am not sure which car to choose.');
+    expect(result.state.booking).toMatchObject({ passengers: 4, luggage: 2, pickupDate: '2026-12-08', returnDate: '2026-12-13', pickupLocation: 'Ben Gurion Airport', returnLocation: 'Tel Aviv', driverAgeRange: '24-plus' });
+  });
+
   it('retains English from/on route locations without model extraction and answers a model guarantee before intake', async () => {
     const chat = conversation();
     const first = await chat.send('Hi, I would like to rent a compact car from Ben Gurion Airport on 8 December 2026 and return it in Tel Aviv on 13 December 2026. I am 35 and travelling alone with one suitcase.');

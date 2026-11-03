@@ -115,6 +115,11 @@ function validDate(value: string): boolean {
 }
 
 function explicitDateRange(input: string): { pickupDate: string; returnDate: string } | null {
+  const hebrewRouteDates = input.match(new RegExp(`(?:איסוף|לאסוף).{0,70}?ב[-־]?\\s*(\\d{1,2})\\s+ב?(${Object.keys(MONTHS).join('|')})(?:\\s+(20\\d{2}))?.{0,80}?(?:החזרה|להחזיר|נחזיר|אחזיר).{0,70}?ב[-־]?\\s*(\\d{1,2})\\s+ב?(${Object.keys(MONTHS).join('|')})(?:\\s+(20\\d{2}))?`, 'iu'));
+  if (hebrewRouteDates) {
+    const year = hebrewRouteDates[3] ?? hebrewRouteDates[6] ?? israelDate().slice(0, 4);
+    return explicitDateRange(`${hebrewRouteDates[1]}/${MONTHS[hebrewRouteDates[2].toLowerCase()]}/${year}-${hebrewRouteDates[4]}/${MONTHS[hebrewRouteDates[5].toLowerCase()]}/${hebrewRouteDates[6] ?? year}`);
+  }
   const namedRouteDates = input.match(new RegExp(`\\b(?:from|pickup(?:\\s+from)?)\\b.{0,90}?\\b(?:on\\s+)?(\\d{1,2})\\s+(${Object.keys(MONTHS).join('|')})(?:\\s+(20\\d{2}))?.{0,110}?\\b(?:return|drop.?off)\\b.{0,70}?\\b(?:on\\s+)?(\\d{1,2})\\s+(${Object.keys(MONTHS).join('|')})(?:\\s+(20\\d{2}))?`, 'iu'));
   if (namedRouteDates) {
     const year = namedRouteDates[3] ?? namedRouteDates[6] ?? israelDate().slice(0, 4);
@@ -220,7 +225,7 @@ function applyPromptedDate(input: string, state: RebuildState, lastBot: string):
 function applyExplicitLocations(input: string, draft: BookingDraft): void {
   const sameCity = input.trim().match(/^([\p{L}\s'׳״-]{2,50})\s+גם\s+(?:להחזיר\s+(?:גם\s+)?לאסוף|לאסוף\s+(?:(?:וגם|גם)\s+)?להחזיר)$/u)?.[1]?.trim();
   if (sameCity) { draft.pickupLocation = sameCity; draft.returnLocation = sameCity; return; }
-  const stop = '(?=\\s+(?:ו?החזרה|להחזיר|(?:and\\s+)?return|(?:and\\s+)?drop.?off)|[,.!?]|$)';
+  const stop = '(?=\\s+(?:ו?החזרה|להחזיר|(?:and\\s+)?return|(?:and\\s+)?drop.?off|ב[-־]?\\s*\\d)|[,.!?]|$)';
   const hePickup = input.match(new RegExp(`(?:איסוף|לאסוף)\\s+[במ]([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
   const enPickup = input.match(new RegExp(`pick.?up\\s+(?:at|from|in)\\s+([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
   const enFromPickup = /rent|rental|pick.?up/i.test(input)
@@ -228,7 +233,7 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
     : undefined;
   const pickup = (hePickup ?? enPickup ?? enFromPickup)?.trim();
   if (pickup) draft.pickupLocation = /^(?:the )?airport$/i.test(pickup) && /Ben Gurion Airport/i.test(input) ? 'Ben Gurion Airport' : pickup;
-  const heReturn = input.match(/(?:החזרה|להחזיר)\s+[במ]([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:נהג|גיל|בן|בת|למשך|לתאריכים)|[,.!?]|$)/iu)?.[1];
+  const heReturn = input.match(/(?:החזרה|להחזיר)\s+[במ]([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:נהג|גיל|בן|בת|למשך|לתאריכים|ב[-־]?\s*\d)|[,.!?]|$)/iu)?.[1];
   const enReturn = input.match(/(?:return|drop.?off)\s+(?:(?:the car|it)\s+)?(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+on\s+\d{1,2}|[,.!?]|$)/iu)?.[1];
   const returnLocation = (heReturn ?? enReturn)?.split(/\s+(?:במקום|instead of)\s+/i)[0].trim();
   if (returnLocation) draft.returnLocation = returnLocation;
@@ -335,6 +340,12 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   const coupleWithChild = /(?:זוג|שני (?:מבוגרים|אנשים)).{0,45}(?:עם|ו[- ]?).{0,20}(?:תינוק|ילד(?:ה)?(?: אחד(?:ת)?)?)|(?:my (?:wife|husband|partner|spouse) and I|myself and my (?:wife|husband|partner|spouse)|two adults?).{0,90}(?:(?:with|and) (?:our|a|one) (?:\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)[- ]year[- ]old|with (?:our|a|one) (?:child|kid|baby|infant|son|daughter)|and (?:one|a) (?:child|kid|baby|infant))/i.test(input);
   if (coupleWithChild) draft.passengers = 3;
   if (/זוג עם (?:שני|שתי) ילדים|זוג ושני ילדים|(?:we are a )?couple with two children/i.test(input)) draft.passengers = 4;
+  const adultsAndChildren = input.match(new RegExp(`${count}\\s+adults?\\s+(?:and|with)\\s+${count}\\s+(?:children|kids)`, 'iu'));
+  if (adultsAndChildren) {
+    const adults = statedCount(adultsAndChildren[1]);
+    const children = statedCount(adultsAndChildren[2]);
+    if (adults !== null && children !== null && adults + children <= 20) draft.passengers = adults + children;
+  }
   if (/my (?:wife|husband|partner|spouse) and I.{0,90}with our \d{1,2}[- ]year[- ]old/i.test(input)) draft.passengers = 3;
   if (draft.luggage === undefined && /מזוודה(?!ות)|תיק(?: נסיעה)? אחד|one suitcase|one bag/i.test(input)) draft.luggage = 1;
   if (/תינוק|baby|infant/i.test(input)) draft.childSeats ??= 1;
@@ -1104,8 +1115,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       state.durationClarification = false;
       reply = he ? 'תודה על התיקון. לאילו תאריכים תרצו את הרכב?' : 'Thanks for clarifying. What dates do you need the car?';
     } else reply = he ? 'כדי לדייק: התכוונת לתאריכים שציינת, או לנסיעה של כשבוע?' : 'Just to be sure: did you mean the dates you gave, or a trip of about one week?';
-  } else if (state.completedRequestId && state.history.at(-2)?.text === input && /^(?:אני מאשר(?:ת)?|מאשר(?:ת)?|כן,? מאשר(?:ת)?|i confirm|confirm)$/i.test(input)) {
+  } else if (state.completedRequestId && state.phase === 'explore' && /^(?:אני מאשר(?:ת)?|מאשר(?:ת)?|כן,? מאשר(?:ת)?|i confirm|confirm)$/i.test(input)) {
     reply = store.isSimulation ? (he ? 'בסימולציה הבקשה נקלטה לצורכי בדיקה בלבד; לא נוצרה הזמנה אמיתית.' : 'The request was recorded in this simulation only; no real booking was created.') : (he ? `בקשת ההשכרה נשלחה לבדיקה, מספר ${state.completedRequestId}. היא עדיין אינה הזמנה מאושרת.` : `Your rental request was sent for review, reference ${state.completedRequestId}. It is not a confirmed booking yet.`);
+  } else if (state.completedRequestId && state.phase === 'explore' && !explicitBooking(input)
+    && /מאושר|מאושרת|אישרתם|אושר|סגור|סגורה|רק בקשה|עדיין בקשה|בקשה לבדיקה|\bconfirmed\b|\bconfirmation\b|still.{0,25}(?:request|review)|request for review/i.test(input)) {
+    reply = store.isSimulation
+      ? (he ? 'בסימולציה נקלטה בקשה לבדיקה בלבד. לא נוצרה הזמנה אמיתית ולא אושר רכב. בעבודה מול SmartCar, הבקשה והפרטים טעונים בדיקה ואישור של נציג.' : 'This simulation recorded a request for review only. No real booking was created and no car was confirmed. With SmartCar, the request and details still require review and confirmation by a representative.')
+      : (he ? `בקשת ההשכרה מספר ${state.completedRequestId} נשלחה לבדיקה. שליחת הבקשה אינה אישור להזמנה או לרכב; נציג SmartCar יבדוק את הזמינות והתנאים ויאשר אותם איתכם.` : `Rental request ${state.completedRequestId} was sent for review. Sending a request is not confirmation of a booking or car; a SmartCar representative will check availability and terms and confirm them with you.`);
   } else if (state.phase === 'booking' && state.step === 'rental_confirm' && /לא מאשר|לא מאשרת|not confirm|not yet/i.test(input)) {
     reply = he ? 'לא שלחתי בקשה. הפרטים נשמרו בשיחה; אפשר לתקן אותם או לאשר רק כשתרצו.' : 'I have not sent a request. The details remain in this conversation; you can correct them or confirm when ready.';
   } else if (state.phase === 'booking' && state.step === 'rental_confirm' && /^(?:אני מאשר(?:ת)?|מאשר(?:ת)?|כן,? מאשר(?:ת)?|i confirm|confirm)$/i.test(input)) {
