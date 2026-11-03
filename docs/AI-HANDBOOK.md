@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-11-03 — Stalled simulator composer timeout/reset behavior now has component regressions using an aborted pending request. Both release the input correctly, and reset does not leak the previous request's error into the new chat. All 1,179 tests pass. Deployment remains pending live-domain preservation checks; no DNS configuration changed.
+
 2026-11-03 — Chrome demo remained indefinitely in the typing state after a request stalled. Simulator sends now abort after 20 seconds, release the composer through the existing error/finally handling, and cancel pending requests on reset. No customer WhatsApp transport changes.
 
 2026-11-01 — Depth follow-ups: keep deferred human handoff across commercial turns while answering same-turn comparison/inclusions/viewing questions. Service reference recall accepts “is/הוא” and extension price answers remain conditional. Damage-liability follow-ups recognize natural Hebrew payment/excess wording after safety instructions. Verify these sequences through the live Chrome demo.
