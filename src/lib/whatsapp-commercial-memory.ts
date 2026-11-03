@@ -61,9 +61,14 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   }
   const comparesTerms = /(?:\b24\b.{0,25}\b36\b|\b36\b.{0,25}\b24\b)/i.test(text)
     && (/months|חודשים|term|תקופה/i.test(text) || previous?.termMonths !== undefined) && /\bor\b|\bvs\b|\/|compare|between|unsure|undecided|או|מול|מתלבט/i.test(text);
-  if (comparesTerms) next.termMonths = null;
+  const termUndecided = /(?:term|תקופה|משך).{0,30}(?:undecided|not decided|not sure|לא החלטתי|לא סגור)|(?:לא החלטתי|לא סגור|not decided).{0,25}(?:term|תקופה)/i.test(text)
+    || comparesTerms && /unsure|undecided|not sure|haven'?t decided|changed my mind|מתלבט|לא החלטתי|לא בטוח|שיניתי את דעתי/i.test(text);
+  // Comparing another term is a question, not a correction to a chosen term.
+  if (comparesTerms) {
+    if (previous?.termMonths === undefined || termUndecided) next.termMonths = null;
+  }
   else if (termMatches.length) next.termMonths = termMatches.at(-1)!.value;
-  else if (/(?:term|תקופה|משך).{0,30}(?:undecided|not decided|not sure|לא החלטתי|לא סגור)|(?:לא החלטתי|לא סגור|not decided).{0,25}(?:term|תקופה)/i.test(text)) next.termMonths = null;
+  else if (termUndecided) next.termMonths = null;
 
   const annual = /לשנה|בשנה|שנתי|a year|per year|annually|annual/i.test(text);
   if (annual || previous?.annualMileageKm !== undefined) {

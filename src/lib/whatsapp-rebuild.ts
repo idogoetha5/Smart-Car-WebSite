@@ -1,8 +1,9 @@
 import { OFFICE_PHONE } from '@/lib/constants';
 import { randomUUID } from 'node:crypto';
 import { termsConsent } from '@/lib/consent';
-import { getSmartCarServiceAnswer } from '@/lib/smartcar-service-knowledge';
+import { getSmartCarServiceAnswer, getSmartCarApprovedFacts } from '@/lib/smartcar-service-knowledge';
 import { updateCommercialMemory, renderCommercialMemory, type CommercialMemory } from '@/lib/whatsapp-commercial-memory';
+import { validateConversationalReply } from '@/lib/whatsapp-ai-reply';
 import { readBotTurn, type BotReading, type GeminiBotContext, type VehicleDirection } from '@/lib/whatsapp-rebuild-gemini';
 
 type Locale = 'he' | 'en';
@@ -46,10 +47,6 @@ export type RebuildStore = {
 // but must never block a rental request.
 const ORDER: BookingKey[] = ['pickupDate', 'returnDate', 'pickupLocation', 'returnLocation', 'vehicleNeed', 'driverAgeRange', 'customerName'];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const OUTSIDE = /מוני(?:ת|ות)|אוטובוס|רכבת|תחבורה ציבורית|אוויס|אלדן|סיקסט|הרץ|מתחר|חברת השכרה אחרת|\btaxi\b|\bbus\b|\btrain\b|\buber\b|\bavis\b|\bhertz\b|\bsixt\b|competitor|another rental company/i;
-const UNSAFE_CLAIM = /(?:יש לנו|יש אצלנו|זמין עכשיו|זמין בדיוק|פנוי עכשיו|מובטח|בטוח ש|בהחלט ייכנס|בהחלט יתאים|יתאים לכם (?:מצוין|בול)|מזווד.{0,25}(?:ייכנס|יספיק)|(?:יהיה|תהיה).{0,20}(?:נוח|נוחה|מרווח|מרווחת).{0,35}(?:לכל|ל)(?:\s+ה)?(?:נוסעים|מטען|מזוודות)|(?:חיסכון|חסכון).{0,18}בדלק|(?:נסיעה|רכב).{0,18}חסכוני(?:ת)?|צריכת דלק.{0,25}(?:מעולה|נמוכה|טובה|חסכונית)|we have available|available for (?:your|the) (?:trip|dates)|guaranteed|(?:definitely|easily) fits?|fits? (?:your|two|three|the) (?:bags|suitcases|luggage)|great fuel efficiency|fuel savings|confirmed booking)/i;
-const INTERNAL_VOICE = /המחיר באתר|באתר (?:הוא|מופיע)|אין לי (?:גישה|אישור|מלאי|אפשרות)|לא אישרתי|לא פתרתי|בשיחה הזו|כיוון לבדיקה|הצוות צריך לבדוק|נשמר.{0,25}(?:לטיפול|לנציג)|תהליך פנימי|בדיקה פנימית|המודל|סימולציה|website price|on the website|I (?:do not|don't) have (?:access|approval|inventory)|I have not (?:confirmed|resolved)|internal (?:check|process|system)|simulation|backend/i;
-const VOLUNTEERED_IDENTITY = /אני (?:בוט|רובוט|עוזר דיגיטלי|בינה מלאכותית)|אני לא (?:בן אדם|אדם)|I am (?:a bot|an AI|a digital assistant)|I'm (?:a bot|an AI|a digital assistant)/i;
 const PRICE_OR_AVAILABILITY = /מחיר|עלות|כמה.{0,12}(?:עול|יעל)|(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:prices?|cost|rate|available|availability)\b/iu;
 const AVAILABILITY_ONLY = /(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:available|availability|in stock)\b/iu;
 const MONTHS: Record<string, number> = { ינואר: 1, פברואר: 2, מרץ: 3, אפריל: 4, מאי: 5, יוני: 6, יולי: 7, אוגוסט: 8, ספטמבר: 9, אוקטובר: 10, נובמבר: 11, דצמבר: 12, january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12 };
@@ -106,6 +103,35 @@ function question(key: BookingKey, locale: Locale): string {
     customerEmail: 'What email address can we use to contact you about the request?',
   };
   return (locale === 'he' ? he : en)[key];
+}
+
+function conversationalKnown(state: RebuildState): GeminiBotContext['known'] {
+  const booking = state.booking;
+  return {
+    pickupDate: booking.pickupDate, returnDate: booking.returnDate,
+    pickupLocation: booking.pickupLocation, returnLocation: booking.returnLocation,
+    vehicleNeed: booking.vehicleNeed, passengers: booking.passengers,
+    luggage: booking.luggage, childSeats: booking.childSeats, driverAgeRange: booking.driverAgeRange,
+    datePreference: booking.datePreference,
+    commercialBudget: state.commercial?.budget?.amount, commercialCurrency: state.commercial?.budget?.currency,
+    commercialTermMonths: state.commercial?.termMonths === null ? 'undecided' : state.commercial?.termMonths,
+    commercialAnnualMileageKm: state.commercial?.annualMileageKm === null ? 'undecided' : state.commercial?.annualMileageKm,
+    commercialVehiclePreference: state.commercial?.vehiclePreference === null ? 'undecided' : state.commercial?.vehiclePreference,
+    commercialUse: state.commercial?.usage?.join(', '),
+    commercialPassengers: state.commercial?.passengers, commercialLuggage: state.commercial?.luggage,
+  };
+}
+
+function groundedModelReply(reading: BotReading | null, input: string, state: RebuildState): string | null {
+  // The provider boundary attaches this flag only after approved facts were
+  // actually supplied. It is context provenance, not a promise of correctness.
+  if (!reading?.groundedContext) return null;
+  return validateConversationalReply({
+    reply: reading.reply, input, locale: state.locale, known: conversationalKnown(state),
+    approvedFacts: getSmartCarApprovedFacts(state.locale).map(fact => fact.text),
+    handoffDeferred: Boolean(state.humanHandoffDeferred), bookingPhase: state.phase === 'booking',
+    nextMissingField: state.phase === 'booking' ? nextMissing(state.booking) ?? undefined : undefined,
+  });
 }
 
 function israelDate(): string { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date()); }
@@ -607,7 +633,7 @@ function commercialReplyContent(input: string, state: RebuildState): { reply: st
 export function isRebuiltSafetyMessage(input: string): boolean { return safety(input) !== null; }
 
 function hasVehicleContext(draft: BookingDraft, input: string): boolean {
-  return Boolean(draft.vehicleNeed || explicitVehicleNeed(input, 'he')
+  return Boolean(draft.vehicleNeed || draft.passengers || draft.luggage || draft.childSeats || explicitVehicleNeed(input, 'he')
     || /נוסע|זוג|משפחה|ילד|תינוק|מזווד|ציוד|מטען|מרווח|עיר|חניה|פגיש|שטח|passenger|family|child|baby|luggage|bags|space|city|parking|meeting|off.?road/i.test(input));
 }
 
@@ -821,54 +847,6 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
     : (he ? 'תרצו שנתחיל בקשה לבדיקה עם הפרטים שכבר מסרתם?' : 'Would you like to start a request for review with the details you already gave?');
   const price = PRICE_OR_AVAILABILITY.test(input) ? `${priceAnswer(state.locale)} ` : '';
   return `${lead}. ${benefit} ${price}${next}`.replace(/\s+/g, ' ').trim();
-}
-
-function safeModelReply(reading: BotReading | null, input: string, state: RebuildState): string | null {
-  if (!reading || OUTSIDE.test(input) || /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input)) return null;
-  // Gemini is only a language draft. The checks below reject anything that
-  // looks like a business promise, workflow decision, repeated intake prompt
-  // or ungrounded vehicle claim before it reaches the customer.
-  if (/מחפש רכב זול לשבוע|מחפשת רכב זול לשבוע|זה נשמע יקר|נשמע יקר|איזו קבוצה הכי מתאימה|looking for a cheap rental for a week|sounds expensive|which (?:group|class) fits best/i.test(input)) return null;
-  if (state.history.some(entry => entry.from === 'customer' && /רכב זול|cheap rental/i.test(entry.text))
-    && /מה הכי מתאים לדעתך|אני נוסע לבד|אני נוסעת לבד|אחשוב על זה|what fits best|travelling alone|think about it/i.test(input)) return null;
-  if ((/יום אחד לעבודה|one day for work/i.test(input) || state.history.some(entry => entry.from === 'customer' && /יום אחד לעבודה|one day for work/i.test(entry.text)))
-    && /צריך רכב|רכב קטן יספיק|מה הכי מתאים לדעתך|אני נוסע לבד|אני נוסעת לבד|יש גם תיק אחד|need a car|small car be enough|what (?:fits|suits) me best|travelling alone|one bag/i.test(input)) return null;
-  if ((state.booking.passengers ?? 0) >= 5 && (state.booking.luggage ?? 0) >= 3 && /האם ג[׳'י]?יפון יתאים|ג[׳'י]?יפון יתאים|מה הכי מתאים לדעתך|המזוודות גדולות|אולי יש כיוון אחר|אז מה היית מציע|איך נוודא מקום למטען|SUV fit|large suitcases|another direction|luggage space/i.test(input)) return null;
-  if (state.booking.childSeats && /אולי יש כיוון אחר|יש אופציה אחרת|any other option|another direction|היית ממליץ על קטן|would you recommend a (?:small|compact) car|(?:מה אם|ומה אם|what if).{0,24}(?:רכב קטן|קומפקט|small car|compact)/i.test(input)) return null;
-  if (state.booking.passengers === 1 && /קטן או משפחתי|קומפקטי או משפחתי|מה הכי מתאים לדעתך|מה מתאים לי|מה לגבי חניה|ומה לגבי חניה|אולי יש כיוון אחר|יש אופציה אחרת|small or family|compact or family|parking|another direction|other option/i.test(input)) return null;
-  if (/אולי אשכור בסוף החודש|אולי בסוף החודש|maybe (?:rent|later) this month/i.test(input)) return null;
-  if (/איזה רכב|מה כדאי|what (?:car|vehicle)|recommend/i.test(input) && !state.booking.passengers && !state.booking.luggage && !state.booking.vehicleNeed) return null;
-  if (/שבעה מקומות|7\s*מקומות|seven[- ]?seat|7[- ]?seat/i.test(input) && state.booking.luggage) return null;
-  if ((state.booking.passengers || state.booking.luggage) && /איזה רכב|יתאים|מתאים|מספיק|ממליץ|recommend|fit|suit/i.test(input)) return null;
-  if (state.booking.passengers && state.booking.luggage && /מזווד|מטען|luggage|suitcase|bags/i.test(input)) return null;
-  if (/מזווד|מטען|תא מטען|luggage|suitcase|boot|trunk/i.test(input) && /כמה|נכנס|יספיק|מקום|יכול|fit|space|room|how many/i.test(input)) return null;
-  if (PRICE_OR_AVAILABILITY.test(input)) return null;
-  if (state.booking.pickupLocation && state.booking.returnLocation
-    && /איסוף|לאסוף|pick.?up/i.test(input) && /החזרה|להחזיר|return|drop.?off/i.test(input)) return null;
-  const reply = reading.reply;
-  if (OUTSIDE.test(reply) || UNSAFE_CLAIM.test(reply) || /(?:יהיה|יש).{0,55}מקום.{0,75}מזווד|באזו/i.test(reply) || INTERNAL_VOICE.test(reply) || /₪|\b\d{2,}\b/.test(reply)) return null;
-  if (VOLUNTEERED_IDENTITY.test(reply) && !identityQuestion(input)) return null;
-  if (!hasVehicleContext(state.booking, input) && /רכב (?:קטן|קומפקטי|משפחתי|פנאי|שבעה מקומות)|משפחתית|ג[׳'י]?יפון|קטגוריית רכבים קומפקטיים|compact car|family car|SUV/i.test(reply)) return null;
-  if (state.booking.passengers && state.booking.passengers < 6 && !/שבעה מקומות|7\s*מקומות|seven.?seat/i.test(input) && /שבעה מקומות|7\s*מקומות|seven.?seat/i.test(reply)) return null;
-  if (/באיזו שעה|באיזה שעה|מה השעה|שעת (?:ה?איסוף|ה?החזרה)|what time|pickup time|drop.?off time|return time/i.test(reply)) return null;
-  if (state.booking.pickupDate && /באיזה תאריך.{0,25}לאסוף|תאריך איסוף|what date.{0,25}pick.?up/i.test(reply)) return null;
-  if (state.booking.returnDate && /באיזה תאריך.{0,25}תחזיר|תאריך החזרה|what date.{0,25}return/i.test(reply)) return null;
-  if (state.booking.pickupDate && state.booking.returnDate && asksRentalDates(reply)) return null;
-  if (!state.booking.pickupDate && asksRentalDates(reply)
-    && (uncertainDateAnswer(input) || state.history.some(entry => entry.from === 'customer' && uncertainDateAnswer(entry.text)))) return null;
-  if (state.booking.pickupLocation && /מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף|עיר האיסוף|where.{0,30}pick.?up/i.test(reply)) return null;
-  if (state.booking.pickupLocation && /(?:מאיפה|איפה|מהו|מה|איזה|which|what|where).{0,35}(?:יעד האיסוף|מקום האיסוף|עיר האיסוף|pick.?up (?:place|city|location))/i.test(reply)) return null;
-  if (state.booking.pickupLocation && /(?:באיזה|באיזו|איזה|מהו|מה|איפה|מאיפה|where|which|what)[^?؟]{0,90}(?:איסוף|לאסוף|pick.?up)[^?؟]*[?؟]/i.test(reply)) return null;
-  if (state.booking.returnLocation && /איפה.{0,30}להחזיר|עיר ההחזרה|where.{0,30}return/i.test(reply)) return null;
-  if ((!state.booking.pickupDate || !state.booking.returnDate) && /מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף|עיר האיסוף|איפה.{0,30}להחזיר|עיר ההחזרה|where.{0,30}(?:pick.?up|return)/i.test(reply)) return null;
-  if (!state.booking.pickupDate && /תאריכים (?:שכבר )?(?:ציינ|בחרת|שבחרת)|dates (?:you(?:'ve| have) )?(?:already )?(?:mentioned|chosen)/i.test(reply)) return null;
-  const earlierBotReplies = state.history.filter(entry => entry.from === 'bot').slice(-4).map(entry => entry.text);
-  if (offersRentalRequest(reply) && earlierBotReplies.some(offersRentalRequest)) return null;
-  if (reply.length > 40 && !/[.!?…]$/.test(reply)) return null;
-  if ((reply.match(/[?؟]/g) ?? []).length > 1) return null;
-  if (state.locale === 'he' && (!/[א-ת]/.test(reply) || /[\u0600-\u06ff]/u.test(reply))) return null;
-  if (state.locale === 'en' && /[א-ת]/.test(reply)) return null;
-  return reply;
 }
 
 function applyFields(input: string, state: RebuildState, reading: BotReading | null): void {
@@ -1243,10 +1221,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const context: GeminiBotContext = {
         locale: state.locale, phase: state.phase, today: israelDate(),
         recent: state.history.filter(item => !item.private).slice(-8).map(({ from, text }) => ({ from, text: redactServiceReference(text, state.serviceReference) })),
-        known: { pickupDate: state.booking.pickupDate, returnDate: state.booking.returnDate, pickupLocation: state.booking.pickupLocation, returnLocation: state.booking.returnLocation, vehicleNeed: state.booking.vehicleNeed, passengers: state.booking.passengers, luggage: state.booking.luggage, childSeats: state.booking.childSeats,
-          commercialBudget: state.commercial?.budget?.amount, commercialCurrency: state.commercial?.budget?.currency,
-          commercialTermMonths: state.commercial?.termMonths ?? undefined, commercialAnnualMileageKm: state.commercial?.annualMileageKm ?? undefined,
-          commercialVehiclePreference: state.commercial?.vehiclePreference ?? undefined,
+        known: conversationalKnown(state),
+        approvedFacts: getSmartCarApprovedFacts(state.locale),
+        conversation: {
+          interest: state.interest, handoffDeferred: Boolean(state.humanHandoffDeferred) || declinesHumanHandoff(input),
+          nextMissingField: state.phase === 'booking' ? nextMissing(state.booking) ?? undefined : undefined,
+          step: state.step, completedRequest: Boolean(state.completedRequestId),
         },
       };
       reading = await (store.readTurn ?? readBotTurn)(redactServiceReference(input, state.serviceReference), context);
@@ -1551,13 +1531,28 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else if (state.phase === 'explore' && state.booking.passengers === 1 && /לא יודע|לא יודעת|לא בטוח|לא בטוחה|not sure|don'?t know/i.test(input) && /קומפקט|קטן|compact|small car/i.test(lastBot)) {
       reply = he ? 'זה בסדר, לא צריך לבחור דגם עכשיו. לנסיעה לבד רכב קומפקטי הוא כיוון טוב, ואפשר להשאיר את הבחירה פתוחה. הפרטים שמסרת שמורים כאן כשתרצה להמשיך.' : 'That is fine; you do not have to choose a model now. A compact is a good starting point for one person, and we can leave the choice open. Your details are here when you want to continue.';
     } else if (reading?.route === 'social') {
-      const modelReply = safeModelReply(reading, input, state);
+      const modelReply = groundedModelReply(reading, input, state);
       reply = modelReply ?? (he ? 'היי 🙂 במה אפשר לעזור לך עם רכב?' : 'Hi 🙂 How can I help with a car?');
       if (modelReply) source = 'gemini';
     } else {
-      const modelReply = safeModelReply(reading, input, state);
+      const modelReply = groundedModelReply(reading, input, state);
       reply = modelReply ?? advice(input, state, reading);
       if (modelReply) source = 'gemini';
+    }
+    // Actions, private details, safety and the final consent summary remain
+    // application-owned. For ordinary discussion the grounded AI answer is the
+    // default; deterministic paragraphs above are the outage/rejection backup.
+    if (!escalate && !state.handedOff && !gotPrivate && !state.durationClarification
+      && !state.completedRequestId && state.phase !== 'service') {
+      const draft = groundedModelReply(reading, input, state);
+      if (draft) {
+        const waitingForFinalConsent = state.phase === 'booking' && state.step === 'rental_confirm';
+        const questionTurn = /[?؟]/u.test(input) || reading?.route === 'policy';
+        if (!waitingForFinalConsent || questionTurn) {
+          reply = waitingForFinalConsent ? `${draft}\n\n${summary(state)}` : draft;
+          source = 'gemini';
+        }
+      }
     }
   }
 
@@ -1567,8 +1562,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     state.booking.vehicleNeed ??= explicitVehicleNeed(input, state.locale) ?? undefined;
     const missing = nextMissing(state.booking);
     state.step = bookingStep(missing);
-    reply = missing ? question(missing, state.locale) : summary(state);
-    source = 'local';
+    if (source !== 'gemini') {
+      reply = missing ? question(missing, state.locale) : summary(state);
+      source = 'local';
+    }
   }
 
   const asksReferenceRecall = /(?:מספר\s+ה?הזמנה|booking\s+(?:number|reference))/i.test(input)

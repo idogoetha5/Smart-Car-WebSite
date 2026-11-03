@@ -3,6 +3,17 @@ import { updateCommercialMemory, renderCommercialMemory } from '@/lib/whatsapp-c
 
 describe('durable explicit commercial facts', () => {
   it.each([
+    ['Make it 24 months.', 'What changes between 24 and 36 months?', 'I am unsure between 24 and 36 months.'],
+    ['החלטתי על 24 חודשים.', 'מה ההבדל בין 24 חודשים מול 36 חודשים?', 'אני מתלבט בין 24 חודשים מול 36 חודשים.'],
+  ])('keeps a selected term during a comparison question, but clears explicit uncertainty: %s', (choice, question, uncertainty) => {
+    const selected = updateCommercialMemory(undefined, choice);
+    expect(selected.termMonths).toBe(24);
+    const compared = updateCommercialMemory(selected, question);
+    expect(compared.termMonths).toBe(24);
+    expect(updateCommercialMemory(compared, uncertainty).termMonths).toBeNull();
+    expect(updateCommercialMemory(undefined, question).termMonths).toBeNull();
+  });
+  it.each([
     ['I prefer a family car.', 'Could I view a car in person before deciding? I have not chosen a specific model.'],
     ['מעדיף משפחתי', 'אפשר לראות רכב לפני החלטה? עוד לא בוחר דגם.'],
   ])('retains a category preference when only the exact model is undecided: %s', (choice, question) => {

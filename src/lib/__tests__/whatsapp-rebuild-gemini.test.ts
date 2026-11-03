@@ -4,11 +4,49 @@ const mocks = vi.hoisted(() => ({ generate: vi.fn(), evaluation: vi.fn() }));
 vi.mock('@/lib/whatsapp-gemini-client', () => ({ generateSmartCarContent: mocks.generate, readJson: JSON.parse }));
 vi.mock('@/lib/whatsapp-model-evaluation', () => ({ activeModelEvaluation: mocks.evaluation }));
 import { readBotTurn } from '@/lib/whatsapp-rebuild-gemini';
+import { getSmartCarApprovedFacts } from '@/lib/smartcar-service-knowledge';
 
 const context = { locale: 'he' as const, phase: 'explore' as const, recent: [], known: {}, today: '2026-10-25' };
 beforeEach(() => { vi.clearAllMocks(); mocks.evaluation.mockReturnValue(undefined); });
 
 describe('replacement Gemini boundary', () => {
+  it('supplies approved business grounding and conversation state while redacting customer contacts', async () => {
+    const reply = 'For 24 versus 36 months, compare the same car and annual mileage, total payments and exit terms. A family car usually gives more room, while a compact is easier to park. Which matters more to you?';
+    mocks.generate.mockResolvedValue({ ok: true, text: JSON.stringify({ route: 'leasing', direction: 'none', reply, fields: {} }) });
+    const conversation = { interest: 'leasing' as const, handoffDeferred: true, step: 'menu' as const, completedRequest: false };
+    const facts = getSmartCarApprovedFacts('en');
+    const result = await readBotTurn('My name is Daniel Cohen. daniel@example.com 0501234567. What changes between 24 and 36 months, and compact versus family?', {
+      ...context, locale: 'en', approvedFacts: facts, conversation,
+      known: { termMonths: 24, annualMileage: 15000, contact: 'daniel@example.com 0501234567' },
+      recent: [{ from: 'customer', text: 'My name is Daniel Cohen. daniel@example.com 0501234567' }],
+    });
+    const body = mocks.generate.mock.calls[0][0].body;
+    const payload = JSON.parse(body.contents[0].parts[0].text);
+    expect(payload.conversation).toEqual(conversation);
+    expect(payload.known.termMonths).toBe(24);
+    expect(payload.known.annualMileage).toBe(15000);
+    expect(payload.approvedFacts).toEqual(facts);
+    expect(payload.approvedFacts.map((fact: { id: string }) => fact.id)).toEqual(expect.arrayContaining(['insurance', 'vehicle_comparison', 'commercial_enquiry']));
+    expect(JSON.stringify(body)).not.toMatch(/Daniel Cohen|daniel@example.com|0501234567/);
+    expect(result?.reply).toBe(reply);
+    expect(result?.groundedContext).toBe(true);
+  });
+
+  it('retains a grounded child-seat discussion while dates are undecided without inventing fields', async () => {
+    const reply = 'אפשר להמשיך עם תאריכים פתוחים. למשפחתית בדרך כלל יותר מקום, אבל התאמה לעגלה ולכיסא בטיחות תלויה בדגם ובמידות. מה גודל העגלה?';
+    mocks.generate.mockResolvedValue({ ok: true, text: JSON.stringify({ route: 'explore', direction: 'family', reply, fields: {} }) });
+    const result = await readBotTurn('התאריכים עוד לא ידועים. קטן או משפחתי עם עגלה וכיסא בטיחות?', { ...context, approvedFacts: getSmartCarApprovedFacts('he'), known: { passengers: 4 }, conversation: { handoffDeferred: true, nextMissingField: 'pickupDate', step: 'rental_dates' } });
+    expect(result?.reply).toBe(reply);
+    expect(result?.fields).toEqual({});
+    expect(result?.groundedContext).toBe(true);
+  });
+
+  it('derives the grounding marker from server context rather than model self-report', async () => {
+    mocks.generate.mockResolvedValue({ ok: true, text: JSON.stringify({ route: 'social', direction: 'none', reply: 'Hello!', fields: {}, groundedContext: true }) });
+    expect((await readBotTurn('Hello', context))?.groundedContext).toBe(false);
+    expect((await readBotTurn('Hello', { ...context, approvedFacts: [] }))?.groundedContext).toBe(false);
+  });
+
   it('uses only the approved customer model and keeps contact details out of its request', async () => {
     mocks.generate.mockResolvedValue({ ok: true, text: JSON.stringify({ route: 'explore', direction: 'compact', reply: 'רכב קומפקטי הוא כיוון לבדיקה. לאילו ימים?', fields: {} }) });
     const result = await readBotTurn('קוראים לי דניאל כהן. אני צריך רכב. המייל שלי daniel@example.com והטלפון 0501234567, איסוף ברחוב הרצל 5', { ...context, known: { pickupLocation: 'רחוב הרצל 5' } });

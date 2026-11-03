@@ -92,6 +92,25 @@ export const ANSWERS: Record<ServiceKnowledgeTopic, LocalisedAnswer> = {
   }
 };
 
+export type SmartCarApprovedFact = { id: string; text: string };
+
+/** Trusted static knowledge for model phrasing; contains no customer data,
+ * live inventory, personal price or authority to perform an action. */
+export function getSmartCarApprovedFacts(locale: ServiceLocale): SmartCarApprovedFact[] {
+  return [
+    ...Object.values(ANSWERS).map(answer => ({ id: answer.topic, text: answer[locale] })),
+    { id: 'request_boundary', text: locale === 'he'
+      ? 'בקשת השכרה דורשת תאריכי איסוף והחזרה, מיקומים, צרכי רכב, קבוצת גיל נהג 21–23 או 24+, שם ומספר WhatsApp שמגיע מהשיחה. מייל אינו חובה. הבקשה, המחיר והרכב מחייבים אישור SmartCar; אין לאשר בשיחה הזמנה, שינוי, ביטול או זיכוי.'
+      : 'A rental request needs pickup and return dates, locations, vehicle needs, driver age group 21–23 or 24+, a name and the WhatsApp number supplied by the channel. Email is optional. The request, price and vehicle require SmartCar confirmation; never approve a booking, change, cancellation or refund in chat.' },
+    { id: 'vehicle_comparison', text: locale === 'he'
+      ? 'קומפקטי הוא כיוון להשוואה כשחשובים גודל וחניה בעיר. משפחתית מציעה בדרך כלל יותר מקום לנוסעים ולציוד. התאמה לכיסא בטיחות, עגלה ומזוודות תלויה בדגם המסוים ובמידות הציוד; אין להבטיח התאמה. שאלה או השוואה אינן בחירה ברכב.'
+      : 'A compact is a starting point to compare when city size and parking matter. A family car generally offers more passenger and luggage room. Child-seat, stroller and luggage fit depend on the actual model and equipment dimensions; do not promise fit. A question or comparison is not a vehicle selection.' },
+    { id: 'commercial_enquiry', text: locale === 'he'
+      ? 'ליסינג ומכירה: אפשר לברר צרכים, שימוש, העדפת רכב ותקציב. בליסינג מבררים גם תקופה וקילומטראז׳ שנתי. 24 חודשים הם תקופה קצרה יותר מ־36; להשוואת הצעות בודקים אותו רכב וקילומטראז׳, עלות כוללת, תשלומים ראשוניים וסופיים, מגבלת קילומטרים, חריגה ותנאי יציאה. ביטוח וטיפולים כלולים רק אם נכתב בהצעה ובחוזה. אין מחיר אישי, מלאי או אישור עסקה מאומתים במידע זה. הייעוץ כללי ולא המלצה פיננסית אישית.'
+      : 'Leasing and sale enquiries can explore needs, use, vehicle preference and budget. Leasing also needs a term and annual mileage. 24 months is shorter than 36; compare offers for the same car and mileage, total cost, initial and final payments, mileage limits, excess charges and exit terms. Insurance and maintenance are included only if stated in the offer and contract. These facts contain no verified personal price, inventory or deal approval. Advice is general, not personalised financial advice.' },
+  ].map(fact => ({ id: fact.id, text: fact.text.slice(0, 1000) }));
+}
+
 const TOPIC_PATTERNS: Array<[ServiceKnowledgeTopic, RegExp]> = [
   ['damage_accident', /תאונה|התנגשות|נזק|פגיעה|גניבה|accident|collision|damage|theft/i],
   ['cancellation', /ביטול|לבטל|מבטל|מבוטל|מדיניות ביטול|cancel|cancellation|refund policy/i],

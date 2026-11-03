@@ -44,11 +44,24 @@ decision until a system of record confirms it.
 
 The approved customer model is Gemini 3.5 Flash-Lite. A separate full-admin
 rehearsal may compare Gemini 3.8 Flash; it cannot change the customer model.
-Gemini may infer intent, extract facts with direct customer evidence and draft
-one short reply. Application code owns state transitions, consent, service
+Gemini is the default conversational voice for ordinary advice, commercial
+discussion and side questions. Each call receives approved service facts,
+non-private structured customer facts and the current conversation state.
+It may infer intent, extract facts with direct customer evidence and answer
+the actual questions naturally. Application code owns state transitions, consent, service
 actions and safety routing. Name, email, phone, booking reference, payment data
 and exact street address do not go to the model. The model's own memory is not
 evidence of a customer fact.
+
+Canonical safety instructions, private-detail intake, final request summaries,
+submission and handoff decisions retain application control. Ordinary answers
+prefer a validated model draft; local paragraphs are the unavailable/rejected
+model fallback. Validation examines recognizable unsafe output, unsupported
+numbers and conflicts with known state rather than blacklisting whole input
+topics such as children, luggage or leasing. These checks cannot prove complete
+semantic grounding; real model conversations must still be reviewed. The
+server's groundedContext marker records that approved facts were supplied,
+not that every sentence is proven true.
 
 ## Acceptance
 
