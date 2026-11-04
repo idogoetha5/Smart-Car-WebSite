@@ -31,6 +31,13 @@ describe('public rental search content and preserved private exclusion', () => {
         expect(metadata.alternates?.languages).toMatchObject({ he: `/he/branches/${branch.id}`, en: `/en/branches/${branch.id}` });
         expect(html.match(/<h1\b/g)).toHaveLength(1);
         expect(html).toContain(locale === 'he' ? branch.streetHe : branch.streetEn);
+        if (branch.id === 'airport') {
+          expect(html).not.toContain(locale === 'he' ? 'שעות פעילות הסניף' : 'Branch opening hours');
+        } else {
+          expect(html).toContain(locale === 'he' ? 'שעות פעילות הסניף' : 'Branch opening hours');
+          expect(html).toContain('08:00–18:00');
+          expect(html).toContain('08:30–14:00');
+        }
         for (const section of advice.sections) expect(html).toContain(rentalCopy(section.heading, locale).replace(/&/g, '&amp;'));
         for (const path of ['rental', 'services/monthly', 'leasing', 'terms']) expect(html).toContain(`href="/${locale}/${path}"`);
         expect(html).not.toContain(`href="/${locale}/admin`);

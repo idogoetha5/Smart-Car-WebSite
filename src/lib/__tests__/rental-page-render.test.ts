@@ -53,6 +53,8 @@ describe('server-seeded rental discovery without changing dated pricing', () => 
     expect(html).toContain('2');
     expect(state.fetchFleet).toHaveBeenCalledOnce();
     expect(html.match(/<h1\b/g)).toHaveLength(1);
+    expect(html).toContain('<h1 class="text-4xl font-black text-gray-900 mb-3">השכרת רכב בישראל</h1>');
+    expect(html).toContain('שלחו בקשת השכרה');
   });
   it('honours the existing commercial category link in server-rendered cards', async () => {
     const html = renderToStaticMarkup(await RentalPage({ params: Promise.resolve({ locale: 'he' }), searchParams: Promise.resolve({ category: 'VAN' }) }));

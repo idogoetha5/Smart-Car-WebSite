@@ -28,6 +28,28 @@ export interface Branch {
   image: string;
 }
 
+export interface BranchHours {
+  weekdaysHe: string;
+  weekdaysEn: string;
+  time: string;
+  fridayTime: string | null;
+  saturday: boolean;
+}
+
+// Owner-confirmed hours (2026-07-28 and 2026-08-04). The airport entry is
+// a coordinated delivery service, not walk-in desk opening hours.
+const WEEKDAY_HOURS: BranchHours = {
+  weekdaysHe: 'א׳–ה׳', weekdaysEn: 'Sun–Thu', time: '08:00–18:00',
+  fridayTime: '08:30–14:00', saturday: false,
+};
+
+export const BRANCH_HOURS: Record<BranchId, BranchHours> = {
+  herzliya: WEEKDAY_HOURS,
+  telaviv: WEEKDAY_HOURS,
+  jerusalem: WEEKDAY_HOURS,
+  airport: { weekdaysHe: '24/7', weekdaysEn: '24/7', time: '24/7', fridayTime: '24/7', saturday: true },
+};
+
 export const BRANCHES: Branch[] = [
   {
     id: 'herzliya',

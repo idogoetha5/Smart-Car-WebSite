@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { BRANCHES, mapsUrl, wazeUrl, type BranchId } from '@/lib/branches';
+import { BRANCHES, BRANCH_HOURS, mapsUrl, wazeUrl, type BranchId } from '@/lib/branches';
 import { localeAlternates } from '@/lib/seo';
 import { BRANCH_RENTAL_ADVICE, rentalCopy } from '@/lib/public-rental-content';
 import PublicRentalAdvice from '@/components/content/PublicRentalAdvice';
@@ -94,6 +94,7 @@ export default async function BranchDetailPage({
   const isHe = locale === 'he';
   const city = isHe ? DISPLAY_CITY[branch.id].he : DISPLAY_CITY[branch.id].en;
   const content = CONTENT[branch.id];
+  const hours = BRANCH_HOURS[branch.id];
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
   const locationQuestion = branch.id === 'airport'
     ? (isHe ? 'איך מקבלים רכב בנתב״ג?' : 'How do I receive a vehicle at Ben Gurion Airport?')
@@ -217,6 +218,16 @@ export default async function BranchDetailPage({
               {branch.phone}
             </a>
           </div>
+          {branch.id !== 'airport' && (
+            <div className="mt-5 border-t border-gray-100 pt-4 text-sm text-gray-700">
+              <h2 className="font-bold text-[#0D2B2B] mb-2">
+                {isHe ? 'שעות פעילות הסניף' : 'Branch opening hours'}
+              </h2>
+              <p>{isHe ? hours.weekdaysHe : hours.weekdaysEn}: {hours.time}</p>
+              <p>{isHe ? 'שישי וערבי חג' : 'Friday and holiday eves'}: {hours.fridayTime}</p>
+              <p>{isHe ? 'שבת: סגור' : 'Saturday: Closed'}</p>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2 flex-wrap mb-10">
@@ -240,7 +251,7 @@ export default async function BranchDetailPage({
             href={`/${locale}/rental`}
             className="flex-1 bg-[#C24E17] text-white py-3 px-4 rounded-xl text-center font-bold hover:opacity-90 transition-opacity text-sm min-w-[120px]"
           >
-            {isHe ? 'השכר רכב עכשיו' : 'Book a Vehicle'}
+            {isHe ? 'בחרו רכב ושלחו בקשה' : 'Choose a Car and Send a Request'}
           </Link>
         </div>
 

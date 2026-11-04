@@ -1,4 +1,4 @@
-import { BRANCHES as ALL_BRANCHES, mapsUrl, wazeUrl, type BranchId } from '@/lib/branches';
+import { BRANCHES as ALL_BRANCHES, BRANCH_HOURS, mapsUrl, wazeUrl, type BranchId } from '@/lib/branches';
 import { DELIVERY_CITIES } from '@/lib/delivery-cities';
 import { localeAlternates } from '@/lib/seo';
 import type { Metadata } from 'next';
@@ -24,49 +24,20 @@ export async function generateMetadata({
 // Address, phone and map links come from @/lib/branches (single source of
 // truth). Only the page-specific presentation data — opening hours and the
 // descriptive blurb — is defined here.
-// Owner-confirmed 2026-07-28: every branch is 08:00–18:00 Sun–Thu. The site
-// previously carried three different answers — 08:00–20:00 here and in
-// contact, 08:00–18:00 in the terms, and a fourth shape in the JSON-LD — so a
-// customer could be told a different closing time depending on which page
-// they landed on.
-// Owner-confirmed 2026-08-04: Fridays and holiday eves run shorter hours,
-// 08:30–14:00 — this had no entry at all (fridayTime was null), so the site
-// simply showed nothing for Friday instead of the real short day.
-const WEEKDAY_HOURS: BranchHours = { weekdaysHe: 'א׳–ה׳', weekdaysEn: 'Sun–Thu', time: '08:00–18:00', fridayTime: '08:30–14:00', saturday: false };
-
-interface BranchHours {
-  weekdaysHe: string;
-  weekdaysEn: string;
-  time: string;
-  /** null when there is no separate Friday time to show. */
-  fridayTime: string | null;
-  saturday: boolean;
-}
-
-const BRANCH_DETAILS: Record<BranchId, { hours: BranchHours; descHe: string; descEn: string }> = {
+const BRANCH_DETAILS: Record<BranchId, { descHe: string; descEn: string }> = {
   herzliya: {
-    hours: WEEKDAY_HOURS,
     descHe: 'הסניף הראשי שלנו בהרצליה, ממוקם במלון דן אכדיה על קו החוף.',
     descEn: 'Our main branch in Herzliya is located at the Dan Accadia Hotel, on the seafront.',
   },
   telaviv: {
-    hours: WEEKDAY_HOURS,
     descHe: 'סניף תל אביב במרכז העיר, קרוב לטיילת ולמלונות.',
     descEn: 'Our Tel Aviv branch is in the city center, close to the promenade and hotels.',
   },
   jerusalem: {
-    hours: WEEKDAY_HOURS,
     descHe: 'סניף ירושלים ברחוב המלך דוד, לב ליבה של העיר.',
     descEn: 'Our Jerusalem branch is on King David Street, in the heart of the city.',
   },
   airport: {
-    // Deliberately NOT changed to 08:00–18:00 with the other three. This entry
-    // is a 24/7 DELIVERY service to the terminal, not a walk-in desk with
-    // opening hours, and "מענה אנושי 24/7" is on the protected-claims list.
-    // Collapsing it into branch hours would withdraw an approved claim and
-    // mix up two different things — which is the confusion finding 37 is
-    // about in the first place. Raised for the owner to confirm.
-    hours: { weekdaysHe: '24/7', weekdaysEn: '24/7', time: '24/7', fridayTime: '24/7', saturday: true },
     descHe: 'שירות משלוח לנמל התעופה בן גוריון – זמין 24/7.',
     descEn: 'Delivery service to Ben Gurion Airport, available 24/7.',
   },
@@ -82,6 +53,7 @@ const BRANCHES = ALL_BRANCHES.map((b) => ({
   image: b.image,
   waze: wazeUrl(b),
   maps: mapsUrl(b),
+  hours: BRANCH_HOURS[b.id],
   ...BRANCH_DETAILS[b.id],
 }));
 

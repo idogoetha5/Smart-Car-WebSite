@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 import { Car, ChevronRight, ChevronLeft } from 'lucide-react';
 import RentalResults from './RentalResults';
 import Link from 'next/link';
@@ -33,7 +33,6 @@ export default async function RentalPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations({ locale, namespace: 'booking' });
   const isHe = locale === 'he';
   const criteria = rentalSearchCriteria(await searchParams);
   let initialVehicles: Vehicle[] | undefined;
@@ -59,11 +58,13 @@ export default async function RentalPage({
             {isHe ? 'השכרת רכב' : 'Car Rental'}
           </span>
         </div>
-        <h1 className="text-4xl font-black text-gray-900 mb-3">{t('title')}</h1>
+        <h1 className="text-4xl font-black text-gray-900 mb-3">
+          {isHe ? 'השכרת רכב בישראל' : 'Car Rental in Israel'}
+        </h1>
         <p className="text-gray-600 text-lg">
           {isHe
-            ? 'באתר מוצג מבחר מהצי. לאחר שליחת הבקשה נבדוק את הצי המלא ונאשר את הרכב או קבוצת הרכב המתאימה.'
-            : 'The website shows a selection from our fleet. After you send the request, we will check the full fleet and confirm the available vehicle or vehicle group.'}
+            ? 'השוו קבוצות ודגמי רכב, בחרו את התאריכים ומקום האיסוף וההחזרה, ושלחו בקשת השכרה. כאן מוצג מבחר מהצי; לאחר שליחת הבקשה נבדוק את הצי המלא ונאשר בכתב את הזמינות, הרכב או קבוצת הרכב, המחיר והתנאים.'
+            : 'Compare vehicle groups and models, choose your dates and collection and return locations, then send a rental request. This page shows a selection from our fleet; after you send the request, we will check the full fleet and confirm availability, the vehicle or group, price and terms in writing.'}
         </p>
       </div>
 
