@@ -12,6 +12,7 @@ import {
   Tag,
   Star,
   Send,
+  ShieldAlert,
 } from 'lucide-react';
 
 export default function AdminSidebar() {
@@ -55,6 +56,11 @@ export default function AdminSidebar() {
       href: `/${locale}/admin/reviews`,
       label: 'ביקורות',
       icon: Star,
+    },
+    {
+      href: `/${locale}/admin/accident-reports`,
+      label: 'דוחות תאונה',
+      icon: ShieldAlert,
     },
     {
       href: `/${locale}/admin/quotes`,
