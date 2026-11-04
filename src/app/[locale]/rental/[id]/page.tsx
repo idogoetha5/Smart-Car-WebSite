@@ -13,6 +13,13 @@ import BackToVehicles from '@/components/vehicle/BackToVehicles';
 import { Users, DoorOpen, Settings, Fuel } from 'lucide-react';
 import { WHATSAPP_NUMBER } from '@/lib/constants';
 
+// No vehicle pages are built ahead of time; each one is rendered on its first
+// visit and then served from the cache (ISR, `revalidate` above). Next.js only
+// caches dynamic-segment pages at runtime when this returns an empty array.
+export async function generateStaticParams() {
+  return [];
+}
+
 // Fetched once per render: generateMetadata and the page share the result.
 const getVehicle = cache((id: string) => getVehicleById(id));
 
