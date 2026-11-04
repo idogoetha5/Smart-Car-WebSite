@@ -60,7 +60,7 @@ export function generateAccidentReportHTML(id: string, r: StoredReport, img: Pdf
   ).join('');
 
   const attachments = [
-    `${ltr(r.photos.length)} תמונות מהתאונה`,
+    r.photos.length ? `${ltr(r.photos.length)} תמונות מהתאונה` : 'לא צורפו תמונות',
     img.licensePhoto ? 'רישיון נהיגה' : '',
     img.docsPhoto ? 'מסמכי צד ג\'' : '',
   ].filter(Boolean).join(' · ');
@@ -154,7 +154,7 @@ ${cell('מס\' יומן', r.accident.police ? ltrOrDash(r.accident.policeReport)
     o.involved
       ? `<div class="grid">
 ${cell('מספר רכב', ltr(formatPlate(o.plate)))}${cell('סוג ודגם הרכב', esc(o.model))}${cell('חברת ביטוח', esc(insurerName(o)))}${cell('מספר פוליסה', ltr(o.policy))}
-${cell('שם בעל הרכב', esc(o.ownerName))}${cell('ת.ז. בעל הרכב', ltr(o.ownerId))}${cell('טלפון', ltr(o.ownerPhone))}${cell('שם סוכן', orDash(o.agent))}
+${cell('שם בעל הרכב', esc(o.ownerName))}${cell('ת.ז. בעל הרכב', ltr(o.ownerId))}${cell('טלפון', o.ownerPhone ? ltr(o.ownerPhone) : '—')}${cell('שם סוכן', orDash(o.agent))}
 ${cell('כתובת', esc(o.ownerAddress), 4)}
 </div>`
       : `<div class="c"><span class="v">לא היה רכב נוסף מעורב בתאונה.</span></div>`
@@ -173,10 +173,10 @@ ${cell('כתובת', esc(o.ownerAddress), 4)}
 <div style="text-align:center"><div class="sigbox"><img src="${esc(img.signature)}" alt=""></div><span class="l">חתימת הנהג · ${esc(r.driver.name)}</span></div>
 </div></div>
 
-<div class="pb"></div>
+${photoTiles || docTiles ? `<div class="pb"></div>
 <div class="title" style="margin-top:0"><h1 style="font-size:16pt">תמונות ומסמכים מצורפים</h1><div class="meta">דו"ח <b>${ltr(id)}</b></div></div>
-<div class="sec"><h2>תמונות מהתאונה</h2><div class="ph">${photoTiles}</div></div>
-${docTiles ? `<div class="sec"><h2>מסמכים</h2><div class="ph">${docTiles}</div></div>` : ''}
+${photoTiles ? `<div class="sec"><h2>תמונות מהתאונה</h2><div class="ph">${photoTiles}</div></div>` : ''}
+${docTiles ? `<div class="sec"><h2>מסמכים</h2><div class="ph">${docTiles}</div></div>` : ''}` : ''}
 <div class="foot">הדו"ח הופק אוטומטית מהטופס הדיגיטלי של סמארט קאר · ${ltr('smartcar.co.il')} · ${ltr('office@smartcar.co.il')}</div>
 </body></html>`;
 }

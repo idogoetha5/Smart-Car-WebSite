@@ -175,7 +175,7 @@ export const reportSchema = z
       ours: req(1000),
       theirs: str(1000),
     }),
-    photos: z.array(storagePath).min(2).max(10),
+    photos: z.array(storagePath).max(10),
     signature: z.string().startsWith('data:image/png;base64,').max(400_000),
     declaration: z.literal(true),
     turnstileToken: z.string().optional(),
@@ -194,7 +194,7 @@ export const reportSchema = z
         !o.policy ||
         !o.ownerName ||
         !isValidIsraeliId(o.ownerId) ||
-        !isValidPhone(o.ownerPhone) ||
+        (!!o.ownerPhone && !isValidPhone(o.ownerPhone)) ||
         !o.ownerAddress ||
         !v.damage.theirs;
       if (missing) ctx.addIssue({ code: 'custom', path: ['other'], message: 'other party details required' });

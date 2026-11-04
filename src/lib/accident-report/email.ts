@@ -45,7 +45,7 @@ ${
     ? `<h2 style="font-size:17px;color:#2D5F5F;margin:16px 0 4px">צד ג'</h2>
 <table style="width:100%;border-collapse:collapse">
 ${row('רכב', `${ltr(formatPlate(o.plate))} · ${esc(o.model)}`)}${row('ביטוח', `${esc(insurerName(o))} · פוליסה ${ltr(o.policy)}`)}
-${row('בעל הרכב', `${esc(o.ownerName)} · ת.ז. ${ltr(o.ownerId)}`)}${row('טלפון', ltr(o.ownerPhone))}${row('כתובת', esc(o.ownerAddress))}
+${row('בעל הרכב', `${esc(o.ownerName)} · ת.ז. ${ltr(o.ownerId)}`)}${row('טלפון', o.ownerPhone ? ltr(o.ownerPhone) : '—')}${row('כתובת', esc(o.ownerAddress))}
 ${row('נזק לרכב שלו', esc(r.damage.theirs))}
 </table>`
     : ''
