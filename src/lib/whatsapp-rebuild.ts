@@ -374,6 +374,20 @@ function statedCount(value: string): number | null {
   return count !== null && count > 0 && count <= 20 ? count : null;
 }
 
+function explicitPartnerAndChildGroup(input: string): boolean {
+  for (const sentence of input.split(/[.!?;]/u)) {
+    const match = sentence.match(/\b(?:I(?: am|['’]m)?\s+)?(?:travell?ing|going|coming)\s+with\s+my\s+(?:wife|husband|partner|spouse)\s+and\s+(?:our|my|a|one)\s+(?:child|kid|baby|infant|son|daughter)\b|(?:אני\s+)?(?:נוסע(?:ת)?|מגיע(?:ה)?)\s+עם\s+(?:(?:בן|בת)\s+הזוג\s+שלי|אשתי|בעלי)\s+ו(?:עם\s+)?(?:הילד(?:ה)?\s+שלנו|ילד(?:ה)?\s+אחד(?:ת)?)(?![\p{L}])/iu);
+    if (!match) continue;
+    const prefix = sentence.slice(0, match.index);
+    const self = /^(?:I\b|אני\s)/iu.test(match[0])
+      || /,\s*$/u.test(prefix) && /\bI\b|(?:^|\s)אני(?:\s|$)/iu.test(prefix);
+    // Only a declared current travelling group; not a hypothetical or someone
+    // else's description. Singular child nouns supply the one-child evidence.
+    if (self && !/\b(?:if|whether|not|never|might|may|could|would|should|don't|do not|won't)\b[^.!?;]{0,35}$|(?:^|\s)(?:אם|אולי|לא|אינני|ייתכן|יתכן|שוקל|שוקלת)[^.!?;]{0,35}$/iu.test(prefix)) return true;
+  }
+  return false;
+}
+
 function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   const count = '(\\d{1,2}|אחד|אחת|שניים|שתיים|שתי|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש|שבעה|שבע|שמונה|one|two|three|four|five|six|seven|eight)';
   const passengers = input.match(new RegExp(`(?:אנחנו|נהיה)\\s+${count}(?=\\s|$)|${count}\\s+(?:נוסעים|אנשים|מבוגרים|passengers|people)`, 'iu'));
@@ -386,8 +400,9 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   if (/אנחנו זוג|זוג עם|שני אנשים|שני נוסעים|we are a couple|two of us/i.test(input)) draft.passengers = 2;
   // Count the child as a passenger when the customer explicitly describes a
   // couple travelling with one. A five-year-old is not luggage or a seat count.
-  const coupleWithChild = /(?:זוג|שני (?:מבוגרים|אנשים)).{0,45}(?:עם|ו[- ]?).{0,20}(?:תינוק|ילד(?:ה)?(?: אחד(?:ת)?)?)|(?:my (?:wife|husband|partner|spouse) and I|myself and my (?:wife|husband|partner|spouse)|two adults?).{0,90}(?:(?:with|and) (?:our|a|one) (?:\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)[- ]year[- ]old|with (?:our|a|one) (?:child|kid|baby|infant|son|daughter)|and (?:one|a) (?:child|kid|baby|infant))/i.test(input);
+  const coupleWithChild = /(?<![\p{L}])(?:זוג|שני (?:מבוגרים|אנשים)).{0,45}(?:עם|ו[- ]?).{0,20}(?:תינוק|ילד(?:ה)?(?: אחד(?:ת)?)?)(?![\p{L}])|(?:my (?:wife|husband|partner|spouse) and I|myself and my (?:wife|husband|partner|spouse)|two adults?).{0,90}(?:(?:with|and) (?:our|a|one) (?:\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)[- ]year[- ]old|with (?:our|a|one) (?:child|kid|baby|infant|son|daughter)|and (?:one|a) (?:child|kid|baby|infant))/iu.test(input);
   if (coupleWithChild) draft.passengers = 3;
+  if (passengerCount === null && explicitPartnerAndChildGroup(input)) draft.passengers = 3;
   if (/זוג עם (?:שני|שתי) ילדים|זוג ושני ילדים|(?:we are a )?couple with two children/i.test(input)) draft.passengers = 4;
   const adultsAndChildren = input.match(new RegExp(`${count}\\s+adults?\\s+(?:and|with)\\s+${count}\\s+(?:children|kids)`, 'iu'));
   if (adultsAndChildren) {
