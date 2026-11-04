@@ -512,8 +512,13 @@ export default function AccidentReportForm({ locale, branch, token }: { locale: 
       const res = await fetch(`/api/accident-report/lookup?plate=${digits(f.plate)}`);
       const json = await res.json();
       if (json.model) {
-        set('model', json.model);
-        setModelLookup('found');
+        // Don't overwrite a model the customer already typed.
+        if (!f.model.trim() || modelLookup === 'found') {
+          set('model', json.model);
+          setModelLookup('found');
+        } else {
+          setModelLookup('missing');
+        }
       } else {
         setModelLookup('missing');
       }
@@ -824,14 +829,14 @@ export default function AccidentReportForm({ locale, branch, token }: { locale: 
                   id="plate" dir="ltr" inputMode="numeric" autoComplete="off" enterKeyHint="next"
                   className={`${inputCls(plateErr)} text-start tracking-wide`}
                   value={f.plate}
-                  onChange={(e) => { set('plate', e.target.value); if (modelLookup !== 'idle') { setModelLookup('idle'); set('model', ''); } }}
+                  onChange={(e) => { set('plate', e.target.value); if (modelLookup === 'found') set('model', ''); if (modelLookup !== 'idle') setModelLookup('idle'); }}
                   onBlur={() => { blur('plate')(); lookupModel(); }}
                   aria-invalid={!!plateErr}
                   aria-describedby={plateErr ? 'plate-err' : 'plate-hint'}
                 />
               </Field>
             )}
-            {!locked.model && (modelLookup === 'missing' || modelLookup === 'found' || modelErr || locked.plate) && (
+            {!locked.model && (
               <Field id="model" label={t.modelLabel} hint={modelLookup === 'found' ? t.modelFoundHint : t.modelHint} error={modelErr}>
                 <input
                   id="model" autoComplete="off" enterKeyHint="done"
