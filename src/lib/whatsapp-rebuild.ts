@@ -469,6 +469,20 @@ function driverAgeRange(input: string, state: RebuildState): '21-23' | '24-plus'
   return value >= 21 && value <= 23 ? '21-23' : value >= 24 && value <= 99 ? '24-plus' : null;
 }
 
+function withoutCoverageQuestionHazards(input: string): string {
+  // Mask only a policy-question clause, never an affirmative incident beside it.
+  // Keeping clause boundaries means “does insurance cover accidents? I crashed”
+  // still takes the fixed safety path, regardless of the policy wording.
+  return input.split(/([.!?;\n]|\bbut\b|אבל|אך)/iu).map(clause => {
+    const asksCoverage = /\b(?:cover(?:age)?|insurance|excess)\b|ביטוח|כיסוי|השתתפות עצמית/iu.test(clause)
+      && /\b(?:does|do|is|are|can|what|which|include|includes|cover)\b|האם|כולל|מכסה|מכסים|מה|אפשר/iu.test(clause);
+    const currentIncident = /\b(?:crashed|collided|hit|struck|injured|hurt)\b|\b(?:I|we|there|my (?:rental )?car|our (?:rental )?car|the (?:rental )?car)\s+(?:have|had|was|were|is|has|just had|just been)\b.{0,45}\b(?:accident|collision|crash|damage|damaged|dent|scratch)\b|\b(?:after|following)\s+(?:the|my|our|an)\s+(?:accident|collision|crash)\b|\b(?:accident|collision|crash)\s+(?:just\s+)?(?:happened|occurred)\b|עברתי|עברנו|התנגשתי|התנגשנו|פגעתי|נפגעתי|פצוע|(?:הייתה|היתה|קרתה|אירעה|עשיתי|עשינו)\s+(?:לי\s+)?תאונה|(?:אחרי|בעקבות)\s+(?:ה?תאונה|התנגשות)|(?:הרכב|רכב שכור).{0,25}(?:נפגע|ניזוק|נשרט|קיבל מכה)/iu.test(clause);
+    return asksCoverage && !currentIncident
+      ? clause.replace(/\b(?:accidents?|crash(?:es)?|collisions?)(?:[- ]damage)?\b|נזקי? תאונות|נזקי? תאונה|תאונות|תאונה|התנגשות/giu, 'covered event')
+      : clause;
+  }).join('');
+}
+
 function safety(input: string): 'accident' | 'breakdown' | null {
   if (/מה (?:קורה|יקרה|עושים)?\s*אם|אם (?:תהיה|יקרה|אעשה|הרכב ייתקע)|במקרה של|hypothetical|what if|if (?:I have|the car breaks down)/i.test(input)) return null;
   if (/(?:יש לכם שירות|האם אתם מציעים שירות|do you offer|do you have).{0,30}(?:פנצ|גרר|flat tire|tow)/i.test(input)) return null;
@@ -486,7 +500,7 @@ function safety(input: string): 'accident' | 'breakdown' | null {
   const noInjuries = /אין נפגעים|לא (?:היו )?נפגעים|אף אחד לא נפגע|no injuries|nobody was injured|no one was injured/i.test(input);
   // A vehicle-history check is not a report of an incident. Remove only the
   // historical phrase, so a separate current collision/damage report survives.
-  const incidentInput = input
+  const incidentInput = withoutCoverageQuestionHazards(input)
     .replace(/\b(?:accident|crash|collision|damage)\s+history\b|\bhistory\s+of\s+(?:(?:past|previous|prior)\s+)?(?:accidents?|crashes|collisions?|damage)\b|\b(?:past|previous|prior)\s+(?:accidents?|crashes|collisions?)(?:\s+damage)?\b/gi, 'vehicle history')
     .replace(/היסטורי(?:ית|ה של)\s+(?:ה?תאונות|התנגשויות|נזקים)|עבר\s+תאונתי|תאונות\s+(?:ה?עבר|קודמות)|נזקי\s+תאונות\s+(?:ה?עבר|קודמות)/gu, 'עבר הרכב');
   if (reportedRentalDamage(incidentInput)) return 'accident';
@@ -1430,7 +1444,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         reply = `${he ? 'בקשת כיסא הבטיחות הוסרה מהטיוטה ומהסיכום. יתר הפרטים שמסרתם נשמרו; הבקשה טרם נשלחה.' : 'The child-seat request has been removed from the draft and summary. Your other details are retained; the request has not been sent.'}\n\n${summary(state)}`;
       } else if (!missing && /כיסא(?:ות)? בטיחות|child seats?|car seats?/i.test(input)) {
         reply = `${he ? 'כיסא הבטיחות הוא בקשה בלבד, לא הבטחה. נבדוק זמינות, תנאים והתאמה לרכב המסוים לפני אישור ההשכרה. הבקשה טרם נשלחה; הנה הסיכום המעודכן לאישורכם.' : 'The child seat is a request only, not a guarantee. Availability, terms and fit for the specific car must be checked before rental confirmation. Your request has not been sent yet; here is the updated summary for your approval.'}\n\n${summary(state)}`;
-      } else if (!missing) reply = summary(state);
+      } else if (!missing) {
+        const policy = getSmartCarServiceAnswer(withoutCoverageQuestionHazards(input), state.locale);
+        reply = policy?.topic === 'insurance' && /[?؟]/u.test(input)
+          ? `${policy.reply}\n\n${summary(state)}` : summary(state);
+      }
       else {
         const reportedAge = input.match(/(?:בן|בת|גיל|age(?:d)?(?: is)?)\s*(\d{2})(?!\d)/i)?.[1]
           ?? (state.step === 'rental_age' ? input.trim().match(/^(\d{2})$/)?.[1] : undefined);
