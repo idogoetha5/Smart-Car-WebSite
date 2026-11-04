@@ -385,6 +385,20 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
     ? (() => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY(vehicle.id, locale)) ?? 'null'); } catch { return null; } })()
     : null;
 
+  // The vehicle page is served pre-rendered from the CDN, so the search
+  // dates/locations carried over from the rental search arrive in the URL
+  // and are read here in the browser rather than on the server. Props still
+  // win when a caller passes them explicitly.
+  const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const fromUrl = (...keys: string[]) => {
+    for (const k of keys) { const v = urlParams?.get(k); if (v) return v; }
+    return '';
+  };
+  const startPickupDate = initialPickupDate || fromUrl('pickup');
+  const startReturnDate = initialReturnDate || fromUrl('return');
+  const startLocation = initialLocation || fromUrl('pickupLocation', 'location');
+  const startReturnLocation = initialReturnLocation || fromUrl('returnLocation', 'pickupLocation', 'location');
+
   const {
     register,
     handleSubmit,
@@ -397,10 +411,10 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
     resolver: zodResolver(bookingSchema),
     defaultValues: {
       vehicleId:        vehicle.id,
-      pickupDate:       savedDraft?.pickupDate ?? initialPickupDate,
-      dropoffDate:      savedDraft?.dropoffDate ?? initialReturnDate,
-      pickupLocation:   savedDraft?.pickupLocation ?? initialLocation,
-      dropoffLocation:  savedDraft?.dropoffLocation ?? initialReturnLocation,
+      pickupDate:       savedDraft?.pickupDate ?? startPickupDate,
+      dropoffDate:      savedDraft?.dropoffDate ?? startReturnDate,
+      pickupLocation:   savedDraft?.pickupLocation ?? startLocation,
+      dropoffLocation:  savedDraft?.dropoffLocation ?? startReturnLocation,
       customerName:     '',
       customerEmail:    '',
       customerPhone:    '',

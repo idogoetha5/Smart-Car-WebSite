@@ -3,6 +3,7 @@ import { vehicleRentalSchema, rentalSchemaJson } from '@/lib/vehicle-rental-sche
 export const revalidate = 3600;
 
 import { notFound } from 'next/navigation';
+import { cache } from 'react';
 import { getVehicleById } from '@/lib/db/vehicles';
 import { getRentalPageVehicles } from '@/lib/rental-page-data';
 import { preferredVehicleId } from '@/lib/vehicle-canonical';
@@ -12,31 +13,34 @@ import BackToVehicles from '@/components/vehicle/BackToVehicles';
 import { Users, DoorOpen, Settings, Fuel } from 'lucide-react';
 import { WHATSAPP_NUMBER } from '@/lib/constants';
 
+// Fetched once per render: generateMetadata and the page share the result.
+const getVehicle = cache((id: string) => getVehicleById(id));
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { locale, id } = await params;
-  const vehicle = await getVehicleById(id).catch(() => null);
+  const vehicle = await getVehicle(id).catch(() => null);
   if (!vehicle) return {};
   const fleet = await getRentalPageVehicles().catch(() => []);
   return vehicleSearchMetadata(vehicle, locale, preferredVehicleId(vehicle, fleet));
 }
 
+// No searchParams here on purpose: reading them made every visit a fresh
+// server render. The page is now cached (revalidate above) and served from
+// the CDN; BookingForm reads the search dates/locations from the URL itself.
 export default async function RentalDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
-  searchParams: Promise<Record<string, string>>;
 }) {
   const { locale, id } = await params;
-  const sp = await searchParams;
 
   let vehicle = null;
   try {
-    vehicle = await getVehicleById(id);
+    vehicle = await getVehicle(id);
   } catch {}
 
   // A real 404, not a 200 page that says "not found". Returning markup with a
@@ -188,10 +192,6 @@ export default async function RentalDetailPage({
             </a>
             <BookingForm
               vehicle={vehicle}
-              initialPickupDate={sp.pickup ?? ''}
-              initialReturnDate={sp.return ?? ''}
-              initialLocation={sp.pickupLocation ?? sp.location ?? ''}
-              initialReturnLocation={sp.returnLocation ?? sp.pickupLocation ?? sp.location ?? ''}
             />
           </div>
         </div>
