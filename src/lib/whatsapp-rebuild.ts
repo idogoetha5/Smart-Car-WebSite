@@ -1411,6 +1411,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       } else if (asksVehicleAdvice && state.booking.passengers === 1) {
         state.step = 'rental_vehicle';
         reply = he ? 'לנסיעה לבד הייתי מתחיל ברכב קומפקטי: נוח לנסיעה ולחניה. אם חשוב לך יותר מקום, אפשר לבדוק גם משפחתית. תרצה שאציין רכב קומפקטי בבקשה, או להשאיר את הסוג פתוח?' : 'For one person I would start with a compact car, which is easier to drive and park. If you prefer more space, we can check a family car. Should I put a compact car on the request or leave the group open?';
+      } else if (!missing && state.booking.childSeats === 0 && /כיסא(?:ות)? בטיחות|child seats?|car seats?/i.test(input)) {
+        reply = `${he ? 'בקשת כיסא הבטיחות הוסרה מהטיוטה ומהסיכום. יתר הפרטים שמסרתם נשמרו; הבקשה טרם נשלחה.' : 'The child-seat request has been removed from the draft and summary. Your other details are retained; the request has not been sent.'}\n\n${summary(state)}`;
       } else if (!missing && /כיסא(?:ות)? בטיחות|child seats?|car seats?/i.test(input)) {
         reply = `${he ? 'כיסא הבטיחות הוא בקשה בלבד, לא הבטחה. נבדוק זמינות, תנאים והתאמה לרכב המסוים לפני אישור ההשכרה. הבקשה טרם נשלחה; הנה הסיכום המעודכן לאישורכם.' : 'The child seat is a request only, not a guarantee. Availability, terms and fit for the specific car must be checked before rental confirmation. Your request has not been sent yet; here is the updated summary for your approval.'}\n\n${summary(state)}`;
       } else if (!missing) reply = summary(state);

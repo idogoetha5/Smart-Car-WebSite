@@ -27,6 +27,29 @@ function ready(): RebuildState {
 }
 
 describe('grounded AI voice with application-owned rental actions', () => {
+  it.each([
+    { locale: 'en' as const, request: 'Before sending, we would like one child seat for our three-year-old. Is it guaranteed? Do not send yet.', removal: 'Actually we do not need a child seat after all, we are bringing our own. Please remove it from the request but keep the rental dates and route.', stale: 'The child seat is a request only, not a guarantee.', acknowledged: 'removed from the draft and summary' },
+    { locale: 'he' as const, request: 'לפני שליחה נרצה כיסא בטיחות אחד לילד בן שלוש. זה מובטח? עוד אל תשלח.', removal: 'בעצם לא נרצה כיסא בטיחות, נביא כיסא משלנו. בבקשה להסיר אותו מהבקשה ולשמור את התאריכים והמסלול.', stale: 'כיסא הבטיחות הוא בקשה בלבד, לא הבטחה.', acknowledged: 'הוסרה מהטיוטה ומהסיכום' },
+  ])('acknowledges seat removal without stale request prose or changing the saved rental ($locale)', async scenario => {
+    const initial = ready();
+    initial.locale = scenario.locale;
+    const session = chat(initial);
+    session.readTurn.mockResolvedValueOnce(null).mockResolvedValue(reading(scenario.stale, 'policy'));
+    const requested = await session.send(scenario.request);
+    expect(requested.state.booking.childSeats).toBe(1);
+    expect(requested.reply).toMatch(/Requested child seats: 1|בקשת כיסאות בטיחות: 1/);
+    const removed = await session.send(scenario.removal);
+    expect(removed.reply).toContain(scenario.acknowledged);
+    expect(removed.reply).not.toContain(scenario.stale);
+    expect(removed.reply).not.toMatch(/Requested child seats:|בקשת כיסאות בטיחות:/);
+    expect(removed.state.booking).toEqual({ ...initial.booking, childSeats: 0 });
+    expect(removed.state.step).toBe('rental_confirm');
+    expect(removed.state.completedRequestId).toBeUndefined();
+    expect(removed.source).toBe('local');
+    expect(session.readTurn.mock.calls.at(-1)![1].replyCorrection).toBe('seat_request_conflict');
+    expect(session.create).not.toHaveBeenCalled();
+  });
+
   it('answers current service driving, approval and price questions before a reference is available', async () => {
     const session = chat();
     const first = 'Plan to return at your original agreed time unless SmartCar confirms an extension beforehand. You cannot assume permission to keep driving past that deadline. Extra days may have a different rate.';

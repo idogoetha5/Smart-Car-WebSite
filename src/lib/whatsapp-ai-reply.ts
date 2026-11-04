@@ -51,6 +51,10 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (hasAffirmativeMatch(reply, /\b(?:send|provide|share|upload|need|require)\b[^.!?\n]{0,40}\b(?:copy|photo|scan) of (?:your |the |a )?(?:driver['’]?s? |driving )?licen[cs]e\b/gi)) return reject('private_collection');
   if (/\bwhat (?:are|is)\b[^.!?\n]{0,45}\b(?:passengers?['’]? names?|names? of (?:all |the )?passengers|identity number|ID number|card number|security code|CVV|email address)\b|מה(?:ם|י)?[^.!?\n]{0,30}(?:שמות (?:כל )?הנוסעים|מספר תעודת הזהות|מספר האשראי|כתובת המייל)/i.test(reply)) return reject('private_collection');
 
+  if (known.childSeats === 0 && hasAffirmativeMatch(reply,
+    /\b(?:the|your) child[- ]seat (?:is (?:a )?request|request (?:is|remains|has been) (?:noted|included|saved|pending|recorded))\b|\b(?:your|the) (?:request|draft|summary) (?:still )?(?:includes?|contains?) (?:one|a|\d+) (?:child|car) seats?\b|בקשת כיסא(?:ות)? הבטיחות (?:נשמרה|כלולה|רשומה)|כיסא הבטיחות הוא בקשה|כיסא(?:ות)? הבטיחות (?:כלול|רשום|נשמר)(?:ה|ים|ות)? (?:בבקשה|בטיוטה|בסיכום)/gi,
+  )) return reject('seat_request_conflict');
+
   const allowedNumbers = new Set(numberTokens([input, ...Object.values(known).filter(value => value !== undefined).map(String), ...approvedFacts].join(' ')));
   if (numberTokens(reply).some(token => !allowedNumbers.has(token))) return reject('unsupported_number');
 

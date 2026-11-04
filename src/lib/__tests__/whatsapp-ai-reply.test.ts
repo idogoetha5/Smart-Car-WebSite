@@ -6,6 +6,27 @@ const check = (reply: string, rest: Partial<ConversationalReplyInput> = {}) => v
 
 describe('output checks for natural conversational drafts', () => {
   it.each([
+    'The child seat is a request only, not a guarantee.',
+    'Your child-seat request is noted.',
+    'Your request includes one child seat.',
+    'כיסא הבטיחות הוא בקשה בלבד.',
+    'בקשת כיסא הבטיחות נשמרה.',
+  ])('rejects reintroduced child-seat requests when the saved count is explicitly zero: %s', reply => {
+    const onReject = vi.fn();
+    expect(check(reply, { locale: /[א-ת]/.test(reply) ? 'he' : 'en', known: { childSeats: 0 }, onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledExactlyOnceWith('seat_request_conflict');
+  });
+
+  it.each([
+    'Your child-seat request has been removed from the draft. Your other details are retained.',
+    'Your own child seat still needs to be compatible with the specific car.',
+    'בקשת כיסא הבטיחות הוסרה מהטיוטה. שאר פרטי הבקשה נשמרו.',
+    'צריך לוודא שכיסא הבטיחות שלכם מתאים לרכב המסוים.',
+  ])('allows honest draft-removal and own-seat compatibility advice: %s', reply => {
+    expect(check(reply, { locale: /[א-ת]/.test(reply) ? 'he' : 'en', known: { childSeats: 0 } })).toBe(reply);
+  });
+
+  it.each([
     'Your booking remains active until you decide.',
     'The reservation is still valid.',
     'The booking remains in effect until you decide.',
