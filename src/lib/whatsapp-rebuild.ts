@@ -972,6 +972,14 @@ function summary(state: RebuildState): string {
   return `אלה פרטי הבקשה שלכם:\nרכב: ${b.vehicleNeed}\n${needs}תאריכים: ${date(b.pickupDate)}–${date(b.returnDate)}\nאיסוף: ${b.pickupLocation}\nהחזרה: ${b.returnLocation}\nגיל הנהג: ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}\nשם: ${b.customerName}${b.customerEmail ? `\nמייל: ${b.customerEmail}` : ''}\n\nהבקשה תועבר לאישור SmartCar. לפני השליחה, אנא אשרו את ההצהרה:\n״${consent.text}״\nתנאי השימוש: https://www.smartcar.co.il/he/terms\nמדיניות הפרטיות: https://www.smartcar.co.il/he/privacy\nאם הכול נכון ואתם מסכימים, שלחו ״אני מאשר/ת״ כדי לשלוח את הבקשה.`;
 }
 
+const RECEIPT_NEED_FIELDS = /child seats?|car seats?|passengers?|bags?|luggage|נוסעים|מזוודות?|כיסא(?:ות)? בטיחות/iu;
+const RECEIPT_SEAT_FIELD = /child seats?|car seats?|כיסא(?:ות)? בטיחות/iu;
+
+function recallsCompletedRentalNeeds(input: string): boolean {
+  return RECEIPT_NEED_FIELDS.test(input)
+    && /remind|keep|kept|save|saved|record|recorded|how many|תזכיר|שמר|רשמ|נקלט|כמה/iu.test(input);
+}
+
 function pushHistory(state: RebuildState, input: string, reply: string, privateTurn: boolean): void {
   state.history.push({ from: 'customer', text: input.slice(0, 450), private: privateTurn }, { from: 'bot', text: reply.slice(0, 650), private: privateTurn });
   state.history = state.history.slice(-20);
@@ -1202,16 +1210,25 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   } else if (state.completedRequestId && state.phase === 'explore' && /^(?:אני מאשר(?:ת)?|מאשר(?:ת)?|כן,? מאשר(?:ת)?|i confirm|confirm)$/i.test(input)) {
     reply = store.isSimulation ? (he ? 'בסימולציה הבקשה נקלטה לצורכי בדיקה בלבד; לא נוצרה הזמנה אמיתית.' : 'The request was recorded in this simulation only; no real booking was created.') : (he ? `בקשת ההשכרה נשלחה לבדיקה, מספר ${state.completedRequestId}. היא עדיין אינה הזמנה מאושרת.` : `Your rental request was sent for review, reference ${state.completedRequestId}. It is not a confirmed booking yet.`);
   } else if (state.completedRequestId && state.phase === 'explore' && !explicitBooking(input)
-    && /מאושר|מאושרת|אישרתם|אושר|סגור|סגורה|רק בקשה|עדיין בקשה|בקשה לבדיקה|\bconfirmed\b|\bconfirmation\b|still.{0,25}(?:request|review)|request for review|(?:which|what).{0,40}(?:date|city|location|details).{0,30}(?:keep|kept|save|record)|(?:מה|איזה|אילו|לאיזה).{0,30}(?:תאריך|עיר|מיקום|פרט).{0,30}(?:שמר|רשמ|נקלט)/i.test(input)) {
+    && (/מאושר|מאושרת|אישרתם|אושר|סגור|סגורה|רק בקשה|עדיין בקשה|בקשה לבדיקה|\bconfirmed\b|\bconfirmation\b|still.{0,25}(?:request|review)|request for review|(?:which|what).{0,40}(?:date|city|location|details).{0,30}(?:keep|kept|save|record)|(?:מה|איזה|אילו|לאיזה).{0,30}(?:תאריך|עיר|מיקום|פרט).{0,30}(?:שמר|רשמ|נקלט)/i.test(input) || recallsCompletedRentalNeeds(input))) {
     reply = store.isSimulation
       ? (he ? 'בסימולציה נקלטה בקשה לבדיקה בלבד. לא נוצרה הזמנה אמיתית ולא אושר רכב. בעבודה מול SmartCar, הבקשה והפרטים טעונים בדיקה ואישור של נציג.' : 'This simulation recorded a request for review only. No real booking was created and no car was confirmed. With SmartCar, the request and details still require review and confirmation by a representative.')
       : (he ? `בקשת ההשכרה מספר ${state.completedRequestId} נשלחה לבדיקה. שליחת הבקשה אינה אישור להזמנה או לרכב; נציג SmartCar יבדוק את הזמינות והתנאים ויאשר אותם איתכם.` : `Rental request ${state.completedRequestId} was sent for review. Sending a request is not confirmation of a booking or car; a SmartCar representative will check availability and terms and confirm them with you.`);
-    if (state.completedRental && /date|city|location|details|תאריך|עיר|מיקום|פרט/i.test(input)) {
+    if (state.completedRental && (/date|city|location|details|תאריך|עיר|מיקום|פרט/i.test(input) || RECEIPT_NEED_FIELDS.test(input))) {
       const b = state.completedRental;
       const format = (value?: string) => value ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : '';
       reply += he
         ? `\n\nהפרטים שנרשמו בבקשה: ${b.vehicleNeed ?? ''}; איסוף ${b.pickupLocation ?? ''} ב־${format(b.pickupDate)}; החזרה ${b.returnLocation ?? ''} ב־${format(b.returnDate)}.`
         : `\n\nRecorded request details: ${b.vehicleNeed ?? ''}; pickup ${b.pickupLocation ?? ''} on ${format(b.pickupDate)}; return ${b.returnLocation ?? ''} on ${format(b.returnDate)}.`;
+      if (b.passengers !== undefined) reply += he ? `\nנוסעים: ${b.passengers}.` : `\nPassengers: ${b.passengers}.`;
+      if (b.luggage !== undefined) reply += he ? `\nמזוודות: ${b.luggage}.` : `\nBags: ${b.luggage}.`;
+      if (b.childSeats !== undefined) {
+        reply += b.childSeats === 0
+          ? (he ? '\nלא נכללה בקשה לכיסא בטיחות בבקשה שנקלטה.' : '\nNo child seat is requested in the recorded request.')
+          : (he ? `\nבקשת כיסאות בטיחות: ${b.childSeats} (בכפוף לזמינות, לתנאים ולהתאמה לרכב המסוים).` : `\nRequested child seats: ${b.childSeats} (subject to availability, terms and fit for the specific car).`);
+      } else if (RECEIPT_SEAT_FIELD.test(input)) {
+        reply += he ? '\nלא נרשם פרט לגבי בקשת כיסא בטיחות.' : '\nNo child-seat request detail was recorded.';
+      }
     }
   } else if (state.phase === 'booking' && state.step === 'rental_confirm' && /לא מאשר|לא מאשרת|not confirm|not yet/i.test(input)) {
     reply = he ? 'לא שלחתי בקשה. הפרטים נשמרו בשיחה; אפשר לתקן אותם או לאשר רק כשתרצו.' : 'I have not sent a request. The details remain in this conversation; you can correct them or confirm when ready.';
