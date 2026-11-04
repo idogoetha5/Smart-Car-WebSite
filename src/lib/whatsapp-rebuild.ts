@@ -399,10 +399,20 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   if (draft.luggage === undefined && /מזוודה(?!ות)|תיק(?: נסיעה)? אחד|one suitcase|one bag/i.test(input)) draft.luggage = 1;
   if (/תינוק|baby|infant/i.test(input)) draft.childSeats ??= 1;
   if (/(?:can (?:you|we|i) (?:provide|add|include|arrange|request)|do you (?:provide|have|offer)|אפשר (?:לקבל|להוסיף)|תוכלו (?:לספק|להוסיף)).{0,18}(?:child seat|car seat|כיסא בטיחות)/i.test(input)) draft.childSeats ??= 1;
-  if (/(?:צריך(?:ה|ים)?|נבקש|אפשר לבקש|we need|I need|please add).{0,18}(?:כיסא(?:ות)? בטיחות|child seats?|car seats?)/i.test(input)
-    && !/(?:לא צריך|לא צריכים|do not need|don't need).{0,18}(?:כיסא|child seat|car seat)/i.test(input)) {
-    const seatCount = input.match(/(?:כיסא(?:ות)? בטיחות)\s+(אחד|אחת|שניים|שתיים|\d{1,2})/i)?.[1]
-      ?? input.match(/(one|two|\d{1,2})\s+(?:child seats?|car seats?)/i)?.[1];
+  for (const clause of input.split(/[.!?;,]|\bbut\b|\bactually\b|אבל|בעצם/iu)) {
+    if (/(?:לא (?:צריך(?:ה|ים)?|רוצ(?:ה|ים)|נרצה|ארצה|נצטרך|נבקש)|אין צורך|do not (?:need|want)|don't (?:need|want)|would not like|wouldn't like|please remove).{0,18}(?:כיסא|child seats?|car seats?)/i.test(clause)) {
+      // Keep an explicit zero so later model extraction or a baby mention
+      // cannot silently restore a seat request the customer declined.
+      draft.childSeats = 0;
+      continue;
+    }
+    const request = clause.match(/(?:צריך(?:ה|ים)?|נבקש|נרצה|ארצה|נצטרך|אפשר לבקש|we need|I need|(?:we|I) would like|(?:we|I)['’]d like|please add).{0,18}(?:כיסא(?:ות)? בטיחות|child seats?|car seats?)/i);
+    if (!request) continue;
+    // Limit counts to the requested seat phrase, never the child's later age.
+    const seatText = clause.slice(request.index!, request.index! + request[0].length + 12);
+    const seatCount = seatText.match(new RegExp(`כיסא(?:ות)? בטיחות\\s+${count}`, 'iu'))?.[1]
+      ?? seatText.match(new RegExp(`${count}\\s+(?:כיסא(?:ות)? בטיחות|child seats?|car seats?)`, 'iu'))?.[1]
+      ?? (/שני\s+כיסאות בטיחות/u.test(seatText) ? '2' : undefined);
     draft.childSeats = statedCount(seatCount ?? '1') ?? 1;
   }
   if (/אדם אחד|איש אחד|נוסע אחד|נוסעת אחת|אני לבד|(?:^|\s)לבד(?:\s|$)|\b(?:one person|solo|travelling alone|traveling alone)\b/i.test(input)) draft.passengers = 1;
