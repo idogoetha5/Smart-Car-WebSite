@@ -184,11 +184,10 @@ function validate(step: number, f: FormState, t: (typeof T)['he']): Errors {
     case 8:
       need('ownerName', t.errOwnerName);
       if (!isValidIsraeliId(f.ownerId)) e.ownerId = f.ownerId ? t.errIdInvalid : t.errOwnerId;
-      if (!isValidPhone(f.ownerPhone)) e.ownerPhone = f.ownerPhone ? t.errPhoneInvalid : t.errOwnerPhone;
+      if (f.ownerPhone.trim() && !isValidPhone(f.ownerPhone)) e.ownerPhone = t.errPhoneInvalid;
       need('ownerAddress', t.errOwnerAddress);
       break;
     case 9:
-      if (f.photos.length < 2) e.photos = t.errPhotos;
       break;
     case 10:
       need('damageOurs', t.errDamageOurs);
@@ -917,7 +916,7 @@ export default function AccidentReportForm({ locale, branch, token }: { locale: 
             ? [
                 [t.vehicleShort, `${formatPlate(f.otherPlate)} · ${f.otherModel}`],
                 [t.insuranceShort, `${insurerName({ insurer: f.insurer, insurerOther: f.insurerOther }, L)} · ${f.policy}`],
-                [t.ownerShort, `${f.ownerName} · ${f.ownerId}`], [t.phoneShort, f.ownerPhone], [t.addressShort, f.ownerAddress],
+                [t.ownerShort, `${f.ownerName} · ${f.ownerId}`], [t.phoneShort, f.ownerPhone || '—'], [t.addressShort, f.ownerAddress],
               ]
             : [[t.vehicleShort, t.noOtherVehicle]])}
           {rows(t.secDamage, 9, [
@@ -1183,7 +1182,7 @@ export default function AccidentReportForm({ locale, branch, token }: { locale: 
           <Card>
             {text('ownerName', t.ownerNameLabel)}
             {text('ownerId', t.idLabel, { hint: t.idHint, ltr: true, mode: 'numeric' })}
-            {text('ownerPhone', t.phoneLabel, { ltr: true, mode: 'tel', type: 'tel' })}
+            {text('ownerPhone', t.phoneLabel, { optional: true, ltr: true, mode: 'tel', type: 'tel' })}
             {text('ownerAddress', t.addressLabel, { hint: t.ownerAddressHint })}
           </Card>
           <Card>
