@@ -6,6 +6,29 @@ const check = (reply: string, rest: Partial<ConversationalReplyInput> = {}) => v
 
 describe('output checks for natural conversational drafts', () => {
   it.each([
+    ['נהוג לספק את היסטוריית הטיפולים המלאה, ותמיד מומלץ ואפשרי לבדוק את הרכב עצמאית.', 'he'],
+    ['We provide full service history and an independent inspection is always possible.', 'en'],
+  ] as const)('rejects unverified sale records and inspection assurances: %s', (reply, locale) => {
+    expect(check(reply, { locale, input: 'Can I get service history and an independent inspection?' })).toBeNull();
+  });
+  it('allows a conditional inspection and available-records answer', () => {
+    const reply = 'You can request available service records and discuss an independent inspection, subject to arrangements for the specific car.';
+    expect(check(reply, { input: 'Can I get service history and an independent inspection?' })).toBe(reply);
+  });
+  it.each([
+    ['השכרה חודשית גמישה ומאפשרת סיום או החלפה בכל שלב לפי הצורך.', 'he'],
+    ['You can end or swap the rental at any time whenever you want.', 'en'],
+  ] as const)('rejects unsupported unrestricted rental exit: %s', (reply, locale) => {
+    expect(check(reply, { locale })).toBeNull();
+  });
+  it.each([
+    ['Early exit and vehicle changes depend on the agreement.', 'en'],
+    ['There is no guarantee you can end the rental at any time.', 'en'],
+    ['אין להסיק שאפשר לסיים או להחליף בכל שלב; התנאים נקבעים בהסכם.', 'he'],
+  ] as const)('allows conditional contract information: %s', (reply, locale) => {
+    expect(check(reply, { locale })).toBe(reply);
+  });
+  it.each([
     'The child seat is a request only, not a guarantee.',
     'Your child-seat request is noted.',
     'Your request includes one child seat.',

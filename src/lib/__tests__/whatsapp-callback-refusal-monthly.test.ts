@@ -10,6 +10,17 @@ function conversation() {
 }
 
 describe('callback refusal during business rental versus leasing discussion', () => {
+  it('rejects an unrestricted exit promise and falls back to contract-based comparison without callback', async () => {
+    let state: RebuildState | null = null;
+    const readTurn = vi.fn<NonNullable<RebuildStore['readTurn']>>(async () => ({ route: 'leasing', direction: 'none', fields: {}, source: 'gemini', model: 'test', groundedContext: true, reply: 'השכרה חודשית גמישה ומאפשרת סיום או החלפה בכל שלב לפי הצורך.' }));
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_phone, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: async () => { throw new Error('no request'); }, readTurn };
+    const result = await getRebuiltBotReply('fictional-monthly-exit', 'אני צריך רכב לעובד חדש לשלושה חודשים. מתלבט בין השכרה חודשית לליסינג; לא רוצה שיחזרו אליי עדיין. מה ההבדל מבחינת התחייבות והוצאות?', store);
+    expect(result.reply).toMatch(/בחוזה|בהצעה ובחוזה/);
+    expect(result.reply).toMatch(/יציאה מוקדמת/);
+    expect(result.reply).not.toContain('בכל שלב לפי הצורך');
+    expect(result.escalate).toBe(false);
+    expect(readTurn.mock.calls[1]?.[1].replyCorrection).toBe('unrestricted_exit');
+  });
   it('answers the exact comparison and keeps six turns advisory until private rental intake', async () => {
     const chat = conversation();
     const first = await chat.send('אני צריך רכב לעובד חדש לשלושה חודשים. מתלבט בין השכרה חודשית לליסינג; לא רוצה שיחזרו אליי עדיין. מה ההבדל מבחינת התחייבות והוצאות?');

@@ -111,6 +111,15 @@ export function getSmartCarApprovedFacts(locale: ServiceLocale): SmartCarApprove
     { id: 'commercial_enquiry', text: locale === 'he'
       ? 'ליסינג ומכירה: אפשר לברר צרכים, שימוש, העדפת רכב ותקציב. בליסינג מבררים גם תקופה וקילומטראז׳ שנתי. 24 חודשים הם תקופה קצרה יותר מ־36; להשוואת הצעות בודקים אותו רכב וקילומטראז׳, עלות כוללת, תשלומים ראשוניים וסופיים, מגבלת קילומטרים, חריגה ותנאי יציאה. ביטוח וטיפולים כלולים רק אם נכתב בהצעה ובחוזה. אין מחיר אישי, מלאי או אישור עסקה מאומתים במידע זה. הייעוץ כללי ולא המלצה פיננסית אישית.'
       : 'Leasing and sale enquiries can explore needs, use, vehicle preference and budget. Leasing also needs a term and annual mileage. 24 months is shorter than 36; compare offers for the same car and mileage, total cost, initial and final payments, mileage limits, excess charges and exit terms. Insurance and maintenance are included only if stated in the offer and contract. These facts contain no verified personal price, inventory or deal approval. Advice is general, not personalised financial advice.' },
+    { id: 'monthly_rental_boundary', text: locale === 'he'
+      ? 'השכרה חודשית יכולה להתאים לתקופה קצרה יותר מליסינג. אין להסיק מכך שאפשר לסיים, לבטל, להחליף רכב או להחזיר בכל שלב ללא עלות או תנאי. משך ההתחייבות, יציאה מוקדמת, החלפה, ביטוח, טיפולים והוצאות נקבעים בהצעה ובהסכם המסוימים.'
+      : 'Monthly rental may suit a shorter period than leasing. This does not establish a right to end, cancel, swap or return a car at any time or without charges or conditions. Commitment, early exit, vehicle changes, cover, maintenance and costs are set in the specific offer and agreement.' },
+    { id: 'advance_payment_boundary', text: locale === 'he'
+      ? 'מקדמה היא תשלום מראש ונפרדת מהפיקדון, שהוא חסימה זמנית בכרטיס באיסוף לפי תנאי ההסכם. השיחה אינה ערוץ לביצוע תשלום ואינה מאמתת שהתקבל כסף. מספר הזמנה שהלקוח כתב אינו אישור תשלום או אימות בעלות. אין לשלוח מספר כרטיס מלא, קוד אבטחה או פרטי תשלום רגישים; ביצוע ובירור תשלום נעשים בערוצים הרשמיים של SmartCar.'
+      : 'An advance payment is separate from the temporary card security hold at pickup under the agreement. This chat does not process payments or verify receipt of money. A customer-supplied booking reference is not payment confirmation or authentication. Do not send full card numbers, security codes or sensitive payment details; payment and receipt checks use SmartCar’s official channels.' },
+    { id: 'sale_history_inspection', text: locale === 'he'
+      ? 'ברכישת רכב אפשר לבקש את היסטוריית הטיפולים והתאונות ולברר בדיקה עצמאית. יש לברר אילו מסמכים זמינים ותנאי תיאום הבדיקה לרכב המסוים; אין הבטחה להיסטוריה מלאה או לכך שבדיקה או נסיעת מבחן תמיד אפשריות. אין כאן דוח מצב מאומת או תור מאושר.'
+      : 'A buyer can request service and accident history and discuss an independent inspection. Available documents and inspection arrangements need checking for the specific car. Full history, an inspection or test drive are not guaranteed or always available. These facts are not a verified condition report or confirmed appointment.' },
   ].map(fact => ({ id: fact.id, text: fact.text.slice(0, 1000) }));
 }
 

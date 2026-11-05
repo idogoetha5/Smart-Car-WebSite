@@ -1022,6 +1022,14 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   let model: string | undefined;
   let escalate = false;
   let privateTurn = false;
+  // A payment enquiry being queued is not a human reply. Keep answering its
+  // informational questions while the existing alert remains intact. The webhook's
+  // actual staff-takeover silence check still runs before/after generation.
+  const serviceQuestion = /[?؟]|רק (?:שואל|שואלת|מברר)|only (?:asking|want to understand)/i.test(input);
+  const depositEnquiry = [input, ...state.history.filter(entry => entry.from === 'customer').map(entry => entry.text)]
+    .some(text => /מקדמה|advance payment|pay.{0,30}deposit/i.test(text));
+  const continuedServiceAdvice = Boolean(state.handedOff && serviceQuestion && depositEnquiry
+    && (state.handoffKind === 'human' || state.handoffKind === 'service_issue'));
   const lastBotReply = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
   const labelledReference = explicitServiceReference(input);
   if (labelledReference) state.serviceReference = labelledReference;
@@ -1084,7 +1092,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : 'The earlier enquiry may already be with the team; I have not initiated a new callback. We can keep discussing options here.';
     reply = /[?؟]|מה כלול|מה ההבדל|what.*included|compare|difference/i.test(input)
       ? `${notice} ${commercialReply(input, state).reply}` : notice;
-  } else if (state.handedOff) {
+  } else if (state.handedOff && !continuedServiceAdvice) {
     if (state.handoffKind === 'service_issue' && state.history.some(entry => entry.from === 'customer' && rentalChangeRequest(entry.text))) state.handoffKind = 'booking_change';
     const handoffKind = state.handoffKind ?? (state.safetyAlertAt && (!state.handoffAt || Date.parse(state.safetyAlertAt) >= Date.parse(state.handoffAt)) ? 'safety' : state.interest ? 'commercial' : 'booking_change');
     const cancellationPending = handoffKind === 'booking_change' && state.history.some(entry => entry.from === 'customer' && cancellationRequest(entry.text));
@@ -1581,12 +1589,18 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         reply = /אושר|אישור|מחיר|עלות|תשלום|approv|confirm|price|cost|charge|rate/i.test(input)
           ? (he ? 'ההארכה עדיין לא אושרה. עד לאישור מפורש, מועד ההחזרה הקיים נשאר בתוקף. המחיר ליום הנוסף ייבדק לפני אישור השינוי ואינו מובטח כמחיר המקורי.' : 'The extension is not approved yet. Until explicitly confirmed, the existing return deadline remains in effect. The price for the extra day will be checked before the change is confirmed and is not guaranteed to match the original daily rate.')
           : he ? `קיבלנו את בקשת השינוי. היא תיכנס לתוקף לאחר בדיקת זמינות ואישור SmartCar. לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `We have your change request. It takes effect after SmartCar checks availability and confirms it. For immediate help call ${OFFICE_PHONE}.`;
-      } else if (specificProblem || suppliedReference) {
+      } else if (specificProblem || suppliedReference && !depositEnquiry) {
         state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = cancellationPending ? 'booking_change' : 'service_issue'; escalate = true;
         reply = cancellationPending
           ? (he ? `קיבלנו את מספר ההזמנה לבקשת הביטול. נציג SmartCar יחזור אליכם; הביטול תקף רק לאחר אישור. לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `We have the reference for your cancellation request. A SmartCar representative will follow up; cancellation takes effect only after confirmation. For immediate help call ${OFFICE_PHONE}.`)
           : (he ? `תודה שפניתם אלינו. נציג SmartCar יבדוק את המקרה ויחזור אליכם; לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `Thank you for contacting us. A SmartCar representative will review your case and follow up; for immediate help call ${OFFICE_PHONE}.`);
-      } else if (answer) reply = answer.reply;
+      } else if (/מקדמה|advance payment|pay.{0,30}deposit|payment.{0,25}(?:arrived|received)/i.test(input)) reply = he
+        ? 'מקדמה היא תשלום מראש, והפיקדון באיסוף הוא חסימה זמנית בכרטיס אשראי לפי תנאי ההסכם. אי אפשר לבצע תשלום או לאשר קבלת כסף בשיחה הזאת. אין לשלוח מספר כרטיס מלא או קוד אבטחה; לביצוע או לבירור תשלום יש להשתמש בערוץ התשלום הרשמי של SmartCar.'
+        : 'An advance payment and the temporary credit-card security hold at pickup are separate. Their terms are set in the agreement. This chat does not process payments or verify receipt of money. Do not send a full card number or security code; use SmartCar’s official payment channel to pay or check receipt.';
+      else if (answer) reply = answer.reply;
+      else if (suppliedReference) reply = /^(?:תודה(?: רבה)?|thanks?|thank you)[.!\s]*$/i.test(input)
+        ? (he ? 'בשמחה. מספר ההזמנה שמסרת נשמר בפנייה.' : 'You are welcome. The booking reference you supplied is saved in the enquiry.')
+        : (he ? 'מספר ההזמנה שמסרת נשמר בפנייה. הוא לא מאמת את מצב ההזמנה או התשלום; אפשר להמשיך לברר כאן, וביצוע שינוי מחייב אישור SmartCar.' : 'The booking reference you supplied is saved in the enquiry. It does not verify booking or payment status; we can keep discussing your question here, and any change requires SmartCar confirmation.');
       else if (booking) reply = he ? `מצאתי את ההזמנה שלכם. לבירור או לשינוי נשמח לעזור בטלפון ${OFFICE_PHONE}.` : `I found your booking. For details or changes, we will be happy to help at ${OFFICE_PHONE}.`;
       else reply = he ? `כדי לבדוק מקרה מסוים נדרש מספר ההזמנה. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `To check a specific case, please send the booking reference or call ${OFFICE_PHONE}.`;
     } else if (state.interest) {
@@ -1673,7 +1687,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // Actions, private details, safety and the final consent summary remain
     // application-owned. For ordinary discussion the grounded AI answer is the
     // default; deterministic paragraphs above are the outage/rejection backup.
-    if (!escalate && !state.handedOff && !gotPrivate && !state.durationClarification
+    if (!escalate && (!state.handedOff || continuedServiceAdvice) && !gotPrivate && !state.durationClarification
       && !state.completedRequestId) {
       const questionTurn = /[?؟]/u.test(input) || reading?.route === 'policy';
       const canUseDraft = state.phase !== 'booking' || questionTurn;

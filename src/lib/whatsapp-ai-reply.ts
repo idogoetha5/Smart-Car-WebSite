@@ -45,6 +45,12 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (asksRentalAgeTerms(input) && /deposit|פיקדון/i.test(input) && !/deposit|card hold|פיקדון/i.test(reply)) return reject('unanswered_deposit');
   if (reply.length > 650) return reject('too_long');
   if ((reply.match(/[?؟]/g) ?? []).length > 1) return reject('multiple_questions');
+  const unrestrictedExit = /\b(?:cancel|end|terminate|return|swap|replace|switch)\b[^.!?\n]{0,65}\b(?:anytime|at any (?:time|stage|point)|whenever you (?:want|need))\b|(?:לסיים|סיום|לבטל|ביטול|להחליף|החלפה|להחזיר|החזרה)[^.!?\n]{0,55}(?:בכל (?:שלב|עת|זמן)|מתי שתרצ)/giu;
+  for (const match of reply.matchAll(unrestrictedExit)) {
+    const sentence = reply.slice(Math.max(0, match.index! - 60), match.index! + match[0].length + 100).split(/[.!?\n]/).find(part => part.includes(match[0])) ?? match[0];
+    if (hasAffirmativeMatch(reply, new RegExp(match[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'giu'))
+      && !/subject to|depends? on|not (?:necessarily|guaranteed)|no guarantee|cannot assume|does not|בכפוף|תלוי|אין להסיק|לא בהכרח|אין הבטחה|לפי (?:ההסכם|החוזה)/i.test(sentence)) return reject('unrestricted_exit');
+  }
   if (locale === 'he' && !/[א-ת]/.test(reply) || locale === 'en' && (/[א-ת]/.test(reply) || !/[A-Za-z]/.test(reply))) return reject('language');
   if (/[\u0600-\u06ff]/u.test(reply)) return reject('language');
   if (/@|https?:\/\/|www\.|\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(reply)) return reject('contact_or_link');
@@ -69,6 +75,10 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   // Negative or conditional discussion is useful advice. Positive assurances
   // about a transaction, stock, personal cover or physical fit are not.
   if (hasAffirmativeMatch(reply, /\b(?:guaranteed|definitely fits?|certainly fits?|fully covered|eligible to rent)\b|מובטח(?:ת)?|בוודאות יתאים|בהחלט ייכנס|מכוסה בוודאות/gi)) return reject('assurance');
+  if (/היסטורי|בדיקה עצמאית|history|independent inspection/i.test(input)) {
+    if (hasAffirmativeMatch(reply, /(?:תמיד)[^.!?\n]{0,30}(?:אפשרי|אפשר|ניתן)|\balways\b[^.!?\n]{0,25}\b(?:possible|available|provided)\b/gi)) return reject('inspection_assurance');
+    if (hasAffirmativeMatch(reply, /(?:נספק|מספקים|לספק|תקבלו?)[^.!?\n]{0,45}היסטורי[^.!?\n]{0,30}מלאה|\b(?:provide|supply|receive)\b[^.!?\n]{0,25}\b(?:full|complete)\b[^.!?\n]{0,20}\bhistory\b/gi)) return reject('history_assurance');
+  }
   if (hasAffirmativeMatch(reply, /\byou (?:are (?:covered|insured|eligible|qualified)|qualify|can (?:certainly|definitely) rent|can rent for certain)\b|(?:אתה|את|אתם|אתן) (?:מכוסה|מכוסית|מכוסים|זכאי|זכאים)|בוודאות (?:תוכל|תוכלו) לשכור/gi)) return reject('eligibility');
   if (hasAffirmativeMatch(reply, /\b(?:everything|all (?:the |your )?(?:bags|luggage|equipment)) will fit\b|(?:הכול|כל הציוד|כל המזוודות) ייכנס/gi)) return reject('fit_assurance');
   if (hasAffirmativeMatch(reply, /\b(?:your|the|these|those)\s+(?:(?:one|two|three|four|five|\d+)\s+)?(?:bags|suitcases|luggage|stroller|child seat|equipment)\s+(?:will|can definitely|will definitely) fit\b|המזוודות (?:שלך |שלכם )?(?:ייכנסו|יתאימו)|העגלה (?:תיכנס|תתאים)/gi)) return reject('fit_assurance');
