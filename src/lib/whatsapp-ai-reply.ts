@@ -120,8 +120,9 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (knownValue('driverAgeRange') && /what.{0,25}age group|what.{0,25}driver.{0,10}age|how old|קבוצת הגיל|גיל הנהג|בן כמה/i.test(question)) return reject('known_age');
   if (knownValue('customerName') && /what name|your name|על איזה שם|מה שמך/i.test(question)) return reject('known_name');
   if (knownValue('vehicleNeed', 'vehiclePreference', 'commercialVehiclePreference') && /what (?:kind|type) of (?:car|vehicle).{0,35}(?:need|want|like)|איזה סוג רכב.{0,30}(?:תרצ|צריך|רוצים)/i.test(question)) return reject('known_vehicle');
-  if (knownValue('commercialTermMonths', 'termMonths') && /how long.{0,35}(?:need|lease|term)|what term|לכמה זמן|מה התקופה/i.test(question)) return reject('known_term');
-  if (known.commercialInterest === 'sale' && /what term|how long.{0,35}(?:need|lease|term)|לכמה זמן|מה התקופה/i.test(question)) return reject('sale_term');
+  const asksCommercialTerm = /how long.{0,35}(?:need|lease|term|use)|what.{0,25}(?:term|duration|period)|לכמה זמן|(?:מה|איזו?|כמה).{0,15}(?:תקופ|משך)/i.test(question);
+  if (knownValue('commercialTermMonths', 'termMonths') && asksCommercialTerm) return reject('known_term');
+  if (known.commercialInterest === 'sale' && asksCommercialTerm) return reject('sale_term');
   if (knownValue('commercialBudget') && /what.{0,35}budget|budget.{0,25}(?:range|prefer|consider)|איזה תקציב|מה.{0,20}(?:התקציב|מסגרת התקציב)|טווח תקציב/i.test(question)) return reject('known_budget');
   if (knownValue('commercialAnnualMileageKm', 'annualMileageKm') && /how many.{0,25}(?:kilometres|kilometers|km)|annual mileage|כמה.{0,15}(?:קילומטר|קמ|ק״מ)/i.test(question)) return reject('known_mileage');
   if (args.bookingPhase && args.nextMissingField && /shall we start|would you like to start|שנתחיל בקשה|נתחיל בקשה/i.test(question)) return reject('repeat_proceed');

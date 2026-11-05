@@ -183,6 +183,8 @@ describe('output checks for natural conversational drafts', () => {
     expect(check('How many people will travel?', { known: { passengers: 4 } })).toBeNull();
     expect(check('What type of car do you need?', { known: { commercialVehiclePreference: 'compact' } })).toBeNull();
     expect(check('What term do you have in mind?', { known: { commercialTermMonths: 24 } })).toBeNull();
+    expect(check('מה תקופת השימוש המועדפת והקילומטראז המשוער?', { locale: 'he', known: { commercialTermMonths: 3 } })).toBeNull();
+    expect(check('What is your preferred usage period?', { known: { commercialTermMonths: 3 } })).toBeNull();
   });
 
   it('respects deferred handoff and active intake while allowing real missing questions', () => {

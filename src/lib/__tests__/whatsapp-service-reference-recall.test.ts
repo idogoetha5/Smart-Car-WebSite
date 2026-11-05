@@ -22,6 +22,8 @@ describe('durable service reference recall', () => {
     expect(first.state.serviceReference).toBe('654321');
     const result = await send(recall);
     expect(result.reply).toContain('654321');
+    expect(result.reply).toMatch(/has not verified payment receipt|אינה מאמתת קבלת תשלום/u);
+    expect(result.reply).not.toMatch(/rather than repeated|not repeat.*reference/i);
     expect(JSON.stringify(readTurn.mock.calls)).not.toContain('654321');
     expect(result.reply).not.toMatch(/payment (?:has been|was) received|התשלום התקבל/iu);
   });

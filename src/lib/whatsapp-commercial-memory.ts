@@ -105,7 +105,7 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   const comparesVehicles = /(?:קטן|קומפקט|compact|small).{0,40}(?:או|מול|\bor\b|versus|\bvs\b).{0,30}(?:משפחת|family)|(?:משפחת|family).{0,40}(?:או|מול|\bor\b|versus|\bvs\b).{0,30}(?:קטן|קומפקט|compact|small)/i.test(text);
   if (vehicleUndecided || comparesVehicles) next.vehiclePreference = null;
   else {
-    const choice = text.match(/(?:מעדיף|בחרתי|החלטתי על|רוצה|מחפש|לקנות|prefer|choose|chosen|decided on|want|looking for|keep|probably)\s+(?:a |the |את ה|רכב )?(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות|compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)/iu)
+    const choice = text.match(/(?:מעדיף|בחרתי|החלטתי על|רוצה|מחפש|לקנות|prefer|choose|chosen|decided on|want|looking for|buy|purchase|keep|probably)\s+(?:a |the |את ה|רכב )?(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות|compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)/iu)
       ?? text.match(/(?:^|[,;.]\s*|ל)רכב\s+(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות)/iu)
       ?? text.trim().match(/^(?:a |רכב )?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות|compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)[.!\s]*$/iu);
     if (choice && !negatedBefore(text, choice.index!) && !/\bif\b|\bmaybe\b|אולי|מה אם/i.test(text.slice(Math.max(0, choice.index! - 20), choice.index! + choice[0].length))) {
@@ -118,7 +118,8 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   if (/ל[עא]סק|עסקי|business (?:use|leasing)|for work/i.test(text)) usage.add('business');
   if (/נסיעות ארוכות|long.distance|long (?:trips|journeys)/i.test(text)) usage.add('long_distance');
   if (usage.size) next.usage = [...usage].slice(0, 4);
-  if (/חשוב לי קילומטראז[׳']?\s+נמוך|מעדיף קילומטראז[׳']?\s+נמוך|low mileage (?:matters|is important|preferred)/i.test(text)) next.lowMileagePreferred = true;
+  const lowMileage = text.match(/חשוב(?: לי)? קילומטראז[׳']?\s+נמוך|מעדיף קילומטראז[׳']?\s+נמוך|low mileage (?:matters|is important|preferred)/i);
+  if (lowMileage && !negatedBefore(text, lowMileage.index!)) next.lowMileagePreferred = true;
   for (const match of text.matchAll(/(\d{1,2})\s*(נוסעים|אנשים|passengers?|people|מזוודות|תיקים|bags?|suitcases?)/giu)) {
     if (negatedBefore(text, match.index!)) continue;
     const count = Number(match[1]);

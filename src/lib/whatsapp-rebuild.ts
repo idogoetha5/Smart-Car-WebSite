@@ -1741,7 +1741,19 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     && /שוב|כבר יש|כבר מסרתי|צריך לשלוח|תזכיר|הזכר|איזה.{0,30}(?:מסרתי|נתתי|שלחתי)|again|already have|already (?:gave|provided|sent)|need to (?:send|provide)|remind|which.{0,45}(?:gave|provided|sent)/i.test(input);
   if (asksReferenceRecall && state.serviceReference) {
     const acknowledgement = he ? `מספר ההזמנה ${state.serviceReference} כבר שמור בפנייה; אין צורך לשלוח אותו שוב.` : `Your booking reference ${state.serviceReference} is already saved in the enquiry; you do not need to send it again.`;
-    reply = /מחיר|אישור|אושר|זיכוי|תשלום|מקדמה|price|approv|refund|payment|deposit|received|arrived/i.test(input) ? `${reply} ${acknowledgement}` : acknowledgement;
+    // The reference is an application-owned receipt, not a provider-authored
+    // privacy restriction or evidence that a payment has been checked.
+    reply = /תשלום|מקדמה|payment|deposit|received|arrived/i.test(input)
+      ? `${he ? 'השיחה אינה מאמתת קבלת תשלום, ומספר הזמנה שמסרת אינו אישור שהכסף התקבל. לבירור קבלה יש להשתמש בערוץ התשלום הרשמי של SmartCar.' : 'This chat has not verified payment receipt. A reference you typed is not confirmation that money arrived; receipt checks use SmartCar’s official payment channel.'} ${acknowledgement}`
+      : /מחיר|אישור|אושר|זיכוי|price|approv|refund/i.test(input) ? `${reply} ${acknowledgement}` : acknowledgement;
+  }
+  const asksCommercialRecall = state.interest && state.commercial
+    && /שמר|רשמ|תזכיר|הזכר|remember|record|saved|remind|noted/i.test(input)
+    && /תקציב|סוג רכב|העדפ|תקופ|קילומטראז|budget|car type|vehicle|preference|term|mileage/i.test(input);
+  if (asksCommercialRecall) {
+    const details = renderCommercialMemory(state.commercial, state.locale);
+    reply = he ? `הפרטים שנשמרו בפנייה: ${details}. הפנייה אינה אישור לשמירת רכב, לעסקה או לנסיעת מבחן; אלה דורשים תיאום ואישור נפרד של SmartCar.`
+      : `Your recorded enquiry preferences: ${details}. This enquiry does not confirm a reserved car, purchase or test drive; those require separate arrangements and SmartCar confirmation.`;
   }
   if (state.phase === 'service' && PRIVATE_PAYMENT_DETAIL.test(input)
     && !/אין צורך לשלוח מספר כרטיס מלא או קוד אבטחה|Do not send a full card number or security code/i.test(reply)) {
