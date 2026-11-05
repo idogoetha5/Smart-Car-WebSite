@@ -3,6 +3,7 @@
  * The model receives approved facts; these checks catch recognizable unsafe
  * output and state conflicts. Only application code may execute actions.
  */
+import { annualMileageMentions } from '@/lib/whatsapp-commercial-memory';
 export type ConversationalReplyInput = {
   reply: string;
   input: string;
@@ -19,6 +20,10 @@ export type ConversationalReplyInput = {
 export function asksRentalAgeTerms(input: string): boolean {
   return /[?؟]|אפשר|האם|can I|may I|what|are .*terms/i.test(input)
     && /(?:rent|hire).{0,30}(?:at my age|age \d)|young[- ]driver|minimum age|age (?:limit|requirement)|(?:גיל|בן|בת)\s*\d.{0,65}(?:לשכור|ביטוח|פיקדון)|נהג צעיר|ותק (?:ה)?רישיון/i.test(input);
+}
+
+export function hasUndecidedRentalDates(input: string): boolean {
+  return /(?:haven['’]?t|have not|has not|not yet)\s+(?:yet\s+)?(?:decided(?: on)?|chosen|picked|settled on)[^.!?\n]{0,70}\bdates?\b|(?:do not|don['’]?t|not sure)[^.!?\n]{0,55}\b(?:know[^.!?\n]{0,15})?dates?\b|\bno dates? yet\b|\bdates?[^.!?\n]{0,25}(?:undecided|still open|not (?:set|decided|chosen))|(?:לא יודע(?:ת)?|לא בטוח(?:ה)?|לא סגרנו|לא החלטתי|אין לי(?: עדיין)?)[^.!?\n]{0,45}תאריכ|תאריכ[^.!?\n]{0,25}(?:פתוחים|עוד לא|עדיין לא|לא סופיים)/i.test(input);
 }
 
 function numberTokens(text: string): string[] {
@@ -107,12 +112,16 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (handoffDeferred && /(?:would|should|can) (?:a|our|the) representative.{0,70}(?:call|contact|help)[^?؟]*[?؟]/i.test(reply)) return reject('handoff_deferred');
 
   const knownValue = (...keys: string[]) => keys.some(key => known[key] !== undefined && known[key] !== '');
+  const savedAnnualMileage = Number(known.commercialAnnualMileageKm ?? known.annualMileageKm);
+  const comparedMileage = /\bcompare|\bversus|\bvs\b|להשוות|השוואה|לעומת|מול/i.test(input) ? annualMileageMentions(input) : [];
+  if (Number.isFinite(savedAnnualMileage) && savedAnnualMileage > 0
+    && annualMileageMentions(reply).some(value => value !== savedAnnualMileage && !comparedMileage.includes(value))) return reject('mileage_conflict');
   const question = reply.match(/[^.!?؟]*[?؟]/g)?.at(-1) ?? '';
   if (/(?:what time|at what hour).{0,65}(?:pick.?up|return|collect|drop.?off)|(?:pick.?up|return|collection) time|באיז(?:ו|ה) שעה.{0,45}(?:איסוף|לאסוף|החזרה|להחזיר)|שעת (?:ה?איסוף|ה?החזרה)/i.test(question)) return reject('unneeded_time');
   if (knownValue('pickupDate') && /what (?:is |would be )?(?:the |your )?pick.?up date|when.{0,30}pick.?up|באיזה תאריך.{0,25}לאסוף|תאריך האיסוף/i.test(question)) return reject('known_pickup_date');
   if (knownValue('returnDate') && /what (?:is |would be )?(?:the |your )?return date|when.{0,30}return|באיזה תאריך.{0,25}תחזיר|תאריך ההחזרה/i.test(question)) return reject('known_return_date');
   const asksDates = /what dates|which dates|what (?:are )?(?:the |your )?(?:pick.?up|return) dates|באילו תאריכים|לאילו תאריכים|מתי.{0,30}(?:לאסוף|להחזיר)/i.test(question);
-  if (asksDates && (knownValue('pickupDate') && knownValue('returnDate') || /(?:do not|don't) know.{0,25}dates|no dates yet|not (?:chosen|decided).{0,20}dates|לא יודע.{0,15}תאריכ|אין.{0,15}תאריכ|undecided/i.test(`${input} ${known.datePreference ?? ''}`))) return reject('known_or_undecided_dates');
+  if (asksDates && (knownValue('pickupDate') && knownValue('returnDate') || hasUndecidedRentalDates(input) || /undecided/i.test(String(known.datePreference ?? '')) || hasUndecidedRentalDates(String(known.datePreference ?? '')))) return reject('known_or_undecided_dates');
   if (knownValue('pickupLocation') && /where.{0,35}pick.?up|מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף/i.test(question)) return reject('known_pickup_location');
   if (knownValue('returnLocation') && /where.{0,35}(?:return|drop.?off)|איפה.{0,30}להחזיר/i.test(question)) return reject('known_return_location');
   if (knownValue('passengers') && /how many (?:people|passengers|travellers)|כמה (?:אנשים|נוסעים)/i.test(question)) return reject('known_passengers');

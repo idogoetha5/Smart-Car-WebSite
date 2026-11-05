@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { termsConsent } from '@/lib/consent';
 import { getSmartCarServiceAnswer, getSmartCarApprovedFacts } from '@/lib/smartcar-service-knowledge';
 import { updateCommercialMemory, renderCommercialMemory, type CommercialMemory } from '@/lib/whatsapp-commercial-memory';
-import { asksRentalAgeTerms, validateConversationalReply } from '@/lib/whatsapp-ai-reply';
+import { asksRentalAgeTerms, hasUndecidedRentalDates, validateConversationalReply } from '@/lib/whatsapp-ai-reply';
 import { readBotTurn, type BotReading, type GeminiBotContext, type VehicleDirection } from '@/lib/whatsapp-rebuild-gemini';
 
 type Locale = 'he' | 'en';
@@ -1055,6 +1055,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   const continuedServiceAdvice = Boolean(state.handedOff && serviceQuestion && depositEnquiry
     && (state.handoffKind === 'human' || state.handoffKind === 'service_issue'));
   const lastBotReply = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+  if ((!state.booking.pickupDate || !state.booking.returnDate)
+    && (hasUndecidedRentalDates(input) || uncertainDateAnswer(input) && asksRentalDates(lastBotReply))) state.booking.datePreference = 'dates undecided';
   const labelledReference = explicitServiceReference(input);
   if (labelledReference) state.serviceReference = labelledReference;
   else if (!state.serviceReference) {
@@ -1301,6 +1303,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   } else if (/^(?:אחזור עם תאריך|אחזור כשאדע תאריך|I'll come back with a date)[.!\s]*$/i.test(input)) {
     reply = he ? 'בשמחה. כשתדע את התאריך, כתוב לי כאן ונמשיך מהפרטים שכבר מסרת.' : 'Of course. Send the date when you know it and we can continue from the details you already shared.';
   } else if (!state.interest && uncertainDateAnswer(input)
+    && !/[?؟]/u.test(input)
     && !/מה כדאי|מה תמליצ|what (?:would you )?recommend/i.test(input)
     && (/אין לי (?:עדיין )?תאריכ|אין תאריך סופי|עדיין אין תאריך|no dates? yet/i.test(input) || asksRentalDates(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
     reply = he ? 'אין בעיה. כשתדעו את התאריכים המדויקים, כתבו אותם כאן ונוכל להמשיך מהפרטים שכבר מסרתם.' : 'No problem. When you know the exact dates, send them here and we can continue with the details you already shared.';
@@ -1394,6 +1397,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       if (date) state.booking.returnDate = date;
     }
     applyExplicitLocations(input, state.booking);
+    if (state.booking.pickupDate && state.booking.returnDate) delete state.booking.datePreference;
     applyPromptedLocation(input, state, lastBot);
     if (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input)) state.booking.returnLocation = state.booking.pickupLocation;
     const statedAgeRange = driverAgeRange(input, state);

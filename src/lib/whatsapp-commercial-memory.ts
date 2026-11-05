@@ -13,6 +13,19 @@ export type CommercialMemory = {
 
 const NUMBER = '(?<!\\d)(\\d{1,3}(?:[, ]\\d{3})+|\\d{1,7}(?:\\.\\d+)?)(?!\\d)';
 const amount = (value: string, scale?: string) => Number(value.replace(/[, ]/g, '')) * (scale ? 1000 : 1);
+
+/** Recognisable annual-mileage assertions, including model-written thousands.
+ * Deliberately scoped to annual units so published daily/monthly limits remain
+ * usable in the same reply. This is not general semantic number validation. */
+export function annualMileageMentions(text: string): number[] {
+  const words: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, fifteen: 15, twenty: 20, אחד: 1, שני: 2, שניים: 2, שתי: 2, שלושה: 3, שלושת: 3, ארבעה: 4, ארבעת: 4, חמישה: 5, חמשת: 5, שישה: 6, ששת: 6, שבעה: 7, שבעת: 7, שמונה: 8, שמונת: 8, תשעה: 9, תשעת: 9, עשרה: 10, עשרת: 10, 'אחד עשר': 11, 'שנים עשר': 12, 'שתים עשרה': 12, 'חמישה עשר': 15, עשרים: 20 };
+  const wordPattern = Object.keys(words).sort((a, b) => b.length - a.length).join('|');
+  const numeric = '(\\d{1,3}(?:[, ]\\d{3})+|\\d{1,7})\\s*(אלף|אלפי|אלפים|thousand|k\\b)?';
+  const written = `(${wordPattern})\\s+(אלף|אלפי|אלפים|thousand)`;
+  const units = '(?:קילומטר(?:ים)?|ק[״"]מ|קמ|km|kilometres?|kilometers?)\\s*(?:לשנה|בשנה|per year|a year|annually|/\\s*(?:year|yr))';
+  const pattern = new RegExp(`(?<![\\p{L}\\d])(?:ל)?(?:${numeric}|${written})\\s*${units}`, 'giu');
+  return [...text.matchAll(pattern)].map(match => match[3] ? words[match[3].toLowerCase()] * 1000 : amount(match[1], match[2]));
+}
 function negatedBefore(text: string, index: number) {
   return /(?:\bnot|\binstead of|\brather than|ולא|לא|במקום)\s*$/i.test(text.slice(Math.max(0, index - 25), index));
 }
