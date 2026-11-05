@@ -18,6 +18,14 @@ describe('deposit reference is not consent to stop answering service questions',
     expect(second.reply).toBe(answer);
     expect(third.reply).toContain('654321');
     expect(JSON.stringify(readTurn.mock.calls)).not.toContain('654321');
+    const hypothetical = await send('Understood. One other thing: if I ever need to keep the rental for one extra day, could I just return later at the same daily price? I am only asking, not requesting a change now.');
+    const closing = await send('Thanks, that is clear. Please leave the booking unchanged; I will use the official payment channel and contact you if I actually need an extension.');
+    const thanks = await send('Thank you.');
+    for (const result of [hypothetical, closing, thanks]) {
+      expect(result.escalate).toBe(false);
+      expect(result.state.handedOff).not.toBe(true);
+      expect(result.reply).not.toMatch(/We have your change request|קיבלנו את בקשת השינוי/u);
+    }
     expect(create).not.toHaveBeenCalled();
     // A queued alert remains queued, but it must not turn questions into a
     // canned loop or enqueue a second alert. Actual staff silence is upstream.

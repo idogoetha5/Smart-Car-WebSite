@@ -239,7 +239,11 @@ function uncertainDateAnswer(input: string): boolean {
 }
 
 function rentalChangeRequest(input: string): boolean {
-  return /לשנות|לשינוי|להאריך|הארכ(?:ה|ת)|לדחות|לדחייה|להקדים|להזיז|יום ההחזרה|יום מאוחר|יום נוסף|להחזיר.{0,40}מאוחר|change|extend|extension|postpone|move (?:the )?return|return date|return (?:the )?(?:car|it).{0,45}later|extra days?/i.test(input);
+  return /לשנות|לשינוי|להאריך|הארכ(?:ה|ת)|לדחות|לדחייה|להקדים|להזיז|יום ההחזרה|יום מאוחר|יום נוסף|להחזיר.{0,40}מאוחר|\b(?:change|extend|extension|postpone)\b|move (?:the )?return|return date|return (?:the )?(?:car|it).{0,45}later|extra days?/i.test(input);
+}
+
+function advisoryRentalChange(input: string): boolean {
+  return /\b(?:what if|if (?:I|we) (?:(?:ever|actually) )?(?:need|needed|wanted)|may need|might need|not requesting|only asking|just asking)\b|(?:leave|keep).{0,35}\bunchanged\b|(?:do not|don't)\s+(?:change|extend)|מה (?:קורה |יקרה )?אם|אם (?:אצטרך|נצטרך|ארצה)|אולי (?:אצטרך|נצטרך)|רק (?:שואל|שואלת|מברר|מבררת)|לא מבקש(?:ת)? (?:שינוי|הארכה)|להשאיר.{0,25}ללא שינוי|אל תשנ|לא לשנות/i.test(input);
 }
 
 function cancellationRequest(input: string): boolean {
@@ -270,7 +274,7 @@ function applyPromptedDate(input: string, state: RebuildState, lastBot: string):
 function applyExplicitLocations(input: string, draft: BookingDraft): void {
   const sameCity = input.trim().match(/^([\p{L}\s'׳״-]{2,50})\s+גם\s+(?:להחזיר\s+(?:גם\s+)?לאסוף|לאסוף\s+(?:(?:וגם|גם)\s+)?להחזיר)$/u)?.[1]?.trim();
   if (sameCity) { draft.pickupLocation = sameCity; draft.returnLocation = sameCity; return; }
-  const stop = '(?=\\s+(?:ו?החזרה|להחזיר|(?:and\\s+)?return|(?:and\\s+)?drop.?off|ב[-־]?\\s*\\d)|[,.!?]|$)';
+  const stop = '(?=\\s+(?:ו?החזרה|להחזיר|נשאר(?:ת)?|unchanged|remains?|stays?|(?:and\\s+)?return|(?:and\\s+)?drop.?off|ב[-־]?\\s*\\d)|[,.!?]|$)';
   const hePickup = input.match(new RegExp(`(?:איסוף|לאסוף)\\s+[במ]([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
   const enPickupStop = stop.replace('(?=', '(?=\\s+on\\s+\\d{1,2}|');
   const enPickup = input.match(new RegExp(`pick.?up\\s+(?:at|from|in)\\s+([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${enPickupStop}`, 'iu'))?.[1];
@@ -279,11 +283,31 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
     : undefined;
   const pickup = (hePickup ?? enPickup ?? enFromPickup)?.trim();
   if (pickup) draft.pickupLocation = /^(?:the )?airport$/i.test(pickup) && /Ben Gurion Airport/i.test(input) ? 'Ben Gurion Airport' : pickup;
-  const heReturn = input.match(/(?:החזרה|להחזיר)\s+[במ]([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:נהג|גיל|בן|בת|למשך|לתאריכים|ב[-־]?\s*\d)|[,.!?]|$)/iu)?.[1];
-  const enReturn = input.match(/(?:return|drop.?off)\s+(?:(?:the car|it)\s+)?(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+on\s+\d{1,2}|[,.!?]|$)/iu)?.[1];
+  const heReturn = input.match(/(?:החזרה|להחזיר)\s+(?:(?:תהיה|יהיה)\s+)?[במ]([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:נהג|גיל|בן|בת|למשך|לתאריכים|ב[-־]?\s*\d)|[,.!?]|$)/iu)?.[1];
+  const enReturn = input.match(/(?:return|drop.?off)\s+(?:(?:the car|it)\s+)?(?:(?:will be|will remain|stays?|remains?)\s+)?(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+on\s+\d{1,2}|[,.!?]|$)/iu)?.[1];
   const returnLocation = (heReturn ?? enReturn)?.split(/\s+(?:במקום|instead of)\s+/i)[0].trim();
   if (returnLocation) draft.returnLocation = returnLocation;
   const dateText = `(?:\\d{1,2}[./]\\d{1,2}(?:[./]20\\d{2})?|\\d{1,2}\\s+(?:ב)?(?:${Object.keys(MONTHS).join('|')})(?:\\s+20\\d{2})?)`;
+  // Parse each labelled date independently: customers may correct the return
+  // before restating an unchanged pickup. Never associate dates by text order.
+  const labelledDates: Partial<Record<'pickupDate' | 'returnDate', string>> = {};
+  const labels = /(?:ה?איסוף|לאסוף|pick.?up|ה?החזרה|להחזיר|return|drop.?off)/giu;
+  const mentions = [...input.matchAll(labels)];
+  for (let index = 0; index < mentions.length; index++) {
+    const mention = mentions[index];
+    const clause = input.slice(mention.index! + mention[0].length, Math.min(mentions[index + 1]?.index ?? input.length, mention.index! + 130)).split(/[,!?\n]|(?<!\d)\.|\.(?!\d)/u)[0];
+    if (/\b(?:or|maybe|if)\b|(?:^|\s)(?:או|אולי|אם)(?:\s|$)/iu.test(clause)) continue;
+    const date = clause.match(new RegExp(dateText, 'iu'))?.[0];
+    if (date) labelledDates[/איסוף|לאסוף|pick/iu.test(mention[0]) ? 'pickupDate' : 'returnDate'] = date;
+  }
+  if (labelledDates.pickupDate) {
+    const date = singleDateAnswer(labelledDates.pickupDate);
+    if (date) draft.pickupDate = date;
+  }
+  if (labelledDates.returnDate) {
+    const date = singleDateAnswer(labelledDates.returnDate, draft.pickupDate);
+    if (date) draft.returnDate = date;
+  }
   const datedReturn = input.match(new RegExp(`(?:נחזיר|אחזיר|להחזיר|return(?:\\s+(?:it|the car))?|drop.?off)\\s+(?:ב[-־]?|on\\s+)?(${dateText})\\s+(?:ב[-־]?|in\\s+|to\\s+|at\\s+)([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)(?=\\s+(?:במקום|instead\\s+of)|[,.!?]|$)`, 'iu'));
   if (datedReturn) {
     const date = singleDateAnswer(datedReturn[1], draft.pickupDate);
@@ -1093,7 +1117,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     reply = /[?؟]|מה כלול|מה ההבדל|what.*included|compare|difference/i.test(input)
       ? `${notice} ${commercialReply(input, state).reply}` : notice;
   } else if (state.handedOff && !continuedServiceAdvice) {
-    if (state.handoffKind === 'service_issue' && state.history.some(entry => entry.from === 'customer' && rentalChangeRequest(entry.text))) state.handoffKind = 'booking_change';
+    if (state.handoffKind === 'service_issue' && state.history.some(entry => entry.from === 'customer' && rentalChangeRequest(entry.text) && !advisoryRentalChange(entry.text))) state.handoffKind = 'booking_change';
     const handoffKind = state.handoffKind ?? (state.safetyAlertAt && (!state.handoffAt || Date.parse(state.safetyAlertAt) >= Date.parse(state.handoffAt)) ? 'safety' : state.interest ? 'commercial' : 'booking_change');
     const cancellationPending = handoffKind === 'booking_change' && state.history.some(entry => entry.from === 'customer' && cancellationRequest(entry.text));
     const hasBookingReference = Boolean(state.serviceReference);
@@ -1575,11 +1599,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       // The reference was parsed and retained once above, including natural
       // punctuation. Re-parsing here creates conflicting workflow decisions.
       const suppliedReference = Boolean(state.serviceReference);
-      const changePending = rentalChangeRequest(input) || state.history.some(entry => entry.from === 'customer' && rentalChangeRequest(entry.text));
+      const changePending = rentalChangeRequest(input) || state.history.some(entry => entry.from === 'customer' && rentalChangeRequest(entry.text) && !advisoryRentalChange(entry.text));
       const directChangeVerb = /לשנות|לשינוי|להאריך|לדחות|לדחייה|להקדים|להזיז|יום ההחזרה|יום מאוחר|change|extend|postpone|move (?:the )?return|return date/i.test(input);
       // A known reference is a fact, not consent to a hypothetical change.
       // This narrow deferral boundary does not infer every service intent.
-      const advisoryChange = /\b(?:what if|if (?:I|we) (?:ever )?(?:need|needed|wanted)|may need|might need|not requesting|only asking|just asking)\b|מה (?:קורה |יקרה )?אם|אם (?:אצטרך|נצטרך|ארצה)|אולי (?:אצטרך|נצטרך)|רק (?:שואל|שואלת|מברר|מבררת)|לא מבקש(?:ת)? (?:שינוי|הארכה)/i.test(input);
+      const advisoryChange = advisoryRentalChange(input);
       if (!cancellationPending && changePending && advisoryChange) {
         reply = he ? 'אפשר לברר על הארכה בלי להגיש בקשת שינוי כרגע. הארכה כפופה לזמינות, לתנאים ולאישור SmartCar; עד לאישור, מועד ההחזרה הקיים נשאר בתוקף והמחיר עשוי להשתנות.' : 'We can discuss an extension without submitting a change request now. An extension depends on availability, terms and SmartCar confirmation; until confirmed, the current return deadline remains in effect and the price may change.';
       } else if (!cancellationPending && changePending && !directChangeVerb && !suppliedReference && !booking) {
