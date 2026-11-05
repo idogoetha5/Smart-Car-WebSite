@@ -1,5 +1,9 @@
 # Production preservation — mandatory owner direction (2026-10-22)
 
+## Domain and DNS must remain unchanged — owner direction 2026-11-05
+
+The owner explicitly stated that he never wants the domain changed. Preserve the company domain and every DNS record; bot, SEO, availability investigations and deployment work do not authorize changing them. A previous discussion of an alternative Vercel IP was diagnostic only and was not approval. No DNS record was changed during the November 4–5 investigation. Normal connectivity and the complete preservation preflight subsequently recovered without a DNS change.
+
 Never remove, overwrite, roll back, hide or omit existing SmartCar functionality or assets without telling Ido exactly what would change and receiving his explicit approval first. Permission to work on one feature is not permission to replace unrelated work. This applies to Codex, Claude, other agents and human deployment workflows.
 
 ## Incident
