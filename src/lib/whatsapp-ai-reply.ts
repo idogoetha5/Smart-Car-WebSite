@@ -15,6 +15,12 @@ export type ConversationalReplyInput = {
   onReject?: (reason: string) => void;
 };
 
+/** Explicit eligibility questions, not an age merely supplied during intake. */
+export function asksRentalAgeTerms(input: string): boolean {
+  return /[?؟]|אפשר|האם|can I|may I|what|are .*terms/i.test(input)
+    && /(?:rent|hire).{0,30}(?:at my age|age \d)|young[- ]driver|minimum age|age (?:limit|requirement)|(?:גיל|בן|בת)\s*\d.{0,65}(?:לשכור|ביטוח|פיקדון)|נהג צעיר|ותק (?:ה)?רישיון/i.test(input);
+}
+
 function numberTokens(text: string): string[] {
   return (text.match(/\d+(?:[,.]\d+)*/g) ?? []).map(value => value.replace(/,(?=\d{3}(?:\D|$))/g, '').replace(/^0+(?=\d)/, ''));
 }
@@ -35,6 +41,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   const reject = (reason: string): null => { args.onReject?.(reason); return null; };
   const reply = args.reply?.trim();
   if (!reply) return reject('empty');
+  if (asksRentalAgeTerms(input) && !/\bage\b|\b21\b|young[- ]driver|licen[cs]e|גיל|רישיון|נהג צעיר/i.test(reply)) return reject('unanswered_age_terms');
+  if (asksRentalAgeTerms(input) && /deposit|פיקדון/i.test(input) && !/deposit|card hold|פיקדון/i.test(reply)) return reject('unanswered_deposit');
   if (reply.length > 650) return reject('too_long');
   if ((reply.match(/[?؟]/g) ?? []).length > 1) return reject('multiple_questions');
   if (locale === 'he' && !/[א-ת]/.test(reply) || locale === 'en' && (/[א-ת]/.test(reply) || !/[A-Za-z]/.test(reply))) return reject('language');

@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { termsConsent } from '@/lib/consent';
 import { getSmartCarServiceAnswer, getSmartCarApprovedFacts } from '@/lib/smartcar-service-knowledge';
 import { updateCommercialMemory, renderCommercialMemory, type CommercialMemory } from '@/lib/whatsapp-commercial-memory';
-import { validateConversationalReply } from '@/lib/whatsapp-ai-reply';
+import { asksRentalAgeTerms, validateConversationalReply } from '@/lib/whatsapp-ai-reply';
 import { readBotTurn, type BotReading, type GeminiBotContext, type VehicleDirection } from '@/lib/whatsapp-rebuild-gemini';
 
 type Locale = 'he' | 'en';
@@ -1609,6 +1609,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         : `I have noted the pickup and return dates. ${question('pickupLocation', state.locale)}`;
     } else if (statedRange && state.booking.pickupDate && state.booking.returnDate) {
       reply = advice(input, state, reading);
+    } else if (asksRentalAgeTerms(input) && /deposit|פיקדון/i.test(input)) {
+      const ageTerms = getSmartCarApprovedFacts(state.locale).find(fact => fact.id === 'age_licence')!.text;
+      reply = `${ageTerms} ${he ? 'בגיל נהג צעיר המחיר ותנאי הביטוח עשויים להשתנות לפי הרכב. באיסוף נדרש כרטיס אשראי תקף על שם השוכר; סכום הפיקדון הסופי נקבע בהסכם לפי הקבוצה והתנאים האישיים.' : 'Young-driver price and insurance terms can vary by vehicle. Pickup requires a valid credit card in the renter’s name; the final deposit is set in the agreement for the group and applicable terms.'}`;
     } else if (/מה כדאי|מה תמליצ|what (?:would you )?recommend/i.test(input) && /ביטוח|insurance/i.test(input) && state.booking.vehicleNeed) {
       const insurance = getSmartCarServiceAnswer(input, state.locale)?.reply ?? '';
       reply = he ? `לפי מה שתיארתם, הייתי מתחיל בבדיקת ${state.booking.vehicleNeed}; התאמה לכיסא בטיחות ולציוד נוודא לפי הדגם. ${insurance}` : `From what you described, I would start by checking a ${state.booking.vehicleNeed}; child-seat and luggage fit depend on the model. ${insurance}`;
