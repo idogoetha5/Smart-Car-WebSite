@@ -39,16 +39,25 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   }
   // Currency-bearing amounts are also explicit budgets when called a limit or
   // a correction to a previously supplied budget, never arbitrary bare digits.
-  if (!/תקציב|budget/i.test(text) && (next.budget || /עד|limit|spend|afford/i.test(text))) {
-    const money = new RegExp(`${NUMBER}\\s*(אלף|thousand|k\\b)?\\s*(שקל(?:ים)?|₪|shekels?|ILS|NIS|dollars?|USD|euros?|EUR)`, 'giu');
+  if (!/תקציב|budget/i.test(text) && (next.budget || /עד|limit|spend|afford|בסביבות|סביב|בערך|\baround\b|\babout\b|\broughly\b/i.test(text))) {
+    const money = new RegExp(`${NUMBER}\\s*(אלף|thousand|k(?=\\b|NIS|ILS|USD|EUR))?\\s*(שקל(?:ים)?|₪|shekels?|ILS|NIS|dollars?|USD|euros?|EUR)`, 'giu');
     for (const match of text.matchAll(money)) {
-      if (negatedBefore(text, match.index!)) continue;
+      const clause = text.slice(0, match.index!).split(/[.!?;]|[,،](?=\s)/u).at(-1) ?? '';
+      const following = text.slice(match.index! + match[0].length, match.index! + match[0].length + 25);
+      if (negatedBefore(text, match.index!)
+        || /מחיר|הצעה|מחשבון|תשלום|\b(?:price|quote|offer|calculator|monthly)\b/i.test(clause)
+        || /^\s*(?:לחודש|בחודש|per month|monthly)/i.test(following)) continue;
       const value = amount(match[1], match[2]);
       if (value >= 100 && value <= 10_000_000) next.budget = { amount: value, currency: /dollar|USD/i.test(match[3]) ? 'USD' : /euro|EUR/i.test(match[3]) ? 'EUR' : 'ILS' };
     }
   }
 
   const termMatches: Array<{ value: number; index: number }> = [];
+  for (const match of text.matchAll(/(?:ל)?(שני|שניים|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש)\s+חודשים|(?:ל)?חודשיים/gu)) {
+    if (negatedBefore(text, match.index!)) continue;
+    const namedMonths: Record<string, number> = { שני: 2, שניים: 2, שלושה: 3, שלוש: 3, ארבעה: 4, ארבע: 4, חמישה: 5, חמש: 5, שישה: 6, שש: 6 };
+    termMatches.push({ value: match[1] ? namedMonths[match[1]] : 2, index: match.index! });
+  }
   const namedYears = text.match(/(?:ל)?(שלוש|ארבע|חמש)\s+שנים/u);
   if (namedYears && !negatedBefore(text, namedYears.index!)) termMatches.push({ value: ({ שלוש: 3, ארבע: 4, חמש: 5 }[namedYears[1]] ?? 0) * 12, index: namedYears.index! });
   for (const match of text.matchAll(/\b(\d{1,3}|one|two|three|four|five)\s*(months?|years?)\b|(\d{1,3})\s*(חודשים|חודש|שנים|שנה)|שנתיים|לשנה/giu)) {
@@ -67,7 +76,7 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   if (comparesTerms) {
     if (previous?.termMonths === undefined || termUndecided) next.termMonths = null;
   }
-  else if (termMatches.length) next.termMonths = termMatches.at(-1)!.value;
+  else if (termMatches.length) next.termMonths = termMatches.sort((a, b) => a.index - b.index).at(-1)!.value;
   else if (termUndecided) next.termMonths = null;
 
   const annual = /לשנה|בשנה|שנתי|a year|per year|annually|annual/i.test(text);

@@ -3,6 +3,20 @@ import { updateCommercialMemory, renderCommercialMemory } from '@/lib/whatsapp-c
 
 describe('durable explicit commercial facts', () => {
   it.each([
+    ['מחפש משפחתית בסביבות 65 אלף שקלים, עם מקום לשני ילדים ועגלה. לפני שאני מתקדם, אפשר לקבל היסטוריית טיפולים ותאונות ולבדוק את הרכב עצמאית?', 'בעצם סביב 55 אלף שקלים. מה יהיה המחיר בהצעה?'],
+    ['I am looking for a family car around 65k NIS. Can I check its service history?', 'Actually about 55 thousand NIS. What would an offer include?'],
+  ])('remembers natural currency budgets and corrections alongside offer questions: %s', (first, correction) => {
+    const memory = updateCommercialMemory(undefined, first);
+    expect(memory.budget).toEqual({ amount: 65000, currency: 'ILS' });
+    expect(memory.vehiclePreference).toBe('family');
+    expect(updateCommercialMemory(memory, correction).budget).toEqual({ amount: 55000, currency: 'ILS' });
+  });
+
+  it.each(['The calculator price is about 2500 NIS monthly.', 'המחיר במחשבון בסביבות 2500 שקלים לחודש.', 'Around 65000 km a year.'])('does not store reported prices or mileage as a budget: %s', message => {
+    expect(updateCommercialMemory(undefined, message).budget).toBeUndefined();
+    expect(updateCommercialMemory({ budget: { amount: 65000, currency: 'ILS' } }, message).budget?.amount).toBe(65000);
+  });
+  it.each([
     ['Make it 24 months.', 'What changes between 24 and 36 months?', 'I am unsure between 24 and 36 months.'],
     ['החלטתי על 24 חודשים.', 'מה ההבדל בין 24 חודשים מול 36 חודשים?', 'אני מתלבט בין 24 חודשים מול 36 חודשים.'],
   ])('keeps a selected term during a comparison question, but clears explicit uncertainty: %s', (choice, question, uncertainty) => {

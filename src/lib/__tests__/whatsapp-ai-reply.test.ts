@@ -151,6 +151,9 @@ describe('output checks for natural conversational drafts', () => {
   });
 
   it('rejects a repeated known field or undecided date prompt', () => {
+    expect(check('מה התקופה או מסגרת התקציב המועדפות עליך לרכב המשפחתי?', { locale: 'he', known: { commercialInterest: 'sale', commercialBudget: 65000 } })).toBeNull();
+    expect(check('What term do you have in mind?', { known: { commercialInterest: 'sale' } })).toBeNull();
+    expect(check('What budget should we consider?', { known: { commercialBudget: 65000 } })).toBeNull();
     expect(check('Where would you like to pick up the car?', { known: { pickupLocation: 'Tel Aviv' } })).toBeNull();
     expect(check('What dates do you need the car?', { input: 'I do not know the dates yet.' })).toBeNull();
     expect(check('What dates do you need the car?', { known: { pickupDate: '2026-12-10', returnDate: '2026-12-14' } })).toBeNull();

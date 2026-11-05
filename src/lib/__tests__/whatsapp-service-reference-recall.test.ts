@@ -13,6 +13,19 @@ function conversation() {
 }
 
 describe('durable service reference recall', () => {
+  it.each([
+    ['Hello, I would like to pay the deposit for booking #654321', 'Have you actually checked whether my payment arrived, or do you only have the booking reference I typed? Please remind me which reference you have.'],
+    ['שלום, אני רוצה לשלם מקדמה עבור ההזמנה שלי מספר #654321', 'התשלום שלי כבר התקבל? תזכיר לי איזה מספר הזמנה יש לכם.'],
+  ])('saves and redacts the actual website deposit prefill: %s', async (prefill, recall) => {
+    const { send, readTurn } = conversation();
+    const first = await send(prefill);
+    expect(first.state.serviceReference).toBe('654321');
+    const result = await send(recall);
+    expect(result.reply).toContain('654321');
+    expect(JSON.stringify(readTurn.mock.calls)).not.toContain('654321');
+    expect(result.reply).not.toMatch(/payment (?:has been|was) received|התשלום התקבל/iu);
+  });
+
   it('answers Hebrew recall through cancellation and conditional refund discussion', async () => {
     const { send, readTurn } = conversation();
     await send('אני רוצה לבטל את ההזמנה שלי.');
