@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createAdminClient } from '@/lib/supabase/server';
+import { OFFICE_PHONE } from '@/lib/constants';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { sendWhatsAppMessage, normalizeWhatsAppSender } from '@/lib/whatsapp';
 import { logWhatsAppMessage, isConversationSilenced } from '@/lib/whatsapp-conversations';
 import { getRebuiltBotReply, isRebuiltSafetyMessage } from '@/lib/whatsapp-rebuild';
-import { persistentRebuildStore } from '@/lib/whatsapp-rebuild-store';
+import { createPersistentRebuildStore } from '@/lib/whatsapp-rebuild-store';
+import { withSerializedPhoneTurn, mutatePhoneTurn } from '@/lib/whatsapp-phone-turn';
 import { reportBotIncident } from '@/lib/whatsapp-incidents';
 import { enqueueHandoffEmail, dispatchHandoffEmail } from '@/lib/whatsapp-handoff-outbox';
 import { claimInboundMessage, prepareInboundReply, recordInboundSend, suppressClaimedSend, suppressInboundWhileOff } from '@/lib/whatsapp-inbound-journal';
@@ -178,16 +180,24 @@ async function handleCustomerMessage(msg: InboundMessage, botEnabled: boolean) {
     return;
   }
 
-  let claim = await claimInboundMessage(msg.id, phone);
+  const messageId = msg.id;
+  const textMessage = (!msg.type || msg.type === 'text') && Boolean(msg.text?.body?.trim());
+  // Only original trusted inbound text can invoke safety priority. An old
+  // escalation flag never bypasses uncertainty or a representative's reply.
+  const isEmergency = textMessage && isRebuiltSafetyMessage(body);
+  await withSerializedPhoneTurn(phone, messageId, isEmergency, async turn => {
+  const store = createPersistentRebuildStore(turn);
+  let claim = await claimInboundMessage(messageId, phone, turn);
   if (claim.action === 'busy') throw new Error('[whatsapp] inbound processing already in progress');
   // An alert is independent of customer-reply delivery. Recover a pending
   // event even when the WhatsApp reply is already terminal or ambiguous.
   if (claim.action !== 'prepare') {
-    if (claim.escalate) await enqueueHandoffEmail(msg.id, phone);
-    if (claim.action !== 'send') await dispatchHandoffEmail(msg.id, phone);
+    if (claim.escalate) await enqueueHandoffEmail(messageId, phone, turn.ownerToken ? turn : undefined);
+    if (claim.action !== 'send') await dispatchHandoffEmail(messageId, phone);
   }
-  if (claim.action === 'uncertain') {
-    await reportBotIncident('delivery_failed');
+  if (claim.action === 'uncertain' || claim.action === 'manual') {
+    if (turn.manualEventId) await dispatchHandoffEmail(turn.manualEventId, phone);
+    await reportBotIncident(claim.action === 'uncertain' ? 'delivery_failed' : 'processing_failed');
     return;
   }
   if (claim.action === 'accepted') {
@@ -203,28 +213,39 @@ async function handleCustomerMessage(msg: InboundMessage, botEnabled: boolean) {
   const { success: withinLimit } = await checkRateLimit(`whatsapp:${phone}`, 20, 10 * 60_000);
   if (!withinLimit) {
     console.warn(`[whatsapp] rate limit hit for ${phone}`);
-    await prepareInboundReply(msg.id, '', false);
+    await prepareInboundReply(messageId, '', false, turn);
     return;
   }
 
   // A recent human reply normally silences the bot, but a new accident or
   // roadside failure must always produce the fixed safety reply and a fresh
   // alert even inside that 24-hour handoff window.
-  const isEmergency = isRebuiltSafetyMessage(body);
   if (!isEmergency && await isConversationSilenced(phone)) {
-    await prepareInboundReply(msg.id, '', false);
+    await prepareInboundReply(messageId, '', false, turn);
     return;
   }
 
   // The rebuilt core owns conversation state and verified actions. The
   // existing signed transport, message log and kill switch remain unchanged.
-  const flow = await getRebuiltBotReply(phone, body, {
-    ...persistentRebuildStore,
-    beforeEscalationSave: (customerPhone) => enqueueHandoffEmail(msg.id!, customerPhone),
-  });
-  const reply = flow.reply || 'לא הצלחנו להבין את הבקשה. כתבו "תפריט" כדי להתחיל מחדש, או "נציג" כדי לעבור לצוות SmartCar.';
-  await prepareInboundReply(msg.id, reply, Boolean(flow.escalate));
-  claim = await claimInboundMessage(msg.id, phone);
+  let reply: string;
+  let escalate = false;
+  if (!textMessage) {
+    // Text-only V1: attachments must not be interpreted as intake, consent or
+    // an incident report. Read only the locale and leave saved facts untouched.
+    const locale = (await store.loadState(phone))?.locale;
+    const he = `לא אוכל לקרוא תמונות, הקלטות או קבצים בצ׳אט הזה. כתבו את הבקשה או את פרטי המקרה בהודעת טקסט; לעזרה דחופה התקשרו ל־SmartCar: ${OFFICE_PHONE}.`;
+    const en = `I cannot read images, voice recordings or files in this chat. Please send your request or describe the situation in a text message; for urgent assistance call SmartCar: ${OFFICE_PHONE}.`;
+    reply = locale === 'he' ? he : locale === 'en' ? en : `${he}\n\n${en}`;
+  } else {
+    const flow = await getRebuiltBotReply(phone, body, {
+      ...store,
+      beforeEscalationSave: (customerPhone) => enqueueHandoffEmail(messageId, customerPhone, turn),
+    });
+    reply = flow.reply || 'לא הצלחנו להבין את הבקשה. כתבו "תפריט" כדי להתחיל מחדש, או "נציג" כדי לעבור לצוות SmartCar.';
+    escalate = Boolean(flow.escalate);
+  }
+  await prepareInboundReply(messageId, reply, escalate, turn);
+  claim = await claimInboundMessage(messageId, phone, turn);
   }
 
   if (claim.action !== 'send' || !claim.reply) throw new Error('[whatsapp] prepared reply could not be claimed for send');
@@ -232,12 +253,20 @@ async function handleCustomerMessage(msg: InboundMessage, botEnabled: boolean) {
     .from('whatsapp_bot_settings').select('enabled').eq('id', true).maybeSingle();
   if (settingsError || !latestSettings) throw new Error('[whatsapp] could not recheck kill switch before send');
   if (latestSettings.enabled !== true) {
-    await suppressClaimedSend(msg.id);
+    await suppressClaimedSend(messageId, turn);
     return;
   }
   try {
+    // A phone/inbox human reply may have arrived while Gemini was preparing
+    // this response, or before this saved reply was retried. Fail closed on an
+    // ownership lookup failure; only a new safety report bypasses takeover.
+    if (!isEmergency && await isConversationSilenced(phone)) {
+      await suppressClaimedSend(messageId, turn);
+      return;
+    }
+    await mutatePhoneTurn(turn, 'assert');
     const send = await sendWhatsAppMessage(phone, claim.reply);
-    await recordInboundSend(msg.id, send);
+    await recordInboundSend(messageId, send, turn);
     if (send.ok) {
       await logWhatsAppMessage({
         phone, source: 'bot_outbound', body: claim.reply, waMessageId: send.waMessageId,
@@ -250,8 +279,9 @@ async function handleCustomerMessage(msg: InboundMessage, botEnabled: boolean) {
   } finally {
     // An unavailable alert provider must not block the fixed safety reply.
     // The queue already survived the state commit and WhatsApp outcome.
-    await dispatchHandoffEmail(msg.id, phone);
+    await dispatchHandoffEmail(messageId, phone);
   }
+  });
 }
 
 async function handleChange(change: WebhookChange, botEnabled: boolean) {

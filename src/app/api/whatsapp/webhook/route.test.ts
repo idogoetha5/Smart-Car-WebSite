@@ -20,6 +20,10 @@ const mocks = vi.hoisted(() => ({
   handoffEmail: vi.fn(),
   enqueueHandoff: vi.fn(),
   dispatchHandoff: vi.fn(),
+  loadState: vi.fn(),
+  saveState: vi.fn(),
+  createRentalRequest: vi.fn(),
+  manualEventId: null as string | null,
 }));
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -49,7 +53,11 @@ vi.mock('@/lib/whatsapp-rebuild', () => ({
   getRebuiltBotReply: mocks.flow,
   isRebuiltSafetyMessage: mocks.classify,
 }));
-vi.mock('@/lib/whatsapp-rebuild-store', () => ({ persistentRebuildStore: {} }));
+vi.mock('@/lib/whatsapp-rebuild-store', () => ({ createPersistentRebuildStore: () => ({ loadState: mocks.loadState, saveState: mocks.saveState, createRentalRequest: mocks.createRentalRequest }) }));
+vi.mock('@/lib/whatsapp-phone-turn', () => ({
+  withSerializedPhoneTurn: async (phone: string, messageId: string, _emergency: boolean, run: (turn: unknown) => Promise<unknown>) => run({ phone, messageId, ownerToken: 'test-turn', manualEventId: mocks.manualEventId }),
+  mutatePhoneTurn: async () => ({}),
+}));
 vi.mock('@/lib/sms-alert', () => ({ sendEscalationSms: mocks.sms }));
 vi.mock('@/lib/whatsapp-incidents', () => ({ reportBotIncident: mocks.incident, sendHandoffEmail: mocks.handoffEmail }));
 vi.mock('@/lib/whatsapp-handoff-outbox', () => ({ enqueueHandoffEmail: mocks.enqueueHandoff, dispatchHandoffEmail: mocks.dispatchHandoff }));
@@ -102,7 +110,8 @@ function ycloudRequest(body: string, timestamp = Math.floor(Date.now() / 1000), 
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  mocks.manualEventId = null;
+  vi.resetAllMocks();
   process.env.WHATSAPP_TRANSPORT = 'meta_direct';
   process.env.WHATSAPP_APP_SECRET = 'local-test-app-secret';
   delete process.env.WHATSAPP_WEBHOOK_SECRET;
@@ -123,6 +132,9 @@ beforeEach(() => {
   mocks.handoffEmail.mockResolvedValue(true);
   mocks.enqueueHandoff.mockResolvedValue(undefined);
   mocks.dispatchHandoff.mockResolvedValue('absent');
+  mocks.loadState.mockResolvedValue(null);
+  mocks.saveState.mockResolvedValue(undefined);
+  mocks.createRentalRequest.mockResolvedValue('unexpected');
   mocks.claim.mockImplementation(async () => {
     const prepared = mocks.prepare.mock.calls.at(-1);
     return prepared
@@ -215,7 +227,7 @@ describe('local WhatsApp webhook boundary', () => {
     mocks.send.mockResolvedValue({ ok: false, waMessageId: null, status: null, outcome: 'uncertain' });
     const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
     expect((await POST(metaRequest(signature))).status).toBe(200);
-    expect(mocks.record).toHaveBeenCalledWith('wamid-1', expect.objectContaining({ outcome: 'uncertain' }));
+    expect(mocks.record).toHaveBeenCalledWith('wamid-1', expect.objectContaining({ outcome: 'uncertain' }), expect.any(Object));
     mocks.claim.mockResolvedValue({ action: 'done', reply: 'ברוכים הבאים ל־SmartCar', escalate: false, providerReplyId: null });
     expect((await POST(metaRequest(signature))).status).toBe(200);
     expect(mocks.send).toHaveBeenCalledTimes(1);
@@ -399,7 +411,7 @@ describe('local WhatsApp webhook boundary', () => {
     expect((await POST(metaRequest(signature))).status).toBe(200);
     const store = mocks.flow.mock.calls[0][2];
     await store.beforeEscalationSave('972501234567');
-    expect(mocks.enqueueHandoff).toHaveBeenCalledWith('wamid-1', '972501234567');
+    expect(mocks.enqueueHandoff).toHaveBeenCalledWith('wamid-1', '972501234567', expect.any(Object));
     expect(mocks.incident).not.toHaveBeenCalledWith('handoff_alert_failed');
   });
 
@@ -408,7 +420,7 @@ describe('local WhatsApp webhook boundary', () => {
       .mockResolvedValueOnce({ data: { enabled: false }, error: null });
     const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
     expect((await POST(metaRequest(signature))).status).toBe(200);
-    expect(mocks.suppressSend).toHaveBeenCalledWith('wamid-1');
+    expect(mocks.suppressSend).toHaveBeenCalledWith('wamid-1', expect.any(Object));
     expect(mocks.send).not.toHaveBeenCalled();
   });
 
@@ -427,7 +439,7 @@ describe('local WhatsApp webhook boundary', () => {
     mocks.claim.mockResolvedValue({ action, reply: 'saved', escalate: true, providerReplyId: 'outbound-1' });
     const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
     expect((await POST(metaRequest(signature))).status).toBe(200);
-    expect(mocks.enqueueHandoff).toHaveBeenCalledWith('wamid-1', '972501234567');
+    expect(mocks.enqueueHandoff).toHaveBeenCalledWith('wamid-1', '972501234567', expect.any(Object));
     expect(mocks.dispatchHandoff).toHaveBeenCalledWith('wamid-1', '972501234567');
     expect(mocks.send).not.toHaveBeenCalled();
     expect(mocks.flow).not.toHaveBeenCalled();
@@ -445,5 +457,118 @@ describe('local WhatsApp webhook boundary', () => {
     mocks.flow.mockResolvedValueOnce({ reply: 'handoff already saved', escalate: false });
     expect((await POST(metaRequest(signature))).status).toBe(200);
     expect(mocks.dispatchHandoff).toHaveBeenCalledWith('wamid-1', '972501234567');
+  });
+});
+
+
+describe('takeover at send time and honest text-only media handling', () => {
+  function inbound(message: Record<string, unknown> = {}) {
+    process.env.WHATSAPP_TRANSPORT = '360dialog';
+    process.env.WHATSAPP_WEBHOOK_SECRET = 'local-dialog-secret';
+    return dialogRequest('local-dialog-secret', JSON.stringify({ entry: [{ changes: [{ field: 'messages', value: { messages: [{
+      from: '+972501234567', id: 'wamid-1', type: 'text', text: { body: 'Please explain the rental terms.' }, ...message,
+    }] } }] }] }));
+  }
+
+  it('suppresses a prepared response when a human replied during generation, retaining alert recovery', async () => {
+    mocks.flow.mockImplementationOnce(async (_phone, _body, store) => {
+      await store.beforeEscalationSave('972501234567');
+      mocks.silenced.mockResolvedValue(true);
+      return { reply: 'Prepared commercial handoff', escalate: true };
+    });
+    expect((await POST(inbound())).status).toBe(200);
+    expect(mocks.flow).toHaveBeenCalledOnce();
+    expect(mocks.silenced).toHaveBeenCalledTimes(2);
+    expect(mocks.suppressSend).toHaveBeenCalledWith('wamid-1', expect.any(Object));
+    expect(mocks.send).not.toHaveBeenCalled();
+    expect(mocks.enqueueHandoff).toHaveBeenCalledWith('wamid-1', '972501234567', expect.any(Object));
+    expect(mocks.dispatchHandoff).toHaveBeenCalledWith('wamid-1', '972501234567');
+  });
+
+  it('does not use a saved escalation flag to bypass takeover on a prepared retry', async () => {
+    mocks.claim.mockResolvedValue({ action: 'send', reply: 'Prepared non-safety handoff', escalate: true, providerReplyId: null });
+    mocks.silenced.mockResolvedValue(true);
+    expect((await POST(inbound())).status).toBe(200);
+    expect(mocks.classify).toHaveBeenCalledWith('Please explain the rental terms.');
+    expect(mocks.flow).not.toHaveBeenCalled();
+    expect(mocks.suppressSend).toHaveBeenCalledWith('wamid-1', expect.any(Object));
+    expect(mocks.send).not.toHaveBeenCalled();
+    expect(mocks.enqueueHandoff).toHaveBeenCalledWith('wamid-1', '972501234567', expect.any(Object));
+    expect(mocks.dispatchHandoff).toHaveBeenCalledWith('wamid-1', '972501234567');
+  });
+
+  it('fails closed if human ownership cannot be rechecked before send', async () => {
+    mocks.silenced.mockResolvedValueOnce(false).mockRejectedValueOnce(new Error('ownership unavailable'));
+    expect((await POST(inbound())).status).toBe(503);
+    expect(mocks.flow).toHaveBeenCalledOnce();
+    expect(mocks.send).not.toHaveBeenCalled();
+    expect(mocks.record).not.toHaveBeenCalled();
+    expect(mocks.incident).toHaveBeenCalledWith('processing_failed');
+    expect(mocks.dispatchHandoff).toHaveBeenCalledWith('wamid-1', '972501234567');
+  });
+
+  it.each([false, true])('preserves a new incident safety reply despite human takeover (saved retry=%s)', async retry => {
+    const body = 'I crashed my rental car just now.';
+    mocks.classify.mockImplementation(input => input === body);
+    mocks.silenced.mockResolvedValue(true);
+    if (retry) mocks.claim.mockResolvedValue({ action: 'send', reply: 'Fixed safety reply', escalate: true, providerReplyId: null });
+    else mocks.flow.mockResolvedValueOnce({ reply: 'Fixed safety reply', escalate: true });
+    expect((await POST(inbound({ text: { body } }))).status).toBe(200);
+    expect(mocks.classify).toHaveBeenCalledWith(body);
+    expect(mocks.suppressSend).not.toHaveBeenCalled();
+    expect(mocks.send).toHaveBeenCalledWith('972501234567', 'Fixed safety reply');
+    expect(mocks.dispatchHandoff).toHaveBeenCalledWith('wamid-1', '972501234567');
+  });
+
+  it.each([
+    ['he', 'image', 'לא אוכל לקרוא תמונות'],
+    ['en', 'audio', 'I cannot read images'],
+    [undefined, 'document', 'I cannot read images'],
+  ])('answers unsupported %s %s honestly without changing saved intake', async (locale, type, marker) => {
+    const state = { version: 2, locale, phase: 'booking', step: 'rental_confirm', booking: { childSeats: 0, passengers: 3, customerName: 'Fictional Test', returnDate: '2026-12-13' }, history: [] };
+    const original = structuredClone(state);
+    mocks.loadState.mockResolvedValue(state);
+    expect((await POST(inbound({ type, text: undefined }))).status).toBe(200);
+    expect(mocks.flow).not.toHaveBeenCalled();
+    expect(mocks.classify).not.toHaveBeenCalled();
+    expect(mocks.loadState).toHaveBeenCalledWith('972501234567');
+    expect(mocks.saveState).not.toHaveBeenCalled();
+    expect(mocks.createRentalRequest).not.toHaveBeenCalled();
+    expect(mocks.enqueueHandoff).not.toHaveBeenCalled();
+    expect(state).toEqual(original);
+    expect(mocks.prepare).toHaveBeenCalledWith('wamid-1', expect.stringContaining(marker), false, expect.any(Object));
+    expect(mocks.send).toHaveBeenCalledWith('972501234567', expect.stringContaining('09-9509757'));
+    if (!locale) expect(mocks.send.mock.calls[0][1]).toContain('לא אוכל לקרוא תמונות');
+    expect(mocks.send.mock.calls[0][1]).toMatch(/הודעת טקסט|text message/u);
+    // A provider retry repairs the log, without re-reading state or sending twice.
+    const reply = mocks.send.mock.calls[0][1];
+    mocks.claim.mockResolvedValue({ action: 'accepted', reply, escalate: false, providerReplyId: 'outbound-1' });
+    expect((await POST(inbound({ type, text: undefined }))).status).toBe(200);
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+    expect(mocks.loadState).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps an unsupported attachment silent while a human owns the conversation', async () => {
+    mocks.silenced.mockResolvedValue(true);
+    expect((await POST(inbound({ type: 'image', text: undefined }))).status).toBe(200);
+    expect(mocks.flow).not.toHaveBeenCalled();
+    expect(mocks.loadState).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
+    expect(mocks.prepare).toHaveBeenCalledWith('wamid-1', '', false, expect.any(Object));
+  });
+});
+
+
+describe('manual conversation recovery', () => {
+  it('dispatches the original durable manual event without running AI, mutating intake or sending a looped fallback', async () => {
+    mocks.manualEventId = 'abandoned-original';
+    mocks.claim.mockResolvedValue({ action: 'manual', reply: null, escalate: false, providerReplyId: null });
+    const signature = `sha256=${createHmac('sha256', 'local-test-app-secret').update(payload).digest('hex')}`;
+    expect((await POST(metaRequest(signature))).status).toBe(200);
+    expect(mocks.dispatchHandoff).toHaveBeenCalledWith('abandoned-original', '972501234567');
+    expect(mocks.incident).toHaveBeenCalledWith('processing_failed');
+    expect(mocks.flow).not.toHaveBeenCalled();
+    expect(mocks.prepare).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
   });
 });

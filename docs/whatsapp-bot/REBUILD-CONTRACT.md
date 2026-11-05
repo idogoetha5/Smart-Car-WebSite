@@ -25,8 +25,9 @@ decision until a system of record confirms it.
    consent to make a request. Do not compare, recommend or name taxis, public
    transport or competitors in the reply, even if the customer does.
 2. **Collect a rental request:** only after an explicit wish to proceed. Keep
-   supplied dates, locations, vehicle needs, name and email. Ask only for the
-   next missing item. Show the complete summary and ask for explicit final
+   supplied dates, locations, vehicle needs and name. Use the incoming WhatsApp
+   number as the reply phone; email is optional and is captured only when supplied.
+   Ask only for the next missing item. Show the complete summary and ask for explicit final
    confirmation before creating a request. Report creation only after the
    database action succeeds. Never claim that a request is a confirmed booking.
 3. **Service:** answer published general terms, use the actual booking where
@@ -39,6 +40,22 @@ decision until a system of record confirms it.
 5. **Failure:** if Gemini is unavailable or returns unusable content, answer
    from a bounded local service/recommendation path and retain the state. Do
    not silently change to another model or retry a business action.
+
+## Text V1 and message ownership
+
+Images, recordings and files receive an honest text/call alternative in the
+saved conversation language (both languages when unknown), without changing
+rental facts or pretending to understand the attachment. Per-phone database
+ownership serializes distinct messages across workers. State, request, alert
+enqueue and journal mutations are fenced by the active owner token. An
+ambiguous provider send is never blindly resent. Exhausted unsent work retains
+its facts and raw inbox messages, queues one staff alert and pauses ordinary
+AI until staff takeover rather than leaving a dead queue head. New genuine
+incidents retain their fixed safety path once no active writer remains.
+
+The human-silence rule is checked again immediately before transport, including
+prepared-reply retries. A staff reply after a manual recovery marker releases
+the ordering block; the existing 24-hour silence still applies.
 
 ## Gemini boundary
 

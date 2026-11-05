@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { normalizeWhatsAppPhone } from '@/lib/rental-quote';
 import { termsConsent } from '@/lib/consent';
 import type { RebuildState, RebuildStore } from '@/lib/whatsapp-rebuild';
+import { mutatePhoneTurn, type PhoneTurn } from '@/lib/whatsapp-phone-turn';
 
 async function activeBooking(phone: string) {
   const canonical = normalizeWhatsAppPhone(phone);
@@ -31,14 +32,14 @@ async function saveState(phone: string, state: RebuildState): Promise<void> {
   if (error) throw new Error(`[whatsapp-rebuild] state save failed: ${error.message}`);
 }
 
-async function createRentalRequest(phone: string, state: RebuildState): Promise<string | null> {
+async function createRentalRequest(phone: string, state: RebuildState, turn?: PhoneTurn): Promise<string | null> {
   const b = state.booking;
   if (!state.requestKey || !b.pickupDate || !b.returnDate || !b.pickupLocation || !b.returnLocation || !b.vehicleNeed || !['21-23', '24-plus'].includes(b.driverAgeRange ?? '') || !b.customerName) return null;
   const canonical = normalizeWhatsAppPhone(phone);
   if (!canonical) return null;
   const consent = termsConsent(state.locale);
   const db = createAdminClient();
-  const { data, error } = await db.from('whatsapp_rental_requests').insert({
+  const payload = {
     request_key: state.requestKey,
     phone: canonical, customer_name: b.customerName, customer_email: b.customerEmail ?? null,
     pickup_date: b.pickupDate, dropoff_date: b.returnDate,
@@ -47,7 +48,14 @@ async function createRentalRequest(phone: string, state: RebuildState): Promise<
     trip_needs: [b.passengers && `${b.passengers} passengers`, b.luggage && `${b.luggage} ${b.luggageSize === 'large' ? 'large ' : ''}luggage`, b.childSeats && `${b.childSeats} child seats`, 'times not given — coordinate with customer'].filter(Boolean).join(', '),
     locale: state.locale, status: 'PENDING', terms_version: consent.version,
     terms_text_hash: consent.hash, terms_accepted_at: new Date().toISOString(), consent_source: 'whatsapp',
-  }).select('id').single();
+  };
+  if (turn) {
+    if (turn.phone !== phone) throw new Error('[whatsapp] conversation mismatch');
+    const result = await mutatePhoneTurn(turn, 'request', payload);
+    if (typeof result.id !== 'string') throw new Error('[whatsapp] request id missing');
+    return result.id;
+  }
+  const { data, error } = await db.from('whatsapp_rental_requests').insert(payload).select('id').single();
   if (error?.code === '23505') {
     const { data: existing, error: lookupError } = await db.from('whatsapp_rental_requests')
       .select('id, phone').eq('request_key', state.requestKey).maybeSingle();
@@ -61,3 +69,15 @@ async function createRentalRequest(phone: string, state: RebuildState): Promise<
 }
 
 export const persistentRebuildStore: RebuildStore = { activeBooking, loadState, saveState, createRentalRequest };
+
+/** Production webhook writes are fenced; the simulator keeps its isolated store. */
+export function createPersistentRebuildStore(turn: PhoneTurn): RebuildStore {
+  return {
+    activeBooking, loadState,
+    saveState: async (phone, state) => {
+      if (phone !== turn.phone) throw new Error('[whatsapp] conversation mismatch');
+      await mutatePhoneTurn(turn, 'state', state);
+    },
+    createRentalRequest: (phone, state) => createRentalRequest(phone, state, turn),
+  };
+}

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { createAdminClient } from '@/lib/supabase/server';
 import { sendHandoffEmail, reportBotIncident } from '@/lib/whatsapp-incidents';
 import { sendEscalationSms } from '@/lib/sms-alert';
+import { mutatePhoneTurn, type PhoneTurn } from '@/lib/whatsapp-phone-turn';
 
 export const HANDOFF_EMAIL_EVENT = 'whatsapp_handoff';
 const TEMPLATE = 'whatsapp_handoff_resend_v1';
@@ -28,10 +29,14 @@ function eventKey(messageId: string) {
 }
 
 /** Fail closed before conversation state commits. No customer text is queued. */
-export async function enqueueHandoffEmail(messageId: string, phone: string): Promise<void> {
+export async function enqueueHandoffEmail(messageId: string, phone: string, turn?: PhoneTurn): Promise<void> {
   if (!messageId || !/^\d{8,15}$/.test(phone)) throw new Error('[whatsapp-handoff] invalid event');
-  const db = createAdminClient();
   const key = eventKey(messageId);
+  if (turn) {
+    if (turn.messageId !== messageId || turn.phone !== phone) throw new Error('[whatsapp-handoff] conversation mismatch');
+    await mutatePhoneTurn(turn, 'handoff', { key }); return;
+  }
+  const db = createAdminClient();
   const { data: audit, error: auditError } = await db.from('email_deliveries')
     .select('delivered').eq('idempotency_key', key).maybeSingle();
   if (auditError) throw new Error('[whatsapp-handoff] delivery lookup failed');
