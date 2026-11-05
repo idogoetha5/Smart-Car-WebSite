@@ -74,8 +74,14 @@ const SCHEMA = {
 function scrub(text: string): string {
   return text
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email removed]')
+    .replace(/(?<![\p{L}\d])\+\d[\d ()-]{7,}\d/gu, '[phone removed]')
     .replace(/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/g, '[phone removed]')
-    .replace(/(?:קוראים לי|שמי|השם שלי|my name is)\s+[\p{L}' -]{2,50}/giu, '[name removed]')
+    .replace(/(?:קוראים לי|שמי|השם שלי|השם הוא|my name is|(?:^|[;\n])\s*(?:שם|name)\s*:)\s+[\p{L}' -]{2,50}/giu, '[name removed]')
+    // Card-like sequences, unlike six-digit booking references, may never be
+    // sent to the wording provider. Date groups use one/two digits and survive.
+    .replace(/(?<!\d)(?:\d{12,19}|(?:\d{3,6}[ -]){2,4}\d{3,6})(?!\d)/g, '[payment detail removed]')
+    .replace(/(?:\bCVV\b|\bCVC\b|security code|קוד אבטחה)\s*[:=-]?\s*\d{3,4}(?!\d)/gi, '[payment detail removed]')
+    .replace(/(?:\bexpiry\b|\bexpiration\b|\bexp\b|תוקף(?: הכרטיס)?)\s*[:=-]?\s*\d{1,2}\s*[/.-]\s*\d{2,4}(?!\d)/gi, '[payment detail removed]')
     .replace(/(?:רחוב|רח׳|street|st\.)\s+[^,.\n]{3,60}/gi, '[address removed]')
     .replace(/(?:^|[,;]\s*)(?:[\p{L}]{3,30}\s+){1,2}\d{1,4}(?=\s*(?:[,.;]|$))/gu, '[address removed]')
     .slice(0, 450);

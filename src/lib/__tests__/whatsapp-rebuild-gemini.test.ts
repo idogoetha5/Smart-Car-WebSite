@@ -10,6 +10,21 @@ const context = { locale: 'he' as const, phase: 'explore' as const, recent: [], 
 beforeEach(() => { vi.clearAllMocks(); mocks.evaluation.mockReturnValue(undefined); });
 
 describe('replacement Gemini boundary', () => {
+  it.each([
+    'השם הוא רוני סודי. טלפון +44 7700 900123. כרטיס 4111 1111 1111 1111, קוד אבטחה 123, תוקף הכרטיס 12/29.',
+    'My name is Casey Secret. +1 (202) 555-0147; card 3782 822463 10005, CVV: 456, expiry 11/2029.',
+    'שם: רוני סודי; card 4111111111111111; CVC=987.',
+  ])('redacts recognisable private payment/contact details from message, history and string facts: %s', async details => {
+    mocks.generate.mockResolvedValue({ ok: true, text: JSON.stringify({ route: 'service', direction: 'none', reply: 'Please use the official payment channel.', fields: {} }) });
+    await readBotTurn(`${details} Pickup 10/12/2026, return 11/02/2027. 15000 km per year.`, {
+      ...context, known: { note: details }, recent: [{ from: 'customer', text: details }],
+    });
+    const payload = JSON.parse(mocks.generate.mock.calls[0][0].body.contents[0].parts[0].text);
+    expect(JSON.stringify(payload)).not.toMatch(/רוני סודי|Casey Secret|7700|900123|555-0147|4111|3782|822463|10005|CVV: 456|CVC=987|קוד אבטחה 123|12\/29|11\/2029/);
+    expect(payload.message).toContain('10/12/2026');
+    expect(payload.message).toContain('11/02/2027');
+    expect(payload.message).toContain('15000 km');
+  });
   it('passes a correction category and asks for a fresh whole-question answer without rejected draft content', async () => {
     mocks.generate.mockResolvedValue({ ok: true, text: JSON.stringify({ route: 'policy', direction: 'none', reply: 'A child seat can be requested subject to availability and fit; the exact price depends on the dates and extras.', fields: {} }) });
     await readBotTurn('Can I request a child seat, and what determines the price?', { ...context, locale: 'en', approvedFacts: getSmartCarApprovedFacts('en'), replyCorrection: 'assurance' });
