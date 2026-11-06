@@ -3,6 +3,16 @@ import { getRebuiltBotReply, type RebuildState, type RebuildStore } from '@/lib/
 
 describe('actual tow and replacement status after safety handoff', () => {
   it.each([
+    ['כבר יש לכם את מספר ההזמנה, או צריך לשלוח שוב? כבר הזמנתם גרר או שמרתם לי רכב חלופי?', 'he', /לא ניתן כאן אישור לתיאום גרר או לרכב חלופי/],
+    ['Do you already have my booking reference, or do I need to send it again? Have you already arranged a tow or a replacement car?', 'en', /has not confirmed a tow or replacement car/],
+  ] as const)('keeps arrangement status when also acknowledging the saved reference: %s', async (input, locale, status) => {
+    const state: RebuildState = { version: 2, phase: 'service', step: 'menu', locale, booking: {}, history: [], handedOff: true, handoffAt: new Date().toISOString(), handoffKind: 'safety', safetyKind: 'accident', serviceReference: '654321' };
+    const result = await getRebuiltBotReply('fictional-status-and-reference', input, { isSimulation: true, loadState: async () => state, saveState: async () => {}, activeBooking: async () => null, createRentalRequest: async () => { throw new Error('not a request'); }, readTurn: async () => { throw new Error('safety is local'); } });
+    expect(result.reply).toMatch(status);
+    expect(result.reply).toContain('654321');
+    expect(result.escalate).toBe(false);
+  });
+  it.each([
     ['הרכב השכור עמד בחניה ומישהו פגע בו. אף אחד לא נפגע, אבל יש נזק בפגוש ואני לא יודע מה לעשות עכשיו.', 'אין לי כרגע מספר הזמנה. לצלם גם את הרכב השני ואת המקום? אפשר להמשיך בינתיים בנסיעה או שצריך לחכות להנחיות?', /אל תמשיכו לנסוע/, /צלמו את הנזק/, /גם בלי מספר/],
     ['Someone damaged my rental car while parked. Nobody was hurt.', 'I do not have the booking reference yet. Should I photograph the other car too, and can I carry on driving for now?', /do not continue driving/, /Photograph the damage/, /without the booking reference/],
   ])('prioritises driving safety and still answers photos and a missing reference: %s', async (opening, question, driving, photos, reference) => {
@@ -26,7 +36,7 @@ describe('actual tow and replacement status after safety handoff', () => {
       opening: 'חזרתי לרכב השכור בחניה ויש שריטה בדלת. אין נפגעים ואני לא יודע מי עשה את זה. מה צריך לעשות?',
       photos: 'אין לי כרגע מספר הזמנה, אצלם עכשיו. אם הדלת נפתחת כרגיל אפשר להמשיך לנסוע הביתה?',
       charge: 'ואם מישהו אחר עשה את השריטה, זה אומר שאני לא אשלם כלום?',
-      status: 'מצאתי את מספר ההזמנה, הוא 654321. כבר הזמנתם גרר או רכב חלופי?',
+      status: 'מצאתי את מספר ההזמנה, הוא 654321. כבר הזמנתם גרר או שמרתם לי רכב חלופי?',
       recall: 'כבר יש לכם את מספר ההזמנה או צריך לשלוח שוב?',
       confirmation: 'לא ניתן כאן אישור לתיאום גרר או לרכב חלופי',
       conditional: 'דורשים אישור מפורש',

@@ -1847,14 +1847,14 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   }
 
   const asksReferenceRecall = /(?:מספר\s+ה?הזמנה|booking\s+(?:number|reference))/i.test(input)
-    && /שוב|כבר יש|כבר מסרתי|צריך לשלוח|תזכיר|הזכר|שמר|רשמ|איזה.{0,30}(?:מסרתי|נתתי|שלחתי)|again|already have|already (?:gave|provided|sent)|need to (?:send|provide)|remind|(?:which|what).{0,45}(?:gave|provided|sent|keep|kept|save|saved|record|remember)/i.test(input);
+    && /שוב|כבר יש|כבר מסרתי|צריך לשלוח|תזכיר|הזכר|(?:מה|איזה|אילו).{0,35}מספר.{0,25}(?:שמר|רשמ)|איזה.{0,30}(?:מסרתי|נתתי|שלחתי)|again|already have|already (?:gave|provided|sent)|need to (?:send|provide)|remind|(?:which|what).{0,45}(?:gave|provided|sent|keep|kept|save|saved|record|remember)/i.test(input);
   if (asksReferenceRecall && state.serviceReference) {
     const acknowledgement = he ? `מספר ההזמנה ${state.serviceReference} כבר שמור בפנייה; אין צורך לשלוח אותו שוב.` : `Your booking reference ${state.serviceReference} is already saved in the enquiry; you do not need to send it again.`;
     // The reference is an application-owned receipt, not a provider-authored
     // privacy restriction or evidence that a payment has been checked.
     reply = /תשלום|מקדמה|payment|deposit|received|arrived/i.test(input)
       ? `${he ? 'השיחה אינה מאמתת קבלת תשלום, ומספר הזמנה שמסרת אינו אישור שהכסף התקבל. לבירור קבלה יש להשתמש בערוץ התשלום הרשמי של SmartCar.' : 'This chat has not verified payment receipt. A reference you typed is not confirmation that money arrived; receipt checks use SmartCar’s official payment channel.'} ${acknowledgement}`
-      : /מחיר|אישור|אושר|זיכוי|price|approv|refund/i.test(input) ? `${reply} ${acknowledgement}` : acknowledgement;
+      : /מחיר|אישור|אושר|זיכוי|גרר|רכב חלופי|price|approv|refund|\btow\b|replacement (?:car|vehicle)/i.test(input) ? `${reply} ${acknowledgement}` : acknowledgement;
   }
   const asksCommercialRecall = state.interest && state.commercial
     && /שמר|רשמ|תזכיר|הזכר|remember|record|saved|remind|noted/i.test(input)
