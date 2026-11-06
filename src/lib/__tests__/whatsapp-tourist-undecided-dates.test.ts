@@ -15,20 +15,24 @@ describe('tourist keeps undecided pickup and return dates beyond the current tur
     expect(result.escalate).toBe(false);
     if (correction) { expect(result.reply).toBe(safe); expect(result.source).toBe('gemini'); }
   });
-  it.each([false, true])('does not reask dates while answering advice, correction=%s', async correction => {
+  it.each([false, true].flatMap(correction => [
+    'Since your dates are still open, would you like to plan around a specific week in December?',
+    "Would you like to check dates when you're ready?",
+    'When you are ready, would you like to choose dates for your trip?',
+  ].map(prompt => [correction, prompt] as const)))('does not reask dates while answering advice, correction=%s prompt=%s', async (correction, prompt) => {
     let state: RebuildState | null = null;
     const answer = 'A family car generally offers more passenger and luggage space for longer drives; a compact is easier to park. Fit depends on the actual model, and we can keep the dates open.';
-    const readTurn = vi.fn<NonNullable<RebuildStore['readTurn']>>(async (_input, context) => ({ route: 'explore', direction: 'none', fields: {}, source: 'gemini', model: 'test', groundedContext: true, reply: correction && context.replyCorrection ? answer : 'A family car generally gives more room. Since your dates are still open, would you like to plan around a specific week in December?' }));
+    const readTurn = vi.fn<NonNullable<RebuildStore['readTurn']>>(async (_input, context) => ({ route: 'explore', direction: 'none', fields: {}, source: 'gemini', model: 'test', groundedContext: true, reply: correction && context.replyCorrection ? answer : `A family car generally gives more room. ${prompt}` }));
     const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_phone, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: async () => { throw new Error('no request'); }, readTurn };
     const send = (input: string) => getRebuiltBotReply('fictional-tourist', input, store);
     const first = await send(opening);
     expect(first.state.booking.datePreference).toBe('dates undecided');
-    expect(first.reply).not.toMatch(/what dates|which dates|what date/i);
+    expect(first.reply).not.toMatch(/what dates|which dates|what date|check dates|choose dates|specific week/i);
     expect(first.reply).toMatch(/family|compact/i);
     expect(readTurn.mock.calls[0]?.[1].known.datePreference).toBe('dates undecided');
     if (correction) { expect(first.source).toBe('gemini'); expect(first.reply).toBe(answer); }
     const next = await send('What documents should a visitor bring with a valid foreign licence?');
-    expect(next.reply).not.toMatch(/what dates|which dates|what date/i);
+    expect(next.reply).not.toMatch(/what dates|which dates|what date|check dates|choose dates|specific week/i);
     expect(next.state.booking.datePreference).toBe('dates undecided');
     const chosen = await send('Let us start a rental request for a family car. Pickup from Ben Gurion Airport on 8 December 2026 and return in Jerusalem on 15 December 2026. I am 38.');
     expect(chosen.state.booking).toMatchObject({ pickupDate: '2026-12-08', returnDate: '2026-12-15' });

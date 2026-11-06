@@ -5,6 +5,9 @@ const base: ConversationalReplyInput = { reply: '', input: '', locale: 'en', kno
 const check = (reply: string, rest: Partial<ConversationalReplyInput> = {}) => validateConversationalReply({ ...base, ...rest, reply });
 
 describe('output checks for natural conversational drafts', () => {
+  it.each(['תרצו לבחור תאריכים כשתהיו מוכנים?', 'רוצה שנבדוק תאריכים?'])('rejects a soft date invitation after dates were deferred: %s', reply => {
+    expect(check(reply, { locale: 'he', known: { datePreference: 'dates undecided' } })).toBeNull();
+  });
   it.each(['נציג של SmartCar ישמח לחזור אליך בהקדם.', 'A SmartCar representative will follow up.', 'A representative from SmartCar will call you.'])('rejects a branded callback claim from a wording-only draft: %s', reply => {
     expect(check(reply, { locale: /[א-ת]/.test(reply) ? 'he' : 'en' })).toBeNull();
   });
