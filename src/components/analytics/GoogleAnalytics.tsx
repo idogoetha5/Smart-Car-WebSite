@@ -132,6 +132,18 @@ export default function GoogleAnalytics() {
             ad_personalization: 'denied',
             wait_for_update: 500
           });
+          try {
+            if (window.localStorage.getItem('${CONSENT_KEY}') === 'accepted') {
+              window.gtag('consent', 'update', {
+                analytics_storage: 'granted',
+                ad_storage: 'denied',
+                ad_user_data: 'denied',
+                ad_personalization: 'denied'
+              });
+            }
+          } catch (_) {
+            // Storage may be unavailable; keep the denied default.
+          }
           window.gtag('js', new Date());
           window.gtag('config', '${GA_ID}', {
             send_page_view: true,

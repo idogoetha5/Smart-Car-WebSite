@@ -3,6 +3,25 @@ import { getRebuiltBotReply, type RebuildState, type RebuildStore } from '@/lib/
 
 describe('actual tow and replacement status after safety handoff', () => {
   it.each([
+    ['הרכב השכור עמד בחניה ומישהו פגע בו. אף אחד לא נפגע, אבל יש נזק בפגוש ואני לא יודע מה לעשות עכשיו.', 'אין לי כרגע מספר הזמנה. לצלם גם את הרכב השני ואת המקום? אפשר להמשיך בינתיים בנסיעה או שצריך לחכות להנחיות?', /אל תמשיכו לנסוע/, /צלמו את הנזק/, /גם בלי מספר/],
+    ['Someone damaged my rental car while parked. Nobody was hurt.', 'I do not have the booking reference yet. Should I photograph the other car too, and can I carry on driving for now?', /do not continue driving/, /Photograph the damage/, /without the booking reference/],
+  ])('prioritises driving safety and still answers photos and a missing reference: %s', async (opening, question, driving, photos, reference) => {
+    let state: RebuildState | null = null;
+    const readTurn = vi.fn(async () => null);
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_phone, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: async () => { throw new Error('not a rental request'); }, readTurn };
+    const first = await getRebuiltBotReply('fictional-compound-damage', opening, store);
+    expect(first.escalate).toBe(true);
+    const result = await getRebuiltBotReply('fictional-compound-damage', question, store);
+    expect(result.reply).toMatch(driving);
+    expect(result.reply).toMatch(photos);
+    expect(result.reply).toMatch(reference);
+    expect(result.reply).toContain('09-9509757');
+    expect(result.reply).toMatch(/בתוך שעה|within one hour/);
+    expect(result.escalate).toBe(false);
+    expect(result.state.safetyAlertAt).toBe(first.state.safetyAlertAt);
+    expect(readTurn).not.toHaveBeenCalled();
+  });
+  it.each([
     {
       opening: 'חזרתי לרכב השכור בחניה ויש שריטה בדלת. אין נפגעים ואני לא יודע מי עשה את זה. מה צריך לעשות?',
       photos: 'אין לי כרגע מספר הזמנה, אצלם עכשיו. אם הדלת נפתחת כרגיל אפשר להמשיך לנסוע הביתה?',
