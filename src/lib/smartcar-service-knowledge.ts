@@ -120,6 +120,9 @@ export function getSmartCarApprovedFacts(locale: ServiceLocale): SmartCarApprove
     { id: 'sale_history_inspection', text: locale === 'he'
       ? 'ברכישת רכב אפשר לבקש את היסטוריית הטיפולים והתאונות ולברר בדיקה עצמאית. יש לברר אילו מסמכים זמינים ותנאי תיאום הבדיקה לרכב המסוים; אין הבטחה להיסטוריה מלאה או לכך שבדיקה או נסיעת מבחן תמיד אפשריות. אין כאן דוח מצב מאומת או תור מאושר.'
       : 'A buyer can request service and accident history and discuss an independent inspection. Available documents and inspection arrangements need checking for the specific car. Full history, an inspection or test drive are not guaranteed or always available. These facts are not a verified condition report or confirmed appointment.' },
+    { id: 'foreign_licence_boundary', text: locale === 'he'
+      ? 'אין כאן אישור שרישיון ממדינה מסוימת מתקבל או מספיק לבדו. יש להביא רישיון מקורי בתוקף; ייתכן שיידרש גם היתר נהיגה בינלאומי או תרגום רשמי. יש לוודא את הדרישות לפני ההגעה. מסמך שעשוי להידרש אינו רק המלצה מועילה. אין לשלוח צילום רישיון בשיחה.'
+      : 'These facts do not confirm that a licence from a particular country is accepted or sufficient by itself. Bring the original valid licence; an International Driving Permit or official translation may also be required. Confirm the applicable requirements before arrival. A potentially required document is not merely helpful or optional. Do not send licence photos in chat.' },
   ].map(fact => ({ id: fact.id, text: fact.text.slice(0, 1000) }));
 }
 
@@ -130,7 +133,7 @@ const TOPIC_PATTERNS: Array<[ServiceKnowledgeTopic, RegExp]> = [
   ['deposit', /פיקדון|כרטיס אשראי|דביט|deposit|security hold|credit card|debit/i],
   ['fuel', /דלק|תדלוק|מלא.?מלא|fuel|refuel|full.?full/i],
   ['mileage', /קילומ|קמ|mileage|kilomet/i],
-  ['driver_documents', /נהג נוסף|מסמכים|תעודת זהות|דרכון|רישיון זר|רישיון בינלאומי|foreign licen[cs]e|international driving permit|additional driver|extra driver|another driver|second driver|documents?|passport/i],
+  ['driver_documents', /נהג נוסף|מסמכים|תעודת זהות|דרכון|רישיון זר|רישיון בינלאומי|foreign licen[cs]e|international (?:driving )?permit|\bIDP\b|official translation|additional driver|extra driver|another driver|second driver|documents?|passport/i],
   ['age_licence', /גיל|בן\s*\d{2}|בת\s*\d{2}|ותק רישיון|נהג חדש|רישיון|minimum age|licen[cs]e experience|young driver/i],
   ['different_location', /מקום אחר|החזרה אחרת|איסוף אחר|שדה תעופה|נתב.?ג|one way|different location|airport|drop.?off/i],
   ['insurance', /ביטוח|כיסוי|השתתפות עצמית|insurance|cover(?:age)?|waiver|excess/i],

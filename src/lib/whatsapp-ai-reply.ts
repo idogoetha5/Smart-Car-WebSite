@@ -85,6 +85,13 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
     if (hasAffirmativeMatch(reply, /(?:נספק|מספקים|לספק|תקבלו?)[^.!?\n]{0,45}היסטורי[^.!?\n]{0,30}מלאה|\b(?:provide|supply|receive)\b[^.!?\n]{0,25}\b(?:full|complete)\b[^.!?\n]{0,20}\bhistory\b/gi)) return reject('history_assurance');
   }
   if (hasAffirmativeMatch(reply, /\byou (?:are (?:covered|insured|eligible|qualified)|qualify|can (?:certainly|definitely) rent|can rent for certain)\b|(?:אתה|את|אתם|אתן) (?:מכוסה|מכוסית|מכוסים|זכאי|זכאים)|בוודאות (?:תוכל|תוכלו) לשכור/gi)) return reject('eligibility');
+  if (/licen[cs]e|international permit|\bIDP\b|רישיון|רשיון|בינלאומי/i.test(input)) {
+    const licenceAssurance = [...reply.matchAll(/licen[cs]e[^.!?\n]{0,90}(?:accepted|sufficient|enough)|רישיון[^.!?\n]{0,60}(?:מספיק|מתקבל)/gi)];
+    if (licenceAssurance.some(match => !/\bnot\b|cannot|can['’]?t|may not|whether|must be|needs to be|לא|האם|עשוי/i.test(match[0])
+      && !/cannot confirm|can['’]?t confirm|do not confirm|whether|אין אישור|אי אפשר לאשר|לא ניתן לאשר/i.test(reply.slice(Math.max(0, match.index! - 60), match.index!)))) return reject('foreign_licence_assurance');
+    const weakenedRequirements = [...reply.matchAll(/(?:\bIDP\b|international (?:driving )?permit|(?:official )?translation)[^.!?\n]{0,60}(?:helpful|useful|optional)|(?:היתר בינלאומי|רישיון בינלאומי|תרגום)[^.!?\n]{0,45}(?:יכול לעזור|כדאי|לא חובה)/gi)];
+    if (weakenedRequirements.some(match => !/not\s+(?:(?:merely|just)\s+)?(?:helpful|useful|optional)|isn['’]?t optional|אינו רק|לא רק/i.test(match[0]))) return reject('foreign_document_requirement');
+  }
   if (hasAffirmativeMatch(reply, /\b(?:everything|all (?:the |your )?(?:bags|luggage|equipment)) will fit\b|(?:הכול|כל הציוד|כל המזוודות) ייכנס/gi)) return reject('fit_assurance');
   if (hasAffirmativeMatch(reply, /\b(?:your|the|these|those)\s+(?:(?:one|two|three|four|five|\d+)\s+)?(?:bags|suitcases|luggage|stroller|child seat|equipment)\s+(?:will|can definitely|will definitely) fit\b|המזוודות (?:שלך |שלכם )?(?:ייכנסו|יתאימו)|העגלה (?:תיכנס|תתאים)/gi)) return reject('fit_assurance');
   if (hasAffirmativeMatch(reply, /\b(?:car|vehicle|seat) will fit (?:your|the|all)\b|(?:הרכב|הכיסא) יתאים בוודאות/gi)) return reject('fit_assurance');
@@ -106,7 +113,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (hasAffirmativeMatch(reply, /\b(?:confirmed booking|booking is confirmed|car is confirmed|refund (?:has been|is) processed|refund is approved)\b|ההזמנה מאושרת|הרכב אושר|הזיכוי בוצע|ההחזר אושר/gi)) return reject('action_claim');
   if (hasAffirmativeMatch(reply, /\b(?:I|we)\s+(?:(?:have|already|will)\s+){0,2}(?:sent|send|submitted|submit|forwarded|forward|passed|pass|booked|reserved|refunded|cancelled|canceled|call|contact)\b|(?:שלחתי|שלחנו|העברתי|העברנו|הוזמן|שריינתי|ביטלתי|זיכיתי|אזמין|אעביר|נשלח את הפנייה)/gi)) return reject('action_claim');
   if (hasAffirmativeMatch(reply, /\b(?:request|enquiry|booking|refund|reservation) (?:has been|is|was) (?:sent|submitted|forwarded|passed|booked|processed|cancelled|canceled|confirmed|reserved)\b/gi)) return reject('action_claim');
-  if (hasAffirmativeMatch(reply, /\b(?:(?:a |the )?representative|our team) will (?:call|contact|follow up)\b|נציג (?:יחזור|יתקשר|יצור קשר)/gi)) return reject('action_claim');
+  if (hasAffirmativeMatch(reply, /\b(?:(?:(?:a|the|our)\s+)?(?:SmartCar\s+)?representative(?:\s+(?:from|at)\s+SmartCar)?|our team) will (?:call|contact|follow up)\b|נציג(?:\s+(?:של\s+)?SmartCar|\s+שלנו)?\s+(?:יחזור|יתקשר|יצור קשר|ישמח לחזור)/gi)) return reject('action_claim');
 
   if (handoffDeferred && /(?:would you like|shall I|can I|should I|תרצ(?:ה|ו)|שאעביר).{0,100}(?:representative|team|pass|send|callback|נציג|צוות|פנייה)[^?؟]*[?؟]/i.test(reply)) return reject('handoff_deferred');
   if (handoffDeferred && /(?:would|should|can) (?:a|our|the) representative.{0,70}(?:call|contact|help)[^?؟]*[?؟]/i.test(reply)) return reject('handoff_deferred');
@@ -120,9 +127,9 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (/(?:what time|at what hour).{0,65}(?:pick.?up|return|collect|drop.?off)|(?:pick.?up|return|collection) time|באיז(?:ו|ה) שעה.{0,45}(?:איסוף|לאסוף|החזרה|להחזיר)|שעת (?:ה?איסוף|ה?החזרה)/i.test(question)) return reject('unneeded_time');
   if (knownValue('pickupDate') && /what (?:is |would be )?(?:the |your )?pick.?up date|when.{0,30}pick.?up|באיזה תאריך.{0,25}לאסוף|תאריך האיסוף/i.test(question)) return reject('known_pickup_date');
   if (knownValue('returnDate') && /what (?:is |would be )?(?:the |your )?return date|when.{0,30}return|באיזה תאריך.{0,25}תחזיר|תאריך ההחזרה/i.test(question)) return reject('known_return_date');
-  const asksDates = /what dates|which dates|what (?:are )?(?:the |your )?(?:pick.?up|return) dates|באילו תאריכים|לאילו תאריכים|מתי.{0,30}(?:לאסוף|להחזיר)/i.test(question);
+  const asksDates = /what dates|which dates|(?:what|which|specific) week|plan[^.!?\n]{0,35}(?:a |specific )?week|what (?:are )?(?:the |your )?(?:pick.?up|return) dates|באילו תאריכים|לאילו תאריכים|באיזה שבוע|מתי.{0,30}(?:לאסוף|להחזיר)/i.test(question);
   if (asksDates && (knownValue('pickupDate') && knownValue('returnDate') || hasUndecidedRentalDates(input) || /undecided/i.test(String(known.datePreference ?? '')) || hasUndecidedRentalDates(String(known.datePreference ?? '')))) return reject('known_or_undecided_dates');
-  if (knownValue('pickupLocation') && /where.{0,35}pick.?up|מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף/i.test(question)) return reject('known_pickup_location');
+  if (knownValue('pickupLocation') && /where.{0,35}pick(?:\s+(?:it|the car))?[\s-]*up|מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף/i.test(question)) return reject('known_pickup_location');
   if (knownValue('returnLocation') && /where.{0,35}(?:return|drop.?off)|איפה.{0,30}להחזיר/i.test(question)) return reject('known_return_location');
   if (knownValue('passengers') && /how many (?:people|passengers|travellers)|כמה (?:אנשים|נוסעים)/i.test(question)) return reject('known_passengers');
   if (knownValue('luggage') && /how many (?:bags|suitcases)|כמה מזוודות/i.test(question)) return reject('known_luggage');

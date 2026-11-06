@@ -150,6 +150,12 @@ function validDate(value: string): boolean {
 }
 
 function explicitDateRange(input: string): { pickupDate: string; returnDate: string } | null {
+  const relativeRange = input.match(new RegExp(`(?:^|\\s)(?:מ|from\\s+)?(מחרתיים|מחר|היום|day after tomorrow|tomorrow|today)\\s*(?:עד|until|through|to|[-–])\\s*(20\\d{2}-\\d{2}-\\d{2}|\\d{1,2}[./]\\d{1,2}(?:[./]20\\d{2})?|\\d{1,2}\\s+(?:ב)?(?:${Object.keys(MONTHS).join('|')})(?:\\s+20\\d{2})?)(?=[\\s,.!?]|$)`, 'iu'));
+  if (relativeRange) {
+    const pickupDate = singleDateAnswer(relativeRange[1]);
+    const returnDate = pickupDate ? singleDateAnswer(relativeRange[2], pickupDate) : null;
+    if (pickupDate && returnDate) return { pickupDate, returnDate };
+  }
   const hebrewRouteDates = input.match(new RegExp(`(?:איסוף|לאסוף).{0,70}?ב[-־]?\\s*(\\d{1,2})\\s+ב?(${Object.keys(MONTHS).join('|')})(?:\\s+(20\\d{2}))?.{0,80}?(?:החזרה|להחזיר|נחזיר|אחזיר).{0,70}?ב[-־]?\\s*(\\d{1,2})\\s+ב?(${Object.keys(MONTHS).join('|')})(?:\\s+(20\\d{2}))?`, 'iu'));
   if (hebrewRouteDates) {
     const year = hebrewRouteDates[3] ?? hebrewRouteDates[6] ?? israelDate().slice(0, 4);
@@ -318,15 +324,16 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
 }
 
 function explicitBooking(input: string): boolean {
+  if (/להשכיר.{0,25}(?:לכם|לחברה)|(?:הרכב שלי|רכב שבבעלותי).{0,30}להשכיר/i.test(input)) return false;
   if (/לא נתחיל\s+(?:בקשה|הזמנה)|\b(?:do not|don't) start\s+(?:a\s+)?(?:request|booking)/i.test(input)) return false;
   if (/(?:לא רוצה|לא רוצים|לא מעוניין|אל).{0,15}(?:להתחיל|להתחילו?|לפתוח).{0,12}(?:בקשה|הזמנה)/i.test(input)) return false;
-  if (/לא רוצה להזמין|לא רוצה לשכור|רק מתעניין|רק שואל|לא עכשיו|not ready|just asking|don't book|do not book/i.test(input)) return false;
+  if (/לא רוצה להזמין|לא רוצה (?:לשכור|להשכיר)|רק מתעניין|רק שואל|לא עכשיו|not ready|just asking|don't book|do not book/i.test(input)) return false;
   if (/[?؟]/.test(input) && /כדאי|האם|should|would it|how/i.test(input)) return false;
   if (/(?:כן[,\s]*)?נתחיל\s+(?:בקשה|הזמנה)|\b(?:let'?s|let us)\s+start\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b|\bI\s+(?:want|would like)\s+to\s+(?:start|open)\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b/i.test(input)) return true;
   if (/^(?:כן[,\s]*)?כבר ביקשתי להתחיל[.!\s]*$/i.test(input)) return true;
   if (/(?:אני רוצה|אנחנו רוצים|רוצה|רוצים|כבר ביקשתי)\s+(?:להתחיל|לפתוח)(?:\s+(?:את ה|את|ה))?\s*(?:בקשה|הזמנה)/i.test(input)) return true;
   if (/^I need (?:a )?(?:(?:compact|small|family|SUV|seven[- ]?seat) )?rental car\b/i.test(input)) return true;
-  return /אני רוצה (?:להזמין|לשכור|לשלוח בקשה|לסיים את הבקשה|להתקדם עם בקש(?:ה להשכרה|ת השכרה))|(?:^|[.!?]\s*)רוצה (?:לשכור|לשלוח בקשה|לסיים את הבקשה)|(?:אני\s+)?צריך(?:ה)? (?:רכב להשכרה|לשכור רכב|רכב (?:קטן|קומפקטי|משפחתי|פנאי|שבעה מקומות)(?:\s|$))|בוא(?:ו)? נתקדם|בוא(?:ו)? (?:נלך על זה|נסגור)|יאללה נסגור|תשריין לי|שריין לי|אפשר להתחיל (?:הזמנה|בקשה)|אשמח להתחיל (?:בקשה|הזמנה)|תכין(?:ו)? (?:לי )?(?:בקש(?:ה|ת השכרה)|הצעה)|אני (?:אזמין|אשכור)|I(?:'d| would) like to (?:book|rent|make a request)|let'?s (?:book|proceed|close)|I want to (?:book|rent|make a request)|I need (?:a )?(?:rental car|to rent(?: a car)?)|go ahead with (?:the )?(?:rental|request)/i.test(input);
+  return /אני רוצה (?:להזמין|לשכור|להשכיר|לשלוח בקשה|לסיים את הבקשה|להתקדם עם בקש(?:ה להשכרה|ת השכרה))|(?:^|[.!?]\s*)רוצה (?:לשכור|להשכיר|לשלוח בקשה|לסיים את הבקשה)|(?:אני\s+)?צריך(?:ה)? (?:רכב להשכרה|לשכור רכב|רכב (?:קטן|קומפקטי|משפחתי|פנאי|שבעה מקומות)(?:\s|$))|בוא(?:ו)? נתקדם|בוא(?:ו)? (?:נלך על זה|נסגור)|יאללה נסגור|תשריין לי|שריין לי|אפשר להתחיל (?:הזמנה|בקשה)|אשמח להתחיל (?:בקשה|הזמנה)|תכין(?:ו)? (?:לי )?(?:בקש(?:ה|ת השכרה)|הצעה)|אני (?:אזמין|אשכור)|I(?:'d| would) like to (?:book|rent|make a request)|let'?s (?:book|proceed|close)|I want to (?:book|rent|make a request)|I need (?:a )?(?:rental car|to rent(?: a car)?)|go ahead with (?:the )?(?:rental|request)/i.test(input);
 }
 
 function greeting(input: string, locale: Locale): string | null {
@@ -359,6 +366,23 @@ function declinesHumanHandoff(input: string): boolean {
   return /אל תתקשרו|אל תתקשר|אל תחזרו אלי|לא לחזור אלי|(?:לא רוצה|לא רוצים|לא צריך|לא צריכים|עדיין לא).{0,45}(?:שיחזרו|תחזרו|שיתקשרו|תתקשרו)|אל תעביר|לא להעביר|אל תשלח|לא לשלוח|(?:do not|don['’]?t)\s+(?:pass|send|contact|call)\b|(?:לא רוצה|לא רוצים|לא מוכן|לא מוכנה|לא מוכנים|לא עכשיו|עדיין לא|בלי).{0,45}(?:נציג|בן אדם|לדבר)|(?:not ready|do not want|don['’]?t want|not yet|no need).{0,60}(?:representative|human|person|call)|\bno\s+(?:representative|human|person|callback|call)\b|(?:representative|human|person).{0,25}(?:not yet|later)|נציג.{0,15}לא עכשיו/i.test(input);
 }
 
+function offersHumanHandoff(reply: string): boolean {
+  return /תרצ(?:ה|ו).{0,35}(?:שאעביר|שנציג)|would you like.{0,40}(?:representative|pass)/i.test(reply)
+    || /(?:תרצ(?:ה|ו)|האם|אפשר)[^?؟.!]{0,35}(?:שנחבר|שנקשר|שנעביר|לחבר|לקשר|להעביר)[^?؟.!]{0,70}(?:נציג|צוות|בן אדם)[^?؟]*[?؟]/i.test(reply);
+}
+
+function carryCommercialRentalNeeds(state: RebuildState): void {
+  const category = state.commercial?.vehiclePreference;
+  if (category && !state.booking.vehicleNeed) {
+    const names = state.locale === 'he'
+      ? { compact: 'רכב קומפקטי', family: 'רכב משפחתי', suv: 'רכב פנאי', seven_seat: 'רכב שבעה מקומות' }
+      : { compact: 'compact car', family: 'family car', suv: 'SUV', seven_seat: 'seven-seat car' };
+    state.booking.vehicleNeed = names[category];
+  }
+  state.booking.passengers ??= state.commercial?.passengers;
+  state.booking.luggage ??= state.commercial?.luggage;
+}
+
 function offersRentalRequest(reply: string): boolean {
   return /(?:נמשיך|נתקדם|להתקדם|נתחיל|להתחיל|שנתחיל|נאסוף|לאסוף).{0,85}(?:הזמנה|בקשה|פרטים|זמינות)|(?:הזמנה|בקשה).{0,55}(?:נתקדם|נתחיל|נמשיך)|(?:continue|proceed|start|prepare|check).{0,70}(?:booking|rental|request|availability)/i.test(reply);
 }
@@ -369,21 +393,31 @@ function asksRentalDates(reply: string): boolean {
 }
 
 function directVehicleRequest(input: string, locale: Locale): boolean {
-  return !/[?؟]/.test(input) && /^(?:אני רוצה|אנחנו רוצים|אני צריך|אני צריכה|צריך|צריכה|רוצה|I want|I need|we want)\s+(?:לשכור\s+)?(?:רכב|ג[׳'י]?יפ(?:ון)?|SUV|a\s+(?:car|SUV))/i.test(input)
+  return !/[?؟]/.test(input) && /^(?:אני רוצה|אנחנו רוצים|אני צריך|אני צריכה|צריך|צריכה|רוצה|I want|I need|we want)\s+(?:(?:לשכור|להשכיר)\s+)?(?:רכב|ג[׳'י]?יפ(?:ון)?|SUV|a\s+(?:car|SUV))/i.test(input)
     && Boolean(explicitVehicleNeed(input, locale));
 }
 
 function applyPromptedLocation(input: string, state: RebuildState, lastBot: string): void {
-  const location = input.trim();
-  if (/^(?:אותו מקום|שם גם|same place|same location)$/i.test(location)) {
+  const location = input.trim().replace(/^(?:ב?סניף\s+|(?:the\s+)?branch\s+(?:in\s+)?)/i, '');
+  if (/^(?:ב?אותו (?:מקום|סניף)|שם גם|(?:at )?(?:the )?same (?:place|location|branch))$/i.test(location)) {
     if (state.booking.pickupLocation) state.booking.returnLocation = state.booking.pickupLocation;
     return;
   }
   if (!/^[\p{L}'׳״ -]{2,45}$/u.test(location) || location.split(/\s+/).length > 3 || /^(?:כן|לא|לא יודע|תודה|yes|no|not sure)$/i.test(location)
     || /רכב|מעדיף|בעצם|רוצה|צריך|מחפש|מחיר|תאריך|זמינ|שאלה|ליסינג|לקנות|rent|prefer|price|booking/i.test(location)) return;
+  if (/לא בטוח|לא יודעת|לא יודע|not sure|don['’]?t know|do not know/i.test(location)) return;
+  if (affirms(location) || /^(?:thanks?(?: a lot)?|thank you(?: very much)?|תודה(?: רבה)?)[.!\s]*$/i.test(location)) return;
+  const serviceTopic = getSmartCarServiceAnswer(input, state.locale)?.topic;
+  if (serviceTopic && serviceTopic !== 'branches' && serviceTopic !== 'different_location') return;
   // A sentence containing both locations has already been parsed by
   // applyExplicitLocations; it must never become the pickup-city value.
   if (/איסוף|לאסוף|להחזיר|החזרה|pick.?up|drop.?off|return/i.test(location)) return;
+  // Bare city answers belong to the pending field, independently of how the
+  // question was worded (for example “pick it up” versus “pickup”).
+  if (state.phase === 'booking' && state.step === 'rental_locations') {
+    if (!state.booking.pickupLocation) { state.booking.pickupLocation = location; return; }
+    if (!state.booking.returnLocation) { state.booking.returnLocation = location; return; }
+  }
   if (/מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף|עיר האיסוף|pickup (?:city|location)|where.{0,30}pick.?up/i.test(lastBot)) state.booking.pickupLocation = location;
   else if (/איפה.{0,30}להחזיר|עיר ההחזרה|מקום ההחזרה|return (?:city|location)|where.{0,30}return/i.test(lastBot)) state.booking.returnLocation = location;
   else if (/^(?:הרצליה|תל אביב|ירושלים|נתב["״']?ג|חיפה|רמת גן|פתח תקווה|נתניה|ראשון לציון|רעננה)$/i.test(location)) {
@@ -974,15 +1008,17 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
 
 function privateDetail(input: string, state: RebuildState, explicitStart = false): boolean {
   if (state.phase !== 'booking' && !explicitStart) return false;
-  if (explicitStart || state.step === 'rental_email' || state.step === 'rental_confirm') {
+  let captured = false;
+  if (explicitStart || state.step === 'rental_name' || state.step === 'rental_email' || state.step === 'rental_confirm' || /המייל שלי|המייל הוא|my email|email\s*:/i.test(input)) {
     const email = input.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0];
-    if (email && EMAIL.test(email) && email.length <= 160) { state.booking.customerEmail = email; return true; }
+    if (email && EMAIL.test(email) && email.length <= 160) { state.booking.customerEmail = email; captured = true; }
   }
-  if (explicitStart || state.step === 'rental_name' || state.step === 'rental_confirm') {
-    const explicitName = explicitStart
-      ? input.match(/(?:קוראים לי|שמי|השם שלי|השם הוא|my name is)\s+([\p{L}' -]{3,60})/iu)?.[1]
-      : input.match(/(?:קוראים לי|שמי|השם שלי|השם הוא|my name is|I am)\s+([\p{L}' -]{3,60})/iu)?.[1];
-    const explicit = explicitName?.split(/\s+(?:ואין|אין לי|and I|but I)\s+/i)[0].trim();
+  const labelledName = input.match(/(?:קוראים לי|שמי|השם שלי|השם הוא|my name is)\s+([\p{L}' -]{3,60})/iu)?.[1];
+  if (explicitStart || state.step === 'rental_name' || state.step === 'rental_confirm' || labelledName) {
+    const unlabelledName = !explicitStart && (state.step === 'rental_name' || state.step === 'rental_confirm')
+      ? input.match(/I am\s+([\p{L}' -]{3,60})/iu)?.[1] : undefined;
+    const explicitName = labelledName ?? (unlabelledName && !/^(?:not|unsure|still|looking|just|here|visiting|only|sorry|trying|waiting|renting|booking|confused)\b/i.test(unlabelledName) ? unlabelledName : undefined);
+    const explicit = explicitName?.split(/\s+(?:ואני|ואין|אין לי|and I|and my|but I)\s+/i)[0].trim();
     // A customer answering the name prompt may append a separate correction
     // or decline optional email. Only the leading name clause is private data.
     const leading = input.split(/[.!;\n]/u, 1)[0].trim();
@@ -991,9 +1027,9 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
       && !/^(?:I|we|please|actually|no|yes|thanks?|before|after|not|do|don['’]?t|what|how|when|where|why|can|could|should|would|is|are|אני|אנחנו|לא|כן|תודה|בעצם|לפני|אחרי|אפשר|מה|איך|למה|מתי|כמה)(?:\s|$)/iu.test(leading)
       ? leading : '';
     const candidate = explicit ?? promptedName;
-    if (candidate && candidate.split(/\s+/).length <= 4) { state.booking.customerName = candidate; return true; }
+    if (candidate && candidate.split(/\s+/).length <= 4) { state.booking.customerName = candidate; captured = true; }
   }
-  return false;
+  return captured;
 }
 
 function summary(state: RebuildState): string {
@@ -1347,8 +1383,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       if (priorVehicleRequest) state.booking.vehicleNeed ??= explicitVehicleNeed(priorVehicleRequest.text, state.locale)!;
     }
     const confirmedOffer = affirms(input) && offersRentalRequest(lastBot);
+    const switchesToRental = Boolean(state.interest && explicitBooking(input) && /לשכור|להשכיר|השכרה|rental|rent/i.test(input));
     privateTurn = state.phase === 'booking' && (state.step === 'rental_name' || state.step === 'rental_email');
-    const gotPrivate = privateDetail(input, state, !state.interest && explicitBooking(input));
+    const gotPrivate = privateDetail(input, state, (!state.interest || switchesToRental) && explicitBooking(input));
     privateTurn ||= gotPrivate;
     let reading: BotReading | null = null;
     let modelContext: GeminiBotContext | undefined;
@@ -1357,6 +1394,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       // state, rather than the stale pre-message state. This preview performs
       // no persistence, consent, handoff or request-creation action.
       const modelState = structuredClone(state);
+      if (switchesToRental) {
+        carryCommercialRentalNeeds(modelState);
+        modelState.interest = undefined;
+        delete modelState.commercial;
+        modelState.phase = 'booking';
+      }
       const modelRange = explicitDateRange(input);
       if (modelRange) Object.assign(modelState.booking, modelRange);
       applyExplicitLocations(input, modelState.booking);
@@ -1372,7 +1415,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         known: conversationalKnown(modelState),
         approvedFacts: getSmartCarApprovedFacts(state.locale),
         conversation: {
-          interest: state.interest, handoffDeferred: Boolean(state.humanHandoffDeferred) || declinesHumanHandoff(input),
+          interest: modelState.interest, handoffDeferred: Boolean(modelState.humanHandoffDeferred) || declinesHumanHandoff(input),
           hasServiceReference: Boolean(state.serviceReference),
           nextMissingField: modelState.phase === 'booking' ? nextMissing(modelState.booking) ?? undefined : undefined,
           step: modelState.step, completedRequest: Boolean(state.completedRequestId),
@@ -1410,15 +1453,15 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const asksHuman = !declinesHuman && /(?:רוצה|אפשר|צריך|צריכה).{0,22}(?:לדבר|נציג|בן אדם)|(?:לדבר|נציג|בן אדם).{0,22}(?:בבקשה|אפשר|רוצה)|\b(?:speak|talk|connect)\b.{0,28}\b(?:human|representative|person)\b|\b(?:human|representative|real person)\b.{0,20}\b(?:please|help)\b/i.test(input);
     // A model's human-route classification is not consent. Require an actual
     // callback request or acceptance of a preceding representative invitation.
-    const modelHumanConsent = reading?.route === 'human' && !declinesHuman
-      && (/call (?:me|us) back|תחזרו אלי|שיחזרו אלי/i.test(input)
-        || affirms(input) && /תרצ(?:ה|ו).{0,35}(?:שאעביר|שנציג)|would you like.{0,40}(?:representative|pass)/i.test(lastBot));
-    const clearlyRental = /לשכור|השכרה|rental|rent/i.test(input);
+    const modelHumanConsent = !declinesHuman
+      && (reading?.route === 'human' && /call (?:me|us) back|תחזרו אלי|שיחזרו אלי/i.test(input)
+        || affirms(input) && offersHumanHandoff(lastBot));
+    const clearlyRental = /לשכור|להשכיר|השכרה|rental|rent/i.test(input);
     const leaveVehicleOpen = /(?:leave|keep).{0,30}(?:vehicle|car).{0,30}(?:open|undecided)|(?:not|don'?t).{0,30}(?:choose|decide).{0,30}(?:vehicle|car)/i.test(input);
     const wantsToContinueRental = !state.interest && (/^(?:אני רוצה להתקדם|רוצה להתקדם|בוא(?:ו)? נתקדם|I want to proceed|let'?s continue)[.!\s]*$/i.test(input)
       || /\b(?:let'?s|let us) continue\b/i.test(input))
       && Boolean(state.booking.pickupDate || state.booking.vehicleNeed || state.booking.passengers || offersRentalRequest(lastBot));
-    const wantsBooking = !declines && !asksHuman && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || acceptsRentalOffer || wantsToContinueRental || state.phase === 'booking');
+    const wantsBooking = !declines && !asksHuman && !modelHumanConsent && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || acceptsRentalOffer || wantsToContinueRental || state.phase === 'booking');
     const rentalPivot = /מעדיף (?:את ה)?השכרה|מעדיף לשכור|עדיף לי לשכור|אעדיף לשכור|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|prefer to rent|back to renting/i.test(input);
     const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|(?:רכב|הרכב).{0,35}מלוכלך|לא קיבלתי|(?:מזגן|מיזוג).{0,25}(?:לא עובד|מקולקל)|(?:air conditioning|car ac).{0,25}(?:not working|broken)|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input);
     const statedVehicle = customerVehicleChoice(input, state);
@@ -1430,7 +1473,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     if (statedVehicle && (wantsBooking || state.phase === 'booking' || !commercialVehicle && !state.interest)
       && (!state.booking.vehicleNeed || /^רכב (?:לנוסע אחד|ל־\d+ נוסעים)|^car for \d+ passengers?/i.test(state.booking.vehicleNeed)
         || /בעצם|מעדיף|במקום|החלטתי על|החלטנו על|בוחר|בוחרת|actually|instead|prefer/i.test(input))) state.booking.vehicleNeed = statedVehicle;
-    if (rentalPivot) { state.interest = undefined; delete state.commercial; }
+    if (rentalPivot || switchesToRental) { carryCommercialRentalNeeds(state); state.interest = undefined; delete state.commercial; }
     else if (reading?.route === 'leasing' || /ליסינג|leasing/i.test(input)) state.interest = 'leasing';
     else if (reading?.route === 'sale' || state.phase !== 'booking' && /נסיעת מבחן|test drive/i.test(input) || /לקנייה|למכירה|רכב לקנות|רוצה לקנות|לקנות (?:את ה)?רכב|buy (?:a |the )?(?:used |new )?(?:family |compact |small |suv )?(?:car|vehicle)|purchase (?:a |the )?car|car for sale|used car/i.test(input)) state.interest = 'sale';
     if (state.interest) {
@@ -1460,7 +1503,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else if (declines) {
       state.phase = 'explore'; state.step = 'menu';
       reply = he ? 'בסדר, לא שלחתי בקשה. הפרטים יישארו כאן אם תרצה להמשיך להתלבט.' : 'Okay, I have not sent a request. The details stay here if you want to think it over.';
-    } else if (rentalPivot) {
+    } else if (rentalPivot && !switchesToRental) {
       state.phase = 'explore'; state.step = 'menu';
       if (uncertainDateAnswer(input) || state.booking.datePreference) {
         state.booking.datePreference = he ? 'התאריכים עדיין פתוחים' : 'dates still open';
@@ -1782,6 +1825,27 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const details = renderCommercialMemory(state.commercial, state.locale);
     reply = he ? `הפרטים שנשמרו בפנייה: ${details}. הפנייה אינה אישור לשמירת רכב, לעסקה או לנסיעת מבחן; אלה דורשים תיאום ואישור נפרד של SmartCar.`
       : `Your recorded enquiry preferences: ${details}. This enquiry does not confirm a reserved car, purchase or test drive; those require separate arrangements and SmartCar confirmation.`;
+  }
+  const asksDraftStatus = /מה\s+פרטי\s+(?:ההשכרה|הבקשה|ההזמנה)|מה\s+עם\s+ההשכרה\s+שלי|(?:ההזמנה|הבקשה).{0,55}(?:שעשיתי איתך|שעשינו|העברת|שלחת|נשלחה)|(?:העברת|שלחת|נשלחה).{0,45}(?:ההזמנה|הבקשה)|(?:what|which).{0,30}(?:rental|request|booking) details|did you.{0,30}(?:send|submit|pass).{0,35}(?:request|booking)/i.test(input)
+    || !state.handedOff && /^(?:יחזרו אליי?\??|will (?:someone|a representative) call me back\??)$/i.test(input.trim());
+  if (!state.completedRequestId && state.requestKey && asksDraftStatus && !escalate
+    && state.handoffKind !== 'safety' && state.handoffKind !== 'booking_change') {
+    const b = state.booking;
+    const missing = nextMissing(b);
+    const date = (value: string) => `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}`;
+    const parts = [b.vehicleNeed,
+      b.pickupDate && `${he ? 'איסוף בתאריך' : 'Pickup date'}: ${date(b.pickupDate)}`,
+      b.returnDate && `${he ? 'החזרה בתאריך' : 'Return date'}: ${date(b.returnDate)}`,
+      b.pickupLocation && `${he ? 'מקום איסוף' : 'Pickup'}: ${b.pickupLocation}`,
+      b.returnLocation && `${he ? 'מקום החזרה' : 'Return'}: ${b.returnLocation}`,
+      b.passengers !== undefined && `${he ? 'נוסעים' : 'Passengers'}: ${b.passengers}`,
+      b.luggage !== undefined && `${he ? 'מזוודות' : 'Bags'}: ${b.luggage}`,
+    ].filter(Boolean).join('; ');
+    reply = missing
+      ? `${he ? 'אלה הפרטים ששמורים בטיוטת ההשכרה; בקשת השכרה טרם נשלחה ואין הזמנה מאושרת.' : 'These are the saved rental draft details; a rental request has not been sent and no booking is confirmed.'}\n${parts}${state.handedOff ? '' : `\n${question(missing, state.locale)}`}`
+      : `${he ? 'אין עדיין אישור לקליטת בקשת השכרה. הפרטים מוכנים לאישורך.' : 'There is no recorded rental-request receipt yet. The details are ready for your confirmation.'}\n${summary(state)}`;
+    if (!missing) privateTurn = true;
+    source = 'local';
   }
   if (state.phase === 'service' && PRIVATE_PAYMENT_DETAIL.test(input)
     && !/אין צורך לשלוח מספר כרטיס מלא או קוד אבטחה|Do not send a full card number or security code/i.test(reply)) {

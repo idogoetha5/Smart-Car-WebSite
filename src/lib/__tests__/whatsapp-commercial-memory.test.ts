@@ -3,6 +3,17 @@ import { updateCommercialMemory, renderCommercialMemory } from '@/lib/whatsapp-c
 
 describe('durable explicit commercial facts', () => {
   it.each([
+    'נבחר 24 חודשים במקום 36. לגבי 2,400 ש״ח שמופיעים במחשבון: זה כבר מחיר סופי גם לתקופה הזאת, או רק הערכה? והאם אפשר לצאת מוקדם בלי עלות?',
+    'I choose 24 months instead of 36. Is the 2400 calculator price final or only an estimate?',
+  ])('records a choice despite an unrelated or-question: %s', message => {
+    expect(updateCommercialMemory({ termMonths: null, annualMileageKm: 15000 }, message).termMonths).toBe(24);
+  });
+  it('does not choose a hypothetical term and honours a later explicit retraction', () => {
+    expect(updateCommercialMemory({ termMonths: null }, 'If I choose 24 months instead of 36, would the price change?').termMonths).toBeNull();
+    expect(updateCommercialMemory({ termMonths: null }, 'אם נבחר שלושה חודשים, מה תהיה העלות?').termMonths).toBeNull();
+    expect(updateCommercialMemory({ termMonths: 36 }, 'I choose 24 months, but actually I am unsure between 24 and 36 months.').termMonths).toBeNull();
+  });
+  it.each([
     ['מחפש משפחתית בסביבות 65 אלף שקלים, עם מקום לשני ילדים ועגלה. לפני שאני מתקדם, אפשר לקבל היסטוריית טיפולים ותאונות ולבדוק את הרכב עצמאית?', 'בעצם סביב 55 אלף שקלים. מה יהיה המחיר בהצעה?'],
     ['I am looking for a family car around 65k NIS. Can I check its service history?', 'Actually about 55 thousand NIS. What would an offer include?'],
   ])('remembers natural currency budgets and corrections alongside offer questions: %s', (first, correction) => {

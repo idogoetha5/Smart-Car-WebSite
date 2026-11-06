@@ -5,6 +5,22 @@ const base: ConversationalReplyInput = { reply: '', input: '', locale: 'en', kno
 const check = (reply: string, rest: Partial<ConversationalReplyInput> = {}) => validateConversationalReply({ ...base, ...rest, reply });
 
 describe('output checks for natural conversational drafts', () => {
+  it.each(['נציג של SmartCar ישמח לחזור אליך בהקדם.', 'A SmartCar representative will follow up.', 'A representative from SmartCar will call you.'])('rejects a branded callback claim from a wording-only draft: %s', reply => {
+    expect(check(reply, { locale: /[א-ת]/.test(reply) ? 'he' : 'en' })).toBeNull();
+  });
+  it.each([
+    'A valid US driving licence held for twelve years is generally accepted for visitors, but an International Driving Permit or official translation can be helpful depending on the exact requirements.',
+    'An IDP is optional; your foreign licence is accepted.',
+  ])('rejects unverified country licence acceptance or weakened document requirements: %s', reply => {
+    expect(check(reply, { input: 'Is my US licence definitely enough, or might I need an IDP or translation?' })).toBeNull();
+  });
+  it.each([
+    'Bring your original valid licence; an International Driving Permit or official translation may also be required. Confirm requirements before arrival.',
+    'We cannot confirm that your US licence alone is enough. An IDP may also be required.',
+    'An IDP is not merely helpful; it may be required in addition to your foreign licence.',
+  ])('allows conditional licence and document requirements: %s', reply => {
+    expect(check(reply, { input: 'Is my US licence definitely enough, or might I need an IDP or translation?' })).toBe(reply);
+  });
   it.each([
     ['נהוג לספק את היסטוריית הטיפולים המלאה, ותמיד מומלץ ואפשרי לבדוק את הרכב עצמאית.', 'he'],
     ['We provide full service history and an independent inspection is always possible.', 'en'],

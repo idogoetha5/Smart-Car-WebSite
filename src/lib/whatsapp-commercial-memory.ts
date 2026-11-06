@@ -30,6 +30,15 @@ function negatedBefore(text: string, index: number) {
   return /(?:\bnot|\binstead of|\brather than|ולא|לא|במקום)\s*$/i.test(text.slice(Math.max(0, index - 25), index));
 }
 
+function termChoicePrefix(text: string, index: number): { chosen: boolean; hypothetical: boolean } {
+  const prefix = text.slice(Math.max(0, index - 70), index);
+  const verb = '(?:נבחר|בחרתי|בחרנו|החלטתי על|החלטנו על|נלך על|choose|chosen|decided on|make it|go with|settled on)';
+  return {
+    chosen: new RegExp(`${verb}\\s*$`, 'iu').test(prefix),
+    hypothetical: new RegExp(`(?:\\bif\\b|\\bmaybe\\b|\\bnot\\b|don['’]?t|do not|אם|אולי|לא)[^.!?\\n]{0,30}${verb}\\s*$`, 'iu').test(prefix),
+  };
+}
+
 export function updateCommercialMemory(previous: CommercialMemory | undefined, message: string): CommercialMemory {
   const next: CommercialMemory = structuredClone(previous ?? {});
   // Contact details cannot accidentally become budget, mileage or usage facts.
@@ -74,7 +83,7 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   const namedYears = text.match(/(?:ל)?(שלוש|ארבע|חמש)\s+שנים/u);
   if (namedYears && !negatedBefore(text, namedYears.index!)) termMatches.push({ value: ({ שלוש: 3, ארבע: 4, חמש: 5 }[namedYears[1]] ?? 0) * 12, index: namedYears.index! });
   for (const match of text.matchAll(/\b(\d{1,3}|one|two|three|four|five)\s*(months?|years?)\b|(\d{1,3})\s*(חודשים|חודש|שנים|שנה)|שנתיים|לשנה/giu)) {
-    if (negatedBefore(text, match.index!)) continue;
+    if (negatedBefore(text, match.index!) || termChoicePrefix(text, match.index!).hypothetical) continue;
     if (match[0] === 'לשנה' && /(?:קמ|ק[״"]מ|קילומטר(?:ים)?|km)\s*$/i.test(text.slice(Math.max(0, match.index! - 18), match.index!))) continue;
     const wordNumbers: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5 };
     const number = match[1] ? wordNumbers[match[1].toLowerCase()] ?? Number(match[1]) : match[3] ? Number(match[3]) : /שנתיים/.test(match[0]) ? 2 : 1;
@@ -85,11 +94,15 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
     && (/months|חודשים|term|תקופה/i.test(text) || previous?.termMonths !== undefined) && /\bor\b|\bvs\b|\/|compare|between|unsure|undecided|או|מול|מתלבט/i.test(text);
   const termUndecided = /(?:term|תקופה|משך).{0,30}(?:undecided|not decided|not sure|לא החלטתי|לא סגור)|(?:לא החלטתי|לא סגור|not decided).{0,25}(?:term|תקופה)/i.test(text)
     || comparesTerms && /unsure|undecided|not sure|haven'?t decided|changed my mind|מתלבט|לא החלטתי|לא בטוח|שיניתי את דעתי/i.test(text);
-  // Comparing another term is a question, not a correction to a chosen term.
-  if (comparesTerms) {
+  const eligibleTermMatches = termMatches.filter(match => !termChoicePrefix(text, match.index).hypothetical);
+  const explicitChoice = eligibleTermMatches.filter(match => termChoicePrefix(text, match.index).chosen).sort((a, b) => a.index - b.index).at(-1);
+  const laterUncertainty = explicitChoice && /(?:unsure|undecided|not sure|מתלבט|לא החלטתי)[^.!?\n]{0,45}(?:24[^.!?\n]{0,30}36|36[^.!?\n]{0,30}24|duration|period|תקופה|משך)/i.test(text.slice(explicitChoice.index));
+  // An explicit choice wins over an unrelated “or” in a price question.
+  if (explicitChoice) next.termMonths = laterUncertainty ? null : explicitChoice.value;
+  else if (comparesTerms) {
     if (previous?.termMonths === undefined || termUndecided) next.termMonths = null;
   }
-  else if (termMatches.length) next.termMonths = termMatches.sort((a, b) => a.index - b.index).at(-1)!.value;
+  else if (eligibleTermMatches.length) next.termMonths = eligibleTermMatches.sort((a, b) => a.index - b.index).at(-1)!.value;
   else if (termUndecided) next.termMonths = null;
 
   const annual = /לשנה|בשנה|שנתי|a year|per year|annually|annual/i.test(text);
