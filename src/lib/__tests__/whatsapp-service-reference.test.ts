@@ -15,6 +15,19 @@ function chat() {
 }
 
 describe('existing rental change follow-up memory', () => {
+  it.each([
+    ['Hello, I would like to pay the deposit for booking #654321', 'I have not paid yet. Which booking reference did you keep, and have you verified that any money was received?', /has not verified payment receipt/],
+    ['שלום, אני רוצה לשלם מקדמה עבור ההזמנה שלי מספר #654321', 'מה מספר ההזמנה ששמרת? עדיין לא שילמתי, האם אימתת קבלת תשלום?', /אינה מאמתת קבלת תשלום/],
+  ])('recalls a supplied reference independently of provider wording and payment status: %s', async (opening, followup, status) => {
+    const send = chat();
+    await send(opening);
+    const result = await send(followup);
+    expect(result.state.serviceReference).toBe('654321');
+    expect(result.reply).toContain('654321');
+    expect(result.reply).toMatch(status);
+    expect(result.reply).not.toMatch(/Please send the booking reference|do not retain booking references/);
+    expect(result.escalate).toBe(false);
+  });
   it('retains an English reference through changed duration, approval and price questions', async () => {
     const send = chat();
     await send('I have an existing rental. I need to return the car two days later.');

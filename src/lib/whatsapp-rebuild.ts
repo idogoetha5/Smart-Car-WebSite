@@ -1845,7 +1845,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   }
 
   const asksReferenceRecall = /(?:מספר\s+ה?הזמנה|booking\s+(?:number|reference))/i.test(input)
-    && /שוב|כבר יש|כבר מסרתי|צריך לשלוח|תזכיר|הזכר|איזה.{0,30}(?:מסרתי|נתתי|שלחתי)|again|already have|already (?:gave|provided|sent)|need to (?:send|provide)|remind|which.{0,45}(?:gave|provided|sent)/i.test(input);
+    && /שוב|כבר יש|כבר מסרתי|צריך לשלוח|תזכיר|הזכר|שמר|רשמ|איזה.{0,30}(?:מסרתי|נתתי|שלחתי)|again|already have|already (?:gave|provided|sent)|need to (?:send|provide)|remind|(?:which|what).{0,45}(?:gave|provided|sent|keep|kept|save|saved|record|remember)/i.test(input);
   if (asksReferenceRecall && state.serviceReference) {
     const acknowledgement = he ? `מספר ההזמנה ${state.serviceReference} כבר שמור בפנייה; אין צורך לשלוח אותו שוב.` : `Your booking reference ${state.serviceReference} is already saved in the enquiry; you do not need to send it again.`;
     // The reference is an application-owned receipt, not a provider-authored
