@@ -3,6 +3,18 @@ import { updateCommercialMemory, renderCommercialMemory } from '@/lib/whatsapp-c
 
 describe('durable explicit commercial facts', () => {
   it.each([
+    'התקציב שלי עד 2,500 שקל בחודש וחשוב לי רכב משפחתי. עדיין בלי שיחה או פגישה. תזכיר לי איזה תקופה, קילומטראז׳ ותקציב שמרת?',
+    'My budget is up to 2500 shekels a month and a family car is important to me. No call or meeting yet. Remind me which term, mileage and budget you kept?',
+  ])('preserves an important vehicle requirement beyond conversation history: %s', input => {
+    let memory = updateCommercialMemory({ termMonths: 24, annualMileageKm: 15000, usage: ['business'] }, input);
+    for (let turn = 0; turn < 14; turn++) memory = updateCommercialMemory(memory, 'What should I check before deciding?');
+    expect(memory).toMatchObject({ vehiclePreference: 'family', termMonths: 24, annualMileageKm: 15000, budget: { amount: 2500 } });
+    expect(renderCommercialMemory(memory, 'en')).toMatch(/Vehicle preference: family/);
+  });
+  it.each(['לא חשוב לי רכב משפחתי כרגע.', 'Maybe a family car is important to me, but I need to think.'])('does not turn a negated or hypothetical priority into a category choice: %s', input => {
+    expect(updateCommercialMemory({ vehiclePreference: 'compact' }, input).vehiclePreference).toBe('compact');
+  });
+  it.each([
     'נבחר 24 חודשים במקום 36. לגבי 2,400 ש״ח שמופיעים במחשבון: זה כבר מחיר סופי גם לתקופה הזאת, או רק הערכה? והאם אפשר לצאת מוקדם בלי עלות?',
     'I choose 24 months instead of 36. Is the 2400 calculator price final or only an estimate?',
   ])('records a choice despite an unrelated or-question: %s', message => {
