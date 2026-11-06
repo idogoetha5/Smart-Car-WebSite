@@ -252,17 +252,24 @@ function rentalChangeRequest(input: string): boolean {
 }
 
 function advisoryRentalChange(input: string): boolean {
-  return /\b(?:what if|if (?:I|we) (?:(?:ever|actually) )?(?:need|needed|wanted)|may need|might need|not requesting|only asking|just asking)\b|(?:leave|keep).{0,35}\bunchanged\b|(?:do not|don't)\s+(?:change|extend)|מה (?:קורה |יקרה )?אם|אם (?:אצטרך|נצטרך|ארצה)|אולי (?:אצטרך|נצטרך)|רק (?:שואל|שואלת|מברר|מבררת)|לא מבקש(?:ת)? (?:שינוי|הארכה)|להשאיר.{0,25}ללא שינוי|אל תשנ|לא לשנות/i.test(input);
+  return /\b(?:what if|if (?:I|we) (?:(?:ever|actually) )?(?:need|needed|wanted|decide)|may need|might need|not requesting|only asking|just asking|no (?:change|extension) request(?: yet)?)\b|(?:leave|keep).{0,35}\bunchanged\b|(?:do not|don't)\s+(?:change|extend)|מה (?:קורה |יקרה )?אם|אם (?:אצטרך|נצטרך|ארצה)|אולי (?:אצטרך|נצטרך)|רק (?:שואל|שואלת|מברר|מבררת)|לא מבקש(?:ת)? (?:שינוי|הארכה)|להשאיר.{0,25}ללא שינוי|אל תשנ|לא לשנות/i.test(input);
 }
 
 function cancellationRequest(input: string): boolean {
-  if (/לא (?:רוצה|רוצים|מבקש|מבקשת|צריך|צריכה)\s+לבטל|(?:do not|don't|not) want to cancel/i.test(input)) return false;
+  if (/לא (?:רוצה|רוצים|מבקש|מבקשת|צריך|צריכה)\s+לבטל|עוד לא לבטל|אל תבטל|(?:do not|don't|not) want to cancel|(?:do not|don't) cancel|no cancellation request|(?:^|\s)אם.{0,25}(?:החלטתי|החלטנו)|\bif\b.{0,25}\b(?:decide|decided)\b/i.test(input)) return false;
+  if (/(?:החלטתי|החלטנו)\s+לבטל(?:\s|[.!?]|$)|(?:I|we) (?:have )?decided to cancel|please cancel (?:my |the )?(?:booking|rental)/i.test(input)) return true;
   return /(?:רוצה|רוצים|מבקש|מבקשת|צריך|צריכה|אפשר).{0,18}(?:לבטל|ביטול).{0,25}(?:הזמנה|השכרה)|(?:הזמנה|השכרה).{0,100}לבטל\s+(?:אותה|אותו|את הקיימת)|(?:want|need|would like) to cancel (?:my |the )?(?:booking|rental)|(?:booking|rental).{0,100}(?:want|need|would like) to cancel (?:it|that)/i.test(input);
 }
 
 function explicitServiceReference(input: string): string | undefined {
   const value = input.match(/(?:מספר\s+ה?הזמנה|booking\s+(?:number|reference)|(?:booking|הזמנה)\s*#|ההזמנה\s+שלי\s+מספר\s*#)[\s,:#]*(?:(?:שלי|הוא|it\s+is|is)[\s,:#]*)*([A-Z0-9-]*\d[A-Z0-9-]{2,})(?![A-Z0-9-])/i)?.[1];
   return value && value.length <= 40 ? value : undefined;
+}
+
+function hasOtherReferenceQuestion(input: string): boolean {
+  return input.split(/[?؟;]|\b(?:and|also)\b|ו(?=מה|האם|איזה|איך|מתי)/i).some(clause =>
+    !/(?:מספר\s+ה?הזמנה|booking\s+(?:number|reference))/i.test(clause)
+      && /מה|איך|איזה|האם|מתי|\b(?:what|which|how|where|when|can|could|should|have you|has it|is it)\b/i.test(clause));
 }
 
 function redactServiceReference(text: string, reference?: string): string {
@@ -283,7 +290,7 @@ function applyPromptedDate(input: string, state: RebuildState, lastBot: string):
 function applyExplicitLocations(input: string, draft: BookingDraft): void {
   const sameCity = input.trim().match(/^([\p{L}\s'׳״-]{2,50})\s+גם\s+(?:להחזיר\s+(?:גם\s+)?לאסוף|לאסוף\s+(?:(?:וגם|גם)\s+)?להחזיר)$/u)?.[1]?.trim();
   if (sameCity) { draft.pickupLocation = sameCity; draft.returnLocation = sameCity; return; }
-  const stop = '(?=\\s+(?:ו?החזרה|להחזיר|נשאר(?:ת)?|unchanged|remains?|stays?|(?:and\\s+)?return|(?:and\\s+)?drop.?off|ב[-־]?\\s*\\d)|[,.!?]|$)';
+  const stop = '(?=\\s+(?:ו?החזרה|להחזיר|נחזיר|אחזיר|נשאר(?:ת)?|unchanged|remains?|stays?|(?:and\\s+)?return|(?:and\\s+)?drop.?off|ב[-־]?\\s*\\d)|[,.!?]|$)';
   const hePickup = input.match(new RegExp(`(?:איסוף|לאסוף)\\s+[במ]([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
   const enPickupStop = stop.replace('(?=', '(?=\\s+on\\s+\\d{1,2}|');
   const enPickup = input.match(new RegExp(`pick.?up\\s+(?:at|from|in)\\s+([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${enPickupStop}`, 'iu'))?.[1];
@@ -292,7 +299,7 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
     : undefined;
   const pickup = (hePickup ?? enPickup ?? enFromPickup)?.trim();
   if (pickup) draft.pickupLocation = /^(?:the )?airport$/i.test(pickup) && /Ben Gurion Airport/i.test(input) ? 'Ben Gurion Airport' : pickup;
-  const heReturn = input.match(/(?:החזרה|להחזיר)\s+(?:(?:תהיה|יהיה)\s+)?[במ]([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:נהג|גיל|בן|בת|למשך|לתאריכים|ב[-־]?\s*\d)|[,.!?]|$)/iu)?.[1];
+  const heReturn = input.match(/(?:החזרה|להחזיר|נחזיר|אחזיר)\s+(?:(?:את\s+)?הרכב\s+)?(?:(?:תהיה|יהיה)\s+)?[במ]([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:נהג|גיל|בן|בת|למשך|לתאריכים|ב[-־]?\s*\d)|[,.!?]|$)/iu)?.[1];
   const enReturn = input.match(/(?:return|drop.?off)\s+(?:(?:the car|it)\s+)?(?:(?:will be|will remain|stays?|remains?)\s+)?(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+on\s+\d{1,2}|[,.!?]|$)/iu)?.[1];
   const returnLocation = (heReturn ?? enReturn)?.split(/\s+(?:במקום|instead of)\s+/i)[0].trim();
   if (returnLocation) draft.returnLocation = returnLocation;
@@ -300,7 +307,7 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
   // Parse each labelled date independently: customers may correct the return
   // before restating an unchanged pickup. Never associate dates by text order.
   const labelledDates: Partial<Record<'pickupDate' | 'returnDate', string>> = {};
-  const labels = /(?:ה?איסוף|לאסוף|pick.?up|ה?החזרה|להחזיר|return|drop.?off)/giu;
+  const labels = /(?:ה?איסוף|לאסוף|pick.?up|ה?החזרה|להחזיר|נחזיר|אחזיר|return|drop.?off)/giu;
   const mentions = [...input.matchAll(labels)];
   for (let index = 0; index < mentions.length; index++) {
     const mention = mentions[index];
@@ -328,13 +335,13 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
 
 function explicitBooking(input: string): boolean {
   if (/להשכיר.{0,25}(?:לכם|לחברה)|(?:הרכב שלי|רכב שבבעלותי).{0,30}להשכיר/i.test(input)) return false;
-  if (/לא נתחיל\s+(?:בקשה|הזמנה)|\b(?:do not|don't) start\s+(?:a\s+)?(?:request|booking)/i.test(input)) return false;
-  if (/(?:לא רוצה|לא רוצים|לא מעוניין|אל).{0,15}(?:להתחיל|להתחילו?|לפתוח).{0,12}(?:בקשה|הזמנה)/i.test(input)) return false;
+  if (/לא נתחיל\s+(?:בקש(?:ה|ת השכרה)|הזמנה)|\b(?:do not|don't) start\s+(?:a\s+)?(?:request|booking)/i.test(input)) return false;
+  if (/(?:לא רוצה|לא רוצים|לא מעוניין|אל).{0,15}(?:להתחיל|להתחילו?|לפתוח).{0,12}(?:בקש(?:ה|ת השכרה)|הזמנה)/i.test(input)) return false;
   if (/לא רוצה להזמין|לא רוצה (?:לשכור|להשכיר)|רק מתעניין|רק שואל|לא עכשיו|not ready|just asking|don't book|do not book/i.test(input)) return false;
   if (/[?؟]/.test(input) && /כדאי|האם|should|would it|how/i.test(input)) return false;
-  if (/(?:כן[,\s]*)?נתחיל\s+(?:בקשה|הזמנה)|\b(?:let'?s|let us)\s+start\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b|\bI\s+(?:want|would like)\s+to\s+(?:start|open)\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b/i.test(input)) return true;
+  if (/(?:כן[,\s]*)?נתחיל\s+(?:בקש(?:ה|ת השכרה)|הזמנה)|\b(?:let'?s|let us)\s+start\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b|\bI\s+(?:want|would like)\s+to\s+(?:start|open)\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b/i.test(input)) return true;
   if (/^(?:כן[,\s]*)?כבר ביקשתי להתחיל[.!\s]*$/i.test(input)) return true;
-  if (/(?:אני רוצה|אנחנו רוצים|רוצה|רוצים|כבר ביקשתי)\s+(?:להתחיל|לפתוח)(?:\s+(?:את ה|את|ה))?\s*(?:בקשה|הזמנה)/i.test(input)) return true;
+  if (/(?:אני רוצה|אנחנו רוצים|רוצה|רוצים|כבר ביקשתי)\s+(?:להתחיל|לפתוח)(?:\s+(?:את ה|את|ה))?\s*(?:בקש(?:ה|ת השכרה)|הזמנה)/i.test(input)) return true;
   if (/^I need (?:a )?(?:(?:compact|small|family|SUV|seven[- ]?seat) )?rental car\b/i.test(input)) return true;
   return /אני רוצה (?:להזמין|לשכור|להשכיר|לשלוח בקשה|לסיים את הבקשה|להתקדם עם בקש(?:ה להשכרה|ת השכרה))|(?:^|[.!?]\s*)רוצה (?:לשכור|להשכיר|לשלוח בקשה|לסיים את הבקשה)|(?:אני\s+)?צריך(?:ה)? (?:רכב להשכרה|לשכור רכב|רכב (?:קטן|קומפקטי|משפחתי|פנאי|שבעה מקומות)(?:\s|$))|בוא(?:ו)? נתקדם|בוא(?:ו)? (?:נלך על זה|נסגור)|יאללה נסגור|תשריין לי|שריין לי|אפשר להתחיל (?:הזמנה|בקשה)|אשמח להתחיל (?:בקשה|הזמנה)|תכין(?:ו)? (?:לי )?(?:בקש(?:ה|ת השכרה)|הצעה)|אני (?:אזמין|אשכור)|I(?:'d| would) like to (?:book|rent|make a request)|let'?s (?:book|proceed|close)|I want to (?:book|rent|make a request)|I need (?:a )?(?:rental car|to rent(?: a car)?)|go ahead with (?:the )?(?:rental|request)/i.test(input);
 }
@@ -415,7 +422,7 @@ function plainLocationAnswer(input: string, locale: Locale): string | null {
   if (serviceTopic && serviceTopic !== 'branches' && serviceTopic !== 'different_location') return null;
   // A sentence containing both locations has already been parsed by
   // applyExplicitLocations; it must never become the pickup-city value.
-  if (/איסוף|לאסוף|להחזיר|החזרה|pick.?up|drop.?off|return/i.test(location)) return null;
+  if (/איסוף|לאסוף|להחזיר|נחזיר|אחזיר|החזרה|pick.?up|drop.?off|return/i.test(location)) return null;
   return location;
 }
 
@@ -1013,7 +1020,7 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
         || input.toLocaleLowerCase().includes(`from the ${field.value.toLocaleLowerCase()}`)
         || /^[\p{Script=Hebrew}]/u.test(field.value) && input.includes(`מ${field.value}`);
       const explicitRole = source === 'pickupLocation' ? /איסוף|לאסוף|pick(?:\s+(?:it|the car))?[\s-]*up/i.test(input) || fromLocation
-        : /להחזיר|החזרה|return|drop.?off/i.test(input) || samePlace && Boolean(state.booking.pickupLocation);
+        : /להחזיר|נחזיר|אחזיר|החזרה|return|drop.?off/i.test(input) || samePlace && Boolean(state.booking.pickupLocation);
       const promptedRole = state.phase === 'booking' && state.step === 'rental_locations' && pending === source && plainLocation && !samePlace;
       if (!explicitRole && !promptedRole) continue;
     }
@@ -1854,7 +1861,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // privacy restriction or evidence that a payment has been checked.
     reply = /תשלום|מקדמה|payment|deposit|received|arrived/i.test(input)
       ? `${he ? 'השיחה אינה מאמתת קבלת תשלום, ומספר הזמנה שמסרת אינו אישור שהכסף התקבל. לבירור קבלה יש להשתמש בערוץ התשלום הרשמי של SmartCar.' : 'This chat has not verified payment receipt. A reference you typed is not confirmation that money arrived; receipt checks use SmartCar’s official payment channel.'} ${acknowledgement}`
-      : /מחיר|אישור|אושר|זיכוי|גרר|רכב חלופי|price|approv|refund|\btow\b|replacement (?:car|vehicle)/i.test(input) ? `${reply} ${acknowledgement}` : acknowledgement;
+      : hasOtherReferenceQuestion(input) || /מחיר|אישור|אושר|זיכוי|גרר|רכב חלופי|price|approv|refund|\btow\b|replacement (?:car|vehicle)/i.test(input) ? `${reply} ${acknowledgement}` : acknowledgement;
   }
   const asksCommercialRecall = state.interest && state.commercial
     && /שמר|רשמ|תזכיר|הזכר|remember|record|saved|remind|noted/i.test(input)

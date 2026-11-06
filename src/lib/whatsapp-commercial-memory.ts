@@ -5,7 +5,7 @@ export type CommercialMemory = {
   termMonths?: number | null;
   annualMileageKm?: number | null;
   vehiclePreference?: 'compact' | 'family' | 'suv' | 'seven_seat' | null;
-  usage?: Array<'city' | 'family' | 'business' | 'long_distance'>;
+  usage?: Array<'city' | 'family' | 'business' | 'long_distance' | 'commuting'>;
   passengers?: number;
   luggage?: number;
   lowMileagePreferred?: boolean;
@@ -141,10 +141,14 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   }
   const usage = new Set(next.usage ?? []);
   if (/בעיר|עירוני|\bcity\b|\burban\b/i.test(text)) usage.add('city');
-  if (/למשפחה|שימוש משפחתי|family (?:use|trips)|with (?:my |our )?(?:kids|children)/i.test(text)) usage.add('family');
+  if (/למשפחה|שימוש משפחתי|בעיקר\s+משפחה|נסיעות משפחתיות|family (?:use|trips)|with (?:my |our )?(?:kids|children)/i.test(text)) usage.add('family');
   if (/ל[עא]סק|עסקי|business (?:use|leasing)|for work/i.test(text)) usage.add('business');
   if (/נסיעות ארוכות|long.distance|long (?:trips|journeys)/i.test(text)) usage.add('long_distance');
-  if (usage.size) next.usage = [...usage].slice(0, 4);
+  for (const mention of text.matchAll(/ל?נסיע(?:ה|ות) לעבודה|להגיע לעבודה|\bcommut(?:e|ing)\b|(?:travel|drive|driving) to work/giu)) {
+    if (negatedBefore(text, mention.index!)) usage.delete('commuting');
+    else usage.add('commuting');
+  }
+  if (usage.size || next.usage) next.usage = [...usage].slice(0, 5);
   const lowMileage = text.match(/חשוב(?: לי)? קילומטראז[׳']?\s+נמוך|מעדיף קילומטראז[׳']?\s+נמוך|low mileage (?:matters|is important|preferred)/i);
   if (lowMileage && !negatedBefore(text, lowMileage.index!)) next.lowMileagePreferred = true;
   for (const match of text.matchAll(/(\d{1,2})\s*(נוסעים|אנשים|passengers?|people|מזוודות|תיקים|bags?|suitcases?)/giu)) {
@@ -169,7 +173,7 @@ export function renderCommercialMemory(memory: CommercialMemory | undefined, loc
   if (memory.luggage !== undefined) parts.push(`${he ? 'מזוודות' : 'Bags'}: ${memory.luggage}`);
   if (memory.lowMileagePreferred) parts.push(he ? 'העדפה לקילומטראז׳ נמוך' : 'low mileage preferred');
   if (memory.usage?.length) {
-    const usageNames = he ? { city: 'עירוני', family: 'משפחתי', business: 'עסקי', long_distance: 'נסיעות ארוכות' } : { city: 'city', family: 'family', business: 'business', long_distance: 'long-distance' };
+    const usageNames = he ? { city: 'עירוני', family: 'משפחתי', business: 'עסקי', long_distance: 'נסיעות ארוכות', commuting: 'נסיעות לעבודה' } : { city: 'city', family: 'family', business: 'business', long_distance: 'long-distance', commuting: 'commuting' };
     parts.push(`${he ? 'שימוש' : 'Use'}: ${memory.usage.map(item => usageNames[item]).join(', ')}`);
   }
   return parts.length ? parts.join('; ') : he ? 'עדיין לא נשמרו העדפות מסחריות.' : 'No commercial preferences have been recorded yet.';

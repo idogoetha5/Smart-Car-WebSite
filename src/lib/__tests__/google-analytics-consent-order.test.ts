@@ -9,6 +9,15 @@ const script = source.match(/\{`([\s\S]+?)`\}/)![1]
   .replace('${CONSENT_KEY}', 'cookie_consent').replace('${GA_ID}', 'G-TEST');
 
 describe('GA consent at the initial page view', () => {
+  it('queues early consent and subsequent initialization as the documented Arguments objects', () => {
+    const bridge = source.match(/function getGtag\(\) \{[\s\S]*?\n\}/)![0]
+      .replace('dataLayer!', 'dataLayer').replace('...args: unknown[]', '...args');
+    const browser = { dataLayer: [] as unknown[][], localStorage: { getItem: () => 'accepted' } };
+    runInNewContext(`${bridge}\ngetGtag()('consent','update',{analytics_storage:'granted'});\n${script}`, { window: browser });
+    expect(browser.dataLayer.length).toBeGreaterThanOrEqual(5);
+    for (const entry of browser.dataLayer) expect(Object.prototype.toString.call(entry)).toBe('[object Arguments]');
+    expect(Array.from(browser.dataLayer.at(-1)!)).toEqual(['config', 'G-TEST', { send_page_view: true, anonymize_ip: true }]);
+  });
   it.each(['accepted', 'rejected', null, 'storage-unavailable'])('honours the current stored decision after an earlier queued grant: %s', decision => {
     const browser = {
       dataLayer: [['consent', 'update', { analytics_storage: 'granted' }]] as unknown[][],
