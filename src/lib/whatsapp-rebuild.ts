@@ -495,7 +495,9 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   if (/תינוק|baby|infant/i.test(input)) draft.childSeats ??= 1;
   if (/(?:can (?:you|we|i) (?:provide|add|include|arrange|request)|do you (?:provide|have|offer)|אפשר (?:לקבל|להוסיף)|תוכלו (?:לספק|להוסיף)).{0,18}(?:child seat|car seat|כיסא בטיחות)/i.test(input)) draft.childSeats ??= 1;
   for (const clause of input.split(/[.!?;,]|\bbut\b|\bactually\b|אבל|בעצם/iu)) {
-    if (/(?:לא (?:צריך(?:ה|ים)?|רוצ(?:ה|ים)|נרצה|ארצה|נצטרך|נבקש)|אין צורך|do not (?:need|want)|don't (?:need|want)|would not like|wouldn't like|please remove).{0,18}(?:כיסא|child seats?|car seats?)/i.test(clause)) {
+    const bringsOwnSeat = /(?:bring(?:ing)?|brought|taking)\s+(?:my|our|their)\s+own\s+(?:child|car)\s+seats?|(?:נביא|אביא|מביא(?:ים|ות|ה)?).{0,20}כיסא(?:ות)?(?: בטיחות)?.{0,15}(?:משלנו|משלי)/iu.test(clause)
+      && !/(?:not|n['’]t|לא).{0,12}(?:bring|brought|taking|נביא|אביא|מביא)/iu.test(clause);
+    if (bringsOwnSeat || /(?:לא (?:צריך(?:ה|ים)?|רוצ(?:ה|ים)|נרצה|ארצה|נצטרך|נבקש)|אין צורך|do not (?:need|want)|don't (?:need|want)|would not like|wouldn't like|please remove).{0,18}(?:כיסא|child seats?|car seats?)/i.test(clause)) {
       // Keep an explicit zero so later model extraction or a baby mention
       // cannot silently restore a seat request the customer declined.
       draft.childSeats = 0;

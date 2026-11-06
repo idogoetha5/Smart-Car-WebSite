@@ -27,6 +27,27 @@ function ready(): RebuildState {
 }
 
 describe('grounded AI voice with application-owned rental actions', () => {
+  it.each(['We are not bringing our own child seat.', 'לא נביא כיסא בטיחות משלנו.'])('does not remove a requested seat when bringing one is negated: %s', async input => {
+    const initial = ready(); initial.booking.childSeats = 1;
+    const session = chat(initial);
+    expect((await session.send(input)).state.booking.childSeats).toBe(1);
+  });
+  it.each([
+    ['en', "My name is Riley Demo and I don't want to provide email. Actually, return at Ben Gurion Airport on 16 January 2027 instead; pickup stays the same. We will bring our own child seat, so don't request one from SmartCar."],
+    ['he', 'קוראים לי רוני בדיקה ואין לי מייל למסור. בעצם ההחזרה תהיה בנתב״ג ב־16/1/2027, האיסוף נשאר אותו דבר. נביא כיסא בטיחות משלנו.'],
+  ] as const)('retains an own-seat choice together with name and route correction: %s', async (locale, input) => {
+    const initial = ready(); initial.locale = locale;
+    const session = chat(initial);
+    const result = await session.send(input);
+    expect(result.state.booking.childSeats).toBe(0);
+    expect(result.state.booking.pickupDate).toBe('2027-01-10');
+    expect(result.state.booking.pickupLocation).toBe('Herzliya');
+    expect(result.state.booking.returnDate).toBe('2027-01-16');
+    expect(result.state.booking.returnLocation).toMatch(/Ben Gurion Airport|נתב/);
+    expect(result.reply).toMatch(/removed from the draft and summary|הוסרה מהטיוטה ומהסיכום/);
+    expect(result.reply).not.toMatch(/The child seat is a request only|כיסא הבטיחות הוא בקשה בלבד/);
+    expect(session.create).not.toHaveBeenCalled();
+  });
   it.each([
     { locale: 'en' as const, request: 'Before sending, we would like one child seat for our three-year-old. Is it guaranteed? Do not send yet.', removal: 'Actually we do not need a child seat after all, we are bringing our own. Please remove it from the request but keep the rental dates and route.', stale: 'The child seat is a request only, not a guarantee.', acknowledged: 'removed from the draft and summary' },
     { locale: 'he' as const, request: 'לפני שליחה נרצה כיסא בטיחות אחד לילד בן שלוש. זה מובטח? עוד אל תשלח.', removal: 'בעצם לא נרצה כיסא בטיחות, נביא כיסא משלנו. בבקשה להסיר אותו מהבקשה ולשמור את התאריכים והמסלול.', stale: 'כיסא הבטיחות הוא בקשה בלבד, לא הבטחה.', acknowledged: 'הוסרה מהטיוטה ומהסיכום' },
