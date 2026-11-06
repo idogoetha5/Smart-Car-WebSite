@@ -397,28 +397,39 @@ function directVehicleRequest(input: string, locale: Locale): boolean {
     && Boolean(explicitVehicleNeed(input, locale));
 }
 
-function applyPromptedLocation(input: string, state: RebuildState, lastBot: string): void {
+function sameLocationAnswer(value: string): boolean {
+  return /^(?:ב?אותו (?:מקום|סניף)|שם גם|(?:at )?(?:the )?same (?:place|location|branch))$/i.test(value);
+}
+
+function plainLocationAnswer(input: string, locale: Locale): string | null {
   const location = input.trim().replace(/^(?:ב?סניף\s+|(?:the\s+)?branch\s+(?:in\s+)?)/i, '');
-  if (/^(?:ב?אותו (?:מקום|סניף)|שם גם|(?:at )?(?:the )?same (?:place|location|branch))$/i.test(location)) {
+  if (sameLocationAnswer(location)) return location;
+  if (!/^[\p{L}'׳״ -]{2,45}$/u.test(location) || location.split(/\s+/).length > 3 || /^(?:כן|לא|לא יודע|תודה|yes|no|not sure)$/i.test(location)
+    || /רכב|מעדיף|בעצם|רוצה|צריך|מחפש|מחיר|תאריך|זמינ|שאלה|ליסינג|לקנות|rent|prefer|price|booking/i.test(location)) return null;
+  if (/לא בטוח|לא יודעת|לא יודע|not sure|don['’]?t know|do not know/i.test(location)) return null;
+  if (affirms(location) || /^(?:thanks?(?: a lot)?|thank you(?: very much)?|תודה(?: רבה)?)[.!\s]*$/i.test(location)) return null;
+  const serviceTopic = getSmartCarServiceAnswer(input, locale)?.topic;
+  if (serviceTopic && serviceTopic !== 'branches' && serviceTopic !== 'different_location') return null;
+  // A sentence containing both locations has already been parsed by
+  // applyExplicitLocations; it must never become the pickup-city value.
+  if (/איסוף|לאסוף|להחזיר|החזרה|pick.?up|drop.?off|return/i.test(location)) return null;
+  return location;
+}
+
+function applyPromptedLocation(input: string, state: RebuildState, lastBot: string, pendingField: BookingKey | null): void {
+  const location = plainLocationAnswer(input, state.locale);
+  if (!location) return;
+  if (sameLocationAnswer(location)) {
     if (state.booking.pickupLocation) state.booking.returnLocation = state.booking.pickupLocation;
     return;
   }
-  if (!/^[\p{L}'׳״ -]{2,45}$/u.test(location) || location.split(/\s+/).length > 3 || /^(?:כן|לא|לא יודע|תודה|yes|no|not sure)$/i.test(location)
-    || /רכב|מעדיף|בעצם|רוצה|צריך|מחפש|מחיר|תאריך|זמינ|שאלה|ליסינג|לקנות|rent|prefer|price|booking/i.test(location)) return;
-  if (/לא בטוח|לא יודעת|לא יודע|not sure|don['’]?t know|do not know/i.test(location)) return;
-  if (affirms(location) || /^(?:thanks?(?: a lot)?|thank you(?: very much)?|תודה(?: רבה)?)[.!\s]*$/i.test(location)) return;
-  const serviceTopic = getSmartCarServiceAnswer(input, state.locale)?.topic;
-  if (serviceTopic && serviceTopic !== 'branches' && serviceTopic !== 'different_location') return;
-  // A sentence containing both locations has already been parsed by
-  // applyExplicitLocations; it must never become the pickup-city value.
-  if (/איסוף|לאסוף|להחזיר|החזרה|pick.?up|drop.?off|return/i.test(location)) return;
   // Bare city answers belong to the pending field, independently of how the
   // question was worded (for example “pick it up” versus “pickup”).
   if (state.phase === 'booking' && state.step === 'rental_locations') {
-    if (!state.booking.pickupLocation) { state.booking.pickupLocation = location; return; }
-    if (!state.booking.returnLocation) { state.booking.returnLocation = location; return; }
+    if (pendingField === 'pickupLocation') { state.booking.pickupLocation = location; return; }
+    if (pendingField === 'returnLocation') { state.booking.returnLocation = location; return; }
   }
-  if (/מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף|עיר האיסוף|pickup (?:city|location)|where.{0,30}pick.?up/i.test(lastBot)) state.booking.pickupLocation = location;
+  if (/מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף|עיר האיסוף|pickup (?:city|location)|where.{0,30}pick(?:\s+(?:it|the car))?[\s-]*up/i.test(lastBot)) state.booking.pickupLocation = location;
   else if (/איפה.{0,30}להחזיר|עיר ההחזרה|מקום ההחזרה|return (?:city|location)|where.{0,30}return/i.test(lastBot)) state.booking.returnLocation = location;
   else if (/^(?:הרצליה|תל אביב|ירושלים|נתב["״']?ג|חיפה|רמת גן|פתח תקווה|נתניה|ראשון לציון|רעננה)$/i.test(location)) {
     const recentBot = state.history.filter(entry => entry.from === 'bot').slice(-4).map(entry => entry.text).join(' ');
@@ -974,19 +985,33 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
   if (!reading) return;
   const fields = reading.fields;
   const ageOnly = /^\s*(?:24\s*\+|21\s*[-–]\s*23)\s*$/u.test(input);
+  const pending = nextMissing(state.booking);
+  const plainDate = singleDateAnswer(input);
+  const plainLocation = plainLocationAnswer(input, state.locale);
   for (const [source, target] of [['pickupDate', 'pickupDate'], ['returnDate', 'returnDate'], ['pickupLocation', 'pickupLocation'], ['returnLocation', 'returnLocation'], ['vehicleNeed', 'vehicleNeed']] as const) {
     const field = fields[source];
     if (!field || !input.toLocaleLowerCase().includes(field.evidence.toLocaleLowerCase())) continue;
     if (source === 'pickupDate' || source === 'returnDate') {
       if (ageOnly) continue;
+      if (plainDate) {
+        const expected = source === 'returnDate' ? singleDateAnswer(input, state.booking.pickupDate) : plainDate;
+        if (source !== pending || field.value !== expected) continue;
+      }
       if (!/\d{1,2}|היום|מחר|מחרתיים|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|today|tomorrow|(?:mon|tues|wed|thurs|fri|sat|sun)/i.test(field.evidence)) continue;
       const latest = new Date(`${israelDate()}T00:00:00Z`);
       latest.setUTCFullYear(latest.getUTCFullYear() + 2);
       if (!validDate(field.value) || field.value < israelDate() || field.value > latest.toISOString().slice(0, 10)) continue;
     }
-    if ((source === 'pickupLocation' || source === 'returnLocation')
-      && !/איסוף|לאסוף|להחזיר|החזרה|pick.?up|return|drop.?off/i.test(input)
-      && !(state.phase === 'booking' && state.step === 'rental_locations' && input.trim().split(/\s+/).length <= 3)) continue;
+    if (source === 'pickupLocation' || source === 'returnLocation') {
+      const samePlace = Boolean(plainLocation && sameLocationAnswer(plainLocation));
+      const fromLocation = input.toLocaleLowerCase().includes(`from ${field.value.toLocaleLowerCase()}`)
+        || input.toLocaleLowerCase().includes(`from the ${field.value.toLocaleLowerCase()}`)
+        || /^[\p{Script=Hebrew}]/u.test(field.value) && input.includes(`מ${field.value}`);
+      const explicitRole = source === 'pickupLocation' ? /איסוף|לאסוף|pick(?:\s+(?:it|the car))?[\s-]*up/i.test(input) || fromLocation
+        : /להחזיר|החזרה|return|drop.?off/i.test(input) || samePlace && Boolean(state.booking.pickupLocation);
+      const promptedRole = state.phase === 'booking' && state.step === 'rental_locations' && pending === source && plainLocation && !samePlace;
+      if (!explicitRole && !promptedRole) continue;
+    }
     if (source === 'vehicleNeed' && !customerVehicleChoice(input, state)) continue;
     state.booking[target] = source === 'vehicleNeed'
       ? customerVehicleChoice(input, state)!
@@ -1366,6 +1391,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else reply = he ? 'סליחה, חזרתי על שאלה. לא צריך לציין שעה כרגע. איך תרצה שאעזור מכאן?' : 'Sorry, I repeated a question. I do not need a time now. How would you like me to help?';
   } else {
     const lastBot = lastBotReply;
+    const pendingFieldAtTurnStart = nextMissing(state.booking);
     const wasBooking = state.phase === 'booking';
     const previousVehicleNeed = state.booking.vehicleNeed;
     applyExplicitNeeds(input, state.booking);
@@ -1441,7 +1467,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     }
     applyExplicitLocations(input, state.booking);
     if (state.booking.pickupDate && state.booking.returnDate) delete state.booking.datePreference;
-    applyPromptedLocation(input, state, lastBot);
+    applyPromptedLocation(input, state, lastBot, pendingFieldAtTurnStart);
     if (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input)) state.booking.returnLocation = state.booking.pickupLocation;
     const statedAgeRange = driverAgeRange(input, state);
     if (statedAgeRange) state.booking.driverAgeRange = statedAgeRange;
