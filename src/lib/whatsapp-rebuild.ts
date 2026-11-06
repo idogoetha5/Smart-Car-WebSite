@@ -109,7 +109,10 @@ function question(key: BookingKey, locale: Locale): string {
 }
 
 function conversationalKnown(state: RebuildState): GeminiBotContext['known'] {
-  const booking = state.booking;
+  // The sent request has its own immutable public snapshot. Clearing the
+  // editable draft must not make a follow-up look like a first enquiry.
+  const booking: BookingDraft = state.completedRental && state.phase === 'explore' && !state.interest
+    ? { ...state.completedRental, ...state.booking } : state.booking;
   return {
     pickupDate: booking.pickupDate, returnDate: booking.returnDate,
     pickupLocation: booking.pickupLocation, returnLocation: booking.returnLocation,
@@ -1076,6 +1079,11 @@ function recallsCompletedRentalNeeds(input: string): boolean {
     && /remind|keep|kept|save|saved|record|recorded|how many|תזכיר|שמר|רשמ|נקלט|כמה/iu.test(input);
 }
 
+function recallsRentalDetails(input: string): boolean {
+  return /תזכיר|הזכר|סכם|סיכום|remind|recap|summari[sz]|go over|run through/iu.test(input)
+    && /פרט|בקשה|הזמנה|השכרה|detail|request|booking|rental/iu.test(input);
+}
+
 function pushHistory(state: RebuildState, input: string, reply: string, privateTurn: boolean): void {
   state.history.push({ from: 'customer', text: input.slice(0, 450), private: privateTurn }, { from: 'bot', text: reply.slice(0, 650), private: privateTurn });
   state.history = state.history.slice(-20);
@@ -1316,11 +1324,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   } else if (state.completedRequestId && state.phase === 'explore' && /^(?:אני מאשר(?:ת)?|מאשר(?:ת)?|כן,? מאשר(?:ת)?|i confirm|confirm)$/i.test(input)) {
     reply = store.isSimulation ? (he ? 'בסימולציה הבקשה נקלטה לצורכי בדיקה בלבד; לא נוצרה הזמנה אמיתית.' : 'The request was recorded in this simulation only; no real booking was created.') : (he ? `בקשת ההשכרה נשלחה לבדיקה, מספר ${state.completedRequestId}. היא עדיין אינה הזמנה מאושרת.` : `Your rental request was sent for review, reference ${state.completedRequestId}. It is not a confirmed booking yet.`);
   } else if (state.completedRequestId && state.phase === 'explore' && !explicitBooking(input)
-    && (/מאושר|מאושרת|אישרתם|אושר|סגור|סגורה|רק בקשה|עדיין בקשה|בקשה לבדיקה|\bconfirmed\b|\bconfirmation\b|still.{0,25}(?:request|review)|request for review|(?:which|what).{0,40}(?:date|city|location|details).{0,30}(?:keep|kept|save|record)|(?:מה|איזה|אילו|לאיזה).{0,30}(?:תאריך|עיר|מיקום|פרט).{0,30}(?:שמר|רשמ|נקלט)/i.test(input) || recallsCompletedRentalNeeds(input))) {
+    && (/מאושר|מאושרת|אישרתם|אושר|סגור|סגורה|מובטח|רק בקשה|עדיין בקשה|בקשה לבדיקה|\bconfirmed\b|\bconfirmation\b|\bguaranteed\b|still.{0,25}(?:request|review)|request for review|(?:which|what).{0,40}(?:date|city|location|details).{0,30}(?:keep|kept|save|record)|(?:מה|איזה|אילו|לאיזה).{0,30}(?:תאריך|עיר|מיקום|פרט).{0,30}(?:שמר|רשמ|נקלט)/i.test(input) || recallsRentalDetails(input) || recallsCompletedRentalNeeds(input))) {
     reply = store.isSimulation
       ? (he ? 'בסימולציה נקלטה בקשה לבדיקה בלבד. לא נוצרה הזמנה אמיתית ולא אושר רכב. בעבודה מול SmartCar, הבקשה והפרטים טעונים בדיקה ואישור של נציג.' : 'This simulation recorded a request for review only. No real booking was created and no car was confirmed. With SmartCar, the request and details still require review and confirmation by a representative.')
       : (he ? `בקשת ההשכרה מספר ${state.completedRequestId} נשלחה לבדיקה. שליחת הבקשה אינה אישור להזמנה או לרכב; נציג SmartCar יבדוק את הזמינות והתנאים ויאשר אותם איתכם.` : `Rental request ${state.completedRequestId} was sent for review. Sending a request is not confirmation of a booking or car; a SmartCar representative will check availability and terms and confirm them with you.`);
-    if (state.completedRental && (/date|city|location|details|תאריך|עיר|מיקום|פרט/i.test(input) || RECEIPT_NEED_FIELDS.test(input))) {
+    if (state.completedRental && (/date|city|location|details|תאריך|עיר|מיקום|פרט/i.test(input) || recallsRentalDetails(input) || RECEIPT_NEED_FIELDS.test(input))) {
       const b = state.completedRental;
       const format = (value?: string) => value ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : '';
       reply += he

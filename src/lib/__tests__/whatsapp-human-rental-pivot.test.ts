@@ -46,6 +46,34 @@ describe('human sale-to-rental pivot', () => {
     const confirmed = await c.send('אני מאשר');
     expect(confirmed.state.completedRequestId).toBe('SIM');
     expect(c.create).toHaveBeenCalledTimes(1);
+    const receipt = await c.send('תזכיר לי בבקשה את כל הפרטים המעודכנים, והאם הרכב כבר מובטח לי?');
+    expect(receipt.reply).toContain('07/11/2026');
+    expect(receipt.reply).toContain('16/12/2026');
+    expect(receipt.reply).toContain('הרצליה');
+    expect(receipt.reply).toMatch(/לא אושר רכב/);
+    expect(receipt.reply).not.toMatch(/לאילו תאריכים|באיזה תאריך/);
+    expect(receipt.state.phase).toBe('explore');
+    expect((await c.send('אני מאשר')).state.completedRequestId).toBe('SIM');
+    expect(c.create).toHaveBeenCalledTimes(1);
+  });
+  it.each([
+    ['he', 'אפשר סיכום של הבקשה?', /לא אושר רכב/],
+    ['en', 'Could you recap the updated booking details? Is the car guaranteed?', /No real booking|no car was confirmed/],
+    ['en', 'Please run through my rental details again.', /No real booking|no car was confirmed/],
+  ] as const)('recalls a corrected sent snapshot without reopening intake: %s %s', async (locale, message, status) => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale, booking: {}, history: [], completedRequestId: 'SIM', completedRental: { pickupDate: '2026-11-07', returnDate: '2026-12-17', pickupLocation: 'Herzliya', returnLocation: 'Tel Aviv', vehicleNeed: 'family car', passengers: 4, luggage: 2 } });
+    const result = await c.send(message);
+    expect(result.reply).toContain('07/11/2026');
+    expect(result.reply).toContain('17/12/2026');
+    expect(result.reply).toContain('Tel Aviv');
+    expect(result.reply).toMatch(status);
+    expect(result.reply).not.toMatch(/What dates|לאילו תאריכים/);
+    expect(result.state.booking).toEqual({});
+    expect(c.create).not.toHaveBeenCalled();
+    await c.send(locale === 'he' ? 'אפשר להסביר מה כולל הביטוח?' : 'Can you explain what insurance covers?');
+    const context = c.readTurn.mock.calls.at(-1)?.[1];
+    expect(context?.known).toMatchObject({ pickupDate: '2026-11-07', returnDate: '2026-12-17', pickupLocation: 'Herzliya', returnLocation: 'Tel Aviv', passengers: 4, luggage: 2 });
+    expect(context?.conversation?.completedRequest).toBe(true);
   });
   it('handles the English sale-to-rental switch with both private contacts in one turn', async () => {
     const c = chat();
