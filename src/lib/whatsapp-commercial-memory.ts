@@ -131,7 +131,12 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   const comparesVehicles = /(?:קטן|קומפקט|compact|small).{0,40}(?:או|מול|\bor\b|versus|\bvs\b).{0,30}(?:משפחת|family)|(?:משפחת|family).{0,40}(?:או|מול|\bor\b|versus|\bvs\b).{0,30}(?:קטן|קומפקט|compact|small)/i.test(text);
   if (vehicleUndecided || comparesVehicles) next.vehiclePreference = null;
   else {
+    const leasingChoice = text.match(/\b(?:leasing|lease)\s+(?:for|on)\s+(?:a |the )?(compact car|small car|family car|SUV|seven[- ]seat(?:er)?)/iu)
+      ?? text.match(/(?:^|[.;]\s*)(?:a )?(compact car|small car|family car|SUV|seven[- ]seat(?:er)?)\s+for\s+(?:business|family|city|commuting)\b/iu);
+    const leasingPrefix = leasingChoice ? text.slice(0, leasingChoice.index!).split(/[.!?;\n]/u).at(-1) ?? '' : '';
+    const positiveLeasingChoice = /\b(?:not|never|don['’]?t|do not)\b[^.!?;\n]{0,40}$/iu.test(leasingPrefix) ? null : leasingChoice;
     const choice = text.match(/(?:מעדיף|בחרתי|החלטתי על|רוצה|מחפש|לקנות|חשוב(?:ה)? ל(?:י|נו)|prefer|choose|chosen|decided on|want|looking for|buy|purchase|keep|probably|important to (?:me|us) to have)\s+(?:a |the |את ה|רכב )?(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות|compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)/iu)
+      ?? positiveLeasingChoice
       ?? text.match(/(compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)\s+is important to (?:me|us)/iu)
       ?? text.match(/(?:^|[,;.]\s*|ל)רכב\s+(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות)/iu)
       ?? text.trim().match(/^(?:a |רכב )?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות|compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)[.!\s]*$/iu);

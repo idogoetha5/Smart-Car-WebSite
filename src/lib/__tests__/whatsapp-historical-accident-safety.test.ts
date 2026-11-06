@@ -8,6 +8,8 @@ describe('historical accident checks versus current incidents', () => {
     'האם כדאי לבדוק עבר תאונתי ותאונות קודמות לפני הקנייה?',
     'Should I check the history of previous accidents before buying?',
     'My rental car enquiry is about damage history, not an incident.',
+    'Can I see service and accident records and arrange an independent inspection before deciding? No callback yet.',
+    'May I check the collision records before buying this car?',
   ])('does not turn historical vehicle checks into a roadside emergency: %s', async input => {
     expect(isRebuiltSafetyMessage(input)).toBe(false);
     let saved: RebuildState | null = null;
@@ -32,6 +34,8 @@ describe('historical accident checks versus current incidents', () => {
     'I asked about damage history earlier. My rental car now has a dent after a collision.',
     'בדקתי עבר תאונתי. עכשיו יש שריטה ברכב השכור אחרי פגיעה בחניה.',
     'Before checking the accident history, my rental car has a flat tyre and I need help now.',
+    'Can I see the accident records? My rental car was hit today and the bumper is damaged.',
+    'I was asking about collision records, but I crashed my rental car just now.',
   ])('retains genuine current incident routing even alongside historical language: %s', input => {
     expect(isRebuiltSafetyMessage(input)).toBe(true);
   });

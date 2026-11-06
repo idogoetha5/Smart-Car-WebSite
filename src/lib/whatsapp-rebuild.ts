@@ -504,7 +504,9 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   for (const clause of input.split(/[.!?;,]|\bbut\b|\bactually\b|אבל|בעצם/iu)) {
     const bringsOwnSeat = /(?:bring(?:ing)?|brought|taking)\s+(?:my|our|their)\s+own\s+(?:child|car)\s+seats?|(?:נביא|אביא|מביא(?:ים|ות|ה)?).{0,20}כיסא(?:ות)?(?: בטיחות)?.{0,15}(?:משלנו|משלי)/iu.test(clause)
       && !/(?:not|n['’]t|לא).{0,12}(?:bring|brought|taking|נביא|אביא|מביא)/iu.test(clause);
-    if (bringsOwnSeat || /(?:לא (?:צריך(?:ה|ים)?|רוצ(?:ה|ים)|נרצה|ארצה|נצטרך|נבקש)|אין צורך|do not (?:need|want)|don't (?:need|want)|would not like|wouldn't like|please remove).{0,18}(?:כיסא|child seats?|car seats?)/i.test(clause)) {
+    const noSeatRequested = /^\s*(?:(?:we|I) need\s+)?(?:no|zero)\s+(?:child|car)\s+seats?(?:\s+(?:needed|required|please))?\s*$/iu.test(clause)
+      || /^\s*בלי\s+כיסא(?:ות)?\s+בטיחות\s*$/u.test(clause);
+    if (bringsOwnSeat || noSeatRequested || /(?:לא (?:צריך(?:ה|ים)?|רוצ(?:ה|ים)|נרצה|ארצה|נצטרך|נבקש)|אין צורך|do not (?:need|want)|don't (?:need|want)|would not like|wouldn't like|please remove).{0,18}(?:כיסא|child seats?|car seats?)/i.test(clause)) {
       // Keep an explicit zero so later model extraction or a baby mention
       // cannot silently restore a seat request the customer declined.
       draft.childSeats = 0;
@@ -590,7 +592,7 @@ function safety(input: string): 'accident' | 'breakdown' | null {
   // A vehicle-history check is not a report of an incident. Remove only the
   // historical phrase, so a separate current collision/damage report survives.
   const incidentInput = withoutCoverageQuestionHazards(input)
-    .replace(/\b(?:accident|crash|collision|damage)\s+history\b|\bhistory\s+of\s+(?:(?:past|previous|prior)\s+)?(?:accidents?|crashes|collisions?|damage)\b|\b(?:past|previous|prior)\s+(?:accidents?|crashes|collisions?)(?:\s+damage)?\b/gi, 'vehicle history')
+    .replace(/\b(?:accident|crash|collision|damage)\s+(?:history|records?)\b|\bhistory\s+of\s+(?:(?:past|previous|prior)\s+)?(?:accidents?|crashes|collisions?|damage)\b|\b(?:past|previous|prior)\s+(?:accidents?|crashes|collisions?)(?:\s+damage)?\b/gi, 'vehicle history')
     .replace(/היסטורי(?:ית|ה של)\s+(?:ה?תאונות|התנגשויות|נזקים)|עבר\s+תאונתי|תאונות\s+(?:ה?עבר|קודמות)|נזקי\s+תאונות\s+(?:ה?עבר|קודמות)/gu, 'עבר הרכב');
   if (reportedRentalDamage(incidentInput)) return 'accident';
   if (/תאונה|התנגשות|פצוע|accident|crash|collision/i.test(incidentInput) || !noInjuries && /(?<!לא )נפגע|(?<!not )injured/i.test(incidentInput)) return 'accident';
@@ -658,7 +660,7 @@ function commercialReplyContent(input: string, state: RebuildState): { reply: st
   // Asking for a quote or having no vehicle preference continues the advice.
   const handoffOffered = /תרצ(?:ה|ו).{0,30}(?:שאעביר|שנציג)|would you like.{0,35}(?:pass|representative)/i.test(lastBot);
   const acceptsTeamCheck = handoffOffered && (affirms(input) || /^(?:כן[, ]+תתקדמו עם הצעה|go ahead|please do)[.!\s]*$/i.test(input));
-  const asksTeamReview = !declinesHumanHandoff(input) && /תעביר(?:ו)?\s+(?:את זה|את הפרטים|את הבקשה|את הפנייה|לצוות|לנציג|להצעה)|שהצוות יבדוק|שיבדקו בשבילי|שהצוות יחזור אלי|שיחזרו אלי|תחזרו אלי|(?:have|ask) the team (?:check|review)|pass (?:this|it|the details) to (?:the )?(?:team|representative)|send (?:this|it) to (?:the )?(?:team|representative)|(?:team|someone).{0,15}call me back/i.test(input);
+  const asksTeamReview = !declinesHumanHandoff(input) && /תעביר(?:ו)?\s+(?:את זה|את הפרטים|את הבקשה|את הפנייה|לצוות|לנציג|להצעה)|שהצוות יבדוק|שיבדקו בשבילי|שהצוות יחזור אלי|שיחזרו אלי|תחזרו אלי|(?:have|ask) the team (?:check|review)|(?:pass|send) (?:this|it|the details|(?:my|the|this) (?:enquiry|inquiry|request|details)) to (?:a |the )?(?:team|representative)|(?:team|someone).{0,15}call me back/i.test(input);
   const asksQuote = /אפשר לקבל הצעה|תכינו (?:לי )?הצעה|אשמח להצעה|(?:can|could) I get (?:a |an )?(?:quote|offer)|please (?:send|prepare) (?:a |an )?(?:quote|offer)/i.test(input);
   if (!declinesHumanHandoff(input) && (asksTeamReview || acceptsTeamCheck || /pass (?:this|it|the details) to a representative/i.test(input))) return { reply: he ? `בשמחה, נציג SmartCar יחזור אליכם לגבי ${state.interest === 'leasing' ? 'הליסינג' : 'רכישת הרכב'} לפי הפרטים שמסרתם. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up about your ${state.interest === 'leasing' ? 'leasing' : 'car purchase'} enquiry using the details you shared. You can also call ${OFFICE_PHONE}.`, escalate: true };
   if (asksQuote && !asksTeamReview) {
@@ -724,7 +726,7 @@ function commercialReplyContent(input: string, state: RebuildState): { reply: st
   }
   const hasType = hasKnownVehicle;
   const hasBudget = state.commercial?.budget !== undefined;
-  if (/היסטורי|עבר תאונתי|בדיקה עצמאית|לבדוק את הרכב עצמאית|service history|accident history|independent inspection/i.test(input)) return { reply: he
+  if (/היסטורי|עבר תאונתי|בדיקה עצמאית|לבדוק את הרכב עצמאית|service history|accident (?:history|records?)|independent inspection/i.test(input)) return { reply: he
     ? 'לפני החלטה על רכב מסוים אפשר לבקש את היסטוריית הטיפולים והתאונות ולברר אפשרות לבדיקה עצמאית. צריך לבדוק אילו מסמכים קיימים ומה תנאי הבדיקה עבור אותו רכב; אין כאן אישור למצב הרכב או לתיאום בדיקה.'
     : 'Before deciding on a specific car, you can ask for its service and accident history and discuss an independent inspection. Available records and inspection arrangements need checking for that car; this is not a vehicle condition report or a confirmed appointment.', escalate: false };
   if (/איך (?:אני )?מקבל(?:ת)? הצעה|איך (?:אפשר|מקבלים) לקבל הצעה|how (?:do|can) I get (?:a |an )?(?:quote|offer)/i.test(input)) {
@@ -1520,7 +1522,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         || /בעצם|מעדיף|במקום|החלטתי על|החלטנו על|בוחר|בוחרת|actually|instead|prefer/i.test(input))) state.booking.vehicleNeed = statedVehicle;
     if (rentalPivot || switchesToRental) { carryCommercialRentalNeeds(state); state.interest = undefined; delete state.commercial; }
     else if (reading?.route === 'leasing' || /ליסינג|leasing/i.test(input)) state.interest = 'leasing';
-    else if (reading?.route === 'sale' || state.phase !== 'booking' && /נסיעת מבחן|test drive/i.test(input) || /לקנייה|למכירה|רכב לקנות|רוצה לקנות|לקנות (?:את ה)?רכב|buy (?:a |the )?(?:used |new )?(?:family |compact |small |suv )?(?:car|vehicle)|purchase (?:a |the )?car|car for sale|used car/i.test(input)) state.interest = 'sale';
+    else if (reading?.route === 'sale' || state.phase !== 'booking' && /נסיעת מבחן|test drive/i.test(input) || /לקנייה|למכירה|רכב לקנות|רוצה לקנות|לקנות (?:את ה)?רכב|buy(?:ing)? (?:a |the )?(?:used |new )?(?:family |compact |small |suv )?(?:car|vehicle)|purchas(?:e|ing) (?:a |the )?car|car for sale|used car/i.test(input)) state.interest = 'sale';
     if (state.interest) {
       if (!state.commercial) {
         state.commercial = {};
