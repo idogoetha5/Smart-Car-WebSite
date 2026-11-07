@@ -130,6 +130,15 @@ function hebrewRow(label: string, values: Array<{ text: string; direction: 'ltr'
   return `<tr><td style="padding:13px 0;border-bottom:1px solid #E2ECEC;text-align:right;"><div style="color:#6B7B7B;font-size:13px;font-weight:700;">${escapeHtml(label)}</div>${valueLines}</td></tr>`;
 }
 
+function hebrewSummaryRow(label: string, value: string, valueDirection: 'ltr' | 'rtl'): string {
+  return `<tr>
+    <td width="38%" style="padding:11px 0;color:#5B6B6B;font-size:14px;text-align:right;vertical-align:top;">${escapeHtml(label)}</td>
+    <td width="62%" style="padding:11px 0;text-align:left;font-weight:700;font-size:15px;color:#0D2B2B;vertical-align:top;">
+      <bdi dir="${valueDirection}" style="unicode-bidi:isolate;">${escapeHtml(value)}</bdi>
+    </td>
+  </tr>`;
+}
+
 /** Sends a polished booking message in the exact language used for the booking. */
 export async function sendBookingCustomerEmail(
   params: BookingCustomerEmailParams
@@ -162,7 +171,7 @@ export async function sendBookingCustomerEmail(
   const rows = rejected
     ? (english
       ? [englishRow('Request number', `#${params.orderId}`), englishRow('Vehicle', params.vehicleName), englishRow('Requested pickup', params.startDate), englishRow('Requested return', params.endDate)].join('')
-      : [hebrewRow('מספר בקשה', [{ text: `#${params.orderId}`, direction: 'ltr' }]), hebrewRow('רכב מבוקש', [{ text: params.vehicleName, direction: 'ltr' }]), hebrewRow('איסוף מבוקש', [{ text: params.startDate, direction: 'rtl' }]), hebrewRow('החזרה מבוקשת', [{ text: params.endDate, direction: 'rtl' }])].join(''))
+      : [hebrewSummaryRow('מספר בקשה', `#${params.orderId}`, 'ltr'), hebrewSummaryRow('רכב מבוקש', params.vehicleName, 'ltr'), hebrewSummaryRow('איסוף מבוקש', params.startDate, 'rtl'), hebrewSummaryRow('החזרה מבוקשת', params.endDate, 'rtl')].join(''))
     : english
     ? [
       englishRow('Booking number', `#${params.orderId}`),
@@ -205,23 +214,28 @@ export async function sendBookingCustomerEmail(
   const direction = english ? 'ltr' : 'rtl';
   const align = english ? 'left' : 'right';
   const greeting = english ? `Hello ${escapeHtml(params.customerName)},` : `שלום ${escapeHtml(params.customerName)},`;
-  const branchContacts = rejected ? `<div style="margin-top:22px;font-size:15px;line-height:1.8;color:#0D2B2B;">
-    <strong>${english ? 'Questions? Call the branch that suits you:' : 'לשאלות נוספות אפשר להתקשר לסניף הנוח לך:'}</strong><br>
-    ${english ? 'Herzliya' : 'הרצליה'}: <a href="tel:+97299509757">09-9509757</a><br>
-    ${english ? 'Tel Aviv' : 'תל אביב'}: <a href="tel:+97235233073">03-5233073</a><br>
-    ${english ? 'Jerusalem' : 'ירושלים'}: <a href="tel:+97226221150">02-6221150</a>
+  const branchContacts = rejected ? `<div style="margin-top:26px;padding-top:18px;border-top:1px solid #DCE7E7;color:#0D2B2B;">
+    <p style="margin:0 0 10px;font-size:15px;line-height:1.6;font-weight:700;">${english ? 'For more information, call the branch that suits you:' : 'לפרטים נוספים אפשר להתקשר לסניף הנוח לך:'}</p>
+    <table role="presentation" dir="${direction}" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-size:15px;line-height:1.8;">
+      <tr><td style="padding:3px 0;text-align:${align};">${english ? 'Herzliya' : 'הרצליה'}</td><td dir="ltr" style="padding:3px 0;text-align:${english ? 'right' : 'left'};"><a href="tel:+97299509757" style="color:#2D5F5F;text-decoration:none;font-weight:700;">09-9509757</a></td></tr>
+      <tr><td style="padding:3px 0;text-align:${align};">${english ? 'Tel Aviv' : 'תל אביב'}</td><td dir="ltr" style="padding:3px 0;text-align:${english ? 'right' : 'left'};"><a href="tel:+97235233073" style="color:#2D5F5F;text-decoration:none;font-weight:700;">03-5233073</a></td></tr>
+      <tr><td style="padding:3px 0;text-align:${align};">${english ? 'Jerusalem' : 'ירושלים'}</td><td dir="ltr" style="padding:3px 0;text-align:${english ? 'right' : 'left'};"><a href="tel:+97226221150" style="color:#2D5F5F;text-decoration:none;font-weight:700;">02-6221150</a></td></tr>
+    </table>
   </div>` : '';
+  const noticeBlock = rejected
+    ? `<p style="margin:24px 0 0;font-size:16px;line-height:1.7;color:#0D2B2B;">${notice}</p>`
+    : `<div style="margin-top:24px;padding:14px 16px;background:#FFF7F1;border:1px solid #F2C7AC;border-radius:10px;font-size:13px;line-height:1.55;color:#5B4638;">${notice}</div>`;
   const html = `
     <div dir="${direction}" style="font-family:Arial,Helvetica,sans-serif;background:#F4F7F7;padding:28px 14px;color:#0D2B2B;">
       <div style="max-width:560px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;border:1px solid #DCE7E7;">
-        <div style="padding:25px 32px 17px;text-align:center;border-bottom:4px solid #E8743B;"><img src="${LOGO_URL}" alt="SmartCar" style="width:154px;height:auto;display:inline-block;"></div>
+        <div style="padding:25px 32px ${rejected ? '20px' : '17px'};text-align:center;border-bottom:${rejected ? '1px solid #DCE7E7' : '4px solid #E8743B'};"><img src="${LOGO_URL}" alt="SmartCar" style="width:154px;height:auto;display:inline-block;"></div>
         <div style="padding:30px 32px;text-align:${align};">
           <h1 style="font-size:25px;line-height:1.2;margin:0 0 14px;color:#0D2B2B;">${heading}</h1>
           <p style="font-size:16px;line-height:1.65;margin:0 0 11px;">${greeting}</p>
           <p style="font-size:16px;line-height:1.65;margin:0 0 21px;">${intro}</p>
           <table role="presentation" dir="${direction}" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border-top:1px solid #DCE7E7;border-bottom:1px solid #DCE7E7;">${rows}</table>
           ${cta}
-          <div style="margin-top:24px;padding:14px 16px;background:#FFF7F1;border:1px solid #F2C7AC;border-radius:10px;font-size:13px;line-height:1.55;color:#5B4638;">${notice}</div>
+          ${noticeBlock}
           ${branchContacts}
           <p style="font-size:14px;line-height:1.6;margin:24px 0 0;color:#526363;">${rejected ? (english ? 'Kind regards,<br>The SmartCar team' : 'בברכה,<br>צוות SmartCar') : (english ? 'We are here for anything you need.' : 'אנחנו כאן לכל שאלה ונשמח לעזור לאורך כל הדרך.')}</p>
         </div>

@@ -153,6 +153,29 @@ function validDate(value: string): boolean {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
+function relativeRentalDuration(input: string): { pickupDate: string; returnDate: string } | null {
+  for (const clause of input.split(/[.!?;\n]|\b(?:but|actually)\b|אבל|בעצם/iu)) {
+    if (/אולי|מתלבט|עוד לא|עדיין לא|(?:^|\s)אם(?:\s|$)|לא (?:אקח|ניקח|נלך|רוצה)|\b(?:maybe|might|if|considering)\b|not sure|(?:do not|don['’]?t) (?:take|want|rent)/iu.test(clause)) continue;
+    const startMatch = clause.match(/(?:^|[\s,])(?:מ|from\s+)?(מחרתיים|מחר|היום|day after tomorrow|tomorrow|today)(?=[\s,.!?]|$)/iu);
+    const start = startMatch?.[1];
+    if (!start) continue;
+    const days = clause.match(/(?:למשך\s+|ל)(יום אחד|יומיים|שלושה ימים|ארבעה ימים|חמישה ימים|\d{1,2}\s*ימים)|\bfor\s+(one|two|three|four|five|\d{1,2})\s+days?\b/iu);
+    if (!days) continue;
+    const chosen = /נלך על|אלך על|לשכור|להשכיר|(?:אקח|ניקח|רוצה|צריך|צריכה|צריכים).{0,15}(?:רכב|קטן|משפחת)|\b(?:rent|hire)\b|\brental car\b|take (?:a |the )?(?:(?:compact|small|family) )?car|go with/iu.test(clause);
+    const briefDateAnswer = clause.replace(startMatch![0], '').replace(days[0], '').replace(/[\s,־-]/gu, '') === '';
+    if (!chosen && !briefDateAnswer) continue;
+    const counts: Record<string, number> = { 'יום אחד': 1, 'יומיים': 2, 'שלושה ימים': 3, 'ארבעה ימים': 4, 'חמישה ימים': 5, one: 1, two: 2, three: 3, four: 4, five: 5 };
+    const token = (days[1] ?? days[2]).toLowerCase();
+    const count = counts[token] ?? Number(token.match(/\d+/)?.[0]);
+    const pickupDate = singleDateAnswer(start);
+    if (!pickupDate || !Number.isInteger(count) || count < 1 || count > 60) continue;
+    const returned = new Date(`${pickupDate}T00:00:00Z`);
+    returned.setUTCDate(returned.getUTCDate() + count);
+    return { pickupDate, returnDate: returned.toISOString().slice(0, 10) };
+  }
+  return null;
+}
+
 function explicitDateRange(input: string): { pickupDate: string; returnDate: string } | null {
   const relativeRange = input.match(new RegExp(`(?:^|\\s)(?:מ|from\\s+)?(מחרתיים|מחר|היום|day after tomorrow|tomorrow|today)\\s*(?:עד|until|through|to|[-–])\\s*(20\\d{2}-\\d{2}-\\d{2}|\\d{1,2}[./]\\d{1,2}(?:[./]20\\d{2})?|\\d{1,2}\\s+(?:ב)?(?:${Object.keys(MONTHS).join('|')})(?:\\s+20\\d{2})?)(?=[\\s,.!?]|$)`, 'iu'));
   if (relativeRange) {
@@ -190,7 +213,7 @@ function explicitDateRange(input: string): { pickupDate: string; returnDate: str
     if (validDate(pickupDate) && validDate(returnDate) && pickupDate >= today && returnDate > pickupDate && returnDate <= latest.toISOString().slice(0, 10)) return { pickupDate, returnDate };
   }
   const match = input.match(EXPLICIT_RANGE);
-  if (!match) return null;
+  if (!match) return relativeRentalDuration(input);
   const month = MONTHS[match[3].toLocaleLowerCase()];
   const today = israelDate();
   let year = match[4] ? Number(match[4]) : Number(today.slice(0, 4));
@@ -278,6 +301,12 @@ function redactServiceReference(text: string, reference?: string): string {
   return reference ? labelled.split(reference).join('[booking reference removed]') : labelled;
 }
 
+function explicitSameReturn(input: string): boolean {
+  return input.split(/[.!?;,]|אבל|\bbut\b/iu).some(clause =>
+    /(?:להחזיר|נחזיר|אחזיר|החזרה)\s+שם(?:\s|$)/u.test(clause)
+      && !/(?:לא|אל|בלי).{0,12}(?:להחזיר|נחזיר|אחזיר|החזרה)/u.test(clause));
+}
+
 function applyPromptedDate(input: string, state: RebuildState, lastBot: string): void {
   if (/באיזה תאריך.{0,25}לאסוף|תאריך איסוף|what date.{0,25}pick.?up/i.test(lastBot) || asksRentalDates(lastBot) && !state.booking.pickupDate) {
     const date = singleDateAnswer(input);
@@ -291,7 +320,7 @@ function applyPromptedDate(input: string, state: RebuildState, lastBot: string):
 function applyExplicitLocations(input: string, draft: BookingDraft): void {
   const sameCity = input.trim().match(/^([\p{L}\s'׳״-]{2,50})\s+גם\s+(?:להחזיר\s+(?:גם\s+)?לאסוף|לאסוף\s+(?:(?:וגם|גם)\s+)?להחזיר)$/u)?.[1]?.trim();
   if (sameCity) { draft.pickupLocation = sameCity; draft.returnLocation = sameCity; return; }
-  const stop = '(?=\\s+(?:ו?החזרה|להחזיר|נחזיר|אחזיר|נשאר(?:ת)?|unchanged|remains?|stays?|(?:and\\s+)?return|(?:and\\s+)?drop.?off|ב[-־]?\\s*\\d)|[,.!?]|$)';
+  const stop = '(?=\\s+(?:ו?החזרה|להחזיר|נחזיר|אחזיר|נשאר(?:ת)?|מחרתיים|מחר|היום|ליומיים|ליום|tomorrow|today|day after tomorrow|for\\s+(?:one|two|three|four|five)\\s+days?|unchanged|remains?|stays?|(?:and\\s+)?return|(?:and\\s+)?drop.?off|ב[-־]?\\s*\\d)|[,.!?]|$)';
   const hePickup = input.match(new RegExp(`(?:איסוף|לאסוף)\\s+[במ]([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
   const enPickupStop = stop.replace('(?=', '(?=\\s+on\\s+\\d{1,2}|');
   const enPickup = input.match(new RegExp(`pick.?up\\s+(?:at|from|in)\\s+([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${enPickupStop}`, 'iu'))?.[1];
@@ -300,8 +329,8 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
     : undefined;
   const pickup = (hePickup ?? enPickup ?? enFromPickup)?.trim();
   if (pickup) draft.pickupLocation = /^(?:the )?airport$/i.test(pickup) && /Ben Gurion Airport/i.test(input) ? 'Ben Gurion Airport' : pickup;
-  const heReturn = input.match(/(?:החזרה|להחזיר|נחזיר|אחזיר)\s+(?:(?:את\s+)?הרכב\s+)?(?:(?:תהיה|יהיה)\s+)?[במ]([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:נהג|גיל|בן|בת|למשך|לתאריכים|ב[-־]?\s*\d)|[,.!?]|$)/iu)?.[1];
-  const enReturn = input.match(/(?:return|drop.?off)\s+(?:(?:the car|it)\s+)?(?:(?:will be|will remain|stays?|remains?)\s+)?(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+on\s+\d{1,2}|[,.!?]|$)/iu)?.[1];
+  const heReturn = input.match(/(?:החזרה|להחזיר|נחזיר|אחזיר)\s+(?:(?:את\s+)?הרכב\s+)?(?:(?:תהיה|יהיה)\s+)?[במ]([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:נהג|גיל|בן|בת|למשך|לתאריכים|מחרתיים|מחר|היום|ליומיים|ליום|ב[-־]?\s*\d)|[,.!?]|$)/iu)?.[1];
+  const enReturn = input.match(/(?:return|drop.?off)\s+(?:(?:the car|it)\s+)?(?:(?:will be|will remain|stays?|remains?)\s+)?(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:on\s+\d{1,2}|tomorrow|today|day after tomorrow|for\s+(?:one|two|three|four|five)\s+days?)|[,.!?]|$)/iu)?.[1];
   const returnLocation = (heReturn ?? enReturn)?.split(/\s+(?:במקום|instead of)\s+/i)[0].trim();
   if (returnLocation) draft.returnLocation = returnLocation;
   const dateText = `(?:\\d{1,2}[./]\\d{1,2}(?:[./]20\\d{2})?|\\d{1,2}\\s+(?:ב)?(?:${Object.keys(MONTHS).join('|')})(?:\\s+20\\d{2})?)`;
@@ -331,7 +360,7 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
     if (date) draft.returnDate = date;
     draft.returnLocation = datedReturn[2].trim();
   }
-  if (draft.pickupLocation && /אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input)) draft.returnLocation = draft.pickupLocation;
+  if (draft.pickupLocation && (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input))) draft.returnLocation = draft.pickupLocation;
 }
 
 function explicitBooking(input: string): boolean {
@@ -562,8 +591,10 @@ function customerVehicleChoice(input: string, state: RebuildState): string | nul
 function driverAgeRange(input: string, state: RebuildState): '21-23' | '24-plus' | null {
   if (/(?:^|\D)21\s*[-–]\s*23(?:\D|$)/u.test(input)) return '21-23';
   if (/(?:^|\D)24\s*\+(?:\D|$)/u.test(input)) return '24-plus';
-  if (!/(?:בן|בת|גיל|age|aged|\bI am\b|\bI'm\b)/i.test(input) && !(state.phase === 'booking' && state.step === 'rental_age')) return null;
-  const age = input.match(/(?:בן|בת|גיל|age(?:d)?(?: is)?|\bI am|\bI'm)\s*(\d{2})(?!\d)/i)?.[1]
+  const selfAge = input.match(/(?:^|[\s,])ו?אני\s+(?:(?:בן|בת)\s+)?(\d{2})(?!\d)|\b(?:I am|I'm)\s+(\d{2})(?!\d)/iu);
+  const primaryAge = input.match(/(?:הנהג הראשי|הנהגת הראשית|main driver|primary driver)\s+(?:(?:בן|בת|is|aged)\s+)?(\d{2})(?!\d)/iu)?.[1];
+  if (!selfAge && !primaryAge && !/(?:בן|בת|גיל|age|aged|\bI am\b|\bI'm\b)/i.test(input) && !(state.phase === 'booking' && state.step === 'rental_age')) return null;
+  const age = primaryAge ?? selfAge?.[1] ?? selfAge?.[2] ?? input.match(/(?:בן|בת|גיל|age(?:d)?(?: is)?|\bI am|\bI'm)\s*(\d{2})(?!\d)/i)?.[1]
     ?? (state.phase === 'booking' && state.step === 'rental_age' ? input.trim().match(/^(\d{2})$/)?.[1] : undefined);
   if (!age) return null;
   const value = Number(age);
@@ -1051,7 +1082,7 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
     const statedValues = field?.evidence.match(/\d{1,2}|אחד|אחת|שניים|שתיים|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש|שבעה|שבע|שמונה|one|two|three|four|five|six|seven|eight/gi) ?? [];
     if (field && evidenceMatches && statedValues.some(value => statedCount(value) === count) && input.toLocaleLowerCase().includes(field.evidence.toLocaleLowerCase()) && Number.isInteger(count) && count >= 0 && count <= 20) state.booking[name] = count;
   }
-  if (!state.booking.returnLocation && state.booking.pickupLocation && /אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input)) state.booking.returnLocation = state.booking.pickupLocation;
+  if (!state.booking.returnLocation && state.booking.pickupLocation && (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input))) state.booking.returnLocation = state.booking.pickupLocation;
   if (state.booking.pickupDate && state.booking.returnDate && state.booking.returnDate < state.booking.pickupDate) delete state.booking.returnDate;
 }
 
@@ -1503,7 +1534,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     applyExplicitLocations(input, state.booking);
     if (state.booking.pickupDate && state.booking.returnDate) delete state.booking.datePreference;
     applyPromptedLocation(input, state, lastBot, pendingFieldAtTurnStart);
-    if (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input)) state.booking.returnLocation = state.booking.pickupLocation;
+    if (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input)) state.booking.returnLocation = state.booking.pickupLocation;
     const statedAgeRange = driverAgeRange(input, state);
     if (statedAgeRange) state.booking.driverAgeRange = statedAgeRange;
     const declines = /לא רוצה להזמין|לא מבקש להזמין|אל תזמין|לא עכשיו|רק מתעניין|עדיין בודק|don't book|cancel this request|not ready to book|just looking/i.test(input);
