@@ -125,8 +125,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
     && annualMileageMentions(reply).some(value => value !== savedAnnualMileage && !comparedMileage.includes(value))) return reject('mileage_conflict');
   const question = reply.match(/[^.!?؟]*[?؟]/g)?.at(-1) ?? '';
   if (/(?:what time|at what hour).{0,65}(?:pick.?up|return|collect|drop.?off)|(?:pick.?up|return|collection) time|באיז(?:ו|ה) שעה.{0,45}(?:איסוף|לאסוף|החזרה|להחזיר)|שעת (?:ה?איסוף|ה?החזרה)/i.test(question)) return reject('unneeded_time');
-  if (knownValue('pickupDate') && /what (?:is |would be )?(?:the |your )?pick.?up date|when.{0,30}pick.?up|באיזה תאריך.{0,25}לאסוף|תאריך האיסוף/i.test(question)) return reject('known_pickup_date');
-  if (knownValue('returnDate') && /what (?:is |would be )?(?:the |your )?return date|when.{0,30}return|באיזה תאריך.{0,25}תחזיר|תאריך ההחזרה/i.test(question)) return reject('known_return_date');
+  if (knownValue('pickupDate') && /what (?:is |would be )?(?:the |your )?pick.?up date|when.{0,30}pick.?up|(?:what|which).{0,25}date.{0,40}(?:pick.?up|collect)|(?:באיזה|לאיזה|איזה).{0,15}תאריך.{0,45}(?:איסוף|לאסוף)|תאריך האיסוף/i.test(question)) return reject('known_pickup_date');
+  if (knownValue('returnDate') && /what (?:is |would be )?(?:the |your )?return date|when.{0,30}return|(?:what|which).{0,25}date.{0,40}(?:return|drop.?off)|(?:באיזה|לאיזה|איזה).{0,15}תאריך.{0,45}(?:החזרה|להחזיר|תחזיר)|תאריך ההחזרה/i.test(question)) return reject('known_return_date');
   const asksDates = /what dates|which dates|(?:check|choose|pick|select|decide|settle)(?:[^.!?\n]{0,35})\bdates?\b|(?:what|which|specific) week|plan[^.!?\n]{0,35}(?:a |specific )?week|what (?:are )?(?:the |your )?(?:pick.?up|return) dates|באילו תאריכים|לאילו תאריכים|באיזה שבוע|(?:לבדוק|נבדוק|לבחור|נבחר|לקבוע|נקבע|לסגור|נסגור).{0,30}תאריכ|מתי.{0,30}(?:לאסוף|להחזיר)/i.test(question);
   if (asksDates && (knownValue('pickupDate') && knownValue('returnDate') || hasUndecidedRentalDates(input) || /undecided/i.test(String(known.datePreference ?? '')) || hasUndecidedRentalDates(String(known.datePreference ?? '')))) return reject('known_or_undecided_dates');
   if (knownValue('pickupLocation') && /where.{0,35}pick(?:\s+(?:it|the car))?[\s-]*up|מאיפה.{0,30}לאסוף|איפה.{0,30}לאסוף/i.test(question)) return reject('known_pickup_location');
@@ -134,7 +134,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (knownValue('passengers') && /how many (?:people|passengers|travellers)|כמה (?:אנשים|נוסעים)/i.test(question)) return reject('known_passengers');
   if (knownValue('luggage') && /how many (?:bags|suitcases)|כמה מזוודות/i.test(question)) return reject('known_luggage');
   if (knownValue('driverAgeRange') && /what.{0,25}age group|what.{0,25}driver.{0,10}age|how old|קבוצת הגיל|גיל הנהג|בן כמה/i.test(question)) return reject('known_age');
-  if (knownValue('customerName') && /what name|your name|על איזה שם|מה שמך/i.test(question)) return reject('known_name');
+  if (knownValue('customerName', 'customerNameProvided') && /what name|your name|על איזה שם|מה שמך|להוסיף.{0,15}(?:שם|שמך)|provide.{0,20}name/i.test(question)) return reject('known_name');
   if (knownValue('vehicleNeed', 'vehiclePreference', 'commercialVehiclePreference') && /what (?:kind|type) of (?:car|vehicle).{0,35}(?:need|want|like)|איזה סוג רכב.{0,30}(?:תרצ|צריך|רוצים)/i.test(question)) return reject('known_vehicle');
   const asksCommercialTerm = /how long.{0,35}(?:need|lease|term|use)|what.{0,25}(?:term|duration|period)|לכמה זמן|(?:מה|איזו?|כמה).{0,15}(?:תקופ|משך)/i.test(question);
   if (knownValue('commercialTermMonths', 'termMonths') && asksCommercialTerm) return reject('known_term');

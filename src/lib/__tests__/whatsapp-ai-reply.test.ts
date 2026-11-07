@@ -5,6 +5,18 @@ const base: ConversationalReplyInput = { reply: '', input: '', locale: 'en', kno
 const check = (reply: string, rest: Partial<ConversationalReplyInput> = {}) => validateConversationalReply({ ...base, ...rest, reply });
 
 describe('output checks for natural conversational drafts', () => {
+  it.each([
+    ['he', 'לאיזה תאריך מדויק תרצה לתאם את האיסוף?', 'pickupDate'],
+    ['he', 'איזה תאריך נרשום להחזרה?', 'returnDate'],
+    ['en', 'Which date would you like to collect the car?', 'pickupDate'],
+    ['en', 'What date shall we arrange the return?', 'returnDate'],
+  ] as const)('rejects natural repeated known-date wording: %s %s', (locale, reply, field) => {
+    expect(check(reply, { locale, known: { [field]: '2026-12-10' } })).toBeNull();
+    expect(check(reply, { locale, known: {} })).toBe(reply);
+  });
+  it('uses a non-identifying name-presence marker to prevent asking again', () => {
+    expect(check('Could you provide your full name?', { known: { customerNameProvided: 'provided' } })).toBeNull();
+  });
   it.each(['תרצו לבחור תאריכים כשתהיו מוכנים?', 'רוצה שנבדוק תאריכים?'])('rejects a soft date invitation after dates were deferred: %s', reply => {
     expect(check(reply, { locale: 'he', known: { datePreference: 'dates undecided' } })).toBeNull();
   });

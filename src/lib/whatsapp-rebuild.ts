@@ -118,6 +118,7 @@ function conversationalKnown(state: RebuildState): GeminiBotContext['known'] {
     pickupLocation: booking.pickupLocation, returnLocation: booking.returnLocation,
     vehicleNeed: booking.vehicleNeed, passengers: booking.passengers,
     luggage: booking.luggage, childSeats: booking.childSeats, driverAgeRange: booking.driverAgeRange,
+    customerNameProvided: booking.customerName ? 'provided' : undefined,
     datePreference: booking.datePreference,
     commercialInterest: state.interest,
     commercialBudget: state.commercial?.budget?.amount, commercialCurrency: state.commercial?.budget?.currency,
@@ -397,6 +398,14 @@ function offersRentalRequest(reply: string): boolean {
   return /(?:נמשיך|נתקדם|להתקדם|נתחיל|להתחיל|שנתחיל|נאסוף|לאסוף).{0,85}(?:הזמנה|בקשה|פרטים|זמינות)|(?:הזמנה|בקשה).{0,55}(?:נתקדם|נתחיל|נמשיך)|(?:continue|proceed|start|prepare|check).{0,70}(?:booking|rental|request|availability)/i.test(reply);
 }
 
+function acceptsRentalInvitation(input: string, lastBot: string): boolean {
+  if (!offersRentalRequest(lastBot)) return false;
+  if (/לא עכשיו|עדיין לא|עוד לא|לא (?:רוצה|רוצים|מעוניין|מעוניינים).{0,20}(?:להתחיל|לפתוח|להזמין)|אל (?:תתחיל|תפתח|תזמין)|not (?:now|yet|ready)|(?:do not|don['’]?t) (?:start|open|book)/iu.test(input)) return false;
+  // Accepting the invitation starts a draft, not a booking or consented send.
+  // Customers commonly attach their name, a question or a spending boundary.
+  return affirms(input) || /^(?:כן(?:[,\s]+(?:יאללה|בטח|סבבה|בבקשה|קדימה))*|יאללה|סבבה|yes|yeah|sure|okay|ok|go ahead|let['’]?s do it)(?=[\s,.!;]|$)/iu.test(input);
+}
+
 function asksRentalDates(reply: string): boolean {
   if (!/[?؟]/.test(reply) && !/(?:באיזה|איזה|באילו|אילו|לאילו|מתי|מהם|אשמח לדעת|what|which|when)/i.test(reply)) return false;
   return /(?:באיזה|איזה|באילו|אילו|לאילו|מהם)\s+(?:תאריך|תאריכים?)|(?:תאריך|תאריכ|מתי).{0,55}(?:לאסוף|להחזיר|תצטרכ|רכב|השכר|לבדוק)|(?:לאסוף|להחזיר|רכב|השכר).{0,35}(?:תאריך|תאריכים?)|(?:what|which) dates?.{0,55}(?:pick.?up|return|need|car)|when.{0,45}(?:pick.?up|return)/i.test(reply);
@@ -525,6 +534,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
 }
 
 function explicitVehicleNeed(input: string, locale: Locale): string | null {
+  if (/^\s*קטן\s*$/u.test(input)) return locale === 'he' ? 'רכב קומפקטי' : 'compact car';
   if (/^\s*משפחתי(?:ת)?\s*$/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
   if (/שבעה מקומות|7\s*מקומות|7[- ]?seater|seven[- ]?seater/i.test(input)) return locale === 'he' ? 'רכב שבעה מקומות' : 'seven-seat car';
   if (/רכב\s+משפחתי|רכב\s+למשפחה|^\s*משפחתית\s*$|(?:רוצה|מחפש|צריך|מעדיף)\s+(?:רכב\s+)?משפחתית|(?:רוצה|מחפש|צריך|מעדיף)\s+משפחתי|family car/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
@@ -1429,7 +1439,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       state.requestKey ??= randomUUID();
       if (priorVehicleRequest) state.booking.vehicleNeed ??= explicitVehicleNeed(priorVehicleRequest.text, state.locale)!;
     }
-    const confirmedOffer = affirms(input) && offersRentalRequest(lastBot);
+    const confirmedOffer = !state.interest && acceptsRentalInvitation(input, lastBot);
+    if (confirmedOffer) {
+      state.phase = 'booking';
+      state.requestKey ??= randomUUID();
+    }
     const switchesToRental = Boolean(state.interest && explicitBooking(input) && /לשכור|להשכיר|השכרה|rental|rent/i.test(input));
     privateTurn = state.phase === 'booking' && (state.step === 'rental_name' || state.step === 'rental_email');
     const gotPrivate = privateDetail(input, state, (!state.interest || switchesToRental) && explicitBooking(input));
