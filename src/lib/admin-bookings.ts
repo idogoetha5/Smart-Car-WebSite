@@ -111,8 +111,12 @@ export function approvalResultMessage(
   status: string,
   emailed: unknown,
 ): { text: string; ok: boolean } {
+  if (status.toUpperCase() === "REJECTED")
+    return emailed === true
+      ? { text: "ההזמנה סורבה ומייל עדכון נשלח ללקוח", ok: true }
+      : { text: "ההזמנה סורבה. שליחת מייל העדכון לא אושרה כרגע; יש לבדוק לפני שליחה נוספת.", ok: false };
   if (status.toUpperCase() !== "CONFIRMED")
-    return { text: "ההזמנה סורבה", ok: true };
+    return { text: "סטטוס ההזמנה עודכן", ok: true };
   if (emailed === true)
     return { text: "ההזמנה אושרה ומייל האישור נשלח ללקוח", ok: true };
   return {

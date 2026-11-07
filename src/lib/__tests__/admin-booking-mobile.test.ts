@@ -119,6 +119,13 @@ describe("mobile booking context", () => {
         "נשלח ללקוח",
       );
     }
-    expect(approvalResultMessage("rejected", null).text).toBe("ההזמנה סורבה");
+    expect(approvalResultMessage("rejected", true)).toEqual({
+      text: "ההזמנה סורבה ומייל עדכון נשלח ללקוח",
+      ok: true,
+    });
+    for (const result of [false, null, undefined]) {
+      expect(approvalResultMessage("rejected", result).ok).toBe(false);
+      expect(approvalResultMessage("rejected", result).text).not.toContain("נשלח ללקוח");
+    }
   });
 });

@@ -126,7 +126,7 @@ export default function AdminBookingsPage() {
         closeBooking();
         toast('ההזמנה נמחקה');
       } else {
-        const message = approvalResultMessage(status, body.confirmationEmailed);
+        const message = approvalResultMessage(status, status.toUpperCase() === 'REJECTED' ? body.rejectionEmailed : body.confirmationEmailed);
         toast(message.text, message.ok);
       }
       setPendingAction(null);
@@ -414,7 +414,7 @@ export default function AdminBookingsPage() {
         {isDecided(selectedBooking.status) && <button type="button" disabled={!!actingId} onClick={() => handleDelete(selectedBooking.id, selectedBooking.customer_name || 'לקוח')} className="mt-4 min-h-12 w-full rounded-xl border border-red-200 text-sm font-bold text-red-700 disabled:opacity-40">מחיקת הזמנה</button>}</>}
       </AdminSheet>
       <AdminSheet open={!!pendingAction} onClose={() => setPendingAction(null)} busy={!!actingId} alert title={pendingAction?.status === 'delete' ? 'מחיקת הזמנה לצמיתות' : pendingAction?.status === 'confirmed' ? 'אישור הזמנה' : 'סירוב להזמנה'} description={pendingAction ? `הזמנה של ${pendingAction.name} · #${numericOrderReference(pendingAction.id)}` : undefined} footer={<div className="grid grid-cols-2 gap-2"><button type="button" disabled={!!actingId} onClick={() => setPendingAction(null)} className="min-h-12 rounded-xl border border-slate-200 font-bold disabled:opacity-40">חזרה</button><button type="button" disabled={!!actingId} onClick={performAction} className={`min-h-12 rounded-xl font-black text-white disabled:opacity-50 ${pendingAction?.status === 'confirmed' ? 'bg-[#2D5F5F]' : 'bg-red-700'}`}>{actingId ? 'מבצע…' : pendingAction?.status === 'delete' ? 'מחיקה לצמיתות' : pendingAction?.status === 'confirmed' ? 'אישור ההזמנה' : 'סירוב להזמנה'}</button></div>}>
-        <p className="text-base leading-7 text-slate-700">{pendingAction?.status === 'delete' ? 'יימחקו גם משימות הנהג ובדיקות הרכב המשויכות להזמנה, כולל סרטונים, תמונות ומסמכים חתומים. פעולה זו אינה ניתנת לביטול.' : pendingAction?.status === 'confirmed' ? 'הזמינות תיבדק שוב לפני האישור. לאחר האישור תתבצע שליחת מייל ללקוח בשפת ההזמנה.' : 'ההזמנה תסומן כסורבה על ידי המשרד. פעולה זו אינה ביטול על ידי הלקוח.'}</p>
+        <p className="text-base leading-7 text-slate-700">{pendingAction?.status === 'delete' ? 'יימחקו גם משימות הנהג ובדיקות הרכב המשויכות להזמנה, כולל סרטונים, תמונות ומסמכים חתומים. פעולה זו אינה ניתנת לביטול.' : pendingAction?.status === 'confirmed' ? 'הזמינות תיבדק שוב לפני האישור. לאחר האישור תתבצע שליחת מייל ללקוח בשפת ההזמנה.' : 'ההזמנה תסומן כסורבה על ידי המשרד ומייל עדכון יישלח ללקוח בשפת ההזמנה. פעולה זו אינה ביטול על ידי הלקוח.'}</p>
       </AdminSheet>
     </div>
   );

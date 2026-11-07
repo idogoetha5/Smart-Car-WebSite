@@ -100,6 +100,32 @@ async function sendConfirmationEmail(booking: ConfirmableBooking): Promise<boole
   return result.ok;
 }
 
+function rejectionEmailParams(booking: ConfirmableBooking) {
+  const key = `booking_rejected:${booking.id}`;
+  const locale = booking.consent_locale === 'en' ? 'en' : 'he';
+  return {
+    kind: 'rejected',
+    idempotencyKey: key,
+    locale,
+    toEmail: booking.customer_email,
+    customerName: booking.customer_name,
+    orderId: numericOrderReference(String(booking.id)),
+    vehicleName: `${booking.vehicle?.make ?? ''} ${booking.vehicle?.model ?? ''}`.trim(),
+    startDate: formatDate(booking.pickup_date, locale),
+    endDate: formatDate(booking.dropoff_date, locale),
+    pickupLocation: formatLocationForCustomer(booking.pickup_location),
+    returnLocation: formatLocationForCustomer(booking.dropoff_location),
+    totalPrice: '-',
+  } as const;
+}
+
+async function sendRejectionEmail(booking: ConfirmableBooking): Promise<boolean> {
+  const params = rejectionEmailParams(booking);
+  if (await alreadyDelivered(params.idempotencyKey)) return true;
+  const result = await sendBookingCustomerEmail(params);
+  return result.ok;
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -139,6 +165,7 @@ export async function PATCH(
   }
 
   let transitionedToConfirmed = false;
+  let transitionedToRejected = false;
 
   if (dbStatus === 'CONFIRMED') {
     // Availability re-check and the transition into CONFIRMED happen in a
@@ -178,11 +205,15 @@ export async function PATCH(
         return NextResponse.json({ error: 'שגיאה בבדיקת זמינות, נסה שוב' }, { status: 503 });
     }
   } else if (dbStatus === 'REJECTED') {
-    // Do not overwrite a concurrent approval or a customer's cancellation.
-    const { data: changed, error: rejectError } = await supabase.from('bookings')
-      .update({ status: dbStatus }).eq('id', id).eq('status', 'PENDING').select('id');
+    // The status transition and the retry entry must commit together. If the
+    // process dies before Resend responds, the cron can still send the email.
+    const { data: outcome, error: rejectError } = await supabase.rpc('reject_booking_with_email', {
+      p_booking_id: id,
+      p_email_payload: rejectionEmailParams(current),
+    });
     if (rejectError) return NextResponse.json({ error: 'לא ניתן לסרב להזמנה כרגע. נסו שוב.' }, { status: 500 });
-    if (!changed?.length) return NextResponse.json({ error: 'מצב ההזמנה השתנה. יש לרענן ולבדוק לפני הפעולה.' }, { status: 409 });
+    if (outcome !== 'REJECTED') return NextResponse.json({ error: 'מצב ההזמנה השתנה. יש לרענן ולבדוק לפני הפעולה.' }, { status: 409 });
+    transitionedToRejected = true;
   } else {
     const { error: updateError } = await supabase
       .from('bookings')
@@ -199,6 +230,7 @@ export async function PATCH(
   // "Booking confirmed — deposit due" email: sent exactly once, only by
   // the request that performed the transition into CONFIRMED.
   let confirmationEmailed: boolean | null = null;
+  let rejectionEmailed: boolean | null = null;
   if (transitionedToConfirmed) {
     // The result used to be discarded, so the API answered "success" and the
     // admin screen showed a confirmed booking even when the customer received
@@ -210,7 +242,14 @@ export async function PATCH(
     }
   }
 
-  return NextResponse.json({ success: true, booking, confirmationEmailed });
+  if (transitionedToRejected) {
+    rejectionEmailed = await sendRejectionEmail(booking);
+    if (!rejectionEmailed) {
+      console.error('[admin/bookings][ALERT] booking rejected but rejection email failed:', id);
+    }
+  }
+
+  return NextResponse.json({ success: true, booking, confirmationEmailed, rejectionEmailed });
 }
 
 export async function DELETE(

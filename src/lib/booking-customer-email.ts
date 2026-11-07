@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { OFFICE_EMAIL } from '@/lib/constants';
+import { alreadyDelivered } from '@/lib/email-delivery';
 import { createAdminClient } from '@/lib/supabase/server';
 
 const LOGO_URL = 'https://iovpoxmdsgsstaduggvb.supabase.co/storage/v1/object/public/vehicles/logo.png';
@@ -13,7 +14,7 @@ function escapeHtml(value: string): string {
 }
 
 export interface BookingCustomerEmailParams {
-  kind: 'request_received' | 'confirmed';
+  kind: 'request_received' | 'confirmed' | 'rejected';
   idempotencyKey: string;
   locale: 'he' | 'en';
   toEmail: string;
@@ -50,7 +51,7 @@ async function recordDelivery(params: { idempotencyKey: string; kind: BookingCus
   try {
     await createAdminClient().from('email_deliveries').upsert({
       idempotency_key: params.idempotencyKey,
-      event: params.kind === 'confirmed' ? 'booking_confirmed' : 'booking_request_received',
+      event: params.kind === 'confirmed' ? 'booking_confirmed' : params.kind === 'rejected' ? 'booking_rejected' : 'booking_request_received',
       template_id: 'resend_customer_booking',
       delivered: params.ok,
       attempts: params.attempts,
@@ -94,7 +95,7 @@ async function alertOfficeOfPermanentFailure(params: { idempotencyKey: string; k
 
   try {
     const resend = new Resend(apiKey);
-    const label = params.kind === 'confirmed' ? 'אישור הזמנה' : 'קבלת בקשת הזמנה';
+    const label = params.kind === 'confirmed' ? 'אישור הזמנה' : params.kind === 'rejected' ? 'עדכון על סירוב הזמנה' : 'קבלת בקשת הזמנה';
     const { error } = await resend.emails.send({
       from: `SmartCar <${OFFICE_EMAIL}>`,
       to: OFFICE_EMAIL,
@@ -141,17 +142,28 @@ export async function sendBookingCustomerEmail(
 
   const english = params.locale === 'en';
   const request = params.kind === 'request_received';
-  const heading = request
+  const rejected = params.kind === 'rejected';
+  const heading = rejected
+    ? (english ? 'An update on your rental request' : 'עדכון לגבי בקשת ההשכרה שלך')
+    : request
     ? (english ? 'We received your request' : 'קיבלנו את הבקשה שלך')
     : (english ? 'Your booking is confirmed' : 'ההזמנה שלך אושרה');
-  const intro = request
+  const intro = rejected
+    ? (english
+      ? 'Unfortunately, we cannot accommodate your rental request for the requested dates. Your booking was not confirmed and no vehicle has been reserved.'
+      : 'לצערנו, אין באפשרותנו להיענות לבקשת ההשכרה שלך למועד המבוקש. הבקשה לא אושרה ולא שוריין עבורך רכב.')
+    : request
     ? (english
       ? 'Thank you for choosing SmartCar. Our team is reviewing your request and will contact you shortly to complete the rental process.'
       : 'תודה שבחרת ב-SmartCar. הצוות שלנו עובר על הבקשה שלך וייצור איתך קשר בקרוב כדי להשלים את תהליך ההשכרה.')
     : (english
       ? 'Great news — your booking has been confirmed. We look forward to welcoming you to SmartCar.'
       : 'בשורות טובות — ההזמנה שלך אושרה. אנחנו מחכים לקבל את פניך ב-SmartCar.');
-  const rows = english
+  const rows = rejected
+    ? (english
+      ? [englishRow('Request number', `#${params.orderId}`), englishRow('Vehicle', params.vehicleName), englishRow('Requested pickup', params.startDate), englishRow('Requested return', params.endDate)].join('')
+      : [hebrewRow('מספר בקשה', [{ text: `#${params.orderId}`, direction: 'ltr' }]), hebrewRow('רכב מבוקש', [{ text: params.vehicleName, direction: 'ltr' }]), hebrewRow('איסוף מבוקש', [{ text: params.startDate, direction: 'rtl' }]), hebrewRow('החזרה מבוקשת', [{ text: params.endDate, direction: 'rtl' }])].join(''))
+    : english
     ? [
       englishRow('Booking number', `#${params.orderId}`),
       englishRow('Vehicle', params.vehicleName),
@@ -176,19 +188,29 @@ export async function sendBookingCustomerEmail(
       ...(params.extras ? [hebrewRow('תוספות', [{ text: params.extras, direction: 'rtl' }])] : []),
       ...(!request && params.downPayment ? [hebrewRow('מקדמה לתשלום', [{ text: params.downPayment, direction: 'ltr' }])] : []),
     ].join('');
-  const notice = request
+  const notice = rejected
+    ? (english
+      ? 'We would be happy to help you find another vehicle or different dates. We hope to welcome you next time.'
+      : 'נשמח לעזור לך למצוא רכב חלופי או מועד אחר, ומקווים לארח אותך אצלנו בפעם הבאה.')
+    : request
     ? (english
       ? 'This email confirms that we received your request. The vehicle is reserved only after a written confirmation from SmartCar.'
       : 'מייל זה מאשר שקיבלנו את הבקשה. הרכב ישוריין רק לאחר אישור בכתב מצוות SmartCar.')
     : (english
       ? 'To arrange your deposit, simply reply to this email or contact us on WhatsApp.'
       : 'לתיאום המקדמה אפשר פשוט להשיב למייל הזה או ליצור איתנו קשר ב-WhatsApp.');
-  const cta = !request && params.paymentLink
+  const cta = !request && !rejected && params.paymentLink
     ? `<p style="text-align:center;margin:26px 0 8px;"><a href="${escapeHtml(params.paymentLink)}" style="display:inline-block;background:#E8743B;color:#FFFFFF;text-decoration:none;font-weight:700;padding:14px 25px;border-radius:10px;">${english ? 'Continue your booking & arrange the deposit on WhatsApp' : 'להמשך ההזמנה ותשלום המקדמה ב-WhatsApp'}</a></p>`
     : '';
   const direction = english ? 'ltr' : 'rtl';
   const align = english ? 'left' : 'right';
   const greeting = english ? `Hello ${escapeHtml(params.customerName)},` : `שלום ${escapeHtml(params.customerName)},`;
+  const branchContacts = rejected ? `<div style="margin-top:22px;font-size:15px;line-height:1.8;color:#0D2B2B;">
+    <strong>${english ? 'Questions? Call the branch that suits you:' : 'לשאלות נוספות אפשר להתקשר לסניף הנוח לך:'}</strong><br>
+    ${english ? 'Herzliya' : 'הרצליה'}: <a href="tel:+97299509757">09-9509757</a><br>
+    ${english ? 'Tel Aviv' : 'תל אביב'}: <a href="tel:+97235233073">03-5233073</a><br>
+    ${english ? 'Jerusalem' : 'ירושלים'}: <a href="tel:+97226221150">02-6221150</a>
+  </div>` : '';
   const html = `
     <div dir="${direction}" style="font-family:Arial,Helvetica,sans-serif;background:#F4F7F7;padding:28px 14px;color:#0D2B2B;">
       <div style="max-width:560px;margin:0 auto;background:#FFFFFF;border-radius:16px;overflow:hidden;border:1px solid #DCE7E7;">
@@ -200,14 +222,20 @@ export async function sendBookingCustomerEmail(
           <table role="presentation" dir="${direction}" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;border-top:1px solid #DCE7E7;border-bottom:1px solid #DCE7E7;">${rows}</table>
           ${cta}
           <div style="margin-top:24px;padding:14px 16px;background:#FFF7F1;border:1px solid #F2C7AC;border-radius:10px;font-size:13px;line-height:1.55;color:#5B4638;">${notice}</div>
-          <p style="font-size:14px;line-height:1.6;margin:24px 0 0;color:#526363;">${english ? 'We are here for anything you need.' : 'אנחנו כאן לכל שאלה ונשמח לעזור לאורך כל הדרך.'}</p>
+          ${branchContacts}
+          <p style="font-size:14px;line-height:1.6;margin:24px 0 0;color:#526363;">${rejected ? (english ? 'Kind regards,<br>The SmartCar team' : 'בברכה,<br>צוות SmartCar') : (english ? 'We are here for anything you need.' : 'אנחנו כאן לכל שאלה ונשמח לעזור לאורך כל הדרך.')}</p>
         </div>
         <div style="padding:17px 28px;background:#0D2B2B;color:#FFFFFF;text-align:center;font-size:13px;line-height:1.65;">SmartCar · 09-9509757 · <a href="mailto:${OFFICE_EMAIL}" style="color:#FFFFFF;">${OFFICE_EMAIL}</a><br><a href="https://www.smartcar.co.il" style="color:#FFFFFF;">www.smartcar.co.il</a></div>
       </div>
     </div>`;
-  const subject = request
+  const subject = rejected
+    ? (english ? `SmartCar — An update on rental request #${params.orderId}` : `SmartCar — עדכון לגבי בקשת ההשכרה שלך #${params.orderId}`)
+    : request
     ? (english ? `SmartCar — We received your request for ${params.vehicleName}` : `SmartCar — קיבלנו את בקשת ההשכרה שלך עבור ${params.vehicleName}`)
     : (english ? `SmartCar — Your booking is confirmed: ${params.vehicleName}` : `SmartCar — ההזמנה שלך אושרה: ${params.vehicleName}`);
+  const plainText = rejected
+    ? `${heading}\n\n${english ? 'Hello' : 'שלום'} ${params.customerName},\n${intro}\n\n${english ? 'Request number' : 'מספר בקשה'}: #${params.orderId}\n${english ? 'Requested vehicle' : 'רכב מבוקש'}: ${params.vehicleName}\n${english ? 'Requested pickup' : 'איסוף מבוקש'}: ${params.startDate}\n${english ? 'Requested return' : 'החזרה מבוקשת'}: ${params.endDate}\n\n${notice}\n\n${english ? 'For more information, call our branches:' : 'לפרטים נוספים אפשר להתקשר לסניפים שלנו:'}\n${english ? 'Herzliya' : 'הרצליה'}: 09-9509757\n${english ? 'Tel Aviv' : 'תל אביב'}: 03-5233073\n${english ? 'Jerusalem' : 'ירושלים'}: 02-6221150\n\n${english ? 'Kind regards,\nThe SmartCar team' : 'בברכה,\nצוות SmartCar'}`
+    : `${heading}\n\n${english ? 'Hello' : 'שלום'} ${params.customerName},\n${intro}\n\n${english ? 'Booking number' : 'מספר הזמנה'}: #${params.orderId}\n${english ? 'Vehicle' : 'רכב'}: ${params.vehicleName}\n${english ? 'Pickup' : 'איסוף'}: ${params.startDate}, ${params.pickupLocation}\n${english ? 'Return' : 'החזרה'}: ${params.endDate}, ${params.returnLocation}\n${english ? 'Estimated total' : 'סה״כ משוער'}: ${params.totalPrice}\n\nSmartCar · 09-9509757`;
 
   let lastError: string | undefined;
   for (let attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt++) {
@@ -219,7 +247,7 @@ export async function sendBookingCustomerEmail(
         replyTo: OFFICE_EMAIL,
         subject,
         html,
-        text: `${heading}\n\n${english ? 'Hello' : 'שלום'} ${params.customerName},\n${intro}\n\n${english ? 'Booking number' : 'מספר הזמנה'}: #${params.orderId}\n${english ? 'Vehicle' : 'רכב'}: ${params.vehicleName}\n${english ? 'Pickup' : 'איסוף'}: ${params.startDate}, ${params.pickupLocation}\n${english ? 'Return' : 'החזרה'}: ${params.endDate}, ${params.returnLocation}\n${english ? 'Estimated total' : 'סה״כ משוער'}: ${params.totalPrice}\n\nSmartCar · 09-9509757`,
+        text: plainText,
         tags: [{ name: 'category', value: `booking-${params.kind}` }],
       }, { idempotencyKey: params.idempotencyKey });
       if (!error) {
@@ -255,6 +283,13 @@ export async function retryPendingBookingCustomerEmails(): Promise<BookingCustom
   let dead = 0;
   let pending = 0;
   for (const row of data ?? []) {
+    // A successful send may be recorded even if removing its outbox row
+    // failed. Do not send it again on the next sweep.
+    if (await alreadyDelivered(row.idempotency_key)) {
+      await resolveRetry(row.idempotency_key);
+      delivered++;
+      continue;
+    }
     const payload = row.payload as BookingCustomerEmailParams;
     const result = await sendBookingCustomerEmail(payload);
     if (result.ok) { delivered++; continue; }
