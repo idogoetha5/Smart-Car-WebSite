@@ -62,7 +62,7 @@ const discussion = /\b(?:what about|how about|compare|which is|what is the diffe
 // Only an actual antecedent scopes the next comma clause. Considering a
 // product is a complete tentative statement, not a condition on later facts.
 const commaAntecedent = /^\s*(?:(?:and|but)\s+)?(?:if|suppose)\b|^\s*ו?(?:אם|נניח)(?:\s|$)|^\s*(?:maybe|perhaps|אולי)\s*$/iu;
-const uncertainty = /\b(?:undecided|unsure|not sure|not decided|haven['’]?t decided|no preference)\b|לא (?:החלטתי|החלטנו|בטוח|בטוחה|סגור|סגורה|יודע|יודעת)|אין לי העדפה/iu;
+const uncertainty = /\b(?:undecided|unsure|not sure|not decided|haven['’]?t decided|no preference)\b|לא (?:בחרתי|בחרנו|החלטתי|החלטנו|בטוח|בטוחה|סגור|סגורה|יודע|יודעת)|אין לי העדפה/iu;
 const negation = /\b(?:not|never|no longer|don['’]?t|do not|won['’]?t|will not|rather than|instead of)\b|(?:^|\s)(?:לא|בלי|ללא|במקום)(?:\s|$)/iu;
 const removal = /\b(?:remove|forget|clear|discard|no longer|don['’]?t keep|do not keep)\b|תמחק|מחק|להסיר|אל תשמור|לא לשמור|אין (?:לי|לנו) יותר/iu;
 const branchPatterns: Record<FactBranch, RegExp> = { herzliya: /herzliya|הרצליה/iu, telaviv: /tel[ -]?aviv|תל אביב/iu, jerusalem: /jerusalem|ירושלים/iu, airport: /airport|ben gurion|נתב[״"']?ג|נמל התעופה/iu };
@@ -141,6 +141,7 @@ export function isRentalCapacityQuestionEvidence(message: string, evidence: stri
 }
 
 function supports(field: FactField, text: string): boolean {
+  if (field === 'rentalVehicleCategory' || field === 'commercialVehiclePreference') return /(?:סוג|קבוצת) (?:ה)?רכב|(?:car|vehicle) (?:type|group|category)/iu.test(text) || Object.values(categoryPatterns).some(pattern => pattern.test(text));
   if (field === 'rentalPickupBranch' || field === 'rentalReturnBranch') return Object.values(branchPatterns).some(pattern => pattern.test(text)) || /return there|same (?:place|location|branch)|להחזיר שם|נחזיר שם|אותו מקום/iu.test(text);
   if (field === 'commercialBudget') return /budget|spend|afford|shekel|dollar|euro|\b(?:ILS|NIS|USD|EUR)\b|[₪$€]|תקציב|שקל|ש[״"׳']ח/iu.test(text);
   if (field === 'commercialTermMonths') return /\bmonths?\b|\byears?\b|\bterm\b|duration|תקופה|משך|חודש|שנים|שנה|שנתיים/iu.test(text);
@@ -187,7 +188,7 @@ export function validateFactPatches(raw: unknown, message: string): FactPatch[] 
         const branch = value.branch as FactBranch;
         if (Object.values(branchPatterns).filter(pattern => pattern.test(evidence)).length > 1) continue;
         const pickupRole = /pick[ -]?up|collect|from|איסוף|לאסוף|מהרצליה|מתל אביב|מירושלים|מנתב/iu.test(evidence);
-        const returnRole = /return|drop[ -]?off|להחזיר|נחזיר|החזרה/iu.test(evidence);
+        const returnRole = /return|drop[ -]?off|להחזיר|נחזיר|אחזיר|מחזיר|החזרה/iu.test(evidence);
         const sameReturn = /return there|same (?:place|location|branch)|להחזיר שם|נחזיר שם|אותו מקום/iu.test(evidence);
         const direct = branchPatterns[branch].test(evidence);
         if (name === 'rentalPickupBranch' ? !direct || !pickupRole : !returnRole || !(direct || sameReturn && branchPatterns[branch].test(context.clause) && /from|pick[ -]?up|collect|מהרצליה|מתל אביב|מירושלים|מנתב/iu.test(context.clause))) continue;

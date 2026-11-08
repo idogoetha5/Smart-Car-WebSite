@@ -16,6 +16,68 @@ beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-08T09:
 afterEach(() => vi.useRealTimers());
 
 describe('evidenced understanding reaches canonical rental memory', () => {
+  const draft = { pickupDate: '2026-11-09', returnDate: '2026-11-12', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב משפחתי', driverAgeRange: '24-plus' };
+  it('keeps a voluntarily supplied rental name before intake and never creates from that disclosure', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { ...draft }, history: [] }, () => base('אפשר להמשיך לברר כאן.'));
+    const supplied = await c.send('תתקדם עם מה שיש, קוראים לי איתי בדיקה ואין לי מייל לתת');
+    expect(supplied.state.booking.customerName).toBe('איתי בדיקה');
+    expect(supplied.state.step).toBe('rental_confirm');
+    expect(supplied.reply).not.toContain('על איזה שם');
+    expect(supplied.state.history.at(-2)?.private).toBe(true);
+    expect(c.create).not.toHaveBeenCalled();
+    await c.send('הביטוח כולל הכול?');
+    expect(JSON.stringify(c.readTurn.mock.calls)).not.toContain('איתי בדיקה');
+  });
+  it('does not turn a name volunteered during advice into booking consent', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: { vehicleNeed: 'family car' }, history: [] }, () => base('You can continue comparing.'));
+    const supplied = await c.send('My name is Alex Test. I am only comparing for now.');
+    expect(supplied.state.booking.customerName).toBe('Alex Test');
+    expect(supplied.state.phase).toBe('explore');
+    expect(c.create).not.toHaveBeenCalled();
+    expect(c.readTurn).not.toHaveBeenCalled();
+  });
+  it('accepts a natural name answer followed by a comma and a side comment', async () => {
+    const c = chat({ version: 2, phase: 'booking', step: 'rental_name', locale: 'he', booking: { ...draft }, history: [] }, () => base('נמשיך עם הפרטים.'));
+    const result = await c.send('איתי בדיקה, כתבתי את זה קודם. בלי מייל בבקשה. אפשר כבר לראות את כל הפרטים?');
+    expect(result.state.booking.customerName).toBe('איתי בדיקה');
+    expect(result.state.step).toBe('rental_confirm');
+    expect(c.readTurn).not.toHaveBeenCalled();
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it.each(['חמישי', 'יום חמישי', 'Thursday', 'on Thursday', 'מחר'])('rejects a temporal legacy location proposal: %s', async day => {
+    const c = chat({ version: 2, phase: 'booking', step: 'rental_confirm', locale: 'he', booking: { ...draft, customerName: 'Private Test' }, history: [] }, () => ({ ...base('החזרה בתאריך החדש.'), fields: { returnLocation: { value: day, evidence: day } } }));
+    const result = await c.send(`אני מעדיף להחזיר ב${day}. האיסוף לא משתנה`);
+    expect(result.state.booking.returnLocation).toBe('הרצליה');
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it('does not let a bare weekday answer fill a missing pickup city', async () => {
+    const c = chat({ version: 2, phase: 'booking', step: 'rental_locations', locale: 'en', booking: { pickupDate: draft.pickupDate, returnDate: draft.returnDate }, history: [{ from: 'bot', text: 'Where would you like to pick it up?' }] }, () => base('Where would you like to pick it up?'));
+    expect((await c.send('Thursday')).state.booking.pickupLocation).toBeUndefined();
+  });
+  it('corrects the observed weekday-as-place error during final review without a model patch', async () => {
+    const c = chat({ version: 2, phase: 'booking', step: 'rental_confirm', locale: 'he', booking: { ...draft, returnLocation: 'חמישי', customerName: 'Private Test' }, history: [] }, () => base('הפרטים עודכנו.'));
+    const result = await c.send('חמישי זה היום, לא המקום 😅 אני מחזיר בהרצליה כמו שאמרתי. ותשאיר משפחתית');
+    expect(result.state.booking.returnLocation).toBe('הרצליה');
+    expect(result.reply).toContain('החזרה: הרצליה');
+    expect(result.reply).not.toContain('החזרה: חמישי');
+    expect(result.state.booking).toMatchObject({ ...draft, customerName: 'Private Test' });
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it('does not apply a negated present-tense return location', async () => {
+    const c = chat({ version: 2, phase: 'booking', step: 'rental_confirm', locale: 'he', booking: { ...draft, customerName: 'Private Test' }, history: [] }, () => base('הפרטים נשמרו.'));
+    expect((await c.send('אני לא מחזיר בירושלים. רק שואל אם אפשר')).state.booking.returnLocation).toBe('הרצליה');
+  });
+  it.each(['אני אחזיר מחר.', 'אפשר להחזיר מחרתיים?'])('does not strip the first letter of a relative day into a city: %s', async input => {
+    const c = chat({ version: 2, phase: 'booking', step: 'rental_confirm', locale: 'he', booking: { ...draft, customerName: 'Private Test' }, history: [] }, () => base('הפרטים נשמרו.'));
+    expect((await c.send(input)).state.booking.returnLocation).toBe('הרצליה');
+  });
+  it('retains an explicitly open Hebrew vehicle choice instead of an old compact selection', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { vehicleNeed: 'רכב קומפקטי' }, history: [] }, input => ({ ...base('הבחירה עדיין פתוחה.'), factPatches: validateFactPatches([{ field: 'rentalVehicleCategory', operation: 'undecided', stance: 'selected', evidence: 'לא בחרתי סוג רכב' }], input) }));
+    const result = await c.send('אני עוד לא בחרתי סוג רכב. קודם רוצה להבין את ההבדלים');
+    expect(result.state.booking.vehicleNeed).toBe('סוג רכב פתוח להתאמה');
+    expect(result.state.phase).toBe('explore');
+    expect(c.create).not.toHaveBeenCalled();
+  });
   it('keeps the natural garage enquiry through selected duration/branches and yes plus name', async () => {
     const c = chat(null, input => ({ ...base(input.includes('מהרצליה') ? 'הזכאות והתנאים של נהג נוסף ייבדקו לפני אישור. האם תרצה שנתחיל להכין את פרטי הבקשה?' : 'אפשר להמשיך לברר כאן. איזה סוג רכב יתאים לכם?'),
       factPatches: input.includes('מהרצליה') ? validateFactPatches([

@@ -16,6 +16,7 @@ describe('output checks for natural conversational drafts', () => {
   });
   it('uses a non-identifying name-presence marker to prevent asking again', () => {
     expect(check('Could you provide your full name?', { known: { customerNameProvided: 'provided' } })).toBeNull();
+    expect(check('תוכל לוודא את שמך המלא שיופיע בבקשה?', { locale: 'he', known: { customerNameProvided: 'provided' } })).toBeNull();
   });
   it.each(['תרצו לבחור תאריכים כשתהיו מוכנים?', 'רוצה שנבדוק תאריכים?'])('rejects a soft date invitation after dates were deferred: %s', reply => {
     expect(check(reply, { locale: 'he', known: { datePreference: 'dates undecided' } })).toBeNull();

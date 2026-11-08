@@ -318,22 +318,27 @@ function applyPromptedDate(input: string, state: RebuildState, lastBot: string):
   }
 }
 
+function temporalLocation(value: string): boolean {
+  return /^(?:ב[-־]?\s*)?(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת|היום|מחר(?:תיים)?)(?:\s|$)|^(?:on\s+)?(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow)(?:\s|$)|^\d{1,4}[-/.]\d/i.test(value.trim());
+}
+
 function applyExplicitLocations(input: string, draft: BookingDraft): void {
   const sameCity = input.trim().match(/^([\p{L}\s'׳״-]{2,50})\s+גם\s+(?:להחזיר\s+(?:גם\s+)?לאסוף|לאסוף\s+(?:(?:וגם|גם)\s+)?להחזיר)$/u)?.[1]?.trim();
-  if (sameCity) { draft.pickupLocation = sameCity; draft.returnLocation = sameCity; return; }
+  if (sameCity && !temporalLocation(sameCity)) { draft.pickupLocation = sameCity; draft.returnLocation = sameCity; return; }
   const stop = '(?=\\s+(?:ו?החזרה|להחזיר|נחזיר|אחזיר|נשאר(?:ת)?|מחרתיים|מחר|היום|ליומיים|ליום|tomorrow|today|day after tomorrow|for\\s+(?:one|two|three|four|five)\\s+days?|unchanged|remains?|stays?|(?:and\\s+)?return|(?:and\\s+)?drop.?off|ב[-־]?\\s*\\d)|[,.!?]|$)';
-  const hePickup = input.match(new RegExp(`(?:איסוף|לאסוף)\\s+[במ]([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
+  const hePickup = input.match(new RegExp(`(?:איסוף|לאסוף)\\s+(?!מחר(?:תיים)?(?:\\s|$))[במ]([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
   const enPickupStop = stop.replace('(?=', '(?=\\s+on\\s+\\d{1,2}|');
   const enPickup = input.match(new RegExp(`pick.?up\\s+(?:at|from|in)\\s+([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${enPickupStop}`, 'iu'))?.[1];
   const enFromPickup = /rent|rental|pick.?up/i.test(input)
     ? input.match(/\bfrom\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+on\s+\d{1,2})/iu)?.[1]
     : undefined;
   const pickup = (hePickup ?? enPickup ?? enFromPickup)?.trim();
-  if (pickup) draft.pickupLocation = /^(?:the )?airport$/i.test(pickup) && /Ben Gurion Airport/i.test(input) ? 'Ben Gurion Airport' : pickup;
-  const heReturn = input.match(/(?:החזרה|להחזיר|נחזיר|אחזיר)\s+(?:(?:את\s+)?הרכב\s+)?(?:(?:תהיה|יהיה)\s+)?[במ]([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:נהג|גיל|בן|בת|למשך|לתאריכים|מחרתיים|מחר|היום|ליומיים|ליום|ב[-־]?\s*\d)|[,.!?]|$)/iu)?.[1];
+  if (pickup && !temporalLocation(pickup)) draft.pickupLocation = /^(?:the )?airport$/i.test(pickup) && /Ben Gurion Airport/i.test(input) ? 'Ben Gurion Airport' : pickup;
+  const heReturnMatch = input.match(/(?:החזרה|להחזיר|נחזיר|אחזיר|מחזיר(?:ה|ים|ות)?)\s+(?:(?:את\s+)?הרכב\s+)?(?:(?:תהיה|יהיה)\s+)?(?!מחר(?:תיים)?(?:\s|[,.!?]|$))[במ]([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:כמו|כפי|נהג|גיל|בן|בת|למשך|לתאריכים|מחרתיים|מחר|היום|ליומיים|ליום|ב[-־]?\s*\d)|[,.!?]|$)/iu);
+  const heReturn = heReturnMatch && !/(?:לא|אל|בלי)\s*$/u.test(input.slice(0, heReturnMatch.index)) ? heReturnMatch[1] : undefined;
   const enReturn = input.match(/(?:return|drop.?off)\s+(?:(?:the car|it)\s+)?(?:(?:will be|will remain|stays?|remains?)\s+)?(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:on\s+\d{1,2}|tomorrow|today|day after tomorrow|for\s+(?:one|two|three|four|five)\s+days?)|[,.!?]|$)/iu)?.[1];
   const returnLocation = (heReturn ?? enReturn)?.split(/\s+(?:במקום|instead of)\s+/i)[0].trim();
-  if (returnLocation) draft.returnLocation = returnLocation;
+  if (returnLocation && !temporalLocation(returnLocation)) draft.returnLocation = returnLocation;
   const dateText = `(?:\\d{1,2}[./]\\d{1,2}(?:[./]20\\d{2})?|\\d{1,2}\\s+(?:ב)?(?:${Object.keys(MONTHS).join('|')})(?:\\s+20\\d{2})?)`;
   // Parse each labelled date independently: customers may correct the return
   // before restating an unchanged pickup. Never associate dates by text order.
@@ -359,7 +364,7 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
   if (datedReturn) {
     const date = singleDateAnswer(datedReturn[1], draft.pickupDate);
     if (date) draft.returnDate = date;
-    draft.returnLocation = datedReturn[2].trim();
+    if (!temporalLocation(datedReturn[2])) draft.returnLocation = datedReturn[2].trim();
   }
   if (draft.pickupLocation && (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input))) draft.returnLocation = draft.pickupLocation;
 }
@@ -452,6 +457,7 @@ function sameLocationAnswer(value: string): boolean {
 
 function plainLocationAnswer(input: string, locale: Locale): string | null {
   const location = input.trim().replace(/^(?:ב?סניף\s+|(?:the\s+)?branch\s+(?:in\s+)?)/i, '');
+  if (temporalLocation(location)) return null;
   if (sameLocationAnswer(location)) return location;
   if (!/^[\p{L}'׳״ -]{2,45}$/u.test(location) || location.split(/\s+/).length > 3 || /^(?:כן|לא|לא יודע|תודה|yes|no|not sure)$/i.test(location)
     || /רכב|מעדיף|בעצם|רוצה|צריך|מחפש|מחיר|תאריך|זמינ|שאלה|ליסינג|לקנות|rent|prefer|price|booking/i.test(location)) return null;
@@ -1060,12 +1066,13 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
       if (!validDate(field.value) || field.value < israelDate() || field.value > latest.toISOString().slice(0, 10)) continue;
     }
     if (source === 'pickupLocation' || source === 'returnLocation') {
+      if (temporalLocation(field.value)) continue;
       const samePlace = Boolean(plainLocation && sameLocationAnswer(plainLocation));
       const fromLocation = input.toLocaleLowerCase().includes(`from ${field.value.toLocaleLowerCase()}`)
         || input.toLocaleLowerCase().includes(`from the ${field.value.toLocaleLowerCase()}`)
         || /^[\p{Script=Hebrew}]/u.test(field.value) && input.includes(`מ${field.value}`);
       const explicitRole = source === 'pickupLocation' ? /איסוף|לאסוף|pick(?:\s+(?:it|the car))?[\s-]*up/i.test(input) || fromLocation
-        : /להחזיר|נחזיר|אחזיר|החזרה|return|drop.?off/i.test(input) || samePlace && Boolean(state.booking.pickupLocation);
+        : /להחזיר|נחזיר|אחזיר|מחזיר|החזרה|return|drop.?off/i.test(input) || samePlace && Boolean(state.booking.pickupLocation);
       const promptedRole = state.phase === 'booking' && state.step === 'rental_locations' && pending === source && plainLocation && !samePlace;
       if (!explicitRole && !promptedRole) continue;
     }
@@ -1164,13 +1171,17 @@ function applySelectedFacts(input: string, state: RebuildState, reading: BotRead
 }
 
 function privateDetail(input: string, state: RebuildState, explicitStart = false): boolean {
-  if (state.phase !== 'booking' && !explicitStart) return false;
+  const labelledName = input.match(/(?:קוראים לי|שמי|השם שלי|השם הוא|my name is)\s+([\p{L}' -]{3,60})/iu)?.[1];
+  // A voluntary labelled name during an established rental enquiry is useful
+  // before formal intake. Capture it locally, without treating it as consent.
+  const voluntaryRentalName = state.phase === 'explore' && !state.interest && !state.completedRequestId && labelledName
+    && Boolean(state.booking.pickupDate || state.booking.pickupLocation || state.booking.vehicleNeed || state.booking.passengers);
+  if (state.phase !== 'booking' && !explicitStart && !voluntaryRentalName) return false;
   let captured = false;
   if (explicitStart || state.step === 'rental_name' || state.step === 'rental_email' || state.step === 'rental_confirm' || /המייל שלי|המייל הוא|my email|email\s*:/i.test(input)) {
     const email = input.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0];
     if (email && EMAIL.test(email) && email.length <= 160) { state.booking.customerEmail = email; captured = true; }
   }
-  const labelledName = input.match(/(?:קוראים לי|שמי|השם שלי|השם הוא|my name is)\s+([\p{L}' -]{3,60})/iu)?.[1];
   if (explicitStart || state.step === 'rental_name' || state.step === 'rental_confirm' || labelledName) {
     const unlabelledName = !explicitStart && (state.step === 'rental_name' || state.step === 'rental_confirm')
       ? input.match(/I am\s+([\p{L}' -]{3,60})/iu)?.[1] : undefined;
@@ -1178,7 +1189,7 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
     const explicit = explicitName?.split(/\s+(?:ואני|ואין|אין לי|and I|and my|but I)\s+/i)[0].trim();
     // A customer answering the name prompt may append a separate correction
     // or decline optional email. Only the leading name clause is private data.
-    const leading = input.split(/[.!;\n]/u, 1)[0].trim();
+    const leading = input.split(/[,!.;\n]/u, 1)[0].trim();
     const promptedName = !explicitStart && state.step === 'rental_name'
       && /^[\p{L}' -]{3,60}$/u.test(leading)
       && !/^(?:I|we|please|actually|no|yes|thanks?|before|after|not|do|don['’]?t|what|how|when|where|why|can|could|should|would|is|are|אני|אנחנו|לא|כן|תודה|בעצם|לפני|אחרי|אפשר|מה|איך|למה|מתי|כמה)(?:\s|$)/iu.test(leading)
@@ -1626,9 +1637,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       && (reading?.route === 'human' && /call (?:me|us) back|תחזרו אלי|שיחזרו אלי/i.test(input)
         || affirms(input) && offersHumanHandoff(lastBot));
     const clearlyRental = /לשכור|להשכיר|השכרה|rental|rent/i.test(input);
-    const leaveVehicleOpen = /(?:leave|keep).{0,30}(?:vehicle|car).{0,30}(?:open|undecided)|(?:not|don'?t).{0,30}(?:choose|decide).{0,30}(?:vehicle|car)/i.test(input);
+    const leaveVehicleOpen = /(?:leave|keep).{0,30}(?:vehicle|car).{0,30}(?:open|undecided)|(?:not|don'?t).{0,30}(?:choose|decide).{0,30}(?:vehicle|car)|לא (?:בחרתי|בחרנו|החלטתי|החלטנו).{0,20}(?:סוג|קבוצת).{0,8}רכב/iu.test(input);
     const wantsToContinueRental = !state.interest && (/^(?:אני רוצה להתקדם|רוצה להתקדם|בוא(?:ו)? נתקדם|I want to proceed|let'?s continue)[.!\s]*$/i.test(input)
-      || /\b(?:let'?s|let us) continue\b/i.test(input))
+      || /\b(?:let'?s|let us) continue\b|(?:^|[.!?]\s*|\s)(?:תתקדם|תתקדמו|תמשיכו)\s+עם (?:מה שיש|הפרטים|זה)/i.test(input))
       && Boolean(state.booking.pickupDate || state.booking.vehicleNeed || state.booking.passengers || offersRentalRequest(lastBot));
     const wantsBooking = !declines && !asksHuman && !modelHumanConsent && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || acceptsRentalOffer || wantsToContinueRental || state.phase === 'booking');
     const rentalPivot = /מעדיף (?:את ה)?השכרה|מעדיף לשכור|עדיף לי לשכור|אעדיף לשכור|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|prefer to rent|back to renting/i.test(input);
@@ -1653,6 +1664,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       state.commercial = updateCommercialMemory(state.commercial, input);
     }
     applySelectedFacts(input, state, reading, wantsBooking);
+    if (leaveVehicleOpen && !state.interest && state.phase !== 'service') state.booking.vehicleNeed = he ? 'סוג רכב פתוח להתאמה' : 'vehicle group to be matched';
     const completedRouteInCurrentTurn = Boolean(statedRange && state.booking.pickupLocation && state.booking.returnLocation);
     if (durationMismatch) {
       reply = mentionedOneMonth
