@@ -1,5 +1,10 @@
 # SmartCar business assistant — current architecture
 
+## Cross-tool handoff and correction precedence — 2026-11-08
+
+Read [AI-HANDOFF.md](AI-HANDOFF.md) before bot work. The owner prioritises rental/advice/existing-customer service and requires diverse human conversations, including mistakes and corrections. A saved intake stage is not stronger evidence of current meaning than a grounded current Gemini service interpretation. Service acknowledgements must not implicitly start a new rental. Compound acknowledgements without private details must reach the model; plain acceptance and private intake retain deterministic boundaries. A service interpretation may change conversation topic, never approve an extension/cancellation, create a rental or authorise a handoff by itself. Preserve the pending draft when correcting a mistaken intake. Grounding here means approved context was supplied, not a proof that every classification is correct. Fresh live correction/recovery checks remain required.
+
+
 ## Active rebuilt core — 2026-11-04 (supersedes legacy integration sections below)
 
 ### Evidenced facts update — 2026-11-08

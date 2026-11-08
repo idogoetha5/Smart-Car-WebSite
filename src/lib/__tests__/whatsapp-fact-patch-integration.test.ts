@@ -17,6 +17,68 @@ afterEach(() => vi.useRealTimers());
 
 describe('evidenced understanding reaches canonical rental memory', () => {
   const draft = { pickupDate: '2026-11-09', returnDate: '2026-11-12', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב משפחתי', driverAgeRange: '24-plus' };
+  it.each([
+    ['en', "Okay, don't arrange a call yet. My colleague might drive it back for me instead. He's 25 but wasn't on the paperwork when I collected it. Can he just bring it back if I give him the keys, or does that cause a problem?", 'When you are free, let us know and we will be happy to check availability and extension options for you.'],
+    ['he', 'סבבה אבל עוד לא החלטתי להאריך. אחי יכול להחזיר את הרכב במקומי אם הוא לא רשום?', 'אפשר לבדוק זמינות להארכה כשתהיו מוכנים.'],
+    ['en', 'Sure, but I have another question about my return deadline first.', 'We can check availability for an extension.'],
+  ] as const)('never treats a conversational service acknowledgement as rental consent: %s', async (locale, input, lastReply) => {
+    const c = chat({ version: 2, phase: 'service', step: 'menu', locale, booking: {}, history: [{ from: 'bot', text: lastReply }] }, () => ({ ...base(locale === 'he' ? 'כל נהג צריך להיות רשום בחוזה לפני הנהיגה.' : 'Every driver must be registered on the agreement before driving.'), route: 'service' }));
+    const result = await c.send(input);
+    expect(result.state.phase).toBe('service');
+    expect(result.state.step).toBe('menu');
+    expect(result.reply).not.toMatch(/What date would you like to pick up|באיזה תאריך|מתי תרצו לאסוף/);
+    expect(result.escalate).toBe(false);
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it.each([
+    'I already have the car, I am not picking up another one. I am asking whether my colleague can return the one I am using.',
+    'This is about my existing booking. My question was about an additional driver, not new rental dates. Please answer that first.',
+    'הרכב כבר אצלי, זו ההזמנה הקיימת. שאלתי אם אחי יכול להחזיר במקומי, לא על השכרה חדשה',
+  ])('escapes an incorrect rental intake after an explicit existing-service correction: %s', async input => {
+    const c = chat({ version: 2, phase: 'booking', step: 'rental_dates', locale: /[א-ת]/u.test(input) ? 'he' : 'en', booking: {}, history: [{ from: 'bot', text: 'What date would you like to pick up the car?' }] }, () => ({ ...base('The driver must be registered before driving.'), route: 'service' }));
+    const result = await c.send(input);
+    expect(result.state.phase).toBe('service');
+    expect(result.reply).not.toContain('What date would you like to pick up');
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it('still allows an explicitly requested new rental from a service discussion', async () => {
+    const c = chat({ version: 2, phase: 'service', step: 'menu', locale: 'en', booking: {}, history: [] }, () => ({ ...base('We can start a separate rental request.'), route: 'book' }));
+    const result = await c.send('I want to rent a family car for a separate trip');
+    expect(result.state.phase).toBe('booking');
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it('lets the current model interpretation escape intake without requiring a memorised correction phrase', async () => {
+    const c = chat({ version: 2, phase: 'booking', step: 'rental_dates', locale: 'en', booking: {}, history: [{ from: 'bot', text: 'What date would you like to pick up the car?' }] }, () => ({ ...base('An unregistered colleague must not drive it before being added to the agreement.'), route: 'service' }));
+    const result = await c.send("That's not what I meant. We're talking about the one I'm driving around in, and whether Sam can take it back for me.");
+    expect(result.state.phase).toBe('service');
+    expect(result.reply).not.toContain('What date would you like to pick up');
+    expect(result.escalate).toBe(false);
+    expect(c.readTurn).toHaveBeenCalled();
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it('allows Gemini to understand a compound acknowledgement instead of skipping the entire message', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: {}, history: [{ from: 'bot', text: 'Would you like us to check availability for a rental request?' }] }, () => ({ ...base('We can discuss the car you are currently using.'), route: 'service' }));
+    const result = await c.send("Okay, but that's about the one I'm driving now, not collecting a different car.");
+    expect(c.readTurn).toHaveBeenCalled();
+    expect(result.state.phase).toBe('service');
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it('does not turn a reference volunteered with a policy question into a handoff', async () => {
+    const c = chat({ version: 2, phase: 'service', step: 'menu', locale: 'en', booking: {}, history: [] }, () => ({ ...base('An additional driver must be registered before driving.'), route: 'service' }));
+    const result = await c.send('My booking reference is 654321. Which licence does my friend need to bring to be added as a driver?');
+    expect(result.state.serviceReference).toBe('654321');
+    expect(result.escalate).toBe(false);
+    expect(result.state.handedOff).not.toBe(true);
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it('answers the natural day-and-place question after a simulated submission without creating again', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, completedRequestId: 'SIM-EXISTING', completedRental: { ...draft }, history: [] }, () => base('No new action.'));
+    const result = await c.send('רק לוודא, באיזה יום ומקום אני מחזיר בסוף? וכבר יש לי רכב סגור או שעוד מחכים להצעה?');
+    expect(result.reply).toContain('הרצליה');
+    expect(result.reply).toContain('12/11/2026');
+    expect(result.reply).toContain('לא אושר רכב');
+    expect(c.create).not.toHaveBeenCalled();
+  });
   it('keeps a voluntarily supplied rental name before intake and never creates from that disclosure', async () => {
     const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { ...draft }, history: [] }, () => base('אפשר להמשיך לברר כאן.'));
     const supplied = await c.send('תתקדם עם מה שיש, קוראים לי איתי בדיקה ואין לי מייל לתת');

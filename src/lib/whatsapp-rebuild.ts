@@ -277,6 +277,7 @@ function rentalChangeRequest(input: string): boolean {
 }
 
 function advisoryRentalChange(input: string): boolean {
+  if (/\b(?:haven['’]?t|have not|has not) (?:chosen|decided)|\b(?:still deciding|undecided)\b|(?:עוד |עדיין )?לא (?:החלטתי|החלטנו|בחרתי|בחרנו)/iu.test(input)) return true;
   return /\b(?:what if|if (?:I|we) (?:(?:ever|actually) )?(?:need|needed|wanted|decide)|may need|might need|not requesting|only asking|just asking|no (?:change|extension) request(?: yet)?)\b|(?:leave|keep).{0,35}\bunchanged\b|(?:do not|don't)\s+(?:change|extend)|מה (?:קורה |יקרה )?אם|אם (?:אצטרך|נצטרך|ארצה)|אולי (?:אצטרך|נצטרך)|רק (?:שואל|שואלת|מברר|מבררת)|לא מבקש(?:ת)? (?:שינוי|הארכה)|להשאיר.{0,25}ללא שינוי|אל תשנ|לא לשנות/i.test(input);
 }
 
@@ -1221,7 +1222,9 @@ function recallsCompletedRentalNeeds(input: string): boolean {
 
 function recallsRentalDetails(input: string): boolean {
   return /תזכיר|הזכר|סכם|סיכום|remind|recap|summari[sz]|go over|run through/iu.test(input)
-    && /פרט|בקשה|הזמנה|השכרה|detail|request|booking|rental/iu.test(input);
+    && /פרט|בקשה|הזמנה|השכרה|detail|request|booking|rental/iu.test(input)
+    || /(?:באיזה|איזה).{0,12}(?:יום|מקום)|מתי|איפה|\b(?:where|when|what day|which day)\b/iu.test(input)
+      && /מחזיר|להחזיר|החזרה|לאסוף|איסוף|\breturn|drop.?off|pick.?up|collect/iu.test(input);
 }
 
 function pushHistory(state: RebuildState, input: string, reply: string, privateTurn: boolean): void {
@@ -1264,6 +1267,15 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   const continuedServiceAdvice = Boolean(state.handedOff && serviceQuestion && depositEnquiry
     && (state.handoffKind === 'human' || state.handoffKind === 'service_issue'));
   const lastBotReply = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+  // An explicit correction to existing-rental service must be able to escape
+  // an accidentally started intake. It does not approve a service action or
+  // discard any pending rental draft.
+  if (state.phase === 'booking' && !explicitBooking(input)
+    && /\b(?:existing|current) (?:booking|rental)\b|\b(?:I|we) already have (?:the |your |a )?car\b|הזמנה קיימת|ההזמנה הקיימת|הרכב כבר אצל[ינ]|אני כבר עם הרכב/iu.test(input)
+    && !/not (?:about|an? ).{0,12}(?:existing|current)|לא (?:לגבי|על).{0,10}הזמנה קיימת/iu.test(input)) {
+    state.phase = 'service';
+    state.step = 'menu';
+  }
   if ((!state.booking.pickupDate || !state.booking.returnDate)
     && (hasUndecidedRentalDates(input) || uncertainDateAnswer(input) && asksRentalDates(lastBotReply))) state.booking.datePreference = 'dates undecided';
   const labelledReference = explicitServiceReference(input);
@@ -1558,7 +1570,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       state.requestKey ??= randomUUID();
       if (priorVehicleRequest) state.booking.vehicleNeed ??= explicitVehicleNeed(priorVehicleRequest.text, state.locale)!;
     }
-    const confirmedOffer = !state.interest && acceptsRentalInvitation(input, lastBot);
+    // "Okay" in a service discussion accepts neither a new rental nor a
+    // change request. Explicit new-rental intent is handled separately below.
+    const confirmedOffer = state.phase !== 'service' && !state.interest && acceptsRentalInvitation(input, lastBot);
     if (confirmedOffer) {
       state.phase = 'booking';
       state.requestKey ??= randomUUID();
@@ -1569,7 +1583,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     privateTurn ||= gotPrivate;
     let reading: BotReading | null = null;
     let modelContext: GeminiBotContext | undefined;
-    if (!gotPrivate && !confirmedOffer && !resumedIntake && !(state.phase === 'booking' && affirms(input)) && !(state.phase === 'booking' && state.step === 'rental_age' && driverAgeRange(input, state)) && !EMAIL.test(input) && !/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/.test(input)) {
+    if (!gotPrivate && !resumedIntake && !(state.phase === 'booking' && affirms(input)) && !(state.phase === 'booking' && state.step === 'rental_age' && driverAgeRange(input, state)) && !EMAIL.test(input) && !/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/.test(input)) {
       // Give Gemini the current turn's explicit facts and intended intake
       // state, rather than the stale pre-message state. This preview performs
       // no persistence, consent, handoff or request-creation action.
@@ -1628,7 +1642,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const declines = /לא רוצה להזמין|לא מבקש להזמין|אל תזמין|לא עכשיו|רק מתעניין|עדיין בודק|don't book|cancel this request|not ready to book|just looking/i.test(input);
     const modelSupportedProceed = reading?.route === 'book' && /^(?:כן|יאללה|בוא|בואי|yes|okay|ok|go ahead|let's proceed)/i.test(input)
       && /להתחיל.{0,25}(?:בקשה|הזמנה)|start.{0,25}(?:request|booking)/i.test(lastBot);
-    const acceptsRentalOffer = confirmedOffer;
+    // The current model interpretation can correct an implicit invitation
+    // match. A saved intake phase must not overrule existing-service meaning.
+    const serviceInterpretation = reading?.route === 'service' && reading.groundedContext === true;
+    const acceptsRentalOffer = confirmedOffer && !serviceInterpretation;
     const declinesHuman = declinesHumanHandoff(input);
     const asksHuman = !declinesHuman && /(?:רוצה|אפשר|צריך|צריכה).{0,22}(?:לדבר|נציג|בן אדם)|(?:לדבר|נציג|בן אדם).{0,22}(?:בבקשה|אפשר|רוצה)|\b(?:speak|talk|connect)\b.{0,28}\b(?:human|representative|person)\b|\b(?:human|representative|real person)\b.{0,20}\b(?:please|help)\b/i.test(input);
     // A model's human-route classification is not consent. Require an actual
@@ -1641,7 +1658,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const wantsToContinueRental = !state.interest && (/^(?:אני רוצה להתקדם|רוצה להתקדם|בוא(?:ו)? נתקדם|I want to proceed|let'?s continue)[.!\s]*$/i.test(input)
       || /\b(?:let'?s|let us) continue\b|(?:^|[.!?]\s*|\s)(?:תתקדם|תתקדמו|תמשיכו)\s+עם (?:מה שיש|הפרטים|זה)/i.test(input))
       && Boolean(state.booking.pickupDate || state.booking.vehicleNeed || state.booking.passengers || offersRentalRequest(lastBot));
-    const wantsBooking = !declines && !asksHuman && !modelHumanConsent && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || acceptsRentalOffer || wantsToContinueRental || state.phase === 'booking');
+    const wantsBooking = !declines && !asksHuman && !modelHumanConsent && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || !serviceInterpretation && (acceptsRentalOffer || wantsToContinueRental || state.phase === 'booking'));
     const rentalPivot = /מעדיף (?:את ה)?השכרה|מעדיף לשכור|עדיף לי לשכור|אעדיף לשכור|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|prefer to rent|back to renting/i.test(input);
     const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|(?:רכב|הרכב).{0,35}מלוכלך|לא קיבלתי|(?:מזגן|מיזוג).{0,25}(?:לא עובד|מקולקל)|(?:air conditioning|car ac).{0,25}(?:not working|broken)|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input);
     const statedVehicle = customerVehicleChoice(input, state);
@@ -1845,7 +1862,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         reply = /אושר|אישור|מחיר|עלות|תשלום|approv|confirm|price|cost|charge|rate/i.test(input)
           ? (he ? 'ההארכה עדיין לא אושרה. עד לאישור מפורש, מועד ההחזרה הקיים נשאר בתוקף. המחיר ליום הנוסף ייבדק לפני אישור השינוי ואינו מובטח כמחיר המקורי.' : 'The extension is not approved yet. Until explicitly confirmed, the existing return deadline remains in effect. The price for the extra day will be checked before the change is confirmed and is not guaranteed to match the original daily rate.')
           : he ? `קיבלנו את בקשת השינוי. היא תיכנס לתוקף לאחר בדיקת זמינות ואישור SmartCar. לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `We have your change request. It takes effect after SmartCar checks availability and confirms it. For immediate help call ${OFFICE_PHONE}.`;
-      } else if (specificProblem || suppliedReference && !depositEnquiry) {
+      } else if (specificProblem || suppliedReference && !depositEnquiry && (cancellationPending || !serviceQuestion && !advisoryChange)) {
         state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = cancellationPending ? 'booking_change' : 'service_issue'; escalate = true;
         reply = cancellationPending
           ? (he ? `קיבלנו את מספר ההזמנה לבקשת הביטול. נציג SmartCar יחזור אליכם; הביטול תקף רק לאחר אישור. לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `We have the reference for your cancellation request. A SmartCar representative will follow up; cancellation takes effect only after confirmation. For immediate help call ${OFFICE_PHONE}.`)
