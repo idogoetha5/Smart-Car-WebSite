@@ -10,6 +10,21 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); vi.useRealTimers(); });
 
 describe('replacement Gemini connection', () => {
+  it.each([
+    ['The response schema has too many states for serving', 'schema_complexity'],
+    ['Unknown name additionalProperties at generation_config', 'unsupported_request_field'],
+    ['API key not valid', 'authentication'],
+    ['Quota exceeded', 'quota'],
+    ['Unexpected rejection with private customer text', 'unclassified'],
+  ])('logs only a fixed category for provider rejection: %s', async (message, category) => {
+    const { generateSmartCarContent, resetModelCooldowns } = await import('@/lib/whatsapp-gemini-client');
+    resetModelCooldowns();
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ error: { message } }), { status: 400 }));
+    expect(await generateSmartCarContent({ model: 'diagnostic', body: {} })).toMatchObject({ ok: false, reason: 'http', status: 400 });
+    expect(log).toHaveBeenCalledWith('[whatsapp-gemini] provider HTTP %s (%s); using local knowledge', 400, category);
+    expect(JSON.stringify(log.mock.calls)).not.toContain(message);
+  });
   it('alerts on outage, avoids hammering during cooldown and confirms recovery only after a valid response', async () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date('2030-01-01T00:00:00Z'));
     const { generateSmartCarContent, resetModelCooldowns } = await import('@/lib/whatsapp-gemini-client');

@@ -7,6 +7,19 @@ const circuits = new Map<string, Circuit>();
 const REQUEST_MS = 8000;
 let reportedMissingKey = false;
 
+/** Fixed diagnostics only: never log the provider's raw message or customer input. */
+async function rejectionCategory(response: Response): Promise<string> {
+  try {
+    const data = await response.json();
+    const message = typeof data?.error?.message === 'string' ? data.error.message : '';
+    if (/too (?:many states|complex)|schema[\s\S]{0,100}(?:complex|depth|states)|constraint[\s\S]{0,100}states/i.test(message)) return 'schema_complexity';
+    if (/unknown name|unknown field|unrecognized field|unsupported[\s\S]{0,50}(?:field|schema|property)/i.test(message)) return 'unsupported_request_field';
+    if (/api key|credential|authentication/i.test(message)) return 'authentication';
+    if (/quota|resource exhausted|rate limit/i.test(message)) return 'quota';
+    return 'unclassified';
+  } catch { return 'unreadable'; }
+}
+
 async function notify(kind: BotIncident) {
   // A failed private experiment is not an outage of the customer model.
   if (activeModelEvaluation()) return;
@@ -55,7 +68,7 @@ export async function generateSmartCarContent(params: { model: string; body: unk
         ? Math.max(30_000, Math.min(Number.isFinite(retryAfter) ? retryAfter * 1000 : 60_000, 300_000))
         : [400, 401, 403, 404].includes(response.status) ? 300_000 : 30_000;
       coolDown(delay);
-      console.error('[whatsapp-gemini] provider HTTP %s; using local knowledge', response.status);
+      console.error('[whatsapp-gemini] provider HTTP %s (%s); using local knowledge', response.status, await rejectionCategory(response));
       await notify('ai_unavailable');
       return { ok: false, reason: 'http', status: response.status };
     }

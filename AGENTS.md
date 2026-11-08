@@ -1,3 +1,7 @@
+## WhatsApp bot: required AI handoff
+
+Before any bot work, read [docs/whatsapp-bot/AI-HANDOFF.md](docs/whatsapp-bot/AI-HANDOFF.md) together with this file, the deployment safety guide and AI handbook. It records rental/advice/service priorities, architecture, known failures, human HE/EN acceptance, website preservation and customer-activation gates. Verify current state; historical test results are not readiness approval. Keep all existing instructions below.
+
 ## CRITICAL: preserve production; never silently overwrite another feature
 
 Owner direction, 2026-11-05: never change the company domain or its DNS records. Bot, SEO and availability work do not authorize domain/DNS changes. Diagnose access problems read-only and preserve the existing configuration.

@@ -29,6 +29,9 @@ describe('replacement Gemini boundary', () => {
       expect.objectContaining({ field: 'rentalPassengers', value: 5 }),
     ]));
     expect(mocks.generate.mock.calls[0][0].body.generationConfig.responseFormat.text.schema.required).toContain('factPatches');
+    // Enforce the bound locally; repeating a nested optional/enumerated item
+    // grammar sixteen times can make a valid request exceed provider limits.
+    expect(mocks.generate.mock.calls[0][0].body.generationConfig.responseFormat.text.schema.properties.factPatches).not.toHaveProperty('maxItems');
   });
   it.each([
     'השם הוא רוני סודי. טלפון +44 7700 900123. כרטיס 4111 1111 1111 1111, קוד אבטחה 123, תוקף הכרטיס 12/29.',

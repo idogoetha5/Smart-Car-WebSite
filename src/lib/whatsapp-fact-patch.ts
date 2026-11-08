@@ -12,7 +12,10 @@ export type FactPatch = { [F in FactField]: { field: F; evidence: string; stance
 
 /** Embed as an optional provider-output property; actions and identity fields are absent. */
 export const FACT_PATCH_SCHEMA = {
-  type: 'array', maxItems: 16, items: {
+  // Array bounds expand the provider's grammar for every item position. Keep
+  // the 16-proposal limit in validateFactPatches, without duplicating this
+  // nested schema sixteen times in Gemini's constrained decoder.
+  type: 'array', items: {
     type: 'object', additionalProperties: false,
     properties: {
       field: { type: 'string', enum: FACT_FIELDS }, operation: { type: 'string', enum: ['set', 'undecided', 'remove'] },

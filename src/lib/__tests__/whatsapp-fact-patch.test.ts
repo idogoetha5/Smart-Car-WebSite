@@ -5,6 +5,12 @@ const set = (field: FactField, evidence: string, value: object, stance = 'select
 const money = (evidence: string, number: number, currency = 'ILS') => set('commercialBudget', evidence, { number, currency });
 
 describe('evidenced non-contact fact patches', () => {
+  it('keeps the proposal-count limit in application validation without a provider array bound', () => {
+    const message = 'We are five passengers';
+    const patch = set('rentalPassengers', 'five passengers', { number: 5 });
+    expect(validateFactPatches(Array(16).fill(patch), message)).not.toEqual([]);
+    expect(validateFactPatches(Array(17).fill(patch), message)).toEqual([]);
+  });
   it.each([
     ['My budget is sixty thousand shekels', 60000], ['Actually my budget is seventy thousand shekels', 70000],
     ['התקציב שלי שישים אלף שקל', 60000], ['התקציב עכשיו שבעים אלף שקל', 70000],

@@ -1,3 +1,7 @@
+## WhatsApp bot: required AI handoff
+
+Before any bot work, read [docs/whatsapp-bot/AI-HANDOFF.md](docs/whatsapp-bot/AI-HANDOFF.md) together with this file, the deployment safety guide and AI handbook. It records rental/advice/service priorities, architecture, known failures, human HE/EN acceptance, website preservation and customer-activation gates. Verify current state; historical test results are not readiness approval. Keep all existing instructions below.
+
 @AGENTS.md
 
 Mandatory production-preservation rules: @docs/DEPLOYMENT-SAFETY.md
