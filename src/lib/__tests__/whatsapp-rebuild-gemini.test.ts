@@ -10,6 +10,26 @@ const context = { locale: 'he' as const, phase: 'explore' as const, recent: [], 
 beforeEach(() => { vi.clearAllMocks(); mocks.evaluation.mockReturnValue(undefined); });
 
 describe('replacement Gemini boundary', () => {
+  it('requires structured current facts and validates each before canonical memory can consume it', async () => {
+    const input = "I'd take the SUV. Pickup from Herzliya and return in Tel Aviv. Actually five travellers in total.";
+    const patch = (field: string, evidence: string, value: object) => ({ field, operation: 'set', stance: 'selected', evidence, value });
+    mocks.generate.mockResolvedValue({ ok: true, text: JSON.stringify({ route: 'explore', direction: 'suv', reply: 'We can check room in the actual model before confirmation.', fields: {}, factPatches: [
+      patch('rentalVehicleCategory', "I'd take the SUV", { category: 'suv' }),
+      patch('rentalPickupBranch', 'Pickup from Herzliya', { branch: 'herzliya' }),
+      patch('rentalReturnBranch', 'return in Tel Aviv', { branch: 'telaviv' }),
+      patch('rentalPassengers', 'five travellers in total', { number: 5 }),
+      patch('customerName', 'five travellers in total', { number: 5 }),
+      patch('rentalPassengers', 'five travellers in total', { number: 9 }),
+    ] }) });
+    const result = await readBotTurn(input, { ...context, locale: 'en' });
+    expect(result?.factPatches).toHaveLength(4);
+    expect(result?.factPatches).toEqual(expect.arrayContaining([
+      expect.objectContaining({ field: 'rentalPickupBranch', value: 'herzliya' }),
+      expect.objectContaining({ field: 'rentalReturnBranch', value: 'telaviv' }),
+      expect.objectContaining({ field: 'rentalPassengers', value: 5 }),
+    ]));
+    expect(mocks.generate.mock.calls[0][0].body.generationConfig.responseFormat.text.schema.required).toContain('factPatches');
+  });
   it.each([
     'השם הוא רוני סודי. טלפון +44 7700 900123. כרטיס 4111 1111 1111 1111, קוד אבטחה 123, תוקף הכרטיס 12/29.',
     'My name is Casey Secret. +1 (202) 555-0147; card 3782 822463 10005, CVV: 456, expiry 11/2029.',

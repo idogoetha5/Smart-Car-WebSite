@@ -1,3 +1,5 @@
+import { isHypotheticalFactEvidence } from '@/lib/whatsapp-fact-patch';
+
 /** Explicit, non-contact commercial facts survive the short conversational window.
  * No raw messages or free-text notes are retained here. Null means undecided. */
 export type CommercialMemory = {
@@ -47,7 +49,7 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
     .replace(/(?<!\d)(?:\+972|0[2-9])[\d ()-]{7,}/g, '');
   const budget = new RegExp(`(?:תקציב|budget)(?:\\s+(?:עכשיו|שלי|הוא|שלנו|של|עד|סביב|ירד|עלה|ל|is|now|of|up to|around|to|reduced|changed))*[ :₪$€־-]*${NUMBER}\\s*(אלף|thousand|k\\b)?`, 'giu');
   for (const match of text.matchAll(budget)) {
-    if (negatedBefore(text, match.index!)) continue;
+    if (negatedBefore(text, match.index!) || isHypotheticalFactEvidence(text, match[0])) continue;
     const value = amount(match[1], match[2]);
     if (value < 100 || value > 10_000_000) continue;
     const nearby = text.slice(match.index!, match.index! + match[0].length + 20);
@@ -57,7 +59,7 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   }
   const ceiling = new RegExp(`(?:עד|up to)\\s*${NUMBER}\\s*(אלף|thousand|k\\b)(?!\\s*(?:קמ|ק[״"]מ|km))`, 'giu');
   for (const match of text.matchAll(ceiling)) {
-    if (!negatedBefore(text, match.index!)) next.budget = { amount: amount(match[1], match[2]), currency: next.budget?.currency ?? 'unspecified' };
+    if (!negatedBefore(text, match.index!) && !isHypotheticalFactEvidence(text, match[0])) next.budget = { amount: amount(match[1], match[2]), currency: next.budget?.currency ?? 'unspecified' };
   }
   // Currency-bearing amounts are also explicit budgets when called a limit or
   // a correction to a previously supplied budget, never arbitrary bare digits.
@@ -66,7 +68,7 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
     for (const match of text.matchAll(money)) {
       const clause = text.slice(0, match.index!).split(/[.!?;]|[,،](?=\s)/u).at(-1) ?? '';
       const following = text.slice(match.index! + match[0].length, match.index! + match[0].length + 25);
-      if (negatedBefore(text, match.index!)
+      if (negatedBefore(text, match.index!) || isHypotheticalFactEvidence(text, match[0])
         || /מחיר|הצעה|מחשבון|תשלום|\b(?:price|quote|offer|calculator|monthly)\b/i.test(clause)
         || /^\s*(?:לחודש|בחודש|per month|monthly)/i.test(following)) continue;
       const value = amount(match[1], match[2]);
@@ -74,27 +76,27 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
     }
   }
 
-  const termMatches: Array<{ value: number; index: number }> = [];
+  const termMatches: Array<{ value: number; index: number; evidence: string }> = [];
   for (const match of text.matchAll(/(?:ל)?(שני|שניים|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש)\s+חודשים|(?:ל)?חודשיים/gu)) {
     if (negatedBefore(text, match.index!)) continue;
     const namedMonths: Record<string, number> = { שני: 2, שניים: 2, שלושה: 3, שלוש: 3, ארבעה: 4, ארבע: 4, חמישה: 5, חמש: 5, שישה: 6, שש: 6 };
-    termMatches.push({ value: match[1] ? namedMonths[match[1]] : 2, index: match.index! });
+    termMatches.push({ value: match[1] ? namedMonths[match[1]] : 2, index: match.index!, evidence: match[0] });
   }
   const namedYears = text.match(/(?:ל)?(שלוש|ארבע|חמש)\s+שנים/u);
-  if (namedYears && !negatedBefore(text, namedYears.index!)) termMatches.push({ value: ({ שלוש: 3, ארבע: 4, חמש: 5 }[namedYears[1]] ?? 0) * 12, index: namedYears.index! });
+  if (namedYears && !negatedBefore(text, namedYears.index!)) termMatches.push({ value: ({ שלוש: 3, ארבע: 4, חמש: 5 }[namedYears[1]] ?? 0) * 12, index: namedYears.index!, evidence: namedYears[0] });
   for (const match of text.matchAll(/\b(\d{1,3}|one|two|three|four|five)\s*(months?|years?)\b|(\d{1,3})\s*(חודשים|חודש|שנים|שנה)|שנתיים|לשנה/giu)) {
     if (negatedBefore(text, match.index!) || termChoicePrefix(text, match.index!).hypothetical) continue;
     if (match[0] === 'לשנה' && /(?:קמ|ק[״"]מ|קילומטר(?:ים)?|km)\s*$/i.test(text.slice(Math.max(0, match.index! - 18), match.index!))) continue;
     const wordNumbers: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5 };
     const number = match[1] ? wordNumbers[match[1].toLowerCase()] ?? Number(match[1]) : match[3] ? Number(match[3]) : /שנתיים/.test(match[0]) ? 2 : 1;
     const months = /year|שנ/i.test(match[2] ?? match[4] ?? match[0]) ? number * 12 : number;
-    if (months >= 1 && months <= 120) termMatches.push({ value: months, index: match.index! });
+    if (months >= 1 && months <= 120) termMatches.push({ value: months, index: match.index!, evidence: match[0] });
   }
   const comparesTerms = /(?:\b24\b.{0,25}\b36\b|\b36\b.{0,25}\b24\b)/i.test(text)
     && (/months|חודשים|term|תקופה/i.test(text) || previous?.termMonths !== undefined) && /\bor\b|\bvs\b|\/|compare|between|unsure|undecided|או|מול|מתלבט/i.test(text);
   const termUndecided = /(?:term|תקופה|משך).{0,30}(?:undecided|not decided|not sure|לא החלטתי|לא סגור)|(?:לא החלטתי|לא סגור|not decided).{0,25}(?:term|תקופה)/i.test(text)
     || comparesTerms && /unsure|undecided|not sure|haven'?t decided|changed my mind|מתלבט|לא החלטתי|לא בטוח|שיניתי את דעתי/i.test(text);
-  const eligibleTermMatches = termMatches.filter(match => !termChoicePrefix(text, match.index).hypothetical);
+  const eligibleTermMatches = termMatches.filter(match => !termChoicePrefix(text, match.index).hypothetical && !isHypotheticalFactEvidence(text, match.evidence));
   const explicitChoice = eligibleTermMatches.filter(match => termChoicePrefix(text, match.index).chosen).sort((a, b) => a.index - b.index).at(-1);
   const laterUncertainty = explicitChoice && /(?:unsure|undecided|not sure|מתלבט|לא החלטתי)[^.!?\n]{0,45}(?:24[^.!?\n]{0,30}36|36[^.!?\n]{0,30}24|duration|period|תקופה|משך)/i.test(text.slice(explicitChoice.index));
   // An explicit choice wins over an unrelated “or” in a price question.
@@ -109,7 +111,7 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   if (annual || previous?.annualMileageKm !== undefined) {
     const mileage = new RegExp(`${NUMBER}\\s*(אלף|thousand|k\\b)?\\s*(?:קילומטר(?:ים)?|ק[״"]מ|קמ|km|kilometres?|kilometers?)`, 'giu');
     for (const match of text.matchAll(mileage)) {
-      if (negatedBefore(text, match.index!)) continue;
+      if (negatedBefore(text, match.index!) || isHypotheticalFactEvidence(text, match[0])) continue;
       const value = amount(match[1], match[2]);
       if (value > 0 && value <= 200000) next.annualMileageKm = value;
     }

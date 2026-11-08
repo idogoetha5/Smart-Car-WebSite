@@ -5,6 +5,7 @@ import { getSmartCarServiceAnswer, getSmartCarApprovedFacts } from '@/lib/smartc
 import { updateCommercialMemory, renderCommercialMemory, type CommercialMemory } from '@/lib/whatsapp-commercial-memory';
 import { asksRentalAgeTerms, hasUndecidedRentalDates, validateConversationalReply } from '@/lib/whatsapp-ai-reply';
 import { readBotTurn, type BotReading, type GeminiBotContext, type VehicleDirection } from '@/lib/whatsapp-rebuild-gemini';
+import { isHypotheticalFactEvidence, isRentalCapacityQuestionEvidence, validateFactPatches } from '@/lib/whatsapp-fact-patch';
 
 type Locale = 'he' | 'en';
 type Phase = 'explore' | 'booking' | 'service';
@@ -513,9 +514,10 @@ function negatedLuggageMention(input: string, index: number): boolean {
 
 function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   const count = '(\\d{1,2}|אחד|אחת|שניים|שתיים|שתי|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש|שבעה|שבע|שמונה|one|two|three|four|five|six|seven|eight)';
-  const passengers = input.match(new RegExp(`(?:אנחנו|נהיה)\\s+${count}(?=\\s|$)|${count}\\s+(?:נוסעים|אנשים|מבוגרים|passengers|people)`, 'iu'));
+  const passengers = [...input.matchAll(new RegExp(`(?:אנחנו|נהיה)\\s+${count}(?=\\s|$)|${count}\\s+(?:נוסעים|אנשים|מבוגרים|passengers|people)`, 'giu'))]
+    .filter(match => !negatedLuggageMention(input, match.index) && !isHypotheticalFactEvidence(input, match[0]) && !isRentalCapacityQuestionEvidence(input, match[0])).at(-1);
   const luggage = [...input.matchAll(new RegExp(`${count}\\s+(?:(?:small|medium|large|קטנות|בינוניות|גדולות)\\s+)?(?:מזוודות|מזוודה|תיקים|תיקי נסיעה|bags?|suitcases?)(?![\\p{L}])`, 'giu'))]
-    .find(match => !negatedLuggageMention(input, match.index));
+    .find(match => !negatedLuggageMention(input, match.index) && !isHypotheticalFactEvidence(input, match[0]) && !isRentalCapacityQuestionEvidence(input, match[0]));
   const passengerCount = statedCount(passengers?.[1] ?? passengers?.[2] ?? '');
   const luggageCount = statedCount(luggage?.[1] ?? '');
   if (passengerCount !== null) draft.passengers = passengerCount;
@@ -1086,6 +1088,81 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
   if (state.booking.pickupDate && state.booking.returnDate && state.booking.returnDate < state.booking.pickupDate) delete state.booking.returnDate;
 }
 
+function applySelectedFacts(input: string, state: RebuildState, reading: BotReading | null, wantsBooking: boolean): void {
+  // Revalidate the provider-boundary proposals against the actual current
+  // message. No patch can carry identity, actions or a historical fact.
+  const raw = reading?.factPatches?.map(patch => {
+    if (patch.operation !== 'set') return patch;
+    const value = patch.field === 'commercialBudget' ? { number: patch.value.amount, currency: patch.value.currency }
+      : typeof patch.value === 'number' ? { number: patch.value }
+        : patch.field === 'rentalPickupBranch' || patch.field === 'rentalReturnBranch' ? { branch: patch.value }
+          : { category: patch.value };
+    return { ...patch, value };
+  });
+  const categories = state.locale === 'he'
+    ? { compact: 'רכב קומפקטי', family: 'רכב משפחתי', suv: 'רכב פנאי', seven_seat: 'רכב שבעה מקומות' }
+    : { compact: 'compact car', family: 'family car', suv: 'SUV', seven_seat: 'seven-seat car' };
+  const branches = state.locale === 'he'
+    ? { herzliya: 'הרצליה', telaviv: 'תל אביב', jerusalem: 'ירושלים', airport: 'נתבג' }
+    : { herzliya: 'Herzliya', telaviv: 'Tel Aviv', jerusalem: 'Jerusalem', airport: 'Ben Gurion Airport' };
+  for (const patch of validateFactPatches(raw, input)) {
+    if (patch.field.startsWith('rental')) {
+      if (state.interest || state.phase === 'service' && !wantsBooking || state.completedRequestId && !wantsBooking) continue;
+      switch (patch.field) {
+        case 'rentalPickupBranch':
+          if (patch.operation === 'set') state.booking.pickupLocation = branches[patch.value];
+          else delete state.booking.pickupLocation;
+          break;
+        case 'rentalReturnBranch':
+          if (patch.operation === 'set') state.booking.returnLocation = branches[patch.value];
+          else delete state.booking.returnLocation;
+          break;
+        case 'rentalVehicleCategory':
+          if (patch.operation === 'set') state.booking.vehicleNeed = categories[patch.value];
+          else if (patch.operation === 'undecided') state.booking.vehicleNeed = state.locale === 'he' ? 'סוג רכב פתוח להתאמה' : 'vehicle group to be matched';
+          else delete state.booking.vehicleNeed;
+          break;
+        case 'rentalPassengers':
+          if (patch.operation === 'set') state.booking.passengers = patch.value;
+          else delete state.booking.passengers;
+          break;
+        case 'rentalLuggage':
+          if (patch.operation === 'set') state.booking.luggage = patch.value;
+          else delete state.booking.luggage;
+          break;
+        case 'rentalChildSeats':
+          if (patch.operation === 'set') state.booking.childSeats = patch.value;
+          else if (patch.operation === 'remove') state.booking.childSeats = 0;
+          else delete state.booking.childSeats;
+          break;
+      }
+    } else if (state.interest) {
+      const memory = state.commercial ??= {};
+      switch (patch.field) {
+        case 'commercialBudget':
+          if (patch.operation === 'set') memory.budget = patch.value;
+          else delete memory.budget;
+          break;
+        case 'commercialTermMonths':
+          if (patch.operation === 'set') memory.termMonths = patch.value;
+          else if (patch.operation === 'undecided') memory.termMonths = null;
+          else delete memory.termMonths;
+          break;
+        case 'commercialAnnualMileageKm':
+          if (patch.operation === 'set') memory.annualMileageKm = patch.value;
+          else if (patch.operation === 'undecided') memory.annualMileageKm = null;
+          else delete memory.annualMileageKm;
+          break;
+        case 'commercialVehiclePreference':
+          if (patch.operation === 'set') memory.vehiclePreference = patch.value;
+          else if (patch.operation === 'undecided') memory.vehiclePreference = null;
+          else delete memory.vehiclePreference;
+          break;
+      }
+    }
+  }
+}
+
 function privateDetail(input: string, state: RebuildState, explicitStart = false): boolean {
   if (state.phase !== 'booking' && !explicitStart) return false;
   let captured = false;
@@ -1575,12 +1652,14 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       }
       state.commercial = updateCommercialMemory(state.commercial, input);
     }
+    applySelectedFacts(input, state, reading, wantsBooking);
     const completedRouteInCurrentTurn = Boolean(statedRange && state.booking.pickupLocation && state.booking.returnLocation);
     if (durationMismatch) {
       reply = mentionedOneMonth
         ? (he ? 'ציינת השכרה לחודש, אבל התאריכים ששלחת הם לתקופה אחרת. אלה התאריכים הרצויים?' : 'You mentioned a month-long rental, but the dates you sent cover a different period. Are those the dates you want?')
         : (he ? 'ציינת נסיעה של כשבוע, אבל התאריכים ששלחת הם לתקופה ארוכה יותר. אלה התאריכים הרצויים?' : 'You mentioned a trip of about a week, but the dates you sent cover a longer period. Are those the dates you want?');
-    } else if (completedRouteInCurrentTurn && state.phase === 'explore' && !state.interest && !explicitBooking(input)) {
+    } else if (completedRouteInCurrentTurn && state.phase === 'explore' && !state.interest && !explicitBooking(input)
+      && (!/[?؟]/u.test(input) || !reading?.groundedContext)) {
       const stroller = /עגלה|stroller|pushchair/i.test(input)
         || state.history.some(entry => entry.from === 'customer' && /עגלה|stroller|pushchair/i.test(entry.text));
       const childSeatNote = state.booking.childSeats
@@ -1589,9 +1668,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const luggageNote = state.booking.luggage
         ? (he ? ` ל־${state.booking.passengers ?? ''} נוסעים ו־${state.booking.luggage} מזוודות${stroller ? ' ועגלה' : ''}, נוודא מקום בדגם המסוים.` : ` For ${state.booking.passengers ?? 'your group'} travellers and ${state.booking.luggage} suitcases${stroller ? ' and a stroller' : ''}, we will verify space in the specific model.`)
         : '';
+      const sideAnswer = /[?؟]/u.test(input) ? getSmartCarServiceAnswer(input, state.locale)?.reply : undefined;
       reply = he
         ? `הבנתי את תאריכי האיסוף וההחזרה, מאיסוף ב${state.booking.pickupLocation} להחזרה ב${state.booking.returnLocation}.${childSeatNote}${luggageNote} זמינות והצעה מדויקת נבדוק לפני אישור. תרצו שנתחיל בקשה?`
         : `I have the pickup and return dates, from ${state.booking.pickupLocation} to ${state.booking.returnLocation}.${childSeatNote}${luggageNote} We will check availability and an exact quote before confirmation. Would you like to start a request?`;
+      if (sideAnswer) reply = `${sideAnswer} ${reply}`;
     } else if (declines) {
       state.phase = 'explore'; state.step = 'menu';
       reply = he ? 'בסדר, לא שלחתי בקשה. הפרטים יישארו כאן אם תרצה להמשיך להתלבט.' : 'Okay, I have not sent a request. The details stay here if you want to think it over.';
