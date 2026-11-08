@@ -264,8 +264,9 @@ function singleDateAnswer(input: string, after?: string): string | null {
   return candidate && validDate(candidate) && candidate >= today && (!after || candidate > after) && candidate <= limit.toISOString().slice(0, 10) ? candidate : null;
 }
 
+const VAGUE_DATE_PHRASE = /\b(?:next week|next month|in a week|in a month|about a week|about a month)\b|(?:מ|ב)?עוד\s+(?:כשבוע|כחודש|שבוע|חודש)|מ?עוד\s*שבוע|(?:ב|מ)שבוע הבא|(?:ב|מ)חודש הבא/iu;
 function vagueDateAnswer(input: string): boolean {
-  return /\b(?:next week|next month|in a week|in a month|about a week|about a month)\b|(?:מ|ב)?עוד\s+(?:כשבוע|כחודש|שבוע|חודש)|מ?עוד\s*שבוע|(?:ב|מ)שבוע הבא|(?:ב|מ)חודש הבא/iu.test(input)
+  return VAGUE_DATE_PHRASE.test(input)
     && !explicitDateRange(input) && !singleDateAnswer(input);
 }
 
@@ -398,7 +399,7 @@ function greeting(input: string, locale: Locale): string | null {
   if (/^(?:היי+|הי+|שלום|אהלן|hi+|hello|hey)[,!?.\s]+(?:מה נשמע|מה קורה|מה שלומך|how are you|how is it going)[!?.\s🙂]*$/i.test(input)) {
     return locale === 'he' ? 'היי 🙂 הכול טוב, תודה ששאלת. מה שלומך? איך אפשר לעזור לך היום?' : 'Hi 🙂 Doing well, thanks for asking. How are you? How can I help today?';
   }
-  if (/^(?:היי+|הי+|שלום|אהלן|hi+|hello|hey)[,!?.\s]+(?:אפשר לשאול|רציתי לשאול|can I ask|I have a question)/i.test(input)) {
+  if (/^(?:היי+|הי+|שלום|אהלן|hi+|hello|hey)[,!?.\s]+(?:אפשר לשאול(?: שאלה)?|רציתי לשאול(?: שאלה)?|can I ask(?: a question)?|I have a question)[!?.,\s]*$/i.test(input)) {
     return locale === 'he' ? 'בטח 🙂 מה תרצה לשאול?' : 'Of course 🙂 What would you like to ask?';
   }
   if (/^(?:היי+|הי+|שלום|אהלן|בוקר טוב|צהריים טובים|ערב טוב|hi+|hello|hey|good morning|good evening)[!?.\s🙂👋]*$/i.test(input)) {
@@ -1547,25 +1548,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     reply = he ? 'בשמחה. קח את הזמן; כשתרצה להמשיך, נוכל לחזור להעדפות שכבר ציינת.' : 'Of course. Take your time; when you are ready, we can continue from the preferences you already shared.';
   } else if (/^(?:אחזור עם תאריך|אחזור כשאדע תאריך|I'll come back with a date)[.!\s]*$/i.test(input)) {
     reply = he ? 'בשמחה. כשתדע את התאריך, כתוב לי כאן ונמשיך מהפרטים שכבר מסרת.' : 'Of course. Send the date when you know it and we can continue from the details you already shared.';
-  } else if (!state.interest && uncertainDateAnswer(input)
-    && !/[?؟]/u.test(input)
-    && !/מה כדאי|מה תמליצ|what (?:would you )?recommend/i.test(input)
-    && (/אין לי (?:עדיין )?תאריכ|אין תאריך סופי|עדיין אין תאריך|no dates? yet/i.test(input) || asksRentalDates(lastBotReply) || Boolean(state.booking.datePreference) || state.phase === 'booking' && state.step === 'rental_dates')) {
-    reply = he ? 'אין בעיה. כשתדעו את התאריכים המדויקים, כתבו אותם כאן ונוכל להמשיך מהפרטים שכבר מסרתם.' : 'No problem. When you know the exact dates, send them here and we can continue with the details you already shared.';
-  } else if (!state.interest && vagueDateAnswer(input)
-    && !/מה כדאי|מה תמליצ|what (?:would you )?recommend/i.test(input)
-    && (!state.booking.pickupDate || !state.booking.returnDate)) {
-    const previous = state.booking.datePreference;
-    state.booking.datePreference = [previous, input].filter(Boolean).join(' עד ').slice(0, 120);
-    const clarifiedAlready = state.history.some(entry => entry.from === 'bot' && /באילו תאריכים מדויקים|כשתדעו את התאריכים המדויקים|which exact pickup and return dates|when you know the exact dates/i.test(entry.text));
-    reply = clarifiedAlready
-      ? (he ? 'הבנתי את הטווח המשוער. כשתדעו את התאריכים המדויקים, כתבו אותם כאן ונמשיך.' : 'I understand the approximate timing. Send the exact dates here when you know them and we can continue.')
-      : (he ? 'הבנתי את הכיוון. כדי לבדוק זמינות ולהכין בקשה, באילו תאריכים מדויקים תרצו לאסוף ולהחזיר את הרכב? אפשר לכתוב למשל 2/11–26/11.' : 'I understand the approximate timing. Which exact pickup and return dates would you like? For example, 2/11–26/11.');
   } else if (state.phase === 'booking' && state.step === 'rental_age' && /אני לא מבין|לא הבנתי|מה זאת אומרת|i don'?t understand|what do you mean/i.test(input) && /מגיל 21|aged 21 or older/i.test(lastBotReply)) {
     reply = he ? 'אם הנהג הראשי בן 20, אי אפשר להשכיר על שמו. אם אדם אחר בן 21 ומעלה יהיה הנהג הראשי, אפשר להמשיך עם קבוצת הגיל שלו בכפוף לתנאי הרכב והביטוח.' : 'A 20-year-old cannot be the main renter. If someone aged 21 or older will be the main driver, we can continue with that person’s age group, subject to the vehicle and insurance terms.';
   } else if (state.phase === 'booking' && state.step === 'rental_dates' && affirms(input) && /כשתדעו את התאריכים המדויקים|when you know the exact dates/i.test(lastBotReply)) {
     reply = he ? 'בסדר. כשתדעו את התאריכים, כתבו אותם כאן ונמשיך מהפרטים שכבר מסרתם.' : 'Of course. Send the dates when you know them and we will continue with the details already shared.';
-  } else if (state.phase === 'explore' && (/באיזו שעה|באיזה שעה|what time/i.test(lastBotReply) && /^\d{1,2}(?::\d{2})?$/.test(input) || /אמרתי לך כבר|שאלת כבר|כבר אמרתי|already told you|asked me already/i.test(input))) {
+  } else if (state.phase === 'explore' && /באיזו שעה|באיזה שעה|what time/i.test(lastBotReply)
+    && (/^\d{1,2}(?::\d{2})?$/.test(input) || /אמרתי לך כבר|שאלת כבר|כבר אמרתי|already told you|asked me already/i.test(input))) {
     const consented = state.history.some((entry, index) => entry.from === 'customer' && affirms(entry.text) && index > 0 && offersRentalRequest(state.history[index - 1].text));
     if (consented) {
       state.phase = 'booking'; state.requestKey ??= randomUUID();
@@ -1705,10 +1693,26 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     applySelectedFacts(input, state, reading, wantsBooking);
     if (leaveVehicleOpen && !state.interest && state.phase !== 'service') state.booking.vehicleNeed = he ? 'סוג רכב פתוח להתאמה' : 'vehicle group to be matched';
     const completedRouteInCurrentTurn = Boolean(statedRange && state.booking.pickupLocation && state.booking.returnLocation);
+    // Approximate/unknown timing is a fallback for a short date answer, not a
+    // pre-model route. A service/refund/correction message must reach Gemini
+    // even when an old draft happens to contain an undecided-date marker.
+    const dateFallback = !gotPrivate && !state.interest && state.phase !== 'service' && !serviceInterpretation && reading?.route !== 'policy'
+      && input.length <= 90 && input.split(/\s+/).length <= 12 && !/[?؟]/u.test(input)
+      && !getSmartCarServiceAnswer(input, state.locale);
     if (durationMismatch) {
       reply = mentionedOneMonth
         ? (he ? 'ציינת השכרה לחודש, אבל התאריכים ששלחת הם לתקופה אחרת. אלה התאריכים הרצויים?' : 'You mentioned a month-long rental, but the dates you sent cover a different period. Are those the dates you want?')
         : (he ? 'ציינת נסיעה של כשבוע, אבל התאריכים ששלחת הם לתקופה ארוכה יותר. אלה התאריכים הרצויים?' : 'You mentioned a trip of about a week, but the dates you sent cover a longer period. Are those the dates you want?');
+    } else if (dateFallback && uncertainDateAnswer(input)
+      && (hasUndecidedRentalDates(input) || wasBooking && state.step === 'rental_dates' || asksRentalDates(lastBot))) {
+      reply = he ? 'אין בעיה. כשתדעו את התאריכים המדויקים, כתבו אותם כאן ונוכל להמשיך מהפרטים שכבר מסרתם.' : 'No problem. When you know the exact dates, send them here and we can continue with the details you already shared.';
+    } else if (dateFallback && vagueDateAnswer(input) && (!state.booking.pickupDate || !state.booking.returnDate)) {
+      const timing = input.match(VAGUE_DATE_PHRASE)?.[0];
+      state.booking.datePreference = [state.booking.datePreference, timing].filter(Boolean).join(' עד ').slice(0, 120);
+      const clarifiedAlready = state.history.some(entry => entry.from === 'bot' && /באילו תאריכים מדויקים|כשתדעו את התאריכים המדויקים|which exact pickup and return dates|when you know the exact dates/i.test(entry.text));
+      reply = clarifiedAlready
+        ? (he ? 'הבנתי את הטווח המשוער. כשתדעו את התאריכים המדויקים, כתבו אותם כאן ונמשיך.' : 'I understand the approximate timing. Send the exact dates here when you know them and we can continue.')
+        : (he ? 'הבנתי את הכיוון. כדי לבדוק זמינות ולהכין בקשה, באילו תאריכים מדויקים תרצו לאסוף ולהחזיר את הרכב?' : 'I understand the approximate timing. Which exact pickup and return dates would you like?');
     } else if (completedRouteInCurrentTurn && state.phase === 'explore' && !state.interest && !explicitBooking(input)
       && (!/[?؟]/u.test(input) || !reading?.groundedContext)) {
       const stroller = /עגלה|stroller|pushchair/i.test(input)

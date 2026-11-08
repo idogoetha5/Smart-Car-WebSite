@@ -152,6 +152,45 @@ describe('evidenced understanding reaches canonical rental memory', () => {
     expect(c.create).not.toHaveBeenCalled();
     expect(c.readTurn).not.toHaveBeenCalled();
   });
+  it('lets Gemini understand the new Hebrew paid-booking/flight-change story before date fallbacks', async () => {
+    const c = chat(null, input => ({ ...base('אפשר להמשיך לברר על קיצור בלי לבטל הזמנה בשיחה.'), route: input.includes('עשיתי הזמנה') ? 'policy' : 'service' }));
+    for (const input of [
+      'היי, עשיתי הזמנה לשבוע הבא אבל הטיסה שלנו השתנתה. אני לא יודעת עדיין אם נגיע בכלל או רק ליומיים. שילמתי מקדמה אז לפני שאני מחליטה רציתי להבין מה האפשרויות',
+      'ואם נגיע רק ליומיים במקום ארבעה, מחזירים אוטומטית את ההפרש? זה בעוד שבוע, לא מחר. אל תבטל לי בינתיים אני עוד מחכה לתשובה מחברת התעופה',
+      'לא, יש לי כבר הזמנה, שאלתי על המקדמה ששילמתי ומה קורה אם מקצרים. אני לא מנסה לעשות הזמנה חדשה ולא יודעת עוד אם לקצר בכלל',
+    ]) {
+      const result = await c.send(input);
+      expect(result.reply).not.toMatch(/באילו תאריכים|כשתדעו את התאריכים|לאסוף ולהחזיר/);
+      expect(result.escalate).toBe(false);
+    }
+    expect(c.readTurn).toHaveBeenCalledTimes(3);
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it.each(['he', 'en'] as const)('does not let a stale undecided-date marker swallow a service correction: %s', async locale => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale, booking: { datePreference: 'dates undecided' }, history: [{ from: 'bot', text: 'Which exact pickup and return dates would you like?' }] }, () => ({ ...base(locale === 'he' ? 'אפשר לברר על המקדמה בלי לבצע שינוי.' : 'We can discuss the advance payment without making a change.'), route: 'service' }));
+    const input = locale === 'he'
+      ? 'לא, יש לי כבר הזמנה, שאלתי על המקדמה ששילמתי ומה קורה אם מקצרים. אני לא מנסה לעשות הזמנה חדשה ולא יודעת עוד אם לקצר בכלל'
+      : "No, I'm not sure whether to shorten the trip. This is about money I already paid, not collecting another car.";
+    const result = await c.send(input);
+    expect(c.readTurn).toHaveBeenCalled();
+    expect(result.state.phase).toBe('service');
+    expect(result.reply).not.toMatch(/כשתדעו את התאריכים|exact dates|What date would you like/);
+    expect(result.escalate).toBe(false);
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it.each([
+    'Hi, can I ask about the advance payment for the car I booked?',
+    'היי, רציתי לשאול על המקדמה ששילמתי להזמנה שלי',
+    'I already told you this is about my paid booking, not collecting a new car.',
+    'כבר אמרתי ששילמתי מקדמה, שאלתי מה קורה אם מקצרים',
+  ])('does not replace a compound greeting or correction with an unrelated conversational shortcut: %s', async input => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: /[א-ת]/u.test(input) ? 'he' : 'en', booking: {}, history: [{ from: 'bot', text: 'How can I help with your rental?' }] }, () => ({ ...base('An advance payment and any refund depend on the booking terms.'), route: 'service' }));
+    const result = await c.send(input);
+    expect(c.readTurn).toHaveBeenCalled();
+    expect(result.state.phase).toBe('service');
+    expect(result.reply).not.toMatch(/pick.?up time|שעת איסוף|what would you like to ask|מה תרצה לשאול/);
+    expect(c.create).not.toHaveBeenCalled();
+  });
   it('accepts a natural name answer followed by a comma and a side comment', async () => {
     const c = chat({ version: 2, phase: 'booking', step: 'rental_name', locale: 'he', booking: { ...draft }, history: [] }, () => base('נמשיך עם הפרטים.'));
     const result = await c.send('איתי בדיקה, כתבתי את זה קודם. בלי מייל בבקשה. אפשר כבר לראות את כל הפרטים?');

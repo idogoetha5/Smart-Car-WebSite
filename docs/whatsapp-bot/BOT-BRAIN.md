@@ -1,5 +1,10 @@
 # SmartCar business assistant — current architecture
 
+## Interpret substantive messages before conversational shortcuts — 2026-11-08
+
+Unknown/approximate-date handling is a post-model, short-answer fallback, not an early routing decision. A stale datePreference must not swallow an existing-service/refund correction. Service/policy interpretations and private turns bypass that fallback. Generic repetition complaints reach the model; only actual prior hour prompts use the legacy hour repair. A greeting prefix cannot discard an attached business question. Safety, private data and final action consent remain explicitly application-owned. These changes require diverse live acceptance; controlled fixtures are not proof of model quality.
+
+
 ## Service discussion is not action authority — 2026-11-08
 
 `serviceChangeRequested` records a selected request or plain acceptance of a specific request-review offer. Merely mentioning extension/change (including in history) is not authority to queue a change. Generic availability offers and compound conversational acknowledgements do not count as that consent. State initialisation interprets legacy selected requests once; later turns use the explicit marker. A new rental clears that marker. Legacy unselected alerts retain their audit without blocking continued advice or pretending that an alert was recalled. Customer corrections still require live semantic acceptance; these boundaries are not a universal language-understanding proof.
