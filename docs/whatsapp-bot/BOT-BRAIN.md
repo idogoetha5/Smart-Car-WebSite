@@ -1,5 +1,9 @@
 # SmartCar business assistant — current architecture
 
+## Service discussion is not action authority — 2026-11-08
+
+`serviceChangeRequested` records a selected request or plain acceptance of a specific request-review offer. Merely mentioning extension/change (including in history) is not authority to queue a change. Generic availability offers and compound conversational acknowledgements do not count as that consent. State initialisation interprets legacy selected requests once; later turns use the explicit marker. A new rental clears that marker. Legacy unselected alerts retain their audit without blocking continued advice or pretending that an alert was recalled. Customer corrections still require live semantic acceptance; these boundaries are not a universal language-understanding proof.
+
 ## Cross-tool handoff and correction precedence — 2026-11-08
 
 Read [AI-HANDOFF.md](AI-HANDOFF.md) before bot work. The owner prioritises rental/advice/existing-customer service and requires diverse human conversations, including mistakes and corrections. A saved intake stage is not stronger evidence of current meaning than a grounded current Gemini service interpretation. Service acknowledgements must not implicitly start a new rental. Compound acknowledgements without private details must reach the model; plain acceptance and private intake retain deterministic boundaries. A service interpretation may change conversation topic, never approve an extension/cancellation, create a rental or authorise a handoff by itself. Preserve the pending draft when correcting a mistaken intake. Grounding here means approved context was supplied, not a proof that every classification is correct. Fresh live correction/recovery checks remain required.

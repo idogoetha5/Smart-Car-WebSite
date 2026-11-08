@@ -24,6 +24,8 @@ export type RebuildState = {
   interest?: 'leasing' | 'sale';
   commercial?: CommercialMemory;
   serviceReference?: string;
+  /** Set only by a selected change request or acceptance of its review offer. */
+  serviceChangeRequested?: boolean;
   safetyAlertAt?: string;
   safetyKind?: 'accident' | 'breakdown';
   handedOff?: boolean;
@@ -272,11 +274,20 @@ function uncertainDateAnswer(input: string): boolean {
   return /(?:לא יודע|לא יודעת|לא בטוח|לא בטוחה|לא סגור(?:ים|ות)? על (?:ה)?תאריכ|לא סגרנו תאריכ|אין לי (?:עדיין )?תאריכ|אין תאריך סופי|עדיין אין תאריך|not sure|don'?t know|no dates? yet|haven'?t decided|(?:have|has) not (?:chosen|picked|decided on) dates? yet)/i.test(input);
 }
 
-function rentalChangeRequest(input: string): boolean {
+function mentionsRentalChange(input: string): boolean {
   return /לשנות|לשינוי|להאריך|הארכ(?:ה|ת)|לדחות|לדחייה|להקדים|להזיז|יום ההחזרה|יום מאוחר|יום נוסף|להחזיר.{0,40}מאוחר|\b(?:change|extend|extension|postpone)\b|move (?:the )?return|return date|return (?:the )?(?:car|it).{0,45}later|extra days?/i.test(input);
 }
 
+/** A topic mention is not authority to queue a change, now or in history. */
+function rentalChangeRequest(input: string): boolean {
+  if (advisoryRentalChange(input)) return false;
+  if (/^(?:רוצה|רוצים|צריך|צריכה|מבקש|מבקשת)\s+(?:לשנות|להאריך|לדחות|להקדים|להזיז)/u.test(input)) return true;
+  return /(?:אני|אנחנו)\s+(?:רוצה|רוצים|צריך|צריכה|צריכים|מבקש|מבקשת|מבקשים)\s+(?:לשנות|להאריך|לדחות|להקדים|להזיז)|(?:החלטתי|החלטנו)\s+(?:להאריך|לשנות|לדחות)|(?:בבקשה\s+)?(?:תאריכו|האריכו|תדחו|תשנו|תזיזו)(?:\s|[.!?]|$)|(?:^|[.!?]\s*|,\s*)(?:בבקשה\s+)?(?:תעבירו|שלחו)\s+(?:לי\s+)?בקשת\s+(?:הארכה|שינוי)|(?:אני|אנחנו)\s+(?:רוצה|רוצים|מבקש|מבקשת)\s+(?:להעביר|לשלוח)\s+בקשת\s+(?:הארכה|שינוי)/iu.test(input)
+    || /\b(?:I|we) (?:want|need|would like|have decided) to (?:extend|change|postpone|move|return.{0,45}later)\b|\b(?:I|we)(?: would|'d) like to request\b.{0,25}\b(?:extension|date change)\b|\b(?:please|kindly)\s+(?:extend|change|postpone|move)\b|(?:^|[.!?]\s*|,\s*)(?:please\s+)?(?:request|submit|pass|send)\b.{0,35}\b(?:extension|date change|change request)\b/iu.test(input);
+}
+
 function advisoryRentalChange(input: string): boolean {
+  if (/(?:do not|don['’]?t|not)\s+(?:want|wish|intend|ask)\s+(?:you\s+)?(?:to\s+)?(?:extend|change|request)|לא (?:רוצה|רוצים|צריך|צריכה|מבקש|מבקשת)\s+(?:להאריך|לשנות|לדחות)|אל\s+(?:תאריכו|האריכו|תדחו|תשנו|תזיזו)/iu.test(input)) return true;
   if (/\b(?:haven['’]?t|have not|has not) (?:chosen|decided)|\b(?:still deciding|undecided)\b|(?:עוד |עדיין )?לא (?:החלטתי|החלטנו|בחרתי|בחרנו)/iu.test(input)) return true;
   return /\b(?:what if|if (?:I|we) (?:(?:ever|actually) )?(?:need|needed|wanted|decide)|may need|might need|not requesting|only asking|just asking|no (?:change|extension) request(?: yet)?)\b|(?:leave|keep).{0,35}\bunchanged\b|(?:do not|don't)\s+(?:change|extend)|מה (?:קורה |יקרה )?אם|אם (?:אצטרך|נצטרך|ארצה)|אולי (?:אצטרך|נצטרך)|רק (?:שואל|שואלת|מברר|מבררת)|לא מבקש(?:ת)? (?:שינוי|הארכה)|להשאיר.{0,25}ללא שינוי|אל תשנ|לא לשנות/i.test(input);
 }
@@ -288,7 +299,7 @@ function cancellationRequest(input: string): boolean {
 }
 
 function explicitServiceReference(input: string): string | undefined {
-  const value = input.match(/(?:מספר\s+ה?הזמנה|booking\s+(?:number|reference)|(?:booking|הזמנה)\s*#|ההזמנה\s+שלי\s+מספר\s*#)[\s,:#]*(?:(?:שלי|הוא|it\s+is|is)[\s,:#]*)*([A-Z0-9-]*\d[A-Z0-9-]{2,})(?![A-Z0-9-])/i)?.[1];
+  const value = input.match(/(?:מספר\s+ה?הזמנה|booking\s+number|(?:booking\s+)?reference|(?:booking|הזמנה)\s*#|ההזמנה\s+שלי\s+מספר\s*#)[\s,:#]*(?:(?:שלי|הוא|it\s+is|it['’]s|is)[\s,:#]*)*([A-Z0-9-]*\d[A-Z0-9-]{2,})(?![A-Z0-9-])/i)?.[1];
   return value && value.length <= 40 ? value : undefined;
 }
 
@@ -416,6 +427,11 @@ function declinesHumanHandoff(input: string): boolean {
 function offersHumanHandoff(reply: string): boolean {
   return /תרצ(?:ה|ו).{0,35}(?:שאעביר|שנציג)|would you like.{0,40}(?:representative|pass)/i.test(reply)
     || /(?:תרצ(?:ה|ו)|האם|אפשר)[^?؟.!]{0,35}(?:שנחבר|שנקשר|שנעביר|לחבר|לקשר|להעביר)[^?؟.!]{0,70}(?:נציג|צוות|בן אדם)[^?؟]*[?؟]/i.test(reply);
+}
+
+function offersServiceChangeReview(reply: string): boolean {
+  return /extension|date change|הארכה|שינוי/iu.test(reply)
+    && /(?:would you like|shall we|תרצ(?:ה|ו)|אפשר)[^?؟.!]{0,65}(?:review|submit|send|pass|שנעביר|להעביר|נגיש|להגיש|נשלח|לשלוח)[^?؟.!]{0,45}(?:request|בקשה|בקשת)[^?؟.!]*[?؟]/iu.test(reply);
 }
 
 function carryCommercialRentalNeeds(state: RebuildState): void {
@@ -1236,6 +1252,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   const input = raw.trim().slice(0, 1000);
   const stored = await store.loadState(phone);
   const state = stored?.version === 2 ? structuredClone(stored) : fresh(language(input, 'he'));
+  // One-time legacy interpretation; ordinary future discussion cannot turn
+  // a keyword in history into a selected request on every subsequent turn.
+  state.serviceChangeRequested ??= state.phase === 'service'
+    && state.history.some(entry => entry.from === 'customer' && rentalChangeRequest(entry.text));
   if (state.handedOff && (!state.handoffAt || !Number.isFinite(Date.parse(state.handoffAt)) || Date.now() - Date.parse(state.handoffAt) >= 24 * 60 * 60 * 1000)) {
     state.handedOff = false;
     state.handoffAt = undefined;
@@ -1264,7 +1284,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   const serviceQuestion = /[?؟]|רק (?:שואל|שואלת|מברר)|only (?:asking|want to understand)/i.test(input);
   const depositEnquiry = [input, ...state.history.filter(entry => entry.from === 'customer').map(entry => entry.text)]
     .some(text => /מקדמה|advance payment|pay.{0,30}deposit/i.test(text));
-  const continuedServiceAdvice = Boolean(state.handedOff && serviceQuestion && depositEnquiry
+  const unselectedChangeHandoff = state.handedOff && state.handoffKind === 'booking_change'
+    && !state.serviceChangeRequested && !state.history.some(entry => entry.from === 'customer' && cancellationRequest(entry.text));
+  const continuedServiceAdvice = Boolean(unselectedChangeHandoff || state.handedOff && serviceQuestion && depositEnquiry
     && (state.handoffKind === 'human' || state.handoffKind === 'service_issue'));
   const lastBotReply = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
   // An explicit correction to existing-rental service must be able to escape
@@ -1340,7 +1362,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     reply = /[?؟]|מה כלול|מה ההבדל|what.*included|compare|difference/i.test(input)
       ? `${notice} ${commercialReply(input, state).reply}` : notice;
   } else if (state.handedOff && !continuedServiceAdvice) {
-    if (state.handoffKind === 'service_issue' && state.history.some(entry => entry.from === 'customer' && rentalChangeRequest(entry.text) && !advisoryRentalChange(entry.text))) state.handoffKind = 'booking_change';
+    if (state.handoffKind === 'service_issue' && state.serviceChangeRequested) state.handoffKind = 'booking_change';
     const handoffKind = state.handoffKind ?? (state.safetyAlertAt && (!state.handoffAt || Date.parse(state.safetyAlertAt) >= Date.parse(state.handoffAt)) ? 'safety' : state.interest ? 'commercial' : 'booking_change');
     const cancellationPending = handoffKind === 'booking_change' && state.history.some(entry => entry.from === 'customer' && cancellationRequest(entry.text));
     const hasBookingReference = Boolean(state.serviceReference);
@@ -1725,6 +1747,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else if (/את[ה]? סוגר(?:ת)? לי רכב|סוגר(?:ת)? לי (?:את ה)?רכב|האם (?:זה|הרכב) (?:כבר )?סגור|are you booking (?:me |the )?(?:a )?car|is (?:the )?car booked/i.test(input)) {
       reply = he ? 'אפשר להכין בקשת השכרה עם הפרטים שלך. הרכב והמחיר יאושרו לפני שההזמנה תהיה סופית. תרצה שנתקדם לבקשה?' : 'We can prepare a rental request with your details. The car and price are confirmed before the booking becomes final. Would you like to proceed with the request?';
     } else if (wantsBooking) {
+      if (state.phase !== 'booking') state.serviceChangeRequested = false;
       state.phase = 'booking';
       state.interest = undefined;
       state.requestKey ??= randomUUID();
@@ -1848,12 +1871,17 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       // The reference was parsed and retained once above, including natural
       // punctuation. Re-parsing here creates conflicting workflow decisions.
       const suppliedReference = Boolean(state.serviceReference);
-      const changePending = rentalChangeRequest(input) || state.history.some(entry => entry.from === 'customer' && rentalChangeRequest(entry.text) && !advisoryRentalChange(entry.text));
+      const acceptsChangeReview = (affirms(input) || /^(?:okay|ok)[.!?\s]*$/i.test(input)) && offersServiceChangeReview(lastBot) && !advisoryRentalChange(input);
+      if (rentalChangeRequest(input) || acceptsChangeReview) state.serviceChangeRequested = true;
+      const changePending = state.serviceChangeRequested === true;
+      const changeDiscussion = mentionsRentalChange(input) || state.history.some(entry => entry.from === 'customer' && mentionsRentalChange(entry.text));
       const directChangeVerb = /לשנות|לשינוי|להאריך|לדחות|לדחייה|להקדים|להזיז|יום ההחזרה|יום מאוחר|change|extend|postpone|move (?:the )?return|return date/i.test(input);
       // A known reference is a fact, not consent to a hypothetical change.
       // This narrow deferral boundary does not infer every service intent.
       const advisoryChange = advisoryRentalChange(input);
-      if (!cancellationPending && changePending && advisoryChange) {
+      if (!cancellationPending && !changePending && changeDiscussion) {
+        reply = answer?.reply ?? (he ? 'אפשר לברר על הארכה בלי להגיש בקשת שינוי. עד לאישור מפורש, מועד ההחזרה המקורי מחייב, והמחיר עשוי להשתנות.' : 'We can discuss an extension without submitting a change request. Until explicitly approved, the original return deadline remains binding and the price may change.');
+      } else if (!cancellationPending && changePending && advisoryChange) {
         reply = he ? 'אפשר לברר על הארכה בלי להגיש בקשת שינוי כרגע. הארכה כפופה לזמינות, לתנאים ולאישור SmartCar; עד לאישור, מועד ההחזרה הקיים נשאר בתוקף והמחיר עשוי להשתנות.' : 'We can discuss an extension without submitting a change request now. An extension depends on availability, terms and SmartCar confirmation; until confirmed, the current return deadline remains in effect and the price may change.';
       } else if (!cancellationPending && changePending && !directChangeVerb && !suppliedReference && !booking) {
         reply = he ? 'אפשר לבדוק בקשה להארכה; היא כפופה לזמינות ולאישור, וגם המחיר עשוי להשתנות. מה מספר ההזמנה?' : 'We can review an extension request; it is subject to availability and confirmation, and the price may change. What is your booking reference?';

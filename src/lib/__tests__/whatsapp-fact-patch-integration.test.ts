@@ -71,6 +71,60 @@ describe('evidenced understanding reaches canonical rental memory', () => {
     expect(result.state.handedOff).not.toBe(true);
     expect(c.create).not.toHaveBeenCalled();
   });
+  it('retains the naturally volunteered reference and does not promote prior extension discussion into an action', async () => {
+    const c = chat({ version: 2, phase: 'service', step: 'menu', locale: 'en', booking: {}, history: [] }, () => ({ ...base('The original return deadline applies until a change is confirmed.'), route: 'service' }));
+    for (const input of [
+      "Right, that's what I needed. He won't drive it then. I've found the reference, it's 654321. If I bring it back after work instead, is there somewhere I can leave the keys or do I need someone there? Still not asking for an extension yet.",
+      "My paperwork says 9am tomorrow, but I meant around 6pm after work. So being within opening hours doesn't mean I'm allowed to keep it until then, right? I don't want a surprise charge.",
+      "Maybe I'll get a taxi to the branch and drive it back myself. Before I decide anything, have you got my booking number there or do I need to find it again? And just to be clear, nothing has actually been extended yet?",
+    ]) {
+      const result = await c.send(input);
+      expect(result.state.phase).toBe('service');
+      expect(result.state.serviceReference).toBe('654321');
+      expect(result.escalate).toBe(false);
+      expect(result.state.handedOff).not.toBe(true);
+    }
+    expect(JSON.stringify(c.readTurn.mock.calls)).not.toContain('654321');
+    expect(c.create).not.toHaveBeenCalled();
+    const requested = await c.send('Please extend the rental by one day. I would like to request that extension now.');
+    expect(requested.escalate).toBe(true);
+    expect(requested.state.handoffKind).toBe('booking_change');
+  });
+  it('can keep advising after a legacy unselected change alert without pretending to retract it', async () => {
+    const at = new Date().toISOString();
+    const c = chat({ version: 2, phase: 'service', step: 'menu', locale: 'en', booking: {}, handedOff: true, handoffKind: 'booking_change', handoffAt: at, serviceReference: '654321', history: [{ from: 'customer', text: 'Still not asking for an extension yet.' }] }, () => ({ ...base('You can continue considering the options without requesting a change.'), route: 'service' }));
+    const result = await c.send('Before I decide anything, nothing has been extended, correct?');
+    expect(result.escalate).toBe(false);
+    expect(result.state.handoffAt).toBe(at);
+    expect(c.readTurn).toHaveBeenCalled();
+    expect(result.reply).not.toContain('We have your change request');
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it.each(['Yes please', 'Okay'])('can accept a specific service review offer without starting a new rental: %s', async acceptance => {
+    const c = chat({ version: 2, phase: 'service', step: 'menu', locale: 'en', booking: {}, serviceReference: '654321', history: [{ from: 'bot', text: 'An extension requires approval. Would you like us to submit an extension request?' }] }, () => ({ ...base('Any change needs confirmation.'), route: 'service' }));
+    const result = await c.send(acceptance);
+    expect(result.state.phase).toBe('service');
+    expect(result.state.serviceChangeRequested).toBe(true);
+    expect(result.state.handoffKind).toBe('booking_change');
+    expect(result.escalate).toBe(true);
+    expect(c.create).not.toHaveBeenCalled();
+    const followup = await c.send('And does that mean it has been approved already?');
+    expect(followup.escalate).toBe(false);
+    expect(followup.state.serviceChangeRequested).toBe(true);
+  });
+  it.each([
+    'What do I need to send an extension request?',
+    'Please explain how to submit a date change request.',
+    "I don't want to request an extension.",
+    'אפשר לשלוח בקשת הארכה? אני רק בודק מה התהליך',
+    'אל תאריכו את ההזמנה, רק רציתי להבין את התנאים',
+  ])('does not treat discussion of request mechanics as a selected change: %s', async input => {
+    const c = chat({ version: 2, phase: 'service', step: 'menu', locale: /[א-ת]/u.test(input) ? 'he' : 'en', booking: {}, serviceReference: '654321', history: [] }, () => ({ ...base('A change needs confirmation before it takes effect.'), route: 'service' }));
+    const result = await c.send(input);
+    expect(result.escalate).toBe(false);
+    expect(result.state.handedOff).not.toBe(true);
+    expect(c.create).not.toHaveBeenCalled();
+  });
   it('answers the natural day-and-place question after a simulated submission without creating again', async () => {
     const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, completedRequestId: 'SIM-EXISTING', completedRental: { ...draft }, history: [] }, () => base('No new action.'));
     const result = await c.send('רק לוודא, באיזה יום ומקום אני מחזיר בסוף? וכבר יש לי רכב סגור או שעוד מחכים להצעה?');
