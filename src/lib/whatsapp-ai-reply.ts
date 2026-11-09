@@ -89,7 +89,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   // vehicle group and is confirmed before booking (approved age_licence fact).
   if (hasAffirmativeMatch(reply, /(?:גיל|בגיל)\s*\d{2}\s*(?:הוא|זה)?\s*(?:מצוין|לגמרי בסדר|בסדר גמור|בסדר|תקין|לא בעיה|ממש לא בעיה)|אין (?:שום )?בעיה (?:עם|בגלל) (?:ה)?גיל|אין (?:הגבלת|מגבלת) גיל(?: עליונה| מקסימלית)?|\bno (?:upper|maximum|max) age(?: limit)?\b|\bthere is no (?:upper |maximum )?age limit\b|(?:אפשר|ניתן) לשכור כל עוד יש רישיון|\bage \d{2} is (?:fine|perfectly fine|no problem|not a problem|ok(?:ay)?)\b|\b(?:no|not a) problem (?:with|at) (?:that|his|her|your) age\b|\bcan rent as long as (?:he|she|you|they) (?:has|have) a valid licen[cs]e\b/gi)) return reject('eligibility');
   if (/licen[cs]e|international permit|\bIDP\b|רישיון|רשיון|בינלאומי/i.test(input)) {
-    const licenceAssurance = [...reply.matchAll(/licen[cs]e[^.!?\n]{0,90}(?:accepted|sufficient|enough)|רישיון[^.!?\n]{0,60}(?:מספיק|מתקבל)/gi)];
+    const licenceAssurance = [...reply.matchAll(/licen[cs]e[^.!?\n]{0,90}(?:accepted|sufficient|enough|fine|valid here|no problem|ok(?:ay)?\b|works)|רישיון[^.!?\n]{0,60}(?:מספיק|מתקבל|בסדר|תקין|מתאים|אין בעיה)/gi)];
     if (licenceAssurance.some(match => !/\bnot\b|cannot|can['’]?t|may not|whether|must be|needs to be|לא|האם|עשוי/i.test(match[0])
       && !/cannot confirm|can['’]?t confirm|do not confirm|whether|אין אישור|אי אפשר לאשר|לא ניתן לאשר/i.test(reply.slice(Math.max(0, match.index! - 60), match.index!)))) return reject('foreign_licence_assurance');
     const weakenedRequirements = [...reply.matchAll(/(?:\bIDP\b|international (?:driving )?permit|(?:official )?translation)[^.!?\n]{0,60}(?:helpful|useful|optional)|(?:היתר בינלאומי|רישיון בינלאומי|תרגום)[^.!?\n]{0,45}(?:יכול לעזור|כדאי|לא חובה)/gi)];
@@ -133,6 +133,16 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
 
   const knownValue = (...keys: string[]) => keys.some(key => known[key] !== undefined && known[key] !== '');
   const savedAnnualMileage = Number(known.commercialAnnualMileageKm ?? known.annualMileageKm);
+  // Wording may not claim a route or dates were recorded when application
+  // state did not record them (observed: "Pickup and return … are set").
+  const claimsRecorded = /\b(?:are|is) (?:now )?(?:set|saved|noted|recorded|booked)\b|\b(?:I(?:'ve| have)?|we(?:'ve| have)?) (?:noted|saved|recorded|set)\b|רשמתי|נרשמ(?:ו|ה)?|נשמר(?:ו|ה)?|קבענו|עדכנתי/iu;
+  const mentionsRoute = /pick.?up|return|drop.?off|איסוף|לאסוף|החזרה|להחזיר/iu;
+  const mentionsDates = /\bdates?\b|תאריכ/iu;
+  for (const sentence of reply.split(/(?<=[.!?؟])\s+/u)) {
+    if (!claimsRecorded.test(sentence) || /\bnot\b|לא |טרם|עדיין לא/iu.test(sentence)) continue;
+    if (mentionsRoute.test(sentence) && !mentionsDates.test(sentence) && !knownValue('pickupLocation') && !knownValue('returnLocation')) return reject('unsaved_claim');
+    if (mentionsDates.test(sentence) && !knownValue('pickupDate') && !knownValue('returnDate')) return reject('unsaved_claim');
+  }
   const comparedMileage = /\bcompare|\bversus|\bvs\b|להשוות|השוואה|לעומת|מול/i.test(input) ? annualMileageMentions(input) : [];
   if (Number.isFinite(savedAnnualMileage) && savedAnnualMileage > 0
     && annualMileageMentions(reply).some(value => value !== savedAnnualMileage && !comparedMileage.includes(value))) return reject('mileage_conflict');

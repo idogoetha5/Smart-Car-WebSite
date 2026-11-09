@@ -353,6 +353,20 @@ function temporalLocation(value: string): boolean {
 }
 
 function applyExplicitLocations(input: string, draft: BookingDraft): void {
+  let bothLabel: string | undefined;
+  // "Airport both ways" / "לאסוף ולהחזיר בנתב״ג": one known branch for both legs.
+  if (!/\bwhat if\b|\bif\b|\bmaybe\b|מה אם|(?:^|\s)אם\s|אולי/iu.test(input)) {
+    const branch = '(the airport|airport|ben gurion(?: airport)?|tlv(?: airport)?|natbag|herzliya|tel aviv|jerusalem|נתב["״׳\']?ג|שדה התעופה|הרצליה|תל אביב|ירושלים)';
+    const both = input.match(new RegExp(`(?:^|[\\s,.])(?:at |from |in |[במ])?${branch}\\s+(?:both ways|for both pick.?up and return|הלוך ושוב|לשני הכיוונים)`, 'iu'))?.[1]
+      ?? input.match(new RegExp(`(?:pick(?:ing)?.?up and (?:return|drop.?off)|both ways)\\s+(?:at|from|in)\\s+${branch}(?![\\p{L}])`, 'iu'))?.[1]
+      ?? input.match(new RegExp(`(?:לאסוף ולהחזיר|איסוף והחזרה|גם לאסוף וגם להחזיר)\\s+[במ]${branch}(?![\\p{L}])`, 'iu'))?.[1];
+    if (both) {
+      const he = /[א-ת]/u.test(input);
+      const key = /air|ben gurion|tlv|natbag|נתב|שדה/iu.test(both) ? 'airport' : /herz|הרצ/iu.test(both) ? 'herzliya' : /tel aviv|תל אביב/iu.test(both) ? 'telaviv' : 'jerusalem';
+      const label = he ? { airport: 'נתב״ג', herzliya: 'הרצליה', telaviv: 'תל אביב', jerusalem: 'ירושלים' }[key] : { airport: 'Ben Gurion Airport', herzliya: 'Herzliya', telaviv: 'Tel Aviv', jerusalem: 'Jerusalem' }[key];
+      bothLabel = label;
+    }
+  }
   const sameCity = input.trim().match(/^([\p{L}\s'׳״-]{2,50})\s+גם\s+(?:להחזיר\s+(?:גם\s+)?לאסוף|לאסוף\s+(?:(?:וגם|גם)\s+)?להחזיר)$/u)?.[1]?.trim();
   if (sameCity && !temporalLocation(sameCity)) { draft.pickupLocation = sameCity; draft.returnLocation = sameCity; return; }
   const stop = '(?=\\s+(?:ו?החזרה|להחזיר|נחזיר|אחזיר|נשאר(?:ת)?|מחרתיים|מחר|היום|ליומיים|ליום|tomorrow|today|day after tomorrow|for\\s+(?:one|two|three|four|five)\\s+days?|unchanged|remains?|stays?|(?:and\\s+)?return|(?:and\\s+)?drop.?off|ב[-־]?\\s*\\d)|[,.!?]|$)';
@@ -369,6 +383,7 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
   const enReturn = input.match(/(?:return|drop.?off)\s+(?:(?:the car|it)\s+)?(?:(?:will be|will remain|stays?|remains?)\s+)?(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:on\s+\d{1,2}|tomorrow|today|day after tomorrow|for\s+(?:one|two|three|four|five)\s+days?)|[,.!?]|$)/iu)?.[1];
   const returnLocation = (heReturn ?? enReturn)?.split(/\s+(?:במקום|instead of)\s+/i)[0].trim();
   if (returnLocation && !temporalLocation(returnLocation)) draft.returnLocation = returnLocation;
+  if (bothLabel) { draft.pickupLocation = bothLabel; draft.returnLocation = bothLabel; }
   const dateText = `(?:\\d{1,2}[./]\\d{1,2}(?:[./]20\\d{2})?|\\d{1,2}\\s+(?:ב)?(?:${Object.keys(MONTHS).join('|')})(?:\\s+20\\d{2})?)`;
   // Parse each labelled date independently: customers may correct the return
   // before restating an unchanged pickup. Never associate dates by text order.
@@ -469,6 +484,7 @@ function carryCommercialRentalNeeds(state: RebuildState): void {
 }
 
 function offersRentalRequest(reply: string): boolean {
+  if (/(?:would you like|shall (?:we|I)|do you want|want (?:me|us) to)[^?]{0,40}\b(?:price )?(?:quote|offer)\b[^?]{0,60}\?|(?:תרצ(?:ה|ו)|האם (?:תרצ(?:ה|ו)|נכין))[^?؟]{0,40}הצע(?:ת|ה)[^?؟]{0,60}[?؟]/iu.test(reply)) return true;
   // Reserve/hold wording is still only an invitation to prepare a request.
   if (/(?:האם|תרצ(?:ה|ו)|שנ)?\s*(?:נשריין|לשריין|שנשריין)[^?؟]{0,80}[?؟]|\b(?:shall|should|can) (?:we|I) (?:reserve|hold|book)\b[^?]{0,80}\?|\bwould you like (?:us|me) to (?:reserve|hold|book)\b[^?]{0,80}\?/iu.test(reply)) return true;
   return /(?:נמשיך|נתקדם|להתקדם|נתחיל|להתחיל|שנתחיל|נאסוף|לאסוף).{0,85}(?:הזמנה|בקשה|פרטים|זמינות)|(?:הזמנה|בקשה).{0,55}(?:נתקדם|נתחיל|נמשיך)|(?:continue|proceed|start|prepare|check).{0,70}(?:booking|rental|request|availability)/i.test(reply);
@@ -567,6 +583,11 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   const luggage = [...input.matchAll(new RegExp(`${count}\\s+(?:(?:small|medium|large|קטנות|בינוניות|גדולות)\\s+)?(?:מזוודות|מזוודה|תיקים|תיקי נסיעה|bags?|suitcases?)(?![\\p{L}])`, 'giu'))]
     .find(match => !negatedLuggageMention(input, match.index) && !isHypotheticalFactEvidence(input, match[0]) && !isRentalCapacityQuestionEvidence(input, match[0]));
   const passengerCount = statedCount(passengers?.[1] ?? passengers?.[2] ?? '');
+  // "Me and my girlfriend" / "אני ואשתי" is two travellers when no other
+  // count was stated and no third person is added in the same phrase.
+  const coupleOnly = !passengers && /\b(?:it['’]?s |just )?(?:me|myself|I) and my (?:gf|girlfriend|bf|boyfriend|wife|husband|partner|spouse|friend|mom|mum|mother|dad|father|brother|sister)\b(?!,?\s*(?:and|&|\+)\s)|(?:^|[\s,.])(?:רק )?אני ו(?:אשתי|בעלי|החבר(?:ה)? שלי|חבר(?:ה)? שלי|בן הזוג שלי|בת הזוג שלי|אמא שלי|אבא שלי|אחי|אחותי)(?!,?\s*(?:ו|\+))(?![\p{L}])/iu.test(input)
+    && !isHypotheticalFactEvidence(input, input) && !/what if|\bif\b|\bmaybe\b|מה אם|(?:^|\s)אם\s|אולי/iu.test(input);
+  if (coupleOnly && draft.passengers === undefined) draft.passengers = 2;
   const luggageCount = statedCount(luggage?.[1] ?? '');
   if (passengerCount !== null) draft.passengers = passengerCount;
   if (luggageCount !== null) draft.luggage = luggageCount;
@@ -641,10 +662,10 @@ function customerVehicleChoice(input: string, state: RebuildState): string | nul
 function driverAgeRange(input: string, state: RebuildState): '21-23' | '24-plus' | null {
   if (/(?:^|\D)21\s*[-–]\s*23(?:\D|$)/u.test(input)) return '21-23';
   if (/(?:^|\D)24\s*\+(?:\D|$)/u.test(input)) return '24-plus';
-  const selfAge = input.match(/(?:^|[\s,])ו?אני\s+(?:(?:בן|בת)\s+)?(\d{2})(?!\d)|\b(?:I am|I'm)\s+(\d{2})(?!\d)/iu);
+  const selfAge = input.match(/(?:^|[\s,])ו?אני\s+(?:(?:בן|בת)\s+)?(\d{2})(?!\d)|\b(?:I am|I'm)\s+(\d{2})(?!\d)|\b(?:I am|I['’]?m|im)\s+[\p{L}'-]{2,20}(?:\s+[\p{L}'-]{2,20})?,?\s+(?:aged\s+)?(\d{2})(?!\d)(?!\s*(?:days?|nights?|km|%|₪|nis))/iu);
   const primaryAge = input.match(/(?:הנהג הראשי|הנהגת הראשית|main driver|primary driver)\s+(?:(?:בן|בת|is|aged)\s+)?(\d{2})(?!\d)/iu)?.[1];
   if (!selfAge && !primaryAge && !/(?:בן|בת|גיל|age|aged|\bI am\b|\bI'm\b)/i.test(input) && !(state.phase === 'booking' && state.step === 'rental_age')) return null;
-  const age = primaryAge ?? selfAge?.[1] ?? selfAge?.[2] ?? input.match(/(?:בן|בת|גיל|age(?:d)?(?: is)?|\bI am|\bI'm)\s*(\d{2})(?!\d)/i)?.[1]
+  const age = primaryAge ?? selfAge?.[1] ?? selfAge?.[2] ?? selfAge?.[3] ?? input.match(/(?:בן|בת|גיל|age(?:d)?(?: is)?|\bI am|\bI'm)\s*(\d{2})(?!\d)/i)?.[1]
     ?? (state.phase === 'booking' && state.step === 'rental_age' ? input.trim().match(/^(\d{2})$/)?.[1] : undefined);
   if (!age) return null;
   const value = Number(age);
@@ -1229,7 +1250,11 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
   }
   const lastBot = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
   const askedForName = /שמך|השם שלך|את השם|על איזה שם|שם מלא|your (?:full )?name|what name/iu.test(lastBot);
-  if (explicitStart || state.step === 'rental_name' || state.step === 'rental_confirm' || labelledName || state.phase === 'booking' && askedForName) {
+  const introducedName = state.phase === 'booking' || explicitStart
+    ? input.match(/(?:^|[.!,;]\s*)(?:I am|I['’]?m|im)\s+([\p{L}'-]{2,20}(?:\s+[\p{L}'-]{2,20})?)(?=\s*(?:,|$|\s+\d{2}\b|\s+and\b|[.!]))/iu)?.[1]
+    : undefined;
+  const validIntroducedName = introducedName && !/^(?:not|unsure|still|looking|just|here|visiting|only|sorry|trying|waiting|renting|booking|confused|from|in|at|ok|okay|fine|good|sure|ready|interested|a|an|the|so|also|very|really|going|coming|staying|flying|landing|travel+ing|married|single)\b/i.test(introducedName) ? introducedName : undefined;
+  if (explicitStart || state.step === 'rental_name' || state.step === 'rental_confirm' || labelledName || validIntroducedName || state.phase === 'booking' && askedForName) {
     const unlabelledName = !explicitStart && (state.step === 'rental_name' || state.step === 'rental_confirm')
       ? input.match(/I am\s+([\p{L}' -]{3,60})/iu)?.[1] : undefined;
     const explicitName = labelledName ?? (unlabelledName && !/^(?:not|unsure|still|looking|just|here|visiting|only|sorry|trying|waiting|renting|booking|confused)\b/i.test(unlabelledName) ? unlabelledName : undefined);
@@ -1246,7 +1271,7 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
       && /^[\p{L}' -]{3,60}$/u.test(leading) && leading.split(/\s+/).length <= 4
       && !/^(?:I|we|please|actually|no|yes|thanks?|before|after|not|do|don['’]?t|what|how|when|where|why|can|could|should|would|is|are|ok|okay|sure|אני|אנחנו|לא|כן|תודה|בעצם|לפני|אחרי|אפשר|מה|איך|למה|מתי|כמה|בסדר|סבבה|יאללה|רגע)(?:\s|$)/iu.test(leading)
       ? leading : '';
-    const candidate = explicit ?? (promptedName || answeredNamePrompt);
+    const candidate = explicit ?? (promptedName || answeredNamePrompt || validIntroducedName);
     if (candidate && candidate.split(/\s+/).length <= 4) { state.booking.customerName = candidate; captured = true; }
   }
   return captured;
@@ -2153,9 +2178,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   }
   // Contact details keep a turn away from the wording provider. An approved-
   // policy question in that same message must still be answered, not dropped.
-  if (source === 'local' && !escalate && state.phase !== 'service' && /[?؟]/u.test(input)
-    && (privateTurn || /(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}|[^\s@]+@[^\s@]+\.[^\s@]+/u.test(input))) {
-    const side = getSmartCarServiceAnswer(input, state.locale)?.reply;
+  if (source === 'local' && !escalate && state.phase !== 'service' && /[?؟]/u.test(input) && !state.completedRequestId) {
+    const sideFact = getSmartCarServiceAnswer(input, state.locale);
+    const contactTurn = privateTurn || /(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}|[^\s@]+@[^\s@]+\.[^\s@]+/u.test(input);
+    // Policy facts a customer asked about directly; location/branch facts carry
+    // their own date/route prompts and stay with their dedicated branches.
+    const side = sideFact && (contactTurn || ['driver_documents', 'insurance', 'deposit', 'age_licence', 'fuel', 'mileage'].includes(sideFact.topic)) ? sideFact.reply : undefined;
     if (side && !reply.includes(side.slice(0, 40))) reply = `${side} ${reply}`;
   }
   pushHistory(state, input, reply, privateTurn);

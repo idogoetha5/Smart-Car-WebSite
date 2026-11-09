@@ -133,7 +133,7 @@ const TOPIC_PATTERNS: Array<[ServiceKnowledgeTopic, RegExp]> = [
   ['deposit', /פיקדון|כרטיס אשראי|דביט|deposit|security hold|credit card|debit/i],
   ['fuel', /דלק|תדלוק|מלא.?מלא|fuel|refuel|full.?full/i],
   ['mileage', /קילומ|קמ|mileage|kilomet/i],
-  ['driver_documents', /נהג נוסף|מסמכים|תעודת זהות|דרכון|רישיון זר|רישיון בינלאומי|foreign licen[cs]e|international (?:driving )?permit|\bIDP\b|official translation|additional driver|extra driver|another driver|second driver|documents?|passport/i],
+  ['driver_documents', /\blicen[cs]e (?:is )?(?:from|issued in)\b|\b(?:german|french|american|us|uk|british|russian|italian|spanish|foreign|overseas) (?:driving )?licen[cs]e\b|רישיון (?:נהיגה )?(?:מחו["״׳']?ל|זר|גרמני|אמריקאי|צרפתי|רוסי|בריטי|אנגלי|מ(?:גרמניה|ארה["״]?ב|צרפת|רוסיה|אנגליה))|נהג נוסף|מסמכים|תעודת זהות|דרכון|רישיון זר|רישיון בינלאומי|foreign licen[cs]e|international (?:driving )?permit|\bIDP\b|official translation|additional driver|extra driver|another driver|second driver|documents?|passport/i],
   ['age_licence', /גיל|בן\s*\d{2}|בת\s*\d{2}|ותק רישיון|נהג חדש|רישיון|minimum age|licen[cs]e experience|young driver|\b(?:is|am|are|he['’]s|she['’]s|I['’]m)\s+\d{2}\b.{0,40}\b(?:drive|driving|rent)|\baged?\s+\d{2}\b|\bage (?:limit|requirement)|too old|older drivers?|senior drivers?/i],
   ['different_location', /מקום אחר|החזרה אחרת|איסוף אחר|שדה תעופה|נתב.?ג|one way|different location|airport|drop.?off/i],
   ['insurance', /ביטוח|כיסוי|השתתפות עצמית|insurance|cover(?:age)?|waiver|excess/i],

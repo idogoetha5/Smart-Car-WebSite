@@ -183,3 +183,71 @@ describe('casual final consent', () => {
     expect(c.create).not.toHaveBeenCalled();
   });
 });
+
+// Live Chrome on 488bd06 (EN tourist): a German-licence question was dropped by
+// the local fallback and "me and my gf" was not counted.
+describe('tourist couple with a foreign licence', () => {
+  it('counts two travellers and answers the licence question even on the local fallback', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: { pickupDate: '2026-11-20' }, history: [] }, () => 'Your German licence is definitely fine, no problem at all.');
+    const result = await c.send("cool. its me and my gf, staying a week, fly back from tlv too. something small is fine. my licence is from germany thats ok right?");
+    expect(result.state.booking.passengers).toBe(2);
+    expect(result.reply).toMatch(/licen[cs]e|permit|translation/i);
+    expect(result.reply).not.toMatch(/definitely fine/);
+  });
+  it.each(['me and my gf and her brother', 'what if it is me and my wife?', 'אני ואשתי והילד'])('does not force two travellers: %s', async input => {
+    const c = chat(null, () => 'OK');
+    const result = await c.send(input);
+    expect(result.state.booking.passengers === 2).toBe(false);
+  });
+});
+
+describe('one branch for both legs', () => {
+  it.each([
+    ['en', 'yeah airport both ways. how much is the deposit btw', 'Ben Gurion Airport'],
+    ['en', 'Pick up and return at Herzliya please', 'Herzliya'],
+    ['he', 'לאסוף ולהחזיר בנתב״ג', 'נתב״ג'],
+    ['he', 'בתל אביב הלוך ושוב', 'תל אביב'],
+  ] as const)('stores both locations so the model cannot claim an unsaved route: %s', async (locale, input, label) => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale, booking: { pickupDate: '2026-11-20', returnDate: '2026-11-27', vehicleNeed: locale === 'he' ? 'רכב קומפקטי' : 'compact car' }, history: [] }, () => locale === 'he' ? 'בשמחה.' : 'Sure.');
+    const result = await c.send(input);
+    expect(result.state.booking.pickupLocation).toBe(label);
+    expect(result.state.booking.returnLocation).toBe(label);
+  });
+  it('keeps a hypothetical route unselected', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: {}, history: [] }, () => 'Sure.');
+    const result = await c.send('what if we do airport both ways, is that more expensive?');
+    expect(result.state.booking.pickupLocation).toBeUndefined();
+  });
+});
+
+describe('no claims about unsaved details', () => {
+  it('rejects "pickup and return are set" when no route was recorded', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: {}, history: [] }, () => 'Pickup and return at Ben Gurion Airport are set. The deposit is indicative.');
+    const result = await c.send('how much is the deposit btw');
+    expect(result.reply).not.toMatch(/are set/);
+  });
+  it('allows the same wording once the route really is saved', async () => {
+    const reply = 'Pickup and return at Ben Gurion Airport are set.';
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: { pickupLocation: 'Ben Gurion Airport', returnLocation: 'Ben Gurion Airport' }, history: [] }, () => reply);
+    expect((await c.send('ok thanks, what else do you need to know?')).reply).toContain('are set');
+  });
+});
+
+// Live Chrome on 488bd06 (EN tourist): "ok sounds good lets do it. im lukas, 29"
+// after "Would you like a price quote for your dates?" did not start intake.
+describe('casual go-ahead with a name and age', () => {
+  it('starts the request, keeps the name privately and records the 24+ group', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: { pickupDate: '2026-11-20', returnDate: '2026-11-27', vehicleNeed: 'compact car', pickupLocation: 'Ben Gurion Airport', returnLocation: 'Ben Gurion Airport', passengers: 2 }, history: [{ from: 'bot', text: 'Would you like a price quote for your dates?' }] }, () => 'Great.');
+    const result = await c.send('ok sounds good lets do it. im lukas, 29');
+    expect(result.state.phase).toBe('booking');
+    expect(result.state.booking.customerName).toBe('lukas');
+    expect(result.state.booking.driverAgeRange).toBe('24-plus');
+    expect(result.reply).toMatch(/Lukas|lukas|request details|Here are/);
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it.each(['im not sure yet', "I'm just looking", 'im staying 10 days'])('does not take a phrase as a name: %s', async input => {
+    const c = chat({ version: 2, phase: 'booking', step: 'rental_dates', locale: 'en', booking: {}, history: [] }, () => 'OK');
+    const result = await c.send(input);
+    expect(result.state.booking.customerName).toBeUndefined();
+  });
+});
