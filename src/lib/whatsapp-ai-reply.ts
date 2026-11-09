@@ -104,6 +104,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   // update a request that does not exist yet.
   // Price is set in the quote; wording must not promise it in advance.
   if (hasAffirmativeMatch(reply, /(?:בלי|ללא) הפתעות|(?:ב|לפי )?(?:ה)?תעריף המקורי|אותו מחיר(?: ליום)?|המחיר (?:לא|אינו) ישתנה|\bno (?:price )?surprises\b|\b(?:the )?same (?:daily )?(?:rate|price)\b|\b(?:the )?original (?:daily )?rate\b|\bprice (?:will not|won['’]?t) change\b/giu)) return reject('price_assurance');
+  // Only application code passes a case to a person; wording cannot announce it.
+  if (hasAffirmativeMatch(reply, /(?:המערכת|הבוט)\s+(?:תעביר|יעביר|תשלח|ישלח)|(?<![\p{L}])(?:נעביר|אעביר|נשלח|אשלח)\s+את\s+(?:הבקשה|הפנייה|הפניה|הפרטים)|נציג\s+(?:יחזור|יתקשר)\s+(?:אליך|אליכם|אלייך)\s+(?:מחר|היום|בבוקר|בערב|תוך)|\b(?:the system|I|we)\s+will\s+(?:pass|forward|send)\b|\b(?:will|is going to) call you (?:back )?(?:tomorrow|today|this (?:morning|evening)|in the morning)\b/giu)) return reject('action_claim');
   if (/נשריין|לשריין|שנשריין|\b(?:reserve|hold) (?:the|a|your) car\b/iu.test(reply)) return reject('reservation_wording');
   // Whether a damaged rental can be driven is never a model judgement, and a
   // replacement car or tow is never arranged by wording alone.

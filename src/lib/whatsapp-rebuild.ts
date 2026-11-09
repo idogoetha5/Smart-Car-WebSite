@@ -1782,7 +1782,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const serviceInterpretation = reading?.route === 'service' && reading.groundedContext === true;
     const acceptsRentalOffer = confirmedOffer && !serviceInterpretation;
     const declinesHuman = declinesHumanHandoff(input);
-    const asksHuman = !declinesHuman && /(?:רוצה|אפשר|צריך|צריכה).{0,22}(?:לדבר|נציג|בן אדם)|(?:לדבר|נציג|בן אדם).{0,22}(?:בבקשה|אפשר|רוצה)|\b(?:speak|talk|connect)\b.{0,28}\b(?:human|representative|person)\b|\b(?:human|representative|real person)\b.{0,20}\b(?:please|help)\b/i.test(input);
+    const asksHuman = !declinesHuman && /(?:^|[\s,.!])(?:ש|ש?מישהו\s+|שנציג\s+)?(?:יחזרו|תחזרו|יחזור|יתקשרו|תתקשרו|יתקשר)\s+(?:אליי|אלי|אליי?נו|לי)(?![\p{L}])|\b(?:have|get) (?:someone|somebody|a (?:rep|representative|person)) (?:to )?call me\b|\bcall me back\b|\bplease call me\b|(?:רוצה|אפשר|צריך|צריכה).{0,22}(?:לדבר|נציג|בן אדם)|(?:לדבר|נציג|בן אדם).{0,22}(?:בבקשה|אפשר|רוצה)|\b(?:speak|talk|connect)\b.{0,28}\b(?:human|representative|person)\b|\b(?:human|representative|real person)\b.{0,20}\b(?:please|help)\b/iu.test(input);
     // A model's human-route classification is not consent. Require an actual
     // callback request or acceptance of a preceding representative invitation.
     const modelHumanConsent = !declinesHuman

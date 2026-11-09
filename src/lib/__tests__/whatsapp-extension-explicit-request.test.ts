@@ -209,3 +209,28 @@ describe('cancellation follow-ups in everyday words', () => {
     expect(second.escalate).toBeFalsy();
   });
 });
+
+// Live Chrome on f7e6a5d (Hebrew leasing): after declining a call, "טוב אוקיי, שמישהו יחזור
+// אליי מחר בבוקר" was not passed on, while the model claimed "המערכת תעביר את הבקשה לנציג".
+describe('explicit callback request in a commercial enquiry', () => {
+  const lead = (): RebuildState => ({ version: 2, phase: 'explore', step: 'menu', locale: 'he', interest: 'leasing', humanHandoffDeferred: true, commercial: { termMonths: 36, annualMileageKm: 25000, budget: { amount: 2500, currency: 'unspecified' } }, booking: {}, history: [{ from: 'customer', text: 'אני לא רוצה שיתקשרו אליי עכשיו' }] } as RebuildState);
+  const send = async (state: RebuildState, input: string, modelReply: string) => {
+    let current: RebuildState | null = state;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => current, saveState: async (_p, next) => { current = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'leasing', direction: 'none', fields: {}, reply: modelReply, source: 'gemini', model: 'controlled-fixture', groundedContext: true } as BotReading) };
+    return getRebuiltBotReply('fictional-leasing', input, store);
+  };
+  it.each(['טוב אוקיי, שמישהו יחזור אליי מחר בבוקר. מה רשמת עליי?', 'ok have someone call me tomorrow'])('passes the lead to a representative once: %s', async input => {
+    const result = await send(lead(), input, 'המערכת תעביר את הבקשה לנציג שיחזור אליך מחר בבוקר.');
+    expect(result.escalate).toBe(true);
+    expect(result.reply).not.toContain('המערכת תעביר');
+  });
+  it('keeps a refusal as a refusal', async () => {
+    const result = await send(lead(), 'אני לא רוצה שיחזרו אליי, רק מידע', 'בליסינג ביטוח וטיפולים כלולים רק אם נכתבו בהצעה.');
+    expect(result.escalate).toBeFalsy();
+  });
+  it('rejects a model claim that the system will pass the request on', async () => {
+    const result = await send({ ...lead(), humanHandoffDeferred: false }, 'מה כלול בליסינג בדרך כלל?', 'המערכת תעביר את הבקשה לנציג שיחזור אליך מחר בבוקר.');
+    expect(result.reply).not.toContain('המערכת תעביר');
+  });
+});
