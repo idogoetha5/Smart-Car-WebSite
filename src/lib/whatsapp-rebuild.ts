@@ -194,6 +194,22 @@ function relativeRentalDuration(input: string): { pickupDate: string; returnDate
 }
 
 function explicitDateRange(input: string): { pickupDate: string; returnDate: string } | null {
+  // "תאריכים 23 עד 26 לחודש" / "the 23rd to the 26th of this month": day-only range in
+  // the current month, or next month when that day has already passed.
+  const dayRange = input.match(/(?:(?:תאריכים|dates?|בין|from)\s*:?\s*)?(?:ה[-־]?|the )?(\d{1,2})(?:st|nd|rd|th)?\s*(?:עד|ל[-־]?|[-–]|to|until|till)\s*(?:ה[-־]?|the )?(\d{1,2})(?:st|nd|rd|th)?\s*(?:לחודש|בחודש|החודש|של החודש|(?:of )?this month|of the month)(?![\p{L}])/iu)
+    ?? input.match(/(?:תאריכים|dates?)\s*:?\s*(?:ה[-־]?|the )?(\d{1,2})(?:st|nd|rd|th)?\s*(?:עד|[-–]|to|until|till)\s*(?:ה[-־]?|the )?(\d{1,2})(?:st|nd|rd|th)?(?![\d./])/iu);
+  if (dayRange && !/מה אם|(?:^|\s)אם\s|אולי|\bwhat if\b|\bif\b|\bmaybe\b/iu.test(input)) {
+    const [first, last] = [Number(dayRange[1]), Number(dayRange[2])];
+    const today = israelDate();
+    let year = Number(today.slice(0, 4)); let month = Number(today.slice(5, 7));
+    if (first < Number(today.slice(8, 10))) { month += 1; if (month > 12) { month = 1; year += 1; } }
+    let returnMonth = month; let returnYear = year;
+    if (last < first) { returnMonth += 1; if (returnMonth > 12) { returnMonth = 1; returnYear += 1; } }
+    if (first >= 1 && first <= 31 && last >= 1 && last <= 31) {
+      const nested = explicitDateRange(`${first}/${month}/${year}-${last}/${returnMonth}/${returnYear}`);
+      if (nested) return nested;
+    }
+  }
   const relativeRange = input.match(new RegExp(`(?:^|\\s)(?:מ|from\\s+)?(מחרתיים|מחר|היום|day after tomorrow|tomorrow|today)\\s*(?:עד|until|through|to|[-–])\\s*(20\\d{2}-\\d{2}-\\d{2}|\\d{1,2}[./]\\d{1,2}(?:[./]20\\d{2})?|\\d{1,2}\\s+(?:ב)?(?:${Object.keys(MONTHS).join('|')})(?:\\s+20\\d{2})?)(?=[\\s,.!?]|$)`, 'iu'));
   if (relativeRange) {
     const pickupDate = singleDateAnswer(relativeRange[1]);
@@ -1256,6 +1272,8 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
   const introducedName = state.phase === 'booking' || explicitStart
     ? input.match(/(?:^|[.!,;]\s*)(?:I am|I['’]?m|im)\s+([\p{L}'-]{2,20}(?:\s+[\p{L}'-]{2,20})?)(?=\s*(?:,|$|\s+\d{2}\b|\s+and\b|[.!]))/iu)?.[1]
     : undefined;
+  const trailingName = explicitStart && !introducedName ? input.match(/[.!,]\s*([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})\s*[.!]?\s*$/u)?.[1] : undefined;
+  const validTrailingName = trailingName && !/^(?:תודה|בבקשה|יאללה|סבבה|אחלה|מעולה|בסדר|קדימה|רק|גם|עם|בלי|thank|thanks|please|ok|okay|great|cool|sounds|with|without|also|just|asap|soon|today|tomorrow|מחר|היום)(?=\s|$)|(?:^|\s)(?:רכב|car|יום|ימים|days?|בקשה|request|הצעה|quote|מחיר|price|רבה|גדול|קטן|משפחתי|big|small)(?=\s|$)/iu.test(trailingName) ? trailingName : undefined;
   const validIntroducedName = introducedName && !/^(?:not|unsure|still|looking|just|here|visiting|only|sorry|trying|waiting|renting|booking|confused|from|in|at|ok|okay|fine|good|sure|ready|interested|a|an|the|so|also|very|really|going|coming|staying|flying|landing|travel+ing|married|single)\b/i.test(introducedName) ? introducedName : undefined;
   if (explicitStart || state.step === 'rental_name' || state.step === 'rental_confirm' || labelledName || validIntroducedName || state.phase === 'booking' && askedForName) {
     const unlabelledName = !explicitStart && (state.step === 'rental_name' || state.step === 'rental_confirm')
@@ -1274,7 +1292,7 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
       && /^[\p{L}' -]{3,60}$/u.test(leading) && leading.split(/\s+/).length <= 4
       && !/^(?:I|we|please|actually|no|yes|thanks?|before|after|not|do|don['’]?t|what|how|when|where|why|can|could|should|would|is|are|ok|okay|sure|אני|אנחנו|לא|כן|תודה|בעצם|לפני|אחרי|אפשר|מה|איך|למה|מתי|כמה|בסדר|סבבה|יאללה|רגע)(?:\s|$)/iu.test(leading)
       ? leading : '';
-    const candidate = explicit ?? (promptedName || answeredNamePrompt || validIntroducedName);
+    const candidate = explicit ?? (promptedName || answeredNamePrompt || validIntroducedName || validTrailingName);
     if (candidate && candidate.split(/\s+/).length <= 4) { state.booking.customerName = candidate; captured = true; }
   }
   return captured;

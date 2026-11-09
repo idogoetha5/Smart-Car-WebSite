@@ -307,3 +307,27 @@ describe('after the request was sent', () => {
     expect(result.escalate).toBeFalsy();
   });
 });
+
+// Live Chrome on 494402f (young driver, Eilat): "תאריכים 23 עד 26 לחודש" was not stored and
+// "יאללה תכין בקשה. עומר בדיקה" lost the name; intake then asked for the date again.
+describe('day-only dates and a trailing name', () => {
+  it('stores 23–26 of this month and the name, then shows the summary', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { driverAgeRange: '21-23', passengers: 4, luggage: 4 }, history: [] }, () => 'בשמחה.');
+    const dates = await c.send('מתל אביב ולהחזיר שם. משהו שייכנסו 4 תיקים. תאריכים 23 עד 26 לחודש');
+    expect(dates.state.booking).toMatchObject({ pickupDate: '2026-11-23', returnDate: '2026-11-26' });
+    const start = await c.send('יאללה תכין בקשה. עומר בדיקה');
+    expect(start.state.booking.customerName).toBe('עומר בדיקה');
+    expect(start.reply).not.toMatch(/באיזה תאריך/);
+  });
+  it('rolls a passed day into next month and ignores hypotheticals', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: {}, history: [] }, () => 'Sure.');
+    const r = await c.send('dates 3 to 6 of the month');
+    expect(r.state.booking).toMatchObject({ pickupDate: '2026-12-03', returnDate: '2026-12-06' });
+    const h = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] }, () => 'בשמחה.');
+    expect((await h.send('אם ניקח 23 עד 26 לחודש כמה זה?')).state.booking.pickupDate).toBeUndefined();
+  });
+  it.each(['יאללה תכין בקשה. תודה רבה', 'יאללה תכין בקשה. רכב גדול'])('does not take a courtesy or need as a name: %s', async input => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] }, () => 'בשמחה.');
+    expect((await c.send(input)).state.booking.customerName).toBeUndefined();
+  });
+});
