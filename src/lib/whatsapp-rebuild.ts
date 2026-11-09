@@ -669,6 +669,9 @@ function safety(input: string): 'accident' | 'breakdown' | null {
     .replace(/\b(?:accident|crash|collision|damage)\s+(?:history|records?)\b|\bhistory\s+of\s+(?:(?:past|previous|prior)\s+)?(?:accidents?|crashes|collisions?|damage)\b|\b(?:past|previous|prior)\s+(?:accidents?|crashes|collisions?)(?:\s+damage)?\b/gi, 'vehicle history')
     .replace(/היסטורי(?:ית|ה של)\s+(?:ה?תאונות|התנגשויות|נזקים)|עבר\s+תאונתי|תאונות\s+(?:ה?עבר|קודמות)|נזקי\s+תאונות\s+(?:ה?עבר|קודמות)/gu, 'עבר הרכב');
   if (reportedRentalDamage(incidentInput)) return 'accident';
+  // Customers describe a collision without the word accident: someone drove
+  // into them, a bumper is crushed. Treat an affirmative report as an incident.
+  if (/(?<!לא )(?:נכנס(?:ה|ו)?|התנגש(?:ה|ו)?|נתקע(?:ה|ו)?) ב(?:י|נו|רכב)(?=[\s,.!?]|$)|(?<!לא )(?:דפק(?:ה|ו)?|עשו לי) (?:לי |אותי |את הרכב )?(?:תאונה|מכה|מאחורה|מאחור)|פגוש.{0,20}(?:מעוך|נמעך|נשבר|התעקם|נכנס)|\brear[- ]?ended\b|\b(?:someone|somebody|a car|a truck|a bus|he|she|they|another (?:car|driver))\s+(?:hit|crashed into|backed into|ran into|drove into)\s+(?:me|us|my car|our car|the car)\b|\bbumper\b.{0,20}\b(?:crushed|smashed|caved in)\b/iu.test(incidentInput)) return 'accident';
   if (/תאונה|התנגשות|פצוע|accident|crash|collision/i.test(incidentInput) || !noInjuries && /(?<!לא )נפגע|(?<!not )injured/i.test(incidentInput)) return 'accident';
   if (/פנצ[׳']?ר|נתקעתי|לא (?:מניע|מתניע|התניע|נדלק)|רעש.{0,25}בלמ|בלמ.{0,25}רעש|עשן|תקלה ברכב|flat tire|breakdown|won'?t start|brake.{0,25}(?:noise|problem)|(?:noise|problem).{0,25}brake|(?:אני צריך|אני זקוק|תשלחו|שולחים).{0,25}גרר|גרר.{0,15}(?:עכשיו|דחוף)|\b(?:need|send)\b.{0,25}\btow\b|\btow\b.{0,15}\b(?:now|urgent)\b/i.test(input)) return 'breakdown';
   return null;

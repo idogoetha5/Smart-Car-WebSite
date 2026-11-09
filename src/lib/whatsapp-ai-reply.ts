@@ -100,6 +100,10 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (hasAffirmativeMatch(reply, /\b(?:car|vehicle|seat) will fit (?:your|the|all)\b|(?:הרכב|הכיסא) יתאים בוודאות/gi)) return reject('fit_assurance');
   if (hasAffirmativeMatch(reply, /\b(?:we have (?:a |the )?(?:car|vehicle) available|(?:a car|the car|vehicle|it) is available (?:now|for|on)|available for (?:your|the) (?:dates|trip))\b|יש לנו רכב (?:פנוי|זמין)|הרכב (?:פנוי|זמין) (?:עכשיו|לתאריכים)/gi)) return reject('stock_assurance');
   if (hasAffirmativeMatch(reply, /\bin stock\b|יש במלאי/gi)) return reject('stock_assurance');
+  // Whether a damaged rental can be driven is never a model judgement, and a
+  // replacement car or tow is never arranged by wording alone.
+  if (hasAffirmativeMatch(reply, /(?<!אי )(?<!לא )(?:אפשר|ניתן|מותר|תוכל(?:ו)?)\s+(?:להמשיך\s+)?(?:לנסוע|לנהוג)(?:\s+(?:בו|איתו|בזהירות|כרגיל))?|אין חובה (?:ל)?גרר|לא צריך גרר|\b(?:it['’]?s|it is) (?:safe|fine|ok(?:ay)?) to (?:drive|keep driving|continue)\b|\byou can (?:keep|continue|carry on) driving\b|\byou can (?:still )?drive (?:it|the car)\b|\bno (?:need for|need to call) a tow\b/gi)) return reject('driving_safety_assurance');
+  if (hasAffirmativeMatch(reply, /(?:נתאם|נדאג|נספק|נשלח|נזמין)[^.!?\n]{0,40}(?:רכב חלופי|החלפת רכב|גרר)|\b(?:we(?:'ll| will)|let us)\s+(?:arrange|send|provide|organi[sz]e)\b[^.!?\n]{0,40}\b(?:replacement (?:car|vehicle)|tow)\b/gi)) return reject('arrangement_claim');
 
   // Numbers mentioned by a customer are not an approved quote. Published,
   // explicitly indicative policy amounts may be restated from approved facts.

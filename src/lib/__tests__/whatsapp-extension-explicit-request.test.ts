@@ -81,3 +81,51 @@ describe('declining a representative while asking for advice', () => {
     expect(result.escalate).toBe(true);
   });
 });
+
+// Live Chrome failure on 39c3a4d, 2026-11-09 (evidence/20261109-chrome-he-rear-end.md):
+// a rear-end collision described without the word "accident" got generic model
+// advice without the office number or a staff alert.
+describe('collision described in everyday words', () => {
+  const send = async (input: string) => {
+    let state: RebuildState | null = null;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: 'Model wording', source: 'gemini', model: 'controlled-fixture', groundedContext: true } as BotReading) };
+    return getRebuiltBotReply('fictional-collision', input, store);
+  };
+  it.each([
+    'מישהו נכנס בי מאחורה ברמזור בפתח תקווה, כולם בסדר. זה הרכב שלכם, הפגוש מעוך. מה אני עושה עכשיו?',
+    'רכב התנגש בנו בחניון, הפגוש נמעך',
+    'Someone rear-ended me at a light, everyone is fine but the bumper is smashed.',
+    'A truck backed into my car in the parking lot.',
+  ])('enters the approved safety flow with the office number: %s', async input => {
+    const result = await send(input);
+    expect(result.source).toBe('safety');
+    expect(result.escalate).toBe(true);
+    expect(result.reply).toMatch(/09-9509757/);
+  });
+  it.each([
+    'מה קורה אם מישהו נכנס בי מאחורה?',
+    'What if someone hits my car while it is parked?',
+    'אני רוצה להיכנס בינתיים לאתר ולבדוק מחירים',
+  ])('keeps hypothetical or unrelated wording out of safety: %s', async input => {
+    const result = await send(input);
+    expect(result.source).not.toBe('safety');
+  });
+});
+
+describe('model never clears a damaged rental for driving', () => {
+  it.each([
+    'בסדר גמור, אם הרכב נוסע וההגה והמערכות תקינות ללא נזק שפוגע בבטיחות, אפשר לנסוע בזהירות.',
+    'אם הרכב נוסע ואין סכנה בדרך, אין חובה לגרר מיד.',
+    'It is fine to keep driving if the steering feels normal.',
+    'We will arrange a replacement car at the Tel Aviv branch.',
+  ])('rejects the model wording and falls back to approved guidance: %s', async modelReply => {
+    const he = /[א-ת]/u.test(modelReply);
+    let state: RebuildState | null = { version: 2, phase: 'service', step: 'menu', locale: he ? 'he' : 'en', booking: {}, serviceReference: '334455', history: [] };
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: modelReply, source: 'gemini', model: 'controlled-fixture', groundedContext: true } as BotReading) };
+    const result = await getRebuiltBotReply('fictional-driving', he ? 'הפגוש נפגע קצת אבל הרכב נוסע. אני יכול להמשיך לנסוע איתו?' : 'The bumper got a bit damaged but the car drives. Can I keep driving it?', store);
+    expect(result.reply).not.toBe(modelReply);
+    expect(result.reply).not.toMatch(/אפשר לנסוע בזהירות|אין חובה לגרר|fine to keep driving|arrange a replacement car/);
+  });
+});
