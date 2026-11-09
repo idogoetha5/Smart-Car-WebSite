@@ -5,13 +5,13 @@ export const LEASING_BASE_PRICE: Record<string, number> = {
   MINI:       2940,
   ECONOMY:    3150,
   COMPACT:    3360,
-  SEDAN:      3675,
-  CROSSOVER:  4725,
-  SUV:        5775,
-  LUXURY:     7875,
-  VAN:        4725,
+  SEDAN:      3680,
+  CROSSOVER:  4730,
+  SUV:        5780,
+  LUXURY:     7880,
+  VAN:        4730,
   COMMERCIAL: 3990,
-  ELECTRIC:   3675,
+  ELECTRIC:   3680,
 };
 
 export const LEASING_MILEAGE_MULTIPLIER: Record<string, number> = {
@@ -54,29 +54,29 @@ export type PricingCategoryKey =
   | 'ELECTRIC';
 
 export const BASE_PRICES: Record<PricingCategoryKey, number> = {
-  MINI:       262.5,
-  ECONOMY:    294,
-  COMPACT:    367.5,
-  SEDAN:      367.5,
-  CROSSOVER:  462,
-  SUV:        525,
-  LUXURY:     525,
-  VAN:        525,
+  MINI:       260,
+  ECONOMY:    290,
+  COMPACT:    370,
+  SEDAN:      370,
+  CROSSOVER:  460,
+  SUV:        530,
+  LUXURY:     530,
+  VAN:        530,
   COMMERCIAL: 420,
-  ELECTRIC:   367.5,
+  ELECTRIC:   370,
 };
 
 export const LEASING_PRICES: Record<PricingCategoryKey, number> = {
   MINI:       2940,
   ECONOMY:    3150,
-  COMPACT:    3675,
-  SEDAN:      3675,
-  CROSSOVER:  4725,
-  SUV:        7875,
-  LUXURY:     7875,
-  VAN:        7875,
+  COMPACT:    3680,
+  SEDAN:      3680,
+  CROSSOVER:  4730,
+  SUV:        7880,
+  LUXURY:     7880,
+  VAN:        7880,
   COMMERCIAL: 3990,
-  ELECTRIC:   3675,
+  ELECTRIC:   3680,
 };
 
 // ─── Seasonal surcharges ───────────────────────────────────────────────────
@@ -86,12 +86,21 @@ export const SEASONAL_SURCHARGES = {
   holiday: 0.20, // Jewish holidays
 };
 
-export const JEWISH_HOLIDAYS_2025_2026 = [
+export const JEWISH_HOLIDAYS_2025_2029 = [
   { start: '2025-09-22', end: '2025-09-24' }, // Rosh Hashana
   { start: '2025-10-01', end: '2025-10-02' }, // Yom Kippur
   { start: '2025-10-06', end: '2025-10-13' }, // Sukkot
   { start: '2026-04-01', end: '2026-04-08' }, // Pesach
   { start: '2026-05-21', end: '2026-05-23' }, // Shavuot
+  { start: '2027-04-21', end: '2027-04-28' }, // Passover
+  { start: '2027-06-10', end: '2027-06-11' }, // Shavuot
+  { start: '2027-10-01', end: '2027-10-21' }, // Rosh Hashana through Sukkot
+  { start: '2028-04-10', end: '2028-04-17' }, // Passover
+  { start: '2028-05-30', end: '2028-05-31' }, // Shavuot
+  { start: '2028-09-20', end: '2028-10-11' }, // Rosh Hashana through Sukkot
+  { start: '2029-03-30', end: '2029-04-06' }, // Passover
+  { start: '2029-05-19', end: '2029-05-20' }, // Shavuot
+  { start: '2029-09-09', end: '2029-09-30' }, // Rosh Hashana through Sukkot
 ];
 
 // ─── Calculation functions ─────────────────────────────────────────────────
@@ -105,7 +114,7 @@ export function calculateDailyPrice(category: string, date: Date): number {
   }
 
   const dateStr = date.toISOString().split('T')[0];
-  const isHoliday = JEWISH_HOLIDAYS_2025_2026.some(
+  const isHoliday = JEWISH_HOLIDAYS_2025_2029.some(
     (h) => dateStr >= h.start && dateStr <= h.end
   );
   if (isHoliday) {
@@ -174,16 +183,16 @@ export const CATEGORY_PRICING: Record<
   PricingCategoryKey,
   { pricePerDay: number; pricePerMonth: number; deposit: number }
 > = {
-  MINI:       { pricePerDay: 262.5, pricePerMonth: 2940, deposit: 800  },
-  ECONOMY:    { pricePerDay: 294,   pricePerMonth: 3150, deposit: 1000 },
-  COMPACT:    { pricePerDay: 367.5, pricePerMonth: 3675, deposit: 1500 },
-  SEDAN:      { pricePerDay: 367.5, pricePerMonth: 3675, deposit: 1500 },
-  CROSSOVER:  { pricePerDay: 462,   pricePerMonth: 4725, deposit: 1800 },
-  SUV:        { pricePerDay: 525,   pricePerMonth: 7875, deposit: 2000 },
-  LUXURY:     { pricePerDay: 525,   pricePerMonth: 7875, deposit: 3000 },
-  VAN:        { pricePerDay: 525,   pricePerMonth: 4725, deposit: 2500 },
+  MINI:       { pricePerDay: 260, pricePerMonth: 2940, deposit: 800  },
+  ECONOMY:    { pricePerDay: 290, pricePerMonth: 3150, deposit: 1000 },
+  COMPACT:    { pricePerDay: 370, pricePerMonth: 3680, deposit: 1500 },
+  SEDAN:      { pricePerDay: 370, pricePerMonth: 3680, deposit: 1500 },
+  CROSSOVER:  { pricePerDay: 460, pricePerMonth: 4730, deposit: 1800 },
+  SUV:        { pricePerDay: 530, pricePerMonth: 7880, deposit: 2000 },
+  LUXURY:     { pricePerDay: 530, pricePerMonth: 7880, deposit: 3000 },
+  VAN:        { pricePerDay: 530, pricePerMonth: 4730, deposit: 2500 },
   COMMERCIAL: { pricePerDay: 420,   pricePerMonth: 3990, deposit: 2000 },
-  ELECTRIC:   { pricePerDay: 367.5, pricePerMonth: 3675, deposit: 2000 },
+  ELECTRIC:   { pricePerDay: 370, pricePerMonth: 3680, deposit: 2000 },
 };
 
 export interface DisplayCategory {

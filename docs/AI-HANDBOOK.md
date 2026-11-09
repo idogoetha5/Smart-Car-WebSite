@@ -1102,7 +1102,7 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 
 ### Change log
 
-- 2026-11-09 — Raised all live rental and leasing base prices by 5%: 172 vehicle daily/monthly prices, the published display/minimum rates, and 80 fixed seasonal overrides. Percentage-based seasonal adjustments are unchanged. Updated the public category and leasing calculators in `src/lib/pricing.ts`; publication of those static calculator values is pending.
+- 2026-11-09 — Raised all live rental and leasing base prices by 5%, rounded to the nearest ₪10: 172 vehicle daily/monthly prices, the published display/minimum rates, and 80 fixed seasonal overrides. Percentage-based seasonal adjustments are unchanged. Corrected the 2027 Passover/Shavuot dates and populated the established +13% Passover, Shavuot, and Rosh Hashana–Sukkot periods through 2029; annual summer/winter seasons remain in place. Updated the public category and leasing calculators in `src/lib/pricing.ts`; publication is pending.
 
 - 2026-11-09 — Explicit shortening and corrective requests enter once-only review; model passive future forwarding claims rejected. Controlled HE/EN positive/negative/no-new-rental checks pass; live Chrome recheck blocked by unavailable browser tool. Publication pending.
 
