@@ -466,6 +466,8 @@ function carryCommercialRentalNeeds(state: RebuildState): void {
 }
 
 function offersRentalRequest(reply: string): boolean {
+  // Reserve/hold wording is still only an invitation to prepare a request.
+  if (/(?:האם|תרצ(?:ה|ו)|שנ)?\s*(?:נשריין|לשריין|שנשריין)[^?؟]{0,80}[?؟]|\b(?:shall|should|can) (?:we|I) (?:reserve|hold|book)\b[^?]{0,80}\?|\bwould you like (?:us|me) to (?:reserve|hold|book)\b[^?]{0,80}\?/iu.test(reply)) return true;
   return /(?:נמשיך|נתקדם|להתקדם|נתחיל|להתחיל|שנתחיל|נאסוף|לאסוף).{0,85}(?:הזמנה|בקשה|פרטים|זמינות)|(?:הזמנה|בקשה).{0,55}(?:נתקדם|נתחיל|נמשיך)|(?:continue|proceed|start|prepare|check).{0,70}(?:booking|rental|request|availability)/i.test(reply);
 }
 
@@ -474,7 +476,8 @@ function acceptsRentalInvitation(input: string, lastBot: string): boolean {
   if (/לא עכשיו|עדיין לא|עוד לא|לא (?:רוצה|רוצים|מעוניין|מעוניינים).{0,20}(?:להתחיל|לפתוח|להזמין)|אל (?:תתחיל|תפתח|תזמין)|not (?:now|yet|ready)|(?:do not|don['’]?t) (?:start|open|book)/iu.test(input)) return false;
   // Accepting the invitation starts a draft, not a booking or consented send.
   // Customers commonly attach their name, a question or a spending boundary.
-  return affirms(input) || /^(?:כן(?:[,\s]+(?:יאללה|בטח|סבבה|בבקשה|קדימה))*|יאללה|סבבה|yes|yeah|sure|okay|ok|go ahead|let['’]?s do it)(?=[\s,.!;]|$)/iu.test(input);
+  return affirms(input) || /^(?:(?:(?:כבר\s+)?אמרתי|כתבתי)\s+)?(?:כן(?:[,\s]+(?:יאללה|בטח|סבבה|בבקשה|קדימה))*|יאללה|סבבה|yes|yeah|sure|okay|ok|go ahead|let['’]?s do it)(?=[\s,.!;]|$|\p{Extended_Pictographic})/iu.test(input)
+    || /^I (?:already )?said yes\b/i.test(input);
 }
 
 function asksRentalDates(reply: string): boolean {

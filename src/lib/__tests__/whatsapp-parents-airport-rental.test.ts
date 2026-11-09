@@ -127,3 +127,25 @@ describe('one bag per traveller', () => {
     expect(result.source).not.toBe('safety');
   });
 });
+
+// Live Chrome on 72cd92a, mandatory garage replay: the model asked
+// "האם נשריין את הרכב…?"; "כן יאללה. קוראים לי איתי בדיקה…" and then "אמרתי כן 😅"
+// never started the request, and the model claimed "נעדכן את הבקשה".
+describe('garage replay acceptance after a reserve-worded offer', () => {
+  const ready = (lastBot: string): RebuildState => ({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-11-10', returnDate: '2026-11-12', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב קומפקטי', driverAgeRange: '24-plus' }, history: [{ from: 'bot', text: lastBot }] });
+  it.each([
+    'כן יאללה. קוראים לי איתי בדיקה. רק שלא תסגור לי משהו יקר בלי להגיד לי, אני רוצה קודם לדעת מה ההצעה',
+    'אמרתי כן 😅',
+  ])('starts the request and shows the summary without creating it: %s', async input => {
+    const c = chat(ready('האם נשריין את הרכב הקומפקטי לאיסוף מחר מהרצליה ולהחזרה לשם?'), () => 'נעדכן את הבקשה.');
+    const result = await c.send(input);
+    expect(result.state.phase).toBe('booking');
+    expect(result.reply).not.toContain('נעדכן את הבקשה');
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it('rejects reservation wording from the model', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] }, () => 'האם נשריין את הרכב הקומפקטי לאיסוף מחר?');
+    const result = await c.send('מה ההבדל בין קומפקטי למשפחתי?');
+    expect(result.reply).not.toMatch(/נשריין/);
+  });
+});
