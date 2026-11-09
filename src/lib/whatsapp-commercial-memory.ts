@@ -141,7 +141,10 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
       ?? positiveLeasingChoice
       ?? text.match(/(compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)\s+is important to (?:me|us)/iu)
       ?? text.match(/(?:^|[,;.]\s*|ל)רכב\s+(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות)/iu)
-      ?? text.trim().match(/^(?:a |רכב )?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות|compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)[.!\s]*$/iu);
+      ?? text.trim().match(/^(?:a |רכב )?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות|compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)[.!\s]*$/iu)
+      // "משהו קטן ואמין" / "something small" / a message that opens with the category.
+      ?? text.match(/(?:^|[,;.]\s*)(?:משהו|something)\s+(קטן|קומפקטי|משפחתי|משפחתית|small|compact|family)(?![\p{L}])/iu)
+      ?? text.trim().match(/^(קומפקטי|משפחתי|משפחתית|compact|family car|SUV)(?=[.,!\s])/iu);
     if (choice && !negatedBefore(text, choice.index!) && !/\bif\b|\bmaybe\b|אולי|מה אם/i.test(text.slice(Math.max(0, choice.index! - 20), choice.index! + choice[0].length))) {
       next.vehiclePreference = /שבעה|seven/i.test(choice[1]) ? 'seven_seat' : /פנאי|SUV/i.test(choice[1]) ? 'suv' : /משפחת|family/i.test(choice[1]) ? 'family' : 'compact';
     }

@@ -56,3 +56,18 @@ describe('no price talk', () => {
     expect(result.reply).toBe(reply);
   });
 });
+
+// Live Chrome on 7ae01c5 (Hebrew sale): "שמעתי שאתם מוכרים גם רכבים… יד 2… עד 60 אלף" was routed
+// to rental, "משהו קטן ואמין, אוטומט" was not stored and the inspection question was ignored.
+describe('casual used-car purchase', () => {
+  it('routes to sale, keeps budget and preference against a hypothetical, answers the inspection question', async () => {
+    const c = chat(null, 'נשמח לעזור.');
+    const first = await c.send('שמעתי שאתם מוכרים גם רכבים. מחפשת משהו יד 2 לבת שלי שמתחילה לנהוג, עד 60 אלף');
+    expect(first.state.interest).toBe('sale');
+    expect(first.reply).not.toMatch(/לאילו תאריכים/);
+    const second = await c.send('משהו קטן ואמין, אוטומט. אם אעלה ל70 יהיה משהו הרבה יותר טוב? ויש בדיקה במכון לפני?');
+    expect(second.state.commercial?.budget?.amount).toBe(60000);
+    expect(second.state.commercial?.vehiclePreference).toBe('compact');
+    expect(second.reply).toMatch(/בדיקה במכון/);
+  });
+});

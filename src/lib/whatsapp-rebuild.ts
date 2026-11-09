@@ -1820,13 +1820,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const offeredVehicle = explicitVehicleNeed(lastBot, state.locale);
       if (offeredVehicle) state.booking.vehicleNeed = offeredVehicle;
     }
-    const commercialVehicle = reading?.route === 'sale' || reading?.route === 'leasing' || /ליסינג|לקנות|למכירה|לרכישה|buy|purchase|leasing/i.test(input);
+    const commercialVehicle = reading?.route === 'sale' || reading?.route === 'leasing' || /ליסינג|לקנות|למכירה|לרכישה|מוכרים רכבים|יד (?:2|שנייה|שתיים)|משומש|buy|purchase|leasing|used car/iu.test(input);
     if (statedVehicle && (wantsBooking || state.phase === 'booking' || !commercialVehicle && !state.interest)
       && (!state.booking.vehicleNeed || /^רכב (?:לנוסע אחד|ל־\d+ נוסעים)|^car for \d+ passengers?/i.test(state.booking.vehicleNeed)
         || /בעצם|מעדיף|במקום|החלטתי על|החלטנו על|בוחר|בוחרת|actually|instead|prefer/i.test(input))) state.booking.vehicleNeed = statedVehicle;
     if (rentalPivot || switchesToRental) { carryCommercialRentalNeeds(state); state.interest = undefined; delete state.commercial; }
     else if (reading?.route === 'leasing' || /ליסינג|leasing/i.test(input)) state.interest = 'leasing';
-    else if (reading?.route === 'sale' || state.phase !== 'booking' && /נסיעת מבחן|test drive/i.test(input) || /לקנייה|למכירה|רכב לקנות|רוצה לקנות|לקנות (?:את ה)?רכב|buy(?:ing)? (?:a |the )?(?:used |new )?(?:family |compact |small |suv )?(?:car|vehicle)|purchas(?:e|ing) (?:a |the )?car|car for sale|used car/i.test(input)) state.interest = 'sale';
+    else if (reading?.route === 'sale' || state.phase !== 'booking' && /נסיעת מבחן|test drive/i.test(input) || /לקנייה|למכירה|רכב לקנות|רוצה לקנות|לקנות (?:את ה)?רכב|(?:מוכרים|מוכרות|מוכר) (?:גם )?רכבים|רכב יד (?:2|שתיים|שנייה)|יד (?:2|שתיים|שנייה)(?![\p{L}\d])|רכב משומש|buy(?:ing)? (?:a |the )?(?:used |new )?(?:family |compact |small |suv )?(?:car|vehicle)|purchas(?:e|ing) (?:a |the )?car|car for sale|used car/iu.test(input)) state.interest = 'sale';
     if (state.interest) {
       if (!state.commercial) {
         state.commercial = {};
@@ -2247,6 +2247,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       ? `עד שתקבלו אישור מפורש מ־SmartCar, מועד ההחזרה הקיים נשאר בתוקף — יש להחזיר את הרכב במועד המקורי. אם לא קיבלתם תשובה עד אז, התקשרו ל־${OFFICE_PHONE} לפני מועד ההחזרה.`
       : `Until SmartCar explicitly confirms the change, your existing return time stands — please return the car at the original time. If you have not heard back by then, call ${OFFICE_PHONE} before the return time.`;
     source = 'local';
+  }
+  // A pre-purchase inspection question gets a car-specific, non-promising answer.
+  if (state.interest === 'sale' && !escalate && /בדיקה במכון|מכון בדיקה|בדיקת מכון|לבדוק במוסך|pre[- ]?purchase inspection|mechanic(?:al)? (?:check|inspection)|inspection before/iu.test(input) && !/מכון|inspection/iu.test(reply)) {
+    reply = `${reply.trim()} ${he ? 'בדיקה במכון לפני רכישה מתואמת עם נציג SmartCar לפי הרכב המסוים.' : 'A pre-purchase inspection is arranged with a SmartCar representative for the specific car.'}`;
   }
   // Owner rule: a rental price question always gets the same honest line.
   if (!escalate && state.phase !== 'service' && !state.interest && !state.completedRequestId
