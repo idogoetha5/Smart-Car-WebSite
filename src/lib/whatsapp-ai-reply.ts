@@ -108,6 +108,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (/\bper day\b|ליום/u.test(reply) && /\d/.test(reply) && !/פיקדון|deposit|קילומטר|km/iu.test(reply)) return reject('price_talk');
   // Price is set in the quote; wording must not promise it in advance.
   if (hasAffirmativeMatch(reply, /(?:בלי|ללא) הפתעות|(?:ב|לפי )?(?:ה)?תעריף המקורי|אותו מחיר(?: ליום)?|המחיר (?:לא|אינו) ישתנה|\bno (?:price )?surprises\b|\b(?:the )?same (?:daily )?(?:rate|price)\b|\b(?:the )?original (?:daily )?rate\b|\bprice (?:will not|won['’]?t) change\b/giu)) return reject('price_assurance');
+  // No booking exists in this chat; wording cannot say one was recorded or made.
+  if (hasAffirmativeMatch(reply, /רשמתי את ההזמנה|ההזמנה (?:נרשמה|נקלטה|בוצעה)|הזמנתי (?:לכם|לך)|\b(?:I(?:'ve| have)?|we(?:'ve| have)?) (?:booked|recorded (?:the|your) booking)\b|\byour booking (?:is|has been) (?:made|recorded|placed)\b/giu)) return reject('action_claim');
   // Only application code passes a case to a person; wording cannot announce it.
   if (hasAffirmativeMatch(reply, /(?:המערכת|הבוט)\s+(?:תעביר|יעביר|תשלח|ישלח)|(?<![\p{L}])(?:נעביר|אעביר|נשלח|אשלח)\s+את\s+(?:הבקשה|הפנייה|הפניה|הפרטים)|נציג\s+(?:יחזור|יתקשר)\s+(?:אליך|אליכם|אלייך)\s+(?:מחר|היום|בבוקר|בערב|תוך)|\b(?:the system|I|we)\s+will\s+(?:pass|forward|send)\b|\b(?:will|is going to) call you (?:back )?(?:tomorrow|today|this (?:morning|evening)|in the morning)\b/giu)) return reject('action_claim');
   if (/נשריין|לשריין|שנשריין|\b(?:reserve|hold) (?:the|a|your) car\b/iu.test(reply)) return reject('reservation_wording');

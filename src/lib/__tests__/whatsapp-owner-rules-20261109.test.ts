@@ -71,3 +71,40 @@ describe('casual used-car purchase', () => {
     expect(second.reply).toMatch(/בדיקה במכון/);
   });
 });
+
+// Live Chrome on 7ae01c5 (Hebrew family rental): "זוג עם 2 ילדים" counted 2, "צריך שני כיסאות
+// בטיחות אחד לתינוק ואחד לבן 4" stored 1 seat, the model said "רשמתי את ההזמנה", and the
+// conversation stalled without asking the return place.
+describe('family rental details', () => {
+  it('counts four travellers and two seats, rejects booking claims and asks the return place', async () => {
+    const c = chat(null, 'רשמתי את ההזמנה לאיסוף מהרצליה עם שני כיסאות בטיחות.');
+    const first = await c.send('היי אנחנו זוג עם 2 ילדים קטנים, צריכים רכב לחופשה בגליל');
+    expect(first.state.booking.passengers).toBe(4);
+    const second = await c.send('מהרצליה, מה 15.12 עד ה 19.12. צריך שני כיסאות בטיחות אחד לתינוק ואחד לבן 4');
+    expect(second.state.booking.childSeats).toBe(2);
+    expect(second.reply).not.toContain('רשמתי את ההזמנה');
+    expect(second.reply).toMatch(/[?؟]/);
+  });
+  it.each(['couple with two kids, need a car in the north', 'we are a couple with 1 child'])('english family counts: %s', async input => {
+    const result = await chat(null, 'Sure.', 'en').send(input);
+    expect(result.state.booking.passengers).toBe(input.includes('two') ? 4 : 3);
+  });
+});
+
+describe('no stall in a rental draft', () => {
+  it('asks the missing return place when the model reply asks nothing', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { passengers: 4, pickupDate: '2026-12-15', returnDate: '2026-12-19', pickupLocation: 'הרצליה' }, history: [] } as RebuildState, 'עגלה נכנסת בדרך כלל במשפחתי, וההתאמה תלויה בדגם ובמידות העגלה.');
+    const result = await c.send('ועגלה נכנסת במשפחתי?');
+    expect(result.reply).toMatch(/איפה תרצו להחזיר אותו\?/);
+  });
+});
+
+describe('name in the middle of a go-ahead message', () => {
+  it('keeps "דנה בדיקה" and the main driver age group', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { passengers: 4, childSeats: 1, pickupDate: '2026-12-15', returnDate: '2026-12-19', pickupLocation: 'הרצליה' }, history: [{ from: 'bot', text: 'איפה תרצו להחזיר אותו?' }] } as RebuildState, 'בשמחה.');
+    const result = await c.send('להחזיר גם בהרצליה. יאללה בואו נתקדם, דנה בדיקה, נהג ראשי בעלי בן 38');
+    expect(result.state.booking.customerName).toBe('דנה בדיקה');
+    expect(result.state.booking.driverAgeRange).toBe('24-plus');
+    expect(result.reply).not.toMatch(/על איזה שם/);
+  });
+});

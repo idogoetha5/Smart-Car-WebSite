@@ -605,6 +605,12 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   const luggage = [...input.matchAll(new RegExp(`${count}\\s+(?:(?:small|medium|large|קטנות|בינוניות|גדולות)\\s+)?(?:מזוודות|מזוודה|תיקים|תיקי נסיעה|bags?|suitcases?)(?![\\p{L}])`, 'giu'))]
     .find(match => !negatedLuggageMention(input, match.index) && !isHypotheticalFactEvidence(input, match[0]) && !isRentalCapacityQuestionEvidence(input, match[0]));
   const passengerCount = statedCount(passengers?.[1] ?? passengers?.[2] ?? '');
+  // "זוג עם 2 ילדים" / "couple with two kids": two adults plus the stated children.
+  const family = input.match(new RegExp(`(?:זוג|שני הורים|אני ו(?:אשתי|בעלי|בן הזוג שלי|בת הזוג שלי)|(?:a |we(?:'re| are) a )?couple|two adults|me and my (?:wife|husband|partner))\\s+(?:עם|ו[־-]?|with|and|\\+)\\s*${count}\\s+(?:ילדים|ילדות|ילד|ילדה|kids|children|child)`, 'iu'));
+  if (family && !passengers && !/(?:^|\s)אם\s|מה אם|\bif\b|what if/iu.test(input)) {
+    const kids = statedCount(family[1]);
+    if (kids) draft.passengers = 2 + kids;
+  }
   // "Me and my girlfriend" / "אני ואשתי" is two travellers when no other
   // count was stated and no third person is added in the same phrase.
   const coupleOnly = !passengers && /\b(?:it['’]?s |just )?(?:me|myself|I) and my (?:gf|girlfriend|bf|boyfriend|wife|husband|partner|spouse|friend|mom|mum|mother|dad|father|brother|sister)\b(?!,?\s*(?:and|&|\+)\s)|(?:^|[\s,.])(?:רק )?אני ו(?:אשתי|בעלי|החבר(?:ה)? שלי|חבר(?:ה)? שלי|בן הזוג שלי|בת הזוג שלי|אמא שלי|אבא שלי|אחי|אחותי)(?!,?\s*(?:ו|\+))(?![\p{L}])/iu.test(input)
@@ -614,7 +620,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   if (passengerCount !== null) draft.passengers = passengerCount;
   if (luggageCount !== null) draft.luggage = luggageCount;
   if (/מזווד.{0,18}גדול|large (?:bags?|suitcases?|luggage)(?![\p{L}])/iu.test(input) && (luggageCount !== null || !luggage && /מזווד.{0,18}גדול/u.test(input))) draft.luggageSize = 'large';
-  if (/אנחנו זוג|זוג עם|שני אנשים|שני נוסעים|we are a couple|two of us/i.test(input)) draft.passengers = 2;
+  if (!family && /אנחנו זוג|זוג עם|שני אנשים|שני נוסעים|we are a couple|two of us/i.test(input)) draft.passengers = 2;
   // Count the child as a passenger when the customer explicitly describes a
   // couple travelling with one. A five-year-old is not luggage or a seat count.
   const coupleWithChild = /(?<![\p{L}])(?:זוג|שני (?:מבוגרים|אנשים)).{0,45}(?:עם|ו[- ]?).{0,20}(?:תינוק|ילד(?:ה)?(?: אחד(?:ת)?)?)(?![\p{L}])|(?:my (?:wife|husband|partner|spouse) and I|myself and my (?:wife|husband|partner|spouse)|two adults?).{0,90}(?:(?:with|and) (?:our|a|one) (?:\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)[- ]year[- ]old|with (?:our|a|one) (?:child|kid|baby|infant|son|daughter)|and (?:one|a) (?:child|kid|baby|infant))/iu.test(input);
@@ -647,9 +653,11 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
     if (!request) continue;
     // Limit counts to the requested seat phrase, never the child's later age.
     const seatText = clause.slice(request.index!, request.index! + request[0].length + 12);
-    const seatCount = seatText.match(new RegExp(`כיסא(?:ות)? בטיחות\\s+${count}`, 'iu'))?.[1]
+    // A count before the noun ("שני כיסאות בטיחות, אחד לתינוק…") is the total;
+    // a number after it usually starts a per-child breakdown.
+    const seatCount = (/שני\s+כיסאות בטיחות/u.test(seatText) ? '2' : undefined)
       ?? seatText.match(new RegExp(`${count}\\s+(?:כיסא(?:ות)? בטיחות|child seats?|car seats?)`, 'iu'))?.[1]
-      ?? (/שני\s+כיסאות בטיחות/u.test(seatText) ? '2' : undefined);
+      ?? seatText.match(new RegExp(`כיסא(?:ות)? בטיחות\\s+${count}(?!\\s+ל)`, 'iu'))?.[1];
     draft.childSeats = statedCount(seatCount ?? '1') ?? 1;
   }
   if (/אדם אחד|איש אחד|נוסע אחד|נוסעת אחת|אני לבד|(?:^|\s)לבד(?:\s|$)|\b(?:one person|solo|travelling alone|traveling alone)\b/i.test(input)) draft.passengers = 1;
@@ -1275,7 +1283,12 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
   const introducedName = state.phase === 'booking' || explicitStart
     ? input.match(/(?:^|[.!,;]\s*)(?:I am|I['’]?m|im)\s+([\p{L}'-]{2,20}(?:\s+[\p{L}'-]{2,20})?)(?=\s*(?:,|$|\s+\d{2}\b|\s+and\b|[.!]))/iu)?.[1]
     : undefined;
-  const trailingName = explicitStart && !introducedName ? input.match(/[.!,]\s*([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})\s*[.!]?\s*$/u)?.[1] : undefined;
+  // After an explicit start, a two-word clause on its own between commas or at the
+  // end ("יאללה בואו נתקדם, דנה בדיקה, נהג ראשי בעלי בן 38") is the name.
+  const trailingName = (explicitStart || state.phase === 'booking' && state.step === 'rental_name') && !introducedName
+    ? input.split(/[,.!;\n]/u).slice(1).map(part => part.trim()).find(part => /^[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}$/u.test(part)
+      && !/(?:^|\s)(?:נהג|נהגת|ראשי|ראשית|בעלי|אשתי|להחזיר|לאסוף|בואו|נתקדם|יאללה|קדימה|בבקשה|תודה|גם|רק|עם|בלי|מחר|היום|main|driver|return|pick|please|thanks|let['’]?s|go|ahead|also|only|with|without|tomorrow|today)(?=\s|$)/iu.test(part))
+    : undefined;
   const validTrailingName = trailingName && !/^(?:תודה|בבקשה|יאללה|סבבה|אחלה|מעולה|בסדר|קדימה|רק|גם|עם|בלי|thank|thanks|please|ok|okay|great|cool|sounds|with|without|also|just|asap|soon|today|tomorrow|מחר|היום)(?=\s|$)|(?:^|\s)(?:רכב|car|יום|ימים|days?|בקשה|request|הצעה|quote|מחיר|price|רבה|גדול|קטן|משפחתי|big|small)(?=\s|$)/iu.test(trailingName) ? trailingName : undefined;
   const validIntroducedName = introducedName && !/^(?:not|unsure|still|looking|just|here|visiting|only|sorry|trying|waiting|renting|booking|confused|from|in|at|ok|okay|fine|good|sure|ready|interested|a|an|the|so|also|very|really|going|coming|staying|flying|landing|travel+ing|married|single)\b/i.test(introducedName) ? introducedName : undefined;
   if (explicitStart || state.step === 'rental_name' || state.step === 'rental_confirm' || labelledName || validIntroducedName || state.phase === 'booking' && askedForName) {
@@ -2251,6 +2264,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   // A pre-purchase inspection question gets a car-specific, non-promising answer.
   if (state.interest === 'sale' && !escalate && /בדיקה במכון|מכון בדיקה|בדיקת מכון|לבדוק במוסך|pre[- ]?purchase inspection|mechanic(?:al)? (?:check|inspection)|inspection before/iu.test(input) && !/מכון|inspection/iu.test(reply)) {
     reply = `${reply.trim()} ${he ? 'בדיקה במכון לפני רכישה מתואמת עם נציג SmartCar לפי הרכב המסוים.' : 'A pre-purchase inspection is arranged with a SmartCar representative for the specific car.'}`;
+  }
+  // A rental draft that already has dates and pickup should not stall: if the
+  // reply asks nothing, ask the one route detail still missing.
+  if (!escalate && state.phase === 'explore' && !state.interest && !state.completedRequestId && !state.handedOff
+    && state.booking.pickupDate && state.booking.returnDate && state.booking.pickupLocation && !state.booking.returnLocation
+    && !/[?؟]/u.test(reply) && !/(?:^|\s)לא (?:רוצה|מעוניין|עכשיו)|not (?:now|ready)|just asking|רק שואל/iu.test(input)) {
+    reply = `${reply.trim()} ${question('returnLocation', state.locale)}`;
   }
   // Owner rule: a rental price question always gets the same honest line.
   if (!escalate && state.phase !== 'service' && !state.interest && !state.completedRequestId
