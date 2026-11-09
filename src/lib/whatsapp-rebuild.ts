@@ -485,6 +485,7 @@ function offersHumanHandoff(reply: string): boolean {
 }
 
 function offersServiceChangeReview(reply: string): boolean {
+  if (/(?:תרצ(?:ה|ו)|האם)[^?؟.!]{0,40}(?:שנבדוק|לבדוק|שנעביר|להעביר)[^?؟.!]{0,60}(?:הארכה|להארכה|יום נוסף|עוד יום|קיצור|לקיצור|שינוי)[^?؟.!]*[?؟]/u.test(reply)) return true;
   if (/(?:would you like|shall we|do you want|want us to|תרצ(?:ה|ו)|שנבדוק)[^?؟.!]{0,65}(?:check|לבדוק|נבדוק)[^?؟.!]{0,40}(?:availability|זמינות)[^?؟.!]{0,50}(?:extra day|additional day|one more day|extension|יום נוסף|עוד יום|הארכה)[^?؟.!]*[?؟]/iu.test(reply)) return true;
   return /extension|shortening|date change|הארכה|קיצור|שינוי/iu.test(reply)
     && /(?:would you like|shall we|תרצ(?:ה|ו)|אפשר)[^?؟.!]{0,65}(?:review|submit|send|pass|שנעביר|להעביר|נגיש|להגיש|נשלח|לשלוח)[^?؟.!]{0,45}(?:request|בקשה|בקשת)[^?؟.!]*[?؟]/iu.test(reply);
@@ -728,7 +729,7 @@ function safety(input: string): 'accident' | 'breakdown' | null {
   if (reportedRentalDamage(incidentInput)) return 'accident';
   // Customers describe a collision without the word accident: someone drove
   // into them, a bumper is crushed. Treat an affirmative report as an incident.
-  if (/(?<!לא )(?:נכנס(?:ה|ו)?|התנגש(?:ה|ו)?) ב(?:י|נו)(?=[\s,.!?]|$)|(?<!לא )התנגש(?:ה|ו)? ב(?:רכב|אוטו) (?:שלי|שלנו|שלכם)|(?<!לא )(?:דפק(?:ה|ו)?|עשו לי) (?:לי |אותי |את הרכב )?(?:תאונה|מכה|מאחורה|מאחור)|פגוש.{0,20}(?:מעוך|נמעך|נשבר|התעקם|נכנס)|\brear[- ]?ended\b|\b(?:someone|somebody|a car|a truck|a bus|he|she|they|another (?:car|driver))\s+(?:hit|crashed into|backed into|ran into|drove into)\s+(?:me|us|my car|our car|the car)\b|\bbumper\b.{0,20}\b(?:crushed|smashed|caved in)\b/iu.test(incidentInput)) return 'accident';
+  if (/(?<!לא )(?:נכנס(?:ה|ו)?|התנגש(?:ה|ו)?) ב(?:י|נו)(?=[\s,.!?]|$)|(?<!לא )התנגש(?:ה|ו)? ב(?:רכב|אוטו) (?:שלי|שלנו|שלכם)|(?<!לא )(?:דפק(?:ה|ו)?|עשו לי) (?:לי |אותי |את הרכב )?(?:תאונה|מכה|מאחורה|מאחור)|פגוש.{0,20}(?:מעוך|נמעך|נשבר|התעקם|נכנס)|\brear[- ]?ended\b|\b(?:backed|crashed|drove|ran|bumped|reversed|slammed) into (?:me|us|my car|our car|the car|my rental|the rental)\b|\b(?:someone|somebody|some (?:guy|woman|man|driver)|a car|a truck|a bus|he|she|they|another (?:car|driver))\s+(?:just\s+)?(?:hit|smashed|scraped|clipped)\s+(?:me|us|my car|our car|the car)\b|\bbumper\b.{0,20}\b(?:crushed|smashed|caved in)\b/iu.test(incidentInput)) return 'accident';
   if (/תאונה|התנגשות|פצוע|accident|crash|collision/i.test(incidentInput) || !noInjuries && /(?<!לא )נפגע|(?<!not )injured/i.test(incidentInput)) return 'accident';
   if (/פנצ[׳']?ר|נתקעתי|לא (?:מניע|מתניע|התניע|נדלק)|רעש.{0,25}בלמ|בלמ.{0,25}רעש|עשן|תקלה ברכב|flat tire|breakdown|won'?t start|brake.{0,25}(?:noise|problem)|(?:noise|problem).{0,25}brake|(?:אני צריך|אני זקוק|תשלחו|שולחים).{0,25}גרר|גרר.{0,15}(?:עכשיו|דחוף)|\b(?:need|send)\b.{0,25}\btow\b|\btow\b.{0,15}\b(?:now|urgent)\b/i.test(input)) return 'breakdown';
   return null;
@@ -2001,7 +2002,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       // punctuation. Re-parsing here creates conflicting workflow decisions.
       const suppliedReference = Boolean(state.serviceReference);
       const insistsOnOffer = /^(?:yes|yeah|yep|כן|נכון)(?=[,!.\s])[,!.\s]+(?:that['’]?s (?:literally |exactly )?what I (?:just )?(?:asked|said|want(?:ed)?)|I (?:already|just) (?:asked|said)|זה (?:בדיוק )?מה ש(?:ביקשתי|אמרתי)|כבר ביקשתי)/iu.test(input);
-      const acceptsChangeReview = (affirms(input) || insistsOnOffer || /^(?:okay|ok)[.!?\s]*$/i.test(input)) && offersServiceChangeReview(lastBot) && !advisoryRentalChange(input);
+      const leadingYes = /^(?:כן|yes|yeah|yep|ok(?:ay)?|אוקיי?|בטח|סבבה|יאללה|sure)(?=[\s,.!]|$)/iu.test(input.trim()) && !/(?:^|\s)(?:לא|אל)\s|\bnot\b|\bdon['’]?t\b|(?:^|\s)אם\s|\bif\b/iu.test(input);
+      const acceptsChangeReview = (affirms(input) || insistsOnOffer || leadingYes || /^(?:okay|ok)[.!?\s]*$/i.test(input)) && offersServiceChangeReview(lastBot) && !advisoryRentalChange(input);
       if (rentalChangeRequest(input) || acceptsChangeReview) state.serviceChangeRequested = true;
       const changePending = state.serviceChangeRequested === true;
       const changeDiscussion = mentionsRentalChange(input) || state.history.some(entry => entry.from === 'customer' && mentionsRentalChange(entry.text));
@@ -2218,6 +2220,20 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   if (state.phase === 'service' && PRIVATE_PAYMENT_DETAIL.test(input)
     && !/אין צורך לשלוח מספר כרטיס מלא או קוד אבטחה|Do not send a full card number or security code/i.test(reply)) {
     reply += he ? ' אין צורך לשלוח כאן מספר כרטיס או אשראי מלא, קוד אבטחה, CVV או CVC.' : ' Do not send a full credit card number, security code, CVV or CVC here.';
+  }
+  // While a change is pending, the contractual return time stands. Answer the
+  // "if nobody replies, do I return it?" question directly.
+  if (state.handedOff && (state.handoffKind === 'booking_change' || state.handoffKind === 'service_issue') && !state.history.some(entry => entry.from === 'customer' && cancellationRequest(entry.text))
+    && /(?:^|\s)ו?אם\s+(?:לא\s+)?(?:יענו|תענו|יחזרו|אקבל|נקבל|יאשרו|תאשרו)|מחזיר(?:ה)?\s+או\s+ממשיכ|להחזיר\s+או\s+להמשיך|\b(?:if|what if)\b.{0,30}\b(?:no one|nobody|you don['’]?t|I don['’]?t|no) (?:answers?|repl(?:y|ies)|hear|confirm|get back)|\breturn it or keep\b|\bkeep (?:driving|it) or return\b/iu.test(input)) {
+    reply = he
+      ? `עד שתקבלו אישור מפורש מ־SmartCar, מועד ההחזרה הקיים נשאר בתוקף — יש להחזיר את הרכב במועד המקורי. אם לא קיבלתם תשובה עד אז, התקשרו ל־${OFFICE_PHONE} לפני מועד ההחזרה.`
+      : `Until SmartCar explicitly confirms the change, your existing return time stands — please return the car at the original time. If you have not heard back by then, call ${OFFICE_PHONE} before the return time.`;
+    source = 'local';
+  }
+  // Model wording may not contain phone numbers; when it tells the customer
+  // to call, the application adds the approved office number.
+  if (source === 'gemini' && !reply.includes(OFFICE_PHONE) && /\bcall (?:our|the) (?:office|team|branch)\b|\bcall us\b|\bcontact (?:our|the) office\b|התקשרו (?:אלינו|למשרד|לסניף)|התקשר(?:י)? (?:אלינו|למשרד)|צרו (?:איתנו )?קשר טלפוני/iu.test(reply)) {
+    reply = `${reply.trim()} ${he ? `מספר המשרד: ${OFFICE_PHONE}.` : `Office: ${OFFICE_PHONE}.`}`;
   }
   // A safety turn can carry a separate excess/liability question. Answer it
   // conditionally from approved terms rather than dropping it.

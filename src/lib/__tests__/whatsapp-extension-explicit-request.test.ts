@@ -234,3 +234,49 @@ describe('explicit callback request in a commercial enquiry', () => {
     expect(result.reply).not.toContain('המערכת תעביר');
   });
 });
+
+// Live Chrome on 35e6792 (EN): "some guy just backed into me … side mirror is hanging off"
+// stayed out of safety and the model's "call our office" had no number.
+describe('english collision in everyday words and office number', () => {
+  const send = async (input: string, modelReply = 'Please call our office so we can help.', initial: RebuildState | null = null) => {
+    let state: RebuildState | null = initial;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: modelReply, source: 'gemini', model: 'controlled-fixture', groundedContext: true } as BotReading) };
+    return getRebuiltBotReply('fictional-en-collision', input, store);
+  };
+  it('enters safety with the number and an alert', async () => {
+    const result = await send('omg some guy just backed into me in a parking lot in haifa. im fine but the side mirror is hanging off. what do i do');
+    expect(result.source).toBe('safety');
+    expect(result.escalate).toBe(true);
+    expect(result.reply).toContain('09-9509757');
+  });
+  it('adds the office number when model wording asks the customer to call', async () => {
+    const result = await send('what are your office hours on friday?', 'Branches are open on Fridays until 14:00; call our office for anything urgent.', { version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: {}, history: [] });
+    expect(result.reply).toContain('09-9509757');
+  });
+});
+
+// Live Chrome on 35e6792 (HE extension): "כן בבקשה תבדקו. מספר הזמנה 641552" after "האם תרצה
+// שנבדוק עבורך זמינות להארכה?" became a generic service issue, and "ואם לא יענו לי עד מחר בערב?
+// אני מחזיר או ממשיך לנסוע?" got a generic reply instead of the binding return time.
+describe('hebrew extension acceptance and the binding return time', () => {
+  it('queues the extension review and answers the deadline question', async () => {
+    let state: RebuildState | null = { version: 2, phase: 'service', step: 'menu', locale: 'he', booking: {}, serviceChangeRequested: false, history: [{ from: 'customer', text: 'הרכב אצלי ואני צריך להחזיר מחר בערב. יש סיכוי להשאיר עוד יומיים?' }, { from: 'bot', text: 'הארכה דורשת אישור. האם תרצה שנבדוק עבורך זמינות להארכה?' }] };
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: 'x', source: 'gemini', model: 'controlled-fixture', groundedContext: true } as BotReading) };
+    const accepted = await getRebuiltBotReply('fictional-he-ext', 'כן בבקשה תבדקו. מספר הזמנה 641552', store);
+    expect(accepted.state.serviceChangeRequested).toBe(true);
+    expect(accepted.state.handoffKind).toBe('booking_change');
+    const deadline = await getRebuiltBotReply('fictional-he-ext', 'ואם לא יענו לי עד מחר בערב? אני מחזיר או ממשיך לנסוע?', store);
+    expect(deadline.reply).toMatch(/מועד ההחזרה הקיים נשאר בתוקף/);
+    expect(deadline.reply).toMatch(/09-9509757/);
+    expect(deadline.escalate).toBeFalsy();
+  });
+  it('does not take "no, don’t check" as acceptance', async () => {
+    let state: RebuildState | null = { version: 2, phase: 'service', step: 'menu', locale: 'he', booking: {}, serviceChangeRequested: false, history: [{ from: 'bot', text: 'האם תרצה שנבדוק עבורך זמינות להארכה?' }] };
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: 'בסדר.', source: 'gemini', model: 'controlled-fixture', groundedContext: true } as BotReading) };
+    const result = await getRebuiltBotReply('fictional-he-ext-2', 'כן אבל לא עכשיו, אני עוד חושב', store);
+    expect(result.state.serviceChangeRequested).toBe(false);
+  });
+});
