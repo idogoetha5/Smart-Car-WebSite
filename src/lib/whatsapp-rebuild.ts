@@ -2237,6 +2237,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   if (source === 'gemini' && !reply.includes(OFFICE_PHONE) && /\bcall (?:our|the) (?:office|team|branch)\b|\bcall us\b|\bcontact (?:our|the) office\b|התקשרו (?:אלינו|למשרד|לסניף)|התקשר(?:י)? (?:אלינו|למשרד)|צרו (?:איתנו )?קשר טלפוני/iu.test(reply)) {
     reply = `${reply.trim()} ${he ? `מספר המשרד: ${OFFICE_PHONE}.` : `Office: ${OFFICE_PHONE}.`}`;
   }
+  // After a collision, "should I take his details?" deserves a direct answer.
+  if (state.handoffKind === 'safety' && (state.safetyKind === 'accident' || !state.safetyKind) && /(?:get|take|exchange|collect) (?:his|her|their|the other (?:driver['’]?s?|party['’]?s?)) (?:details|info|information|insurance)|(?:the )?other driver['’]?s? (?:details|info)|פרטים (?:מ|של )?(?:ה)?נהג|הנהג השני|פרטי (?:ה)?נהג/iu.test(input)
+    && !/פרטי הנהג השני|other driver['’]?s details/iu.test(reply)) {
+    reply = `${he ? 'כן, אם בטוח לעשות זאת רשמו את פרטי הנהג השני: שם, טלפון, מספר רכב ופרטי הביטוח שלו, וצלמו את הנזק.' : 'Yes, if it is safe, note the other driver’s details: name, phone, plate number and insurance details, and photograph the damage.'} ${reply}`;
+  }
   // A safety turn can carry a separate excess/liability question. Answer it
   // conditionally from approved terms rather than dropping it.
   if (state.handoffKind === 'safety' && /השתתפות ה?עצמית|אשלם|מי.{0,15}ישלם|\bexcess\b|\bpay for (?:the )?damage\b|\bliable\b/i.test(input) && !/השתתפות|excess/i.test(reply)) {

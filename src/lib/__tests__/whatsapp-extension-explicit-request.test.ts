@@ -308,3 +308,15 @@ describe('bare reference and conditional callback wording', () => {
     expect(result.state.serviceReference).toBeUndefined();
   });
 });
+
+describe('other driver details after an English collision', () => {
+  it('answers the details question together with the excess question', async () => {
+    let state: RebuildState | null = null;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: 'x', source: 'gemini', model: 'controlled-fixture', groundedContext: true } as BotReading) };
+    await getRebuiltBotReply('fictional-en-details', 'hey a car just bumped into me at a red light in netanya, nobody hurt. bumper scratched. what now', store);
+    const result = await getRebuiltBotReply('fictional-en-details', 'do i need to get his details? and do i pay the excess if its his fault', store);
+    expect(result.reply).toMatch(/other driver’s details/);
+    expect(result.reply).toMatch(/excess/);
+  });
+});
