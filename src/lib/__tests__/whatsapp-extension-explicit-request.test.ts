@@ -56,3 +56,28 @@ describe('explicit extension request in an existing rental', () => {
     expect(result.state.serviceChangeRequested).toBe(false);
   });
 });
+
+// Live Chrome failure on 39c3a4d, 2026-11-09 (evidence/20261109-chrome-he-advice-no-rep.md):
+// "אני לא צריך נציג, רק דעה" escalated to a representative on the first turn.
+describe('declining a representative while asking for advice', () => {
+  it.each([
+    ['he', 'שלום, אני סתם מנסה להבין משהו לפני שאני מחליט. אנחנו חושבים על חופשה בצפון בחנוכה, ארבעה מבוגרים. עדיף לשכור רכב אחד גדול או שני קטנים? אני לא צריך נציג, רק דעה'],
+    ['he', 'אין צורך בנציג, רק תגיד לי מה עדיף'],
+    ['en', "I don't need a representative, just your opinion: one big car or two small ones for four adults?"],
+  ] as const)('answers without a handoff: %s', async (locale, input) => {
+    let state: RebuildState | null = null;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'explore', direction: 'none', fields: {}, reply: locale === 'he' ? 'לארבעה מבוגרים כדאי להשוות רכב משפחתי אחד מול שני רכבים קטנים לפי מזוודות ומסלול.' : 'For four adults, compare one family car with two small cars by luggage and route.', source: 'gemini', model: 'controlled-fixture', groundedContext: true } as BotReading) };
+    const result = await getRebuiltBotReply('fictional-advice', input, store);
+    expect(result.escalate).toBeFalsy();
+    expect(result.state.handedOff).toBeFalsy();
+    expect(result.reply).not.toMatch(/נציג SmartCar יחזור|representative will follow up/);
+  });
+  it.each(['אני צריך נציג בבקשה', 'I need a representative please'])('still honours a real request for a person: %s', async input => {
+    let state: RebuildState | null = null;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'human', direction: 'none', fields: {}, reply: 'OK', source: 'gemini', model: 'controlled-fixture', groundedContext: true } as BotReading) };
+    const result = await getRebuiltBotReply('fictional-advice-human', input, store);
+    expect(result.escalate).toBe(true);
+  });
+});

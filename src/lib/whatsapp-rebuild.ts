@@ -428,7 +428,7 @@ function affirms(input: string): boolean {
 }
 
 function declinesHumanHandoff(input: string): boolean {
-  return /אל תתקשרו|אל תתקשר|אל תחזרו אלי|לא לחזור אלי|(?:לא רוצה|לא רוצים|לא צריך|לא צריכים|עדיין לא).{0,45}(?:שיחזרו|תחזרו|שיתקשרו|תתקשרו)|אל תעביר|לא להעביר|אל תשלח|לא לשלוח|(?:do not|don['’]?t)\s+(?:pass|send|contact|call)\b|(?:לא רוצה|לא רוצים|לא מוכן|לא מוכנה|לא מוכנים|לא עכשיו|עדיין לא|בלי).{0,45}(?:נציג|בן אדם|לדבר)|(?:not ready|do not want|don['’]?t want|not yet|no need).{0,60}(?:representative|human|person|call)|\bno\s+(?:representative|human|person|callback|call)\b|(?:representative|human|person).{0,25}(?:not yet|later)|נציג.{0,15}לא עכשיו/i.test(input);
+  return /אל תתקשרו|אל תתקשר|אל תחזרו אלי|לא לחזור אלי|(?:לא רוצה|לא רוצים|לא צריך|לא צריכים|עדיין לא).{0,45}(?:שיחזרו|תחזרו|שיתקשרו|תתקשרו)|אל תעביר|לא להעביר|אל תשלח|לא לשלוח|(?:do not|don['’]?t)\s+(?:pass|send|contact|call)\b|(?:לא רוצה|לא רוצים|לא מוכן|לא מוכנה|לא מוכנים|לא עכשיו|עדיין לא|בלי|לא צריך|לא צריכה|לא צריכים|אין צורך|אין לי צורך).{0,45}(?:נציג|בן אדם|לדבר)|(?:not ready|do not want|don['’]?t want|do not need|don['’]?t need|not yet|no need).{0,60}(?:representative|human|person|call)|\bno\s+(?:representative|human|person|callback|call)\b|(?:representative|human|person).{0,25}(?:not yet|later)|נציג.{0,15}לא עכשיו/i.test(input);
 }
 
 function offersHumanHandoff(reply: string): boolean {
