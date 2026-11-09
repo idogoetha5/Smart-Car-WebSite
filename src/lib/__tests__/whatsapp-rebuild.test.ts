@@ -796,7 +796,7 @@ describe('replacement SmartCar conversation core', () => {
   it('answers a daily-price question without inventing a final quote or starting a request', async () => {
     const chat = memory(() => ({ ...base, reply: 'המחיר הסופי הוא 250 ₪ ליום.' }));
     const result = await chat.send('כמה זה עולה ליום?');
-    expect(result.reply).toContain('המחיר המדויק תלוי');
+    expect(result.reply).toContain('המחיר נסגר סופית מול נציג SmartCar');
     expect(result.reply).not.toContain('באתר');
     expect(result.reply).not.toContain('250');
     expect(result.state.phase).toBe('explore');

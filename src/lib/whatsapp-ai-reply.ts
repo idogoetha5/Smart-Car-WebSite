@@ -102,6 +102,10 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (hasAffirmativeMatch(reply, /\bin stock\b|יש במלאי/gi)) return reject('stock_assurance');
   // The assistant can prepare a request for review, never reserve a car or
   // update a request that does not exist yet.
+  // Owner rule: no rental price talk in model wording (amounts, ranges, cheaper/pricier claims).
+  if (/(?:₪|ש["״]?ח|\bNIS\b|\bILS\b|shekels?)/iu.test(reply) && !/פיקדון|deposit|השתתפות|excess|budget|תקציב/iu.test(reply)) return reject('price_talk');
+  if (hasAffirmativeMatch(reply, /(?:זול|יקר)(?:ה|ים|ות)? יותר|(?:יוצא|ייצא|יעלה)\s+(?:בערך|כ[־-]?|בסביבות)|\b(?:cheaper|more expensive|costs? (?:around|about|roughly))\b|\bper day (?:from|starting)\b/giu)) return reject('price_talk');
+  if (/\bper day\b|ליום/u.test(reply) && /\d/.test(reply) && !/פיקדון|deposit|קילומטר|km/iu.test(reply)) return reject('price_talk');
   // Price is set in the quote; wording must not promise it in advance.
   if (hasAffirmativeMatch(reply, /(?:בלי|ללא) הפתעות|(?:ב|לפי )?(?:ה)?תעריף המקורי|אותו מחיר(?: ליום)?|המחיר (?:לא|אינו) ישתנה|\bno (?:price )?surprises\b|\b(?:the )?same (?:daily )?(?:rate|price)\b|\b(?:the )?original (?:daily )?rate\b|\bprice (?:will not|won['’]?t) change\b/giu)) return reject('price_assurance');
   // Only application code passes a case to a person; wording cannot announce it.

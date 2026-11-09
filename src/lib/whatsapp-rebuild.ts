@@ -63,8 +63,8 @@ const EXPLICIT_RANGE = new RegExp(`(\\d{1,2})\\s*(?:עד|[-–]|to|until)\\s*(\\
 
 function priceAnswer(locale: Locale): string {
   return locale === 'he'
-    ? 'בשמחה. המחיר המדויק תלוי בתאריכים, בסוג הרכב ובתוספות שתבחרו. נשמח להכין לכם הצעה אישית.'
-    : 'Gladly. The exact price depends on your dates, vehicle type and chosen extras. We will be happy to prepare a personal offer.';
+    ? 'המחיר נסגר סופית מול נציג SmartCar, לפי התאריכים, סוג הרכב והתוספות שתבחרו.'
+    : 'The final price is set with a SmartCar representative, based on your dates, vehicle type and chosen extras.';
 }
 
 function availabilityAnswer(locale: Locale): string {
@@ -1399,6 +1399,22 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     state.durationClarification = false;
   }
 
+  // Owner decision 2026-11-09: a dashboard warning light goes straight to a
+  // representative. The bot gives no technical or driving advice about it.
+  const warningLight = !/מה (?:קורה|עושים) אם|what if|\bif (?:a|the) (?:warning )?light\b/iu.test(input)
+    && /נור(?:ה|ת)(?:\s+(?:אזהרה|התראה|צהובה|אדומה|כתומה|מנוע|שמן|לחץ\s+אוויר|בלמים|מצבר|ABS))?\s+(?:נדלקה|דלוקה|נדלק|מהבהבת|מאירה)|נדלק(?:ה)?\s+(?:לי\s+)?(?:נורה|נורת|אור|סימן)|(?:נורה|סימן|אור)\s+(?:צהוב|אדום|כתום)\s+(?:בלוח|על הלוח|נדלק)|\b(?:warning|check engine|engine|oil|battery|brake|abs|tyre pressure|tire pressure|dashboard)\s+(?:light|lamp|warning)\b.{0,40}\b(?:came on|is on|turned on|lit up|flashing|appeared|just)\b|\b(?:a|the|some)\s+(?:yellow|red|orange)\s+light\b.{0,30}\b(?:came on|is on|turned on|lit up|flashing|dashboard)\b/iu.test(input);
+  if (warningLight && state.handoffKind !== 'safety') {
+    const recentWarning = state.handedOff && state.handoffKind === 'service_issue' && state.history.slice(-6).some(entry => entry.from === 'bot' && /נורת אזהרה|warning light/i.test(entry.text));
+    state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'service_issue';
+    escalate = !recentWarning;
+    const reply = he
+      ? `נורת אזהרה צריכה בדיקה של נציג SmartCar, והעברתי אליו את הפנייה. אם יש חשש בטיחותי — עשן, רעש חריג או שהרכב לא מתנהג כרגיל — עצרו במקום בטוח. לעזרה מיידית התקשרו ל־${OFFICE_PHONE}.`
+      : `A warning light needs a SmartCar representative to check it, and I have passed your message on. If there is any safety concern — smoke, unusual noise or the car not behaving normally — stop somewhere safe. For immediate help call ${OFFICE_PHONE}.`;
+    pushHistory(state, input, reply, false);
+    if (escalate && !store.isSimulation) await store.beforeEscalationSave?.(phone);
+    await store.saveState(phone, state);
+    return { reply, state, escalate, source: 'local' };
+  }
   const incident = safety(input);
   if (incident) {
     state.phase = 'service'; state.handedOff = true; state.handoffAt ??= new Date().toISOString(); state.handoffKind = 'safety';
@@ -2231,6 +2247,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       ? `עד שתקבלו אישור מפורש מ־SmartCar, מועד ההחזרה הקיים נשאר בתוקף — יש להחזיר את הרכב במועד המקורי. אם לא קיבלתם תשובה עד אז, התקשרו ל־${OFFICE_PHONE} לפני מועד ההחזרה.`
       : `Until SmartCar explicitly confirms the change, your existing return time stands — please return the car at the original time. If you have not heard back by then, call ${OFFICE_PHONE} before the return time.`;
     source = 'local';
+  }
+  // Owner rule: a rental price question always gets the same honest line.
+  if (!escalate && state.phase !== 'service' && !state.interest && !state.completedRequestId
+    && /כמה (?:זה )?(?:עולה|יעלה|יוצא|ייצא)|מה המחיר|מחיר|עלות|\bhow much\b|\bprice\b|\bcost\b|\brate\b/iu.test(input)
+    && !/פיקדון|deposit|השתתפות|excess|ביטול|cancel/iu.test(input) && !reply.includes(priceAnswer(state.locale))
+    && !/מחיר|הצעה|תעריף|עלות|price|quote|rate|cost/iu.test(reply)) {
+    reply = `${priceAnswer(state.locale)} ${reply}`.trim();
   }
   // Model wording may not contain phone numbers; when it tells the customer
   // to call, the application adds the approved office number.
