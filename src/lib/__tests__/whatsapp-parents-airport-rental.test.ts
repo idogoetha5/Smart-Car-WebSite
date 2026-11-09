@@ -285,7 +285,7 @@ describe('annoyed repeat of the return place during intake', () => {
 // will we hear back with the price" got "What dates do you need the car?", and adding a
 // child seat was answered as if the sent request could be edited.
 describe('after the request was sent', () => {
-  const sent = (): RebuildState => ({ version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: {}, completedRequestId: 'SIM-1', completedRental: { pickupDate: '2026-12-03', returnDate: '2026-12-13', pickupLocation: 'Jerusalem', returnLocation: 'Jerusalem', vehicleNeed: 'compact car', driverAgeRange: '24-plus' }, history: [] });
+  const sent = (): RebuildState => ({ version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: {}, completedRequestId: 'SIM-1', completedRental: { pickupDate: '2026-12-03', returnDate: '2026-12-13', pickupLocation: 'Jerusalem', returnLocation: 'Jerusalem', vehicleNeed: 'compact car' }, history: [] });
   it('answers reserved/price questions from the receipt without restarting intake', async () => {
     const c = chat(sent(), () => 'What dates do you need the car?');
     const result = await c.send('thanks! so is the car reserved now? and when will we hear back with the price');
