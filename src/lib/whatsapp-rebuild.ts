@@ -137,6 +137,17 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
   // The provider boundary attaches this flag only after approved facts were
   // actually supplied. It is context provenance, not a promise of correctness.
   if (!reading?.groundedContext) return null;
+  // The model must not swap the relative the customer named (observed: "אמא
+  // שלי" answered as "אשתך"). Only a relation the customer used may appear.
+  const customerText = [input, ...state.history.filter(entry => entry.from === 'customer').map(entry => entry.text)].join('\n');
+  const relationMismatch = [
+    [/אשתך|אשתכם|your wife/iu, /אשתי|אישתי|אשתו|my wife|wife/iu],
+    [/בעלך|בעלכם|your husband/iu, /בעלי|בעלה|my husband|husband/iu],
+  ].some(([inReply, stated]) => inReply.test(reading.reply) && !stated.test(customerText));
+  if (relationMismatch) {
+    onReject?.('relationship_mismatch');
+    return null;
+  }
   return validateConversationalReply({
     reply: reading.reply, input, locale: state.locale, known: conversationalKnown(state),
     approvedFacts: getSmartCarApprovedFacts(state.locale).map(fact => fact.text),
@@ -671,15 +682,15 @@ function safety(input: string): 'accident' | 'breakdown' | null {
   if (reportedRentalDamage(incidentInput)) return 'accident';
   // Customers describe a collision without the word accident: someone drove
   // into them, a bumper is crushed. Treat an affirmative report as an incident.
-  if (/(?<!לא )(?:נכנס(?:ה|ו)?|התנגש(?:ה|ו)?|נתקע(?:ה|ו)?) ב(?:י|נו|רכב)(?=[\s,.!?]|$)|(?<!לא )(?:דפק(?:ה|ו)?|עשו לי) (?:לי |אותי |את הרכב )?(?:תאונה|מכה|מאחורה|מאחור)|פגוש.{0,20}(?:מעוך|נמעך|נשבר|התעקם|נכנס)|\brear[- ]?ended\b|\b(?:someone|somebody|a car|a truck|a bus|he|she|they|another (?:car|driver))\s+(?:hit|crashed into|backed into|ran into|drove into)\s+(?:me|us|my car|our car|the car)\b|\bbumper\b.{0,20}\b(?:crushed|smashed|caved in)\b/iu.test(incidentInput)) return 'accident';
+  if (/(?<!לא )(?:נכנס(?:ה|ו)?|התנגש(?:ה|ו)?) ב(?:י|נו)(?=[\s,.!?]|$)|(?<!לא )התנגש(?:ה|ו)? ב(?:רכב|אוטו) (?:שלי|שלנו|שלכם)|(?<!לא )(?:דפק(?:ה|ו)?|עשו לי) (?:לי |אותי |את הרכב )?(?:תאונה|מכה|מאחורה|מאחור)|פגוש.{0,20}(?:מעוך|נמעך|נשבר|התעקם|נכנס)|\brear[- ]?ended\b|\b(?:someone|somebody|a car|a truck|a bus|he|she|they|another (?:car|driver))\s+(?:hit|crashed into|backed into|ran into|drove into)\s+(?:me|us|my car|our car|the car)\b|\bbumper\b.{0,20}\b(?:crushed|smashed|caved in)\b/iu.test(incidentInput)) return 'accident';
   if (/תאונה|התנגשות|פצוע|accident|crash|collision/i.test(incidentInput) || !noInjuries && /(?<!לא )נפגע|(?<!not )injured/i.test(incidentInput)) return 'accident';
   if (/פנצ[׳']?ר|נתקעתי|לא (?:מניע|מתניע|התניע|נדלק)|רעש.{0,25}בלמ|בלמ.{0,25}רעש|עשן|תקלה ברכב|flat tire|breakdown|won'?t start|brake.{0,25}(?:noise|problem)|(?:noise|problem).{0,25}brake|(?:אני צריך|אני זקוק|תשלחו|שולחים).{0,25}גרר|גרר.{0,15}(?:עכשיו|דחוף)|\b(?:need|send)\b.{0,25}\btow\b|\btow\b.{0,15}\b(?:now|urgent)\b/i.test(input)) return 'breakdown';
   return null;
 }
 
 function reportedRentalDamage(input: string): boolean {
-  return /(?:רכב(?:י|נו)? השכור|הרכב השכור|רכב ששכרתי|שכרתי (?:את )?הרכב|(?:my|the|our) rental car|car (?:i|we) rented)/i.test(input)
-    && /שרט|שריט|שפשוף|נזק|מכה(?:\s+(?:בדלת|בחניה|ברכב))?|פגיעה|\b(?:scratch(?:ed|es)?|scrap(?:e|ed)|dent(?:ed|s)?|damage(?:d)?)\b/i.test(input);
+  return /(?:רכב(?:י|נו)? השכור|הרכב השכור|רכב ששכרתי|שכרתי (?:את )?הרכב|הרכב שלכם|(?:my|the|our) rental car|car (?:i|we) rented|your car)/i.test(input)
+    && /שרט|שריט|שפשוף|נזק|מכה(?:\s+(?:בדלת|בחניה|ברכב))?|פגיעה|מעוך|נמעך|פגוש|\b(?:scratch(?:ed|es)?|scrap(?:e|ed)|dent(?:ed|s)?|damage(?:d)?|bumper)\b/i.test(input);
 }
 
 function commercialReply(input: string, state: RebuildState): { reply: string; escalate: boolean } {
@@ -1138,7 +1149,7 @@ function applySelectedFacts(input: string, state: RebuildState, reading: BotRead
     ? { compact: 'רכב קומפקטי', family: 'רכב משפחתי', suv: 'רכב פנאי', seven_seat: 'רכב שבעה מקומות' }
     : { compact: 'compact car', family: 'family car', suv: 'SUV', seven_seat: 'seven-seat car' };
   const branches = state.locale === 'he'
-    ? { herzliya: 'הרצליה', telaviv: 'תל אביב', jerusalem: 'ירושלים', airport: 'נתבג' }
+    ? { herzliya: 'הרצליה', telaviv: 'תל אביב', jerusalem: 'ירושלים', airport: 'נתב״ג' }
     : { herzliya: 'Herzliya', telaviv: 'Tel Aviv', jerusalem: 'Jerusalem', airport: 'Ben Gurion Airport' };
   for (const patch of validateFactPatches(raw, input)) {
     if (patch.field.startsWith('rental')) {
@@ -1397,8 +1408,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : state.interest && /מה.{0,35}(?:זוכר|שמורים|רשמת|שמרת)|(?:what|which).{0,45}(?:remember|recorded|saved|details do you have)/i.test(input)
       ? commercialReply(input, state).reply
       : handoffKind === 'booking_change' && !cancellationPending
-      && /אושר|אישור|להניח|המחיר|מחיר|עלות|תשלום|תוספת|approv|confirm|assume|price|cost|charge|rate/i.test(input)
+      && /אושר|אישור|להניח|המחיר|מחיר|עלות|תשלום|תוספת|קוצר|הוארך|שונה|יוחזר|החזר|הפרש|זיכוי|approv|confirm|assume|price|cost|charge|rate|shortened|extended|refund|difference|credit/i.test(input)
       ? (he ? 'השינוי המבוקש עדיין לא אושר. עד לאישור מפורש של SmartCar, מועד ההחזרה הקיים נשאר בתוקף. גם המחיר המעודכן אינו מובטח; הזמינות והמחיר ייבדקו לפני אישור השינוי.' : 'The requested change is not approved yet. Until SmartCar explicitly confirms it, the existing agreed return deadline remains in effect. The previous rate is not guaranteed; availability and the revised price will be checked before confirming the change.')
+        + (/יוחזר|החזר|הפרש|זיכוי|refund|difference|credit/i.test(input) ? (he ? ' החזר או זיכוי אינם מתבצעים אוטומטית; הם תלויים בתנאי ההזמנה ויאושרו רק לאחר בדיקת SmartCar.' : ' A refund or credit is not automatic; it depends on the booking terms and is confirmed only after SmartCar reviews the change.') : '')
       : commercialUpdate
       ? (he ? 'העדכון האחרון שמסרתם נשמר בשיחה לבדיקת הנציג. זו פנייה לבדיקה בלבד, ללא התחייבות לעסקה. אין צורך לשלוח מספר כרטיס מלא או קוד אבטחה.' : 'Your latest update is saved in the conversation for the representative to review. This is an enquiry only, with no commitment to a deal. Do not send a full card number or security code.')
       : /לא התחייבתי|לא סגרתם|רק פנייה|רק העברתם|עסקה מאושרת|signed deal|just an enquiry|not a signed|already.*refund|refund.*(?:done|processed)|זיכוי כבר|הזיכוי.*בוצע/i.test(input)
@@ -1417,7 +1429,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         && /כבר|אושר|הוזמן|הזמנתם|תיאמתם|מתואם|already|have you|has .{0,35}been|arranged|booked|confirmed|dispatched/i.test(input)
         ? (he ? `לא ניתן כאן אישור לתיאום גרר או לרכב חלופי. הישארו במקום בטוח והתקשרו ל־SmartCar במספר ${OFFICE_PHONE} לתיאום; הגרר והזמינות של רכב חלופי דורשים אישור מפורש של SmartCar.` : `This chat has not confirmed a tow or replacement car. Stay somewhere safe and call SmartCar on ${OFFICE_PHONE} to arrange assistance; towing arrangements and replacement-car availability require explicit confirmation from SmartCar.`)
       : handoffKind === 'safety' && rentalDamage && asksDamageDocumentation
-        ? (he ? `כן, צלמו את הנזק ואת סביבת הרכב אם בטוח לעשות זאת. התקשרו ל־SmartCar בתוך שעה במספר ${OFFICE_PHONE} ודווחו גם בלי מספר הזמנה כרגע; תוכלו למסור אותו בהמשך. נציג ינחה אתכם לגבי דוח האירוע והמשך הטיפול.` : `Yes, photograph the damage and surroundings if it is safe. Call SmartCar within one hour on ${OFFICE_PHONE} even if you do not have the booking reference yet; you can provide it later. A representative will guide you on the incident report and next steps.`)
+        ? (/פרטים.{0,20}(?:מהנהג|של הנהג)|הנהג השני|other driver|driver['’]?s details/i.test(input) ? (he ? 'אם בטוח לעשות זאת, רשמו את פרטי הנהג השני והרכב שלו ואת פרטי הביטוח שלו. ' : 'If it is safe, note the other driver’s details, vehicle and insurance details. ') : '')
+          + (he ? `כן, צלמו את הנזק ואת סביבת הרכב אם בטוח לעשות זאת. התקשרו ל־SmartCar בתוך שעה במספר ${OFFICE_PHONE} ודווחו גם בלי מספר הזמנה כרגע; תוכלו למסור אותו בהמשך. נציג ינחה אתכם לגבי דוח האירוע והמשך הטיפול.` : `Yes, photograph the damage and surroundings if it is safe. Call SmartCar within one hour on ${OFFICE_PHONE} even if you do not have the booking reference yet; you can provide it later. A representative will guide you on the incident report and next steps.`)
       : handoffKind === 'safety' && rentalDamage && /אשלם|נשלם|משלם|משלמת|משלמים|תשלום.{0,20}נזק|אצטרך.{0,20}לשלם|נצטרך.{0,20}לשלם|מי.{0,15}ישלם|השתתפות ה?עצמית|אחריות.{0,20}נזק|חייב.{0,15}תיקון|pay for|liable|responsib(?:le|ility) for|excess/i.test(input)
         ? (he ? 'התשלום על הנזק תלוי בנסיבות המקרה, בכיסוי הביטוחי ובהשתתפות העצמית שבהסכם ההשכרה. גם אם נראה שמישהו אחר פגע ברכב, אי אפשר לקבוע חיוב לפני בדיקת האירוע. דווחו ל־SmartCar ושמרו את התמונות; נציג יסביר לכם את התנאים שחלים על ההשכרה שלכם.' : 'Any charge for the damage depends on the circumstances, cover and excess in your rental agreement. Even if another person appears to have caused it, the charge cannot be determined before the incident is reviewed. Report it to SmartCar and keep the photos; a representative will explain the terms for your rental.')
       : handoffKind === 'safety' && /מה הצעד הבא|מה עושים עכשיו|איך ממשיכים|what (?:next|should I do)|next step/i.test(input)
@@ -1920,8 +1933,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         reply = he ? 'אפשר לבדוק בקשה להארכה; היא כפופה לזמינות ולאישור, וגם המחיר עשוי להשתנות. מה מספר ההזמנה?' : 'We can review an extension request; it is subject to availability and confirmation, and the price may change. What is your booking reference?';
       } else if (!cancellationPending && changePending) {
         state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'booking_change'; escalate = true;
-        reply = /אושר|אישור|מחיר|עלות|תשלום|approv|confirm|price|cost|charge|rate/i.test(input)
-          ? (he ? 'השינוי המבוקש עדיין לא אושר. עד לאישור מפורש, מועד ההחזרה הקיים נשאר בתוקף. המחיר המעודכן ייבדק לפני אישור השינוי ואינו מובטח כמחיר המקורי.' : 'The requested change is not approved yet. Until explicitly confirmed, the existing return deadline remains in effect. The updated rental price will be checked before the change is confirmed and is not guaranteed to match the original daily rate.')
+        reply = /אושר|אישור|מחיר|עלות|תשלום|מחייב|חיוב|ההצעה|approv|confirm|price|cost|charge|rate|quote|offer/i.test(input)
+          ? (he ? 'קיבלנו את בקשת השינוי לבדיקה. השינוי עדיין לא אושר, ועד לאישור מפורש מועד ההחזרה הקיים נשאר בתוקף. המחיר המעודכן ייבדק לפני אישור השינוי ואינו מובטח כמחיר המקורי.' : 'We have received your change request for review. It is not approved yet; until explicitly confirmed, the existing return deadline remains in effect. The updated rental price will be checked before the change is confirmed and is not guaranteed to match the original daily rate.')
           : he ? `קיבלנו את בקשת השינוי. היא תיכנס לתוקף לאחר בדיקת זמינות ואישור SmartCar. לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `We have your change request. It takes effect after SmartCar checks availability and confirms it. For immediate help call ${OFFICE_PHONE}.`;
       } else if (specificProblem || suppliedReference && !depositEnquiry && (cancellationPending || !serviceQuestion && !advisoryChange)) {
         state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = cancellationPending ? 'booking_change' : 'service_issue'; escalate = true;
@@ -2121,6 +2134,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   if (state.phase === 'service' && PRIVATE_PAYMENT_DETAIL.test(input)
     && !/אין צורך לשלוח מספר כרטיס מלא או קוד אבטחה|Do not send a full card number or security code/i.test(reply)) {
     reply += he ? ' אין צורך לשלוח כאן מספר כרטיס או אשראי מלא, קוד אבטחה, CVV או CVC.' : ' Do not send a full credit card number, security code, CVV or CVC here.';
+  }
+  // A safety turn can carry a separate excess/liability question. Answer it
+  // conditionally from approved terms rather than dropping it.
+  if (state.handoffKind === 'safety' && /השתתפות ה?עצמית|אשלם|מי.{0,15}ישלם|\bexcess\b|\bpay for (?:the )?damage\b|\bliable\b/i.test(input) && !/השתתפות|excess/i.test(reply)) {
+    reply += he ? ' לגבי ההשתתפות העצמית: היא תלויה בנסיבות, בכיסוי הביטוחי ובהסכם ההשכרה, ואי אפשר לקבוע חיוב או פטור לפני בדיקת האירוע.' : ' About the excess: it depends on the circumstances, the cover and your rental agreement; no charge or waiver can be determined before the incident is reviewed.';
   }
   // Contact details keep a turn away from the wording provider. An approved-
   // policy question in that same message must still be answered, not dropped.

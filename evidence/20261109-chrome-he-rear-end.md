@@ -17,3 +17,8 @@
 - Safety classification recognises affirmative everyday collision wording (נכנס/התנגש בי/בנו, פגוש מעוך/נמעך, rear-ended, someone hit/backed into my car); hypotheticals stay out.
 - Reply validation rejects any model wording that clears a car for driving ("אפשר לנסוע", "אין חובה לגרר", "fine to keep driving") or claims to arrange a replacement car/tow; the approved safety wording is used instead.
 - Tests appended to src/lib/__tests__/whatsapp-extension-explicit-request.test.ts. Full 1,813/129, tsc, lint 0 errors/1 existing warning.
+
+## Live recheck on b9908ed and a regression I introduced
+
+- Rear-end replay: turn1 now safety + office number + alert; turn3 says no tow/replacement is confirmed; turn4 does not clear driving. Turn2 still dropped the other-driver and excess questions → fixed locally (documentation answer now covers other-driver details and an attached excess question, conditionally).
+- **Regression caused by b9908ed:** in a separate Hebrew advice chat the luggage question "כל אחד עם מזוודה בינונית, זה נכנס ברכב משפחתי רגיל?" was classified as an accident (the pattern "נכנס ב…רכב" was too broad) and escalated with the safety message. The owner also saw it. Fixed: only "נכנס/התנגש בי/בנו" or "התנגש ברכב שלי/שלנו/שלכם" count; luggage-fit wording is covered by tests.

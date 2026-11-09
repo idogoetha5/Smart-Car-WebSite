@@ -92,3 +92,23 @@ describe('weekday calendar for the wording provider', () => {
     expect(JSON.stringify(body.systemInstruction ?? body)).toContain('calendarIsrael');
   });
 });
+
+// Live Chrome replay on b9908ed, 2026-11-09: dates and summary now pass, but the
+// model said "אין הגבלת גיל עליונה" (not an approved fact), called the mother
+// "אשתך", and the airport branch label lacked gershayim.
+describe('wording checks from the b9908ed replay', () => {
+  it.each([
+    ['אבא שלי בן 72 והוא ינהג, זה בעיה?', 'אפשר לשכור מגיל 21 ואין הגבלת גיל עליונה, כל עוד יש רישיון בתוקף.'],
+    ['אם אמא שלי תרצה לנהוג לפעמים צריך להוסיף אותה?', 'לגבי אשתך, כל נהג נוסף חייב להירשם בחוזה לפני הנהיגה.'],
+  ])('falls back instead of sending: %s', async (input, modelReply) => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] }, () => modelReply);
+    const result = await c.send(input);
+    expect(result.reply).not.toBe(modelReply);
+    expect(result.reply).not.toMatch(/אין הגבלת גיל|אשתך/);
+  });
+  it('keeps the model wording when the customer named that relative', async () => {
+    const reply = 'אשתך יכולה לנהוג אם תירשם בחוזה כנהגת נוספת לפני הנהיגה.';
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] }, () => reply);
+    expect((await c.send('אשתי תרצה לנהוג גם, צריך להוסיף אותה?')).reply).toContain('אשתך');
+  });
+});

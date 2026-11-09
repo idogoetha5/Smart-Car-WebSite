@@ -107,6 +107,9 @@ describe('collision described in everyday words', () => {
     'מה קורה אם מישהו נכנס בי מאחורה?',
     'What if someone hits my car while it is parked?',
     'אני רוצה להיכנס בינתיים לאתר ולבדוק מחירים',
+    'הגיוני. כל אחד עם מזוודה בינונית, זה נכנס ברכב משפחתי רגיל? ושני רכבים יוצא יותר יקר בדרך כלל?',
+    'כמה מזוודות נכנסות ברכב קטן?',
+    'Will two suitcases fit in the car?',
   ])('keeps hypothetical or unrelated wording out of safety: %s', async input => {
     const result = await send(input);
     expect(result.source).not.toBe('safety');
@@ -127,5 +130,40 @@ describe('model never clears a damaged rental for driving', () => {
     const result = await getRebuiltBotReply('fictional-driving', he ? 'הפגוש נפגע קצת אבל הרכב נוסע. אני יכול להמשיך לנסוע איתו?' : 'The bumper got a bit damaged but the car drives. Can I keep driving it?', store);
     expect(result.reply).not.toBe(modelReply);
     expect(result.reply).not.toMatch(/אפשר לנסוע בזהירות|אין חובה לגרר|fine to keep driving|arrange a replacement car/);
+  });
+});
+
+// Live Chrome on b9908ed, 2026-11-09: the shortening regression passed, but the
+// follow-up "is it already shortened? will the difference be refunded
+// automatically?" got a generic reply that skipped the refund question.
+describe('follow-up after a queued change', () => {
+  it.each([
+    ['he', 'אז זה כבר קוצר? וההפרש על היומיים יוחזר לי אוטומטית?', /לא אושר/, /אינם מתבצעים אוטומטית/],
+    ['en', 'So is it already shortened? Will the difference be refunded automatically?', /not approved/, /not automatic/],
+  ] as const)('says the change is not approved and a refund is not automatic: %s', async (locale, input, notApproved, noAutoRefund) => {
+    let state: RebuildState | null = { version: 2, phase: 'service', step: 'menu', locale, booking: {}, serviceReference: '456789', serviceChangeRequested: true, handedOff: true, handoffAt: new Date().toISOString(), handoffKind: 'booking_change', history: [] };
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: 'x', source: 'gemini', model: 'controlled-fixture', groundedContext: true } as BotReading) };
+    const result = await getRebuiltBotReply('fictional-followup', input, store);
+    expect(result.reply).toMatch(notApproved);
+    expect(result.reply).toMatch(noAutoRefund);
+    expect(result.escalate).toBeFalsy();
+  });
+});
+
+// Live Chrome replay on b9908ed: the collision now entered safety, but the second
+// turn's other-driver and excess questions were both dropped.
+describe('compound questions after a collision report', () => {
+  it('answers other-driver details, missing reference and excess together, without deciding liability', async () => {
+    let state: RebuildState | null = null;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: 'x', source: 'gemini', model: 'controlled-fixture', groundedContext: true } as BotReading) };
+    await getRebuiltBotReply('fictional-collision-2', 'מישהו נכנס בי מאחורה ברמזור, כולם בסדר. זה הרכב שלכם, הפגוש מעוך. מה אני עושה עכשיו?', store);
+    const result = await getRebuiltBotReply('fictional-collision-2', 'אין לי את מספר ההזמנה מולי. לקחת פרטים מהנהג השני? והאם אני אשלם השתתפות עצמית אם הוא אשם?', store);
+    expect(result.reply).toMatch(/פרטי הנהג השני/);
+    expect(result.reply).toMatch(/בלי מספר הזמנה/);
+    expect(result.reply).toMatch(/השתתפות/);
+    expect(result.reply).not.toMatch(/לא תחויבו|פטור מהשתתפות/);
+    expect(result.escalate).toBeFalsy();
   });
 });
