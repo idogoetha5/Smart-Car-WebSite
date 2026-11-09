@@ -112,3 +112,18 @@ describe('wording checks from the b9908ed replay', () => {
     expect((await c.send('אשתי תרצה לנהוג גם, צריך להוסיף אותה?')).reply).toContain('אשתך');
   });
 });
+
+// Live Chrome on 72cd92a: "כל אחד עם מזוודה בינונית" after four travellers was saved as one bag.
+describe('one bag per traveller', () => {
+  it.each([
+    ['he', 'אנחנו 4 חברים', 'כנראה אחד. כל אחד עם מזוודה בינונית זה נכנס ברכב משפחתי רגיל?'],
+    ['en', 'We are 4 friends', 'Each of us with a medium suitcase, does that fit in a family car?'],
+  ] as const)('stores one bag for each known traveller and stays out of safety: %s', async (locale, first, second) => {
+    const c = chat(null, () => locale === 'he' ? 'רכב משפחתי יכול להתאים, וההתאמה תלויה בדגם ובמידות הציוד.' : 'A family car may suit you; fit depends on the model and bag sizes.');
+    await c.send(first);
+    const result = await c.send(second);
+    expect(result.state.booking.passengers).toBe(4);
+    expect(result.state.booking.luggage).toBe(4);
+    expect(result.source).not.toBe('safety');
+  });
+});

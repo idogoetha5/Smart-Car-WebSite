@@ -556,7 +556,7 @@ function negatedLuggageMention(input: string, index: number): boolean {
 
 function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   const count = '(\\d{1,2}|אחד|אחת|שניים|שתיים|שתי|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש|שבעה|שבע|שמונה|one|two|three|four|five|six|seven|eight)';
-  const passengers = [...input.matchAll(new RegExp(`(?:אנחנו|נהיה)\\s+${count}(?=\\s|$)|${count}\\s+(?:נוסעים|אנשים|מבוגרים|passengers|people)`, 'giu'))]
+  const passengers = [...input.matchAll(new RegExp(`(?:אנחנו|נהיה|we are|we['’]re|there are|there will be)\\s+${count}(?=\\s|$)|${count}\\s+(?:נוסעים|אנשים|מבוגרים|חברים|חברות|passengers|people|adults|friends)`, 'giu'))]
     .filter(match => !negatedLuggageMention(input, match.index) && !isHypotheticalFactEvidence(input, match[0]) && !isRentalCapacityQuestionEvidence(input, match[0])).at(-1);
   const luggage = [...input.matchAll(new RegExp(`${count}\\s+(?:(?:small|medium|large|קטנות|בינוניות|גדולות)\\s+)?(?:מזוודות|מזוודה|תיקים|תיקי נסיעה|bags?|suitcases?)(?![\\p{L}])`, 'giu'))]
     .find(match => !negatedLuggageMention(input, match.index) && !isHypotheticalFactEvidence(input, match[0]) && !isRentalCapacityQuestionEvidence(input, match[0]));
@@ -1597,6 +1597,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const wasBooking = state.phase === 'booking';
     const previousVehicleNeed = state.booking.vehicleNeed;
     applyExplicitNeeds(input, state.booking);
+    // "Each of us with a suitcase" means one bag per known traveller, not one bag.
+    if (state.booking.passengers && /(?:כל אחד|כל אחת|כל אחד מאיתנו)\s+(?:עם|לוקח(?:ת)?|מביא(?:ה)?|יהיה עם)\s+(?:מזוודה|תיק)|\b(?:each (?:of us )?(?:with|has|brings|bringing|will have)|one each)\s+(?:a |one )?(?:(?:small|medium|large|big) )?(?:suitcase|bag)\b|\b(?:a )?(?:suitcase|bag) each\b/iu.test(input)
+      && !/אם|what if|\bif\b/iu.test(input)) {
+      state.booking.luggage = state.booking.passengers;
+    }
     // A free-form recommendation may already have invited the customer to give
     // rental dates. Continue that intake as a real draft instead of letting
     // subsequent short answers drift back into open-ended model chat.
