@@ -192,3 +192,20 @@ describe('everyday cancellation decisions', () => {
     expect(result.escalate).toBeFalsy();
   });
 });
+
+// Live Chrome on eaf4a5b: the cancellation was queued, but "שלום … הטיול בוטל. תבטלו לי"
+// got "ולא שינוי תאריכים", and "וכמה מהכסף אקבל בחזרה? זה עוד שבוע" got a generic reply.
+describe('cancellation follow-ups in everyday words', () => {
+  it('queues without odd wording and answers the refund question with the published tiers', async () => {
+    let state: RebuildState | null = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] };
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: 'x', source: 'gemini', model: 'controlled-fixture', groundedContext: true } as BotReading) };
+    const first = await getRebuiltBotReply('fictional-cancel-2', 'שלום, יש לי הזמנה לשבוע הבא אבל הטיול בוטל. תבטלו לי בבקשה, מספר הזמנה 778190', store);
+    expect(first.escalate).toBe(true);
+    expect(first.reply).not.toContain('ולא שינוי תאריכים');
+    const second = await getRebuiltBotReply('fictional-cancel-2', 'וכמה מהכסף אקבל בחזרה? זה עוד שבוע', store);
+    expect(second.reply).toMatch(/72 שעות/);
+    expect(second.reply).toMatch(/הנציג יבדוק/);
+    expect(second.escalate).toBeFalsy();
+  });
+});

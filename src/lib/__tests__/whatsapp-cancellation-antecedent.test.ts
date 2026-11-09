@@ -49,7 +49,7 @@ describe('cancellation object before cancel and corrections after handoff', () =
     expect(refund.reply).toContain('אינם מתבצעים אוטומטית');
     expect(refund.reply).not.toContain('בקשת השינוי');
     const fee = await send('יש עלות או דמי ביטול?');
-    expect(fee.reply).toContain('תלויים בתנאי ההזמנה');
+    expect(fee.reply).toMatch(/תלויים בתנאי ההזמנה|הנציג יבדוק את ההזמנה ואת מועד הביטול בפועל/);
   });
 
   it('allows a cancellation correction to replace an earlier date-change handoff', async () => {
