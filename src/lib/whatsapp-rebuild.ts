@@ -284,6 +284,9 @@ function rentalChangeRequest(input: string): boolean {
   if (advisoryRentalChange(input)) return false;
   if (/^(?:רוצה|רוצים|צריך|צריכה|מבקש|מבקשת)\s+(?:לשנות|להאריך|לדחות|להקדים|להזיז|לקצר)/u.test(input)) return true;
   return /(?:אני|אנחנו)\s+(?:כבר\s+)?(?:רוצה|רוצים|צריך|צריכה|צריכים|מבקש|מבקשת|מבקשים)\s+(?:לשנות|להאריך|לדחות|להקדים|להזיז|לקצר)|(?:החלטתי|החלטנו)\s+(?:להאריך|לשנות|לדחות|לקצר)|(?:בבקשה\s+)?(?:תאריכו|האריכו|תדחו|תשנו|תזיזו|תקצרו|קצרו)(?:\s|[.!?]|$)|(?:^|[.!?]\s*|,\s*)(?:בבקשה\s+)?(?:תעבירו|שלחו)\s+(?:לי\s+)?בקשת\s+(?:הארכה|שינוי|קיצור)|(?:אני|אנחנו)\s+(?:כבר\s+)?(?:רוצה|רוצים|מבקש|מבקשת)\s+(?:להעביר|לשלוח)\s+בקשת\s+(?:הארכה|שינוי|קיצור)/iu.test(input)
+    // Asking SmartCar to request/add the extra day is a selected change request.
+    || /\b(?:please\s+)?(?:go ahead and\s+)?(?:ask|apply|request)\s+for\s+(?:the\s+|an\s+|one\s+|that\s+)?(?:extra|additional|another|one more)\s+(?:day|days|night|nights)\b|\bgo ahead (?:and|with)\b.{0,40}\b(?:extension|extra day|additional day|extend|shorten)\b|\b(?:please\s+)?(?:add|book)\s+(?:the\s+|an\s+|one\s+|that\s+)?(?:extra|additional|another|one more)\s+day\b/iu.test(input)
+    || /(?:^|[\s,.!])(?:בבקשה\s+)?(?:קדימה,?\s+)?(?:תבקשו|תגישו|תוסיפו|תזמינו)\s+(?:לי\s+|לנו\s+)?(?:עוד\s+(?:יום|יומיים|לילה)|יום\s+נוסף|הארכה|בקשת\s+הארכה)/u.test(input)
     || /\b(?:I|we) (?:want|need|would like|have decided) to (?:extend|shorten|change|postpone|move|return.{0,45}later)\b|\b(?:I|we)(?: would|'d) like to request\b.{0,25}\b(?:extension|shortening|date change)\b|\b(?:please|kindly)\s+(?:extend|shorten|change|postpone|move)\b|(?:^|[.!?]\s*|,\s*)(?:please\s+)?(?:request|submit|pass|send)\b.{0,35}\b(?:extension|shortening|date change|change request)\b/iu.test(input);
 }
 
@@ -434,6 +437,7 @@ function offersHumanHandoff(reply: string): boolean {
 }
 
 function offersServiceChangeReview(reply: string): boolean {
+  if (/(?:would you like|shall we|do you want|want us to|תרצ(?:ה|ו)|שנבדוק)[^?؟.!]{0,65}(?:check|לבדוק|נבדוק)[^?؟.!]{0,40}(?:availability|זמינות)[^?؟.!]{0,50}(?:extra day|additional day|one more day|extension|יום נוסף|עוד יום|הארכה)[^?؟.!]*[?؟]/iu.test(reply)) return true;
   return /extension|shortening|date change|הארכה|קיצור|שינוי/iu.test(reply)
     && /(?:would you like|shall we|תרצ(?:ה|ו)|אפשר)[^?؟.!]{0,65}(?:review|submit|send|pass|שנעביר|להעביר|נגיש|להגיש|נשלח|לשלוח)[^?؟.!]{0,45}(?:request|בקשה|בקשת)[^?؟.!]*[?؟]/iu.test(reply);
 }
@@ -1896,7 +1900,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       // The reference was parsed and retained once above, including natural
       // punctuation. Re-parsing here creates conflicting workflow decisions.
       const suppliedReference = Boolean(state.serviceReference);
-      const acceptsChangeReview = (affirms(input) || /^(?:okay|ok)[.!?\s]*$/i.test(input)) && offersServiceChangeReview(lastBot) && !advisoryRentalChange(input);
+      const insistsOnOffer = /^(?:yes|yeah|yep|כן|נכון)(?=[,!.\s])[,!.\s]+(?:that['’]?s (?:literally |exactly )?what I (?:just )?(?:asked|said|want(?:ed)?)|I (?:already|just) (?:asked|said)|זה (?:בדיוק )?מה ש(?:ביקשתי|אמרתי)|כבר ביקשתי)/iu.test(input);
+      const acceptsChangeReview = (affirms(input) || insistsOnOffer || /^(?:okay|ok)[.!?\s]*$/i.test(input)) && offersServiceChangeReview(lastBot) && !advisoryRentalChange(input);
       if (rentalChangeRequest(input) || acceptsChangeReview) state.serviceChangeRequested = true;
       const changePending = state.serviceChangeRequested === true;
       const changeDiscussion = mentionsRentalChange(input) || state.history.some(entry => entry.from === 'customer' && mentionsRentalChange(entry.text));
