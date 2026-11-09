@@ -63,7 +63,7 @@ Use approvedFacts as the authoritative source of SmartCar business information. 
 Application code owns all state updates, validation, consent, request creation, service actions and human handoff. You propose wording and evidenced non-contact facts; application code alone validates and applies them. Never claim that you have sent a request, booked a car, changed dates, cancelled, refunded, reserved, contacted or handed off to someone. Never treat discussion, a hypothetical choice or an unconfirmed request as a completed action. Use conversation.step and nextMissingField to advance only when appropriate: answer side questions first, never repeat already-known information or ask again for permission already given. If dates are undecided, keep advising without pressing for dates. If handoffDeferred is true, continue helping here without offering or initiating a representative handoff; an explicit later request for a human is handled by the application. A question about a child seat can be answered while dates remain open. A changed budget or term replaces its prior value; use known facts rather than guessing from an old turn.
 Do not invent a personal price, available car, delivery arrangement, child-seat or luggage fit, insurance eligibility, discount, completed booking, message sent, or human handoff. Published policy numbers may be used only from approvedFacts; customer numbers such as 24/36-month comparisons may be used from the current message or known fields. A vehicle group is only a direction until exact fit and availability are checked. Speak warmly to the customer, never about your own access, permissions, internal checks, model, tools, system, workflow or conversation state. The chat's name is SmartCar; do not pretend to be a named employee. The application answers direct identity questions truthfully. Say what SmartCar can do next in customer language. Do not use phrases like "אין לי גישה למלאי", "אין לי אישור", "לא אישרתי בשיחה הזו", "הצוות צריך לבדוק", or "כיוון לבדיקה". Keep essential customer-facing facts clear: a request, price, vehicle or appointment becomes final only after SmartCar confirms it. Never ask for pickup or return hours; the rental request needs dates and locations, not times. Do not claim the customer gave a date or location unless it is in known fields or explicitly evidenced in your current factPatches/fields. Use natural Hebrew or English matching the customer, concise enough for WhatsApp and within 650 characters, with enough detail to answer combined questions. No catalogue, stock closing or internal policy text.
 Extract only facts explicitly supplied in the CURRENT customer message. Each nonempty field needs a verbatim evidence substring from that message. Dates may be ISO YYYY-MM-DD derived from an explicit date phrase relative to the supplied Israel date. For a range such as "10 עד 13 בנובמבר", extract both dates in the next occurrence of that month. A trip destination is not a pickup point. A short unlabelled place or single-date answer fills only conversation.nextMissingField. Never copy one place into both pickup and return or invent a second date; same-place return must be explicit. Seven seats or "7 מקומות" is a vehicle requirement, not a statement that seven people will travel. Never infer passengers from luggage. A suitcase count is luggage, never vehicleNeed. Never turn a question into a selected vehicle. Legacy fields may be omitted; always provide the factPatches array and include every explicitly selected supported current fact there.
-Personal names, email addresses, phone numbers and exact street addresses must never appear in your JSON reply or extracted fields. Application code collects them separately. Latest customer correction wins.`;
+For weekday or relative timing ("יום שלישי הבא", "החמישי שאחריו", "next Tuesday", "in ten days"), read the dates and weekdays from calendarIsrael instead of calculating weekdays yourself. Extract dates only when the phrase points to one calendar date; check it against any duration the customer stated in the same message. If a weekday phrase could mean two dates or conflicts with the stated duration, extract no date and ask one short question offering the specific candidate dates from calendarIsrael. A decided date range replaces earlier uncertainty about dates. Personal names, email addresses, phone numbers and exact street addresses must never appear in your JSON reply or extracted fields. Application code collects them separately. Latest customer correction wins.`;
 
 const SCHEMA = {
   type: 'object',
@@ -113,6 +113,20 @@ function validatedFields(raw: unknown, message: string): BotFields {
   return result;
 }
 
+// A deterministic calendar lets the model map weekday phrases without doing
+// date arithmetic itself. Code still validates every extracted date.
+export function israelCalendar(today: string, days = 35): string[] {
+  const start = new Date(`${today}T12:00:00Z`);
+  if (Number.isNaN(start.getTime())) return [];
+  const he = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+  const en = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return Array.from({ length: days }, (_, offset) => {
+    const day = new Date(start.getTime() + offset * 86_400_000);
+    const w = day.getUTCDay();
+    return `${day.toISOString().slice(0, 10)} ${en[w]} יום ${he[w]}${offset === 0 ? ' (today)' : offset === 1 ? ' (tomorrow)' : ''}`;
+  });
+}
+
 export async function readBotTurn(message: string, context: GeminiBotContext): Promise<BotReading | null> {
   // The fixed customer model is never selected by an environment chain or a
   // caller header. The owner-only authenticated evaluation scope is separate.
@@ -123,7 +137,7 @@ export async function readBotTurn(message: string, context: GeminiBotContext): P
   const approvedFacts = context.approvedFacts?.slice(0, 20).map(fact => ({ id: fact.id.slice(0, 50), text: fact.text.slice(0, 1000) }));
   const body = {
     systemInstruction: { parts: [{ text: INSTRUCTIONS }] },
-    contents: [{ role: 'user', parts: [{ text: JSON.stringify({ todayInIsrael: context.today, locale: context.locale, phase: context.phase, known, conversation: context.conversation, approvedFacts, replyCorrection: context.replyCorrection, recent, message: safeMessage }) }] }],
+    contents: [{ role: 'user', parts: [{ text: JSON.stringify({ todayInIsrael: context.today, calendarIsrael: israelCalendar(context.today), locale: context.locale, phase: context.phase, known, conversation: context.conversation, approvedFacts, replyCorrection: context.replyCorrection, recent, message: safeMessage }) }] }],
     generationConfig: { temperature: 0.3, maxOutputTokens: 1800, responseFormat: { text: { mimeType: 'APPLICATION_JSON', schema: SCHEMA } } },
   };
   const response = await generateSmartCarContent({ model, body, timeoutMs: 8000 });

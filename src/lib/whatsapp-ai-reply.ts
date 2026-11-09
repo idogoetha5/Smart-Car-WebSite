@@ -85,6 +85,9 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
     if (hasAffirmativeMatch(reply, /(?:נספק|מספקים|לספק|תקבלו?)[^.!?\n]{0,45}היסטורי[^.!?\n]{0,30}מלאה|\b(?:provide|supply|receive)\b[^.!?\n]{0,25}\b(?:full|complete)\b[^.!?\n]{0,20}\bhistory\b/gi)) return reject('history_assurance');
   }
   if (hasAffirmativeMatch(reply, /\byou (?:are (?:covered|insured|eligible|qualified)|qualify|can (?:certainly|definitely) rent|can rent for certain)\b|(?:אתה|את|אתם|אתן) (?:מכוסה|מכוסית|מכוסים|זכאי|זכאים)|בוודאות (?:תוכל|תוכלו) לשכור/gi)) return reject('eligibility');
+  // Age itself is not approval: eligibility depends on the insurance cover and
+  // vehicle group and is confirmed before booking (approved age_licence fact).
+  if (hasAffirmativeMatch(reply, /(?:גיל|בגיל)\s*\d{2}\s*(?:הוא|זה)?\s*(?:מצוין|לגמרי בסדר|בסדר גמור|בסדר|תקין|לא בעיה|ממש לא בעיה)|אין (?:שום )?בעיה (?:עם|בגלל) (?:ה)?גיל|(?:אפשר|ניתן) לשכור כל עוד יש רישיון|\bage \d{2} is (?:fine|perfectly fine|no problem|not a problem|ok(?:ay)?)\b|\b(?:no|not a) problem (?:with|at) (?:that|his|her|your) age\b|\bcan rent as long as (?:he|she|you|they) (?:has|have) a valid licen[cs]e\b/gi)) return reject('eligibility');
   if (/licen[cs]e|international permit|\bIDP\b|רישיון|רשיון|בינלאומי/i.test(input)) {
     const licenceAssurance = [...reply.matchAll(/licen[cs]e[^.!?\n]{0,90}(?:accepted|sufficient|enough)|רישיון[^.!?\n]{0,60}(?:מספיק|מתקבל)/gi)];
     if (licenceAssurance.some(match => !/\bnot\b|cannot|can['’]?t|may not|whether|must be|needs to be|לא|האם|עשוי/i.test(match[0])
@@ -134,7 +137,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (knownValue('returnLocation') && /where.{0,35}(?:return|drop.?off)|איפה.{0,30}להחזיר/i.test(question)) return reject('known_return_location');
   if (knownValue('passengers') && /how many (?:people|passengers|travellers)|כמה (?:אנשים|נוסעים)/i.test(question)) return reject('known_passengers');
   if (knownValue('luggage') && /how many (?:bags|suitcases)|כמה מזוודות/i.test(question)) return reject('known_luggage');
-  if (knownValue('driverAgeRange') && /what.{0,25}age group|what.{0,25}driver.{0,10}age|how old|קבוצת הגיל|גיל הנהג|בן כמה/i.test(question)) return reject('known_age');
+  if (knownValue('driverAgeRange') && /what.{0,25}age group|what.{0,25}driver.{0,10}age|how old|קבוצת הגיל|טווח (?:ה)?גיל(?:אים|ים)?|גיל הנהג|בן כמה/i.test(question)) return reject('known_age');
   if (knownValue('customerName', 'customerNameProvided') && /what name|your name|על איזה שם|מה שמך|להוסיף.{0,15}(?:שם|שמך)|(?:לוודא|למסור|לציין|לאשר).{0,20}(?:שמך|שם מלא)|(?:provide|confirm|verify).{0,20}name/i.test(question)) return reject('known_name');
   if (knownValue('vehicleNeed', 'vehiclePreference', 'commercialVehiclePreference') && /what (?:kind|type) of (?:car|vehicle).{0,35}(?:need|want|like)|איזה סוג רכב.{0,30}(?:תרצ|צריך|רוצים)/i.test(question)) return reject('known_vehicle');
   const asksCommercialTerm = /how long.{0,35}(?:need|lease|term|use)|what.{0,25}(?:term|duration|period)|לכמה זמן|(?:מה|איזו?|כמה).{0,15}(?:תקופ|משך)/i.test(question);

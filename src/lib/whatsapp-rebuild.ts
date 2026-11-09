@@ -387,6 +387,9 @@ function explicitBooking(input: string): boolean {
   if (/לא נתחיל\s+(?:בקש(?:ה|ת השכרה)|הזמנה)|\b(?:do not|don't) start\s+(?:a\s+)?(?:request|booking)/i.test(input)) return false;
   if (/(?:לא רוצה|לא רוצים|לא מעוניין|אל).{0,15}(?:להתחיל|להתחילו?|לפתוח).{0,12}(?:בקש(?:ה|ת השכרה)|הזמנה)/i.test(input)) return false;
   if (/לא רוצה להזמין|לא רוצה (?:לשכור|להשכיר)|רק מתעניין|רק שואל|לא עכשיו|not ready|just asking|don't book|do not book/i.test(input)) return false;
+  // Asking what the customer must supply in order to proceed is a request to
+  // start, not a policy question. It does not consent to sending anything.
+  if (/(?:מה|אילו פרטים|איזה פרטים)\s+(?:עוד\s+)?(?:אתה|את|אתם)?\s*(?:צריך|צריכה|צריכים)\s+(?:ממני|מאיתנו|ממנו)\s+(?:כדי|בשביל)\s+(?:להתקדם|להזמין|לסגור|לשריין|להגיש)|\bwhat (?:else )?do you need from (?:me|us) to (?:proceed|book|go ahead|move forward)\b|\bwhat do (?:I|we) need to (?:give|send|provide) (?:you )?to (?:proceed|book|go ahead)\b/iu.test(input)) return true;
   if (/[?؟]/.test(input) && /כדאי|האם|should|would it|how/i.test(input)) return false;
   if (/(?:כן[,\s]*)?נתחיל\s+(?:בקש(?:ה|ת השכרה)|הזמנה)|\b(?:let'?s|let us)\s+start\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b|\bI\s+(?:want|would like)\s+to\s+(?:start|open)\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b/i.test(input)) return true;
   if (/^(?:כן[,\s]*)?כבר ביקשתי להתחיל[.!\s]*$/i.test(input)) return true;
@@ -1200,7 +1203,9 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
     const email = input.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0];
     if (email && EMAIL.test(email) && email.length <= 160) { state.booking.customerEmail = email; captured = true; }
   }
-  if (explicitStart || state.step === 'rental_name' || state.step === 'rental_confirm' || labelledName) {
+  const lastBot = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+  const askedForName = /שמך|השם שלך|את השם|על איזה שם|שם מלא|your (?:full )?name|what name/iu.test(lastBot);
+  if (explicitStart || state.step === 'rental_name' || state.step === 'rental_confirm' || labelledName || state.phase === 'booking' && askedForName) {
     const unlabelledName = !explicitStart && (state.step === 'rental_name' || state.step === 'rental_confirm')
       ? input.match(/I am\s+([\p{L}' -]{3,60})/iu)?.[1] : undefined;
     const explicitName = labelledName ?? (unlabelledName && !/^(?:not|unsure|still|looking|just|here|visiting|only|sorry|trying|waiting|renting|booking|confused)\b/i.test(unlabelledName) ? unlabelledName : undefined);
@@ -1212,7 +1217,12 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
       && /^[\p{L}' -]{3,60}$/u.test(leading)
       && !/^(?:I|we|please|actually|no|yes|thanks?|before|after|not|do|don['’]?t|what|how|when|where|why|can|could|should|would|is|are|אני|אנחנו|לא|כן|תודה|בעצם|לפני|אחרי|אפשר|מה|איך|למה|מתי|כמה)(?:\s|$)/iu.test(leading)
       ? leading : '';
-    const candidate = explicit ?? promptedName;
+    const contactAttached = /(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}|[^\s@]+@[^\s@]+\.[^\s@]+/u.test(input);
+    const answeredNamePrompt = !promptedName && state.phase === 'booking' && askedForName && (contactAttached || /^[\p{L}' -]{3,60}[,،]/u.test(input))
+      && /^[\p{L}' -]{3,60}$/u.test(leading) && leading.split(/\s+/).length <= 4
+      && !/^(?:I|we|please|actually|no|yes|thanks?|before|after|not|do|don['’]?t|what|how|when|where|why|can|could|should|would|is|are|ok|okay|sure|אני|אנחנו|לא|כן|תודה|בעצם|לפני|אחרי|אפשר|מה|איך|למה|מתי|כמה|בסדר|סבבה|יאללה|רגע)(?:\s|$)/iu.test(leading)
+      ? leading : '';
+    const candidate = explicit ?? (promptedName || answeredNamePrompt);
     if (candidate && candidate.split(/\s+/).length <= 4) { state.booking.customerName = candidate; captured = true; }
   }
   return captured;
@@ -1583,6 +1593,17 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // "Okay" in a service discussion accepts neither a new rental nor a
     // change request. Explicit new-rental intent is handled separately below.
     const confirmedOffer = state.phase !== 'service' && !state.interest && acceptsRentalInvitation(input, lastBot);
+    // The assistant asked for the customer's name to prepare the request and the
+    // customer supplied it with contact details. That continues the request
+    // draft; final consent to send remains a separate step.
+    const answersContactPrompt = state.phase === 'explore' && !state.interest && !state.completedRequestId
+      && /שמך|השם שלך|your (?:full )?name/iu.test(lastBot)
+      && /(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}|[^\s@]+@[^\s@]+\.[^\s@]+/u.test(input)
+      && Boolean(state.booking.pickupDate || state.booking.pickupLocation || state.booking.vehicleNeed || state.booking.passengers);
+    if (answersContactPrompt) {
+      state.phase = 'booking';
+      state.requestKey ??= randomUUID();
+    }
     if (confirmedOffer) {
       state.phase = 'booking';
       state.requestKey ??= randomUUID();
@@ -1974,6 +1995,14 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           : 'Basic cover includes compulsory liability and accident, fire and theft cover, subject to an excess. The quote will show that excess and any reduction options. Is there a particular part you would like me to explain?')
         : fact!.topic === 'branches' && state.booking.pickupDate && !state.booking.pickupLocation
         ? `${fact!.reply} ${question('pickupLocation', state.locale)}` : fact!.reply;
+      // During active intake, answering a policy side question must not drop
+      // the one field the request still needs.
+      const pendingField = state.phase === 'booking' && !state.completedRequestId ? nextMissing(state.booking) : null;
+      if (pendingField) {
+        const pendingQuestion = question(pendingField, state.locale);
+        if (!reply.includes(pendingQuestion)) reply = `${reply} ${pendingQuestion}`;
+        state.step = bookingStep(pendingField);
+      }
     } else if (/^(?:תודה(?: רבה)?[.!\s]*|תודה[,!]?\s*אעדכן כש(?:אדע|יהיו לי) תאריכים[.!\s]*|thanks?(?: a lot)?[.!\s]*|thank you[.!\s]*)$/i.test(input)) {
       reply = he ? 'בשמחה. כשתרצו להמשיך, אני כאן.' : 'You are welcome. I am here when you are ready.';
     } else if (/איזה פרטים|מה (?:צריך|תצטרכו)|what details|what do you need/i.test(input)) {
@@ -2084,6 +2113,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   if (state.phase === 'service' && PRIVATE_PAYMENT_DETAIL.test(input)
     && !/אין צורך לשלוח מספר כרטיס מלא או קוד אבטחה|Do not send a full card number or security code/i.test(reply)) {
     reply += he ? ' אין צורך לשלוח כאן מספר כרטיס או אשראי מלא, קוד אבטחה, CVV או CVC.' : ' Do not send a full credit card number, security code, CVV or CVC here.';
+  }
+  // Contact details keep a turn away from the wording provider. An approved-
+  // policy question in that same message must still be answered, not dropped.
+  if (source === 'local' && !escalate && state.phase !== 'service' && /[?؟]/u.test(input)
+    && (privateTurn || /(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}|[^\s@]+@[^\s@]+\.[^\s@]+/u.test(input))) {
+    const side = getSmartCarServiceAnswer(input, state.locale)?.reply;
+    if (side && !reply.includes(side.slice(0, 40))) reply = `${side} ${reply}`;
   }
   pushHistory(state, input, reply, privateTurn);
   if (escalate && !store.isSimulation) await store.beforeEscalationSave?.(phone);

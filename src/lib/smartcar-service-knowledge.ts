@@ -134,7 +134,7 @@ const TOPIC_PATTERNS: Array<[ServiceKnowledgeTopic, RegExp]> = [
   ['fuel', /דלק|תדלוק|מלא.?מלא|fuel|refuel|full.?full/i],
   ['mileage', /קילומ|קמ|mileage|kilomet/i],
   ['driver_documents', /נהג נוסף|מסמכים|תעודת זהות|דרכון|רישיון זר|רישיון בינלאומי|foreign licen[cs]e|international (?:driving )?permit|\bIDP\b|official translation|additional driver|extra driver|another driver|second driver|documents?|passport/i],
-  ['age_licence', /גיל|בן\s*\d{2}|בת\s*\d{2}|ותק רישיון|נהג חדש|רישיון|minimum age|licen[cs]e experience|young driver/i],
+  ['age_licence', /גיל|בן\s*\d{2}|בת\s*\d{2}|ותק רישיון|נהג חדש|רישיון|minimum age|licen[cs]e experience|young driver|\b(?:is|am|are|he['’]s|she['’]s|I['’]m)\s+\d{2}\b.{0,40}\b(?:drive|driving|rent)|\baged?\s+\d{2}\b|\bage (?:limit|requirement)|too old|older drivers?|senior drivers?/i],
   ['different_location', /מקום אחר|החזרה אחרת|איסוף אחר|שדה תעופה|נתב.?ג|one way|different location|airport|drop.?off/i],
   ['insurance', /ביטוח|כיסוי|השתתפות עצמית|insurance|cover(?:age)?|waiver|excess/i],
   ['opening_hours', /מתי (?:אתם )?פתוח|שעות ה?פתיחה|שעות ה?פעילות|באיזה שעות|עד איזה שעה|עד איזו שעה|מתי נפתחים|מתי סוגרים|פתוחים|עד מתי אתם|מתי עובדים|opening hours|open on|when do you close|when are you open/i],
