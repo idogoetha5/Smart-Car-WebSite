@@ -251,3 +251,32 @@ describe('casual go-ahead with a name and age', () => {
     expect(result.state.booking.customerName).toBeUndefined();
   });
 });
+
+// Live Chrome on 2bb5906: "back in jerusalem" after "Where will you return it?" was not stored,
+// so the bot asked the same question again two turns later.
+describe('answering the return-place question in passing', () => {
+  it.each([
+    ['en', 'Where will you return it?', 'back in jerusalem. is insurance included or do we need to buy extra?', 'Jerusalem'],
+    ['he', 'איפה תרצו להחזיר אותו?', 'בהרצליה. הביטוח כלול?', 'הרצליה'],
+  ] as const)('stores the return location: %s', async (locale, lastBot, input, label) => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale, booking: { pickupDate: '2026-12-03', returnDate: '2026-12-13', pickupLocation: locale === 'en' ? 'Jerusalem' : 'הרצליה', passengers: 2 }, history: [{ from: 'bot', text: lastBot }] }, () => locale === 'en' ? 'Basic cover is included, subject to an excess.' : 'כיסוי בסיסי כלול בכפוף להשתתפות עצמית.');
+    const result = await c.send(input);
+    expect(result.state.booking.returnLocation).toBe(label);
+  });
+  it('does not take a branch from an unrelated question', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: {}, history: [{ from: 'bot', text: 'How can I help?' }] }, () => 'Sure.');
+    const result = await c.send('do you have a branch in jerusalem?');
+    expect(result.state.booking.returnLocation).toBeUndefined();
+  });
+});
+
+describe('annoyed repeat of the return place during intake', () => {
+  it('takes "jerusalem, i said that already" and moves on', async () => {
+    const c = chat({ version: 2, phase: 'booking', step: 'rental_locations', locale: 'en', requestKey: 'k', booking: { passengers: 2, pickupDate: '2026-12-03', returnDate: '2026-12-13', pickupLocation: 'jerusalem', customerName: 'Sarah', driverAgeRange: '24-plus', vehicleNeed: 'compact car' }, history: [{ from: 'bot', text: 'Where will you return it?' }] }, () => 'OK');
+    const result = await c.send('jerusalem, i said that already');
+    expect(result.state.booking.returnLocation).toBe('Jerusalem');
+    expect(result.state.booking.pickupLocation).toBe('Jerusalem');
+    expect(result.reply).not.toContain('Where will you return it?');
+    expect(result.reply).toMatch(/Here are your request details/);
+  });
+});

@@ -1721,6 +1721,23 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       if (date) state.booking.returnDate = date;
     }
     applyExplicitLocations(input, state.booking);
+    // A short answer naming a known branch right after we asked where the car
+    // goes back ("back in jerusalem", "גם שם" is handled elsewhere) is that answer.
+    const askedReturnPlace = /Where will you return it\?|Where would you like to return|איפה תרצו להחזיר אותו\?|איפה תחזירו|לאן להחזיר/iu.test(lastBotReply);
+    const askedPickupPlace = /Where would you like to pick it up\?|מאיפה תרצו לאסוף את הרכב\?/iu.test(lastBotReply);
+    const namedBranch = input.match(/(?:^|[\s,.])(?:back\s+)?(?:in|at|to|from|[במל])?\s*(the airport|airport|ben gurion(?: airport)?|tlv|natbag|herzliya|tel aviv|jerusalem|נתב["״׳']?ג|שדה התעופה|הרצליה|תל אביב|ירושלים)(?![\p{L}])/iu)?.[1];
+    if (namedBranch && input.length <= 120 && !/\bwhat if\b|\bif\b|\bmaybe\b|מה אם|(?:^|\s)אם\s|אולי/iu.test(input)) {
+      const he = state.locale === 'he';
+      const key = /air|ben gurion|tlv|natbag|נתב|שדה/iu.test(namedBranch) ? 'airport' : /herz|הרצ/iu.test(namedBranch) ? 'herzliya' : /tel aviv|תל אביב/iu.test(namedBranch) ? 'telaviv' : 'jerusalem';
+      const label = he ? { airport: 'נתב״ג', herzliya: 'הרצליה', telaviv: 'תל אביב', jerusalem: 'ירושלים' }[key] : { airport: 'Ben Gurion Airport', herzliya: 'Herzliya', telaviv: 'Tel Aviv', jerusalem: 'Jerusalem' }[key];
+      if (askedReturnPlace && !state.booking.returnLocation) state.booking.returnLocation = label;
+      else if (askedPickupPlace && !state.booking.pickupLocation) state.booking.pickupLocation = label;
+    }
+    // Normalise lower-case known branch names typed by customers.
+    for (const field of ['pickupLocation', 'returnLocation'] as const) {
+      const value = state.booking[field];
+      if (value && /^(?:jerusalem|herzliya|tel aviv)$/u.test(value)) state.booking[field] = value.replace(/\b\p{Ll}/gu, letter => letter.toUpperCase());
+    }
     if (state.booking.pickupDate && state.booking.returnDate) delete state.booking.datePreference;
     applyPromptedLocation(input, state, lastBot, pendingFieldAtTurnStart);
     if (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input)) state.booking.returnLocation = state.booking.pickupLocation;
