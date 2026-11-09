@@ -276,19 +276,19 @@ function uncertainDateAnswer(input: string): boolean {
 }
 
 function mentionsRentalChange(input: string): boolean {
-  return /לשנות|לשינוי|להאריך|הארכ(?:ה|ת)|לדחות|לדחייה|להקדים|להזיז|יום ההחזרה|יום מאוחר|יום נוסף|להחזיר.{0,40}מאוחר|\b(?:change|extend|extension|postpone)\b|move (?:the )?return|return date|return (?:the )?(?:car|it).{0,45}later|extra days?/i.test(input);
+  return /לשנות|לשינוי|להאריך|הארכ(?:ה|ת)|לדחות|לדחייה|להקדים|להזיז|לקצר|יום ההחזרה|יום מאוחר|יום נוסף|להחזיר.{0,40}מאוחר|\b(?:change|extend|extension|shorten|shortening|postpone)\b|move (?:the )?return|return date|return (?:the )?(?:car|it).{0,45}later|extra days?/i.test(input);
 }
 
 /** A topic mention is not authority to queue a change, now or in history. */
 function rentalChangeRequest(input: string): boolean {
   if (advisoryRentalChange(input)) return false;
-  if (/^(?:רוצה|רוצים|צריך|צריכה|מבקש|מבקשת)\s+(?:לשנות|להאריך|לדחות|להקדים|להזיז)/u.test(input)) return true;
-  return /(?:אני|אנחנו)\s+(?:רוצה|רוצים|צריך|צריכה|צריכים|מבקש|מבקשת|מבקשים)\s+(?:לשנות|להאריך|לדחות|להקדים|להזיז)|(?:החלטתי|החלטנו)\s+(?:להאריך|לשנות|לדחות)|(?:בבקשה\s+)?(?:תאריכו|האריכו|תדחו|תשנו|תזיזו)(?:\s|[.!?]|$)|(?:^|[.!?]\s*|,\s*)(?:בבקשה\s+)?(?:תעבירו|שלחו)\s+(?:לי\s+)?בקשת\s+(?:הארכה|שינוי)|(?:אני|אנחנו)\s+(?:רוצה|רוצים|מבקש|מבקשת)\s+(?:להעביר|לשלוח)\s+בקשת\s+(?:הארכה|שינוי)/iu.test(input)
-    || /\b(?:I|we) (?:want|need|would like|have decided) to (?:extend|change|postpone|move|return.{0,45}later)\b|\b(?:I|we)(?: would|'d) like to request\b.{0,25}\b(?:extension|date change)\b|\b(?:please|kindly)\s+(?:extend|change|postpone|move)\b|(?:^|[.!?]\s*|,\s*)(?:please\s+)?(?:request|submit|pass|send)\b.{0,35}\b(?:extension|date change|change request)\b/iu.test(input);
+  if (/^(?:רוצה|רוצים|צריך|צריכה|מבקש|מבקשת)\s+(?:לשנות|להאריך|לדחות|להקדים|להזיז|לקצר)/u.test(input)) return true;
+  return /(?:אני|אנחנו)\s+(?:כבר\s+)?(?:רוצה|רוצים|צריך|צריכה|צריכים|מבקש|מבקשת|מבקשים)\s+(?:לשנות|להאריך|לדחות|להקדים|להזיז|לקצר)|(?:החלטתי|החלטנו)\s+(?:להאריך|לשנות|לדחות|לקצר)|(?:בבקשה\s+)?(?:תאריכו|האריכו|תדחו|תשנו|תזיזו|תקצרו|קצרו)(?:\s|[.!?]|$)|(?:^|[.!?]\s*|,\s*)(?:בבקשה\s+)?(?:תעבירו|שלחו)\s+(?:לי\s+)?בקשת\s+(?:הארכה|שינוי|קיצור)|(?:אני|אנחנו)\s+(?:כבר\s+)?(?:רוצה|רוצים|מבקש|מבקשת)\s+(?:להעביר|לשלוח)\s+בקשת\s+(?:הארכה|שינוי|קיצור)/iu.test(input)
+    || /\b(?:I|we) (?:want|need|would like|have decided) to (?:extend|shorten|change|postpone|move|return.{0,45}later)\b|\b(?:I|we)(?: would|'d) like to request\b.{0,25}\b(?:extension|shortening|date change)\b|\b(?:please|kindly)\s+(?:extend|shorten|change|postpone|move)\b|(?:^|[.!?]\s*|,\s*)(?:please\s+)?(?:request|submit|pass|send)\b.{0,35}\b(?:extension|shortening|date change|change request)\b/iu.test(input);
 }
 
 function advisoryRentalChange(input: string): boolean {
-  if (/(?:do not|don['’]?t|not)\s+(?:want|wish|intend|ask)\s+(?:you\s+)?(?:to\s+)?(?:extend|change|request)|לא (?:רוצה|רוצים|צריך|צריכה|מבקש|מבקשת)\s+(?:להאריך|לשנות|לדחות)|אל\s+(?:תאריכו|האריכו|תדחו|תשנו|תזיזו)/iu.test(input)) return true;
+  if (/(?:do not|don['’]?t|not)\s+(?:want|wish|intend|ask)\s+(?:you\s+)?(?:to\s+)?(?:extend|shorten|change|request)|לא (?:רוצה|רוצים|צריך|צריכה|מבקש|מבקשת)\s+(?:להאריך|לשנות|לדחות|לקצר)|אל\s+(?:תאריכו|האריכו|תדחו|תשנו|תזיזו|תקצרו|קצרו)/iu.test(input)) return true;
   if (/\b(?:haven['’]?t|have not|has not) (?:chosen|decided)|\b(?:still deciding|undecided)\b|(?:עוד |עדיין )?לא (?:החלטתי|החלטנו|בחרתי|בחרנו)/iu.test(input)) return true;
   return /\b(?:what if|if (?:I|we) (?:(?:ever|actually) )?(?:need|needed|wanted|decide)|may need|might need|not requesting|only asking|just asking|no (?:change|extension) request(?: yet)?)\b|(?:leave|keep).{0,35}\bunchanged\b|(?:do not|don't)\s+(?:change|extend)|מה (?:קורה |יקרה )?אם|אם (?:אצטרך|נצטרך|ארצה)|אולי (?:אצטרך|נצטרך)|רק (?:שואל|שואלת|מברר|מבררת)|לא מבקש(?:ת)? (?:שינוי|הארכה)|להשאיר.{0,25}ללא שינוי|אל תשנ|לא לשנות/i.test(input);
 }
@@ -431,7 +431,7 @@ function offersHumanHandoff(reply: string): boolean {
 }
 
 function offersServiceChangeReview(reply: string): boolean {
-  return /extension|date change|הארכה|שינוי/iu.test(reply)
+  return /extension|shortening|date change|הארכה|קיצור|שינוי/iu.test(reply)
     && /(?:would you like|shall we|תרצ(?:ה|ו)|אפשר)[^?؟.!]{0,65}(?:review|submit|send|pass|שנעביר|להעביר|נגיש|להגיש|נשלח|לשלוח)[^?؟.!]{0,45}(?:request|בקשה|בקשת)[^?؟.!]*[?؟]/iu.test(reply);
 }
 
@@ -1381,7 +1381,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       ? commercialReply(input, state).reply
       : handoffKind === 'booking_change' && !cancellationPending
       && /אושר|אישור|להניח|המחיר|מחיר|עלות|תשלום|תוספת|approv|confirm|assume|price|cost|charge|rate/i.test(input)
-      ? (he ? 'ההארכה עדיין לא אושרה. עד לאישור מפורש של SmartCar, מועד ההחזרה הקיים נשאר בתוקף. גם המחיר ליום הנוסף אינו מובטח; הזמינות והמחיר ייבדקו לפני אישור השינוי.' : 'The extension is not approved yet. Until SmartCar explicitly confirms it, the existing agreed return deadline remains in effect. The previous rate is not guaranteed; availability and the additional price will be checked before confirming the change.')
+      ? (he ? 'השינוי המבוקש עדיין לא אושר. עד לאישור מפורש של SmartCar, מועד ההחזרה הקיים נשאר בתוקף. גם המחיר המעודכן אינו מובטח; הזמינות והמחיר ייבדקו לפני אישור השינוי.' : 'The requested change is not approved yet. Until SmartCar explicitly confirms it, the existing agreed return deadline remains in effect. The previous rate is not guaranteed; availability and the revised price will be checked before confirming the change.')
       : commercialUpdate
       ? (he ? 'העדכון האחרון שמסרתם נשמר בשיחה לבדיקת הנציג. זו פנייה לבדיקה בלבד, ללא התחייבות לעסקה. אין צורך לשלוח מספר כרטיס מלא או קוד אבטחה.' : 'Your latest update is saved in the conversation for the representative to review. This is an enquiry only, with no commitment to a deal. Do not send a full card number or security code.')
       : /לא התחייבתי|לא סגרתם|רק פנייה|רק העברתם|עסקה מאושרת|signed deal|just an enquiry|not a signed|already.*refund|refund.*(?:done|processed)|זיכוי כבר|הזיכוי.*בוצע/i.test(input)
@@ -1879,7 +1879,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       if (rentalChangeRequest(input) || acceptsChangeReview) state.serviceChangeRequested = true;
       const changePending = state.serviceChangeRequested === true;
       const changeDiscussion = mentionsRentalChange(input) || state.history.some(entry => entry.from === 'customer' && mentionsRentalChange(entry.text));
-      const directChangeVerb = /לשנות|לשינוי|להאריך|לדחות|לדחייה|להקדים|להזיז|יום ההחזרה|יום מאוחר|change|extend|postpone|move (?:the )?return|return date/i.test(input);
+      const directChangeVerb = /לקצר|קיצור|תקצרו|shorten|לשנות|לשינוי|להאריך|לדחות|לדחייה|להקדים|להזיז|יום ההחזרה|יום מאוחר|change|extend|postpone|move (?:the )?return|return date/i.test(input);
       // A known reference is a fact, not consent to a hypothetical change.
       // This narrow deferral boundary does not infer every service intent.
       const advisoryChange = advisoryRentalChange(input);
@@ -1892,7 +1892,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       } else if (!cancellationPending && changePending) {
         state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'booking_change'; escalate = true;
         reply = /אושר|אישור|מחיר|עלות|תשלום|approv|confirm|price|cost|charge|rate/i.test(input)
-          ? (he ? 'ההארכה עדיין לא אושרה. עד לאישור מפורש, מועד ההחזרה הקיים נשאר בתוקף. המחיר ליום הנוסף ייבדק לפני אישור השינוי ואינו מובטח כמחיר המקורי.' : 'The extension is not approved yet. Until explicitly confirmed, the existing return deadline remains in effect. The price for the extra day will be checked before the change is confirmed and is not guaranteed to match the original daily rate.')
+          ? (he ? 'השינוי המבוקש עדיין לא אושר. עד לאישור מפורש, מועד ההחזרה הקיים נשאר בתוקף. המחיר המעודכן ייבדק לפני אישור השינוי ואינו מובטח כמחיר המקורי.' : 'The requested change is not approved yet. Until explicitly confirmed, the existing return deadline remains in effect. The updated rental price will be checked before the change is confirmed and is not guaranteed to match the original daily rate.')
           : he ? `קיבלנו את בקשת השינוי. היא תיכנס לתוקף לאחר בדיקת זמינות ואישור SmartCar. לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `We have your change request. It takes effect after SmartCar checks availability and confirms it. For immediate help call ${OFFICE_PHONE}.`;
       } else if (specificProblem || suppliedReference && !depositEnquiry && (cancellationPending || !serviceQuestion && !advisoryChange)) {
         state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = cancellationPending ? 'booking_change' : 'service_issue'; escalate = true;

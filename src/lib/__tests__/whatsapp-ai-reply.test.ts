@@ -6,6 +6,14 @@ const check = (reply: string, rest: Partial<ConversationalReplyInput> = {}) => v
 
 describe('output checks for natural conversational drafts', () => {
   it.each([
+    'הפרטים יועברו לטיפול בלי שהשיחה כאן משנה דבר אוטומטית.',
+    'הבקשה תועבר לבדיקה.',
+    'Your request will be forwarded to the team.',
+    'Your details will be sent for review.',
+  ])('rejects a passive future action promise from the wording model: %s', reply => {
+    expect(check(reply, { locale: /[א-ת]/u.test(reply) ? 'he' : 'en' })).toBeNull();
+  });
+  it.each([
     ['he', 'לאיזה תאריך מדויק תרצה לתאם את האיסוף?', 'pickupDate'],
     ['he', 'איזה תאריך נרשום להחזרה?', 'returnDate'],
     ['en', 'Which date would you like to collect the car?', 'pickupDate'],

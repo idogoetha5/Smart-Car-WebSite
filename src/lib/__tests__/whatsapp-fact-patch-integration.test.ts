@@ -18,6 +18,37 @@ afterEach(() => vi.useRealTimers());
 describe('evidenced understanding reaches canonical rental memory', () => {
   const draft = { pickupDate: '2026-11-09', returnDate: '2026-11-12', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב משפחתי', driverAgeRange: '24-plus' };
   it.each([
+    ['he', 'קיבלנו תשובה מהטיסה, נגיע בסוף. אז בבקשה תקצרו את ההזמנה מארבעה ימים ליומיים, האיסוף נשאר כמו שהיה. במייל כתוב הזמנה #456789. אני רוצה לדעת את ההצעה המעודכנת לפני שמחייבים אותי על משהו'],
+    ['en', 'Please shorten my rental from four days to two. My booking reference is 456789. Will the price change?'],
+  ] as const)('queues an explicit shortening for review once, not as an approved change: %s', async (locale, input) => {
+    const c = chat({ version: 2, phase: 'service', step: 'menu', locale, booking: {}, history: [{ from: 'customer', text: locale === 'he' ? 'שילמתי מקדמה ואני עוד מתלבטת' : 'I paid an advance and am still deciding' }] }, () => ({ ...base('Any change requires confirmation.'), route: 'service' }));
+    const result = await c.send(input);
+    expect(result.escalate).toBe(true);
+    expect(result.state.handoffKind).toBe('booking_change');
+    expect(result.state.serviceChangeRequested).toBe(true);
+    expect(result.state.serviceReference).toBe('456789');
+    expect(result.reply).not.toMatch(/ההארכה|The extension/);
+    expect(c.create).not.toHaveBeenCalled();
+    const followup = await c.send(locale === 'he' ? 'זה כבר אושר וההפרש יוחזר לי אוטומטית?' : 'Is that approved and is the difference refunded automatically?');
+    expect(followup.escalate).toBe(false);
+    expect(followup.reply).toMatch(/לא אושר|not approved|No deal, change or refund/);
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it.each(['I do not want to shorten the rental.', 'What if I need to shorten it?', 'אני לא רוצה לקצר את ההזמנה', 'אל תקצרו את ההזמנה'])('keeps shortening discussion or refusal non-actionable: %s', async input => {
+    const c = chat({ version: 2, phase: 'service', step: 'menu', locale: /[א-ת]/u.test(input) ? 'he' : 'en', booking: {}, serviceReference: '456789', history: [] }, () => ({ ...base('A change needs confirmation.'), route: 'service' }));
+    expect((await c.send(input)).escalate).toBe(false);
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it('recognises the observed corrective request instead of forcing another policy loop', async () => {
+    const c = chat({ version: 2, phase: 'service', step: 'menu', locale: 'he', booking: {}, serviceReference: '456789', serviceChangeRequested: false, history: [] }, () => ({ ...base('הפרטים יועברו לטיפול.'), route: 'service' }));
+    const result = await c.send('כן, אבל אני כבר מבקשת לקצר, לא רק לשאול על התנאים. יש לך את מספר ההזמנה שמסרתי? תעביר את הבקשה לבדיקה בלי להבטיח לי החזר לפני שבדקתם');
+    expect(result.escalate).toBe(true);
+    expect(result.state.serviceChangeRequested).toBe(true);
+    expect(result.source).toBe('local');
+    expect(result.reply).not.toContain('הפרטים יועברו לטיפול');
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it.each([
     ['en', "Okay, don't arrange a call yet. My colleague might drive it back for me instead. He's 25 but wasn't on the paperwork when I collected it. Can he just bring it back if I give him the keys, or does that cause a problem?", 'When you are free, let us know and we will be happy to check availability and extension options for you.'],
     ['he', 'סבבה אבל עוד לא החלטתי להאריך. אחי יכול להחזיר את הרכב במקומי אם הוא לא רשום?', 'אפשר לבדוק זמינות להארכה כשתהיו מוכנים.'],
     ['en', 'Sure, but I have another question about my return deadline first.', 'We can check availability for an extension.'],
