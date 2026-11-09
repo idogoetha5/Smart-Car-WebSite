@@ -16,3 +16,11 @@ Local repair: local fallbacks prepend the approved answer for direct policy ques
 4. "jerusalem, i said that already" → **FAILED: same question again** (loop).
 
 Repair: a known-branch answer right after the return/pickup question is stored (explore or intake), lower-case branch names normalised. Tests added.
+
+## Sarah replay on 3d8c3d0
+
+- Turns 1–3: return place stored from "back in jerusalem"; turn 3 "ok great. lets book it, I'm Sarah, 45" → full correct summary immediately. Pass.
+- "ok I confirm" → simulated submission (casual consent fix works live). Pass.
+- "thanks! so is the car reserved now? and when will we hear back with the price" → **FAILED**: "What dates do you need the car?" (receipt context lost on a price question).
+- "oh wait can we add a child seat? my niece might join for one day" → model: "We can add a child seat to your request" — implied editing a sent request.
+Repair: receipt answers cover reserved/hold/hear-back and add that price and availability come with SmartCar's reply and nothing is charged before acceptance; post-submit additions/changes are passed to the team once with an honest "already sent" reply. Tests added.

@@ -1561,11 +1561,21 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else reply = he ? 'כדי לדייק: התכוונת לתאריכים שציינת, או לנסיעה של כשבוע?' : 'Just to be sure: did you mean the dates you gave, or a trip of about one week?';
   } else if (state.completedRequestId && state.phase === 'explore' && FINAL_CONSENT.test(input.trim())) {
     reply = store.isSimulation ? (he ? 'בסימולציה הבקשה נקלטה לצורכי בדיקה בלבד; לא נוצרה הזמנה אמיתית.' : 'The request was recorded in this simulation only; no real booking was created.') : (he ? `בקשת ההשכרה נשלחה לבדיקה, מספר ${state.completedRequestId}. היא עדיין אינה הזמנה מאושרת.` : `Your rental request was sent for review, reference ${state.completedRequestId}. It is not a confirmed booking yet.`);
+  } else if (state.completedRequestId && state.phase === 'explore' && !explicitBooking(input) && !state.handedOff
+    && /(?:\b(?:add|change|switch|remove|update|make it)\b|להוסיף|תוסיפו|לשנות|תשנו|להוריד|תורידו|לעדכן|תעדכנו)/iu.test(input)
+    && /child seat|car seat|date|day|car|vehicle|pick.?up|return|passenger|כיסא|תאריך|יום|רכב|איסוף|החזרה|נוסע/iu.test(input)
+    && !/what if|\bif\b|מה אם|(?:^|\s)אם\s/iu.test(input)) {
+    // The sent request is immutable here. Pass the addition to the team honestly.
+    state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'booking_change'; escalate = true;
+    reply = he
+      ? `הבקשה כבר נשלחה לבדיקה, ולכן אי אפשר לשנות אותה כאן. העברתי לצוות את הבקשה הנוספת כדי שיתייחסו אליה בתשובה; היא כפופה לזמינות ולאישור. לעזרה מיידית: ${OFFICE_PHONE}.`
+      : `Your request has already been sent for review, so I can't change it here. I've passed this addition to the team so they can include it in their reply; it is subject to availability and confirmation. For immediate help: ${OFFICE_PHONE}.`;
   } else if (state.completedRequestId && state.phase === 'explore' && !explicitBooking(input)
-    && (/מאושר|מאושרת|אישרתם|אושר|סגור|סגורה|מובטח|רק בקשה|עדיין בקשה|בקשה לבדיקה|\bconfirmed\b|\bconfirmation\b|\bguaranteed\b|still.{0,25}(?:request|review)|request for review|(?:which|what).{0,40}(?:date|city|location|details).{0,30}(?:keep|kept|save|record)|(?:מה|איזה|אילו|לאיזה).{0,30}(?:תאריך|עיר|מיקום|פרט).{0,30}(?:שמר|רשמ|נקלט)/i.test(input) || recallsRentalDetails(input) || recallsCompletedRentalNeeds(input))) {
+    && (/מאושר|מאושרת|אישרתם|אושר|סגור|סגורה|מובטח|שמור(?:ה)? (?:לנו|לי)|יחזרו|תחזרו|מתי (?:נשמע|תעדכנו)|\breserved\b|\breservation\b|\bon hold\b|hear back|get back to|call (?:me|us) back|רק בקשה|עדיין בקשה|בקשה לבדיקה|\bconfirmed\b|\bconfirmation\b|\bguaranteed\b|still.{0,25}(?:request|review)|request for review|(?:which|what).{0,40}(?:date|city|location|details).{0,30}(?:keep|kept|save|record)|(?:מה|איזה|אילו|לאיזה).{0,30}(?:תאריך|עיר|מיקום|פרט).{0,30}(?:שמר|רשמ|נקלט)/i.test(input) || recallsRentalDetails(input) || recallsCompletedRentalNeeds(input))) {
     reply = store.isSimulation
       ? (he ? 'בסימולציה נקלטה בקשה לבדיקה בלבד. לא נוצרה הזמנה אמיתית ולא אושר רכב. בעבודה מול SmartCar, הבקשה והפרטים טעונים בדיקה ואישור של נציג.' : 'This simulation recorded a request for review only. No real booking was created and no car was confirmed. With SmartCar, the request and details still require review and confirmation by a representative.')
       : (he ? `בקשת ההשכרה מספר ${state.completedRequestId} נשלחה לבדיקה. שליחת הבקשה אינה אישור להזמנה או לרכב; נציג SmartCar יבדוק את הזמינות והתנאים ויאשר אותם איתכם.` : `Rental request ${state.completedRequestId} was sent for review. Sending a request is not confirmation of a booking or car; a SmartCar representative will check availability and terms and confirm them with you.`);
+    if (/price|quote|cost|how much|מחיר|הצעה|עלות|כמה (?:זה )?(?:עולה|יעלה)/iu.test(input)) reply += he ? ' המחיר והזמינות יימסרו בתשובת SmartCar לבקשה; לא יבוצע חיוב לפני שתאשרו את ההצעה.' : ' The price and availability come with SmartCar’s reply to the request; nothing is charged before you accept the offer.';
     if (state.completedRental && (/date|city|location|details|תאריך|עיר|מיקום|פרט/i.test(input) || recallsRentalDetails(input) || RECEIPT_NEED_FIELDS.test(input))) {
       const b = state.completedRental;
       const format = (value?: string) => value ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : '';

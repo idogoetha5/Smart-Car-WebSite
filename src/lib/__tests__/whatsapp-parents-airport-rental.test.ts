@@ -280,3 +280,30 @@ describe('annoyed repeat of the return place during intake', () => {
     expect(result.reply).toMatch(/Here are your request details/);
   });
 });
+
+// Live Chrome on 3d8c3d0 after a simulated submission: "is the car reserved now? and when
+// will we hear back with the price" got "What dates do you need the car?", and adding a
+// child seat was answered as if the sent request could be edited.
+describe('after the request was sent', () => {
+  const sent = (): RebuildState => ({ version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: {}, completedRequestId: 'SIM-1', completedRental: { pickupDate: '2026-12-03', returnDate: '2026-12-13', pickupLocation: 'Jerusalem', returnLocation: 'Jerusalem', vehicleNeed: 'compact car', driverAgeRange: '24-plus' }, history: [] });
+  it('answers reserved/price questions from the receipt without restarting intake', async () => {
+    const c = chat(sent(), () => 'What dates do you need the car?');
+    const result = await c.send('thanks! so is the car reserved now? and when will we hear back with the price');
+    expect(result.reply).toMatch(/no car was confirmed|not confirmation/);
+    expect(result.reply).toMatch(/price and availability/);
+    expect(result.reply).not.toMatch(/What dates/);
+  });
+  it('passes a post-submit addition to the team honestly, once', async () => {
+    const c = chat(sent(), () => 'We can add a child seat to your request.');
+    const result = await c.send('oh wait can we add a child seat? my niece might join for one day');
+    expect(result.escalate).toBe(true);
+    expect(result.reply).toMatch(/already been sent/);
+    expect(result.reply).not.toMatch(/We can add a child seat to your request/);
+    expect(c.create).not.toHaveBeenCalled();
+  });
+  it('does not treat a hypothetical as a change', async () => {
+    const c = chat(sent(), () => 'Child seats depend on availability.');
+    const result = await c.send('what if we add a child seat later, is that possible?');
+    expect(result.escalate).toBeFalsy();
+  });
+});
