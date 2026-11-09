@@ -52,6 +52,9 @@ export type RebuildStore = {
 // but must never block a rental request.
 const ORDER: BookingKey[] = ['pickupDate', 'returnDate', 'pickupLocation', 'returnLocation', 'vehicleNeed', 'driverAgeRange', 'customerName'];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Final consent stays an explicit confirmation, with only a short casual lead
+// ("אוקיי אני מאשר") or courtesy tail. Any other content keeps the summary open.
+const FINAL_CONSENT = /^(?:(?:אוקיי?|אוקי|טוב|סבבה|יאללה|כן|ok(?:ay)?|yes)[,!.\s]+)?(?:אני מאשר(?:ת)?|מאשר(?:ת)?|i confirm|confirm(?:ed)?)(?:[,\s]+(?:בבקשה|תודה|please|thanks|thank you))?[.!\s]*\p{Extended_Pictographic}*$/iu;
 const PRIVATE_PAYMENT_DETAIL = /מספר (?:כרטיס|אשראי)|קוד אבטחה|\b(?:full card|(?:credit )?card number|security code|CVV|CVC)\b/i;
 const PRICE_OR_AVAILABILITY = /מחיר|עלות|כמה.{0,12}(?:עול|יעל)|(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:prices?|cost|rate|available|availability)\b/iu;
 const AVAILABILITY_ONLY = /(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:available|availability|in stock)\b/iu;
@@ -1531,7 +1534,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       state.durationClarification = false;
       reply = he ? 'תודה על התיקון. לאילו תאריכים תרצו את הרכב?' : 'Thanks for clarifying. What dates do you need the car?';
     } else reply = he ? 'כדי לדייק: התכוונת לתאריכים שציינת, או לנסיעה של כשבוע?' : 'Just to be sure: did you mean the dates you gave, or a trip of about one week?';
-  } else if (state.completedRequestId && state.phase === 'explore' && /^(?:אני מאשר(?:ת)?|מאשר(?:ת)?|כן,? מאשר(?:ת)?|i confirm|confirm)$/i.test(input)) {
+  } else if (state.completedRequestId && state.phase === 'explore' && FINAL_CONSENT.test(input.trim())) {
     reply = store.isSimulation ? (he ? 'בסימולציה הבקשה נקלטה לצורכי בדיקה בלבד; לא נוצרה הזמנה אמיתית.' : 'The request was recorded in this simulation only; no real booking was created.') : (he ? `בקשת ההשכרה נשלחה לבדיקה, מספר ${state.completedRequestId}. היא עדיין אינה הזמנה מאושרת.` : `Your rental request was sent for review, reference ${state.completedRequestId}. It is not a confirmed booking yet.`);
   } else if (state.completedRequestId && state.phase === 'explore' && !explicitBooking(input)
     && (/מאושר|מאושרת|אישרתם|אושר|סגור|סגורה|מובטח|רק בקשה|עדיין בקשה|בקשה לבדיקה|\bconfirmed\b|\bconfirmation\b|\bguaranteed\b|still.{0,25}(?:request|review)|request for review|(?:which|what).{0,40}(?:date|city|location|details).{0,30}(?:keep|kept|save|record)|(?:מה|איזה|אילו|לאיזה).{0,30}(?:תאריך|עיר|מיקום|פרט).{0,30}(?:שמר|רשמ|נקלט)/i.test(input) || recallsRentalDetails(input) || recallsCompletedRentalNeeds(input))) {
@@ -1556,7 +1559,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     }
   } else if (state.phase === 'booking' && state.step === 'rental_confirm' && /לא מאשר|לא מאשרת|not confirm|not yet/i.test(input)) {
     reply = he ? 'לא שלחתי בקשה. הפרטים נשמרו בשיחה; אפשר לתקן אותם או לאשר רק כשתרצו.' : 'I have not sent a request. The details remain in this conversation; you can correct them or confirm when ready.';
-  } else if (state.phase === 'booking' && state.step === 'rental_confirm' && /^(?:אני מאשר(?:ת)?|מאשר(?:ת)?|כן,? מאשר(?:ת)?|i confirm|confirm)$/i.test(input)) {
+  } else if (state.phase === 'booking' && state.step === 'rental_confirm' && FINAL_CONSENT.test(input.trim())) {
     const missing = nextMissing(state.booking);
     if (missing) {
       state.step = bookingStep(missing);

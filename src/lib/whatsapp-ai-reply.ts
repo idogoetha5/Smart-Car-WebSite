@@ -102,6 +102,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (hasAffirmativeMatch(reply, /\bin stock\b|יש במלאי/gi)) return reject('stock_assurance');
   // The assistant can prepare a request for review, never reserve a car or
   // update a request that does not exist yet.
+  // Price is set in the quote; wording must not promise it in advance.
+  if (hasAffirmativeMatch(reply, /(?:בלי|ללא) הפתעות|(?:ב|לפי )?(?:ה)?תעריף המקורי|אותו מחיר(?: ליום)?|המחיר (?:לא|אינו) ישתנה|\bno (?:price )?surprises\b|\b(?:the )?same (?:daily )?(?:rate|price)\b|\b(?:the )?original (?:daily )?rate\b|\bprice (?:will not|won['’]?t) change\b/giu)) return reject('price_assurance');
   if (/נשריין|לשריין|שנשריין|\b(?:reserve|hold) (?:the|a|your) car\b/iu.test(reply)) return reject('reservation_wording');
   // Whether a damaged rental can be driven is never a model judgement, and a
   // replacement car or tow is never arranged by wording alone.

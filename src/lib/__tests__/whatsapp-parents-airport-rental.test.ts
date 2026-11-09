@@ -149,3 +149,37 @@ describe('garage replay acceptance after a reserve-worded offer', () => {
     expect(result.reply).not.toMatch(/נשריין/);
   });
 });
+
+// Live Chrome on bf710b4: on a pre-consent correction the model said
+// "ההשכרה מתומחרת לפי … התעריף המקורי, בלי הפתעות" — a price promise.
+describe('no price promises before the quote', () => {
+  it.each([
+    'לגבי המחיר, ההשכרה מתומחרת לפי ימי ההשכרה והתעריף המקורי, בלי הפתעות.',
+    'It will be the same daily rate, no surprises.',
+  ])('rejects the model wording: %s', async modelReply => {
+    const he = /[א-ת]/u.test(modelReply);
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: he ? 'he' : 'en', booking: {}, history: [] }, () => modelReply);
+    const result = await c.send(he ? 'ומה עם המחיר? אני לא רוצה הפתעות' : 'What about the price? I do not want surprises');
+    expect(result.reply).not.toMatch(/בלי הפתעות|התעריף המקורי|same daily rate|no surprises/);
+  });
+  it('still allows saying a previous rate is not guaranteed', async () => {
+    const reply = 'An extension may change the rate; the previous rate is not guaranteed.';
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: {}, history: [] }, () => reply);
+    expect((await c.send('Would an extension cost the same?')).reply).toBe(reply);
+  });
+});
+
+// Live Chrome on bf710b4: "אוקיי אני מאשר" re-showed the summary; only a bare "מאשר" sent it.
+describe('casual final consent', () => {
+  const ready = (): RebuildState => ({ version: 2, phase: 'booking', step: 'rental_confirm', locale: 'he', requestKey: 'k', booking: { pickupDate: '2026-11-10', returnDate: '2026-11-13', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב קומפקטי', driverAgeRange: '24-plus', customerName: 'איתי בדיקה' }, history: [] });
+  it.each(['אוקיי אני מאשר', 'סבבה, מאשרת 👍', 'ok I confirm', 'מאשר בבקשה'])('sends once: %s', async input => {
+    const c = chat(ready(), () => 'x');
+    await c.send(input);
+    expect(c.create).toHaveBeenCalledTimes(1);
+  });
+  it.each(['אני לא מאשר', 'מאשר אבל תשנה את התאריך', 'אוקיי אבל מה המחיר?'])('does not send: %s', async input => {
+    const c = chat(ready(), () => 'x');
+    await c.send(input);
+    expect(c.create).not.toHaveBeenCalled();
+  });
+});
