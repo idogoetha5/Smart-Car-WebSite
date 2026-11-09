@@ -2,16 +2,16 @@
 // These MUST stay in sync with LeasingInquirySection.tsx
 
 export const LEASING_BASE_PRICE: Record<string, number> = {
-  MINI:       2800,
-  ECONOMY:    3000,
-  COMPACT:    3200,
-  SEDAN:      3500,
-  CROSSOVER:  4500,
-  SUV:        5500,
-  LUXURY:     7500,
-  VAN:        4500,
-  COMMERCIAL: 3800,
-  ELECTRIC:   3500,
+  MINI:       2940,
+  ECONOMY:    3150,
+  COMPACT:    3360,
+  SEDAN:      3675,
+  CROSSOVER:  4725,
+  SUV:        5775,
+  LUXURY:     7875,
+  VAN:        4725,
+  COMMERCIAL: 3990,
+  ELECTRIC:   3675,
 };
 
 export const LEASING_MILEAGE_MULTIPLIER: Record<string, number> = {
@@ -54,29 +54,29 @@ export type PricingCategoryKey =
   | 'ELECTRIC';
 
 export const BASE_PRICES: Record<PricingCategoryKey, number> = {
-  MINI:       250,
-  ECONOMY:    280,
-  COMPACT:    350,
-  SEDAN:      350,
-  CROSSOVER:  440,
-  SUV:        500,
-  LUXURY:     500,
-  VAN:        500,
-  COMMERCIAL: 400,
-  ELECTRIC:   350,
+  MINI:       262.5,
+  ECONOMY:    294,
+  COMPACT:    367.5,
+  SEDAN:      367.5,
+  CROSSOVER:  462,
+  SUV:        525,
+  LUXURY:     525,
+  VAN:        525,
+  COMMERCIAL: 420,
+  ELECTRIC:   367.5,
 };
 
 export const LEASING_PRICES: Record<PricingCategoryKey, number> = {
-  MINI:       2800,
-  ECONOMY:    3000,
-  COMPACT:    3500,
-  SEDAN:      3500,
-  CROSSOVER:  4500,
-  SUV:        7500,
-  LUXURY:     7500,
-  VAN:        7500,
-  COMMERCIAL: 3800,
-  ELECTRIC:   3500,
+  MINI:       2940,
+  ECONOMY:    3150,
+  COMPACT:    3675,
+  SEDAN:      3675,
+  CROSSOVER:  4725,
+  SUV:        7875,
+  LUXURY:     7875,
+  VAN:        7875,
+  COMMERCIAL: 3990,
+  ELECTRIC:   3675,
 };
 
 // ─── Seasonal surcharges ───────────────────────────────────────────────────
@@ -174,16 +174,16 @@ export const CATEGORY_PRICING: Record<
   PricingCategoryKey,
   { pricePerDay: number; pricePerMonth: number; deposit: number }
 > = {
-  MINI:       { pricePerDay: 250,  pricePerMonth: 2800, deposit: 800  },
-  ECONOMY:    { pricePerDay: 280,  pricePerMonth: 3000, deposit: 1000 },
-  COMPACT:    { pricePerDay: 350,  pricePerMonth: 3500, deposit: 1500 },
-  SEDAN:      { pricePerDay: 350,  pricePerMonth: 3500, deposit: 1500 },
-  CROSSOVER:  { pricePerDay: 440,  pricePerMonth: 4500, deposit: 1800 },
-  SUV:        { pricePerDay: 500,  pricePerMonth: 7500, deposit: 2000 },
-  LUXURY:     { pricePerDay: 500,  pricePerMonth: 7500, deposit: 3000 },
-  VAN:        { pricePerDay: 500,  pricePerMonth: 4500, deposit: 2500 },
-  COMMERCIAL: { pricePerDay: 400,  pricePerMonth: 3800, deposit: 2000 },
-  ELECTRIC:   { pricePerDay: 350,  pricePerMonth: 3500, deposit: 2000 },
+  MINI:       { pricePerDay: 262.5, pricePerMonth: 2940, deposit: 800  },
+  ECONOMY:    { pricePerDay: 294,   pricePerMonth: 3150, deposit: 1000 },
+  COMPACT:    { pricePerDay: 367.5, pricePerMonth: 3675, deposit: 1500 },
+  SEDAN:      { pricePerDay: 367.5, pricePerMonth: 3675, deposit: 1500 },
+  CROSSOVER:  { pricePerDay: 462,   pricePerMonth: 4725, deposit: 1800 },
+  SUV:        { pricePerDay: 525,   pricePerMonth: 7875, deposit: 2000 },
+  LUXURY:     { pricePerDay: 525,   pricePerMonth: 7875, deposit: 3000 },
+  VAN:        { pricePerDay: 525,   pricePerMonth: 4725, deposit: 2500 },
+  COMMERCIAL: { pricePerDay: 420,   pricePerMonth: 3990, deposit: 2000 },
+  ELECTRIC:   { pricePerDay: 367.5, pricePerMonth: 3675, deposit: 2000 },
 };
 
 export interface DisplayCategory {
