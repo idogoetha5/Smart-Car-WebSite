@@ -336,6 +336,8 @@ function cancellationRequest(input: string): boolean {
 }
 
 function explicitServiceReference(input: string): string | undefined {
+  const bare = input.match(/(?:^|[\s,.])(?:ה)?הזמנה\s+(?:שלי\s+)?(\d{5,12})(?!\d)|\b(?:booking|reservation)\s+(\d{5,12})(?!\d)/iu);
+  if (bare && !/(?:\d{5,12})\s*(?:₪|ש["״]?ח|nis|ils|km|ק["״]?מ)/iu.test(input)) return bare[1] ?? bare[2];
   const value = input.match(/(?:מספר\s+ה?הזמנה|booking\s+number|(?:booking\s+)?reference|(?:booking|הזמנה)\s*#|ההזמנה\s+שלי\s+מספר\s*#)[\s,:#]*(?:(?:שלי|הוא|it\s+is|it['’]s|is)[\s,:#]*)*([A-Z0-9-]*\d[A-Z0-9-]{2,})(?![A-Z0-9-])/i)?.[1];
   return value && value.length <= 40 ? value : undefined;
 }
@@ -1783,7 +1785,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const serviceInterpretation = reading?.route === 'service' && reading.groundedContext === true;
     const acceptsRentalOffer = confirmedOffer && !serviceInterpretation;
     const declinesHuman = declinesHumanHandoff(input);
-    const asksHuman = !declinesHuman && /(?:^|[\s,.!])(?:ש|ש?מישהו\s+|שנציג\s+)?(?:יחזרו|תחזרו|יחזור|יתקשרו|תתקשרו|יתקשר)\s+(?:אליי|אלי|אליי?נו|לי)(?![\p{L}])|\b(?:have|get) (?:someone|somebody|a (?:rep|representative|person)) (?:to )?call me\b|\bcall me back\b|\bplease call me\b|(?:רוצה|אפשר|צריך|צריכה).{0,22}(?:לדבר|נציג|בן אדם)|(?:לדבר|נציג|בן אדם).{0,22}(?:בבקשה|אפשר|רוצה)|\b(?:speak|talk|connect)\b.{0,28}\b(?:human|representative|person)\b|\b(?:human|representative|real person)\b.{0,20}\b(?:please|help)\b/iu.test(input);
+    const asksHuman = !declinesHuman && !/(?:^|\s)ו?אם\s+(?:לא\s+)?(?:ש?מישהו\s+)?(?:יחזרו|תחזרו|יחזור|יתקשרו|תתקשרו|יתקשר)|\bif (?:no one|nobody|you don['’]?t|you do not)\b/iu.test(input) && /(?:^|[\s,.!])(?:ש|ש?מישהו\s+|שנציג\s+)?(?:יחזרו|תחזרו|יחזור|יתקשרו|תתקשרו|יתקשר)\s+(?:אליי|אלי|אליי?נו|לי)(?![\p{L}])|\b(?:have|get) (?:someone|somebody|a (?:rep|representative|person)) (?:to )?call me\b|\bcall me back\b|\bplease call me\b|(?:רוצה|אפשר|צריך|צריכה).{0,22}(?:לדבר|נציג|בן אדם)|(?:לדבר|נציג|בן אדם).{0,22}(?:בבקשה|אפשר|רוצה)|\b(?:speak|talk|connect)\b.{0,28}\b(?:human|representative|person)\b|\b(?:human|representative|real person)\b.{0,20}\b(?:please|help)\b/iu.test(input);
     // A model's human-route classification is not consent. Require an actual
     // callback request or acceptance of a preceding representative invitation.
     const modelHumanConsent = !declinesHuman
@@ -2223,8 +2225,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   }
   // While a change is pending, the contractual return time stands. Answer the
   // "if nobody replies, do I return it?" question directly.
-  if (state.handedOff && (state.handoffKind === 'booking_change' || state.handoffKind === 'service_issue') && !state.history.some(entry => entry.from === 'customer' && cancellationRequest(entry.text))
-    && /(?:^|\s)ו?אם\s+(?:לא\s+)?(?:יענו|תענו|יחזרו|אקבל|נקבל|יאשרו|תאשרו)|מחזיר(?:ה)?\s+או\s+ממשיכ|להחזיר\s+או\s+להמשיך|\b(?:if|what if)\b.{0,30}\b(?:no one|nobody|you don['’]?t|I don['’]?t|no) (?:answers?|repl(?:y|ies)|hear|confirm|get back)|\breturn it or keep\b|\bkeep (?:driving|it) or return\b/iu.test(input)) {
+  if ((state.handedOff && (state.handoffKind === 'booking_change' || state.handoffKind === 'service_issue' || state.handoffKind === 'human') || state.serviceChangeRequested) && !state.history.some(entry => entry.from === 'customer' && cancellationRequest(entry.text))
+    && /(?:^|\s)ו?אם\s+(?:לא\s+)?(?:יענו|תענו|יחזרו|תחזרו|אקבל|נקבל|יאשרו|תאשרו)|מחזיר(?:ה)?\s+או\s+ממשיכ|להחזיר\s+או\s+להמשיך|\b(?:if|what if)\b.{0,30}\b(?:no one|nobody|you don['’]?t|I don['’]?t|no) (?:answers?|repl(?:y|ies)|hear|confirm|get back)|\breturn it or keep\b|\bkeep (?:driving|it) or return\b/iu.test(input)) {
     reply = he
       ? `עד שתקבלו אישור מפורש מ־SmartCar, מועד ההחזרה הקיים נשאר בתוקף — יש להחזיר את הרכב במועד המקורי. אם לא קיבלתם תשובה עד אז, התקשרו ל־${OFFICE_PHONE} לפני מועד ההחזרה.`
       : `Until SmartCar explicitly confirms the change, your existing return time stands — please return the car at the original time. If you have not heard back by then, call ${OFFICE_PHONE} before the return time.`;

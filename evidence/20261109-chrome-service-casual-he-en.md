@@ -11,3 +11,9 @@ Repair: everyday collision verbs without a subject ("backed/crashed/bumped into 
 2. "כן בבקשה תבדקו. מספר הזמנה 641552" → escalated as a generic service issue, not an extension request.
 3. "ואם לא יענו לי עד מחר בערב? אני מחזיר או ממשיך לנסוע?" → **FAILED**: generic "נציג יטפל" instead of "return at the original time".
 Repair: Hebrew check/pass offers for extension/shortening count as review offers; a leading yes with extra words accepts (not with negation/hypothetical); while a change is pending, "if nobody answers, do I return?" gets the binding-return answer with the office number. Tests added.
+
+## Recheck on e351033 (new Hebrew extension wording)
+1. "שלום, אני עם הרכב שלכם וצריכה להחזיר ברביעי. אפשר עוד יום אחד?" → approval required; offers to check. Pass.
+2. "כן תבדקו בבקשה, הזמנה 902233" → change marked but **reference not saved ("הזמנה" without "מספר"), no handoff**; model replied with a garbled follow-up question.
+3. "ואם לא תחזרו אליי עד רביעי מה אני עושה" → **wrongly escalated as a callback request** (my e351033 pattern ignored the "אם לא").
+Repair: bare "הזמנה 902233"/"booking 902233" (5+ digits, not an amount) is a reference; conditional "אם לא תחזרו אליי" is not a callback request; the binding-return answer also applies once a change was requested. Tests added.

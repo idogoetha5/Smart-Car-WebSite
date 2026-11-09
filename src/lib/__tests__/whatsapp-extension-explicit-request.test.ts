@@ -280,3 +280,31 @@ describe('hebrew extension acceptance and the binding return time', () => {
     expect(result.state.serviceChangeRequested).toBe(false);
   });
 });
+
+// Live Chrome on e351033: "כן תבדקו בבקשה, הזמנה 902233" lost the reference, and "ואם לא תחזרו
+// אליי עד רביעי מה אני עושה" was taken as a callback request.
+describe('bare reference and conditional callback wording', () => {
+  const run = async (history: RebuildState['history'], inputs: string[]) => {
+    let state: RebuildState | null = { version: 2, phase: 'service', step: 'menu', locale: 'he', booking: {}, serviceChangeRequested: false, history };
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: 'בשמחה, נבדוק את אפשרות ההארכה עבורך.', source: 'gemini', model: 'controlled-fixture', groundedContext: true } as BotReading) };
+    const results = [];
+    for (const input of inputs) results.push(await getRebuiltBotReply('fictional-bare-ref', input, store));
+    return results;
+  };
+  it('saves the reference, queues the extension and answers the deadline without a new callback alert', async () => {
+    const [accepted, deadline] = await run(
+      [{ from: 'customer', text: 'אני עם הרכב שלכם וצריכה להחזיר ברביעי. אפשר עוד יום אחד?' }, { from: 'bot', text: 'הארכה דורשת אישור. האם תרצי שנבדוק את אפשרות ההארכה עבורך?' }],
+      ['כן תבדקו בבקשה, הזמנה 902233', 'ואם לא תחזרו אליי עד רביעי מה אני עושה'],
+    );
+    expect(accepted.state.serviceReference).toBe('902233');
+    expect(accepted.escalate).toBe(true);
+    expect(accepted.state.handoffKind).toBe('booking_change');
+    expect(deadline.escalate).toBeFalsy();
+    expect(deadline.reply).toMatch(/מועד ההחזרה הקיים נשאר בתוקף/);
+  });
+  it('does not treat an amount as a booking reference', async () => {
+    const [result] = await run([], ['ההזמנה 12000 ₪ זה לא יקר מדי?']);
+    expect(result.state.serviceReference).toBeUndefined();
+  });
+});
