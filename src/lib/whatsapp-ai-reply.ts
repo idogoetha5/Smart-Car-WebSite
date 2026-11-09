@@ -149,6 +149,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   for (const sentence of reply.split(/(?<=[.!?؟])\s+/u)) {
     if (!claimsRecorded.test(sentence) || /\bnot\b|לא |טרם|עדיין לא/iu.test(sentence)) continue;
     if (mentionsRoute.test(sentence) && !mentionsDates.test(sentence) && !knownValue('pickupLocation') && !knownValue('returnLocation')) return reject('unsaved_claim');
+    if (/החזרה|להחזיר|\breturn\b|drop.?off/iu.test(sentence) && !knownValue('returnLocation') && !knownValue('returnDate')) return reject('unsaved_claim');
+    if (/איסוף|לאסוף|pick.?up/iu.test(sentence) && !knownValue('pickupLocation') && !knownValue('pickupDate')) return reject('unsaved_claim');
     if (mentionsDates.test(sentence) && !knownValue('pickupDate') && !knownValue('returnDate')) return reject('unsaved_claim');
   }
   const comparedMileage = /\bcompare|\bversus|\bvs\b|להשוות|השוואה|לעומת|מול/i.test(input) ? annualMileageMentions(input) : [];

@@ -108,3 +108,25 @@ describe('name in the middle of a go-ahead message', () => {
     expect(result.reply).not.toMatch(/על איזה שם/);
   });
 });
+
+// Live Chrome on 8c03a3e: "מהרצליה, מה 15.12 עד ה 19.12" was not parsed locally, and the model's
+// "רשמתי איסוף והחזרה בהרצליה" was sent although no return was saved.
+describe('spaced Hebrew date range and partial route claims', () => {
+  it('stores 15.12–19.12 and rejects the unsaved return claim', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { passengers: 4 }, history: [] } as RebuildState, 'מעולה, רשמתי איסוף והחזרה בהרצליה עם שני כיסאות בטיחות.');
+    const result = await c.send('מהרצליה, מה 15.12 עד ה 19.12. צריך שני כיסאות בטיחות אחד לתינוק ואחד לבן 4');
+    expect(result.state.booking).toMatchObject({ pickupDate: '2026-12-15', returnDate: '2026-12-19', childSeats: 2 });
+  });
+  it('rejects a return claim when neither return place nor date is saved', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupLocation: 'הרצליה' }, history: [] } as RebuildState, 'מעולה, רשמתי איסוף והחזרה בהרצליה.');
+    const result = await c.send('מה כדאי לקחת, משפחתי או SUV?');
+    expect(result.reply).not.toContain('רשמתי איסוף והחזרה');
+  });
+});
+
+describe('return place with "גם"', () => {
+  it.each(['להחזיר גם בהרצליה', 'נחזיר גם בהרצליה בסוף', 'להחזיר את הרכב גם בהרצליה'])('stores the return place: %s', async input => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupLocation: 'הרצליה' }, history: [] } as RebuildState, 'בשמחה.');
+    expect((await c.send(input)).state.booking.returnLocation).toBe('הרצליה');
+  });
+});
