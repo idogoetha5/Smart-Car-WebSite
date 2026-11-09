@@ -313,6 +313,9 @@ function advisoryRentalChange(input: string): boolean {
 function cancellationRequest(input: string): boolean {
   if (/לא (?:רוצה|רוצים|מבקש|מבקשת|צריך|צריכה)\s+לבטל|עוד לא לבטל|אל תבטל|(?:do not|don't|not) want to cancel|(?:do not|don't) cancel|no cancellation request|(?:^|\s)אם.{0,25}(?:החלטתי|החלטנו)|\bif\b.{0,25}\b(?:decide|decided)\b/i.test(input)) return false;
   if (/(?:החלטתי|החלטנו)\s+לבטל(?:\s|[.!?]|$)|(?:I|we) (?:have )?decided to cancel|please cancel (?:my |the )?(?:booking|rental)/i.test(input)) return true;
+  // Everyday decisions: "טוב בואו נבטל", "תבטלו לי", "let's cancel it".
+  if (!/[?؟]\s*$/u.test(input.split(/[.!]/u).find(part => /נבטל|תבטל|cancel/iu.test(part)) ?? '')
+    && /(?:^|[\s,.!])(?:בוא(?:ו)?|יאללה|טוב|אז)\s+נבטל(?![\p{L}])|(?:^|[\s,.!])(?:בבקשה\s+)?(?:תבטלו|בטלו)(?:\s+(?:לי|לנו|את\s+ה(?:הזמנה|השכרה)|אותה|אותו))?(?![\p{L}])|\blet['’]?s cancel\b|\b(?:please |just )?cancel (?:it|that|my reservation|the reservation|our booking)\b|\bgo ahead and cancel\b/iu.test(input)) return true;
   return /(?:רוצה|רוצים|מבקש|מבקשת|צריך|צריכה|אפשר).{0,18}(?:לבטל|ביטול).{0,25}(?:הזמנה|השכרה)|(?:הזמנה|השכרה).{0,100}לבטל\s+(?:אותה|אותו|את הקיימת)|(?:want|need|would like) to cancel (?:my |the )?(?:booking|rental)|(?:booking|rental).{0,100}(?:want|need|would like) to cancel (?:it|that)/i.test(input);
 }
 

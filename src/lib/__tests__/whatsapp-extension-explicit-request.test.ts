@@ -167,3 +167,28 @@ describe('compound questions after a collision report', () => {
     expect(result.escalate).toBeFalsy();
   });
 });
+
+// Live Chrome on f65ac21: "טוב בואו נבטל, מספר הזמנה 552211 … הכסף חוזר לאשראי?" was not
+// treated as a cancellation request; nobody was alerted.
+describe('everyday cancellation decisions', () => {
+  const send = async (input: string, locale: 'he' | 'en') => {
+    let state: RebuildState | null = { version: 2, phase: 'explore', step: 'menu', locale, booking: {}, history: [] };
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: 'x', source: 'gemini', model: 'controlled-fixture', groundedContext: true } as BotReading) };
+    return getRebuiltBotReply('fictional-cancel', input, store);
+  };
+  it.each([
+    ['he', 'וואלה. טוב בואו נבטל, מספר הזמנה 552211. האיסוף היה בשישי. הכסף חוזר לאשראי?'],
+    ['he', 'תבטלו לי את ההזמנה בבקשה, מספר הזמנה 552211'],
+    ["en", "ok let's cancel it. booking number 552211"],
+  ] as const)('queues the cancellation for review without confirming it: %s', async (locale, input) => {
+    const result = await send(input, locale);
+    expect(result.escalate).toBe(true);
+    expect(result.state.handoffKind).toBe('booking_change');
+    expect(result.reply).not.toMatch(/בוטלה\b|has been cancelled/);
+  });
+  it.each([['he', 'אם נבטל כמה זה יעלה?'], ['en', 'what happens if we cancel it?'], ['he', 'כמה זה עולה לבטל?']] as const)('keeps questions about cancelling advisory: %s', async (locale, input) => {
+    const result = await send(input, locale);
+    expect(result.escalate).toBeFalsy();
+  });
+});
