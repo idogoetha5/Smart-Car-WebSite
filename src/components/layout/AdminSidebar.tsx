@@ -9,6 +9,7 @@ import { clearBookingContext } from '@/lib/use-booking-context';
 import {
   Car,
   CalendarCheck,
+  CreditCard,
   FileText,
   History,
   LayoutDashboard,
@@ -100,6 +101,7 @@ export default function AdminSidebar() {
     { href: `/${locale}/admin/bookings`, label: t('manage_bookings'), icon: CalendarCheck },
     { href: `/${locale}/admin/rental-quotes`, label: isHe ? 'הצעת מחיר להשכרה' : 'Rental quotation', icon: MessageCircle },
     { href: `/${locale}/admin/accident-reports`, label: isHe ? 'דוחות תאונה' : 'Accident reports', icon: ShieldAlert },
+    { href: `/${locale}/admin/customer-verifications`, label: isHe ? 'רישיון ואשראי' : 'Licence & card', icon: CreditCard },
     { href: `/${locale}/admin/quotes`, label: isHe ? 'הצעת מחיר לליסינג' : 'Leasing quotation', icon: Send },
     { href: `/${locale}/admin/vehicles`, label: t('manage_vehicles'), icon: Car },
     { href: `/${locale}/admin/cars-for-sale`, label: isHe ? 'ניהול רכבים למכירה' : 'Cars for sale', icon: Tag },

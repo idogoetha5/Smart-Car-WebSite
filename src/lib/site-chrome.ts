@@ -17,6 +17,7 @@ export function hidesSiteHeader(pathname: string, locale: string): boolean {
     pathname.startsWith(`/${locale}/rental/`) ||
     pathname.startsWith(`/${locale}/customer-details`) ||
     pathname.startsWith(`/${locale}/accident-report`) ||
+    pathname.startsWith(`/${locale}/customer-verification`) ||
     pathname.startsWith(`/${locale}/whatsapp-demo`) ||
     pathname.startsWith(`/${locale}/admin`)
   );
@@ -48,6 +49,7 @@ export function hidesFloatingWhatsApp(pathname: string, locale: string): boolean
     pathname.startsWith(`/${locale}/rental/`) ||
     pathname.startsWith(`/${locale}/customer-details`) ||
     pathname.startsWith(`/${locale}/accident-report`) ||
+    pathname.startsWith(`/${locale}/customer-verification`) ||
     pathname.startsWith(`/${locale}/whatsapp-demo`)
   );
 }
@@ -58,6 +60,7 @@ export function hidesPublicFooter(pathname: string, locale: string): boolean {
     isAdminArea(pathname, locale) ||
     pathname.startsWith(`/${locale}/customer-details`) ||
     pathname.startsWith(`/${locale}/accident-report`) ||
+    pathname.startsWith(`/${locale}/customer-verification`) ||
     pathname.startsWith(`/${locale}/whatsapp-demo`)
   );
 }

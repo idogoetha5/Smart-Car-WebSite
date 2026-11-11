@@ -24,6 +24,23 @@
           "value": "max-age=31536000; includeSubDomains"
         }
       ]
+    },
+    {
+      "source": "/:locale(he|en)/customer-verification",
+      "headers": [
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
+      ]
     }
   ],
   "crons": [
