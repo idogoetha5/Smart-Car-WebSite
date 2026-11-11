@@ -414,3 +414,22 @@ describe('model-worded leasing offer', () => {
     expect(r.reply).toMatch(/נסגר סופית מול נציג SmartCar/);
   });
 });
+
+// Live Chrome on ba0bdc6 (Kia Niro): "תודה רציתי לשאול," salutation, model name without the brand,
+// and a reply with no offer so "כן בבקשה" went nowhere.
+describe('leasing Kia Niro replay', () => {
+  it('keeps the brand, rejects the echoed salutation and offers the representative', async () => {
+    const replies = ['בליסינג פרטי לקיה נירו המחיר נקבע בהצעה. מהו הקילומטראז׳ השנתי?', 'תודה רציתי לשאול, 18 אלף ק"מ מתאים לליסינג פרטי. נציג SmartCar יעזור לכם לבנות את ההצעה.'];
+    let i = 0;
+    let state = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] } as RebuildState;
+    const readTurn = vi.fn(async () => ({ route: 'explore', direction: 'none', fields: {}, reply: replies[i++] ?? 'x', source: 'gemini', model: 'f', groundedContext: true } as BotReading));
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn };
+    await getRebuiltBotReply('niro', 'היי רציתי לשאול על ליסינג פרטי לקיה נירו לשלוש שנים, מה המחיר?', store);
+    expect(state.commercial?.vehicleModel).toBe('קיה נירו');
+    const second = await getRebuiltBotReply('niro', 'משהו כמו 18 אלף', store);
+    expect(second.reply).not.toMatch(/רציתי לשאול/);
+    expect(second.reply).toMatch(/תרצו ש(?:אעביר|נציג)/);
+    const yes = await getRebuiltBotReply('niro', 'כן בבקשה', store);
+    expect(yes.escalate).toBe(true);
+  });
+});

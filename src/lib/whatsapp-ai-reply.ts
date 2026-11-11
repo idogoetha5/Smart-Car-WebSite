@@ -49,6 +49,11 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (asksRentalAgeTerms(input) && !/\bage\b|\b21\b|young[- ]driver|licen[cs]e|גיל|רישיון|נהג צעיר/i.test(reply)) return reject('unanswered_age_terms');
   if (asksRentalAgeTerms(input) && /deposit|פיקדון/i.test(input) && !/deposit|card hold|פיקדון/i.test(reply)) return reject('unanswered_deposit');
   if (reply.length > 650) return reject('too_long');
+  // "תודה רציתי לשאול," — names reach the model redacted, so a salutation with a name-like
+  // word other than the known customer name is the model inventing one.
+  const salutation = reply.match(/^(?:תודה|היי|שלום|אהלן|hi|hello|thanks)\s*,?\s+([\p{L}'-]{2,20}(?:\s+[\p{L}'-]{2,20})?)\s*[,!]/iu)?.[1];
+  if (salutation && !/^(?:רבה|לך|לכם|על|מאוד|שוב|שפניתם|שפנית|ששאלתם|ששאלת|ושלום|you|so|for|again|there|everyone|all)(?:\s|$)/iu.test(salutation)
+    && !String(known.customerName ?? '').includes(salutation.split(/\s+/u)[0])) return reject('unknown_name');
   // A thousands figure cut to "20, לשנה" reads as broken; fall back instead.
   if (/\d,\s+(?:לשנה|בשנה|לחודש|ק["״]?מ)|\d,\s+(?:per|a)\s+(?:year|month)\b/u.test(reply)) return reject('broken_number');
   if ((reply.match(/[?؟]/g) ?? []).length > 1) return reject('multiple_questions');

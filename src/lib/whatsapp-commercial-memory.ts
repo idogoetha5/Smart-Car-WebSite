@@ -15,7 +15,7 @@ export type CommercialMemory = {
   lowMileagePreferred?: boolean;
 };
 
-const NAMED_MODEL = /(?<![\p{L}\d])((?:טויוטה\s+|toyota\s+|יונדאי\s+|hyundai\s+|קיה\s+|kia\s+|סקודה\s+|skoda\s+|מאזדה\s+|mazda\s+|טסלה\s+|tesla\s+|סוזוקי\s+|suzuki\s+|פולקסווגן\s+|vw\s+|volkswagen\s+)?(?:קורולה|corolla|יאריס|yaris|ראב\s?4|rav\s?4|c-?hr|קאמרי|camry|i10|i20|i30|טוסון|tucson|קונה|kona|איוניק(?:\s?5)?|ioniq(?:\s?5)?|פיקנטו|picanto|ספורטאז['׳]?|sportage|נירו|niro|סיד|ceed|אוקטביה|octavia|פאביה|fabia|קודיאק|kodiaq|קארוק|karoq|cx-?5|cx-?30|מאזדה\s?3|mazda\s?3|סוויפט|swift|ויטרה|vitara|גולף|golf|מודל\s?(?:3|y)|model\s?(?:3|y)|אטו\s?3|atto\s?3|ZS|MG4)(?:\s+(?:היברידית|היברידי|חשמלית|חשמלי|hybrid|electric))?)(?![\p{L}\d])/iu;
+const NAMED_MODEL = /(?<![\p{L}\d])[לבמה]?((?:טויוטה\s+|toyota\s+|יונדאי\s+|hyundai\s+|קיה\s+|kia\s+|סקודה\s+|skoda\s+|מאזדה\s+|mazda\s+|טסלה\s+|tesla\s+|סוזוקי\s+|suzuki\s+|פולקסווגן\s+|vw\s+|volkswagen\s+)?(?:קורולה|corolla|יאריס|yaris|ראב\s?4|rav\s?4|c-?hr|קאמרי|camry|i10|i20|i30|טוסון|tucson|קונה|kona|איוניק(?:\s?5)?|ioniq(?:\s?5)?|פיקנטו|picanto|ספורטאז['׳]?|sportage|נירו|niro|סיד|ceed|אוקטביה|octavia|פאביה|fabia|קודיאק|kodiaq|קארוק|karoq|cx-?5|cx-?30|מאזדה\s?3|mazda\s?3|סוויפט|swift|ויטרה|vitara|גולף|golf|מודל\s?(?:3|y)|model\s?(?:3|y)|אטו\s?3|atto\s?3|ZS|MG4)(?:\s+(?:היברידית|היברידי|חשמלית|חשמלי|hybrid|electric))?)(?![\p{L}\d])/iu;
 const NUMBER = '(?<!\\d)(\\d{1,3}(?:[, ]\\d{3})+|\\d{1,7}(?:\\.\\d+)?)(?!\\d)';
 const amount = (value: string, scale?: string) => Number(value.replace(/[, ]/g, '')) * (scale ? 1000 : 1);
 

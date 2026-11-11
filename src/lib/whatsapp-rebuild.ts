@@ -2416,7 +2416,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   }
   // Leasing with term, mileage and vehicle known: offer the representative step instead of a generic question.
   if (!escalate && state.interest === 'leasing' && !state.handedOff && state.commercial?.termMonths != null && state.commercial?.annualMileageKm != null
-    && (state.commercial?.vehiclePreference != null || state.commercial?.vehicleModel) && !/נציג|representative|SmartCar team/iu.test(reply) && /[?؟]\s*$/u.test(reply.trim())) {
+    && (state.commercial?.vehiclePreference != null || state.commercial?.vehicleModel)
+    && !/תרצ(?:ה|ו).{0,30}(?:שאעביר|שנציג|שנחזור אליכם|שיחזרו אליכם|שנעביר)|would you like.{0,35}(?:pass|representative)/iu.test(reply)
+    && (/[?؟]\s*$/u.test(reply.trim()) && !/נציג|representative/iu.test(reply) || !/[?؟]/u.test(reply) && /נציג SmartCar\s+(?:יעזור|ישמח|יוכל|יעבור|יכין)|a SmartCar representative (?:can|will be happy to|will help)/iu.test(reply))) {
     const body = reply.trim().replace(/(?:^|(?<=[.!:\n]))[^.!:?؟\n]*[?؟]\s*$/u, '').trim();
     reply = `${body} ${he ? 'יש לי את התקופה, הקילומטראז׳ והרכב שביקשתם. תרצו שאעביר את הפרטים לנציג SmartCar להכנת הצעה מפורטת?' : 'I have your term, mileage and vehicle. Would you like me to pass them to a SmartCar representative for a detailed offer?'}`.trim();
   }
