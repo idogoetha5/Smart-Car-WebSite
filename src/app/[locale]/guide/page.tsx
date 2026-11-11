@@ -8,8 +8,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   return {
     title: {
       absolute: isHe
-        ? 'מדריך השכרת רכב בישראל | SmartCar'
-        : 'Guide to Car Rental in Israel | SmartCar',
+        ? 'מדריך השכרת רכב בישראל – מסמכים, ביטוח ונתב״ג | SmartCar'
+        : 'Renting a Car in Israel – Documents, Insurance & Airport | SmartCar',
     },
     description: isHe
       ? 'כל מה שצריך לדעת לפני שוכרים רכב בישראל: מסירה עד הבית מול איסוף בסוכנות, השכרה בנתב"ג, ביטוח, מסמכים, נהג חדש, וההבדל בין השכרה לליסינג.'

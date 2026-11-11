@@ -1,4 +1,5 @@
-import { localeAlternates } from '@/lib/seo';
+import JsonLd from '@/components/seo/JsonLd';
+import { localeAlternates, breadcrumbJsonLd } from '@/lib/seo';
 export const revalidate = 3600;
 
 import type { Metadata } from 'next';
@@ -12,11 +13,11 @@ export async function generateMetadata({
   const isHe = locale === 'he';
   return {
     title: {
-      absolute: isHe ? 'רכבים מהצי למכירה | SmartCar' : 'Fleet Vehicles for Sale | SmartCar',
+      absolute: isHe ? 'רכבים למכירה מצי SmartCar – מחירים וקילומטראז׳' : 'Cars for Sale from the SmartCar Fleet – Prices & Mileage',
     },
     description: isHe
-      ? 'רכבים נבחרים מצי SmartCar מוצעים למכירה מעת לעת. קבלו מידע ומסמכים לגבי הרכב הספציפי לפני קבלת החלטה.'
-      : 'Selected SmartCar fleet vehicles are offered for sale from time to time. Receive information and available documents for the specific vehicle before making a decision.',
+      ? 'רכבים משומשים מצי ההשכרה של SmartCar שמוצעים עכשיו למכירה, עם שנה, קילומטראז׳ ומחיר לכל רכב. פנו אלינו לפרטים ולמסמכים לפני ההחלטה.'
+      : 'Used cars from the SmartCar rental fleet currently for sale, with the year, mileage and price of each car. Contact us for details and documents before you decide.',
     alternates: localeAlternates(locale, 'cars-for-sale'),
   };
 }
@@ -71,6 +72,7 @@ export default async function CarsForSalePage({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" dir={isHe ? 'rtl' : 'ltr'}>
+      <JsonLd data={breadcrumbJsonLd(locale, [{ name: isHe ? 'רכבים למכירה' : 'Cars for sale', path: 'cars-for-sale' }])} />
       <div className="mb-10">
         <div className="flex items-center gap-2 text-[#B64916] mb-3">
           <Car className="w-5 h-5" />

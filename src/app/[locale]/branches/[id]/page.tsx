@@ -144,6 +144,16 @@ export default async function BranchDetailPage({
       '@type': 'City',
       name: isHe ? branch.cityHe : branch.cityEn,
     },
+    email: 'office@smartcar.co.il',
+    priceRange: '₪₪',
+    currenciesAccepted: 'ILS',
+    openingHoursSpecification: branch.id === 'airport'
+      ? [{ '@type': 'OpeningHoursSpecification', dayOfWeek: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], opens: '00:00', closes: '23:59' }]
+      : [
+          { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'], opens: '08:00', closes: '18:00' },
+          { '@type': 'OpeningHoursSpecification', dayOfWeek: 'Friday', opens: '08:30', closes: '14:00' },
+        ],
+    parentOrganization: { '@id': `${baseUrl.replace(/\/$/, '')}/#organization` },
   };
 
   const breadcrumbJsonLd = {

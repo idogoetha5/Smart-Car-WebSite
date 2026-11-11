@@ -22,12 +22,12 @@ export async function generateMetadata({
     // carries the brand.
     title: {
       absolute: isHe
-        ? 'השכרת רכב בישראל עם מסירה עד הבית | SmartCar'
-        : 'SmartCar | Car Rental Delivered Across Israel',
+        ? 'השכרת רכב עם מסירה עד הבית בכל הארץ | SmartCar'
+        : 'Car Rental in Israel with Delivery to Your Door | SmartCar',
     },
     description: isHe
-      ? 'יותר מ־400 רכבים, ארבעה סניפים, מסירה והחזרה בתיאום מראש ומענה אנושי 24/7. שלחו בקשת השכרה ונציג SmartCar יתאים לכם רכב מהצי המלא.'
-      : 'More than 400 vehicles, four branches, coordinated delivery and return, and 24/7 human support. Send a rental request and our team will match you with a vehicle from the full fleet.',
+      ? 'השכרת רכב ב-SmartCar: יותר מ־400 רכבים, ארבעה סניפים ומסירה עד הבית בכל הארץ. השכרה יומית, חודשית ולפי שעה, ליסינג ומענה אנושי 24/7.'
+      : 'Car rental in Israel with SmartCar: 400+ vehicles, four branches and delivery to your door anywhere in the country. Daily, monthly and hourly rental, leasing and 24/7 human support.',
     alternates: localeAlternates(locale),
   };
 }
@@ -121,7 +121,13 @@ export default async function HomePage({
     priceRange: '₪₪',
     currenciesAccepted: 'ILS',
     paymentAccepted: 'Cash, Credit Card',
-    openingHours: 'Su-Th 08:00-18:00',
+    openingHoursSpecification: [
+      { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'], opens: '08:00', closes: '18:00' },
+      { '@type': 'OpeningHoursSpecification', dayOfWeek: 'Friday', opens: '08:30', closes: '14:00' },
+    ],
+    image: `${baseUrl}/images/og-image.png`,
+    logo: `${baseUrl}/images/logo.png`,
+    parentOrganization: { '@id': `${baseUrl.replace(/\/$/, '')}/#organization` },
     address: {
       '@type': 'PostalAddress',
       streetAddress: isHe ? herzliya.streetHe : herzliya.streetEn,

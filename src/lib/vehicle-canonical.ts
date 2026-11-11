@@ -10,8 +10,17 @@ const equivalentFields = [
   'descriptionHe', 'descriptionEn', 'isAvailable', 'totalUnits',
 ] as const satisfies readonly (keyof Vehicle)[];
 
+// Office data entry sometimes leaves line breaks or double spaces inside a
+// value ("Backup \n  Camera"). That is not a real difference between two
+// listings, so compare text with whitespace collapsed.
+function normalise(value: unknown): unknown {
+  if (typeof value === 'string') return value.replace(/\s+/g, ' ').trim();
+  if (Array.isArray(value)) return value.map(normalise);
+  return value;
+}
+
 function fingerprint(vehicle: Vehicle): string {
-  return JSON.stringify(equivalentFields.map(field => vehicle[field] ?? null));
+  return JSON.stringify(equivalentFields.map(field => normalise(vehicle[field] ?? null)));
 }
 
 /** Stable across database tie ordering; newer duplicates retain the older URL. */

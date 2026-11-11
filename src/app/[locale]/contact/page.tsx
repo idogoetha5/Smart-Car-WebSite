@@ -1,5 +1,5 @@
-import { localeAlternates } from '@/lib/seo';
-import { getTranslations } from 'next-intl/server';
+import JsonLd from '@/components/seo/JsonLd';
+import { localeAlternates, breadcrumbJsonLd } from '@/lib/seo';
 import { Mail, MapPin, Clock } from 'lucide-react';
 import BranchesSection from '@/components/layout/BranchesSection';
 import ContactForm from '@/components/contact/ContactForm';
@@ -10,10 +10,9 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'nav' });
   const isHe = locale === 'he';
   return {
-    title: t('contact'),
+    title: { absolute: isHe ? 'צור קשר עם SmartCar – טלפון, וואטסאפ וסניפים' : 'Contact SmartCar – Phone, WhatsApp & Branches' },
     description: isHe
       ? 'צרו קשר עם SmartCar – חייגו 09-9509757, שלחו וואטסאפ או מייל לoffice@smartcar.co.il. נציג יחזור אליכם תוך שעה בשעות הפעילות א׳–ה׳ 8:00–18:00.'
       : 'Contact SmartCar – call 09-9509757, WhatsApp or email office@smartcar.co.il. A representative will respond within one hour, Sun–Thu 8:00–18:00.',
@@ -39,6 +38,7 @@ export default async function ContactPage({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <JsonLd data={breadcrumbJsonLd(locale, [{ name: isHe ? 'צור קשר' : 'Contact', path: 'contact' }])} />
       <div className="text-center mb-14">
         <h1 className="text-4xl font-black text-gray-900 mb-4">
           {isHe ? 'צור קשר' : "We're Here to Help"}

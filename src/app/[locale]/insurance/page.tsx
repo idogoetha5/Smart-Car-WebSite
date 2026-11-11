@@ -1,4 +1,5 @@
-import { localeAlternates } from '@/lib/seo';
+import JsonLd from '@/components/seo/JsonLd';
+import { localeAlternates, breadcrumbJsonLd } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -8,8 +9,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     title: {
       absolute:
         locale === 'he'
-          ? 'מידע על ביטוח והשתתפות בנזק | SmartCar'
-          : 'Insurance and Damage Participation | SmartCar',
+          ? 'ביטוח ברכב שכור, השתתפות עצמית ופיקדון | SmartCar'
+          : 'Rental Car Insurance, Excess & Deposit | SmartCar',
     },
     // Describes the page rather than asserting what any rental includes.
     // "הביטוח הכלול" / "the insurance included" stated cover as a fact, and no
@@ -17,8 +18,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     // survives in search results even after the page body is corrected.
     description:
       locale === 'he'
-        ? 'מידע על אפשרויות הביטוח, הפיקדון וההשתתפות בנזק בהשכרת רכב ב-SmartCar. התנאים המדויקים נקבעים בהצעה ובחוזה.'
-        : 'Information about insurance options, deposits and damage participation for a SmartCar rental. Exact terms are set out in the quote and the agreement.',
+        ? 'מה כולל הביטוח ברכב שכור ב-SmartCar, כמה הפיקדון וההשתתפות העצמית לפי סוג הרכב, ואיך מקטינים את ההשתתפות. התנאים המחייבים מופיעים בהצעה ובחוזה.'
+        : 'What SmartCar rental insurance covers, the deposit and excess for each car type, and how to reduce your excess. Binding terms are set out in the quote and the agreement.',
     alternates: localeAlternates(locale, 'insurance'),
   };
 }
@@ -54,6 +55,7 @@ export default async function InsurancePage({ params }: { params: Promise<{ loca
       className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 ${isHe ? 'text-right' : 'text-left'}`}
       dir={isHe ? 'rtl' : 'ltr'}
     >
+      <JsonLd data={breadcrumbJsonLd(locale, [{ name: isHe ? 'ביטוח והשתתפות עצמית' : 'Insurance', path: 'insurance' }])} />
       {/* Header */}
       <div className="mb-10">
         <p className="text-[#B64916] text-sm font-semibold uppercase tracking-widest mb-2">SmartCar</p>

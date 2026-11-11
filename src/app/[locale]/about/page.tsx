@@ -1,4 +1,5 @@
-import { localeAlternates } from '@/lib/seo';
+import JsonLd from '@/components/seo/JsonLd';
+import { localeAlternates, breadcrumbJsonLd } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -11,11 +12,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   return {
-    title: locale === 'he' ? 'אודות' : 'About',
+    title: { absolute: locale === 'he' ? 'אודות SmartCar – חברת השכרת רכב וליסינג ישראלית' : 'About SmartCar – Israeli Car Rental & Leasing Company' },
     description:
       locale === 'he'
-        ? 'הסיפור של SmartCar — חברת השכרה וליסינג ישראלית, ארבעה סניפים ושירות אישי בכל הארץ.'
-        : 'The SmartCar story — an Israeli rental and leasing company with four branches and personal service across the country.',
+        ? 'הכירו את SmartCar: חברת השכרת רכב וליסינג ישראלית עם ארבעה סניפים – הרצליה, תל אביב, ירושלים ונתב״ג – מסירה עד הבית ושירות אישי בכל הארץ.'
+        : 'Meet SmartCar: an Israeli car rental and leasing company with four branches – Herzliya, Tel Aviv, Jerusalem and Ben Gurion Airport – home delivery and personal service.',
     alternates: localeAlternates(locale, 'about'),
   };
 }
@@ -30,6 +31,7 @@ export default async function AboutPage({
 
   return (
     <div dir={isHe ? 'rtl' : 'ltr'} className="min-h-screen">
+      <JsonLd data={breadcrumbJsonLd(locale, [{ name: isHe ? 'אודות' : 'About', path: 'about' }])} />
 
       {/* Hero */}
       <div className="bg-[#0D2B2B] py-14 md:py-24 px-6 text-center relative overflow-hidden">

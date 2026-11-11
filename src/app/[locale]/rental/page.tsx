@@ -1,3 +1,5 @@
+import JsonLd from '@/components/seo/JsonLd';
+import { breadcrumbJsonLd } from '@/lib/seo';
 import { Suspense } from 'react';
 import { setRequestLocale } from 'next-intl/server';
 import { Car, ChevronRight, ChevronLeft } from 'lucide-react';
@@ -51,6 +53,7 @@ export default async function RentalPage({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10" dir={isHe ? 'rtl' : 'ltr'}>
+      <JsonLd data={breadcrumbJsonLd(locale, [{ name: isHe ? 'רכבים להשכרה' : 'Rental cars', path: 'rental' }])} />
       <div className="mb-10">
         <div className="flex items-center gap-2 text-blue-600 mb-3">
           <Car className="w-5 h-5" aria-hidden="true" />

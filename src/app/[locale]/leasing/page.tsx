@@ -1,4 +1,5 @@
-import { localeAlternates, ogImage } from '@/lib/seo';
+import JsonLd from '@/components/seo/JsonLd';
+import { localeAlternates, ogImage, breadcrumbJsonLd } from '@/lib/seo';
 import type { Metadata } from 'next';
 import PublicRentalAdvice from '@/components/content/PublicRentalAdvice';
 import { LEASING_CATALOG_SEARCH, SERVICE_RENTAL_ADVICE, rentalCopy } from '@/lib/public-rental-content';
@@ -163,6 +164,7 @@ export default async function LeasingPage({
 
   return (
     <div>
+      <JsonLd data={breadcrumbJsonLd(locale, [{ name: isHe ? 'ליסינג' : 'Leasing', path: 'leasing' }])} />
 
       {/* ── HERO ──────────────────────────────────────────────── */}
       <section className="bg-[#0D2B2B] text-white py-20">

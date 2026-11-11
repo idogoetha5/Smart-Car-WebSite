@@ -192,15 +192,16 @@ export function isDeliveryRegion(city: DeliveryCity): boolean {
 /** A service area is not an additional branch or a promise of stock. */
 export function deliverySearchCopy(city: DeliveryCity, locale: string) {
   const isHe = locale === 'he';
+  const where = isHe ? hePrefix('ב', city.nameHe) : city.nameEn;
   const heading = isHe
-    ? `השכרת רכב ${hePrefix('ב', city.nameHe)} – מסירה בתיאום`
-    : `Car Rental in ${city.nameEn} – Arranged Delivery`;
+    ? `השכרת רכב ${where} – מסירה עד הבית`
+    : `Car Rental in ${city.nameEn} – Delivered to Your Door`;
   return {
     heading,
     title: `${heading} | SmartCar`,
     description: isHe
-      ? `צריכים רכב ${hePrefix('ב', city.nameHe)}? אפשר לתאם מסירה והחזרה עם SmartCar. שלחו כתובת ותאריכים ונבדוק זמינות, עלות מסירה ואפשרות לאיסוף בסניף.`
-      : `Need a car in ${city.nameEn}? Arrange delivery and return with SmartCar. Send your address and dates to check availability, delivery costs or branch collection.`,
+      ? `השכרת רכב ${where} עם מסירה עד הבית: SmartCar מביאה את הרכב לכתובת שלכם ואוספת אותו בסוף ההשכרה. השכרה יומית או חודשית – שלחו כתובת ותאריכים ונבדוק זמינות.`
+      : `Car rental in ${city.nameEn} delivered to your door: SmartCar brings the car to your address and collects it at the end. Daily or monthly – send your address and dates.`,
   };
 }
 

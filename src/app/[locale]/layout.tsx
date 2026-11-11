@@ -4,7 +4,9 @@ import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server
 import { Nunito, Heebo } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { locales } from '../../../i18n';
-import { localeAlternates, ogImage } from '@/lib/seo';
+import { localeAlternates, ogImage, siteUrl, ORGANIZATION_ID } from '@/lib/seo';
+import JsonLd from '@/components/seo/JsonLd';
+import { FACEBOOK_PAGE_URL } from '@/lib/constants';
 import Navbar from '@/components/layout/Navbar';
 import AccessibilityButton from '@/components/ui/AccessibilityButton';
 import Footer from '@/components/layout/Footer';
@@ -66,6 +68,43 @@ export async function generateMetadata({
   };
 }
 
+/** Who the site belongs to and what it is called, on every public page. */
+function siteJsonLd(locale: string) {
+  const base = siteUrl();
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': `${base}${ORGANIZATION_ID}`,
+        name: 'SmartCar',
+        alternateName: ['סמארט קאר', 'Smart Car', 'SmartCar Israel'],
+        url: base,
+        logo: `${base}/images/logo.png`,
+        email: 'office@smartcar.co.il',
+        telephone: '+972-9-9509757',
+        sameAs: [FACEBOOK_PAGE_URL],
+        contactPoint: [{
+          '@type': 'ContactPoint',
+          telephone: '+972-9-9509757',
+          contactType: 'customer service',
+          areaServed: 'IL',
+          availableLanguage: ['Hebrew', 'English'],
+        }],
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${base}/#website`,
+        url: base,
+        name: 'SmartCar',
+        alternateName: 'סמארט קאר',
+        inLanguage: locale === 'he' ? 'he-IL' : 'en',
+        publisher: { '@id': `${base}${ORGANIZATION_ID}` },
+      },
+    ],
+  };
+}
+
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
@@ -111,6 +150,7 @@ export default async function LocaleLayout({
           isRTL ? 'font-[family-name:var(--font-heebo)]' : 'font-[family-name:var(--font-nunito)]'
         }`}
       >
+        <JsonLd data={siteJsonLd(locale)} />
         <NextIntlClientProvider messages={messages}>
           <a
             href="#main-content"

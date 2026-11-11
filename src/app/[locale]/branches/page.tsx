@@ -1,6 +1,7 @@
+import JsonLd from '@/components/seo/JsonLd';
 import { BRANCHES as ALL_BRANCHES, BRANCH_HOURS, mapsUrl, wazeUrl, type BranchId } from '@/lib/branches';
 import { DELIVERY_CITIES } from '@/lib/delivery-cities';
-import { localeAlternates } from '@/lib/seo';
+import { localeAlternates, breadcrumbJsonLd } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -13,10 +14,10 @@ export async function generateMetadata({
   const { locale } = await params;
   const isHe = locale === 'he';
   return {
-    title: { absolute: isHe ? 'השכרת רכב בישראל – סניפים ומסירה | SmartCar' : 'SmartCar Car Rental Branches' },
+    title: { absolute: isHe ? 'סניפי SmartCar – הרצליה, תל אביב, ירושלים ונתב״ג' : 'SmartCar Branches – Herzliya, Tel Aviv, Jerusalem & Airport' },
     description: isHe
-      ? 'סניפים בהרצליה, תל אביב, ירושלים ונתב"ג, ומסירה בתיאום מראש בכל הארץ.'
-      : 'SmartCar has 4 branches across Israel: Herzliya, Tel Aviv, Jerusalem and Ben Gurion Airport. Visit us or book a car delivered straight to you.',
+      ? 'סניפי השכרת הרכב של SmartCar בהרצליה, בתל אביב, בירושלים ובנתב״ג – כתובות, טלפונים ושעות פתיחה, ומסירת רכב עד הבית בכל הארץ בתיאום מראש.'
+      : 'SmartCar car rental branches in Herzliya, Tel Aviv, Jerusalem and Ben Gurion Airport – addresses, phone numbers and opening hours, plus delivery anywhere in Israel.',
     alternates: localeAlternates(locale, 'branches'),
   };
 }
@@ -67,6 +68,7 @@ export default async function BranchesPage({
 
   return (
     <div dir={isHe ? 'rtl' : 'ltr'} className="min-h-screen bg-gray-50">
+      <JsonLd data={breadcrumbJsonLd(locale, [{ name: isHe ? 'סניפים' : 'Branches', path: 'branches' }])} />
 
       {/* Hero */}
       <div className="bg-[#0D2B2B] py-16 text-center">

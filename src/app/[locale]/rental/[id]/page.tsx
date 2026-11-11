@@ -32,7 +32,7 @@ export async function generateMetadata({
   const vehicle = await getVehicle(id).catch(() => null);
   if (!vehicle) return {};
   const fleet = await getRentalPageVehicles().catch(() => []);
-  return vehicleSearchMetadata(vehicle, locale, preferredVehicleId(vehicle, fleet));
+  return vehicleSearchMetadata(vehicle, locale, preferredVehicleId(vehicle, fleet), fleet);
 }
 
 // No searchParams here on purpose: reading them made every visit a fresh

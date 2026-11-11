@@ -28,6 +28,12 @@ describe('conservative public model canonical URLs', () => {
     expect(canonicalVehicles([duplicate, original])).toEqual([original]);
     expect(JSON.stringify([duplicate, original])).toBe(before);
   });
+  it('treats stray line breaks and spaces in office-entered text as the same listing', () => {
+    const spaced = { ...duplicate, features: ['Panoramic \n  roof'], descriptionEn: ' Description ' };
+    expect(preferredVehicleId(spaced, [spaced, original])).toBe(original.id);
+    const different = { ...duplicate, features: ['Sunroof'] };
+    expect(preferredVehicleId(different, [different, original])).toBe(different.id);
+  });
   it('breaks creation-date ties deterministically', () => {
     const sameDate = { ...duplicate, createdAt: original.createdAt };
     expect(preferredVehicleId(sameDate, [sameDate, original])).toBe(original.id);

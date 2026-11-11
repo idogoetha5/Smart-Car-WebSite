@@ -56,3 +56,26 @@ export const NOINDEX: Metadata['robots'] = {
   follow: false,
   googleBot: { index: false, follow: false },
 };
+
+/** Absolute site origin used inside structured data (same source as the sitemap). */
+export function siteUrl(): string {
+  return (process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il').replace(/\/$/, '');
+}
+
+export const ORGANIZATION_ID = '/#organization';
+
+/** BreadcrumbList for a public page: Home › … › current page. */
+export function breadcrumbJsonLd(locale: string, trail: { name: string; path: string }[]) {
+  const base = siteUrl();
+  const items = [{ name: locale === 'he' ? 'ראשי' : 'Home', path: '' }, ...trail];
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      item: `${base}/${locale}${item.path ? `/${item.path}` : ''}`,
+    })),
+  };
+}
