@@ -221,7 +221,7 @@ function AccidentReportsAdmin() {
 
             <section className="grid grid-cols-2 gap-3 border-t border-gray-100 pt-4">
               <KV k="רכב" v={`${formatPlate(r.car.plate)}`} ltr /><KV k="דגם" v={r.car.model} />
-              <KV k="נהג" v={r.driver.name} /><KV k="ת.ז." v={r.driver.idNumber} ltr />
+              <KV k="נהג" v={r.driver.name} /><KV k={r.driver.idType === 'passport' ? 'דרכון' : 'ת.ז.'} v={r.driver.idNumber} ltr />
               <KV k="טלפון" v={r.driver.phone} ltr /><KV k="מייל" v={r.driver.email} ltr />
               <KV k="רישיון" v={r.driver.licenseNumber} ltr /><KV k="תוקף" v={`${r.driver.licenseExpiry.d}.${r.driver.licenseExpiry.m}.${r.driver.licenseExpiry.y}`} ltr />
               <div className="col-span-2"><KV k="כתובת" v={r.driver.address} /></div>
@@ -244,7 +244,7 @@ function AccidentReportsAdmin() {
                 <>
                   <KV k="צד ג' – רכב" v={formatPlate(r.other.plate)} ltr /><KV k="סוג ודגם" v={r.other.model} />
                   <KV k="ביטוח" v={insurerName(r.other)} /><KV k="פוליסה" v={r.other.policy} ltr />
-                  <KV k="בעל הרכב" v={r.other.ownerName} /><KV k="ת.ז." v={r.other.ownerId} ltr />
+                  <KV k="בעל הרכב" v={r.other.ownerName} /><KV k={r.other.ownerIdType === 'passport' ? 'דרכון' : 'ת.ז.'} v={r.other.ownerId} ltr />
                   <KV k="טלפון" v={r.other.ownerPhone} ltr /><KV k="סוכן" v={r.other.agent} />
                   <div className="col-span-2"><KV k="כתובת" v={r.other.ownerAddress} /></div>
                 </>

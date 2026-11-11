@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, onTestFinished } from 'vitest';
 import { getRebuiltBotReply, isRebuiltSafetyMessage, type RebuildState, type RebuildStore } from '@/lib/whatsapp-rebuild';
 import type { BotReading } from '@/lib/whatsapp-rebuild-gemini';
 
@@ -672,6 +672,11 @@ describe('replacement SmartCar conversation core', () => {
   });
 
   it('completes a model-free rental conversation only after age, contact details and consent', async () => {
+    // "10 to 13 November" has no year: pin "today" before it so the dates stay
+    // in 2026 whenever the suite runs (only Date is faked; timers stay real).
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-25T12:00:00Z'));
+    onTestFinished(() => { vi.useRealTimers(); });
     const chat = memory(() => null);
     const start = await chat.send('אני רוצה לשכור רכב משפחתי מ-10 עד 13 בנובמבר, איסוף בהרצליה והחזרה באותו מקום');
     expect(start.state.step).toBe('rental_age');

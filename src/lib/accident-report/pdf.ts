@@ -132,7 +132,7 @@ ${cell('מספר רכב', ltr(formatPlate(r.car.plate)))}${cell('דגם', esc(r.
 </div></div>
 
 <div class="sec"><h2>פרטי הנהג</h2><div class="grid">
-${cell('שם הנהג', esc(r.driver.name))}${cell('ת.ז.', ltr(r.driver.idNumber))}${cell('טלפון', ltr(r.driver.phone))}${cell('מספר רישיון', ltr(r.driver.licenseNumber))}
+${cell('שם הנהג', esc(r.driver.name))}${cell(r.driver.idType === 'passport' ? 'דרכון' : 'ת.ז.', ltr(r.driver.idNumber))}${cell('טלפון', ltr(r.driver.phone))}${cell('מספר רישיון', ltr(r.driver.licenseNumber))}
 ${cell('תוקף רישיון', ltr(`${exp.d.padStart(2, '0')}.${exp.m.padStart(2, '0')}.${exp.y}`))}${cell('מייל', ltrOrDash(r.driver.email))}${cell('כתובת מגורים', esc(r.driver.address), 2)}
 </div></div>
 
@@ -154,7 +154,7 @@ ${cell('מס\' יומן', r.accident.police ? ltrOrDash(r.accident.policeReport)
     o.involved
       ? `<div class="grid">
 ${cell('מספר רכב', ltr(formatPlate(o.plate)))}${cell('סוג ודגם הרכב', esc(o.model))}${cell('חברת ביטוח', esc(insurerName(o)))}${cell('מספר פוליסה', ltr(o.policy))}
-${cell('שם בעל הרכב', esc(o.ownerName))}${cell('ת.ז. בעל הרכב', ltr(o.ownerId))}${cell('טלפון', o.ownerPhone ? ltr(o.ownerPhone) : '—')}${cell('שם סוכן', orDash(o.agent))}
+${cell('שם בעל הרכב', esc(o.ownerName))}${cell(o.ownerIdType === 'passport' ? 'דרכון בעל הרכב' : 'ת.ז. בעל הרכב', ltr(o.ownerId))}${cell('טלפון', o.ownerPhone ? ltr(o.ownerPhone) : '—')}${cell('שם סוכן', orDash(o.agent))}
 ${cell('כתובת', esc(o.ownerAddress), 4)}
 </div>`
       : `<div class="c"><span class="v">לא היה רכב נוסף מעורב בתאונה.</span></div>`

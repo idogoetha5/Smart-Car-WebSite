@@ -84,11 +84,52 @@ export function isValidIsraeliId(raw: string): boolean {
   return sum % 10 === 0;
 }
 
-/** Israeli phone: 9–10 digits starting with 0, or international +972. */
-export function isValidPhone(raw: string): boolean {
+/** Israeli phone: 9–10 digits starting with 0 (or +972). */
+function isIsraeliPhone(raw: string): boolean {
   let d = digits(raw);
   if (d.startsWith('972')) d = '0' + d.slice(3);
   return /^0\d{8,9}$/.test(d);
+}
+
+/**
+ * International phone with country code, for tourists: "+44 7700 900123",
+ * "0044…" or the bare digits "971503343353". 10–15 digits after the country
+ * code prefix; a leading single 0 means a local Israeli number instead.
+ */
+function isInternationalPhone(raw: string): boolean {
+  let d = digits(raw);
+  if (d.startsWith('00')) d = d.slice(2);
+  else if (d.startsWith('0')) return false;
+  return d.length >= 10 && d.length <= 15;
+}
+
+/** Israeli or international phone number. */
+export function isValidPhone(raw: string): boolean {
+  return isIsraeliPhone(raw) || isInternationalPhone(raw);
+}
+
+/** Israeli numbers as typed; international ones as "+<digits>" so the office can dial them. */
+export function normalizePhone(raw: string): string {
+  const t = raw.trim();
+  if (isIsraeliPhone(t) || !isInternationalPhone(t)) return t;
+  let d = digits(t);
+  if (d.startsWith('00')) d = d.slice(2);
+  return `+${d}`;
+}
+
+export type IdType = 'il' | 'passport';
+
+/** Passport number: letters and digits only, 5–20 characters. */
+export function normalizePassport(raw: string): string {
+  return raw.replace(/[\s-]/g, '').toUpperCase();
+}
+export function isValidPassport(raw: string): boolean {
+  return /^[A-Z0-9]{5,20}$/.test(normalizePassport(raw));
+}
+
+/** Israeli ID (check digit) or, for tourists, a passport number. */
+export function isValidIdOf(type: IdType | undefined, raw: string): boolean {
+  return type === 'passport' ? isValidPassport(raw) : isValidIsraeliId(raw);
 }
 
 export function isValidPlate(raw: string): boolean {
@@ -137,7 +178,8 @@ export const reportSchema = z
     }),
     driver: z.object({
       name: req(120),
-      idNumber: req(12).refine(isValidIsraeliId),
+      idType: z.enum(['il', 'passport']).default('il'),
+      idNumber: req(20),
       phone: req(20).refine(isValidPhone),
       address: req(200),
       email: z.union([z.literal(''), z.string().trim().email().max(160)]),
@@ -165,7 +207,8 @@ export const reportSchema = z
       policy: str(60),
       agent: str(120),
       ownerName: str(120),
-      ownerId: str(12),
+      ownerIdType: z.enum(['il', 'passport']).default('il'),
+      ownerId: str(20),
       ownerPhone: str(20),
       ownerAddress: str(200),
       docsPhoto: storagePath.optional(),
@@ -181,6 +224,9 @@ export const reportSchema = z
     turnstileToken: z.string().optional(),
   })
   .superRefine((v, ctx) => {
+    if (!isValidIdOf(v.driver.idType, v.driver.idNumber)) {
+      ctx.addIssue({ code: 'custom', path: ['driver', 'idNumber'], message: 'invalid id' });
+    }
     if (v.accident.police && (!v.accident.policeStation || !v.accident.policeReport)) {
       ctx.addIssue({ code: 'custom', path: ['accident', 'policeStation'], message: 'police details required' });
     }
@@ -193,7 +239,7 @@ export const reportSchema = z
         (o.insurer === 'other' && !o.insurerOther) ||
         !o.policy ||
         !o.ownerName ||
-        !isValidIsraeliId(o.ownerId) ||
+        !isValidIdOf(o.ownerIdType, o.ownerId) ||
         (!!o.ownerPhone && !isValidPhone(o.ownerPhone)) ||
         !o.ownerAddress ||
         !v.damage.theirs;

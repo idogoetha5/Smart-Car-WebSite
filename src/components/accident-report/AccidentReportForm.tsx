@@ -19,7 +19,10 @@ import {
   formatPlate,
   insurerName,
   isValidDateParts,
-  isValidIsraeliId,
+  isValidIdOf,
+  normalizePassport,
+  normalizePhone,
+  type IdType,
   isValidLicenseNumber,
   isValidPhone,
   isValidPlate,
@@ -43,6 +46,7 @@ interface FormState {
   model: string;
   name: string;
   idNumber: string;
+  idType: IdType;
   phone: string;
   address: string;
   email: string;
@@ -70,6 +74,7 @@ interface FormState {
   agent: string;
   ownerName: string;
   ownerId: string;
+  ownerIdType: IdType;
   ownerPhone: string;
   ownerAddress: string;
   docsPhoto: Upload | null;
@@ -82,12 +87,12 @@ interface FormState {
 }
 
 const EMPTY: FormState = {
-  plate: '', model: '', name: '', idNumber: '', phone: '', address: '', email: '',
+  plate: '', model: '', name: '', idNumber: '', idType: 'il', phone: '', address: '', email: '',
   licenseNumber: '', expD: '', expM: '', expY: '', licensePhoto: null,
   dateChoice: '', dateOther: '', time: '', location: '', roadType: '', description: '',
   injured: null, police: null, policeStation: '', policeReport: '',
   otherInvolved: null, otherPlate: '', otherModel: '', insurer: '', insurerOther: '', policy: '', agent: '',
-  ownerName: '', ownerId: '', ownerPhone: '', ownerAddress: '', docsPhoto: null,
+  ownerName: '', ownerId: '', ownerIdType: 'il', ownerPhone: '', ownerAddress: '', docsPhoto: null,
   photos: [], zones: [], damageOurs: '', damageTheirs: '', signature: '', declaration: false,
 };
 
@@ -144,7 +149,11 @@ function validate(step: number, f: FormState, t: (typeof T)['he']): Errors {
       break;
     case 1:
       need('name', t.errName);
-      if (!isValidIsraeliId(f.idNumber)) e.idNumber = f.idNumber ? t.errIdInvalid : t.errId;
+      if (!isValidIdOf(f.idType, f.idNumber)) {
+        e.idNumber = f.idType === 'passport'
+          ? (f.idNumber ? t.errPassportInvalid : t.errPassport)
+          : (f.idNumber ? t.errIdInvalid : t.errId);
+      }
       if (!isValidPhone(f.phone)) e.phone = f.phone ? t.errPhoneInvalid : t.errPhone;
       need('address', t.errAddress);
       if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) e.email = t.errEmail;
@@ -183,7 +192,11 @@ function validate(step: number, f: FormState, t: (typeof T)['he']): Errors {
       break;
     case 8:
       need('ownerName', t.errOwnerName);
-      if (!isValidIsraeliId(f.ownerId)) e.ownerId = f.ownerId ? t.errIdInvalid : t.errOwnerId;
+      if (!isValidIdOf(f.ownerIdType, f.ownerId)) {
+        e.ownerId = f.ownerIdType === 'passport'
+          ? (f.ownerId ? t.errPassportInvalid : t.errPassport)
+          : (f.ownerId ? t.errIdInvalid : t.errOwnerId);
+      }
       if (f.ownerPhone.trim() && !isValidPhone(f.ownerPhone)) e.ownerPhone = t.errPhoneInvalid;
       need('ownerAddress', t.errOwnerAddress);
       break;
@@ -596,8 +609,9 @@ export default function AccidentReportForm({ locale, branch, token }: { locale: 
       car: { plate: f.plate, model: f.model.trim() },
       driver: {
         name: f.name.trim(),
-        idNumber: digits(f.idNumber),
-        phone: f.phone.trim(),
+        idType: f.idType,
+        idNumber: f.idType === 'passport' ? normalizePassport(f.idNumber) : digits(f.idNumber),
+        phone: normalizePhone(f.phone),
         address: f.address.trim(),
         email: f.email.trim(),
         licenseNumber: digits(f.licenseNumber),
@@ -624,8 +638,9 @@ export default function AccidentReportForm({ locale, branch, token }: { locale: 
         policy: other ? f.policy.trim() : '',
         agent: other ? f.agent.trim() : '',
         ownerName: other ? f.ownerName.trim() : '',
-        ownerId: other ? digits(f.ownerId) : '',
-        ownerPhone: other ? f.ownerPhone.trim() : '',
+        ownerIdType: f.ownerIdType,
+        ownerId: other ? (f.ownerIdType === 'passport' ? normalizePassport(f.ownerId) : digits(f.ownerId)) : '',
+        ownerPhone: other ? normalizePhone(f.ownerPhone) : '',
         ownerAddress: other ? f.ownerAddress.trim() : '',
         docsPhoto: other ? f.docsPhoto?.path : undefined,
       },
@@ -903,7 +918,7 @@ export default function AccidentReportForm({ locale, branch, token }: { locale: 
           {ErrorSummary()}
           {rows(t.secCar, 0, [[t.plateShort, formatPlate(f.plate)], [t.modelShort, f.model]])}
           {rows(t.secDriver, 1, [
-            [t.nameShort, f.name], [t.idShort, f.idNumber], [t.phoneShort, f.phone], [t.addressShort, f.address],
+            [t.nameShort, f.name], [f.idType === 'passport' ? t.passportShort : t.idShort, f.idNumber], [t.phoneShort, f.phone], [t.addressShort, f.address],
             [t.licenseShort, `${f.licenseNumber} · ${t.validUntil} ${f.expD}.${f.expM}.${f.expY}`],
           ])}
           {rows(t.secAccident, 3, [
@@ -916,7 +931,7 @@ export default function AccidentReportForm({ locale, branch, token }: { locale: 
             ? [
                 [t.vehicleShort, `${formatPlate(f.otherPlate)} · ${f.otherModel}`],
                 [t.insuranceShort, `${insurerName({ insurer: f.insurer, insurerOther: f.insurerOther }, L)} · ${f.policy}`],
-                [t.ownerShort, `${f.ownerName} · ${f.ownerId}`], [t.phoneShort, f.ownerPhone || '—'], [t.addressShort, f.ownerAddress],
+                [t.ownerShort, `${f.ownerName} · ${f.ownerIdType === 'passport' ? t.passportShort : t.idShort} ${f.ownerId}`], [t.phoneShort, f.ownerPhone || '—'], [t.addressShort, f.ownerAddress],
               ]
             : [[t.vehicleShort, t.noOtherVehicle]])}
           {rows(t.secDamage, 9, [
@@ -990,6 +1005,29 @@ export default function AccidentReportForm({ locale, branch, token }: { locale: 
     );
   };
 
+  /** ID field with a switch to a passport number, for tourists. */
+  const idField = (k: 'idNumber' | 'ownerId', typeKey: 'idType' | 'ownerIdType') => {
+    const passport = f[typeKey] === 'passport';
+    return (
+      <div className="flex flex-col gap-1.5">
+        {passport
+          ? text(k, t.passportLabel, { hint: t.passportHint, ltr: true })
+          : text(k, t.idLabel, { hint: t.idHint, ltr: true, mode: 'numeric' })}
+        <button
+          type="button"
+          onClick={() => {
+            set(typeKey, (passport ? 'il' : 'passport') as never);
+            set(k, '' as never);
+            setTouched((p) => ({ ...p, [k]: false }));
+          }}
+          className="self-start min-h-11 text-[15px] font-semibold text-brand-600 underline"
+        >
+          {passport ? t.useIsraeliId : t.usePassport}
+        </button>
+      </div>
+    );
+  };
+
   const lockedRow = (k: 'name' | 'idNumber' | 'phone', label: string, ltr = false) => (
     <div className="flex items-center justify-between border-b border-[#EEF1F1] py-2.5 last:border-0">
       <div className="flex flex-col gap-0.5">
@@ -1014,8 +1052,8 @@ export default function AccidentReportForm({ locale, branch, token }: { locale: 
           )}
           <Card>
             {!locked.name && text('name', t.nameLabel, { auto: 'name' })}
-            {!locked.idNumber && text('idNumber', t.idLabel, { hint: t.idHint, ltr: true, mode: 'numeric' })}
-            {!locked.phone && text('phone', t.phoneLabel, { ltr: true, mode: 'tel', auto: 'tel', type: 'tel' })}
+            {!locked.idNumber && idField('idNumber', 'idType')}
+            {!locked.phone && text('phone', t.phoneLabel, { hint: t.phoneHint, ltr: true, mode: 'tel', auto: 'tel', type: 'tel' })}
             {text('address', t.addressLabel, { hint: t.addressHint, auto: 'street-address' })}
             {text('email', t.emailLabel, { hint: t.emailHint, optional: true, ltr: true, mode: 'email', auto: 'email', type: 'email' })}
           </Card>
@@ -1181,8 +1219,8 @@ export default function AccidentReportForm({ locale, branch, token }: { locale: 
         <>
           <Card>
             {text('ownerName', t.ownerNameLabel)}
-            {text('ownerId', t.idLabel, { hint: t.idHint, ltr: true, mode: 'numeric' })}
-            {text('ownerPhone', t.phoneLabel, { optional: true, ltr: true, mode: 'tel', type: 'tel' })}
+            {idField('ownerId', 'ownerIdType')}
+            {text('ownerPhone', t.phoneLabel, { hint: t.phoneHint, optional: true, ltr: true, mode: 'tel', type: 'tel' })}
             {text('ownerAddress', t.addressLabel, { hint: t.ownerAddressHint })}
           </Card>
           <Card>
