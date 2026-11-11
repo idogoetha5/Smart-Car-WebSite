@@ -413,13 +413,13 @@ export default function VerificationForm({ locale, token }: { locale: Lang; toke
           <div className="flex flex-col gap-1.5">
             <label htmlFor="cv-card" className="text-[16px] font-semibold">{t.cardNumber}</label>
             <Err msg={errors.card} />
-            <div className="relative">
+            <div className="relative" dir="ltr">
               <input
                 id="cv-card" dir="ltr" inputMode="numeric" autoComplete="cc-number" placeholder="0000 0000 0000 0000"
-                value={formatCardNumber(card)} onChange={(e) => setCard(digitsOnly(e.target.value).slice(0, 19))}
-                className={`${inputCls(errors.card)} pe-28 tracking-wider`} aria-invalid={!!errors.card}
+                value={formatCardNumber(card)} onChange={(e) => { setCard(digitsOnly(e.target.value).slice(0, 19)); setErrors((x) => ({ ...x, card: '' })); }}
+                className={`${inputCls(errors.card)} pr-24`} aria-invalid={!!errors.card}
               />
-              <span dir="ltr" className="pointer-events-none absolute end-4 top-1/2 flex -translate-y-1/2 items-center gap-1.5 text-[14px] font-semibold text-[#4A6264]">
+              <span className="pointer-events-none absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-1.5 text-[14px] font-semibold text-[#4A6264]">
                 <CreditCard className="h-5 w-5" aria-hidden />{brand && brand !== 'other' ? BRAND_LABEL[brand] : ''}
               </span>
             </div>
@@ -434,6 +434,7 @@ export default function VerificationForm({ locale, token }: { locale: Lang; toke
               onChange={(e) => {
                 const d = digitsOnly(e.target.value).slice(0, 4);
                 setExp(d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d);
+                setErrors((x) => ({ ...x, exp: '' }));
               }}
               className={`${inputCls(errors.exp)} max-w-[180px] text-center`} aria-invalid={!!errors.exp}
             />
@@ -444,7 +445,7 @@ export default function VerificationForm({ locale, token }: { locale: Lang; toke
             <Err msg={errors.id} />
             <input
               id="cv-id" dir="ltr" inputMode={foreign ? 'text' : 'numeric'} autoComplete="off"
-              value={holderId} onChange={(e) => setHolderId(e.target.value.slice(0, 20))}
+              value={holderId} onChange={(e) => { setHolderId(e.target.value.slice(0, 20)); setErrors((x) => ({ ...x, id: '' })); }}
               className={inputCls(errors.id)} aria-invalid={!!errors.id}
             />
             <label className="mt-1 flex min-h-11 cursor-pointer items-center gap-3 text-[15px] text-[#33494B]">
