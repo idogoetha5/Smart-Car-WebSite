@@ -321,3 +321,17 @@ describe('jerusalem family rental', () => {
     expect(r.state.booking.customerName).toBeUndefined();
   });
 });
+
+describe('hebrew adults and children count', () => {
+  it.each([['אנחנו 2 מבוגרים ו3 ילדים', 5], ['שני מבוגרים ושלושה ילדים', 5], ['3 מבוגרים עם 2 ילדים', 5]])('%s', async (phrase, n) => {
+    const r = await chat(null, 'x').send(`היי צריך רכב 7 מקומות מירושלים, מה-18.12 לארבעה ימים. ${phrase}`);
+    expect(r.state.booking.passengers).toBe(n);
+  });
+});
+
+describe('booster seat question', () => {
+  it.each(['לירושלים חזרה. יש לכם כיסא בוסטר?', 'do you have a booster?', 'רגע אנחנו 5 לא 2, ותוסיף בוסטר אחד', 'please add one booster seat'])('stores one seat: %s', async (input) => {
+    const r = await chat(null, 'x').send(input);
+    expect(r.state.booking.childSeats).toBe(1);
+  });
+});

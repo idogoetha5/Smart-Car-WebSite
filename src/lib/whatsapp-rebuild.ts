@@ -634,7 +634,7 @@ function applyPromptedLocation(input: string, state: RebuildState, lastBot: stri
 }
 
 function statedCount(value: string): number | null {
-  const words: Record<string, number> = { אחד: 1, אחת: 1, שניים: 2, שתיים: 2, שתי: 2, שלושה: 3, שלוש: 3, ארבעה: 4, ארבע: 4, חמישה: 5, חמש: 5, שישה: 6, שש: 6, שבעה: 7, שבע: 7, שמונה: 8, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8 };
+  const words: Record<string, number> = { אחד: 1, אחת: 1, שניים: 2, שתיים: 2, שתי: 2, שני: 2, שלושה: 3, שלוש: 3, ארבעה: 4, ארבע: 4, חמישה: 5, חמש: 5, שישה: 6, שש: 6, שבעה: 7, שבע: 7, שמונה: 8, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8 };
   const count = /^\d{1,2}$/.test(value) ? Number(value) : words[value.toLocaleLowerCase()] ?? null;
   return count !== null && count > 0 && count <= 20 ? count : null;
 }
@@ -687,7 +687,8 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   if (coupleWithChild) draft.passengers = 3;
   if (passengerCount === null && explicitPartnerAndChildGroup(input)) draft.passengers = 3;
   if (/זוג עם (?:שני|שתי) ילדים|זוג ושני ילדים|(?:we are a )?couple with two children/i.test(input)) draft.passengers = 4;
-  const adultsAndChildren = input.match(new RegExp(`${count}\\s+adults?\\s+(?:and|with)\\s+${count}\\s+(?:children|kids)`, 'iu'));
+  const adultsAndChildren = input.match(new RegExp(`${count}\\s+adults?\\s+(?:and|with)\\s+${count}\\s+(?:children|kids)`, 'iu'))
+    ?? input.match(new RegExp(`(\\d{1,2}|שני|שתי|שלושה|ארבעה|one|two)\\s+מבוגרים\\s+(?:ו|עם\\s*)[־-]?\\s*${count}\\s+(?:ילדים|ילדות|ילדות)(?![\\p{L}])`, 'u'));
   if (adultsAndChildren) {
     const adults = statedCount(adultsAndChildren[1]);
     const children = statedCount(adultsAndChildren[2]);
@@ -697,7 +698,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   const singularLuggage = input.match(/מזוודה(?![\p{L}])|תיק(?: נסיעה)? אחד(?![\p{L}])/iu);
   if (draft.luggage === undefined && singularLuggage && !negatedLuggageMention(input, singularLuggage.index!)) draft.luggage = 1;
   if (/תינוק|baby|infant/i.test(input)) draft.childSeats ??= 1;
-  if (/(?:can (?:you|we|i) (?:provide|add|include|arrange|request)|do you (?:provide|have|offer)|אפשר (?:לקבל|להוסיף)|תוכלו (?:לספק|להוסיף)).{0,18}(?:child seat|car seat|כיסא בטיחות)/i.test(input)) draft.childSeats ??= 1;
+  if (/(?:can (?:you|we|i) (?:provide|add|include|arrange|request|get)|do you (?:provide|have|offer)|אפשר (?:לקבל|להוסיף)|תוכלו (?:לספק|להוסיף)|יש (?:לכם|אצלכם)?).{0,18}(?:child seat|car seat|booster|כיסא בטיחות|כיסא בוסטר|בוסטר|כיסא לילד|כיסא לתינוק)/i.test(input)) draft.childSeats ??= 1;
   for (const clause of input.split(/[.!?;,]|\bbut\b|\bactually\b|אבל|בעצם/iu)) {
     const bringsOwnSeat = /(?:bring(?:ing)?|brought|taking)\s+(?:my|our|their)\s+own\s+(?:child|car)\s+seats?|(?:נביא|אביא|מביא(?:ים|ות|ה)?).{0,20}כיסא(?:ות)?(?: בטיחות)?.{0,15}(?:משלנו|משלי)/iu.test(clause)
       && !/(?:not|n['’]t|לא).{0,12}(?:bring|brought|taking|נביא|אביא|מביא)/iu.test(clause);
@@ -709,14 +710,15 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
       draft.childSeats = 0;
       continue;
     }
-    const request = clause.match(/(?:צריך(?:ה|ים)?|נבקש|נרצה|ארצה|נצטרך|אפשר לבקש|we need|I need|(?:we|I) would like|(?:we|I)['’]d like|please add).{0,18}(?:כיסא(?:ות)? בטיחות|child seats?|car seats?)/i);
+    const request = clause.match(/(?:צריך(?:ה|ים)?|נבקש|נרצה|ארצה|נצטרך|אפשר לבקש|תוסיפו|תוסיף|להוסיף|we need|I need|(?:we|I) would like|(?:we|I)['’]d like|please add|\badd\b).{0,18}(?:כיסא(?:ות)? בטיחות|כיסא(?:ות)? בוסטר|בוסטר(?:ים)?|child seats?|car seats?|booster(?: seat)?s?)/i);
     if (!request) continue;
     // Limit counts to the requested seat phrase, never the child's later age.
     const seatText = clause.slice(request.index!, request.index! + request[0].length + 12);
     // A count before the noun ("שני כיסאות בטיחות, אחד לתינוק…") is the total;
     // a number after it usually starts a per-child breakdown.
     const seatCount = (/שני\s+כיסאות בטיחות/u.test(seatText) ? '2' : undefined)
-      ?? seatText.match(new RegExp(`${count}\\s+(?:כיסא(?:ות)? בטיחות|child seats?|car seats?)`, 'iu'))?.[1]
+      ?? seatText.match(new RegExp(`${count}\\s+(?:כיסא(?:ות)? בטיחות|בוסטר(?:ים)?|child seats?|car seats?|booster(?: seat)?s?)`, 'iu'))?.[1]
+      ?? seatText.match(new RegExp(`בוסטר(?:ים)?\\s+${count}(?!\\s+ל)`, 'iu'))?.[1]
       ?? seatText.match(new RegExp(`כיסא(?:ות)? בטיחות\\s+${count}(?!\\s+ל)`, 'iu'))?.[1];
     draft.childSeats = statedCount(seatCount ?? '1') ?? 1;
   }
