@@ -7,3 +7,7 @@ Fixes (next release): named model kept in commercial memory (`vehicleModel`, sho
 ## Replay on 25e3610 (Tucson, 4 years)
 "…טוסון ל4 שנים, כמה זה בחודש?" → no price line at all; "בערך 15 אלף בשנה" not taken (asked mileage again); "כן תעביר" → asked budget instead of handing off.
 Fixes (next release): owner price line for leasing/sale price questions; a bare "N אלף (בשנה)" / "15k" after a mileage question is the annual mileage; "כן תעביר" / "pass them on" accepts the representative offer.
+
+## Replay on 6832c25
+Mileage "בערך 15 אלף בשנה" stored (fix confirmed); model name טוסון kept. Still: no price line on the first turn (the reply said "הצעה"); the model offered "האם תרצו שנחזור אליכם עם הצעה מפורטת?" and "כן תעביר" got a model promise ("נציג … ויחזור אליכם") without a real handoff.
+Fixes (next release): price-line check looks only for explicit price wording; "שנחזור/שיחזרו אליכם" counts as the representative offer; validator rejects "ויחזור אליכם עם/בהקדם…" promises.

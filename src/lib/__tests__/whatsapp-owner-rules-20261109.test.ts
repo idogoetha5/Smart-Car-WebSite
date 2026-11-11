@@ -399,3 +399,18 @@ describe('leasing Tucson replay', () => {
     expect(yes.escalate).toBe(true);
   });
 });
+
+// Live Chrome on 6832c25: model offer "האם תרצו שנחזור אליכם עם הצעה מפורטת?" + "כן תעביר" did not hand off,
+// and the model claimed a representative would return with an offer.
+describe('model-worded leasing offer', () => {
+  it('treats "שנחזור אליכם" as the representative offer', async () => {
+    const known = { version: 2, phase: 'explore', step: 'menu', locale: 'he', interest: 'leasing', booking: {}, commercial: { termMonths: 48, annualMileageKm: 15000, vehicleModel: 'טוסון' },
+      history: [{ from: 'customer', text: 'ליסינג על טוסון ל4 שנים' }, { from: 'bot', text: 'נציג SmartCar ישמח לעבור איתכם על הפרטים. האם תרצו שנחזור אליכם עם הצעה מפורטת?' }] } as RebuildState;
+    const r = await chat(known, 'בשמחה! נציג SmartCar יעבור איתכם על הפרטים ויחזור אליכם עם הצעה מסודרת.').send('כן תעביר');
+    expect(r.escalate).toBe(true);
+  });
+  it('states the owner price line even when the model mentions an offer', async () => {
+    const r = await chat(null, 'ליסינג פרטי על טוסון הוא אפשרות טובה, נתאים לכם הצעה. מה הקילומטראז׳ השנתי?').send('שלום, מעניין אותי ליסינג פרטי על טוסון ל4 שנים, כמה זה בחודש?');
+    expect(r.reply).toMatch(/נסגר סופית מול נציג SmartCar/);
+  });
+});

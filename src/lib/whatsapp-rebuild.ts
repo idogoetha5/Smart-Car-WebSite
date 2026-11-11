@@ -881,7 +881,7 @@ function commercialReplyContent(input: string, state: RebuildState): { reply: st
     : `A compact has a size and parking advantage for solo city trips. A family car generally offers more passenger and luggage room; for four people, compare seating and boot space in the actual models even if most weekday trips are solo.${gearFollowup}`, escalate: false };
   // Only an actual handoff invitation can turn a short yes into consent.
   // Asking for a quote or having no vehicle preference continues the advice.
-  const handoffOffered = /תרצ(?:ה|ו).{0,30}(?:שאעביר|שנציג)|would you like.{0,35}(?:pass|representative)/i.test(lastBot);
+  const handoffOffered = /תרצ(?:ה|ו).{0,30}(?:שאעביר|שנציג|שנחזור אליכם|שיחזרו אליכם|שנעביר)|would you like.{0,35}(?:pass|representative|(?:us|someone) to (?:get back|contact|call))/i.test(lastBot);
   const acceptsTeamCheck = handoffOffered && (affirms(input) || /^(?:כן[, ]+תתקדמו עם הצעה|(?:כן|אוקיי|סבבה|יאללה)?[, ]*(?:תעביר|תעבירו|תעבירי|העבר|אפשר להעביר)(?:\s+(?:לו|לנציג|את הפרטים|אותם))?(?:\s+בבקשה)?|go ahead|please do|(?:yes|ok|sure)?[, ]*(?:pass (?:them|it) on|please pass (?:them|it) on))[.!\s]*$/iu.test(input));
   const asksTeamReview = !declinesHumanHandoff(input) && /תעביר(?:ו)?\s+(?:את זה|את הפרטים|את הבקשה|את הפנייה|לצוות|לנציג|להצעה)|שהצוות יבדוק|שיבדקו בשבילי|שהצוות יחזור אלי|שיחזרו אלי|תחזרו אלי|(?:have|ask) the team (?:check|review)|(?:pass|send) (?:this|it|the details|(?:my|the|this) (?:enquiry|inquiry|request|details)) to (?:a |the )?(?:team|representative)|(?:team|someone).{0,15}call me back/i.test(input);
   const asksQuote = /אפשר לקבל הצעה|תכינו (?:לי )?הצעה|אשמח להצעה|(?:can|could) I get (?:a |an )?(?:quote|offer)|please (?:send|prepare) (?:a |an )?(?:quote|offer)/i.test(input);
@@ -2441,7 +2441,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   // Same owner rule for leasing and purchase price questions.
   if (!escalate && (state.interest === 'leasing' || state.interest === 'sale') && !state.handedOff
     && /כמה (?:זה )?(?:עולה|יעלה|יוצא|ייצא)|כמה (?:זה )?בחודש|מה המחיר|מחיר|(?<![לב])עלות|\bhow much\b|\bprice\b|\bcost\b|\bmonthly\b/iu.test(input)
-    && !/מחיר|הצעה|תעריף|עלות|תשלום|price|quote|offer|rate|cost|payment/iu.test(reply)) {
+    && !/מחיר|תעריף|(?<![לב])עלות|price|rate|cost/iu.test(reply)) {
     reply = `${he ? 'המחיר נסגר סופית מול נציג SmartCar, לפי המסלול, הרכב והתנאים שתבחרו.' : 'The final price is set with a SmartCar representative, based on the plan, vehicle and terms you choose.'} ${reply}`.trim();
   }
   // Model wording may not contain phone numbers; when it tells the customer
