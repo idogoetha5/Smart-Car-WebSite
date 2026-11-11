@@ -11,7 +11,7 @@ export type ServiceLocale = 'he' | 'en';
 export type ServiceKnowledgeTopic =
   | 'insurance' | 'deposit' | 'fuel' | 'mileage' | 'driver_documents'
   | 'age_licence' | 'different_location' | 'cancellation' | 'availability'
-  | 'damage_accident' | 'opening_hours' | 'branches';
+  | 'damage_accident' | 'opening_hours' | 'branches' | 'fines' | 'toll_roads';
 
 export type ServiceKnowledgeAnswer = {
   topic: ServiceKnowledgeTopic;
@@ -67,6 +67,17 @@ export const ANSWERS: Record<ServiceKnowledgeTopic, LocalisedAnswer> = {
     topic: 'cancellation', href: '/terms', linkLabelHe: 'למדיניות הביטול', linkLabelEn: 'Cancellation policy',
     he: 'לפי תנאי ההשכרה: יותר מ־72 שעות לפני האיסוף — החזר מלא; 72–48 שעות — 25% מדמי השכירות הבסיסיים; 48–24 שעות — 50%; פחות מ־24 שעות או אי־הופעה — 100%. שינוי תאריכים ללא חיוב אפשרי עד 48 שעות לפני האיסוף, בכפוף לזמינות. אם זו הזמנה קיימת, שלחו את מספר ההזמנה ונשמח לעזור.',
     en: 'Under the rental terms: more than 72 hours before pickup — full refund; 72–48 hours — 25% of the base rental fee; 48–24 hours — 50%; under 24 hours or a no-show — 100%. Date changes are free up to 48 hours before pickup, subject to availability. For an existing booking, send the reference and we will be happy to help.',
+  },
+  // Terms §8 (fines). Toll roads are not covered by published terms: no claim either way.
+  fines: {
+    topic: 'fines', href: '/terms', linkLabelHe: 'לתנאי הדוחות והקנסות', linkLabelEn: 'Fines terms',
+    he: 'לפי תנאי ההשכרה, דוחות, קנסות ועיצומים מתקופת השכירות חלים על השוכר. דוחות חניה ומהירות שמגיעים לחברה אחרי החזרת הרכב מועברים לשוכר בדואר רשום, ואי־תשלום תוך 30 יום ממסירתם נושא ריבית פיגורים. החברה רשאית לנכות מהפיקדון קנסות מתקופת השכירות.',
+    en: 'Under the rental terms, fines, tickets and penalties from the rental period are the renter’s responsibility. Parking and speeding notices that reach the company after return are forwarded to the renter by registered mail, and unpaid fines after 30 days carry statutory late interest. The company may deduct fines from the rental period from the deposit.',
+  },
+  toll_roads: {
+    topic: 'toll_roads', href: '/terms', linkLabelHe: 'לתנאי ההשכרה', linkLabelEn: 'Rental terms',
+    he: 'תנאי הנסיעה בכבישי אגרה כמו כביש 6, ומי מחויב בתשלום, נקבעים בהסכם ההשכרה שלכם. נציג SmartCar יאשר את הפרטים; לשאלה דחופה התקשרו למשרד.',
+    en: 'Toll-road use such as Highway 6, and who is charged for it, is set in your rental agreement. A SmartCar representative will confirm the details; for anything urgent, call our office.',
   },
   availability: {
     topic: 'availability', href: '/terms', linkLabelHe: 'לתנאי הזמינות', linkLabelEn: 'Availability terms',
@@ -127,6 +138,8 @@ export function getSmartCarApprovedFacts(locale: ServiceLocale): SmartCarApprove
 }
 
 const TOPIC_PATTERNS: Array<[ServiceKnowledgeTopic, RegExp]> = [
+  ['toll_roads', /כביש\s*6|כביש אגרה|כבישי אגרה|נתיב(?:י)? (?:ה)?אגרה|הנתיב המהיר|highway\s*6|road\s*6|route\s*6|toll(?:\s*road|s)?\b|fast lane/i],
+  ['fines', /דו["״׳']?ח(?:ות)?\s+(?:חניה|מהירות|תנועה)|קנס|קנסות|עיצום|parking (?:ticket|fine)|speeding (?:ticket|fine)|traffic (?:ticket|fine)|\bgot (?:a |an )?(?:fine|ticket)\b|\bfined\b/i],
   ['damage_accident', /תאונה|התנגשות|נזק|פגיעה|גניבה|accident|collision|damage|theft/i],
   ['cancellation', /ביטול|לבטל|מבטל|מבוטל|מדיניות ביטול|cancel|cancellation|refund policy/i],
   ['availability', /לא זמין|אין רכב|זמינות|unavailable|no car|availability/i],

@@ -134,7 +134,7 @@ export async function readBotTurn(message: string, context: GeminiBotContext): P
   const safeMessage = scrub(message);
   const recent = context.recent.slice(-8).map(item => ({ from: item.from, text: scrub(item.text) }));
   const known = Object.fromEntries(Object.entries(context.known).map(([key, value]) => [key, typeof value === 'string' ? scrub(value) : value]));
-  const approvedFacts = context.approvedFacts?.slice(0, 20).map(fact => ({ id: fact.id.slice(0, 50), text: fact.text.slice(0, 1000) }));
+  const approvedFacts = context.approvedFacts?.slice(0, 30).map(fact => ({ id: fact.id.slice(0, 50), text: fact.text.slice(0, 1000) }));
   const body = {
     systemInstruction: { parts: [{ text: INSTRUCTIONS }] },
     contents: [{ role: 'user', parts: [{ text: JSON.stringify({ todayInIsrael: context.today, calendarIsrael: israelCalendar(context.today), locale: context.locale, phase: context.phase, known, conversation: context.conversation, approvedFacts, replyCorrection: context.replyCorrection, recent, message: safeMessage }) }] }],

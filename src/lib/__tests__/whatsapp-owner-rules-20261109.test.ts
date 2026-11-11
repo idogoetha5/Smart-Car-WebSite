@@ -200,3 +200,19 @@ describe('known pickup branch', () => {
     expect(result.reply).not.toMatch(/באיזה סניף/);
   });
 });
+
+// Live Chrome on 6f15fef (2026-11-11): "מותר לנסוע בכביש 6? מי משלם על זה" got "נדרש מספר הזמנה",
+// and a parking ticket got unapproved "pay the municipality directly" advice.
+describe('toll roads and fines from the published terms', () => {
+  const service = (): RebuildState => ({ version: 2, phase: 'service', step: 'menu', locale: 'he', booking: {}, history: [{ from: 'customer', text: 'אני עם רכב שלכם' }] } as RebuildState);
+  it('answers Highway 6 honestly with the office number', async () => {
+    const result = await chat(service(), 'x').send('היי אני עם רכב שלכם, מותר לנסוע בכביש 6? מי משלם על זה');
+    expect(result.reply).toMatch(/כביש 6/);
+    expect(result.reply).toContain('09-9509757');
+    expect(result.reply).not.toMatch(/נדרש מספר ההזמנה/);
+  });
+  it('answers a parking ticket from terms §8', async () => {
+    const result = await chat(service(), 'אפשר לשלם את הדו״ח ישירות לעירייה.').send('וקיבלתי דו״ח חניה אתמול בתל אביב 😬 מה קורה עכשיו');
+    expect(result.reply).not.toMatch(/SmartCar (?:תשלם|ישלם)|אנחנו נשלם|לא תצטרכו לשלם/);
+  });
+});

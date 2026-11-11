@@ -2299,7 +2299,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   }
   // Model wording may not contain phone numbers; when it tells the customer
   // to call, the application adds the approved office number.
-  if (source === 'gemini' && !reply.includes(OFFICE_PHONE) && /\bcall (?:our|the) (?:office|team|branch)\b|\bcall us\b|\bcontact (?:our|the) office\b|התקשרו (?:אלינו|למשרד|לסניף)|התקשר(?:י)? (?:אלינו|למשרד)|צרו (?:איתנו )?קשר טלפוני/iu.test(reply)) {
+  if (!reply.includes(OFFICE_PHONE) && /\bcall (?:our|the) (?:office|team|branch)\b|\bcall us\b|\bcontact (?:our|the) office\b|התקשרו (?:אלינו|למשרד|לסניף)|התקשר(?:י)? (?:אלינו|למשרד)|צרו (?:איתנו )?קשר טלפוני/iu.test(reply)) {
     reply = `${reply.trim()} ${he ? `מספר המשרד: ${OFFICE_PHONE}.` : `Office: ${OFFICE_PHONE}.`}`;
   }
   // After a collision, "should I take his details?" deserves a direct answer.
