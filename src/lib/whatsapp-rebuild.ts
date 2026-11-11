@@ -215,6 +215,16 @@ function relativeRentalDuration(input: string): { pickupDate: string; returnDate
 }
 
 function explicitDateRange(input: string): { pickupDate: string; returnDate: string } | null {
+  const mon: Record<string, number> = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };
+  const abbrev = input.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\s*(?:to|until|till|-|–)\s*(?:(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?\s+)?(\d{1,2})(?:st|nd|rd|th)?\b/i);
+  if (abbrev && !/\bwhat if\b|\bif\b|\bmaybe\b/i.test(input)) {
+    const today = israelDate(); const year = Number(today.slice(0, 4));
+    const m1 = mon[abbrev[1].toLowerCase()]; const m2 = abbrev[3] ? mon[abbrev[3].toLowerCase()] : m1;
+    const y1 = `${year}-${String(m1).padStart(2, '0')}-${abbrev[2].padStart(2, '0')}` < today ? year + 1 : year;
+    const y2 = m2 < m1 ? y1 + 1 : y1;
+    const nested = explicitDateRange(`${abbrev[2]}/${m1}/${y1}-${abbrev[4]}/${m2}/${y2}`);
+    if (nested) return nested;
+  }
   // "תאריכים 23 עד 26 לחודש" / "the 23rd to the 26th of this month": day-only range in
   // the current month, or next month when that day has already passed.
   const dayRange = input.match(/(?:(?:תאריכים|dates?|בין|from)\s*:?\s*)?(?:ה[-־]?|the )?(\d{1,2})(?:st|nd|rd|th)?\s*(?:עד|ל[-־]?|[-–]|to|until|till)\s*(?:ה[-־]?|the )?(\d{1,2})(?:st|nd|rd|th)?\s*(?:לחודש|בחודש|החודש|של החודש|(?:of )?this month|of the month)(?![\p{L}])/iu)
@@ -415,8 +425,8 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
   const hePickup = input.match(new RegExp(`(?:איסוף|לאסוף)\\s+(?!מחר(?:תיים)?(?:\\s|$))[במ]([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
   const enPickupStop = stop.replace('(?=', '(?=\\s+on\\s+\\d{1,2}|');
   const enPickup = input.match(new RegExp(`pick.?up\\s+(?:at|from|in)\\s+([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${enPickupStop}`, 'iu'))?.[1];
-  const enFromPickup = /rent|rental|pick.?up/i.test(input)
-    ? input.match(/\bfrom\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+on\s+\d{1,2})/iu)?.[1]
+  const enFromPickup = /rent|rental|pick.?up|\b(?:need|want|looking for)\b.*\b(?:suv|car|vehicle|van|sedan|minivan)\b/i.test(input)
+    ? input.match(/\bfrom\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:on\s+\d{1,2}|(?:on\s+)?(?:jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?\s+\d{1,2}))/iu)?.[1]
     : undefined;
   const pickup = (hePickup ?? enPickup ?? enFromPickup)?.trim();
   if (pickup && !temporalLocation(pickup)) draft.pickupLocation = /^(?:the )?airport$/i.test(pickup) && /Ben Gurion Airport/i.test(input) ? 'Ben Gurion Airport' : pickup;
@@ -467,6 +477,8 @@ function explicitBooking(input: string): boolean {
   if (/[?؟]/.test(input) && /כדאי|האם|should|would it|how/i.test(input)) return false;
   if (/(?:כן[,\s]*)?נתחיל\s+(?:בקש(?:ה|ת השכרה)|הזמנה)|\b(?:let'?s|let us)\s+start\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b|\bI\s+(?:want|would like)\s+to\s+(?:start|open)\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b/i.test(input)) return true;
   if (/^(?:כן[,\s]*)?כבר ביקשתי להתחיל[.!\s]*$/i.test(input)) return true;
+  if (/(?<!\b(?:to|if|decide to|before I)\s)\b(?:go ahead|book it|let['’]?s book(?: it)?)\b[,.!\s]+(?:i['’]?m|im|i am|my name is|name['’]?s)\s+(?!(?:still|not|just|only|comparing|thinking|unsure|sure|ok|fine|good|ready|looking|asking|waiting|deciding|a|the|so|also|very|really)\b)[\p{L}'-]{2,20}/iu.test(input) && !/\b(?:don['’]?t|do not|not yet|no change request|still comparing)\b/i.test(input)) return true;
+  if (/^(?:ok(?:ay)?|fine|sure|yes|yeah)?[.,!\s]*(?:book it|let['’]?s book it)[.!\s]*$/iu.test(input.trim())) return true;
   if (/^(?:יאללה|סבבה|אוקיי?|טוב|ok(?:ay)?|go ahead|let['’]?s (?:go|do it))[.,!\s]+[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}(?:\s*,?\s*(?:בן|בת|aged?)\s*\d{2})?\s*[.!]?$/iu.test(input.trim())) return true;
   if (/(?:^|[\s,.!])(?:סבבה|יאללה|טוב|אוקיי?|אז)?\s*(?:תפתח(?:ו)?|פתח(?:ו)?|תכין|תכינו)\s+(?:לי\s+)?(?:בקש(?:ה|ת השכרה)|הזמנה)(?![\p{L}])|\b(?:go ahead and )?open (?:a |the |my )?(?:rental )?(?:request|booking)\b/iu.test(input)) return true;
   if (/(?:אני רוצה|אנחנו רוצים|רוצה|רוצים|כבר ביקשתי)\s+(?:להתחיל|לפתוח)(?:\s+(?:את ה|את|ה))?\s*(?:בקש(?:ה|ת השכרה)|הזמנה)/i.test(input)) return true;
@@ -623,7 +635,7 @@ function negatedLuggageMention(input: string, index: number): boolean {
 
 function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   const count = '(\\d{1,2}|אחד|אחת|שניים|שתיים|שתי|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש|שבעה|שבע|שמונה|one|two|three|four|five|six|seven|eight)';
-  const passengers = [...input.matchAll(new RegExp(`(?:אנחנו|נהיה|we are|we['’]re|there are|there will be)\\s+${count}(?=\\s|$)|${count}\\s+(?:נוסעים|אנשים|מבוגרים|חברים|חברות|passengers|people|adults|friends)`, 'giu'))]
+  const passengers = [...input.matchAll(new RegExp(`(?:אנחנו|נהיה|we are|we['’]re|there are|there will be)\\s+${count}(?=\\s|$)|${count}\\s+(?:נוסעים|אנשים|מבוגרים|חברים|חברות|passengers|people|adults|friends|of us)`, 'giu'))]
     .filter(match => !negatedLuggageMention(input, match.index) && !isHypotheticalFactEvidence(input, match[0]) && !isRentalCapacityQuestionEvidence(input, match[0])).at(-1);
   const luggage = [...input.matchAll(new RegExp(`${count}\\s+(?:(?:small|medium|large|קטנות|בינוניות|גדולות)\\s+)?(?:מזוודות|מזוודה|תיקים|תיקי נסיעה|bags?|suitcases?)(?![\\p{L}])`, 'giu'))]
     .find(match => !negatedLuggageMention(input, match.index) && !isHypotheticalFactEvidence(input, match[0]) && !isRentalCapacityQuestionEvidence(input, match[0]));
@@ -1850,6 +1862,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const askedReturnPlace = /Where will you return it\?|Where would you like to return|איפה תרצו להחזיר אותו\?|איפה תחזירו|לאן להחזיר/iu.test(lastBotReply);
     const askedPickupPlace = /Where would you like to pick it up\?|מאיפה תרצו לאסוף את הרכב\?/iu.test(lastBotReply);
     const namedBranch = input.match(/(?:^|[\s,.])(?:back\s+)?(?:in|at|to|from|[במל])?\s*(the airport|airport|ben gurion(?: airport)?|tlv|natbag|herzliya|tel aviv|jerusalem|נתב["״׳']?ג|שדה התעופה|הרצליה|תל אביב|ירושלים)(?![\p{L}])/iu)?.[1];
+    const backTo = input.match(/\b(?:back|return(?:ing)? it|drop(?:ping)? it off|drop(?:ping)? off)\s+(?:to|in|at)\s+(the airport|airport|ben gurion(?: airport)?|tlv|herzliya|tel aviv|jerusalem)\b|(?:וחזרה|חזרה|ולהחזיר|להחזיר|ונחזיר)\s+(?:ל|ב)(נתב["״׳']?ג|הרצליה|תל אביב|ירושלים)(?![\p{L}])/iu);
+    if (backTo && !state.booking.returnLocation && !/\bwhat if\b|\bif\b|מה אם|(?:^|\s)אם\s/iu.test(input)) {
+      const named = backTo[1] ?? backTo[2];
+      const key = /air|ben gurion|tlv|נתב/iu.test(named) ? 'airport' : /herz|הרצ/iu.test(named) ? 'herzliya' : /tel aviv|תל אביב/iu.test(named) ? 'telaviv' : 'jerusalem';
+      state.booking.returnLocation = he ? { airport: 'נתב״ג', herzliya: 'הרצליה', telaviv: 'תל אביב', jerusalem: 'ירושלים' }[key] : { airport: 'Ben Gurion Airport', herzliya: 'Herzliya', telaviv: 'Tel Aviv', jerusalem: 'Jerusalem' }[key];
+    }
     if (namedBranch && input.length <= 120 && !/\bwhat if\b|\bif\b|\bmaybe\b|מה אם|(?:^|\s)אם\s|אולי/iu.test(input)) {
       const he = state.locale === 'he';
       const key = /air|ben gurion|tlv|natbag|נתב|שדה/iu.test(namedBranch) ? 'airport' : /herz|הרצ/iu.test(namedBranch) ? 'herzliya' : /tel aviv|תל אביב/iu.test(namedBranch) ? 'telaviv' : 'jerusalem';
@@ -2339,6 +2357,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   // Company receipt/invoice questions get an honest, non-committal answer.
   if (!escalate && /(?:קבלה|חשבונית)(?:\s+מס)?\s+(?:על\s+שם|ל)(?:\s*ה)?(?:חברה|עסק)|\b(?:invoice|receipt)\b.{0,25}\b(?:company|business)\b/iu.test(input) && !/קבלה|חשבונית|invoice|receipt/iu.test(reply)) {
     reply = `${he ? 'קבלה או חשבונית על שם החברה מבקשים מנציג SmartCar כשהוא חוזר אליכם לגבי הבקשה.' : 'Please ask the SmartCar representative for a receipt or invoice in the company name when they contact you about the request.'}\n\n${reply.trim()}`;
+  }
+  // Card brands are not published: answer honestly instead of ignoring the question.
+  if (!escalate && /\b(?:amex|american express|diners|visa|mastercard|master card|isracard)\b|אמריקן אקספרס|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט/iu.test(input)
+    && !/amex|american express|diners|visa|mastercard|isracard|אמריקן|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט|סוג הכרטיס|card type|card brand/iu.test(reply)) {
+    reply = `${reply.trim()}\n\n${he ? 'לגבי סוג הכרטיס: נדרש כרטיס אשראי (לא דביט) על שם השוכר; אם מדובר בסוג כרטיס מסוים, נציג SmartCar יאשר מולכם שהוא מתקבל.' : 'On the card: a credit card (not debit) in the renter’s name is required; a SmartCar representative will confirm whether a specific card brand is accepted.'}`;
   }
   // Owner rule: a rental price question always gets the same honest line.
   if (!escalate && state.phase !== 'service' && !state.interest && !state.completedRequestId

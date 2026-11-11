@@ -250,3 +250,25 @@ describe('home delivery for a week', () => {
     expect((await c.send(input)).state.booking.returnDate).toBeUndefined();
   });
 });
+
+// Live Chrome on 7d77e88 (EN SUV): "back to tel aviv" and "3 of us" were not stored and
+// "ok fine. go ahead, im dan, 34" did not start the request; the return place was asked three times.
+describe('compact english rental phrasing', () => {
+  it('stores return place and travellers, then starts on go-ahead with a self introduction', async () => {
+    const c = chat(null, 'An SUV is a direction to check.', 'en');
+    const first = await c.send('hey need an suv from tel aviv nov 20 to nov 24, back to tel aviv. 3 of us');
+    expect(first.state.booking).toMatchObject({ returnLocation: 'Tel Aviv', passengers: 3 });
+    const go = await c.send('ok fine. go ahead, im dan, 34');
+    expect(go.state.phase).toBe('booking');
+    expect(go.state.booking.customerName).toBe('dan');
+    expect(go.reply).toMatch(/Here are your request details/);
+  });
+});
+
+describe('card brand question', () => {
+  it('answers a card brand question honestly', async () => {
+    const c = chat(null, 'The deposit for an SUV is indicative.', 'en');
+    const r = await c.send('whats the deposit on an suv and do you take amex?');
+    expect(r.reply).toMatch(/card brand is accepted/);
+  });
+});
