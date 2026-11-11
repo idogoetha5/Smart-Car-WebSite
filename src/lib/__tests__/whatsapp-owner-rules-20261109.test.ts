@@ -348,3 +348,18 @@ describe('beeps and strange noises go to a representative', () => {
     if (/מוקד השירות/.test(r.reply)) expect(r.reply).toContain('09-9509757');
   });
 });
+
+describe('after a beep handoff', () => {
+  it('answers a replacement ask and a booking number specifically', async () => {
+    const c = chat(null, 'x');
+    const first = await c.send('היי לקחתי מכם רכב אתמול בהרצליה, הוא מצפצף כל פעם שאני נוסע מעל 90, זה תקין?');
+    expect(first.reply).toMatch(/צפצוף או רעש/);
+    expect(first.reply).not.toMatch(/נורת אזהרה/);
+    const swap = await c.send('אוקיי אבל אפשר להחליף לי רכב? זה מעצבן');
+    expect(swap.reply).toMatch(/החלפת רכב/);
+    expect(swap.escalate).toBe(false);
+    const ref = await c.send('הזמנה 884512');
+    expect(ref.reply).toContain('884512');
+    expect(ref.state.serviceReference).toBe('884512');
+  });
+});

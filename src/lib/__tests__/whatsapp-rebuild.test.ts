@@ -1013,7 +1013,8 @@ describe('replacement SmartCar conversation core', () => {
     expect(problem.reply).not.toContain('נדרש מספר ההזמנה');
     const detail = await chat.send('מספר ההזמנה שלי TEST-123');
     expect(detail.escalate).toBe(false);
-    expect(detail.reply).toContain('נציג SmartCar יטפל');
+    expect(detail.reply).toContain('TEST-123');
+    expect(detail.reply).toContain('נציג SmartCar');
     expect(detail.reply).not.toContain('לא שיניתי את ההזמנה');
   });
 

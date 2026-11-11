@@ -1499,10 +1499,14 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     return { reply, state, escalate, source: 'local' };
   }
   if (warningLight && state.handoffKind !== 'safety') {
-    const recentWarning = state.handedOff && state.handoffKind === 'service_issue' && state.history.slice(-6).some(entry => entry.from === 'bot' && /נורת אזהרה|warning light/i.test(entry.text));
+    const recentWarning = state.handedOff && state.handoffKind === 'service_issue' && state.history.slice(-6).some(entry => entry.from === 'bot' && /נורת אזהרה|warning light|צפצוף או רעש|beep or unusual noise/i.test(entry.text));
     state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'service_issue';
     escalate = !recentWarning;
-    const reply = he
+    const lightMentioned = /נור(?:ה|ת)|light|lamp/iu.test(input);
+    const reply = !lightMentioned
+      ? (he ? `צפצוף או רעש חריג ברכב צריכים בדיקה של נציג SmartCar, והעברתי אליו את הפנייה. אם יש חשש בטיחותי — עשן, ריח, או שהרכב לא מתנהג כרגיל — עצרו במקום בטוח. לעזרה מיידית התקשרו ל־${OFFICE_PHONE}.`
+        : `A beep or unusual noise in the car needs a SmartCar representative to check it, and I have passed your message on. If there is any safety concern — smoke, a smell or the car not behaving normally — stop somewhere safe. For immediate help call ${OFFICE_PHONE}.`)
+      : he
       ? `נורת אזהרה צריכה בדיקה של נציג SmartCar, והעברתי אליו את הפנייה. אם יש חשש בטיחותי — עשן, רעש חריג או שהרכב לא מתנהג כרגיל — עצרו במקום בטוח. לעזרה מיידית התקשרו ל־${OFFICE_PHONE}.`
       : `A warning light needs a SmartCar representative to check it, and I have passed your message on. If there is any safety concern — smoke, unusual noise or the car not behaving normally — stop somewhere safe. For immediate help call ${OFFICE_PHONE}.`;
     pushHistory(state, input, reply, false);
@@ -1560,7 +1564,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     if (state.handoffKind === 'service_issue' && state.serviceChangeRequested) state.handoffKind = 'booking_change';
     const handoffKind = state.handoffKind ?? (state.safetyAlertAt && (!state.handoffAt || Date.parse(state.safetyAlertAt) >= Date.parse(state.handoffAt)) ? 'safety' : state.interest ? 'commercial' : 'booking_change');
     const cancellationPending = handoffKind === 'booking_change' && state.history.some(entry => entry.from === 'customer' && cancellationRequest(entry.text));
+    const newReference = explicitServiceReference(input);
+    if (newReference && !state.serviceReference) state.serviceReference = newReference;
     const hasBookingReference = Boolean(state.serviceReference);
+    const replacementAsk = /להחליף (?:לי |לנו )?(?:את )?(?:ה)?רכב|החלפ(?:ה|ת) (?:ה)?רכב|רכב (?:חלופי|אחר|חדש)|\b(?:replace(?:ment)?|swap|switch|change) (?:the |my |this )?car\b|\b(?:another|different|replacement) car\b/iu.test(input);
     const billingIssue = handoffKind === 'service_issue' && state.history.some(entry => entry.from === 'customer' && /חויבתי פעמיים|חיוב כפול|שילמתי פעמיים|charged twice|double charg/i.test(entry.text));
     const cleanlinessIssue = handoffKind === 'service_issue' && state.history.some(entry => entry.from === 'customer' && /הרכב.{0,25}מלוכלך|רכב מלוכלך|dirty car|car was dirty/i.test(entry.text));
     const safetyKind = state.safetyKind ?? (state.history.some(entry => entry.from === 'customer' && /תאונה|התנגשות|accident|collision|crash/i.test(entry.text)) ? 'accident' : 'breakdown');
@@ -1670,6 +1677,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         ? (he ? `בוודאי. נציג SmartCar יחזור אליכם לגבי מצב הרכב. אם זה דחוף, אפשר להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up about the car's condition. If urgent, call ${OFFICE_PHONE}.`)
       : cleanlinessIssue && /היום|דחוף|עכשיו|today|urgent|right now/i.test(input)
         ? (he ? `אני מבין שזה דחוף. לבירור מיידי, התקשרו עכשיו ל־SmartCar ב־${OFFICE_PHONE}; נציג יבדוק את הפנייה.` : `I understand this is urgent. For immediate help, call SmartCar now on ${OFFICE_PHONE}; a representative will review your enquiry.`)
+      : (handoffKind === 'service_issue' || handoffKind === 'human') && replacementAsk
+        ? (he ? `בקשה להחלפת רכב בודק נציג SmartCar, שכבר קיבל את הפנייה; כאן אי אפשר להבטיח החלפה. לעזרה מיידית התקשרו ל־${OFFICE_PHONE}.` : `A replacement car is checked by the SmartCar representative who already has your enquiry; I cannot promise a swap here. For immediate help call ${OFFICE_PHONE}.`)
+      : (handoffKind === 'service_issue' || handoffKind === 'human') && newReference
+        ? (he ? `קיבלתי את מספר ההזמנה ${newReference}, והוא יצורף לפנייה אצל נציג SmartCar. לעזרה מיידית התקשרו ל־${OFFICE_PHONE}.` : `Got booking ${newReference}; it will be added to your enquiry with the SmartCar representative. For immediate help call ${OFFICE_PHONE}.`)
       : handoffKind === 'safety'
         ? (he ? `תודה על העדכון. אל תמשיכו לנסוע אם יש חשש בטיחותי; לתיאום עזרה התקשרו עכשיו ל־${OFFICE_PHONE}.` : `Thanks for the update. Do not keep driving if the car may be unsafe; call ${OFFICE_PHONE} now to arrange help.`)
         : handoffKind === 'commercial' && state.interest
