@@ -208,6 +208,7 @@ describe('toll roads and fines from the published terms', () => {
   it('answers Highway 6 honestly with the office number', async () => {
     const result = await chat(service(), 'x').send('היי אני עם רכב שלכם, מותר לנסוע בכביש 6? מי משלם על זה');
     expect(result.reply).toMatch(/כביש 6/);
+    expect(result.reply).toMatch(/על חשבון השוכר/);
     expect(result.reply).toContain('09-9509757');
     expect(result.reply).not.toMatch(/נדרש מספר ההזמנה/);
   });
