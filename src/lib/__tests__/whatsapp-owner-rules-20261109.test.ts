@@ -381,3 +381,21 @@ describe('leasing with a named model', () => {
     expect(yes.escalate).toBe(true);
   });
 });
+
+// Live Chrome on 25e3610 (Tucson): no price line, and "בערך 15 אלף בשנה" after the mileage question was not taken.
+describe('leasing Tucson replay', () => {
+  it('states the owner price line, takes a bare mileage answer and offers the representative', async () => {
+    const replies = ['ליסינג פרטי ל־4 שנים על טוסון הוא אפשרות טובה. מהו הקילומטראז׳ השנתי הצפוי?', 'מעולה. מה התקציב החודשי המועדף?'];
+    let i = 0;
+    let state = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] } as RebuildState;
+    const readTurn = vi.fn(async () => ({ route: 'explore', direction: 'none', fields: {}, reply: replies[i++] ?? 'x', source: 'gemini', model: 'f', groundedContext: true } as BotReading));
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn };
+    const first = await getRebuiltBotReply('tucson', 'שלום, מעניין אותי ליסינג פרטי על טוסון ל4 שנים, כמה זה בחודש?', store);
+    expect(first.reply).toMatch(/נסגר סופית מול נציג SmartCar/);
+    const second = await getRebuiltBotReply('tucson', 'בערך 15 אלף בשנה', store);
+    expect(state.commercial?.annualMileageKm).toBe(15000);
+    expect(second.reply).toMatch(/נציג SmartCar/);
+    const yes = await getRebuiltBotReply('tucson', 'כן תעביר', store);
+    expect(yes.escalate).toBe(true);
+  });
+});

@@ -181,6 +181,18 @@ function hebrewIntroducedName(input: string): string | undefined {
   return match;
 }
 
+/** After a mileage question, a bare "בערך 15 אלף בשנה" / "around 15k" is the annual mileage. */
+function applyPromptedMileage(input: string, state: RebuildState): void {
+  if (!state.commercial || state.commercial.annualMileageKm != null) return;
+  const lastBot = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+  if (!/קילומטר|קילומטראז|mileage|kilomet|\bkm\b/iu.test(lastBot)) return;
+  if (/(?:^|\s)אם\s|מה אם|\bif\b|what if/iu.test(input)) return;
+  const m = input.trim().match(/^(?:בערך|בסביבות|משהו כמו|כ[־-]?|around|about|roughly|maybe|probably)?\s*(\d{1,3})(?:\s*(?:אלף|אלפים)|\s*k\b|,000|000)\s*(?:ק["״]?מ|קמ|km)?\s*(?:בשנה|לשנה|a year|per year|annually)?[.!\s]*$/iu);
+  if (!m) return;
+  const km = Number(m[1]) * 1000;
+  if (km >= 1000 && km <= 100000) state.commercial.annualMileageKm = km;
+}
+
 /** The customer's gender is unknown: feminine-singular second person in model
  * wording becomes the plural form used elsewhere (תרצו, תוכלו, לכם). */
 const FEMININE_TO_PLURAL: Array<[string, string]> = [
@@ -870,7 +882,7 @@ function commercialReplyContent(input: string, state: RebuildState): { reply: st
   // Only an actual handoff invitation can turn a short yes into consent.
   // Asking for a quote or having no vehicle preference continues the advice.
   const handoffOffered = /תרצ(?:ה|ו).{0,30}(?:שאעביר|שנציג)|would you like.{0,35}(?:pass|representative)/i.test(lastBot);
-  const acceptsTeamCheck = handoffOffered && (affirms(input) || /^(?:כן[, ]+תתקדמו עם הצעה|go ahead|please do)[.!\s]*$/i.test(input));
+  const acceptsTeamCheck = handoffOffered && (affirms(input) || /^(?:כן[, ]+תתקדמו עם הצעה|(?:כן|אוקיי|סבבה|יאללה)?[, ]*(?:תעביר|תעבירו|תעבירי|העבר|אפשר להעביר)(?:\s+(?:לו|לנציג|את הפרטים|אותם))?(?:\s+בבקשה)?|go ahead|please do|(?:yes|ok|sure)?[, ]*(?:pass (?:them|it) on|please pass (?:them|it) on))[.!\s]*$/iu.test(input));
   const asksTeamReview = !declinesHumanHandoff(input) && /תעביר(?:ו)?\s+(?:את זה|את הפרטים|את הבקשה|את הפנייה|לצוות|לנציג|להצעה)|שהצוות יבדוק|שיבדקו בשבילי|שהצוות יחזור אלי|שיחזרו אלי|תחזרו אלי|(?:have|ask) the team (?:check|review)|(?:pass|send) (?:this|it|the details|(?:my|the|this) (?:enquiry|inquiry|request|details)) to (?:a |the )?(?:team|representative)|(?:team|someone).{0,15}call me back/i.test(input);
   const asksQuote = /אפשר לקבל הצעה|תכינו (?:לי )?הצעה|אשמח להצעה|(?:can|could) I get (?:a |an )?(?:quote|offer)|please (?:send|prepare) (?:a |an )?(?:quote|offer)/i.test(input);
   if (!declinesHumanHandoff(input) && (asksTeamReview || acceptsTeamCheck || /pass (?:this|it|the details) to a representative/i.test(input))) return { reply: he ? `בשמחה, נציג SmartCar יחזור אליכם לגבי ${state.interest === 'leasing' ? 'הליסינג' : 'רכישת הרכב'} לפי הפרטים שמסרתם. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up about your ${state.interest === 'leasing' ? 'leasing' : 'car purchase'} enquiry using the details you shared. You can also call ${OFFICE_PHONE}.`, escalate: true };
@@ -931,7 +943,7 @@ function commercialReplyContent(input: string, state: RebuildState): { reply: st
     }
     if (acceptsTeamCheck || asksTeamReview) return { reply: he ? `תודה, קיבלנו את הפרטים להצעת ליסינג אישית. נציג SmartCar יחזור אליכם להמשך; אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Thank you. We have your details for a personal leasing offer. A SmartCar representative will follow up; you can also call ${OFFICE_PHONE}.`, escalate: true };
     if (!hasKnownTerm) return { reply: he ? 'ב־SmartCar אפשר לבדוק ליסינג פרטי או עסקי. לכמה זמן תרצה את הרכב?' : 'SmartCar can check private or business leasing. What term do you have in mind?', escalate: false };
-    if (!hasKnownMileage) return { reply: he ? 'רשמתי את משך הליסינג. כמה קילומטרים בערך תיסע בשנה?' : 'I have the term. Roughly how many kilometres would you drive each year?', escalate: false };
+    if (!hasKnownMileage) return { reply: he ? 'רשמתי את משך הליסינג. כמה קילומטרים בערך תיסעו בשנה?' : 'I have the term. Roughly how many kilometres would you drive each year?', escalate: false };
     if (!knownVehiclePreference) return { reply: he ? 'רשמתי את התקופה ואת הקילומטראז׳ שציינת. איזה סוג רכב תרצו בהצעה האישית?' : 'I have the term and mileage you mentioned. What vehicle type would you like in your personal offer?', escalate: false };
     return { reply: he ? 'יש לנו את התקופה, הקילומטראז׳ וסוג הרכב שביקשתם. תרצו שנציג SmartCar יחזור אליכם עם הצעת ליסינג?' : 'We have the term, mileage and vehicle type you requested. Would you like a SmartCar representative to follow up with a leasing offer?', escalate: false };
   }
@@ -1435,6 +1447,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       for (const entry of state.history) if (entry.from === 'customer') state.commercial = updateCommercialMemory(state.commercial, entry.text);
     }
     state.commercial = updateCommercialMemory(state.commercial, input);
+    applyPromptedMileage(input, state);
   }
   const he = state.locale === 'he';
   let reply = '';
@@ -1964,6 +1977,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         for (const entry of state.history) if (entry.from === 'customer') state.commercial = updateCommercialMemory(state.commercial, entry.text);
       }
       state.commercial = updateCommercialMemory(state.commercial, input);
+      applyPromptedMileage(input, state);
     }
     applySelectedFacts(input, state, reading, wantsBooking);
     if (leaveVehicleOpen && !state.interest && state.phase !== 'service') state.booking.vehicleNeed = he ? 'סוג רכב פתוח להתאמה' : 'vehicle group to be matched';
@@ -2423,6 +2437,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     && !/פיקדון|deposit|השתתפות|excess|ביטול|cancel/iu.test(input) && !reply.includes(priceAnswer(state.locale))
     && !/מחיר|הצעה|תעריף|עלות|price|quote|rate|cost/iu.test(reply)) {
     reply = `${priceAnswer(state.locale)} ${reply}`.trim();
+  }
+  // Same owner rule for leasing and purchase price questions.
+  if (!escalate && (state.interest === 'leasing' || state.interest === 'sale') && !state.handedOff
+    && /כמה (?:זה )?(?:עולה|יעלה|יוצא|ייצא)|כמה (?:זה )?בחודש|מה המחיר|מחיר|(?<![לב])עלות|\bhow much\b|\bprice\b|\bcost\b|\bmonthly\b/iu.test(input)
+    && !/מחיר|הצעה|תעריף|עלות|תשלום|price|quote|offer|rate|cost|payment/iu.test(reply)) {
+    reply = `${he ? 'המחיר נסגר סופית מול נציג SmartCar, לפי המסלול, הרכב והתנאים שתבחרו.' : 'The final price is set with a SmartCar representative, based on the plan, vehicle and terms you choose.'} ${reply}`.trim();
   }
   // Model wording may not contain phone numbers; when it tells the customer
   // to call, the application adds the approved office number.
