@@ -383,7 +383,7 @@ function SendLinkModal({ onClose, onCreated }: { onClose: () => void; onCreated:
           <h2 className="text-lg font-bold">שליחת קישור לרישיון ואשראי</h2>
           <button onClick={onClose} aria-label="סגירה" className="rounded-lg p-2 hover:bg-gray-100"><X className="h-4 w-4" /></button>
         </div>
-        <p className="mb-4 text-sm text-gray-500">ייפתח וואטסאפ עם הודעה מוכנה וקישור אישי. הקישור חד־פעמי ובתוקף 3 ימים.</p>
+        <p className="mb-4 text-sm text-gray-500">ייפתח וואטסאפ עם הודעה מוכנה וקישור אישי. הקישור חד־פעמי ובתוקף לחודש.</p>
         <div className="grid grid-cols-2 gap-3">
           <label className="col-span-2 flex flex-col gap-1 text-sm font-semibold">טלפון הלקוח<input dir="ltr" inputMode="tel" className={inp} value={form.phone} onChange={set('phone')} /></label>
           <label className="flex flex-col gap-1 text-sm font-semibold">שם הלקוח<input className={inp} value={form.name} onChange={set('name')} /></label>
