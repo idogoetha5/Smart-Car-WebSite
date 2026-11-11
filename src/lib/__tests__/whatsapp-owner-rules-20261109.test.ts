@@ -216,3 +216,15 @@ describe('toll roads and fines from the published terms', () => {
     expect(result.reply).not.toMatch(/SmartCar (?:תשלם|ישלם)|אנחנו נשלם|לא תצטרכו לשלם/);
   });
 });
+
+describe('key problems go to a representative', () => {
+  it.each([['en', 'also i think i lost one of the car keys at the beach ugh. what do i do'], ['he', 'איבדתי את המפתח של הרכב שלכם בים, מה עושים'], ['he', 'ננעלתי מחוץ לרכב והמפתחות בפנים']] as const)('hands off once with the number: %s', async (locale, input) => {
+    const result = await chat(null, 'Please send the booking reference.', locale).send(input);
+    expect(result.escalate).toBe(true);
+    expect(result.reply).toContain('09-9509757');
+  });
+  it('keeps "what if I lose the key" advisory', async () => {
+    const result = await chat(null, 'Keys are covered by the agreement terms.', 'en').send('what if I lose the key during the rental?');
+    expect(result.escalate).toBeFalsy();
+  });
+});

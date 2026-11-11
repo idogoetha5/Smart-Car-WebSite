@@ -1427,6 +1427,21 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   // representative. The bot gives no technical or driving advice about it.
   const warningLight = !/מה (?:קורה|עושים) אם|what if|\bif (?:a|the) (?:warning )?light\b/iu.test(input)
     && /נור(?:ה|ת)(?:\s+(?:אזהרה|התראה|צהובה|אדומה|כתומה|מנוע|שמן|לחץ\s+אוויר|בלמים|מצבר|ABS))?\s+(?:נדלקה|דלוקה|נדלק|מהבהבת|מאירה)|נדלק(?:ה)?\s+(?:לי\s+)?(?:נורה|נורת|אור|סימן)|(?:נורה|סימן|אור)\s+(?:צהוב|אדום|כתום)\s+(?:בלוח|על הלוח|נדלק)|\b(?:warning|check engine|engine|oil|battery|brake|abs|tyre pressure|tire pressure|dashboard)\s+(?:light|lamp|warning)\b.{0,40}\b(?:came on|is on|turned on|lit up|flashing|appeared|just)\b|\b(?:a|the|some)\s+(?:yellow|red|orange)\s+light\b.{0,30}\b(?:came on|is on|turned on|lit up|flashing|dashboard)\b/iu.test(input);
+  // Lost keys or being locked out also need a representative, not advice.
+  const keyProblem = !/מה (?:קורה|עושים) אם|what if|\bif I (?:lose|lost)\b/iu.test(input)
+    && /(?:איבדתי|איבדנו|אבד(?:ה|ו)?|נעלם|נעלמו|אין לי את)\s+(?:את\s+)?(?:אחד\s+)?(?:ה)?מפתח(?:ות)?|המפתח(?:ות)?\s+(?:אבד|נעלם|נשבר|ננעל)|ננעל(?:תי|נו)?\s+(?:מחוץ|בחוץ)|המפתח(?:ות)?\s+(?:נשאר|נשארו|בפנים)|\b(?:lost|can['’]?t find|misplaced|broke)\s+(?:one of\s+)?(?:the|my|our)\s+(?:car\s+)?keys?\b|\blocked (?:myself |ourselves )?out\b|\bkeys? (?:are |is )?(?:locked )?inside\b/iu.test(input);
+  if (keyProblem && state.handoffKind !== 'safety') {
+    const recent = state.handedOff && state.handoffKind === 'service_issue' && state.history.slice(-6).some(entry => entry.from === 'bot' && /מפתח|key/i.test(entry.text));
+    state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'service_issue';
+    escalate = !recent;
+    const reply = he
+      ? `העברתי את הפנייה על המפתח לנציג SmartCar, שיחזור אליכם לגבי ההמשך. לעזרה מיידית התקשרו ל־${OFFICE_PHONE}.`
+      : `I have passed your key issue to a SmartCar representative, who will contact you about next steps. For immediate help call ${OFFICE_PHONE}.`;
+    pushHistory(state, input, reply, false);
+    if (escalate && !store.isSimulation) await store.beforeEscalationSave?.(phone);
+    await store.saveState(phone, state);
+    return { reply, state, escalate, source: 'local' };
+  }
   if (warningLight && state.handoffKind !== 'safety') {
     const recentWarning = state.handedOff && state.handoffKind === 'service_issue' && state.history.slice(-6).some(entry => entry.from === 'bot' && /נורת אזהרה|warning light/i.test(entry.text));
     state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'service_issue';
