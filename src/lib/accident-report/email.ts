@@ -31,7 +31,7 @@ function officeHtml(id: string, r: StoredReport) {
 </div>
 <h2 style="font-size:17px;color:#2D5F5F;margin:16px 0 4px">פרטי הנהג</h2>
 <table style="width:100%;border-collapse:collapse">
-${row('שם', esc(r.driver.name))}${row('ת.ז.', ltr(r.driver.idNumber))}${row('טלפון', `<a href="tel:${esc(r.driver.phone)}">${ltr(r.driver.phone)}</a>`)}
+${row('שם', esc(r.driver.name))}${row(r.driver.idType === 'passport' ? 'דרכון' : 'ת.ז.', ltr(r.driver.idNumber))}${row('טלפון', `<a href="tel:${esc(r.driver.phone)}">${ltr(r.driver.phone)}</a>`)}
 ${row('כתובת', esc(r.driver.address))}${row('רישיון', `${ltr(r.driver.licenseNumber)} · בתוקף עד ${ltr(`${r.driver.licenseExpiry.d}.${r.driver.licenseExpiry.m}.${r.driver.licenseExpiry.y}`)}`)}
 </table>
 <h2 style="font-size:17px;color:#2D5F5F;margin:16px 0 4px">התאונה</h2>
@@ -45,7 +45,7 @@ ${
     ? `<h2 style="font-size:17px;color:#2D5F5F;margin:16px 0 4px">צד ג'</h2>
 <table style="width:100%;border-collapse:collapse">
 ${row('רכב', `${ltr(formatPlate(o.plate))} · ${esc(o.model)}`)}${row('ביטוח', `${esc(insurerName(o))} · פוליסה ${ltr(o.policy)}`)}
-${row('בעל הרכב', `${esc(o.ownerName)} · ת.ז. ${ltr(o.ownerId)}`)}${row('טלפון', o.ownerPhone ? ltr(o.ownerPhone) : '—')}${row('כתובת', esc(o.ownerAddress))}
+${row('בעל הרכב', `${esc(o.ownerName)} · ${o.ownerIdType === 'passport' ? 'דרכון' : 'ת.ז.'} ${ltr(o.ownerId)}`)}${row('טלפון', o.ownerPhone ? ltr(o.ownerPhone) : '—')}${row('כתובת', esc(o.ownerAddress))}
 ${row('נזק לרכב שלו', esc(r.damage.theirs))}
 </table>`
     : ''
