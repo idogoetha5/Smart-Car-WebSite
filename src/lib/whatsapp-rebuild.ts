@@ -176,6 +176,21 @@ function validDate(value: string): boolean {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
+/** An exact trip length ("לשבוע בדיוק", "for a week", "ל-5 ימים"). Approximate or
+ * hypothetical lengths are not a return date. */
+function statedDurationDays(input: string): number | null {
+  if (/אולי|בערך|בסביבות|מתלבט|(?:^|\s)אם\s|מה אם|\b(?:maybe|about|around|roughly|if|might)\b/iu.test(input)) return null;
+  const he = input.match(/(?:למשך\s+|ל[-־]?)(שבועיים|שבוע|יום אחד|יומיים|שלושה ימים|ארבעה ימים|חמישה ימים|שישה ימים|עשרה ימים|\d{1,2}\s*ימים)(?![\p{L}])/u)?.[1];
+  const en = input.match(/\bfor\s+(?:a|one|two|three|four|five|six|seven|ten|\d{1,2})\s+(?:days?|weeks?)\b/iu)?.[0];
+  const words: Record<string, number> = { 'שבוע': 7, 'שבועיים': 14, 'יום אחד': 1, 'יומיים': 2, 'שלושה ימים': 3, 'ארבעה ימים': 4, 'חמישה ימים': 5, 'שישה ימים': 6, 'עשרה ימים': 10 };
+  if (he) return words[he] ?? Number(he.match(/\d+/)?.[0]) ?? null;
+  if (en) {
+    const n = en.match(/\d+/)?.[0] ? Number(en.match(/\d+/)![0]) : ({ a: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, ten: 10 } as Record<string, number>)[en.split(/\s+/)[1].toLowerCase()];
+    return n ? (/week/i.test(en) ? n * 7 : n) : null;
+  }
+  return null;
+}
+
 function relativeRentalDuration(input: string): { pickupDate: string; returnDate: string } | null {
   for (const clause of input.split(/[.!?;\n]|\b(?:but|actually)\b|אבל|בעצם/iu)) {
     if (/אולי|מתלבט|עוד לא|עדיין לא|(?:^|\s)אם(?:\s|$)|לא (?:אקח|ניקח|נלך|רוצה)|\b(?:maybe|might|if|considering)\b|not sure|(?:do not|don['’]?t) (?:take|want|rent)/iu.test(clause)) continue;
@@ -452,6 +467,7 @@ function explicitBooking(input: string): boolean {
   if (/[?؟]/.test(input) && /כדאי|האם|should|would it|how/i.test(input)) return false;
   if (/(?:כן[,\s]*)?נתחיל\s+(?:בקש(?:ה|ת השכרה)|הזמנה)|\b(?:let'?s|let us)\s+start\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b|\bI\s+(?:want|would like)\s+to\s+(?:start|open)\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b/i.test(input)) return true;
   if (/^(?:כן[,\s]*)?כבר ביקשתי להתחיל[.!\s]*$/i.test(input)) return true;
+  if (/^(?:יאללה|סבבה|אוקיי?|טוב|ok(?:ay)?|go ahead|let['’]?s (?:go|do it))[.,!\s]+[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}(?:\s*,?\s*(?:בן|בת|aged?)\s*\d{2})?\s*[.!]?$/iu.test(input.trim())) return true;
   if (/(?:^|[\s,.!])(?:סבבה|יאללה|טוב|אוקיי?|אז)?\s*(?:תפתח(?:ו)?|פתח(?:ו)?|תכין|תכינו)\s+(?:לי\s+)?(?:בקש(?:ה|ת השכרה)|הזמנה)(?![\p{L}])|\b(?:go ahead and )?open (?:a |the |my )?(?:rental )?(?:request|booking)\b/iu.test(input)) return true;
   if (/(?:אני רוצה|אנחנו רוצים|רוצה|רוצים|כבר ביקשתי)\s+(?:להתחיל|לפתוח)(?:\s+(?:את ה|את|ה))?\s*(?:בקש(?:ה|ת השכרה)|הזמנה)/i.test(input)) return true;
   if (/^I need (?:a )?(?:(?:compact|small|family|SUV|seven[- ]?seat) )?rental car\b/i.test(input)) return true;
@@ -1810,6 +1826,25 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       if (date) state.booking.returnDate = date;
     }
     applyExplicitLocations(input, state.booking);
+    if (state.booking.pickupDate && !state.booking.returnDate && !state.interest) {
+      const days = statedDurationDays(input);
+      if (days && days >= 1 && days <= 60) {
+        const returned = new Date(`${state.booking.pickupDate}T00:00:00Z`);
+        returned.setUTCDate(returned.getUTCDate() + days);
+        state.booking.returnDate = returned.toISOString().slice(0, 10);
+      }
+    }
+    // Home delivery/collection: keep the customer's city (never a street address).
+    const customerTexts = [input, ...state.history.filter(entry => entry.from === 'customer' && !entry.private).map(entry => entry.text)];
+    const deliveryAsked = customerTexts.some(text => /עד הבית|לבית שלי|לכתובת|מסירה (?:לבית|לכתובת|עד הבית)|deliver(?:y)? (?:to )?(?:my )?(?:home|house|address)|bring (?:the )?car to (?:my )?(?:home|house)/iu.test(text));
+    const homeCity = customerTexts.map(text => text.match(/(?:^|[\s,])(?:אני|אנחנו|גר(?:ה|ים)?)\s+ב(?!בית)([\p{L}]{2,12}(?:\s+[\p{L}]{2,12})?)(?=[\s,.!?]|$)/u)?.[1]
+      ?? text.match(/\b(?:I(?:'m| am)|we(?:'re| are)|I live|we live)\s+in\s+([A-Z][\p{L}]{2,15}(?:\s+[A-Z][\p{L}]{2,15})?)/u)?.[1]).find(Boolean);
+    if (deliveryAsked && homeCity && !temporalLocation(homeCity)) {
+      state.booking.pickupLocation ??= he ? `מסירה עד הבית (${homeCity})` : `Home delivery (${homeCity})`;
+      if (customerTexts.some(text => /(?:יאספו|תאספו|לאסוף|איסוף)\s+(?:אותו|אתו|את הרכב)?\s*מהבית|collect (?:it )?from (?:my )?(?:home|house)|pick (?:it )?up from (?:my )?(?:home|house)/iu.test(text))) {
+        state.booking.returnLocation ??= he ? `איסוף מהבית (${homeCity})` : `Collection from home (${homeCity})`;
+      }
+    }
     // A short answer naming a known branch right after we asked where the car
     // goes back ("back in jerusalem", "גם שם" is handled elsewhere) is that answer.
     const askedReturnPlace = /Where will you return it\?|Where would you like to return|איפה תרצו להחזיר אותו\?|איפה תחזירו|לאן להחזיר/iu.test(lastBotReply);

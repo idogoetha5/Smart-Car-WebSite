@@ -228,3 +228,25 @@ describe('key problems go to a representative', () => {
     expect(result.escalate).toBeFalsy();
   });
 });
+
+// Live Chrome on 8db0660 (2026-11-11, Hebrew home delivery): "מיום ראשון הבא לשבוע בדיוק" stored only
+// pickup, home delivery/collection in רמת גן was not stored, and "יאללה. רוני בדיקה, בן 52" looped.
+describe('home delivery for a week', () => {
+  it('derives the return date, stores delivery/collection by city and starts on a go-ahead with a name', async () => {
+    // The weekday pickup itself comes from the model with the calendar; the fixture supplies it.
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-11-15' }, history: [{ from: 'customer', text: 'היי, אתם מביאים רכב עד הבית? אני ברמת גן' }, { from: 'bot', text: 'אפשר לתאם מסירה בכתובת שלכם.' }] } as RebuildState, 'רכב קומפקטי יכול להתאים.');
+    const second = await c.send('אחלה. מיום ראשון הבא לשבוע בדיוק, קטן, אני לבד. ושיאספו אתו מהבית בסוף גם');
+    expect(second.state.booking.pickupDate).toBe('2026-11-15');
+    expect(second.state.booking.returnDate).toBe('2026-11-22');
+    expect(second.state.booking.pickupLocation).toBe('מסירה עד הבית (רמת גן)');
+    expect(second.state.booking.returnLocation).toBe('איסוף מהבית (רמת גן)');
+    const third = await c.send('יאללה. רוני בדיקה, בן 52');
+    expect(third.state.phase).toBe('booking');
+    expect(third.state.booking.customerName).toBe('רוני בדיקה');
+    expect(third.reply).toMatch(/אלה פרטי הבקשה/);
+  });
+  it.each(['מיום ראשון בערך לשבוע', 'אולי לשבוע'])('does not turn an approximate length into a return date: %s', async input => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-11-15' }, history: [] } as RebuildState, 'בשמחה.');
+    expect((await c.send(input)).state.booking.returnDate).toBeUndefined();
+  });
+});
