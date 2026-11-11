@@ -189,6 +189,14 @@ describe('business go-ahead', () => {
     expect(result.state.phase).toBe('booking');
     expect(result.state.booking.customerName).toBe('איתי בדיקה');
     expect(result.reply).not.toMatch(/פתחנו את הבקשה|כיסא בטיחות/);
-    expect(result.reply).toMatch(/קבלה או חשבונית על שם החברה/);
+    expect(result.reply).toMatch(/קבלה או חשבונית על שם החברה מבקשים מנציג/);
+  });
+});
+
+describe('known pickup branch', () => {
+  it('rejects "באיזה סניף בתל אביב תרצה לאסוף" when pickup is saved', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-11-12', pickupLocation: 'תל אביב' }, history: [] } as RebuildState, 'רשמתי החזרה ביום רביעי. באיזה סניף או כתובת בתל אביב תרצה לאסוף את הרכב?');
+    const result = await c.send('עד רביעי');
+    expect(result.reply).not.toMatch(/באיזה סניף/);
   });
 });

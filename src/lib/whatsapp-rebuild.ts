@@ -2288,7 +2288,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   }
   // Company receipt/invoice questions get an honest, non-committal answer.
   if (!escalate && /(?:קבלה|חשבונית)(?:\s+מס)?\s+(?:על\s+שם|ל)(?:\s*ה)?(?:חברה|עסק)|\b(?:invoice|receipt)\b.{0,25}\b(?:company|business)\b/iu.test(input) && !/קבלה|חשבונית|invoice|receipt/iu.test(reply)) {
-    reply = `${reply.trim()} ${he ? 'בקשה לקבלה או חשבונית על שם החברה תצוין לנציג SmartCar, שיאשר את הפרטים מולכם.' : 'A receipt or invoice in the company name will be noted for the SmartCar representative, who will confirm the details with you.'}`;
+    reply = `${he ? 'קבלה או חשבונית על שם החברה מבקשים מנציג SmartCar כשהוא חוזר אליכם לגבי הבקשה.' : 'Please ask the SmartCar representative for a receipt or invoice in the company name when they contact you about the request.'}\n\n${reply.trim()}`;
   }
   // Owner rule: a rental price question always gets the same honest line.
   if (!escalate && state.phase !== 'service' && !state.interest && !state.completedRequestId
