@@ -292,3 +292,32 @@ describe('gender-neutral Hebrew address', () => {
     expect(r.reply).not.toMatch(/תרצי|שלך(?![\p{L}])/u);
   });
 });
+
+// Live Chrome on be627d1 (Jerusalem family story): "רשמתי בקשה" claim, a generic closing
+// question instead of the missing return place, and "אני משה כהן" not taken as the name.
+describe('jerusalem family rental', () => {
+  it('asks for the return place instead of a generic closing question', async () => {
+    const known = { version: 2, phase: 'explore', step: 'menu', locale: 'he', history: [{ from: 'customer', text: 'צריך 7 מקומות מחר מירושלים לשלושה ימים' }],
+      booking: { passengers: 6, pickupDate: '2026-12-12', returnDate: '2026-12-15', pickupLocation: 'ירושלים', vehicleNeed: 'רכב שבעה מקומות' } } as RebuildState;
+    const c = chat(known, 'כן, אפשר להוסיף כיסא בטיחות. האם תרצו להוסיף דבר מה נוסף לבקשה?');
+    const r = await c.send('יש לכם כיסא לתינוק? הקטן בן שנה');
+    expect(r.reply).toMatch(/להחזיר/);
+    expect(r.reply).not.toMatch(/דבר מה נוסף/);
+  });
+  it('does not claim a request was recorded', async () => {
+    const r = await chat(null, 'בשמחה! רשמתי בקשה לרכב שבעה מקומות ממירושלים מחר.').send('אהלן צריך 7 מקומות מחר מירושלים לשלושה ימים');
+    expect(r.reply).not.toMatch(/רשמתי בקשה/);
+  });
+  it.each([['סבבה תפתח לי בקשה, אני משה כהן', 'משה כהן'], ['יאללה נתקדם. שמי דנה לוי', 'דנה לוי']])('takes the Hebrew self-introduction as the name: %s', async (input, name) => {
+    const c = chat(null, 'x');
+    await c.send('צריך רכב משפחתי מתל אביב מ-20.12 עד 23.12, להחזיר בתל אביב');
+    const r = await c.send(input);
+    expect(r.state.booking.customerName).toBe(name);
+  });
+  it.each(['סבבה תפתח לי בקשה, אני בן 38', 'יאללה תפתח בקשה, אני הנהג', 'תפתח בקשה. אני רוצה משפחתי'])('does not take non-names: %s', async (input) => {
+    const c = chat(null, 'x');
+    await c.send('צריך רכב משפחתי מתל אביב מ-20.12 עד 23.12, להחזיר בתל אביב');
+    const r = await c.send(input);
+    expect(r.state.booking.customerName).toBeUndefined();
+  });
+});

@@ -167,7 +167,18 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
       if (process.env.NODE_ENV === 'production') console.warn('WhatsApp AI draft fallback', { reason });
     },
   });
-  return validated && state.locale === 'he' ? neutralHebrewAddress(validated) : validated;
+  return validated && state.locale === 'he' ? neutralHebrewAddress(validated).replace(/(?<![\p{L}])ממ(?=ירושלים)/gu, 'מ') : validated;
+}
+
+/** "אני משה כהן" / "שמי דנה לוי" / "קוראים לי רון" as its own clause. Verbs, ages,
+ * roles and filler after "אני" are not a name ("אני בן 38", "אני רוצה", "אני הנהג"). */
+const HEBREW_NOT_NAME = /^(?:רוצה|רוצים|צריך|צריכה|צריכים|מעוניין|מעוניינת|בן|בת|הנהג|הנהגת|נהג|נהגת|גם|רק|לא|עם|בלי|מגיע|מגיעה|נוסע|נוסעת|טס|טסה|חושב|חושבת|מתלבט|מתלבטת|בסדר|מאשר|מאשרת|שוב|כבר|עדיין|פה|כאן|מחכה|שואל|שואלת|יודע|יודעת|זוכר|זוכרת|מבין|מבינה|לבד|תושב|תושבת|תייר|תיירת|סטודנט|סטודנטית|חייל|חיילת|אבא|אמא|ההורה|בעלים|הבעלים|הלקוח|הלקוחה|מירושלים|מתל|מהרצליה|מהרכב|בטוח|בטוחה|מאוד|ממש|קצת|אחד|אחת|שלכם|שלך|איתכם|הולך|הולכת|יכול|יכולה|אוהב|אוהבת|מחפש|מחפשת|שוכר|שוכרת|נשוי|נשואה|גר|גרה)$/u;
+function hebrewIntroducedName(input: string): string | undefined {
+  const match = input.match(/(?:^|[.!,;]\s*|\s)(?:אני|שמי|קוראים לי|השם שלי)\s+([\p{L}'׳-]{2,20}(?:\s+[\p{L}'׳-]{2,20})?)(?=\s*(?:,|$|\s+(?:בן|בת)\s*\d{2}\b|[.!]))/u)?.[1];
+  if (!match || /[a-z]/i.test(match)) return undefined;
+  const words = match.split(/\s+/u);
+  if (words.some(word => HEBREW_NOT_NAME.test(word))) return undefined;
+  return match;
 }
 
 /** The customer's gender is unknown: feminine-singular second person in model
@@ -1335,6 +1346,7 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
   const askedForName = /שמך|השם שלך|את השם|על איזה שם|שם מלא|your (?:full )?name|what name/iu.test(lastBot);
   const introducedName = state.phase === 'booking' || explicitStart
     ? input.match(/(?:^|[.!,;]\s*)(?:I am|I['’]?m|im)\s+([\p{L}'-]{2,20}(?:\s+[\p{L}'-]{2,20})?)(?=\s*(?:,|$|\s+\d{2}\b|\s+and\b|[.!]))/iu)?.[1]
+      ?? hebrewIntroducedName(input)
     : undefined;
   // After an explicit start, a two-word clause on its own between commas or at the
   // end ("יאללה בואו נתקדם, דנה בדיקה, נהג ראשי בעלי בן 38") is the name.
@@ -2365,8 +2377,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   // reply asks nothing, ask the one route detail still missing.
   if (!escalate && state.phase === 'explore' && !state.interest && !state.completedRequestId && !state.handedOff
     && state.booking.pickupDate && state.booking.returnDate && state.booking.pickupLocation && !state.booking.returnLocation
-    && !/[?؟]/u.test(reply) && !/(?:^|\s)לא (?:רוצה|מעוניין|עכשיו)|not (?:now|ready)|just asking|רק שואל/iu.test(input)) {
-    reply = `${reply.trim()} ${question('returnLocation', state.locale)}`;
+    && !/(?:^|\s)לא (?:רוצה|מעוניין|עכשיו)|not (?:now|ready)|just asking|רק שואל/iu.test(input)
+    && !/החזר|להחזיר|\breturn|drop.?off/iu.test(reply)) {
+    // A generic closing question ("anything else to add?") would stall; ask the missing return place instead.
+    const body = /[?؟]\s*$/u.test(reply.trim()) ? reply.trim().replace(/(?:^|(?<=[.!:\n]))[^.!:?؟\n]*[?؟]\s*$/u, '').trim() : reply.trim();
+    reply = `${body} ${question('returnLocation', state.locale)}`.trim();
   }
   // Company receipt/invoice questions get an honest, non-committal answer.
   if (!escalate && /(?:קבלה|חשבונית)(?:\s+מס)?\s+(?:על\s+שם|ל)(?:\s*ה)?(?:חברה|עסק)|\b(?:invoice|receipt)\b.{0,25}\b(?:company|business)\b/iu.test(input) && !/קבלה|חשבונית|invoice|receipt/iu.test(reply)) {
