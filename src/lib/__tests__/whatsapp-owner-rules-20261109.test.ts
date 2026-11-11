@@ -273,3 +273,12 @@ describe('card brand question', () => {
     expect(r.reply).toMatch(/card brand is accepted/);
   });
 });
+
+// Live Chrome on 5e919d0: the model prefixed the price line to a Highway 6 "who pays" question.
+describe('price line only for price questions', () => {
+  it('drops the price line from a toll answer', async () => {
+    const r = await chat(null, 'המחיר נסגר סופית מול נציג SmartCar, לפי התאריכים, סוג הרכב והתוספות שתבחרו. אפשר לנסוע בכביש 6; האגרות על חשבון השוכר.').send('אפשר לעלות על כביש 6? מי משלם');
+    expect(r.reply).not.toContain('המחיר נסגר סופית');
+    expect(r.reply).toMatch(/כביש 6/);
+  });
+});

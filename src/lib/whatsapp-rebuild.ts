@@ -56,7 +56,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // ("אוקיי אני מאשר") or courtesy tail. Any other content keeps the summary open.
 const FINAL_CONSENT = /^(?:(?:אוקיי?|אוקי|טוב|סבבה|יאללה|כן|ok(?:ay)?|yes)[,!.\s]+)?(?:אני מאשר(?:ת)?|מאשר(?:ת)?|i confirm|confirm(?:ed)?)(?:[,\s]+(?:בבקשה|תודה|please|thanks|thank you))?[.!\s]*\p{Extended_Pictographic}*$/iu;
 const PRIVATE_PAYMENT_DETAIL = /מספר (?:כרטיס|אשראי)|קוד אבטחה|\b(?:full card|(?:credit )?card number|security code|CVV|CVC)\b/i;
-const PRICE_OR_AVAILABILITY = /מחיר|עלות|כמה.{0,12}(?:עול|יעל)|(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:prices?|cost|rate|available|availability)\b/iu;
+const PRICE_OR_AVAILABILITY = /מחיר|(?<![לב])עלות|כמה.{0,12}(?:עול|יעל)|(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:prices?|cost|rate|available|availability)\b/iu;
 const AVAILABILITY_ONLY = /(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:available|availability|in stock)\b/iu;
 const MONTHS: Record<string, number> = { ינואר: 1, פברואר: 2, מרץ: 3, אפריל: 4, מאי: 5, יוני: 6, יולי: 7, אוגוסט: 8, ספטמבר: 9, אוקטובר: 10, נובמבר: 11, דצמבר: 12, january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12 };
 const EXPLICIT_RANGE = new RegExp(`(\\d{1,2})\\s*(?:עד|[-–]|to|until)\\s*(\\d{1,2})\\s+(?:ב)?(${Object.keys(MONTHS).join('|')})(?:\\s+(20\\d{2}))?`, 'iu');
@@ -2363,9 +2363,15 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     && !/amex|american express|diners|visa|mastercard|isracard|אמריקן|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט|סוג הכרטיס|card type|card brand/iu.test(reply)) {
     reply = `${reply.trim()}\n\n${he ? 'לגבי סוג הכרטיס: נדרש כרטיס אשראי (לא דביט) על שם השוכר; אם מדובר בסוג כרטיס מסוים, נציג SmartCar יאשר מולכם שהוא מתקבל.' : 'On the card: a credit card (not debit) in the renter’s name is required; a SmartCar representative will confirm whether a specific card brand is accepted.'}`;
   }
+  // The price line answers price questions only; a toll or fine "who pays" question is not one.
+  if (reply.includes(priceAnswer(state.locale)) && !PRICE_OR_AVAILABILITY.test(input)
+    && !/כמה (?:זה )?(?:עולה|יעלה|יוצא|ייצא)|מה המחיר|הצעה|\bhow much\b|\bquote\b/iu.test(input)) {
+    const stripped = reply.replace(priceAnswer(state.locale), '').replace(/^\s+/, '').replace(/\s{2,}/g, ' ');
+    if (stripped.trim()) reply = stripped;
+  }
   // Owner rule: a rental price question always gets the same honest line.
   if (!escalate && state.phase !== 'service' && !state.interest && !state.completedRequestId
-    && /כמה (?:זה )?(?:עולה|יעלה|יוצא|ייצא)|מה המחיר|מחיר|עלות|\bhow much\b|\bprice\b|\bcost\b|\brate\b/iu.test(input)
+    && /כמה (?:זה )?(?:עולה|יעלה|יוצא|ייצא)|מה המחיר|מחיר|(?<![לב])עלות|\bhow much\b|\bprice\b|\bcost\b|\brate\b/iu.test(input)
     && !/פיקדון|deposit|השתתפות|excess|ביטול|cancel/iu.test(input) && !reply.includes(priceAnswer(state.locale))
     && !/מחיר|הצעה|תעריף|עלות|price|quote|rate|cost/iu.test(reply)) {
     reply = `${priceAnswer(state.locale)} ${reply}`.trim();
