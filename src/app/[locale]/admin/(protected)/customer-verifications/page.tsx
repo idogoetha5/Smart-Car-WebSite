@@ -361,9 +361,10 @@ function SendLinkModal({ onClose, onCreated }: { onClose: () => void; onCreated:
     const { token } = await res.json();
     const link = `${window.location.origin}/${form.lang}/customer-verification?t=${token}`;
     const first = form.name.trim().split(/\s+/)[0];
+    // Link on its own line, last, so WhatsApp builds the large preview card.
     const msg = form.lang === 'en'
-      ? `Hi${first ? ` ${first}` : ''}, this is SmartCar. To get your car ready, please send a photo of your driving licence and your card details through this secure link (about a minute):\n${link}`
-      : `שלום${first ? ` ${first}` : ''}, כאן סמארט קאר. כדי להכין את הרכב, נבקש לצלם את רישיון הנהיגה ולמלא את פרטי האשראי בקישור המאובטח (כדקה):\n${link}`;
+      ? `Hi${first ? ` ${first}` : ''},\nThis is SmartCar. To complete your booking, please photograph your driving licence and add your card details through your personal, encrypted link. It takes about a minute.\n\n${link}`
+      : `שלום${first ? ` ${first}` : ''},\nכאן סמארט קאר. כדי להשלים את ההזמנה, נבקש לצלם את רישיון הנהיגה ולמלא את פרטי הכרטיס בקישור האישי והמאובטח. זה לוקח כדקה.\n\n${link}`;
     const url = `https://wa.me/${waNumber(form.phone)}?text=${encodeURIComponent(msg)}`;
     if (win) win.location.href = url; else window.location.href = url;
     onCreated();
