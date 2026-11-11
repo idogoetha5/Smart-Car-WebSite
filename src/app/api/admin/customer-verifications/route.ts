@@ -4,7 +4,7 @@ import { randomBytes } from 'crypto';
 import { createAdminClient } from '@/lib/supabase/server';
 import { verifyAdminToken } from '@/lib/admin-auth';
 import { normalizePhone } from '@/lib/accident-report/schema';
-import { LINK_TTL_HOURS, NO_STORE } from '@/lib/customer-verification/server';
+import { LINK_TTL_HOURS, NO_STORE, PUBLIC_TOKEN_PREFIX } from '@/lib/customer-verification/server';
 
 async function checkAuth() {
   const cookieStore = await cookies();
@@ -20,11 +20,16 @@ export async function GET() {
   if (!(await checkAuth())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { data, error } = await createAdminClient()
     .from('customer_verifications')
-    .select(LIST_COLUMNS)
+    .select(`${LIST_COLUMNS}, token`)
     .order('created_at', { ascending: false })
     .limit(500);
   if (error) return NextResponse.json({ error: 'server' }, { status: 500 });
-  return NextResponse.json({ data }, { headers: NO_STORE });
+  // The token never leaves the server; it only tells which link a row came from.
+  // A fixed-link start that was never completed is noise, so it is not listed.
+  const rows = (data ?? [])
+    .map(({ token, ...row }) => ({ ...row, source: String(token).startsWith(PUBLIC_TOKEN_PREFIX) ? 'public' : 'admin' }))
+    .filter((row) => !(row.source === 'public' && row.status !== 'COMPLETED'));
+  return NextResponse.json({ data: rows }, { headers: NO_STORE });
 }
 
 /** Creates a personal link to send the customer over WhatsApp. */
@@ -34,7 +39,8 @@ export async function POST(request: Request) {
   const phone = normalizePhone(s(body.phone, 30));
   if (phone.replace(/\D/g, '').length < 9) return NextResponse.json({ error: 'phone' }, { status: 400 });
 
-  const token = randomBytes(24).toString('base64url');
+  let token = randomBytes(24).toString('base64url');
+  while (token.startsWith(PUBLIC_TOKEN_PREFIX)) token = randomBytes(24).toString('base64url');
   const { data, error } = await createAdminClient()
     .from('customer_verifications')
     .insert({

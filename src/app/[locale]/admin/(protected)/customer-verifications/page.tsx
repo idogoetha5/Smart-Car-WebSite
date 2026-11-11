@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Copy, CreditCard, Eye, EyeOff, Lock, MessageCircle, Phone, RefreshCw, Search, Send, Trash2, X } from 'lucide-react';
+import { Copy, CreditCard, Eye, EyeOff, Link2, Lock, MessageCircle, Phone, RefreshCw, Search, Send, Trash2, X } from 'lucide-react';
 import { BRAND_LABEL, maskCard, type CardBrand } from '@/lib/customer-verification/card';
 
 type Status = 'SENT' | 'COMPLETED' | 'CANCELLED' | 'EXPIRED';
@@ -25,6 +25,7 @@ interface ListRow {
   card_brand: string | null;
   card_expiry: string | null;
   created_at: string;
+  source?: 'admin' | 'public';
 }
 
 interface Detail extends ListRow {
@@ -79,6 +80,7 @@ export default function CustomerVerificationsAdminPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [msg, setMsg] = useState('');
   const [sendOpen, setSendOpen] = useState(false);
+  const [fixedOpen, setFixedOpen] = useState(false);
   const [zoom, setZoom] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -175,6 +177,7 @@ export default function CustomerVerificationsAdminPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={() => setSendOpen(true)} className="flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-800"><Send className="h-4 w-4" />שליחת קישור ללקוח</button>
+          <button onClick={() => setFixedOpen(true)} className="flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold"><Link2 className="h-4 w-4" />קישור קבוע</button>
           <button onClick={() => { setLoading(true); load(); }} aria-label="טעינה מחדש" className="rounded-xl border border-gray-300 bg-white px-3 py-2.5"><RefreshCw className="h-4 w-4" /></button>
         </div>
       </div>
@@ -207,7 +210,7 @@ export default function CustomerVerificationsAdminPage() {
                       className={`cursor-pointer border-b border-gray-100 last:border-0 hover:bg-brand-50 ${selected === r.id ? 'bg-brand-50' : ''}`}>
                       <td className="px-3 py-3" dir="ltr" style={{ textAlign: 'right' }}>{r.id}</td>
                       <td className="px-3 py-3">{heDateTime(r.created_at)}</td>
-                      <td className="px-3 py-3">{r.customer_name ?? '—'}</td>
+                      <td className="px-3 py-3">{r.customer_name ?? '—'}{r.source === 'public' && <span className="mr-1.5 whitespace-nowrap rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700">קישור קבוע</span>}</td>
                       <td className="px-3 py-3" dir="ltr" style={{ textAlign: 'right' }}>{r.customer_phone}</td>
                       <td className="px-3 py-3">{r.booking_ref ?? '—'}</td>
                       <td className="px-3 py-3" dir="ltr" style={{ textAlign: 'right' }}>{r.card_last4 ? maskCard(r.card_last4) : '—'}</td>
@@ -338,6 +341,7 @@ export default function CustomerVerificationsAdminPage() {
       )}
 
       {sendOpen && <SendLinkModal onClose={() => setSendOpen(false)} onCreated={() => load()} />}
+      {fixedOpen && <FixedLinksModal onClose={() => setFixedOpen(false)} />}
     </div>
   );
 }
@@ -388,6 +392,51 @@ function SendLinkModal({ onClose, onCreated }: { onClose: () => void; onCreated:
         </div>
         {err && <p className="mt-3 text-sm text-red-600">{err}</p>}
         <button onClick={send} disabled={busy} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 font-semibold text-white disabled:opacity-60"><MessageCircle className="h-5 w-5" />{busy ? 'יוצרים קישור…' : 'פתיחת וואטסאפ'}</button>
+      </div>
+    </div>
+  );
+}
+
+/** The two permanent links (Hebrew and English). Anyone who opens one fills in name and phone first. */
+function FixedLinksModal({ onClose }: { onClose: () => void }) {
+  const [copied, setCopied] = useState('');
+  const origin = typeof window !== 'undefined' ? window.location.origin.replace('://smartcar', '://www.smartcar') : 'https://www.smartcar.co.il';
+  const links = [
+    { lang: 'he', label: 'עברית', url: `${origin}/he/customer-verification`,
+      text: 'שלום, כאן סמארט קאר. כדי להשלים את ההזמנה, נבקש לצלם את רישיון הנהיגה ולמלא את פרטי הכרטיס בקישור המאובטח. זה לוקח כדקה.' },
+    { lang: 'en', label: 'English', url: `${origin}/en/customer-verification`,
+      text: 'Hi, this is SmartCar. To complete your booking, please photograph your driving licence and add your card details through this secure link. It takes about a minute.' },
+  ];
+  const copy = async (s: string, key: string) => {
+    try { await navigator.clipboard.writeText(s); setCopied(key); setTimeout(() => setCopied(''), 2000); } catch { /* clipboard blocked */ }
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label="קישור קבוע" className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6" onClick={(e) => e.stopPropagation()} dir="rtl">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-lg font-bold">קישור קבוע</h2>
+          <button onClick={onClose} aria-label="סגירה" className="rounded-lg p-2 hover:bg-gray-100"><X className="h-4 w-4" /></button>
+        </div>
+        <p className="mb-4 text-sm text-gray-500">אותו קישור לכל הלקוחות. הלקוח ממלא שם וטלפון, ואחר כך רישיון וכרטיס. הרשומה מופיעה כאן עם התגית &quot;קישור קבוע&quot;. לקישור אישי עם פרטים ממולאים מראש, השתמשו ב&quot;שליחת קישור ללקוח&quot;.</p>
+        <div className="flex flex-col gap-3">
+          {links.map((l) => (
+            <div key={l.lang} className="rounded-xl border border-gray-200 p-3">
+              <div className="mb-1 text-sm font-semibold">{l.label}</div>
+              <div dir="ltr" className="mb-3 break-all rounded-lg bg-gray-50 px-3 py-2 text-left text-sm text-gray-700">{l.url}</div>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => copy(l.url, l.lang)} className="flex items-center gap-1.5 rounded-lg border border-brand-600 px-3 py-2 text-sm font-semibold text-brand-600">
+                  <Copy className="h-4 w-4" />{copied === l.lang ? 'הועתק' : 'העתקת קישור'}
+                </button>
+                <button onClick={() => copy(`${l.text}\n\n${l.url}`, `${l.lang}-msg`)} className="flex items-center gap-1.5 rounded-lg border border-brand-600 px-3 py-2 text-sm font-semibold text-brand-600">
+                  <Copy className="h-4 w-4" />{copied === `${l.lang}-msg` ? 'הועתק' : 'העתקת הודעה מלאה'}
+                </button>
+                <a href={`https://wa.me/?text=${encodeURIComponent(`${l.text}\n\n${l.url}`)}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white">
+                  <MessageCircle className="h-4 w-4" />וואטסאפ
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

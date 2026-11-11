@@ -4,6 +4,9 @@ import { createAdminClient } from '@/lib/supabase/server';
 export const CV_BUCKET = 'customer-verifications';
 export const LINK_TTL_HOURS = 72;
 export const TOKEN_RE = /^[A-Za-z0-9_-]{20,80}$/;
+/** Tokens issued by the fixed public link start with this; admin-created ones never do. */
+export const PUBLIC_TOKEN_PREFIX = 'p_';
+export const PUBLIC_LINK_TTL_HOURS = 3;
 
 export interface VerificationRow {
   id: string;
