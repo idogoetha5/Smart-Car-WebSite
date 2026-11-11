@@ -130,3 +130,33 @@ describe('return place with "גם"', () => {
     expect((await c.send(input)).state.booking.returnLocation).toBe('הרצליה');
   });
 });
+
+// Live Chrome on a365bc0 (EN leasing): "maybe 12k km a year" was not stored (asked again), the
+// leasing insurance question got the rental cover text, and "actually make it 3 years if thats
+// cheaper" stayed at 24 months while the model said it switched.
+describe('casual English leasing details', () => {
+  it('keeps estimates and term changes, and does not answer leasing with rental cover', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'en', interest: 'leasing', commercial: { termMonths: 24, usage: ['business'] }, booking: {}, history: [] } as RebuildState, 'Insurance in leasing is included only if stated in the offer.', 'en');
+    const second = await c.send('mostly city driving, maybe 12k km a year. budget around 3000 a month. is insurance included?');
+    expect(second.state.commercial?.annualMileageKm).toBe(12000);
+    expect(second.reply).not.toMatch(/Every rental includes basic cover/);
+    const third = await c.send('actually make it 3 years if thats cheaper per month. and i only have a us licence, problem?');
+    expect(third.state.commercial?.termMonths).toBe(36);
+  });
+  it('still ignores a pure what-if mileage', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'en', interest: 'leasing', commercial: { annualMileageKm: 15000 }, booking: {}, history: [] } as RebuildState, 'Mileage changes the offer.', 'en');
+    const result = await c.send('what if I drove 30k km a year instead?');
+    expect(result.state.commercial?.annualMileageKm).toBe(15000);
+  });
+});
+
+describe('leasing callback and recall in one message', () => {
+  it('passes the lead on and lists what was saved', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'en', interest: 'leasing', commercial: { termMonths: 36, annualMileageKm: 12000, usage: ['business', 'city'], budget: { amount: 3000, currency: 'unspecified' } }, booking: {}, history: [] } as RebuildState, 'How many km per year?', 'en');
+    const result = await c.send('ok cool. can someone call me tomorrow with offers? what do you have on me so far');
+    expect(result.escalate).toBe(true);
+    expect(result.reply).toMatch(/36 months/);
+    expect(result.reply).toMatch(/12000 km/);
+    expect(result.reply).not.toMatch(/how many kilometres/i);
+  });
+});

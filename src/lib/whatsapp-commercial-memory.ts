@@ -97,7 +97,9 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   const termUndecided = /(?:term|תקופה|משך).{0,30}(?:undecided|not decided|not sure|לא החלטתי|לא סגור)|(?:לא החלטתי|לא סגור|not decided).{0,25}(?:term|תקופה)/i.test(text)
     || comparesTerms && /unsure|undecided|not sure|haven'?t decided|changed my mind|מתלבט|לא החלטתי|לא בטוח|שיניתי את דעתי/i.test(text);
   const eligibleTermMatches = termMatches.filter(match => !termChoicePrefix(text, match.index).hypothetical && !isHypotheticalFactEvidence(text, match.evidence));
-  const explicitChoice = eligibleTermMatches.filter(match => termChoicePrefix(text, match.index).chosen).sort((a, b) => a.index - b.index).at(-1);
+  // An explicit choice verb ("actually make it 3 years if that's cheaper") is a
+  // selection even with a trailing condition about price.
+  const explicitChoice = termMatches.filter(match => termChoicePrefix(text, match.index).chosen && !termChoicePrefix(text, match.index).hypothetical).sort((a, b) => a.index - b.index).at(-1);
   const laterUncertainty = explicitChoice && /(?:unsure|undecided|not sure|מתלבט|לא החלטתי)[^.!?\n]{0,45}(?:24[^.!?\n]{0,30}36|36[^.!?\n]{0,30}24|duration|period|תקופה|משך)/i.test(text.slice(explicitChoice.index));
   // An explicit choice wins over an unrelated “or” in a price question.
   if (explicitChoice) next.termMonths = laterUncertainty ? null : explicitChoice.value;
@@ -111,7 +113,9 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   if (annual || previous?.annualMileageKm !== undefined) {
     const mileage = new RegExp(`${NUMBER}\\s*(אלף|thousand|k\\b)?\\s*(?:קילומטר(?:ים)?|ק[״"]מ|קמ|km|kilometres?|kilometers?)`, 'giu');
     for (const match of text.matchAll(mileage)) {
-      if (negatedBefore(text, match.index!) || isHypotheticalFactEvidence(text, match[0])) continue;
+      // "maybe 12k km a year" is an estimate, not a hypothetical; only if/what-if is.
+      const clause = text.slice(0, match.index! + match[0].length).split(/[.!?;\n]/u).at(-1) ?? '';
+      if (negatedBefore(text, match.index!) || /\bwhat if\b|\bif\b|מה אם|(?:^|\s)אם\s/iu.test(clause)) continue;
       const value = amount(match[1], match[2]);
       if (value > 0 && value <= 200000) next.annualMileageKm = value;
     }

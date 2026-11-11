@@ -1814,7 +1814,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const serviceInterpretation = reading?.route === 'service' && reading.groundedContext === true;
     const acceptsRentalOffer = confirmedOffer && !serviceInterpretation;
     const declinesHuman = declinesHumanHandoff(input);
-    const asksHuman = !declinesHuman && !/(?:^|\s)ו?אם\s+(?:לא\s+)?(?:ש?מישהו\s+)?(?:יחזרו|תחזרו|יחזור|יתקשרו|תתקשרו|יתקשר)|\bif (?:no one|nobody|you don['’]?t|you do not)\b/iu.test(input) && /(?:^|[\s,.!])(?:ש|ש?מישהו\s+|שנציג\s+)?(?:יחזרו|תחזרו|יחזור|יתקשרו|תתקשרו|יתקשר)\s+(?:אליי|אלי|אליי?נו|לי)(?![\p{L}])|\b(?:have|get) (?:someone|somebody|a (?:rep|representative|person)) (?:to )?call me\b|\bcall me back\b|\bplease call me\b|(?:רוצה|אפשר|צריך|צריכה).{0,22}(?:לדבר|נציג|בן אדם)|(?:לדבר|נציג|בן אדם).{0,22}(?:בבקשה|אפשר|רוצה)|\b(?:speak|talk|connect)\b.{0,28}\b(?:human|representative|person)\b|\b(?:human|representative|real person)\b.{0,20}\b(?:please|help)\b/iu.test(input);
+    const asksHuman = !declinesHuman && !/(?:^|\s)ו?אם\s+(?:לא\s+)?(?:ש?מישהו\s+)?(?:יחזרו|תחזרו|יחזור|יתקשרו|תתקשרו|יתקשר)|\bif (?:no one|nobody|you don['’]?t|you do not)\b/iu.test(input) && /(?:^|[\s,.!])(?:ש|ש?מישהו\s+|שנציג\s+)?(?:יחזרו|תחזרו|יחזור|יתקשרו|תתקשרו|יתקשר)\s+(?:אליי|אלי|אליי?נו|לי)(?![\p{L}])|\b(?:have|get) (?:someone|somebody|a (?:rep|representative|person)) (?:to )?call me\b|\b(?:can|could|would|will) (?:someone|somebody|a (?:rep|representative|person)|you(?: guys)?) (?:please )?(?:call|phone|ring) me\b|\bcall me back\b|\bplease call me\b|(?:אפשר ש|יכול |שמישהו |מישהו (?:יכול )?)(?:להתקשר|יתקשר|לחזור|יחזור)\s+(?:אליי|אלי)(?![\p{L}])|(?:רוצה|אפשר|צריך|צריכה).{0,22}(?:לדבר|נציג|בן אדם)|(?:לדבר|נציג|בן אדם).{0,22}(?:בבקשה|אפשר|רוצה)|\b(?:speak|talk|connect)\b.{0,28}\b(?:human|representative|person)\b|\b(?:human|representative|real person)\b.{0,20}\b(?:please|help)\b/iu.test(input);
     // A model's human-route classification is not consent. Require an actual
     // callback request or acceptance of a preceding representative invitation.
     const modelHumanConsent = !declinesHuman
@@ -2220,12 +2220,15 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : hasOtherReferenceQuestion(input) || /מחיר|אישור|אושר|זיכוי|גרר|רכב חלופי|price|approv|refund|\btow\b|replacement (?:car|vehicle)/i.test(input) ? `${reply} ${acknowledgement}` : acknowledgement;
   }
   const asksCommercialRecall = state.interest && state.commercial
-    && /שמר|רשמ|תזכיר|הזכר|remember|record|saved|remind|noted/i.test(input)
-    && /תקציב|סוג רכב|העדפ|תקופ|קילומטראז|budget|car type|vehicle|preference|term|mileage/i.test(input);
+    && (/שמר|רשמ|תזכיר|הזכר|remember|record|saved|remind|noted/i.test(input)
+    && /תקציב|סוג רכב|העדפ|תקופ|קילומטראז|budget|car type|vehicle|preference|term|mileage/i.test(input)
+    || /what (?:do|did) you (?:have|got) (?:on|about|for) me|what do you have so far|what have you (?:got|noted|saved)|מה (?:יש לך|רשמת|שמרת) (?:עליי|עלי|עד עכשיו)|מה רשמת(?:\s|\?|$)/iu.test(input));
   if (asksCommercialRecall) {
     const details = renderCommercialMemory(state.commercial, state.locale);
-    reply = he ? `הפרטים שנשמרו בפנייה: ${details}. הפנייה אינה אישור לשמירת רכב, לעסקה או לנסיעת מבחן; אלה דורשים תיאום ואישור נפרד של SmartCar.`
+    const recall = he ? `הפרטים שנשמרו בפנייה: ${details}. הפנייה אינה אישור לשמירת רכב, לעסקה או לנסיעת מבחן; אלה דורשים תיאום ואישור נפרד של SmartCar.`
       : `Your recorded enquiry preferences: ${details}. This enquiry does not confirm a reserved car, purchase or test drive; those require separate arrangements and SmartCar confirmation.`;
+    // Keep the callback acknowledgement when the same message asked for one.
+    reply = escalate ? `${reply} ${recall}` : recall;
   }
   const asksDraftStatus = /מה\s+פרטי\s+(?:ההשכרה|הבקשה|ההזמנה)|מה\s+עם\s+ההשכרה\s+שלי|(?:ההזמנה|הבקשה).{0,55}(?:שעשיתי איתך|שעשינו|העברת|שלחת|נשלחה)|(?:העברת|שלחת|נשלחה).{0,45}(?:ההזמנה|הבקשה)|(?:what|which).{0,30}(?:rental|request|booking) details|did you.{0,30}(?:send|submit|pass).{0,35}(?:request|booking)/i.test(input)
     || !state.handedOff && /^(?:יחזרו אליי?\??|will (?:someone|a representative) call me back\??)$/i.test(input.trim());
@@ -2301,7 +2304,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const contactTurn = privateTurn || /(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}|[^\s@]+@[^\s@]+\.[^\s@]+/u.test(input);
     // Policy facts a customer asked about directly; location/branch facts carry
     // their own date/route prompts and stay with their dedicated branches.
-    const side = sideFact && (contactTurn || ['driver_documents', 'insurance', 'deposit', 'age_licence', 'fuel', 'mileage'].includes(sideFact.topic)) ? sideFact.reply : undefined;
+    // Rental policy facts are not leasing/sale terms.
+    const side = sideFact && !state.interest && (contactTurn || ['driver_documents', 'insurance', 'deposit', 'age_licence', 'fuel', 'mileage'].includes(sideFact.topic)) ? sideFact.reply : undefined;
     if (side && !reply.includes(side.slice(0, 40))) reply = `${side} ${reply}`;
   }
   pushHistory(state, input, reply, privateTurn);
