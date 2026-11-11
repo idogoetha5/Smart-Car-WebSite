@@ -845,7 +845,7 @@ function commercialReplyContent(input: string, state: RebuildState): { reply: st
   const context = `${previous} ${input}`;
   const hasKnownTerm = state.commercial?.termMonths != null;
   const hasKnownMileage = state.commercial?.annualMileageKm != null;
-  const hasKnownVehicle = state.commercial?.vehiclePreference != null;
+  const hasKnownVehicle = state.commercial?.vehiclePreference != null || Boolean(state.commercial?.vehicleModel);
   if (/מה.{0,35}(?:זוכר|שמורים|רשמת|שמרת)|(?:what|which).{0,45}(?:remember|recorded|saved|details do you have)/i.test(input)) {
     const commitment = /התחייב|מחויב|commit|binding|obligat/i.test(input)
       ? (he ? ' זו שיחת בירור ללא התחייבות לעסקה.' : ' This is an enquiry with no commitment to a deal.') : '';
@@ -2399,6 +2399,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   // Company receipt/invoice questions get an honest, non-committal answer.
   if (!escalate && /(?:קבלה|חשבונית)(?:\s+מס)?\s+(?:על\s+שם|ל)(?:\s*ה)?(?:חברה|עסק)|\b(?:invoice|receipt)\b.{0,25}\b(?:company|business)\b/iu.test(input) && !/קבלה|חשבונית|invoice|receipt/iu.test(reply)) {
     reply = `${he ? 'קבלה או חשבונית על שם החברה מבקשים מנציג SmartCar כשהוא חוזר אליכם לגבי הבקשה.' : 'Please ask the SmartCar representative for a receipt or invoice in the company name when they contact you about the request.'}\n\n${reply.trim()}`;
+  }
+  // Leasing with term, mileage and vehicle known: offer the representative step instead of a generic question.
+  if (!escalate && state.interest === 'leasing' && !state.handedOff && state.commercial?.termMonths != null && state.commercial?.annualMileageKm != null
+    && (state.commercial?.vehiclePreference != null || state.commercial?.vehicleModel) && !/נציג|representative|SmartCar team/iu.test(reply) && /[?؟]\s*$/u.test(reply.trim())) {
+    const body = reply.trim().replace(/(?:^|(?<=[.!:\n]))[^.!:?؟\n]*[?؟]\s*$/u, '').trim();
+    reply = `${body} ${he ? 'יש לי את התקופה, הקילומטראז׳ והרכב שביקשתם. תרצו שאעביר את הפרטים לנציג SmartCar להכנת הצעה מפורטת?' : 'I have your term, mileage and vehicle. Would you like me to pass them to a SmartCar representative for a detailed offer?'}`.trim();
   }
   // Card brands are not published: answer honestly instead of ignoring the question.
   if (!escalate && /\b(?:amex|american express|diners|visa|mastercard|master card|isracard)\b|אמריקן אקספרס|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט/iu.test(input)

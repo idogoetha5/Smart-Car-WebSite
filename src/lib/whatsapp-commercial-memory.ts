@@ -7,12 +7,15 @@ export type CommercialMemory = {
   termMonths?: number | null;
   annualMileageKm?: number | null;
   vehiclePreference?: 'compact' | 'family' | 'suv' | 'seven_seat' | null;
+  /** A named model in the customer's own words ("קורולה היברידית"), for the representative. */
+  vehicleModel?: string;
   usage?: Array<'city' | 'family' | 'business' | 'long_distance' | 'commuting'>;
   passengers?: number;
   luggage?: number;
   lowMileagePreferred?: boolean;
 };
 
+const NAMED_MODEL = /(?<![\p{L}\d])((?:טויוטה\s+|toyota\s+|יונדאי\s+|hyundai\s+|קיה\s+|kia\s+|סקודה\s+|skoda\s+|מאזדה\s+|mazda\s+|טסלה\s+|tesla\s+|סוזוקי\s+|suzuki\s+|פולקסווגן\s+|vw\s+|volkswagen\s+)?(?:קורולה|corolla|יאריס|yaris|ראב\s?4|rav\s?4|c-?hr|קאמרי|camry|i10|i20|i30|טוסון|tucson|קונה|kona|איוניק(?:\s?5)?|ioniq(?:\s?5)?|פיקנטו|picanto|ספורטאז['׳]?|sportage|נירו|niro|סיד|ceed|אוקטביה|octavia|פאביה|fabia|קודיאק|kodiaq|קארוק|karoq|cx-?5|cx-?30|מאזדה\s?3|mazda\s?3|סוויפט|swift|ויטרה|vitara|גולף|golf|מודל\s?(?:3|y)|model\s?(?:3|y)|אטו\s?3|atto\s?3|ZS|MG4)(?:\s+(?:היברידית|היברידי|חשמלית|חשמלי|hybrid|electric))?)(?![\p{L}\d])/iu;
 const NUMBER = '(?<!\\d)(\\d{1,3}(?:[, ]\\d{3})+|\\d{1,7}(?:\\.\\d+)?)(?!\\d)';
 const amount = (value: string, scale?: string) => Number(value.replace(/[, ]/g, '')) * (scale ? 1000 : 1);
 
@@ -171,6 +174,8 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
     if (count > 0 && count <= 20) next[/נוסעים|אנשים|passenger|people/i.test(match[2]) ? 'passengers' : 'luggage'] = count;
   }
   if (/זוג (?:עם|ו)\s*שני ילדים|two adults and two children|two adults with two children/i.test(text)) next.passengers = 4;
+  const named = text.match(NAMED_MODEL);
+  if (named && !negatedBefore(text, named.index!) && !/\bif\b|\bmaybe\b|אולי|מה אם/iu.test(text.slice(Math.max(0, named.index! - 20), named.index! + named[0].length))) next.vehicleModel = named[1].trim().slice(0, 40);
   return next;
 }
 
@@ -183,6 +188,7 @@ export function renderCommercialMemory(memory: CommercialMemory | undefined, loc
   if (memory.annualMileageKm !== undefined) parts.push(`${he ? 'קילומטראז׳ שנתי' : 'Annual mileage'}: ${memory.annualMileageKm === null ? (he ? 'טרם הוחלט' : 'undecided') : `${memory.annualMileageKm} km`}`);
   const names = he ? { compact: 'קומפקטי', family: 'משפחתי', suv: 'רכב פנאי', seven_seat: 'שבעה מקומות' } : { compact: 'compact', family: 'family', suv: 'SUV', seven_seat: 'seven-seat' };
   if (memory.vehiclePreference !== undefined) parts.push(`${he ? 'העדפת רכב' : 'Vehicle preference'}: ${memory.vehiclePreference === null ? (he ? 'פתוחה' : 'open') : names[memory.vehiclePreference]}`);
+  if (memory.vehicleModel) parts.push(`${he ? 'דגם מבוקש' : 'Requested model'}: ${memory.vehicleModel}`);
   if (memory.passengers !== undefined) parts.push(`${he ? 'נוסעים' : 'Passengers'}: ${memory.passengers}`);
   if (memory.luggage !== undefined) parts.push(`${he ? 'מזוודות' : 'Bags'}: ${memory.luggage}`);
   if (memory.lowMileagePreferred) parts.push(he ? 'העדפה לקילומטראז׳ נמוך' : 'low mileage preferred');

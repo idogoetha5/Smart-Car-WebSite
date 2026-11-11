@@ -363,3 +363,21 @@ describe('after a beep handoff', () => {
     expect(ref.state.serviceReference).toBe('884512');
   });
 });
+
+// Live Chrome on bf2f85d (Hebrew private leasing, Corolla hybrid): broken "20, לשנה" and a stall after all details.
+describe('leasing with a named model', () => {
+  it('keeps the model, rejects a broken figure and offers the representative step', async () => {
+    const replies = ['בליסינג פרטי לקורולה ל־36 חודשים המחיר נסגר מול נציג. מהו הקילומטראז׳ השנתי?', 'מעולה, 20, לשנה מתאים מאוד לליסינג פרטי. האם תרצו להוסיף תקציב?'];
+    let i = 0;
+    let state = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] } as RebuildState;
+    const readTurn = vi.fn(async () => ({ route: 'explore', direction: 'none', fields: {}, reply: replies[i++] ?? 'x', source: 'gemini', model: 'f', groundedContext: true } as BotReading));
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn };
+    await getRebuiltBotReply('lease', 'היי כמה עולה ליסינג פרטי על קורולה היברידית ל3 שנים?', store);
+    expect(state.commercial?.vehicleModel).toBe('קורולה היברידית');
+    const r = await getRebuiltBotReply('lease', 'אני עושה בערך 20 אלף קמ בשנה', store);
+    expect(r.reply).not.toMatch(/20, לשנה/);
+    expect(r.reply).toMatch(/נציג SmartCar/);
+    const yes = await getRebuiltBotReply('lease', 'כן', store);
+    expect(yes.escalate).toBe(true);
+  });
+});

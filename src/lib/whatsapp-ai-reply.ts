@@ -49,6 +49,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (asksRentalAgeTerms(input) && !/\bage\b|\b21\b|young[- ]driver|licen[cs]e|גיל|רישיון|נהג צעיר/i.test(reply)) return reject('unanswered_age_terms');
   if (asksRentalAgeTerms(input) && /deposit|פיקדון/i.test(input) && !/deposit|card hold|פיקדון/i.test(reply)) return reject('unanswered_deposit');
   if (reply.length > 650) return reject('too_long');
+  // A thousands figure cut to "20, לשנה" reads as broken; fall back instead.
+  if (/\d,\s+(?:לשנה|בשנה|לחודש|ק["״]?מ)|\d,\s+(?:per|a)\s+(?:year|month)\b/u.test(reply)) return reject('broken_number');
   if ((reply.match(/[?؟]/g) ?? []).length > 1) return reject('multiple_questions');
   const unrestrictedExit = /\b(?:cancel|end|terminate|return|swap|replace|switch)\b[^.!?\n]{0,65}\b(?:anytime|at any (?:time|stage|point)|whenever you (?:want|need))\b|(?:לסיים|סיום|לבטל|ביטול|להחליף|החלפה|להחזיר|החזרה)[^.!?\n]{0,55}(?:בכל (?:שלב|עת|זמן)|מתי שתרצ)/giu;
   for (const match of reply.matchAll(unrestrictedExit)) {
