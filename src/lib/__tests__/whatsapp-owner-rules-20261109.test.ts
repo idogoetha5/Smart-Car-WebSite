@@ -282,3 +282,13 @@ describe('price line only for price questions', () => {
     expect(r.reply).toMatch(/כביש 6/);
   });
 });
+
+// Live Chrome on 44546b2: "האם תרצי שנעזור … הנסיעה שלך" assumed a female customer.
+describe('gender-neutral Hebrew address', () => {
+  it('turns feminine singular into plural only when the model used it', async () => {
+    const r = await chat(null, 'לטיול בצפון רכב משפחתי נותן מקום לציוד. האם תרצי שנעזור בפרטים נוספים לגבי הנסיעה שלך?').send('מה מתאים לטיול בצפון?');
+    expect(r.reply).toContain('תרצו');
+    expect(r.reply).toContain('הנסיעה שלכם');
+    expect(r.reply).not.toMatch(/תרצי|שלך(?![\p{L}])/u);
+  });
+});

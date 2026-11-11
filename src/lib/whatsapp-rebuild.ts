@@ -157,7 +157,7 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
     onReject?.('irrelevant_offer');
     return null;
   }
-  return validateConversationalReply({
+  const validated = validateConversationalReply({
     reply: reading.reply, input, locale: state.locale, known: conversationalKnown(state),
     approvedFacts: getSmartCarApprovedFacts(state.locale).map(fact => fact.text),
     handoffDeferred: Boolean(state.humanHandoffDeferred), bookingPhase: state.phase === 'booking',
@@ -167,6 +167,20 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
       if (process.env.NODE_ENV === 'production') console.warn('WhatsApp AI draft fallback', { reason });
     },
   });
+  return validated && state.locale === 'he' ? neutralHebrewAddress(validated) : validated;
+}
+
+/** The customer's gender is unknown: feminine-singular second person in model
+ * wording becomes the plural form used elsewhere (תרצו, תוכלו, לכם). */
+const FEMININE_TO_PLURAL: Array<[string, string]> = [
+  ['תרצי', 'תרצו'], ['תוכלי', 'תוכלו'], ['תצטרכי', 'תצטרכו'], ['תגידי', 'תגידו'], ['תשלחי', 'תשלחו'], ['תכתבי', 'תכתבו'],
+  ['תבחרי', 'תבחרו'], ['תעדכני', 'תעדכנו'], ['תאשרי', 'תאשרו'], ['תספרי', 'תספרו'], ['תביאי', 'תביאו'], ['תחזירי', 'תחזירו'],
+  ['תאספי', 'תאספו'], ['תסעי', 'תסעו'], ['תתקשרי', 'תתקשרו'], ['תשמחי', 'תשמחו'], ['מעוניינת', 'מעוניינים'], ['צריכה', 'צריכים'],
+  ['שלך', 'שלכם'], ['לך', 'לכם'], ['אלייך', 'אליכם'], ['איתך', 'איתכם'], ['עבורך', 'עבורכם'], ['אותך', 'אתכם'],
+];
+function neutralHebrewAddress(reply: string): string {
+  if (!/(?:תרצי|תוכלי|תצטרכי|תגידי|תשלחי|תכתבי|תבחרי|תעדכני|תאשרי|תספרי|תביאי|תחזירי|תאספי|תסעי|תתקשרי|תשמחי|מעוניינת|אלייך)(?![\p{L}])/u.test(reply)) return reply;
+  return FEMININE_TO_PLURAL.reduce((text, [from, to]) => text.replace(new RegExp(`(?<![\\p{L}])(?:([והשב]))?${from}(?![\\p{L}])`, 'gu'), (_m, prefix = '') => `${prefix}${to}`), reply);
 }
 
 function israelDate(): string { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date()); }
