@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import DatePickerInput, { type DatePickerHandle } from '@/components/ui/DatePickerInput';
+import BookingNotices from '@/components/booking/BookingNotices';
 
 const BRANCHES_HE = [
   { value: 'herzliya',  label: 'סניף הרצליה' },
@@ -471,6 +472,15 @@ export default function HeroSection({ locale }: { locale: string }) {
               </svg>
             </button>
           </div>
+
+          <BookingNotices
+            className="mt-3"
+            isHe={isHe}
+            pickupDate={pickupDate}
+            returnDate={returnDate}
+            pickupLocation={showPickupCustom ? '' : pickupLocation}
+            returnLocation={showReturnCustom ? '' : (returnLocation || (showPickupCustom ? '' : pickupLocation))}
+          />
 
         </div>
       </div>

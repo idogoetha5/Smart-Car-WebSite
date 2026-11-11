@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Toast } from '@/components/ui/Toast';
 import DatePickerInput from '@/components/ui/DatePickerInput';
+import BookingNotices from '@/components/booking/BookingNotices';
 import { bookingSchema, type BookingInput } from '@/lib/validations';
 import { calculateTotalDays } from '@/lib/utils';
 import { getSeasonalPrice, getSeasonalPriceRange, rentalDurationDiscount, cappedRentalCoupon } from '@/lib/seasonal';
@@ -494,10 +495,6 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
     : 0;
   const couponDiscount = cappedRentalCoupon(vehicle, preDiscountTotal, totalDays, requestedCouponDiscount);
   const grandTotal = preDiscountTotal - couponDiscount;
-  const airportSelected = pickupLocation === 'airport' || dropoffLocation === 'airport';
-  const airportNotice = isHe
-    ? '* איסוף או החזרה בנתב״ג כרוכים בתוספת תשלום שאינה כלולה במחיר המשוער. סכום התוספת ייקבע עם הנציג.'
-    : '* Ben Gurion Airport pickup or return costs extra and is not included in the estimate. The surcharge will be agreed with your representative.';
   const nextStep = async () => {
     if (step === 0 && pickupDate && dropoffDate && dropoffDate <= pickupDate) {
       setError('dropoffDate', { type: 'manual', message: isHe ? 'תאריך ההחזרה חייב להיות אחרי תאריך האיסוף.' : 'Return date must be after pickup.' });
@@ -774,7 +771,15 @@ export default function BookingForm({ vehicle, initialPickupDate = '', initialRe
         />
       </div>
 
-      {airportSelected && step === 0 && <p role="note" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-relaxed text-amber-950">{airportNotice}</p>}
+      {step === 0 && (
+        <BookingNotices
+          isHe={isHe}
+          pickupDate={pickupDate}
+          returnDate={dropoffDate}
+          pickupLocation={pickupLocation}
+          returnLocation={dropoffLocation}
+        />
+      )}
 
       {pickupDate && dropoffDate && totalDays > 0 && (
         <AvailabilityChecker

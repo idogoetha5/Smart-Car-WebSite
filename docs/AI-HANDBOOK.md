@@ -1106,6 +1106,8 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 
 ### Change log
 
+- 2026-11-11 — Owner request: booking notices on the home search (`HeroSection`) and the booking form (`BookingForm`). Picking a pickup or return date that falls on Saturday shows a Shabbat notice (possible extra charge, arrange with a representative); choosing Ben Gurion Airport (`airport`) as pickup or return shows a ₪150 surcharge notice. Notices are informational only — the estimate is unchanged. Logic in `src/lib/booking-notices.ts` (`AIRPORT_SURCHARGE_ILS`), UI in `src/components/booking/BookingNotices.tsx`; replaces the old 'amount agreed with the representative' airport line in the form. Tests: `booking-notices.test.ts`, `public-booking-mobile.test.ts` updated. No migrations. Content pages in `public-rental-content.ts` still say the airport charge is set with the representative.
+
 - 2026-11-09 — Raised all live rental and leasing base prices by 5%, rounded to the nearest ₪10: 172 vehicle daily/monthly prices, the published display/minimum rates, and 80 fixed seasonal overrides. Percentage-based seasonal adjustments are unchanged. Corrected the 2027 Passover/Shavuot dates and populated the established +13% Passover, Shavuot, and Rosh Hashana–Sukkot periods through 2029; annual summer/winter seasons remain in place. Updated the public category and leasing calculators in `src/lib/pricing.ts`; publication is pending.
 
 - 2026-11-09 — Explicit shortening and corrective requests enter once-only review; model passive future forwarding claims rejected. Controlled HE/EN positive/negative/no-new-rental checks pass; live Chrome recheck blocked by unavailable browser tool. Publication pending.

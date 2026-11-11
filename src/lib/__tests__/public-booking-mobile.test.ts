@@ -22,7 +22,7 @@ let root: Root;
 const vehicle = { id: 'test-vehicle', make: 'Toyota', model: 'Aygo X', pricePerDay: 250, dailyPrice: 250 } as unknown as Vehicle;
 const button = (text: string) => [...host.querySelectorAll<HTMLButtonElement>('button')].find(b => b.textContent?.includes(text))!;
 const visibleSection = () => host.querySelector<HTMLElement>('section:not([hidden])')!;
-const airportVisible = () => [...host.querySelectorAll('p')].some(p => p.textContent?.includes('סכום התוספת ייקבע') && !p.closest('[hidden]'));
+const airportVisible = () => [...host.querySelectorAll('p')].some(p => p.textContent?.includes('בנתב״ג כרוכים בתוספת של 150') && !p.closest('[hidden]'));
 async function render(initialLocation = 'herzliya', dates = true) {
   await act(async () => root.render(createElement(BookingForm, { vehicle, initialLocation, initialReturnLocation: 'telaviv', initialPickupDate: dates ? '2030-01-10' : '', initialReturnDate: dates ? '2030-01-13' : '' })));
 }
@@ -124,7 +124,7 @@ describe('public staged rental request', () => {
   it('provides the same non-final estimate and airport warning in English', async () => {
     mocks.locale = 'en'; await render('airport');
     expect(host.textContent).toContain('This is not the final price');
-    expect(host.textContent).toContain('surcharge will be agreed with your representative');
+    expect(host.textContent).toContain('Ben Gurion Airport carries a ₪150 surcharge');
     expect(button('Continue to your details')).toBeDefined();
   });
 });
