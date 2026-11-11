@@ -335,3 +335,16 @@ describe('booster seat question', () => {
     expect(r.state.booking.childSeats).toBe(1);
   });
 });
+
+// Live Chrome on 36b92c8: a beeping rental got speculative technical wording without the number.
+describe('beeps and strange noises go to a representative', () => {
+  it.each([['he', 'היי לקחתי מכם רכב אתמול בהרצליה, הוא מצפצף כל פעם שאני נוסע מעל 90, זה תקין?'], ['en', 'the rental keeps beeping when I drive, is that normal?'], ['en', 'hearing a weird noise from the front wheel']] as const)('%s: %s', async (locale, input) => {
+    const r = await chat(null, 'It may be a built-in speed alert.', locale).send(input);
+    expect(r.escalate).toBe(true);
+    expect(r.reply).toContain('09-9509757');
+  });
+  it('adds the number when the wording says to contact the service centre', async () => {
+    const r = await chat(null, 'כדי לבדוק את זה מומלץ ליצור קשר עם מוקד השירות שלנו.').send('מה שעות הפעילות שלכם בשישי?');
+    if (/מוקד השירות/.test(r.reply)) expect(r.reply).toContain('09-9509757');
+  });
+});
