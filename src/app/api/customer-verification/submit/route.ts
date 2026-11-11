@@ -4,6 +4,7 @@ import { checkRateLimit } from '@/lib/ratelimit';
 import { isValidIdOf, normalizePassport } from '@/lib/accident-report/schema';
 import { CONSENT_VERSION, cardBrand, digitsOnly, expiryValid, luhnValid } from '@/lib/customer-verification/card';
 import { encryptCard, encryptionConfigured } from '@/lib/customer-verification/crypto';
+import { checkCardWithProvider, cvvCollectionEnabled } from '@/lib/customer-verification/provider';
 import { clientIp, CV_BUCKET, NO_STORE, openVerificationByToken } from '@/lib/customer-verification/server';
 
 export const runtime = 'nodejs';
@@ -13,7 +14,8 @@ const s = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max);
 /**
  * Final submit. The card number, expiry and holder ID are encrypted before
  * they touch the database; only last-4, brand, expiry and holder name are
- * kept in clear for the admin list. A CVV, if one is ever sent, is ignored.
+ * kept in clear for the admin list. A CVV is never stored: when collection
+ * is switched on it goes only to the one-time provider check, then is dropped.
  */
 export async function POST(request: Request) {
   const ip = clientIp(request);
@@ -46,6 +48,8 @@ export async function POST(request: Request) {
   if (!expiryValid(expMonth, expYear)) errors.push('expiry');
   if (!isValidIdOf(holderIdType, holderId)) errors.push('holderId');
   if (body?.consent !== true) errors.push('consent');
+  const cvv = cvvCollectionEnabled() ? digitsOnly(s(body?.cvv, 4)) : '';
+  if (cvvCollectionEnabled() && !/^\d{3,4}$/.test(cvv)) errors.push('cvv');
   if (errors.length) return NextResponse.json({ error: 'invalid', fields: errors }, { status: 400 });
 
   // Both photos must really be in storage under this verification's folder.
@@ -54,6 +58,13 @@ export async function POST(request: Request) {
   const names = new Set((files ?? []).map((f) => `${row.id}/${f.name}`));
   if (!names.has(front) || !names.has(back)) {
     return NextResponse.json({ error: 'invalid', fields: ['license'] }, { status: 400 });
+  }
+
+  if (cvv) {
+    const check = await checkCardWithProvider({ number, expMonth, expYear, cvv, holderId });
+    if (check.status === 'declined') {
+      return NextResponse.json({ error: 'invalid', fields: ['cardDeclined'] }, { status: 400 });
+    }
   }
 
   const ciphertext = encryptCard({ number, expMonth, expYear, holderName, holderIdType, holderId });
