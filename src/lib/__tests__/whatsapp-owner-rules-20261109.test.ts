@@ -160,3 +160,35 @@ describe('leasing callback and recall in one message', () => {
     expect(result.reply).not.toMatch(/how many kilometres/i);
   });
 });
+
+// Live Chrome on 9d8bb3a (2026-11-11, Hebrew business trip): "סדאן נגיד" was not stored while the
+// model said "בחרנו בקבוצה המשפחתית"; the airport-return reply said "כשתדעו את התאריכים"
+// although dates were known.
+describe('business trip wording', () => {
+  it('stores a sedan as the family group and rejects an unsaved vehicle claim', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-11-12', pickupLocation: 'תל אביב' }, history: [] } as RebuildState, 'רשמנו החזרה ביום רביעי, ובחרנו בקבוצה המשפחתית.');
+    const result = await c.send('עד רביעי. משהו נוח לנסיעות ארוכות, סדאן נגיד');
+    expect(result.state.booking.vehicleNeed).toBe('רכב משפחתי (סדאן)');
+  });
+  it('rejects a vehicle choice claim when no vehicle is saved', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] } as RebuildState, 'בחרנו בקבוצה המשפחתית שמתאימה לנסיעות ארוכות.');
+    const result = await c.send('מה מתאים לנסיעות ארוכות?');
+    expect(result.reply).not.toContain('בחרנו בקבוצה');
+  });
+  it('does not ask for dates already given when the return is at the airport', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-11-12', returnDate: '2026-11-18', pickupLocation: 'תל אביב', vehicleNeed: 'רכב משפחתי (סדאן)' }, history: [] } as RebuildState, 'x');
+    const result = await c.send('בעצם עד חמישי, הוסיפו לי פגישה. ואפשר להחזיר בנתב״ג כי יש לי טיסה?');
+    expect(result.reply).not.toMatch(/כשתדעו את התאריכים/);
+  });
+});
+
+describe('business go-ahead', () => {
+  it('starts the request on "סבבה תפתח בקשה", keeps the name and answers the company receipt question', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-11-12', returnDate: '2026-11-19', pickupLocation: 'תל אביב', returnLocation: 'נתב״ג', vehicleNeed: 'רכב משפחתי (סדאן)' }, history: [{ from: 'customer', text: 'צריך רכב לפגישות בחיפה ובבאר שבע' }] } as RebuildState, 'בשמחה, פתחנו את הבקשה. האם תרצה להוסיף כיסא בטיחות?');
+    const result = await c.send('סבבה תפתח בקשה. איתי בדיקה בן 45. צריך קבלה על שם החברה');
+    expect(result.state.phase).toBe('booking');
+    expect(result.state.booking.customerName).toBe('איתי בדיקה');
+    expect(result.reply).not.toMatch(/פתחנו את הבקשה|כיסא בטיחות/);
+    expect(result.reply).toMatch(/קבלה או חשבונית על שם החברה/);
+  });
+});

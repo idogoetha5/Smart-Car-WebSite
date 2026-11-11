@@ -109,7 +109,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   // Price is set in the quote; wording must not promise it in advance.
   if (hasAffirmativeMatch(reply, /(?:בלי|ללא) הפתעות|(?:ב|לפי )?(?:ה)?תעריף המקורי|אותו מחיר(?: ליום)?|המחיר (?:לא|אינו) ישתנה|\bno (?:price )?surprises\b|\b(?:the )?same (?:daily )?(?:rate|price)\b|\b(?:the )?original (?:daily )?rate\b|\bprice (?:will not|won['’]?t) change\b/giu)) return reject('price_assurance');
   // No booking exists in this chat; wording cannot say one was recorded or made.
-  if (hasAffirmativeMatch(reply, /רשמתי את ההזמנה|ההזמנה (?:נרשמה|נקלטה|בוצעה)|הזמנתי (?:לכם|לך)|\b(?:I(?:'ve| have)?|we(?:'ve| have)?) (?:booked|recorded (?:the|your) booking)\b|\byour booking (?:is|has been) (?:made|recorded|placed)\b/giu)) return reject('action_claim');
+  if (hasAffirmativeMatch(reply, /פתחנו את הבקשה|פתחתי (?:לך |לכם )?(?:את )?(?:ה)?בקשה|הבקשה נפתחה|\b(?:I(?:'ve| have)?|we(?:'ve| have)?) opened (?:a|the|your) request\b|רשמתי את ההזמנה|ההזמנה (?:נרשמה|נקלטה|בוצעה)|הזמנתי (?:לכם|לך)|\b(?:I(?:'ve| have)?|we(?:'ve| have)?) (?:booked|recorded (?:the|your) booking)\b|\byour booking (?:is|has been) (?:made|recorded|placed)\b/giu)) return reject('action_claim');
   // Only application code passes a case to a person; wording cannot announce it.
   if (hasAffirmativeMatch(reply, /(?:המערכת|הבוט)\s+(?:תעביר|יעביר|תשלח|ישלח)|(?<![\p{L}])(?:נעביר|אעביר|נשלח|אשלח)\s+את\s+(?:הבקשה|הפנייה|הפניה|הפרטים)|נציג\s+(?:יחזור|יתקשר)\s+(?:אליך|אליכם|אלייך)\s+(?:מחר|היום|בבוקר|בערב|תוך)|\b(?:the system|I|we)\s+will\s+(?:pass|forward|send)\b|\b(?:will|is going to) call you (?:back )?(?:tomorrow|today|this (?:morning|evening)|in the morning)\b/giu)) return reject('action_claim');
   if (/נשריין|לשריין|שנשריין|\b(?:reserve|hold) (?:the|a|your) car\b/iu.test(reply)) return reject('reservation_wording');
@@ -143,13 +143,14 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   const savedAnnualMileage = Number(known.commercialAnnualMileageKm ?? known.annualMileageKm);
   // Wording may not claim a route or dates were recorded when application
   // state did not record them (observed: "Pickup and return … are set").
-  const claimsRecorded = /\b(?:are|is) (?:now )?(?:set|saved|noted|recorded|booked)\b|\b(?:I(?:'ve| have)?|we(?:'ve| have)?) (?:noted|saved|recorded|set)\b|רשמתי|נרשמ(?:ו|ה)?|נשמר(?:ו|ה)?|קבענו|עדכנתי/iu;
+  const claimsRecorded = /\b(?:are|is) (?:now )?(?:set|saved|noted|recorded|booked|selected)\b|\b(?:I(?:'ve| have)?|we(?:'ve| have)?) (?:noted|saved|recorded|set|selected|chose|picked)\b|רשמתי|רשמנו|בחרנו|בחרתי|נרשמ(?:ו|ה)?|נשמר(?:ו|ה)?|קבענו|עדכנתי/iu;
   const mentionsRoute = /pick.?up|return|drop.?off|איסוף|לאסוף|החזרה|להחזיר/iu;
   const mentionsDates = /\bdates?\b|תאריכ/iu;
   for (const sentence of reply.split(/(?<=[.!?؟])\s+/u)) {
     if (!claimsRecorded.test(sentence) || /\bnot\b|לא |טרם|עדיין לא/iu.test(sentence)) continue;
     if (mentionsRoute.test(sentence) && !mentionsDates.test(sentence) && !knownValue('pickupLocation') && !knownValue('returnLocation')) return reject('unsaved_claim');
     if (/החזרה|להחזיר|\breturn\b|drop.?off/iu.test(sentence) && !knownValue('returnLocation') && !knownValue('returnDate')) return reject('unsaved_claim');
+    if (/קבוצ|רכב משפחתי|משפחתית|קומפקט|SUV|רכב פנאי|vehicle|car group|family car|compact/iu.test(sentence) && /בחרנו|בחרתי|chose|selected|picked|רשמנו|רשמתי|noted|saved/iu.test(sentence) && !knownValue('vehicleNeed')) return reject('unsaved_claim');
     if (/איסוף|לאסוף|pick.?up/iu.test(sentence) && !knownValue('pickupLocation') && !knownValue('pickupDate')) return reject('unsaved_claim');
     if (mentionsDates.test(sentence) && !knownValue('pickupDate') && !knownValue('returnDate')) return reject('unsaved_claim');
   }

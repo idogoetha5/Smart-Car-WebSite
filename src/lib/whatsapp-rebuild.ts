@@ -151,6 +151,12 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
     onReject?.('relationship_mismatch');
     return null;
   }
+  // Do not offer child seats to customers who never mentioned children or seats.
+  if (/כיסא(?:ות)? בטיחות|child seats?|car seats?|booster/iu.test(reading.reply) && /[?؟]/u.test(reading.reply)
+    && !/ילד|ילדה|ילדים|תינוק|פעוט|בן \d|בת \d|כיסא|kid|child|baby|toddler|infant|seat|booster/iu.test(customerText) && state.booking.childSeats === undefined) {
+    onReject?.('irrelevant_offer');
+    return null;
+  }
   return validateConversationalReply({
     reply: reading.reply, input, locale: state.locale, known: conversationalKnown(state),
     approvedFacts: getSmartCarApprovedFacts(state.locale).map(fact => fact.text),
@@ -446,6 +452,7 @@ function explicitBooking(input: string): boolean {
   if (/[?؟]/.test(input) && /כדאי|האם|should|would it|how/i.test(input)) return false;
   if (/(?:כן[,\s]*)?נתחיל\s+(?:בקש(?:ה|ת השכרה)|הזמנה)|\b(?:let'?s|let us)\s+start\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b|\bI\s+(?:want|would like)\s+to\s+(?:start|open)\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b/i.test(input)) return true;
   if (/^(?:כן[,\s]*)?כבר ביקשתי להתחיל[.!\s]*$/i.test(input)) return true;
+  if (/(?:^|[\s,.!])(?:סבבה|יאללה|טוב|אוקיי?|אז)?\s*(?:תפתח(?:ו)?|פתח(?:ו)?|תכין|תכינו)\s+(?:לי\s+)?(?:בקש(?:ה|ת השכרה)|הזמנה)(?![\p{L}])|\b(?:go ahead and )?open (?:a |the |my )?(?:rental )?(?:request|booking)\b/iu.test(input)) return true;
   if (/(?:אני רוצה|אנחנו רוצים|רוצה|רוצים|כבר ביקשתי)\s+(?:להתחיל|לפתוח)(?:\s+(?:את ה|את|ה))?\s*(?:בקש(?:ה|ת השכרה)|הזמנה)/i.test(input)) return true;
   if (/^I need (?:a )?(?:(?:compact|small|family|SUV|seven[- ]?seat) )?rental car\b/i.test(input)) return true;
   return /אני רוצה (?:להזמין|לשכור|להשכיר|לשלוח בקשה|לסיים את הבקשה|להתקדם עם בקש(?:ה להשכרה|ת השכרה))|(?:^|[.!?]\s*)רוצה (?:לשכור|להשכיר|לשלוח בקשה|לסיים את הבקשה)|(?:אני\s+)?צריך(?:ה)? (?:רכב להשכרה|לשכור רכב|רכב (?:קטן|קומפקטי|משפחתי|פנאי|שבעה מקומות)(?:\s|$))|בוא(?:ו)? נתקדם|בוא(?:ו)? (?:נלך על זה|נסגור)|יאללה נסגור|תשריין לי|שריין לי|אפשר להתחיל (?:הזמנה|בקשה)|אשמח להתחיל (?:בקשה|הזמנה)|תכין(?:ו)? (?:לי )?(?:בקש(?:ה|ת השכרה)|הצעה)|אני (?:אזמין|אשכור)|I(?:'d| would) like to (?:book|rent|make a request)|let'?s (?:book|proceed|close)|I want to (?:book|rent|make a request)|I need (?:a )?(?:rental car|to rent(?: a car)?)|go ahead with (?:the )?(?:rental|request)/i.test(input);
@@ -670,6 +677,8 @@ function explicitVehicleNeed(input: string, locale: Locale): string | null {
   if (/רכב\s+משפחתי|רכב\s+למשפחה|^\s*משפחתית\s*$|(?:רוצה|מחפש|צריך|מעדיף)\s+(?:רכב\s+)?משפחתית|(?:רוצה|מחפש|צריך|מעדיף)\s+משפחתי|family car/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
   if (/קומפקטי|קומפקטית|רכב קטן|compact (?:rental )?car|small (?:rental )?car/i.test(input)) return locale === 'he' ? 'רכב קומפקטי' : 'compact car';
   if (/רכב פנאי|ג[׳'י]?יפ(?:ון)?|suv/i.test(input)) return locale === 'he' ? 'רכב פנאי' : 'SUV';
+  // A sedan request belongs to the family group; fit is still model-specific.
+  if (/סדאן|סדן(?![\p{L}])|\bsedan\b/iu.test(input)) return locale === 'he' ? 'רכב משפחתי (סדאן)' : 'family car (sedan)';
   return null;
 }
 
@@ -683,6 +692,8 @@ function customerVehicleChoice(input: string, state: RebuildState): string | nul
   if (explicitBooking(input) && !/(?:לא רוצה|don't want|do not want)/iu.test(input)) return explicitVehicleNeed(input, state.locale);
   const statedPreference = input.match(new RegExp(`(${vehicle})\\s+(?:עדיף|עדיפה|מתאים\\s+לי|מתאים\\s+לנו|works better|is better for us)`, 'iu'))?.[1];
   if (statedPreference && !/[?؟]/u.test(input)) return explicitVehicleNeed(statedPreference, state.locale);
+  // "משהו נוח לנסיעות ארוכות, סדאן נגיד" — a stated body type, not a question.
+  if (!/[?؟]/u.test(input) && /(?:^|[\s,])(?:סדאן|סדן|sedan)(?:\s+(?:נגיד|בערך|אולי|maybe|I guess|probably))?\s*[.!]?\s*$/iu.test(input) && !/(?:לא|בלי|not|no)\s+(?:סדאן|סדן|sedan)/iu.test(input)) return explicitVehicleNeed('sedan', state.locale);
   if (/[?؟]/u.test(input) || /(?:לא רוצה|לא מעדיף|don't want|do not want)/iu.test(input)) return null;
   const lastBot = state.history.at(-1)?.text ?? '';
   return state.phase === 'booking' && (state.step === 'rental_vehicle' || /איזה סוג רכב|what kind of car/i.test(lastBot) || input.trim().length <= 20)
@@ -1286,8 +1297,8 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
   // After an explicit start, a two-word clause on its own between commas or at the
   // end ("יאללה בואו נתקדם, דנה בדיקה, נהג ראשי בעלי בן 38") is the name.
   const trailingName = (explicitStart || state.phase === 'booking' && state.step === 'rental_name') && !introducedName
-    ? input.split(/[,.!;\n]/u).slice(1).map(part => part.trim()).find(part => /^[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}$/u.test(part)
-      && !/(?:^|\s)(?:נהג|נהגת|ראשי|ראשית|בעלי|אשתי|להחזיר|לאסוף|בואו|נתקדם|יאללה|קדימה|בבקשה|תודה|גם|רק|עם|בלי|מחר|היום|main|driver|return|pick|please|thanks|let['’]?s|go|ahead|also|only|with|without|tomorrow|today)(?=\s|$)/iu.test(part))
+    ? input.split(/[,.!;\n]/u).slice(1).map(part => part.trim().replace(/\s+(?:בן|בת|aged?)\s*\d{2}$/iu, '')).find(part => /^[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}$/u.test(part)
+      && !/(?:^|\s)(?:אני|אנחנו|הוא|היא|זה|זאת|הנהג|הנהגת|נהג|נהגת|ראשי|ראשית|בעלי|אשתי|I|we|he|she|it|this|the|להחזיר|לאסוף|בואו|נתקדם|יאללה|קדימה|בבקשה|תודה|גם|רק|עם|בלי|מחר|היום|main|driver|return|pick|please|thanks|let['’]?s|go|ahead|also|only|with|without|tomorrow|today)(?=\s|$)/iu.test(part))
     : undefined;
   const validTrailingName = trailingName && !/^(?:תודה|בבקשה|יאללה|סבבה|אחלה|מעולה|בסדר|קדימה|רק|גם|עם|בלי|thank|thanks|please|ok|okay|great|cool|sounds|with|without|also|just|asap|soon|today|tomorrow|מחר|היום)(?=\s|$)|(?:^|\s)(?:רכב|car|יום|ימים|days?|בקשה|request|הצעה|quote|מחיר|price|רבה|גדול|קטן|משפחתי|big|small)(?=\s|$)/iu.test(trailingName) ? trailingName : undefined;
   const validIntroducedName = introducedName && !/^(?:not|unsure|still|looking|just|here|visiting|only|sorry|trying|waiting|renting|booking|confused|from|in|at|ok|okay|fine|good|sure|ready|interested|a|an|the|so|also|very|really|going|coming|staying|flying|landing|travel+ing|married|single)\b/i.test(introducedName) ? introducedName : undefined;
@@ -2125,8 +2136,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         && state.history.some(entry => entry.from === 'bot' && entry.text === fact!.reply);
       reply = fact!.topic === 'different_location' && state.booking.pickupLocation && state.booking.returnLocation
         ? (he
-          ? `רשמתי איסוף ב${state.booking.pickupLocation} והחזרה ב${state.booking.returnLocation}. אפשר לבקש מסלול כזה בתיאום מראש; שירות נתב״ג עשוי להיות כרוך בתוספת. כשתדעו את התאריכים, נבדוק זמינות והצעה מתאימה.`
-          : `I have pickup at ${state.booking.pickupLocation} and return in ${state.booking.returnLocation}. We can check that route by prior arrangement; airport service may carry an additional charge. Once you know the dates, we can check availability and a quote.`)
+          ? `רשמתי איסוף ב${state.booking.pickupLocation} והחזרה ב${state.booking.returnLocation}. אפשר לבקש מסלול כזה בתיאום מראש; שירות נתב״ג עשוי להיות כרוך בתוספת. ${state.booking.pickupDate && state.booking.returnDate ? 'נבדוק זמינות לתאריכים שמסרתם. תרצו שנתחיל בקשה?' : 'כשתדעו את התאריכים, נבדוק זמינות.'}`
+          : `I have pickup at ${state.booking.pickupLocation} and return in ${state.booking.returnLocation}. We can check that route by prior arrangement; airport service may carry an additional charge. ${state.booking.pickupDate && state.booking.returnDate ? 'We will check availability for your dates. Would you like to start a request?' : 'Once you know the dates, we can check availability.'}`)
         : alreadyAnsweredInsurance
         ? (he
           ? 'הכיסוי הבסיסי כולל ביטוח חובה וכיסוי לנזקי תאונה, אש וגניבה, בכפוף להשתתפות עצמית. בהצעה יפורטו סכום ההשתתפות והאפשרויות להפחתתו. יש חלק מסוים בביטוח שתרצו שאסביר?'
@@ -2274,6 +2285,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     && state.booking.pickupDate && state.booking.returnDate && state.booking.pickupLocation && !state.booking.returnLocation
     && !/[?؟]/u.test(reply) && !/(?:^|\s)לא (?:רוצה|מעוניין|עכשיו)|not (?:now|ready)|just asking|רק שואל/iu.test(input)) {
     reply = `${reply.trim()} ${question('returnLocation', state.locale)}`;
+  }
+  // Company receipt/invoice questions get an honest, non-committal answer.
+  if (!escalate && /(?:קבלה|חשבונית)(?:\s+מס)?\s+(?:על\s+שם|ל)(?:\s*ה)?(?:חברה|עסק)|\b(?:invoice|receipt)\b.{0,25}\b(?:company|business)\b/iu.test(input) && !/קבלה|חשבונית|invoice|receipt/iu.test(reply)) {
+    reply = `${reply.trim()} ${he ? 'בקשה לקבלה או חשבונית על שם החברה תצוין לנציג SmartCar, שיאשר את הפרטים מולכם.' : 'A receipt or invoice in the company name will be noted for the SmartCar representative, who will confirm the details with you.'}`;
   }
   // Owner rule: a rental price question always gets the same honest line.
   if (!escalate && state.phase !== 'service' && !state.interest && !state.completedRequestId
