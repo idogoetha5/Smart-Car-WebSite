@@ -380,7 +380,7 @@ function uncertainDateAnswer(input: string): boolean {
 }
 
 function mentionsRentalChange(input: string): boolean {
-  return /לשנות|לשינוי|להאריך|הארכ(?:ה|ת)|לדחות|לדחייה|להקדים|להזיז|לקצר|יום ההחזרה|יום מאוחר|יום נוסף|להחזיר.{0,40}מאוחר|\b(?:change|extend|extension|shorten|shortening|postpone)\b|move (?:the )?return|return date|return (?:the )?(?:car|it).{0,45}later|extra days?/i.test(input);
+  return /לשנות|לשינוי|להאריך|הארכ(?:ה|ת)|לדחות|לדחייה|להקדים|להזיז|לקצר|יום ההחזרה|יום מאוחר|יום נוסף|להחזיר.{0,40}מאוחר|להחזיר.{0,30}(?:בעוד|ב)\S*.{0,20}במקום|\breturn (?:it|the car).{0,25}instead of\b|\b(?:change|extend|extension|shorten|shortening|postpone)\b|move (?:the )?return|return date|return (?:the )?(?:car|it).{0,45}later|extra days?/i.test(input);
 }
 
 /** A topic mention is not authority to queue a change, now or in history. */
@@ -2207,7 +2207,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = state.interest
         ? (he ? `בשמחה, נציג SmartCar יחזור אליכם לגבי ${state.interest === 'sale' ? 'רכישת הרכב' : 'הליסינג'}. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up about your ${state.interest === 'sale' ? 'car purchase' : 'leasing'} enquiry. You can also call ${OFFICE_PHONE}.`)
         : (he ? `בשמחה, נציג SmartCar יחזור אליכם. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up. You can also call ${OFFICE_PHONE}.`);
-    } else if (state.phase === 'service' || reading?.route === 'service' || /הזמנה קיימת|ההזמנה שלי|שכרתי|existing booking|my booking|I rented|יש לי (?:כבר )?הזמנה|הזמנתי (?:אצלכם|מכם|רכב)|\bI (?:have|made) a (?:booking|reservation)\b|\bI booked\b|\bmy (?:car |rental )?(?:booking|reservation)\b/i.test(input)) {
+    } else if (state.phase === 'service' || reading?.route === 'service' || /הזמנה קיימת|ההזמנה שלי|שכרתי|existing booking|my booking|I rented|יש לי (?:כבר )?הזמנה|הזמנתי (?:אצלכם|מכם|רכב)|\bI (?:have|made) a (?:booking|reservation)\b|\bI booked\b|\bmy (?:car |rental )?(?:booking|reservation)\b|אני עם (?:ה)?רכב (?:שלכם|שלקחתי)|הרכב שלכם (?:אצלי|איתי)|(?:לקחתי|אספתי) (?:מכם|אצלכם) רכב|\bI (?:have|got) (?:your|a) (?:car|rental) (?:from you|right now|now)\b|\bI(?:'m| am) (?:in|driving) your car\b/i.test(input)) {
       state.phase = 'service';
       const booking = await store.activeBooking(phone);
       const answer = getSmartCarServiceAnswer(input, state.locale);
@@ -2217,7 +2217,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const suppliedReference = Boolean(state.serviceReference);
       const insistsOnOffer = /^(?:yes|yeah|yep|כן|נכון)(?=[,!.\s])[,!.\s]+(?:that['’]?s (?:literally |exactly )?what I (?:just )?(?:asked|said|want(?:ed)?)|I (?:already|just) (?:asked|said)|זה (?:בדיוק )?מה ש(?:ביקשתי|אמרתי)|כבר ביקשתי)/iu.test(input);
       const leadingYes = /^(?:כן|yes|yeah|yep|ok(?:ay)?|אוקיי?|בטח|סבבה|יאללה|sure)(?=[\s,.!]|$)/iu.test(input.trim()) && !/(?:^|\s)(?:לא|אל)\s|\bnot\b|\bdon['’]?t\b|(?:^|\s)אם\s|\bif\b/iu.test(input);
-      const acceptsChangeReview = (affirms(input) || insistsOnOffer || leadingYes || /^(?:okay|ok)[.!?\s]*$/i.test(input)) && offersServiceChangeReview(lastBot) && !advisoryRentalChange(input);
+      // The offer may be two turns back when a side question came in between ("ואם אני מחזיר בלי דלק?").
+      const recentChangeOffer = offersServiceChangeReview(lastBot)
+        || /תבדקו|תבדוק|תבדקי|בדקו לי|check (?:it|that|for me)|go ahead|please do/iu.test(input)
+          && state.history.filter(entry => entry.from === 'bot').slice(-3).some(entry => offersServiceChangeReview(entry.text));
+      const acceptsChangeReview = (affirms(input) || insistsOnOffer || leadingYes || /^(?:okay|ok)[.!?\s]*$/i.test(input) || /^(?:כן[,\s]*)?(?:תבדקו|תבדוק|בדקו)(?:\s+לי)?/iu.test(input.trim())) && recentChangeOffer && !advisoryRentalChange(input);
       if (rentalChangeRequest(input) || acceptsChangeReview) state.serviceChangeRequested = true;
       const changePending = state.serviceChangeRequested === true;
       const changeDiscussion = mentionsRentalChange(input) || state.history.some(entry => entry.from === 'customer' && mentionsRentalChange(entry.text));

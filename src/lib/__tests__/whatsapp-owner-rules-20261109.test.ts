@@ -648,3 +648,21 @@ describe('weekday next to a date', () => {
     } finally { vi.useRealTimers(); }
   });
 });
+
+// Live Chrome on e19c057 (extension from Eilat with a fuel question in between): the later
+// "כן תבדקו לי, הזמנה 771204" got a generic service handoff, not the extension request.
+describe('extension accepted after a side question', () => {
+  it('treats "כן תבדקו לי" as accepting the earlier extension offer', async () => {
+    const replies = ['הארכה דורשת בדיקת זמינות ואישור. האם תרצו שנבדוק עבורכם את אפשרות ההארכה מול נציג?', 'המדיניות היא מלא־מלא.', 'x'];
+    let i = 0;
+    let state = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] } as RebuildState;
+    const readTurn = vi.fn(async () => ({ route: 'service', direction: 'none', fields: {}, reply: replies[Math.min(i++, 2)], source: 'gemini', model: 'f', groundedContext: true } as BotReading));
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn };
+    await getRebuiltBotReply('ext', 'היי אני עם הרכב שלכם עכשיו באילת, אפשר להחזיר אותו בעוד יומיים במקום מחר?', store);
+    await getRebuiltBotReply('ext', 'ואם אני מחזיר בלי דלק מלא מה קורה?', store);
+    const r = await getRebuiltBotReply('ext', 'כן תבדקו לי, הזמנה 771204', store);
+    expect(r.escalate).toBe(true);
+    expect(r.state.handoffKind).toBe('booking_change');
+    expect(r.reply).toMatch(/בקשת השינוי|הארכה/);
+  });
+});
