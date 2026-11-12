@@ -522,3 +522,21 @@ describe('airport surcharge wording', () => {
     expect(r.reply).not.toMatch(/150|₪/);
   });
 });
+
+// Live Chrome on f2429db: the model copied the fact's instruction wording to the customer.
+describe('no instruction text in replies', () => {
+  it('rejects a reply that speaks about "the customer"', async () => {
+    const r = await chat(null, 'רק אם הלקוח שואל על המחיר שמופיע באתר: התוספת על נתב״ג אינה כלולה במחיר המשוער שבאתר.').send('ובאתר כשראיתי את המחיר התוספת של נתב״ג כבר הייתה כלולה?');
+    expect(r.reply).not.toMatch(/הלקוח/);
+    expect(r.reply).toMatch(/לא כלולה במחיר המשוער/);
+  });
+});
+
+describe('website follow-up after the airport answer', () => {
+  it('answers "was it included on the website?" from context', async () => {
+    const c = chat(null, 'המחיר הסופי ייסגר מול נציג SmartCar. האם תרצו לבדוק פרטים נוספים?');
+    await c.send('היי, אם אני אוסף את הרכב בנתב״ג יש תוספת?');
+    const r = await c.send('ובאתר כשראיתי את המחיר זה כבר היה כלול?');
+    expect(r.reply).toMatch(/לא כלולה במחיר המשוער שמופיע באתר/);
+  });
+});

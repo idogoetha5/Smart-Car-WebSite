@@ -2449,6 +2449,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     if (fee) reply = `${fee} ${reply.replace(priceAnswer(state.locale), '').trim()}`.trim();
   }
   // Airport surcharge and the website: mention the website estimate only when the customer asks about it.
+  const lastBotText = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+  if (!escalate && /אתר|website|\bsite\b|online|באינטרנט/iu.test(input) && /כלול|included|include|incl/iu.test(input)
+    && /(?:תוספת|surcharge)/iu.test(lastBotText) && /נתב.?ג|airport|ben gurion/iu.test(lastBotText) && !/אתר|website/iu.test(reply)) {
+    reply = `${he ? 'לא, התוספת על נתב״ג לא כלולה במחיר המשוער שמופיע באתר. את הסכום ואת המחיר הסופי סוגרים מול נציג SmartCar.' : 'No, the Ben Gurion surcharge is not included in the estimate shown on the website. The amount and the final price are set with a SmartCar representative.'}`;
+  }
   if (!escalate && /אתר|website|\bsite\b|online|באינטרנט/iu.test(input) && /נתב.?ג|שדה (?:ה)?תעופה|airport|ben gurion/iu.test(`${input} ${reply}`)
     && /(?:תוספת|surcharge)/iu.test(reply) && !/אתר|website/iu.test(reply)) {
     reply = `${reply.trim()} ${he ? 'התוספת הזו לא כלולה במחיר המשוער שמופיע באתר.' : 'This surcharge is not included in the estimate shown on the website.'}`;

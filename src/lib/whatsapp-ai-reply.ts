@@ -49,6 +49,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (asksRentalAgeTerms(input) && !/\bage\b|\b21\b|young[- ]driver|licen[cs]e|גיל|רישיון|נהג צעיר/i.test(reply)) return reject('unanswered_age_terms');
   if (asksRentalAgeTerms(input) && /deposit|פיקדון/i.test(input) && !/deposit|card hold|פיקדון/i.test(reply)) return reject('unanswered_deposit');
   if (reply.length > 650) return reject('too_long');
+  // Instruction text leaking into the reply ("רק אם הלקוח שואל…", "if the customer asks").
+  if (/(?:^|[\s:,(])(?:ה)?לקוח(?:ה|ות)?\s+(?:שואל|שואלת|שאל|שאלה|מבקש|מבקשת|לא שאל)|רק אם הלקוח|\b(?:if|when|only if) the customer (?:asks|asked|wants|did not)\b|\bthe customer (?:asks|asked)\b|approvedFacts|\bfact\b:/iu.test(reply)) return reject('instruction_leak');
   // "תודה רציתי לשאול," — names reach the model redacted, so a salutation with a name-like
   // word other than the known customer name is the model inventing one.
   const salutation = reply.match(/^(?:תודה|היי|שלום|אהלן|hi|hello|thanks)\s*,?\s+([\p{L}'-]{2,20}(?:\s+[\p{L}'-]{2,20})?)\s*[,!]/iu)?.[1];

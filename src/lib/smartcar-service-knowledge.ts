@@ -116,8 +116,8 @@ export function getSmartCarApprovedFacts(locale: ServiceLocale): SmartCarApprove
   return [
     ...Object.values(ANSWERS).map(answer => ({ id: answer.topic, text: answer[locale] })),
     { id: 'airport_fee_website', text: locale === 'he'
-      ? 'רק אם הלקוח שואל על המחיר שמופיע באתר: התוספת על נתב״ג אינה כלולה במחיר המשוער שבאתר. אל תזכיר את האתר כשהלקוח לא שאל עליו.'
-      : 'Only if the customer asks about the price shown on the website: the Ben Gurion surcharge is not included in the website estimate. Do not mention the website when the customer did not ask about it.' },
+      ? 'התוספת על נתב״ג לא כלולה במחיר המשוער שמופיע באתר.'
+      : 'The Ben Gurion surcharge is not included in the estimate shown on the website.' },
     { id: 'rental_extension', text: locale === 'he'
       ? 'הארכת השכרה דורשת בדיקת זמינות ואישור מפורש של SmartCar לפני מועד ההחזרה הקיים. עד לאישור, מועד ההחזרה המקורי נשאר בתוקף; אין להניח שמותר להמשיך להחזיק ברכב מעבר לו. המחיר לימים הנוספים עשוי להשתנות ואינו מובטח כמחיר היומי המקורי. אפשר להסביר זאת גם אם מספר ההזמנה עדיין אינו זמין; שיחת בירור אינה אישור הארכה.'
       : 'A rental extension requires an availability check and explicit SmartCar confirmation before the existing return deadline. Until confirmed, the original agreed return deadline remains binding; do not assume permission to keep the car beyond it. Extra days may have a different rate; the original daily price is not guaranteed. These conditions can be explained even when the booking reference is not handy. An advisory discussion is not extension approval.' },
