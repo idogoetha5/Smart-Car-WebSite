@@ -523,7 +523,7 @@ function explicitBooking(input: string): boolean {
   if (/^(?:כן[,\s]*)?כבר ביקשתי להתחיל[.!\s]*$/i.test(input)) return true;
   if (/(?<!\b(?:to|if|decide to|before I)\s)\b(?:go ahead|book it|let['’]?s book(?: it)?)\b[,.!\s]+(?:i['’]?m|im|i am|my name is|name['’]?s)\s+(?!(?:still|not|just|only|comparing|thinking|unsure|sure|ok|fine|good|ready|looking|asking|waiting|deciding|a|the|so|also|very|really)\b)[\p{L}'-]{2,20}/iu.test(input) && !/\b(?:don['’]?t|do not|not yet|no change request|still comparing)\b/i.test(input)) return true;
   if (/^(?:ok(?:ay)?|fine|sure|yes|yeah)?[.,!\s]*(?:book it|let['’]?s book it)[.!\s]*$/iu.test(input.trim())) return true;
-  if (/^(?:יאללה|סבבה|אוקיי?|טוב|ok(?:ay)?|go ahead|let['’]?s (?:go|do it))[.,!\s]+[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}(?:\s*,?\s*(?:בן|בת|aged?)\s*\d{2})?\s*[.!]?$/iu.test(input.trim())) return true;
+  if (/^(?:(?:ok(?:ay)?|sure|great|perfect|yes|yeah|אוקיי?|מעולה|כן)[,.!\s]+)?(?:יאללה|סבבה|אוקיי?|טוב|ok(?:ay)?|go ahead|let['’]?s (?:go|do it|do this))[.,!\s]+[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}(?:\s*,?\s*(?:(?:בן|בת|aged?)\s*)?\d{2})?\s*[.!]?$/iu.test(input.trim())) return true;
   if (/(?:^|[\s,.!])(?:סבבה|יאללה|טוב|אוקיי?|אז)?\s*(?:תפתח(?:ו)?|פתח(?:ו)?|תכין|תכינו)\s+(?:לי\s+)?(?:בקש(?:ה|ת השכרה)|הזמנה)(?![\p{L}])|\b(?:go ahead and )?open (?:a |the |my )?(?:rental )?(?:request|booking)\b/iu.test(input)) return true;
   if (/(?:אני רוצה|אנחנו רוצים|רוצה|רוצים|כבר ביקשתי)\s+(?:להתחיל|לפתוח)(?:\s+(?:את ה|את|ה))?\s*(?:בקש(?:ה|ת השכרה)|הזמנה)/i.test(input)) return true;
   if (/^I need (?:a )?(?:(?:compact|small|family|SUV|seven[- ]?seat) )?rental car\b/i.test(input)) return true;
@@ -2434,6 +2434,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     && (/[?؟]\s*$/u.test(reply.trim()) && !/נציג|representative/iu.test(reply) || !/[?؟]/u.test(reply) && /נציג SmartCar\s+(?:יעזור|ישמח|יוכל|יעבור|יכין)|a SmartCar representative (?:can|will be happy to|will help)/iu.test(reply))) {
     const body = reply.trim().replace(/(?:^|(?<=[.!:\n]))[^.!:?؟\n]*[?؟]\s*$/u, '').trim();
     reply = `${body} ${he ? 'יש לי את התקופה, הקילומטראז׳ והרכב שביקשתם. תרצו שאעביר את הפרטים לנציג SmartCar להכנת הצעה מפורטת?' : 'I have your term, mileage and vehicle. Would you like me to pass them to a SmartCar representative for a detailed offer?'}`.trim();
+  }
+  // A late flight at the airport: answer that part too, without promising the car will wait.
+  if (!escalate && /\b(?:flight|plane)\b.{0,30}\b(?:late|delayed|delay)\b|\b(?:late|delayed) (?:flight|landing)|הטיסה.{0,20}(?:מתעכבת|תתעכב|מאחרת|תאחר|מתאחרת)|עיכוב (?:ב)?טיסה/iu.test(input)
+    && !/delay|late|מתעכב|עיכוב|מאחר/iu.test(reply)) {
+    reply = `${reply.trim()} ${he ? 'אם הטיסה מתעכבת, עדכנו את SmartCar בהקדם כדי לתאם מחדש את המסירה בנתב״ג.' : 'If your flight is delayed, let SmartCar know as soon as you can so the airport handover can be rearranged.'}`;
   }
   // Card brands are not published: answer honestly instead of ignoring the question.
   if (!escalate && /\b(?:amex|american express|diners|visa|mastercard|master card|isracard)\b|אמריקן אקספרס|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט/iu.test(input)

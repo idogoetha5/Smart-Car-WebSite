@@ -484,3 +484,16 @@ describe('airport arrival and surcharge', () => {
     expect(r.state.booking).toMatchObject({ pickupLocation: 'נתב״ג', returnLocation: 'נתב״ג' });
   });
 });
+
+describe('airport tourist replay', () => {
+  it('answers a late flight and starts intake on "ok lets do it. <name>, <age>"', async () => {
+    const c = chat(null, 'Thank you, Sarah. A SmartCar representative will finalise the request with you.', 'en');
+    await c.send('hi! landing at ben gurion dec 4 at 11pm, need a small car till dec 10, returning at the airport too');
+    const late = await c.send('what happens if my flight is late? and is there an extra charge for the airport?');
+    expect(late.reply).toMatch(/delayed/);
+    const go = await c.send('ok lets do it. sarah cohen, 27');
+    expect(go.state.phase).toBe('booking');
+    expect(go.state.booking.customerName).toBe('sarah cohen');
+    expect(go.reply).not.toMatch(/will finalise the request/);
+  });
+});

@@ -119,6 +119,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (hasAffirmativeMatch(reply, /(?:בלי|ללא) הפתעות|(?:ב|לפי )?(?:ה)?תעריף המקורי|אותו מחיר(?: ליום)?|המחיר (?:לא|אינו) ישתנה|\bno (?:price )?surprises\b|\b(?:the )?same (?:daily )?(?:rate|price)\b|\b(?:the )?original (?:daily )?rate\b|\bprice (?:will not|won['’]?t) change\b/giu)) return reject('price_assurance');
   // No booking exists in this chat; wording cannot say one was recorded or made.
   // Only application code hands off; a model promise that someone will call back is not a handoff.
+  if (hasAffirmativeMatch(reply, /\bwill (?:finali[sz]e|complete|process|confirm) (?:the|your) (?:request|booking|reservation)\b|(?:ישלים|יסגור|יאשר) (?:את )?(?:ה)?(?:בקשה|הזמנה)/giu)) return reject('action_claim');
   if (hasAffirmativeMatch(reply, /(?<![\p{L}])ו?(?:יחזור|יחזרו|נחזור)\s+(?:אליכם|אליך|אלייך)\s+(?:עם|בהקדם|לגבי|בהמשך)|\b(?:will|'ll) (?:get back to you|be in touch) with\b/giu)) return reject('action_claim');
   if (hasAffirmativeMatch(reply, /(?:רשמתי|רשמנו)\s+(?:לכם\s+|לך\s+)?(?:את\s+)?(?:ה)?(?:בקשה|הזמנה)|פתחנו את הבקשה|פתחתי (?:לך |לכם )?(?:את )?(?:ה)?בקשה|הבקשה נפתחה|\b(?:I(?:'ve| have)?|we(?:'ve| have)?) opened (?:a|the|your) request\b|רשמתי את ההזמנה|ההזמנה (?:נרשמה|נקלטה|בוצעה)|הזמנתי (?:לכם|לך)|\b(?:I(?:'ve| have)?|we(?:'ve| have)?) (?:booked|recorded (?:the|your) booking)\b|\byour booking (?:is|has been) (?:made|recorded|placed)\b/giu)) return reject('action_claim');
   // Only application code passes a case to a person; wording cannot announce it.
