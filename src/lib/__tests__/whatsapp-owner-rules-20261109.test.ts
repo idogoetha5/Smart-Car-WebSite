@@ -746,3 +746,22 @@ describe('home delivery phrased as "bring it home to <city>"', () => {
     expect(r.reply).not.toMatch(/מאיפה תרצו לאסוף/);
   });
 });
+
+describe('name after a "תפתח בקשה" clause', () => {
+  it('skips the command clause and takes the name', async () => {
+    const c = chat(null, 'x');
+    await c.send('היי, אפשר שתביאו לי רכב הביתה לפתח תקווה? מ-3.12 עד 7.12');
+    await c.send('כן ושתאספו אותו מהבית בסוף');
+    const r = await c.send('רכב קטן, אני לבד. תפתח בקשה, רינה שמש בת 35');
+    expect(r.state.booking.customerName).toBe('רינה שמש');
+    expect(r.reply).toMatch(/אלה פרטי הבקשה/);
+  });
+});
+
+describe('hebrew wording cleanup', () => {
+  it('removes vowel marks and fixes "בתואם מראש"', async () => {
+    const r = await chat(null, 'אפשר לתאם מסירה בכתובת שלכם בתואֵם מראש, בכפוף לזמינות. איזה סוג רכב תרצו?').send('מה אתם ממליצים לטיול?');
+    expect(r.reply).not.toMatch(/[\u05B0-\u05BC]/u);
+    expect(r.reply).not.toMatch(/בתואם/);
+  });
+});

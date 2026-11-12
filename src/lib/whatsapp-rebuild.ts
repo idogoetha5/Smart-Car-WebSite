@@ -167,7 +167,7 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
       if (process.env.NODE_ENV === 'production') console.warn('WhatsApp AI draft fallback', { reason });
     },
   });
-  return validated && state.locale === 'he' ? neutralHebrewAddress(validated).replace(/(?<![\p{L}])ממ(?=ירושלים)/gu, 'מ').replace(/(?<![\p{L}])בה בהחלט/gu, 'בהחלט') : validated;
+  return validated && state.locale === 'he' ? neutralHebrewAddress(validated).replace(/(?<![\p{L}])ממ(?=ירושלים)/gu, 'מ').replace(/(?<![\p{L}])בה בהחלט/gu, 'בהחלט').replace(/[\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7]/gu, '').replace(/(?<![\p{L}])בתואם מראש/gu, 'בתיאום מראש') : validated;
 }
 
 /** "אני משה כהן" / "שמי דנה לוי" / "קוראים לי רון" as its own clause. Verbs, ages,
@@ -1414,6 +1414,7 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
   // end ("יאללה בואו נתקדם, דנה בדיקה, נהג ראשי בעלי בן 38") is the name.
   const trailingName = (explicitStart || state.phase === 'booking' && state.step === 'rental_name') && !introducedName
     ? input.split(/[,.!;\n]/u).slice(1).map(part => part.trim().replace(/\s+(?:בן|בת|aged?)\s*\d{2}$/iu, '')).find(part => /^[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}$/u.test(part)
+      && (!/^(?:תודה|בבקשה|יאללה|סבבה|אחלה|מעולה|בסדר|קדימה|רק|גם|עם|בלי|thank|thanks|please|ok|okay|great|cool|sounds|with|without|also|just|asap|soon|today|tomorrow|מחר|היום)(?=\s|$)|(?:^|\s)(?:רכב|car|יום|ימים|days?|בקשה|request|הצעה|quote|מחיר|price|רבה|גדול|קטן|משפחתי|big|small)(?=\s|$)/iu.test(part))
       && !/(?:^|\s)(?:אני|אנחנו|הוא|היא|זה|זאת|הנהג|הנהגת|נהג|נהגת|ראשי|ראשית|בעלי|אשתי|I|we|he|she|it|this|the|להחזיר|לאסוף|בואו|נתקדם|יאללה|קדימה|בבקשה|תודה|גם|רק|עם|בלי|מחר|היום|main|driver|return|pick|please|thanks|let['’]?s|go|ahead|also|only|with|without|tomorrow|today)(?=\s|$)/iu.test(part))
     : undefined;
   const validTrailingName = trailingName && !/^(?:תודה|בבקשה|יאללה|סבבה|אחלה|מעולה|בסדר|קדימה|רק|גם|עם|בלי|thank|thanks|please|ok|okay|great|cool|sounds|with|without|also|just|asap|soon|today|tomorrow|מחר|היום)(?=\s|$)|(?:^|\s)(?:רכב|car|יום|ימים|days?|בקשה|request|הצעה|quote|מחיר|price|רבה|גדול|קטן|משפחתי|big|small)(?=\s|$)/iu.test(trailingName) ? trailingName : undefined;
