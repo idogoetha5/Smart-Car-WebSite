@@ -3,3 +3,6 @@
 2. "nothing fancy. can i get an invoice for my company?" → **"Yes, we can issue an invoice for your company"** (unverified promise); vehicle not stored.
 3. "great, book it. mark stein, 45, mark.stein@example.com" → intake did not start.
 Fixes (next release): "car in <branch>" = pickup, "same place" = return; weekday/time-of-day words inside English date ranges; "nothing fancy"/"basic" = compact even before a question; validator `invoice_claim` (company-invoice note from the application instead); "great, book it. <first last>, …" starts intake.
+
+## Replay on 33f2dee
+Route Jerusalem→Jerusalem and dates stored; invoice question → application note (ask the representative), no promise; compact taken from "nothing fancy"; "great, book it. mark stein, 45, mark.stein@example.com" started intake but asked the age group. Fixed (next release): "<name>, NN, <email>" sets the age.

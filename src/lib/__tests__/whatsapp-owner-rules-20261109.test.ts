@@ -693,5 +693,7 @@ describe('english business trip to Jerusalem', () => {
     const go = await c.send('great, book it. mark stein, 45, mark.stein@example.com');
     expect(go.state.phase).toBe('booking');
     expect(go.state.booking.customerName).toBe('mark stein');
+    expect(go.state.booking.driverAgeRange).toBe('24-plus');
+    expect(go.state.booking.customerEmail).toBe('mark.stein@example.com');
   });
 });
