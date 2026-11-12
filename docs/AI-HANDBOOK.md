@@ -1329,3 +1329,4 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 - 2026-11-12 — WhatsApp bot: post-handoff payment question on a moved booking repeats the 48h rule; "my car booking" / "need to cancel my car booking" recognised; "ref 440871" parsed as a reference; validator `refund_timing` (refund timing is not published). No migrations.
 - 2026-11-12 — WhatsApp bot: a cancellation request that also asks about a refund gets the published tiers before the reference question. No migrations.
 - 2026-11-12 — WhatsApp bot breakdowns: stationary-breakdown first message; honest "will someone come?" answer; booking number acknowledged during a safety handoff. Evidence: evidence/20261112-chrome-en-wont-start.md. No migrations.
+- 2026-11-12 — WhatsApp bot: a cancellation request during a safety handoff is acknowledged (and refund tiers given when asked) instead of repeating the safety line. No migrations.

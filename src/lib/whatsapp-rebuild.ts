@@ -1672,6 +1672,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         ? (he ? 'השינוי עדיין לא אושר. נציג SmartCar יבדוק את הזמינות ויחזור אליכם; רק לאחר אישורו תאריך ההחזרה יתעדכן.' : 'The change is not approved yet. A SmartCar representative will check availability and follow up; the return date changes only after confirmation.')
       : handoffKind === 'booking_change' && /מה הצעד הבא|מה עושים עכשיו|איך ממשיכים|what(?: is)? next|next step/i.test(input)
         ? (he ? 'נציג SmartCar יבדוק אם אפשר לדחות את ההחזרה ויחזור אליכם עם תשובה. עד לאישור, תאריך ההחזרה הקיים נשאר בתוקף.' : 'A SmartCar representative will check whether the return can be moved and follow up. Until confirmed, the current return date remains in effect.')
+      : handoffKind === 'safety' && cancellationRequest(input)
+      ? (() => {
+        const terms = /החזר|כסף|זיכוי|refund|money back/iu.test(input) ? `${getSmartCarApprovedFacts(state.locale).find(fact => fact.id === 'cancellation')?.text.split(/(?<=[.!])\s+/u)[0] ?? ''} ` : '';
+        return he ? `${terms}הוספתי לפנייה גם את בקשת הביטול. הביטול תקף רק לאחר אישור של נציג SmartCar. ${state.serviceReference ? '' : 'מה מספר ההזמנה שאתם רוצים לבטל?'}`.trim()
+          : `${terms}I have added the cancellation request to your message. It takes effect only after a SmartCar representative confirms it. ${state.serviceReference ? '' : 'Which booking reference would you like to cancel?'}`.trim();
+      })()
       : handoffKind === 'safety' && /will (?:someone|anyone|you) come|send (?:someone|a tech|a technician|help)|is (?:someone|anyone|help) coming|(?:מישהו|טכנאי|עזרה) (?:יגיע|יבוא|מגיע)|תשלחו (?:מישהו|טכנאי|עזרה)|שולחים (?:מישהו|טכנאי)/iu.test(input)
       ? (he ? `מכאן אי אפשר לשלוח עזרה או לאשר הגעה. התקשרו עכשיו ל־SmartCar במספר ${OFFICE_PHONE}, והם יתאמו מולכם את העזרה; הפנייה שלכם כבר אצלם.` : `I cannot send help or confirm a visit from this chat. Call SmartCar now on ${OFFICE_PHONE} and they will arrange help with you; your message is already with them.`)
       : handoffKind === 'safety' && explicitServiceReference(input)

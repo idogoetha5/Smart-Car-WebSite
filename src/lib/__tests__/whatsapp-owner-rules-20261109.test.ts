@@ -607,5 +607,9 @@ describe('car will not start', () => {
     expect(come.reply).toMatch(/cannot send help/);
     const ref = await c.send('booking 662310');
     expect(ref.reply).toContain('662310');
+    const cancel = await c.send('hi, my trip got cancelled, need to cancel my car booking for this saturday. do i get my money back?');
+    expect(cancel.reply).toMatch(/cancellation request/);
+    expect(cancel.reply).toMatch(/72 hours/);
+    expect(cancel.reply).not.toMatch(/keep driving/);
   });
 });
