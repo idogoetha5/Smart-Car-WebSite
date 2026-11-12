@@ -6,3 +6,6 @@ Fixes (next release): an offer up to three bot turns back counts when the custom
 
 ## Replay on 73c158b
 Turn 1 now handled locally with a cold "אפשר לברר על הארכה בלי להגיש בקשת שינוי" (no offer), and "כן תבדקו לי, הזמנה 771204" was still not taken as the request (the bot asked again). Fixed (next release): the local extension answer ends with "תרצו שנבדוק את ההארכה עבורכם?", and "תבדקו לי" after an extension question counts as the request even without an explicit offer.
+
+## Replay on dc37ef6
+Extension offer → fuel side question → "כן תבדקו לי, הזמנה 771204" → change request handed off with the number → "ואם לא יאשרו?" → original return stays binding, call before the return time. Passed.

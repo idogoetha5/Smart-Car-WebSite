@@ -81,6 +81,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (/(?:נתב.?ג|airport|surcharge|תוספת)/iu.test(reply) && /(?:שהוא|שהיא|הסכום|התוספת|הוא|היא)\s+(?:משתנה|משתנים|לא קבוע)|\b(?:it|the (?:amount|surcharge|fee)) (?:varies|changes|is not fixed)\b/iu.test(reply)) return reject('invented_reason');
   // Refund timing is not published (only the deposit release window is).
   if (!/deposit|פיקדון/iu.test(reply) && /(?:refund|זיכוי|החזר(?: הכספי| הכסף)?)[^.!?\n]{0,90}(?:\d+\s*)?(?:(?:a few|several|few)\s+)?(?:business days|working days|days|weeks|ימי עסקים|ימים|שבועות)/iu.test(reply)) return reject('refund_timing');
+  // Invoices/receipts in a company name are confirmed by a representative, not promised in chat.
+  if (hasAffirmativeMatch(reply, /\b(?:we|I) (?:can|will|'ll) (?:issue|provide|send|prepare|make out) (?:you )?(?:an? |the )?(?:invoice|receipt)|\byes,? (?:we|you) can (?:get|have|receive) (?:an? )?(?:invoice|receipt)|(?:נוציא|נשלח|נכין|אפשר להוציא|ניתן להוציא|נפיק)\s+(?:לכם\s+)?(?:חשבונית|קבלה)/giu)) return reject('invoice_claim');
   // Instruction text leaking into the reply ("רק אם הלקוח שואל…", "if the customer asks").
   if (/(?:^|[\s:,(])(?:ה)?לקוח(?:ה|ות)?\s+(?:שואל|שואלת|שאל|שאלה|מבקש|מבקשת|לא שאל)|רק אם הלקוח|\b(?:if|when|only if) the customer (?:asks|asked|wants|did not)\b|\bthe customer (?:asks|asked)\b|approvedFacts|\bfact\b:/iu.test(reply)) return reject('instruction_leak');
   // "תודה רציתי לשאול," — names reach the model redacted, so a salutation with a name-like

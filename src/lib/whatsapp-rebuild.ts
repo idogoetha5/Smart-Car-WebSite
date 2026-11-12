@@ -259,7 +259,7 @@ function explicitDateRange(input: string): { pickupDate: string; returnDate: str
     .replace(/\b(?:mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)(?:day|nesday|sday|urday)?\.?,?\s+(?=\d{1,2}[./])/giu, '');
   if (withoutWeekdays !== input) return explicitDateRange(withoutWeekdays);
   const mon: Record<string, number> = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };
-  const abbrev = input.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\s*(?:to|until|till|-|–)\s*(?:(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?\s+)?(\d{1,2})(?:st|nd|rd|th)?\b/i);
+  const abbrev = input.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s+(?:morning|afternoon|evening|night|noon|am|pm))?\s*(?:to|until|till|-|–)\s*(?:(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*\.?,?\s+)?(?:(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?\s+)?(\d{1,2})(?:st|nd|rd|th)?\b/i);
   if (abbrev && !/\bwhat if\b|\bif\b|\bmaybe\b/i.test(input)) {
     const today = israelDate(); const year = Number(today.slice(0, 4));
     const m1 = mon[abbrev[1].toLowerCase()]; const m2 = abbrev[3] ? mon[abbrev[3].toLowerCase()] : m1;
@@ -480,6 +480,12 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
   const enReturn = input.match(/(?:return|drop.?off)\s+(?:(?:the car|it)\s+)?(?:(?:will be|will remain|stays?|remains?)\s+)?(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:on\s+\d{1,2}|tomorrow|today|day after tomorrow|for\s+(?:one|two|three|four|five)\s+days?)|[,.!?]|$)/iu)?.[1];
   const returnLocation = (heReturn ?? enReturn)?.split(/\s+(?:במקום|instead of)\s+/i)[0].trim().replace(/(?:\s+(?:בסוף|לבסוף|כרגיל|בבקשה|גם|אחר כך|please|too|as well|also|then))+$/iu, '');
   if (returnLocation && !temporalLocation(returnLocation)) draft.returnLocation = returnLocation;
+  // "need a car in jerusalem" / "rental from herzliya": the named branch is the pickup.
+  if (!draft.pickupLocation) {
+    const enBranch = input.match(/\b(?:need|want|looking for|rent)\b[^.!?]{0,40}\b(?:car|rental|vehicle|suv|van)\b\s+(?:in|at|from)\s+(tel aviv|herzliya|jerusalem)\b/iu)?.[1];
+    if (enBranch) draft.pickupLocation = { 'tel aviv': 'Tel Aviv', herzliya: 'Herzliya', jerusalem: 'Jerusalem' }[enBranch.toLowerCase()] ?? enBranch;
+  }
+  if (draft.pickupLocation && !draft.returnLocation && /\bsame place\b|\bsame location\b|\breturn(?:ing)? (?:it )?there\b|לאותו מקום|באותו מקום/iu.test(input)) draft.returnLocation = draft.pickupLocation;
   // "צריך רכב לסופש מתל אביב": a branch after "מ" in a rental need is the pickup.
   if (!draft.pickupLocation && /(?:צריך|צריכה|צריכים|רוצה|רוצים|מחפש|מחפשת|לשכור|להשכיר)\s+(?:[\p{L}]+\s+){0,4}?(?:רכב|אוטו)|(?:רכב|אוטו)\s+(?:[\p{L}]+\s+){0,3}?מ(?:תל אביב|הרצליה|ירושלים)/u.test(input)) {
     const branch = input.match(/(?<![\p{L}])מ(תל אביב|הרצליה|ירושלים)(?![\p{L}])/u);
@@ -537,6 +543,7 @@ function explicitBooking(input: string): boolean {
   if (/^(?:כן[,\s]*)?כבר ביקשתי להתחיל[.!\s]*$/i.test(input)) return true;
   if (/(?<!\b(?:to|if|decide to|before I)\s)\b(?:go ahead|book it|let['’]?s book(?: it)?)\b[,.!\s]+(?:i['’]?m|im|i am|my name is|name['’]?s)\s+(?!(?:still|not|just|only|comparing|thinking|unsure|sure|ok|fine|good|ready|looking|asking|waiting|deciding|a|the|so|also|very|really)\b)[\p{L}'-]{2,20}/iu.test(input) && !/\b(?:don['’]?t|do not|not yet|no change request|still comparing)\b/i.test(input)) return true;
   if (/^(?:ok(?:ay)?|fine|sure|yes|yeah)?[.,!\s]*(?:book it|let['’]?s book it)[.!\s]*$/iu.test(input.trim())) return true;
+  if (/^(?:(?:ok(?:ay)?|fine|sure|yes|yeah|great|perfect|cool)[.,!\s]+)?(?:book it|let['’]?s book it|go ahead)[.,!]\s+[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\b/iu.test(input.trim())) return true;
   if (/^(?:(?:ok(?:ay)?|sure|great|perfect|yes|yeah|אוקיי?|מעולה|כן)[,.!\s]+)?(?:יאללה|סבבה|אוקיי?|טוב|ok(?:ay)?|go ahead|let['’]?s (?:go|do it|do this))[.,!\s]+[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}(?:\s*,?\s*(?:(?:בן|בת|aged?)\s*)?\d{2})?\s*[.!]?$/iu.test(input.trim())) return true;
   if (/(?:^|[\s,.!])(?:סבבה|יאללה|טוב|אוקיי?|אז)?\s*(?:תפתח(?:ו)?|פתח(?:ו)?|תכין|תכינו)\s+(?:לי\s+)?(?:בקש(?:ה|ת השכרה)|הזמנה)(?![\p{L}])|\b(?:go ahead and )?open (?:a |the |my )?(?:rental )?(?:request|booking)\b/iu.test(input)) return true;
   if (/(?:אני רוצה|אנחנו רוצים|רוצה|רוצים|כבר ביקשתי)\s+(?:להתחיל|לפתוח)(?:\s+(?:את ה|את|ה))?\s*(?:בקש(?:ה|ת השכרה)|הזמנה)/i.test(input)) return true;
@@ -763,7 +770,7 @@ function explicitVehicleNeed(input: string, locale: Locale): string | null {
   if (/^\s*משפחתי(?:ת)?\s*$/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
   if (/שבעה מקומות|7\s*מקומות|7[- ]?seater|seven[- ]?seater/i.test(input)) return locale === 'he' ? 'רכב שבעה מקומות' : 'seven-seat car';
   if (/רכב\s+משפחתי|רכב\s+למשפחה|^\s*משפחתית\s*$|(?:רוצה|מחפש|צריך|מעדיף)\s+(?:רכב\s+)?משפחתית|(?:רוצה|מחפש|צריך|מעדיף)\s+משפחתי|family car/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
-  if (/קומפקטי|קומפקטית|רכב קטן|(?:^|[\s,.])(?:משהו|אחד)\s+קטן(?![\p{L}])|compact (?:rental )?car|small (?:rental )?car|\bsomething small\b|\ba small one\b/iu.test(input) && !/(?:^|\s)(?:לא|בלי)\s+(?:משהו\s+)?קטן|\bnot (?:something )?small\b/iu.test(input)) return locale === 'he' ? 'רכב קומפקטי' : 'compact car';
+  if (/קומפקטי|קומפקטית|רכב קטן|(?:^|[\s,.])(?:משהו|אחד)\s+קטן(?![\p{L}])|compact (?:rental )?car|small (?:rental )?car|\bsomething small\b|\ba small one\b|\bnothing fancy\b|\b(?:just )?(?:a )?basic (?:car|one)\b|משהו פשוט|רכב פשוט/iu.test(input) && !/(?:^|\s)(?:לא|בלי)\s+(?:משהו\s+)?קטן|\bnot (?:something )?small\b/iu.test(input)) return locale === 'he' ? 'רכב קומפקטי' : 'compact car';
   if (/רכב פנאי|ג[׳'י]?יפ(?:ון)?|suv/i.test(input)) return locale === 'he' ? 'רכב פנאי' : 'SUV';
   // A sedan request belongs to the family group; fit is still model-specific.
   if (/סדאן|סדן(?![\p{L}])|\bsedan\b/iu.test(input)) return locale === 'he' ? 'רכב משפחתי (סדאן)' : 'family car (sedan)';
@@ -782,6 +789,9 @@ function customerVehicleChoice(input: string, state: RebuildState): string | nul
   if (statedPreference && !/[?؟]/u.test(input)) return explicitVehicleNeed(statedPreference, state.locale);
   // "משהו נוח לנסיעות ארוכות, סדאן נגיד" — a stated body type, not a question.
   if (!/[?؟]/u.test(input) && /(?:^|[\s,])(?:סדאן|סדן|sedan)(?:\s+(?:נגיד|בערך|אולי|maybe|I guess|probably))?\s*[.!]?\s*$/iu.test(input) && !/(?:לא|בלי|not|no)\s+(?:סדאן|סדן|sedan)/iu.test(input)) return explicitVehicleNeed('sedan', state.locale);
+  // A short stated preference before a separate question ("nothing fancy. can i get an invoice?").
+  const statedClause = input.split(/(?<=[.!])\s+/u).find(part => !/[?؟]/u.test(part) && /^(?:משהו|רכב|something|nothing|just|a|רק)?\s*(?:קטן|פשוט|small|fancy|basic|compact|קומפקטי)/iu.test(part.trim()));
+  if (statedClause && statedClause.trim().length <= 30) { const need = explicitVehicleNeed(statedClause, state.locale); if (need) return need; }
   if (/[?؟]/u.test(input) || /(?:לא רוצה|לא מעדיף|don't want|do not want)/iu.test(input)) return null;
   const lastBot = state.history.at(-1)?.text ?? '';
   return state.phase === 'booking' && (state.step === 'rental_vehicle' || /איזה סוג רכב|what kind of car/i.test(lastBot) || input.trim().length <= 20)

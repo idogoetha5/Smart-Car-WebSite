@@ -1335,3 +1335,4 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 - 2026-11-12 — WhatsApp bot: validator `wrong_weekday` rejects a weekday that does not match the date next to it (HE/EN). No migrations.
 - 2026-11-12 — WhatsApp bot: extension offer accepted after a side question ("כן תבדקו לי"); "אני עם הרכב שלכם" → service flow; "להחזיר בעוד יומיים במקום מחר" → change discussion. Evidence: evidence/20261112-chrome-he-eilat-extension.md. No migrations.
 - 2026-11-12 — WhatsApp bot: local extension answer offers the check; "תבדקו לי" after an extension question is the change request. No migrations.
+- 2026-11-12 — WhatsApp bot English business trip: "car in jerusalem … same place", "mon nov 23 morning to wed nov 25", "nothing fancy", validator `invoice_claim`, "great, book it. <name>, …". Evidence: evidence/20261112-chrome-en-jerusalem-business.md. No migrations.
