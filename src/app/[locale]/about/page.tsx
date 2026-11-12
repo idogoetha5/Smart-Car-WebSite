@@ -78,6 +78,14 @@ export default async function AboutPage({
               <h2 className="text-[28px] font-bold text-[#0D2B2B] mb-6">
                 {isHe ? 'הסיפור שלנו' : 'Our Story'}
               </h2>
+              {/* Added 2026-11-12 (owner approved an added opening only; the story
+                  paragraphs below must not be edited). Plain facts first, for
+                  search engines and AI assistants that quote the page. */}
+              <p className="text-[#0D2B2B] leading-relaxed text-lg mb-4 font-medium">
+                {isHe
+                  ? 'SmartCar היא חברת השכרת רכב וליסינג ישראלית עם ארבעה סניפים – הרצליה, תל אביב, ירושלים ונתב״ג – ומסירת רכב עד הבית בכל הארץ. החברה מציעה השכרה יומית, חודשית ולפי שעה, ליסינג פרטי ועסקי ומענה אנושי 24/7.'
+                  : 'SmartCar is an Israeli car rental and leasing company with four branches – Herzliya, Tel Aviv, Jerusalem and Ben Gurion Airport – and car delivery to your door anywhere in Israel. It offers daily, monthly and hourly rental, private and business leasing, and human support 24/7.'}
+              </p>
               <p className="text-gray-600 leading-relaxed text-lg mb-4">
                 {isHe
                   ? 'SmartCar היא סיפור של ניסיון, שירות ומקצוענות. החברה הוקמה בשנת 2003 על ידי ליליאנה נרדאה, מהנשים הראשונות בענף ההשכרה בישראל, עם ניסיון עשיר של מעל 30 שנה בתחום והרבה תשוקה לחדש, לדייק ולהוביל.'

@@ -2,6 +2,7 @@ import JsonLd from '@/components/seo/JsonLd';
 import { localeAlternates, ogImage, breadcrumbJsonLd } from '@/lib/seo';
 import type { Metadata } from 'next';
 import PublicRentalAdvice from '@/components/content/PublicRentalAdvice';
+import ServiceExtras from '@/components/content/ServiceExtras';
 import { LEASING_CATALOG_SEARCH, SERVICE_RENTAL_ADVICE, rentalCopy } from '@/lib/public-rental-content';
 export const revalidate = 3600;
 
@@ -178,9 +179,9 @@ export default async function LeasingPage({
               </p>
               <h1 className="text-4xl sm:text-5xl font-black leading-tight mb-4">
                 {isHe ? (
-                  <>ליסינג שמתאים<br /><span className="text-[#E8743B]">לאופן שבו אתם נוסעים</span></>
+                  <>ליסינג פרטי ועסקי<br /><span className="text-[#E8743B]">שמתאים לאופן שבו אתם נוסעים</span></>
                 ) : (
-                  <>Leasing matched<br /><span className="text-[#E8743B]">to the way you drive</span></>
+                  <>Private &amp; business leasing<br /><span className="text-[#E8743B]">matched to the way you drive</span></>
                 )}
               </h1>
               <p className="text-[#B8D8D8] text-lg mb-3">
@@ -269,6 +270,7 @@ export default async function LeasingPage({
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         <PublicRentalAdvice advice={SERVICE_RENTAL_ADVICE.leasing} locale={locale} />
       </div>
+      <ServiceExtras type="leasing" locale={locale} fleet={[]} />
 
       {/* ── LEASING TYPES ─────────────────────────────────────── */}
       <section className="py-14 bg-white">
