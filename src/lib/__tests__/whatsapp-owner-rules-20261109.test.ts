@@ -875,3 +875,13 @@ describe('summary notices', () => {
     expect(r.reply).not.toMatch(/₪|150/);
   });
 });
+
+// Live Chrome on 25ce3b0: "can i add another driver to my booking 551199? its my wife" got the policy but no handoff.
+describe('additional driver on an existing booking', () => {
+  it.each([['en', 'can i add another driver to my booking 551199? its my wife'], ['he', 'אפשר להוסיף את אשתי כנהגת להזמנה 551199?']] as const)('%s hands off with the licence note', async (locale, input) => {
+    const r = await chat(null, locale === 'he' ? 'אפשר לבקש להוסיף נהג.' : 'You can ask to add another driver.', locale).send(input);
+    expect(r.escalate).toBe(true);
+    expect(r.state.serviceReference).toBe('551199');
+    expect(r.reply).toMatch(/licen[cs]e|רישיון/);
+  });
+});

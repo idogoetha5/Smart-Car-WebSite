@@ -11,3 +11,6 @@ Fixes (next release): refund question after a cancellation handoff gets the tier
 
 ## Replay on 3b50763
 Refund tiers after a cancellation handoff; "יאללה תפתח, משה לוי בן 45" → summary (fixes confirmed). English Herzliya story (8–12/12, 2 people, small car, deposit + debit, "ok go ahead, im tom berg, 31") → summary; 12/12/2026 is a Saturday but the summary had no Shabbat notice. Fixed (next release): the summary carries the same Shabbat / Ben Gurion notices as the website booking form (no amounts).
+
+## Replay on 25ce3b0 (English)
+Herzliya 8–12/12 summary now carries the Shabbat note (fix confirmed). Oil light → representative + number (pass). "can i add another driver to my booking 551199? its my wife" → policy only, no handoff. Fixed (next release): adding a driver to a referenced booking is a change request (handoff + licence note); "להזמנה 551199" parsed as a reference.

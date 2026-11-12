@@ -397,6 +397,8 @@ function mentionsRentalChange(input: string): boolean {
 /** A topic mention is not authority to queue a change, now or in history. */
 function rentalChangeRequest(input: string): boolean {
   if (advisoryRentalChange(input)) return false;
+  // Adding a driver to an existing booking (with its reference) is a change request.
+  if (/\badd (?:an? )?(?:another|second|additional|extra)? ?driver\b.{0,30}\b(?:booking|reservation|rental)\b|להוסיף\s+(?:את\s+)?(?:\S+\s+)?(?:כ)?נהג(?:ת)?(?:\s+נוסף|\s+נוספת)?.{0,20}(?:להזמנה|לחוזה|להשכרה)/iu.test(input) && explicitServiceReference(input)) return true;
   // "במקום ראשון שיהיה שלישי" / "make it Tuesday instead of Sunday": a concrete new date is a request.
   if (/במקום\s+(?:יום\s+)?[\p{L}\d./]{2,12}\s+(?:ש)?(?:יהיה|תהיה|נעשה|נזיז ל|ל)\s*(?:יום\s+)?[\p{L}\d./]{2,12}|\b(?:make it|move it to|change it to)\s+[\p{L}\d./ ]{2,20}\s+instead of\b/iu.test(input) && !/(?:^|\s)אם\s|\bif\b|what if|מה אם/iu.test(input)) return true;
   if (/^(?:רוצה|רוצים|צריך|צריכה|מבקש|מבקשת)\s+(?:לשנות|להאריך|לדחות|להקדים|להזיז|לקצר)/u.test(input)) return true;
@@ -428,7 +430,7 @@ function explicitServiceReference(input: string): string | undefined {
     const lone = input.match(/(?:^|[\s,.:])(\d{5,8})(?=[\s,.!?]|$)/u);
     if (lone && !/(?:\d{5,8})\s*(?:₪|ש["״]?ח|nis|ils|km|ק["״]?מ)|0\d{8,9}/iu.test(input)) return lone[1];
   }
-  const bare = input.match(/(?:^|[\s,.])(?:ה)?הזמנה\s+(?:שלי\s+)?(\d{5,12})(?!\d)|\b(?:booking|reservation|ref\.?|ref(?:erence)? (?:no\.?|number|#))(?:\s+(?:is|number|no\.?|#))?\s*#?\s*(\d{5,12})(?!\d)/iu);
+  const bare = input.match(/(?:^|[\s,.])(?:[לבה])?הזמנה\s+(?:שלי\s+)?(?:מספר\s+)?(\d{5,12})(?!\d)|\b(?:booking|reservation|ref\.?|ref(?:erence)? (?:no\.?|number|#))(?:\s+(?:is|number|no\.?|#))?\s*#?\s*(\d{5,12})(?!\d)/iu);
   if (bare && !/(?:\d{5,12})\s*(?:₪|ש["״]?ח|nis|ils|km|ק["״]?מ)/iu.test(input)) return bare[1] ?? bare[2];
   const value = input.match(/(?:מספר\s+ה?הזמנה|booking\s+number|(?:booking\s+)?reference|(?:booking|הזמנה)\s*#|ההזמנה\s+שלי\s+מספר\s*#)[\s,:#]*(?:(?:שלי|הוא|it\s+is|it['’]s|is)[\s,:#]*)*([A-Z0-9-]*\d[A-Z0-9-]{2,})(?![A-Z0-9-])/i)?.[1];
   return value && value.length <= 40 ? value : undefined;
@@ -2253,7 +2255,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = state.interest
         ? (he ? `בשמחה, נציג SmartCar יחזור אליכם לגבי ${state.interest === 'sale' ? 'רכישת הרכב' : 'הליסינג'}. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up about your ${state.interest === 'sale' ? 'car purchase' : 'leasing'} enquiry. You can also call ${OFFICE_PHONE}.`)
         : (he ? `בשמחה, נציג SmartCar יחזור אליכם. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up. You can also call ${OFFICE_PHONE}.`);
-    } else if (state.phase === 'service' || reading?.route === 'service' || /הזמנה קיימת|ההזמנה שלי|שכרתי|existing booking|my booking|I rented|יש לי (?:כבר )?הזמנה|הזמנתי (?:אצלכם|מכם|רכב)|\bI (?:have|made) a (?:booking|reservation)\b|\bI booked\b|\bmy (?:car |rental )?(?:booking|reservation)\b|אני עם (?:ה)?רכב (?:שלכם|שלקחתי)|הרכב שלכם (?:אצלי|איתי)|(?:לקחתי|אספתי) (?:מכם|אצלכם) רכב|\bI (?:have|got) (?:your|a) (?:car|rental) (?:from you|right now|now)\b|\bI(?:'m| am) (?:in|driving) your car\b/i.test(input)) {
+    } else if (state.phase === 'service' || reading?.route === 'service' || rentalChangeRequest(input) && Boolean(explicitServiceReference(input)) || /הזמנה קיימת|ההזמנה שלי|שכרתי|existing booking|my booking|I rented|יש לי (?:כבר )?הזמנה|הזמנתי (?:אצלכם|מכם|רכב)|\bI (?:have|made) a (?:booking|reservation)\b|\bI booked\b|\bmy (?:car |rental )?(?:booking|reservation)\b|אני עם (?:ה)?רכב (?:שלכם|שלקחתי)|הרכב שלכם (?:אצלי|איתי)|(?:לקחתי|אספתי) (?:מכם|אצלכם) רכב|\bI (?:have|got) (?:your|a) (?:car|rental) (?:from you|right now|now)\b|\bI(?:'m| am) (?:in|driving) your car\b/i.test(input)) {
       state.phase = 'service';
       const booking = await store.activeBooking(phone);
       const answer = getSmartCarServiceAnswer(input, state.locale);
@@ -2595,6 +2597,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   if (!escalate && state.interest === 'sale' && /financ|loan|payment plan|installments?|מימון|הלוואה|תשלומים|פריסה/iu.test(input)) {
     reply = he ? 'לגבי מימון או תשלומים אני לא יכול לאשר כאן מה אפשרי. נציג SmartCar יוכל לומר אילו אפשרויות קיימות לרכב מסוים. תרצו שנציג יחזור אליכם?'
       : 'I cannot confirm financing or payment plans here. A SmartCar representative can tell you what is available for a specific car. Would you like a representative to get back to you?';
+  }
+  // An additional-driver change request: say what the driver will need.
+  if (escalate && state.handoffKind === 'booking_change' && /\badd (?:an? )?(?:another|second|additional|extra)? ?driver\b|להוסיף\s+(?:\S+\s+){0,2}(?:כ)?נהג/iu.test(input) && !/licen[cs]e|רישיון/iu.test(reply)) {
+    reply = `${reply.trim()} ${he ? 'הנהג הנוסף יצטרך להציג רישיון בתוקף ולהירשם בחוזה לפני שהוא נוהג.' : 'The additional driver will need to show a valid licence and be named in the agreement before driving.'}`;
   }
   // Card brands are not published: answer honestly instead of ignoring the question.
   if (!escalate && /\b(?:amex|american express|diners|visa|mastercard|master card|isracard)\b|אמריקן אקספרס|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט/iu.test(input)

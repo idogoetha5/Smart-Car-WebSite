@@ -1356,3 +1356,4 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 - 2026-11-12 — WhatsApp bot regression sweep fixes: "לקחת ממנו פרטים" after a collision; lone booking number in a cancellation/change message. Evidence: evidence/20261112-chrome-regression-sweep.md. No migrations.
 - 2026-11-12 — WhatsApp bot: refund tiers after a cancellation handoff; "יאללה תפתח, <name>" starts intake; validator rejects "הפרטים נשמרו לבקשה". No migrations.
 - 2026-11-12 — WhatsApp bot: request summary adds the website's Shabbat and Ben Gurion notices (no amounts; `isShabbat` from `booking-notices.ts`). No migrations.
+- 2026-11-12 — WhatsApp bot: "add another driver to my booking N" / "להוסיף את אשתי כנהגת להזמנה N" is a change request (handoff + licence note); "להזמנה N" parsed. No migrations.
