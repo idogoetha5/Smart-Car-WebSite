@@ -593,3 +593,19 @@ describe('english cancellation of a car booking', () => {
     expect(timing.reply).not.toMatch(/business days|few days/i);
   });
 });
+
+// Live Chrome on 300ed99 (English, car won't start): "do not continue driving" for a stationary car,
+// then the same line for "will someone come?" and for the booking number.
+describe('car will not start', () => {
+  it('gives a stationary-breakdown reply, an honest answer about help and acknowledges the reference', async () => {
+    const c = chat(null, 'x', 'en');
+    const first = await c.send('hey the rental wont start, just clicks when i turn the key. im at a gas station near haifa');
+    expect(first.escalate).toBe(true);
+    expect(first.reply).not.toMatch(/continue driving/);
+    expect(first.reply).toContain('09-9509757');
+    const come = await c.send('were ok, just stuck. will someone come?');
+    expect(come.reply).toMatch(/cannot send help/);
+    const ref = await c.send('booking 662310');
+    expect(ref.reply).toContain('662310');
+  });
+});
