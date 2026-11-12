@@ -7,3 +7,6 @@ Fixes (next release): weekday names before explicit dates are ignored for parsin
 
 ## Replay on 74f2a42
 Dates 19–22/11 and the 21–23 group kept (fixes confirmed). "משהו קטן מספיק. סבבה תפתח בקשה, יונתן לוי" → name stored but "something small" not taken as the vehicle. Fixed (next release): "משהו קטן" / "something small" = compact for rentals; "צריך רכב … מתל אביב" sets the pickup without the model.
+
+## Replay on de9734f
+Full summary reached: compact, 19–22/11, Tel Aviv both ways, 21–23, יונתן לוי (all fixes confirmed). Model wording said "מיום רביעי 19.11" (19.11.2026 is a Thursday) → validator `wrong_weekday` (Hebrew and English weekday-next-to-date checks), next release.

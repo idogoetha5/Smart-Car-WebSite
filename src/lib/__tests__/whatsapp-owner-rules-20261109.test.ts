@@ -634,3 +634,17 @@ describe('young driver with a friend', () => {
     expect(r.state.booking).toMatchObject({ pickupDate: '2026-11-19', returnDate: '2026-11-22' });
   });
 });
+
+// Live Chrome on de9734f: "מיום רביעי 19.11" (19.11.2026 is a Thursday).
+describe('weekday next to a date', () => {
+  it.each([
+    ['he', 'מעולה, רשמתי איסוף מיום רביעי 19.11 ועד יום ראשון 22.11.', 'מחמישי 19.11 עד ראשון 22.11, מחזיר בתל אביב'],
+    ['en', 'Great, pickup on Wed Nov 19 and return on Sun Nov 22.', 'thu 19.11 to sun 22.11, returning in tel aviv'],
+  ] as const)('rejects a wrong weekday (%s)', async (locale, model, input) => {
+    vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-12T12:00:00Z'));
+    try {
+      const r = await chat(null, model, locale).send(input);
+      expect(r.reply).not.toMatch(/רביעי 19\.11|Wed Nov 19/);
+    } finally { vi.useRealTimers(); }
+  });
+});

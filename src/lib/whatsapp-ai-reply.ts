@@ -41,6 +41,33 @@ function hasAffirmativeMatch(text: string, pattern: RegExp, unverifiedPrefix?: R
   return false;
 }
 
+/** A weekday written next to a date ("יום רביעי 19.11", "Wed 19 Nov") must be that date's weekday. */
+function wrongWeekday(reply: string, today = new Date()): boolean {
+  const he: Record<string, number> = { ראשון: 0, שני: 1, שלישי: 2, רביעי: 3, חמישי: 4, שישי: 5, שבת: 6 };
+  const en: Record<string, number> = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+  const months: Record<string, number> = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12, ינואר: 1, פברואר: 2, מרץ: 3, אפריל: 4, מאי: 5, יוני: 6, יולי: 7, אוגוסט: 8, ספטמבר: 9, אוקטובר: 10, נובמבר: 11, דצמבר: 12 };
+  const check = (weekday: number, day: number, month: number, year?: number) => {
+    if (!day || !month || month > 12 || day > 31) return false;
+    let y = year ?? today.getUTCFullYear();
+    if (!year && Date.UTC(y, month - 1, day) < Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()) - 86400000) y += 1;
+    const date = new Date(Date.UTC(y, month - 1, day));
+    return date.getUTCMonth() === month - 1 && date.getUTCDay() !== weekday;
+  };
+  for (const m of reply.matchAll(/(?:יום\s+)?(?:ה)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)[,\s]+(?:ה|ה-|ה־)?(\d{1,2})[./](\d{1,2})(?:[./](20\d{2}))?/gu)) {
+    if (check(he[m[1]], Number(m[2]), Number(m[3]), m[4] ? Number(m[4]) : undefined)) return true;
+  }
+  for (const m of reply.matchAll(/(?:יום\s+)?(?:ה)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)[,\s]+(?:ה[־-]?)?(\d{1,2})\s+(?:ב)?(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)/gu)) {
+    if (check(he[m[1]], Number(m[2]), months[m[3]])) return true;
+  }
+  for (const m of reply.matchAll(/\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?,?\s+(?:(\d{1,2})(?:st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*|(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})(?:st|nd|rd|th)?|(\d{1,2})[./](\d{1,2}))/giu)) {
+    const wd = en[m[1].toLowerCase()];
+    const day = Number(m[2] ?? m[5] ?? m[6]);
+    const month = m[3] ? months[m[3].toLowerCase()] : m[4] ? months[m[4].toLowerCase()] : Number(m[7]);
+    if (check(wd, day, month)) return true;
+  }
+  return false;
+}
+
 export function validateConversationalReply(args: ConversationalReplyInput): string | null {
   const { input, locale, known, approvedFacts, handoffDeferred } = args;
   const reject = (reason: string): null => { args.onReject?.(reason); return null; };
@@ -49,6 +76,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (asksRentalAgeTerms(input) && !/\bage\b|\b21\b|young[- ]driver|licen[cs]e|גיל|רישיון|נהג צעיר/i.test(reply)) return reject('unanswered_age_terms');
   if (asksRentalAgeTerms(input) && /deposit|פיקדון/i.test(input) && !/deposit|card hold|פיקדון/i.test(reply)) return reject('unanswered_deposit');
   if (reply.length > 650) return reject('too_long');
+  if (wrongWeekday(reply)) return reject('wrong_weekday');
   // The airport surcharge is a fixed published amount; the model may not invent that it varies.
   if (/(?:נתב.?ג|airport|surcharge|תוספת)/iu.test(reply) && /(?:שהוא|שהיא|הסכום|התוספת|הוא|היא)\s+(?:משתנה|משתנים|לא קבוע)|\b(?:it|the (?:amount|surcharge|fee)) (?:varies|changes|is not fixed)\b/iu.test(reply)) return reject('invented_reason');
   // Refund timing is not published (only the deposit release window is).
