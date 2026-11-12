@@ -157,6 +157,12 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
     onReject?.('irrelevant_offer');
     return null;
   }
+  // A city the customer never mentioned ("ממודיעין הסניף בירושלים") is invented context.
+  const CITY_NAMES = /(?<![\p{L}])[בלמה]?(מודיעין|חיפה|באר שבע|נתניה|אשדוד|אשקלון|רחובות|ראשון לציון|חולון|בת ים|רמת גן|פתח תקווה|כפר סבא|רעננה|הוד השרון|נהריה|עכו|טבריה|צפת|אילת|קריית שמונה|Modiin|Haifa|Beer Sheva|Netanya|Ashdod|Eilat|Ramat Gan|Rishon)(?![\p{L}])/giu;
+  const customerSaid = [input, ...state.history.filter(entry => entry.from === 'customer').map(entry => entry.text), JSON.stringify(state.booking)].join(' ');
+  for (const city of reading.reply.matchAll(CITY_NAMES)) {
+    if (!customerSaid.toLowerCase().includes(city[1].toLowerCase())) { onReject?.('unknown_place'); return null; }
+  }
   const validated = validateConversationalReply({
     reply: reading.reply, input, locale: state.locale, known: conversationalKnown(state),
     approvedFacts: getSmartCarApprovedFacts(state.locale).map(fact => fact.text),
@@ -2580,7 +2586,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   }
   // Owner rule: a rental price question always gets the same honest line.
   if (!escalate && state.phase !== 'service' && !state.interest && !state.completedRequestId
-    && /כמה (?:זה )?(?:עולה|יעלה|יוצא|ייצא)|מה המחיר|מחיר|(?<![לב])עלות|\bhow much\b|\bprice\b|\bcost\b|\brate\b/iu.test(input)
+    && /כמה (?:זה )?(?:עולה|יעלה|יוצא|ייצא)|כמה (?:זה )?(?:בערך|בממוצע)|כמה (?:זה )?ל(?:יום|חודש|שבוע)|מה המחיר|מחיר|(?<![לב])עלות|\bhow much\b|\bprice\b|\bcost\b|\brate\b|\bballpark\b/iu.test(input)
     && !/פיקדון|deposit|השתתפות|excess|ביטול|cancel/iu.test(input) && !reply.includes(priceAnswer(state.locale))
     && !/מחיר|הצעה|תעריף|עלות|price|quote|rate|cost/iu.test(reply)) {
     reply = `${priceAnswer(state.locale)} ${reply}`.trim();

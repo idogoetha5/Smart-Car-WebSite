@@ -791,3 +791,16 @@ describe('parking-lot scrape on a rental', () => {
     expect(ref.reply).toContain('905512');
   });
 });
+
+// Live Chrome on 0314617 (cheapest car for a month from Jerusalem): invented "מודיעין", and
+// "כמה בערך לחודש?" got no price line.
+describe('month-long rental price questions', () => {
+  it('rejects an invented city', async () => {
+    const r = await chat(null, 'נשמח לסייע בבחירת קבוצת רכב ממודיעין הסניף בירושלים. איזה סוג רכב תרצו?').send('היי מה הרכב הכי זול שיש לכם? צריך לחודש שלם מירושלים, מתחילת ינואר');
+    expect(r.reply).not.toMatch(/מודיעין/);
+  });
+  it('states the owner price line for "כמה בערך לחודש?"', async () => {
+    const r = await chat(null, 'נשמח לעזור לכם לבחור רכב מתאים. לאילו תאריכים תצטרכו את הרכב?').send('כמה בערך לחודש? רק שאדע אם זה בטווח שלי');
+    expect(r.reply).toMatch(/המחיר נסגר סופית מול נציג SmartCar/);
+  });
+});
