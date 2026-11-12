@@ -2561,6 +2561,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     && !/delay|late|מתעכב|עיכוב|מאחר/iu.test(reply)) {
     reply = `${reply.trim()} ${he ? 'אם הטיסה מתעכבת, עדכנו את SmartCar בהקדם כדי לתאם מחדש את המסירה בנתב״ג.' : 'If your flight is delayed, let SmartCar know as soon as you can so the airport handover can be rearranged.'}`;
   }
+  // Home collection added this turn: say it was noted, then ask what is still missing.
+  if (!escalate && state.phase === 'explore' && /(?:יאספו|תאספו|לאסוף|איסוף)\s+(?:אותו|אתו|את הרכב)?\s*מהבית|collect (?:it )?from (?:my )?(?:home|house)|pick (?:it )?up from (?:my )?(?:home|house)/iu.test(input)
+    && /^(?:איסוף מהבית|Collection from home)/u.test(state.booking.returnLocation ?? '') && !/מהבית|from (?:your |the )?home/iu.test(reply)) {
+    const nextQ = !state.booking.vehicleNeed && !state.booking.passengers ? (he ? 'איזה רכב תרצו, או כמה נוסעים תהיו?' : 'Which car would you like, or how many passengers will there be?') : '';
+    reply = `${he ? 'רשמתי גם איסוף של הרכב מהבית בסוף ההשכרה.' : 'Noted: collection of the car from your home at the end of the rental.'}${nextQ ? ` ${nextQ}` : ` ${reply.trim()}`}`.trim();
+  }
   // Card brands are not published: answer honestly instead of ignoring the question.
   if (!escalate && /\b(?:amex|american express|diners|visa|mastercard|master card|isracard)\b|אמריקן אקספרס|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט/iu.test(input)
     && !/amex|american express|diners|visa|mastercard|isracard|אמריקן|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט|סוג הכרטיס|card type|card brand/iu.test(reply)) {

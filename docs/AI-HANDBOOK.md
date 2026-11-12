@@ -1347,3 +1347,4 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 - 2026-11-12 — WhatsApp bot leasing: tentative "maybe … for 2 years" keeps term and named model; "pass it to someone" hands off. Evidence: evidence/20261112-chrome-en-leasing-tucson-early-exit.md. No migrations.
 - 2026-11-12 — WhatsApp bot: "תביאו לי רכב הביתה לפתח תקווה" = home delivery with the city. Evidence: evidence/20261112-chrome-he-home-delivery-pt.md. No migrations.
 - 2026-11-12 — WhatsApp bot: trailing-name selection skips command clauses ("תפתח בקשה"); Hebrew vowel marks stripped from model wording. No migrations.
+- 2026-11-12 — WhatsApp bot: home collection added mid-conversation is acknowledged, then the missing vehicle is asked. No migrations.

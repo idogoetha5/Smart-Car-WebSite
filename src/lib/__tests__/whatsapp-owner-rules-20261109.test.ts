@@ -765,3 +765,13 @@ describe('hebrew wording cleanup', () => {
     expect(r.reply).not.toMatch(/בתואם/);
   });
 });
+
+describe('home collection acknowledged', () => {
+  it('says the collection was noted and asks for the vehicle', async () => {
+    const c = chat(null, 'נשמח לעזור לכם לבחור רכב מתאים.');
+    await c.send('היי, אפשר שתביאו לי רכב הביתה לפתח תקווה? מ-3.12 עד 7.12');
+    const r = await c.send('כן ושתאספו אותו מהבית בסוף');
+    expect(r.reply).toMatch(/^רשמתי גם איסוף של הרכב מהבית/);
+    expect(r.reply).toMatch(/איזה רכב/);
+  });
+});
