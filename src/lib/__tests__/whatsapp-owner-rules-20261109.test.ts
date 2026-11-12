@@ -540,3 +540,12 @@ describe('website follow-up after the airport answer', () => {
     expect(r.reply).toMatch(/לא כלולה במחיר המשוער שמופיע באתר/);
   });
 });
+
+describe('airport surcharge amount question', () => {
+  it('does not invent that the amount varies', async () => {
+    const r = await chat(null, 'את סכום התוספת לנתב״ג סוגרים מול נציג SmartCar, מכיוון שהוא משתנה.').send('כמה בערך התוספת של נתב״ג?');
+    expect(r.reply).not.toMatch(/משתנה/);
+    expect(r.reply).not.toMatch(/150|₪/);
+    expect(r.reply).toMatch(/נציג SmartCar/);
+  });
+});
