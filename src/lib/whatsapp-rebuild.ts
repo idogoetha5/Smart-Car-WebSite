@@ -1784,6 +1784,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         ? (he ? `בוודאי. נציג SmartCar יחזור אליכם לגבי מצב הרכב. אם זה דחוף, אפשר להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up about the car's condition. If urgent, call ${OFFICE_PHONE}.`)
       : cleanlinessIssue && /היום|דחוף|עכשיו|today|urgent|right now/i.test(input)
         ? (he ? `אני מבין שזה דחוף. לבירור מיידי, התקשרו עכשיו ל־SmartCar ב־${OFFICE_PHONE}; נציג יבדוק את הפנייה.` : `I understand this is urgent. For immediate help, call SmartCar now on ${OFFICE_PHONE}; a representative will review your enquiry.`)
+      // A policy question after a handoff gets the approved answer, not the receipt line again.
+      : handoffKind !== 'safety' && /[?؟]/u.test(input) && getSmartCarServiceAnswer(input, state.locale) && !/(?:^|\s)(?:מתי|כמה זמן)\s|\bwhen\b|\bhow long\b/iu.test(input)
+        ? `${getSmartCarServiceAnswer(input, state.locale)!.reply} ${he ? 'הפנייה שלכם כבר אצל נציג SmartCar.' : 'Your request is already with a SmartCar representative.'}`
       : (handoffKind === 'service_issue' || handoffKind === 'human') && replacementAsk
         ? (he ? `בקשה להחלפת רכב בודק נציג SmartCar, שכבר קיבל את הפנייה; כאן אי אפשר להבטיח החלפה. לעזרה מיידית התקשרו ל־${OFFICE_PHONE}.` : `A replacement car is checked by the SmartCar representative who already has your enquiry; I cannot promise a swap here. For immediate help call ${OFFICE_PHONE}.`)
       : (handoffKind === 'service_issue' || handoffKind === 'human') && newReference

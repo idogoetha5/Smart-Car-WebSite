@@ -1357,3 +1357,4 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 - 2026-11-12 — WhatsApp bot: refund tiers after a cancellation handoff; "יאללה תפתח, <name>" starts intake; validator rejects "הפרטים נשמרו לבקשה". No migrations.
 - 2026-11-12 — WhatsApp bot: request summary adds the website's Shabbat and Ben Gurion notices (no amounts; `isShabbat` from `booking-notices.ts`). No migrations.
 - 2026-11-12 — WhatsApp bot: "add another driver to my booking N" / "להוסיף את אשתי כנהגת להזמנה N" is a change request (handoff + licence note); "להזמנה N" parsed. No migrations.
+- 2026-11-12 — WhatsApp bot: policy questions after a handoff get the approved answer; international licence / IDP wording maps to `driver_documents`. No migrations.

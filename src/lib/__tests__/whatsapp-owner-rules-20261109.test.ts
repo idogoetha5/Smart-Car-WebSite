@@ -885,3 +885,13 @@ describe('additional driver on an existing booking', () => {
     expect(r.reply).toMatch(/licen[cs]e|רישיון/);
   });
 });
+
+describe('policy question after a handoff', () => {
+  it('answers the foreign-licence question instead of repeating the receipt', async () => {
+    const c = chat(null, 'You can ask to add another driver.', 'en');
+    await c.send('can i add another driver to my booking 551199? its my wife');
+    const r = await c.send('does she need an international licence? shes american');
+    expect(r.reply).toMatch(/IDP|International Driving Permit|translation/i);
+    expect(r.reply).toMatch(/already with a SmartCar representative/);
+  });
+});

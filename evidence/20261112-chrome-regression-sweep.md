@@ -14,3 +14,6 @@ Refund tiers after a cancellation handoff; "יאללה תפתח, משה לוי �
 
 ## Replay on 25ce3b0 (English)
 Herzliya 8–12/12 summary now carries the Shabbat note (fix confirmed). Oil light → representative + number (pass). "can i add another driver to my booking 551199? its my wife" → policy only, no handoff. Fixed (next release): adding a driver to a referenced booking is a change request (handoff + licence note); "להזמנה 551199" parsed as a reference.
+
+## Replay on 6ce249c
+Adding a driver to booking 551199 → change request handed off with the licence note (fix confirmed). "does she need an international licence? shes american" → receipt line repeated. Fixed (next release): after a handoff, a policy question gets the approved answer plus "already with a representative"; "international licence / IDP / רישיון בינלאומי" map to the documents fact.
