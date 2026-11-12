@@ -5,3 +5,6 @@
 4. "כן נחזיר בירושלים. רועי אזולאי בן 26 תסגור" → **no intake**; model claimed the request was recorded and would be approved.
 Fixes (next release): validator covers "רשמתי את בקשתכם/הזמנתכם"; vehicle changes with "בעצם / תעשה / תשים / עדיף / make it / switch to"; "תסגור" ends a go-ahead and is stripped from the name clause.
 Open: "רכב להרצליה" stays ambiguous (to or from Herzliya), so the bot asks for the pickup place.
+
+## Replay on 33f65c4
+Vehicle switch to family, no "recorded" claim, "תסגור" → full summary (fixes confirmed). Model added "על החזרה בסניף שונים עשויה לחול תוספת" (no one-way fee is published) → validator `fee_claim` (next release).

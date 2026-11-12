@@ -963,3 +963,12 @@ describe('changes of mind and casual closing', () => {
     expect(go.state.booking.customerName).toBe('רועי אזולאי');
   });
 });
+
+// Live Chrome on 33f65c4: "על החזרה בסניף שונים עשויה לחול תוספת" — no one-way fee is published.
+describe('no invented one-way fee', () => {
+  it('rejects a different-branch surcharge claim', async () => {
+    const r = await chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', history: [], booking: { pickupDate: '2026-12-10', returnDate: '2026-12-14', pickupLocation: 'הרצליה' } } as RebuildState,
+      'אפשר לאסוף מהרצליה ולהחזיר בירושלים. על החזרה בסניף שונים עשויה לחול תוספת.').send('ואם אני רוצה להחזיר בירושלים במקום?');
+    expect(r.reply).not.toMatch(/תוספת/);
+  });
+});
