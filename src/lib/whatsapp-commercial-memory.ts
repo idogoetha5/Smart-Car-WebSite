@@ -101,7 +101,11 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
     && (/months|חודשים|term|תקופה/i.test(text) || previous?.termMonths !== undefined) && /\bor\b|\bvs\b|\/|compare|between|unsure|undecided|או|מול|מתלבט/i.test(text);
   const termUndecided = /(?:term|תקופה|משך).{0,30}(?:undecided|not decided|not sure|לא החלטתי|לא סגור)|(?:לא החלטתי|לא סגור|not decided).{0,25}(?:term|תקופה)/i.test(text)
     || comparesTerms && /unsure|undecided|not sure|haven'?t decided|changed my mind|מתלבט|לא החלטתי|לא בטוח|שיניתי את דעתי/i.test(text);
-  const eligibleTermMatches = termMatches.filter(match => !termChoicePrefix(text, match.index).hypothetical && !isHypotheticalFactEvidence(text, match.evidence));
+  // "maybe a tucson for 2 years" is a tentative term worth keeping (a later message can change it);
+  // only an if/what-if clause makes it hypothetical.
+  const conditionalClause = (index: number) => /\bif\b|what if|(?:^|\s)אם\s|מה אם/iu.test(text.slice(0, index).split(/[.!?;\n]/u).at(-1) ?? '');
+  const eligibleTermMatches = termMatches.filter(match => !termChoicePrefix(text, match.index).hypothetical
+    && (!isHypotheticalFactEvidence(text, match.evidence) || /\b(?:maybe|probably|perhaps)\b|(?:^|\s)אולי\s/iu.test(text) && !conditionalClause(match.index)));
   // An explicit choice verb ("actually make it 3 years if that's cheaper") is a
   // selection even with a trailing condition about price.
   const explicitChoice = termMatches.filter(match => termChoicePrefix(text, match.index).chosen && !termChoicePrefix(text, match.index).hypothetical).sort((a, b) => a.index - b.index).at(-1);
@@ -190,7 +194,7 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
     if (n && n >= 2 && n <= 99) next.fleetSize = n;
   }
   const named = text.match(NAMED_MODEL);
-  if (named && !negatedBefore(text, named.index!) && !/\bif\b|\bmaybe\b|אולי|מה אם/iu.test(text.slice(Math.max(0, named.index! - 20), named.index! + named[0].length))) next.vehicleModel = named[1].trim().slice(0, 40);
+  if (named && !negatedBefore(text, named.index!) && !/\bif\b|מה אם|(?:^|\s)אם\s/iu.test(text.slice(Math.max(0, named.index! - 20), named.index! + named[0].length))) next.vehicleModel = named[1].trim().slice(0, 40);
   return next;
 }
 

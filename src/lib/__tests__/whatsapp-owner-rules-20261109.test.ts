@@ -721,3 +721,19 @@ describe('vehicle stated at the start of a go-ahead message', () => {
     expect(r.state.booking.vehicleNeed).toBe(vehicle);
   });
 });
+
+// Live Chrome on fae43ff (English private leasing, Tucson): "maybe … for 2 years, around 15k" lost the term
+// and model, and "ok yes pass it to someone" asked for the term instead of handing off.
+describe('tentative leasing preferences', () => {
+  it('keeps tentative term/model and hands off on "pass it to someone"', async () => {
+    let state = { version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: {}, history: [] } as RebuildState;
+    const readTurn = vi.fn(async () => ({ route: 'explore', direction: 'none', fields: {}, reply: 'Would you like to check available Tucson offers?', source: 'gemini', model: 'f', groundedContext: true } as BotReading));
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn };
+    await getRebuiltBotReply('tent', 'hi, thinking about private leasing, maybe a hyundai tucson for 2 years, around 15k km a year', store);
+    expect(state.commercial).toMatchObject({ termMonths: 24, annualMileageKm: 15000, vehicleModel: 'hyundai tucson' });
+    await getRebuiltBotReply('tent', 'actually make it 20k km. and what if i want to end the lease early?', store);
+    expect(state.commercial).toMatchObject({ termMonths: 24, annualMileageKm: 20000 });
+    const r = await getRebuiltBotReply('tent', 'ok yes pass it to someone', store);
+    expect(r.escalate).toBe(true);
+  });
+});
