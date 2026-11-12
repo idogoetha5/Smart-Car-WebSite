@@ -624,6 +624,10 @@ describe('young driver with a friend', () => {
     expect(dates.state.booking).toMatchObject({ pickupDate: '2026-11-19', returnDate: '2026-11-22', returnLocation: 'תל אביב' });
     const friend = await c.send('ואפשר שגם חבר שלי ינהג? הוא בן 25');
     expect(friend.state.booking.driverAgeRange).toBe('21-23');
+    const go = await c.send('משהו קטן מספיק. סבבה תפתח בקשה, יונתן לוי');
+    expect(go.state.booking.vehicleNeed).toBe('רכב קומפקטי');
+    expect(go.state.booking.customerName).toBe('יונתן לוי');
+    expect(go.reply).toMatch(/אלה פרטי הבקשה/);
   });
   it.each(['מיום חמישי 19.11 עד יום ראשון 22.11', 'thu 19.11 to sun 22.11'])('weekday-prefixed range: %s', async (input) => {
     const r = await chat(null, 'x').send(input);

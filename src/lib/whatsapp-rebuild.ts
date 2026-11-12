@@ -480,6 +480,12 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
   const enReturn = input.match(/(?:return|drop.?off)\s+(?:(?:the car|it)\s+)?(?:(?:will be|will remain|stays?|remains?)\s+)?(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:on\s+\d{1,2}|tomorrow|today|day after tomorrow|for\s+(?:one|two|three|four|five)\s+days?)|[,.!?]|$)/iu)?.[1];
   const returnLocation = (heReturn ?? enReturn)?.split(/\s+(?:במקום|instead of)\s+/i)[0].trim().replace(/(?:\s+(?:בסוף|לבסוף|כרגיל|בבקשה|גם|אחר כך|please|too|as well|also|then))+$/iu, '');
   if (returnLocation && !temporalLocation(returnLocation)) draft.returnLocation = returnLocation;
+  // "צריך רכב לסופש מתל אביב": a branch after "מ" in a rental need is the pickup.
+  if (!draft.pickupLocation && /(?:צריך|צריכה|צריכים|רוצה|רוצים|מחפש|מחפשת|לשכור|להשכיר)\s+(?:[\p{L}]+\s+){0,4}?(?:רכב|אוטו)|(?:רכב|אוטו)\s+(?:[\p{L}]+\s+){0,3}?מ(?:תל אביב|הרצליה|ירושלים)/u.test(input)) {
+    const branch = input.match(/(?<![\p{L}])מ(תל אביב|הרצליה|ירושלים)(?![\p{L}])/u);
+    const before = branch ? input.slice(Math.max(0, branch.index! - 12), branch.index!) : '';
+    if (branch && !/(?:להחזיר|החזרה|נחזיר|מחזיר|עד|ל)\s*$/u.test(before)) draft.pickupLocation = branch[1];
+  }
   // "landing at ben gurion" / "נוחתים בנתב״ג": arrival at the airport is the pickup;
   // "returning at the airport (too)" is the return.
   const airportLabel = /[א-ת]/u.test(input) && !/[a-z]{4,}/i.test(input) ? 'נתב״ג' : 'Ben Gurion Airport';
@@ -757,7 +763,7 @@ function explicitVehicleNeed(input: string, locale: Locale): string | null {
   if (/^\s*משפחתי(?:ת)?\s*$/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
   if (/שבעה מקומות|7\s*מקומות|7[- ]?seater|seven[- ]?seater/i.test(input)) return locale === 'he' ? 'רכב שבעה מקומות' : 'seven-seat car';
   if (/רכב\s+משפחתי|רכב\s+למשפחה|^\s*משפחתית\s*$|(?:רוצה|מחפש|צריך|מעדיף)\s+(?:רכב\s+)?משפחתית|(?:רוצה|מחפש|צריך|מעדיף)\s+משפחתי|family car/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
-  if (/קומפקטי|קומפקטית|רכב קטן|compact (?:rental )?car|small (?:rental )?car/i.test(input)) return locale === 'he' ? 'רכב קומפקטי' : 'compact car';
+  if (/קומפקטי|קומפקטית|רכב קטן|(?:^|[\s,.])(?:משהו|אחד)\s+קטן(?![\p{L}])|compact (?:rental )?car|small (?:rental )?car|\bsomething small\b|\ba small one\b/iu.test(input) && !/(?:^|\s)(?:לא|בלי)\s+(?:משהו\s+)?קטן|\bnot (?:something )?small\b/iu.test(input)) return locale === 'he' ? 'רכב קומפקטי' : 'compact car';
   if (/רכב פנאי|ג[׳'י]?יפ(?:ון)?|suv/i.test(input)) return locale === 'he' ? 'רכב פנאי' : 'SUV';
   // A sedan request belongs to the family group; fit is still model-specific.
   if (/סדאן|סדן(?![\p{L}])|\bsedan\b/iu.test(input)) return locale === 'he' ? 'רכב משפחתי (סדאן)' : 'family car (sedan)';

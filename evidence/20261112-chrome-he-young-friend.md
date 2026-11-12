@@ -4,3 +4,6 @@
 3. "ואפשר שגם חבר שלי ינהג? הוא בן 25" → additional-driver answer correct, but **the friend's 25 replaced the main driver's 21–23 group**.
 4. "סבבה תפתח בקשה. יונתן לוי" → intake with name; asked the missing pickup date.
 Fixes (next release): weekday names before explicit dates are ignored for parsing (Hebrew and English); another person's age does not change the main driver's group unless that person is stated as the driver ("אחותי בת 25 תנהג"); "נהג ראשי בעלי בן 38" read as the main driver's age.
+
+## Replay on 74f2a42
+Dates 19–22/11 and the 21–23 group kept (fixes confirmed). "משהו קטן מספיק. סבבה תפתח בקשה, יונתן לוי" → name stored but "something small" not taken as the vehicle. Fixed (next release): "משהו קטן" / "something small" = compact for rentals; "צריך רכב … מתל אביב" sets the pickup without the model.

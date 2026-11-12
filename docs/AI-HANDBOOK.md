@@ -1331,3 +1331,4 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 - 2026-11-12 — WhatsApp bot breakdowns: stationary-breakdown first message; honest "will someone come?" answer; booking number acknowledged during a safety handoff. Evidence: evidence/20261112-chrome-en-wont-start.md. No migrations.
 - 2026-11-12 — WhatsApp bot: a cancellation request during a safety handoff is acknowledged (and refund tiers given when asked) instead of repeating the safety line. No migrations.
 - 2026-11-12 — WhatsApp bot: weekday-prefixed dates ("מחמישי 19.11 עד ראשון 22.11", "thu 19.11 to sun 22.11"); an additional driver's age no longer overwrites the main driver's age group. Evidence: evidence/20261112-chrome-he-young-friend.md. No migrations.
+- 2026-11-12 — WhatsApp bot rentals: "משהו קטן" / "something small" = compact; "צריך רכב … מ<branch>" sets the pickup locally. No migrations.
