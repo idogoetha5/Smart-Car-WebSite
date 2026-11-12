@@ -11,3 +11,6 @@ Move story passed: 48h rule + reference + new date → handoff with the number. 
 ## English cancellation on d9ac586
 "need to cancel my car booking for this saturday. do i get my money back?" → published tiers (correct). "ref 440871" → model asked "note this cancellation for review?" (no handoff). "how long until the refund comes through?" → invented "within a few business days".
 Fixed (next release): "my car booking" enters the service flow and counts as a cancellation request; "ref 440871" is a reference; validator `refund_timing` rejects unpublished refund timing.
+
+## Replay on ea940eb (English cancellation)
+"ref 440871" → handoff with the number (fix confirmed); refund-timing question answered with tiers and "not processed automatically", no invented days (fix confirmed). Remaining: the first reply asked only for the reference and skipped "do i get my money back?". Fixed (next release): the published tiers come first when a refund is asked.

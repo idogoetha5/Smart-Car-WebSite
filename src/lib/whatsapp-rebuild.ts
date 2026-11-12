@@ -1575,7 +1575,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         : /(?:האם|זה|ההזמנה|כבר)\s*(?:כבר\s*)?(?:מאושר|מבוטל(?:ת)?|בוטל(?:ה)?)|\b(?:is|has) (?:it|the booking|my booking) (?:been )?(?:cancell?ed|approved)|\beffective\b/i.test(input)
           ? (he ? 'רשמתי בקשת ביטול, ולא שינוי תאריכים. הביטול עדיין לא אושר במסגרת השיחה הזו; נציג SmartCar יבדוק את הבקשה ואת תנאי ההזמנה ויאשר את התוצאה.' : 'I have recorded a cancellation request, not a date change. Cancellation has not been confirmed in this chat; a SmartCar representative will review the request and booking terms and confirm the outcome.')
           : (he ? `קיבלנו את בקשת הביטול. נציג SmartCar יבדוק אותה ויחזור אליכם; הביטול תקף רק לאחר אישור. לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `We have your cancellation request. A SmartCar representative will review it and follow up; cancellation takes effect only after confirmation. For immediate help call ${OFFICE_PHONE}.`);
-    } else reply = he ? 'בשמחה אעזור עם בקשת הביטול. מה מספר ההזמנה?' : 'I can help with the cancellation request. What is your booking reference?';
+    } else {
+      const refundAsked = /החזר|כסף|זיכוי|יחזירו|refund|money back|get (?:my|our) money/iu.test(input);
+      const terms = refundAsked ? getSmartCarApprovedFacts(state.locale).find(fact => fact.id === 'cancellation')?.text : undefined;
+      const tiers = terms ? `${terms.split(/(?<=[.!])\s+/u).slice(0, 1).join(' ')} ` : '';
+      reply = he ? `${tiers}בשמחה אעזור עם בקשת הביטול. מה מספר ההזמנה?` : `${tiers}I can help with the cancellation request. What is your booking reference?`;
+    }
   } else if (state.handedOff && state.handoffKind === 'commercial' && declinesHumanHandoff(input)) {
     // Resume optional commercial advice without pretending the earlier alert
     // was recalled. Keep its timestamp, kind and history for audit.

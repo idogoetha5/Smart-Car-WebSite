@@ -584,7 +584,9 @@ describe('moving an upcoming booking', () => {
 describe('english cancellation of a car booking', () => {
   it('hands off with the reference and does not invent refund timing', async () => {
     const c = chat(null, 'Refunds typically show up within a few business days.', 'en');
-    await c.send('hi, my trip got cancelled, need to cancel my car booking for this saturday. do i get my money back?');
+    const first = await c.send('hi, my trip got cancelled, need to cancel my car booking for this saturday. do i get my money back?');
+    expect(first.reply).toMatch(/72 hours/);
+    expect(first.reply).toMatch(/booking reference/);
     const ref = await c.send('ref 440871');
     expect(ref.escalate).toBe(true);
     const timing = await c.send('how long until the refund comes through?');
