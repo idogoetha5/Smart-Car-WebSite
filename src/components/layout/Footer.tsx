@@ -40,10 +40,10 @@ export default function Footer() {
           `sm:pb-12` restores the original spacing once the legal row goes
           horizontal and is no longer flush with the page's bottom edge. */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-28 sm:pb-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-8">
 
           {/* Brand */}
-          <div className="md:col-span-1">
+          <div className="col-span-2 md:col-span-1">
             <Link href={`/${locale}`} className="flex items-center mb-4">
               {/* Same asset as the header logo. It's dark-teal-on-transparent
                   (there is no separate light/white variant), so brightness-0
@@ -93,16 +93,22 @@ export default function Footer() {
             <h3 className="text-[#F5F0E8] font-bold mb-4">
               {locale === 'he' ? 'קישורים מהירים' : 'Quick Links'}
             </h3>
-            <ul className="space-y-2 text-sm">
+            <ul className="text-sm">
               {[
                 { href: `/${locale}`,         label: tNav('home') },
                 { href: `/${locale}/catalog`, label: tNav('catalog') },
                 { href: `/${locale}/rental`,  label: tNav('rental') },
                 { href: `/${locale}/leasing`, label: tNav('leasing') },
                 { href: `/${locale}/about`,   label: locale === 'he' ? 'אודות' : 'About' },
+                // Branch pages, linked from every page: they are the pages meant
+                // to rank for "השכרת רכב <city>".
+                { href: `/${locale}/branches/telaviv`,   label: locale === 'he' ? 'השכרת רכב בתל אביב' : 'Car rental in Tel Aviv' },
+                { href: `/${locale}/branches/herzliya`,  label: locale === 'he' ? 'השכרת רכב בהרצליה' : 'Car rental in Herzliya' },
+                { href: `/${locale}/branches/jerusalem`, label: locale === 'he' ? 'השכרת רכב בירושלים' : 'Car rental in Jerusalem' },
+                { href: `/${locale}/branches/airport`,   label: locale === 'he' ? 'השכרת רכב בנתב״ג' : 'Airport car rental' },
               ].map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="hover:text-[#B64916] transition-colors">
+                  <Link href={link.href} className="inline-flex min-h-10 md:min-h-8 items-center hover:text-[#B64916] transition-colors">
                     {link.label}
                   </Link>
                 </li>
@@ -115,7 +121,7 @@ export default function Footer() {
             <h3 className="text-[#F5F0E8] font-bold mb-4">
               {locale === 'he' ? 'שירותים' : 'Services'}
             </h3>
-            <ul className="space-y-2 text-sm">
+            <ul className="text-sm">
               {[
                 { href: `/${locale}/rental`,           labelHe: 'השכרת רכב יומית',  labelEn: 'Daily Car Rental' },
                 { href: `/${locale}/services/monthly`, labelHe: 'השכרת רכב לחודש', labelEn: 'Monthly Car Rental' },
@@ -134,7 +140,7 @@ export default function Footer() {
                 { href: `/${locale}/cars-for-sale`,    labelHe: 'רכבים למכירה',      labelEn: 'Cars for Sale' },
               ].map((s) => (
                 <li key={s.labelEn}>
-                  <Link href={s.href} className="inline-flex min-h-11 items-center text-[#7fb09f] hover:text-[#B64916] transition-colors">
+                  <Link href={s.href} className="inline-flex min-h-10 md:min-h-8 items-center text-[#7fb09f] hover:text-[#B64916] transition-colors">
                     {locale === 'he' ? s.labelHe : s.labelEn}
                   </Link>
                 </li>
@@ -143,11 +149,11 @@ export default function Footer() {
           </div>
 
           {/* Contact */}
-          <div>
+          <div className="col-span-2 md:col-span-1">
             <h3 className="text-[#F5F0E8] font-bold mb-4">
               {locale === 'he' ? 'יצירת קשר' : 'Contact'}
             </h3>
-            <ul className="space-y-3 text-sm">
+            <ul className="space-y-2 text-sm">
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-[#B64916] shrink-0" />
                 <a href={`tel:${HERZLIYA.phone}`} className="hover:text-[#F5F0E8] transition-colors">{HERZLIYA.phone}</a>
@@ -170,27 +176,8 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Branch pages, linked from every page: they are the pages meant to
-            rank for "השכרת רכב <city>". */}
-        <nav aria-label={locale === 'he' ? 'סניפים' : 'Branches'} className="mt-10 text-sm text-[#7fb09f]">
-          <ul className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            {[
-              { id: 'telaviv', he: 'השכרת רכב בתל אביב', en: 'Car rental in Tel Aviv' },
-              { id: 'herzliya', he: 'השכרת רכב בהרצליה', en: 'Car rental in Herzliya' },
-              { id: 'jerusalem', he: 'השכרת רכב בירושלים', en: 'Car rental in Jerusalem' },
-              { id: 'airport', he: 'השכרת רכב בנתב״ג', en: 'Ben Gurion Airport car rental' },
-            ].map((b) => (
-              <li key={b.id}>
-                <Link href={`/${locale}/branches/${b.id}`} className="inline-flex min-h-11 items-center hover:text-[#B64916] transition-colors">
-                  {locale === 'he' ? b.he : b.en}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
         {/* Bottom bar */}
-        <div className="mt-4 pt-6 border-t border-[#1A3A3A] flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-[#7fb09f]">
+        <div className="mt-8 pt-6 border-t border-[#1A3A3A] flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-[#7fb09f]">
           <p>© 2008 SmartCar. {t('rights')}.</p>
           <div className="flex items-center gap-4">
             <Link href={`/${locale}/insurance`} className="hover:text-[#B8D8D8] transition-colors">
