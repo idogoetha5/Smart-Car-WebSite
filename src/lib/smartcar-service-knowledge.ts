@@ -76,8 +76,8 @@ export const ANSWERS: Record<ServiceKnowledgeTopic, LocalisedAnswer> = {
   },
   airport_fee: {
     topic: 'airport_fee', href: '/terms', linkLabelHe: 'לתנאי ההשכרה', linkLabelEn: 'Rental terms',
-    he: 'איסוף או החזרה בנתב״ג כרוכים בתוספת של 150 ₪, שאינה כלולה במחיר המשוער באתר. המסירה בנתב״ג מתואמת מראש ופועלת 24/7. המחיר הסופי נסגר מול נציג SmartCar.',
-    en: 'Pickup or return at Ben Gurion Airport carries a ₪150 surcharge, not included in the website estimate. Airport handover is arranged in advance and runs 24/7. The final price is set with a SmartCar representative.',
+    he: 'איסוף או החזרה בנתב״ג כרוכים בתוספת, שאינה כלולה במחיר המשוער באתר. הסכום והמחיר הסופי נסגרים מול נציג SmartCar. המסירה בנתב״ג מתואמת מראש ופועלת 24/7.',
+    en: 'Pickup or return at Ben Gurion Airport carries a surcharge, not included in the website estimate. The amount and the final price are set with a SmartCar representative. Airport handover is arranged in advance and runs 24/7.',
   },
   toll_roads: {
     topic: 'toll_roads', href: '/terms', linkLabelHe: 'לתנאי ההשכרה', linkLabelEn: 'Rental terms',

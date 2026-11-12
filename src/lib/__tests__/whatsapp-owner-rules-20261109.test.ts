@@ -477,7 +477,8 @@ describe('airport arrival and surcharge', () => {
   it('states the airport surcharge and never denies it', async () => {
     const r = await chat(null, 'There is no separate public branch fee for airport collection.', 'en').send('is there an extra charge for the airport?');
     expect(r.reply).not.toMatch(/no separate/i);
-    expect(r.reply).toMatch(/₪150/);
+    expect(r.reply).toMatch(/surcharge/);
+    expect(r.reply).not.toMatch(/150|₪/);
   });
   it('hebrew arrival', async () => {
     const r = await chat(null, 'x').send('אנחנו נוחתים בנתב״ג ב-4.12 בלילה וצריכים רכב עד 10.12, נחזיר גם בנתב״ג');
@@ -496,5 +497,14 @@ describe('airport tourist replay', () => {
     expect(go.state.booking.customerName).toBe('sarah cohen');
     expect(go.state.booking.driverAgeRange).toBe('24-plus');
     expect(go.reply).not.toMatch(/will finalise the request/);
+  });
+});
+
+// Owner decision 2026-11-12: mention the airport surcharge, never its amount.
+describe('airport surcharge without an amount', () => {
+  it.each([['he', 'יש תוספת על איסוף מנתב״ג?'], ['en', 'is there an extra fee for picking up at the airport?']] as const)('%s', async (locale, input) => {
+    const r = await chat(null, 'The airport surcharge is ₪150.', locale).send(input);
+    expect(r.reply).toMatch(/תוספת|surcharge/);
+    expect(r.reply).not.toMatch(/150|₪/);
   });
 });
