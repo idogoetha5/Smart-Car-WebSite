@@ -5,6 +5,9 @@ import { notFound } from 'next/navigation';
 import type { JSX } from 'react';
 import { SERVICE_RENTAL_ADVICE, rentalCopy } from '@/lib/public-rental-content';
 import PublicRentalAdvice from '@/components/content/PublicRentalAdvice';
+import ServiceExtras from '@/components/content/ServiceExtras';
+import { getRentalPageVehicles } from '@/lib/rental-page-data';
+import { canonicalVehicles } from '@/lib/vehicle-canonical';
 
 type ServiceData = {
   titleHe: string;
@@ -225,6 +228,9 @@ export default async function ServicePage({
   const isHe = locale === 'he';
 
   if (!service) notFound();
+  // Public fleet read (shared 60s cache). A database hiccup only hides the
+  // matching-cars list; the rest of the page still renders.
+  const fleet = canonicalVehicles(await getRentalPageVehicles().catch(() => []));
 
   const title    = isHe ? service.titleHe    : service.titleEn;
   const subtitle = isHe ? service.subtitleHe : service.subtitleEn;
@@ -290,6 +296,8 @@ export default async function ServicePage({
           <PublicRentalAdvice advice={SERVICE_RENTAL_ADVICE[type]} locale={locale} />
         </div>
       )}
+
+      <ServiceExtras type={type} locale={locale} fleet={fleet} />
 
       <div className="bg-[#0D2B2B] py-16 px-6 text-center">
         <h2 className="text-2xl font-bold text-white mb-8">

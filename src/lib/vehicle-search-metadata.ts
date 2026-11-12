@@ -6,7 +6,7 @@ import { localeAlternates } from '@/lib/seo';
  * Short vehicle-type label for search titles/descriptions. Model-level facts
  * only: no inferred equipment, live availability or prices.
  */
-function vehicleType(vehicle: Vehicle, isHe: boolean): string {
+export function vehicleType(vehicle: Vehicle, isHe: boolean): string {
   const seats = Number.isInteger(vehicle.seats) ? vehicle.seats : 0;
   const he: Record<string, string> = {
     MINI: 'רכב מיני', ECONOMY: 'רכב קטן', COMPACT: 'רכב קטן', ECONOMY_COMPACT: 'רכב קטן', SEDAN: 'רכב סדאן',

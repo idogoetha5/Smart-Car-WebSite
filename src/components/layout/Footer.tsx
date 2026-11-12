@@ -120,6 +120,8 @@ export default function Footer() {
                 { href: `/${locale}/rental`,           labelHe: 'השכרת רכב יומית',  labelEn: 'Daily Car Rental' },
                 { href: `/${locale}/services/monthly`, labelHe: 'השכרת רכב לחודש', labelEn: 'Monthly Car Rental' },
                 { href: `/${locale}/services/hourly`, labelHe: 'השכרת רכב לפי שעה', labelEn: 'Hourly Car Rental' },
+                { href: `/${locale}/services/commercial`, labelHe: 'השכרת רכב מסחרי', labelEn: 'Commercial Vehicle Rental' },
+                { href: `/${locale}/services/business`, labelHe: 'השכרת רכב לעסקים', labelEn: 'Business Car Rental' },
                 { href: `/${locale}/leasing`,          labelHe: 'ליסינג פרטי',       labelEn: 'Private Leasing' },
                 // Finding 95: this said "ליסינג עסקי" but pointed at
                 // /services/business, whose heading is "רכב לעסק, מהשכרה קצרה
@@ -168,8 +170,27 @@ export default function Footer() {
           </div>
         </div>
 
+        {/* Branch pages, linked from every page: they are the pages meant to
+            rank for "השכרת רכב <city>". */}
+        <nav aria-label={locale === 'he' ? 'סניפים' : 'Branches'} className="mt-10 text-sm text-[#7fb09f]">
+          <ul className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            {[
+              { id: 'telaviv', he: 'השכרת רכב בתל אביב', en: 'Car rental in Tel Aviv' },
+              { id: 'herzliya', he: 'השכרת רכב בהרצליה', en: 'Car rental in Herzliya' },
+              { id: 'jerusalem', he: 'השכרת רכב בירושלים', en: 'Car rental in Jerusalem' },
+              { id: 'airport', he: 'השכרת רכב בנתב״ג', en: 'Ben Gurion Airport car rental' },
+            ].map((b) => (
+              <li key={b.id}>
+                <Link href={`/${locale}/branches/${b.id}`} className="inline-flex min-h-11 items-center hover:text-[#B64916] transition-colors">
+                  {locale === 'he' ? b.he : b.en}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
         {/* Bottom bar */}
-        <div className="mt-10 pt-6 border-t border-[#1A3A3A] flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-[#7fb09f]">
+        <div className="mt-4 pt-6 border-t border-[#1A3A3A] flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-[#7fb09f]">
           <p>© 2008 SmartCar. {t('rights')}.</p>
           <div className="flex items-center gap-4">
             <Link href={`/${locale}/insurance`} className="hover:text-[#B8D8D8] transition-colors">
