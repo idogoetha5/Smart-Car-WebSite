@@ -193,6 +193,10 @@ function applyPromptedMileage(input: string, state: RebuildState): void {
   if (km >= 1000 && km <= 100000) state.commercial.annualMileageKm = km;
 }
 
+function lastBotForFeeShabbat(state: RebuildState): string {
+  return [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+}
+
 /** The customer's gender is unknown: feminine-singular second person in model
  * wording becomes the plural form used elsewhere (תרצו, תוכלו, לכם). */
 const FEMININE_TO_PLURAL: Array<[string, string]> = [
@@ -2510,6 +2514,16 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const fee = getSmartCarApprovedFacts(state.locale).find(fact => fact.id === 'airport_fee')?.text;
     const next = !state.booking.pickupDate ? (he ? ' לאילו תאריכים תצטרכו את הרכב?' : ' What dates do you need the car for?') : '';
     if (fee) reply = `${fee}${next}`;
+  }
+  // Shabbat pickup/return: the published notice, in fixed wording (owner rule: no amount).
+  const shabbatAsked = /(?<![\p{L}])(?:ב)?שבת(?![\p{L}])|\bsaturday\b|\bshabbat\b/iu.test(input) && /רכב|לקבל|לאסוף|איסוף|להחזיר|החזרה|מסירה|car|pick|collect|return|drop/iu.test(`${input} ${lastBotForFeeShabbat(state)}`)
+    && !/סגורים בשבת.{0,40}$/u.test(input);
+  const shabbatFeeFollowUp = /תוספת|עולה|יותר יקר|תשלום|extra|charge|fee|cost more/iu.test(input) && /(?:ב)?שבת|saturday|shabbat/iu.test(lastBotForFeeShabbat(state)) && !/נתב.?ג|airport/iu.test(input);
+  if (!escalate && !state.handedOff && state.phase !== 'service' && !cancellationRequest(input) && !mentionsRentalChange(input)
+    && (shabbatAsked && /[?؟]|אפשר|can i|could i|is it possible/iu.test(input) || shabbatFeeFollowUp) && !airportFeeAsked) {
+    const fact = getSmartCarApprovedFacts(state.locale).find(fact => fact.id === 'shabbat')?.text;
+    const next = !state.booking.returnLocation && state.booking.pickupLocation ? ` ${question('returnLocation', state.locale)}` : '';
+    if (fact) reply = `${fact}${next}`;
   }
   // "How much is the airport surcharge?" — a fixed, human answer without the amount (owner decision).
   const lastBotForFee = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';

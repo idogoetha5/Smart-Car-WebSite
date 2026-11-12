@@ -697,3 +697,16 @@ describe('english business trip to Jerusalem', () => {
     expect(go.state.booking.customerEmail).toBe('mark.stein@example.com');
   });
 });
+
+// Live Chrome on 94a899c: Saturday pickup got "branches closed, pick up Friday", and "יש על זה תוספת?"
+// was read as an airport question. The website publishes a Shabbat notice (possible extra charge, arranged in advance).
+describe('shabbat pickup', () => {
+  it('states the published Shabbat notice and answers the surcharge follow-up', async () => {
+    const c = chat(null, 'הסניפים שלנו סגורים בשבת, אפשר לאסוף ביום שישי.');
+    const first = await c.send('שלום, אפשר לקבל רכב בשבת בבוקר בהרצליה? 28.11 עד 1.12');
+    expect(first.reply).toMatch(/אפשר לתאם מראש איסוף או החזרה בשבת/);
+    const fee = await c.send('יש על זה תוספת?');
+    expect(fee.reply).toMatch(/בשבת עשויה להיות תוספת/);
+    expect(fee.reply).not.toMatch(/נתב/);
+  });
+});

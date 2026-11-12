@@ -11,7 +11,7 @@ export type ServiceLocale = 'he' | 'en';
 export type ServiceKnowledgeTopic =
   | 'insurance' | 'deposit' | 'fuel' | 'mileage' | 'driver_documents'
   | 'age_licence' | 'different_location' | 'cancellation' | 'availability'
-  | 'damage_accident' | 'opening_hours' | 'branches' | 'fines' | 'toll_roads' | 'airport_fee';
+  | 'damage_accident' | 'opening_hours' | 'branches' | 'fines' | 'toll_roads' | 'airport_fee' | 'shabbat';
 
 export type ServiceKnowledgeAnswer = {
   topic: ServiceKnowledgeTopic;
@@ -73,6 +73,11 @@ export const ANSWERS: Record<ServiceKnowledgeTopic, LocalisedAnswer> = {
     topic: 'fines', href: '/terms', linkLabelHe: 'לתנאי הדוחות והקנסות', linkLabelEn: 'Fines terms',
     he: 'לפי תנאי ההשכרה, דוחות, קנסות ועיצומים מתקופת השכירות חלים על השוכר. דוחות חניה ומהירות שמגיעים לחברה אחרי החזרת הרכב מועברים לשוכר בדואר רשום, ואי־תשלום תוך 30 יום ממסירתם נושא ריבית פיגורים. החברה רשאית לנכות מהפיקדון קנסות מתקופת השכירות.',
     en: 'Under the rental terms, fines, tickets and penalties from the rental period are the renter’s responsibility. Parking and speeding notices that reach the company after return are forwarded to the renter by registered mail, and unpaid fines after 30 days carry statutory late interest. The company may deduct fines from the rental period from the deposit.',
+  },
+  shabbat: {
+    topic: 'shabbat', href: '/terms', linkLabelHe: 'לתנאי ההשכרה', linkLabelEn: 'Rental terms',
+    he: 'בשבת הסניפים סגורים, אבל אפשר לתאם מראש איסוף או החזרה בשבת. על איסוף או החזרה בשבת עשויה להיות תוספת תשלום; את הסכום ואת המחיר הסופי סוגרים מול נציג SmartCar.',
+    en: 'Our branches are closed on Saturday, but a Saturday pickup or return can be arranged in advance. A Saturday pickup or return may carry an extra charge; the amount and the final price are set with a SmartCar representative.',
   },
   airport_fee: {
     topic: 'airport_fee', href: '/terms', linkLabelHe: 'לתנאי ההשכרה', linkLabelEn: 'Rental terms',
