@@ -467,7 +467,16 @@ function temporalLocation(value: string): boolean {
   return /^(?:ב[-־]?\s*)?(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת|היום|מחר(?:תיים)?)(?:\s|$)|^(?:on\s+)?(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow)(?:\s|$)|^\d{1,4}[-/.]\d/i.test(value.trim());
 }
 
+/** Everyday branch abbreviations: ת"א / ת״א / תא → תל אביב, י-ם → ירושלים, נתבג → נתב״ג, TLV → Tel Aviv (airport if "TLV airport"). */
+function expandBranchAbbreviations(input: string): string {
+  return input
+    .replace(/(?<![\p{L}])([מבל]?)ת["״'׳]?א(?![\p{L}])/gu, '$1תל אביב')
+    .replace(/(?<![\p{L}])([מבל]?)י[-־]?ם(?![\p{L}])/gu, '$1ירושלים')
+    .replace(/\bTLV\b(?!\s+airport)/gi, 'Tel Aviv');
+}
+
 function applyExplicitLocations(input: string, draft: BookingDraft): void {
+  input = expandBranchAbbreviations(input);
   let bothLabel: string | undefined;
   // "Airport both ways" / "לאסוף ולהחזיר בנתב״ג": one known branch for both legs.
   if (!/\bwhat if\b|\bif\b|\bmaybe\b|מה אם|(?:^|\s)אם\s|אולי/iu.test(input)) {
@@ -2618,7 +2627,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   }
   // Owner rule: a rental price question always gets the same honest line.
   if (!escalate && state.phase !== 'service' && !state.interest && !state.completedRequestId
-    && /כמה (?:זה )?(?:עולה|יעלה|יוצא|ייצא)|כמה (?:זה )?(?:בערך|בממוצע)|כמה (?:זה )?ל(?:יום|חודש|שבוע)|מה המחיר|מחיר|(?<![לב])עלות|\bhow much\b|\bprice\b|\bcost\b|\brate\b|\bballpark\b/iu.test(input)
+    && /כמה (?:זה )?(?:עולה|יעלה|יוצא|ייצא)|(?:זה\s+)?(?:יוצא|יעלה|עולה)\s+(?:יקר|הרבה)|יקר\s*[?؟]|כמה (?:זה )?(?:בערך|בממוצע)|כמה (?:זה )?ל(?:יום|חודש|שבוע)|מה המחיר|מחיר|(?<![לב])עלות|\bhow much\b|\bprice\b|\bcost\b|\brate\b|\bballpark\b/iu.test(input)
     && !/פיקדון|deposit|השתתפות|excess|ביטול|cancel/iu.test(input) && !reply.includes(priceAnswer(state.locale))
     && !/מחיר|הצעה|תעריף|עלות|price|quote|rate|cost/iu.test(reply)) {
     reply = `${priceAnswer(state.locale)} ${reply}`.trim();

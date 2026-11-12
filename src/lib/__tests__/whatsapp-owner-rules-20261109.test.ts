@@ -895,3 +895,18 @@ describe('policy question after a handoff', () => {
     expect(r.reply).toMatch(/already with a SmartCar representative/);
   });
 });
+
+// Live Chrome on 87253b8 (wedding up north): "אוסף מת\"א" not stored, and "וזה יוצא יקר?" got no price line.
+describe('casual wedding trip', () => {
+  it('reads ת"א and answers "יוצא יקר?" with the owner price line', async () => {
+    const c = chat(null, 'רכב משפחתי יכול להתאים. איפה תרצו להחזיר?');
+    const first = await c.send('הייי מה קורה😊 תשמע אני צריך אוטו לחתונה של אחי בצפון, משהו נחמד לא סתם קטנטן, אנחנו 4 + תיק כל אחד. בערך מה 17 לחודש הבא עד ה 20, אוסף מת"א');
+    expect(first.state.booking.pickupLocation).toBe('תל אביב');
+    const price = await c.send('רגע לא, עדיף מה 18. וזה יוצא יקר?');
+    expect(price.reply).toMatch(/המחיר נסגר סופית מול נציג SmartCar/);
+  });
+  it.each([['אוסף מת״א ומחזיר בי-ם', 'תל אביב', 'ירושלים'], ['איסוף בנתבג והחזרה בת"א', 'נתבג', 'תל אביב']])('%s', async (input, pickup, ret) => {
+    const r = await chat(null, 'x').send(`צריך רכב 3.12 עד 6.12, ${input}`);
+    expect(r.state.booking).toMatchObject({ pickupLocation: pickup, returnLocation: ret });
+  });
+});
