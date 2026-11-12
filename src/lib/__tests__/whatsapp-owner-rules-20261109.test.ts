@@ -864,3 +864,14 @@ describe('regression sweep 2026-11-12 (2)', () => {
     expect(r.reply).not.toMatch(/נשמרו לבקשת/);
   });
 });
+
+// Live Chrome on 3b50763: a 12.12.2026 (Saturday) return reached the summary without the website's Shabbat notice.
+describe('summary notices', () => {
+  it('adds the Shabbat and airport notices without amounts', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'en', history: [], booking: { vehicleNeed: 'compact car', passengers: 2, pickupDate: '2026-12-08', returnDate: '2026-12-12', pickupLocation: 'Ben Gurion Airport', returnLocation: 'Herzliya' } } as RebuildState, 'x', 'en');
+    const r = await c.send('ok go ahead, im tom berg, 31');
+    expect(r.reply).toMatch(/Saturday pickup or return/);
+    expect(r.reply).toMatch(/Ben Gurion Airport carries a surcharge/);
+    expect(r.reply).not.toMatch(/₪|150/);
+  });
+});

@@ -1,4 +1,5 @@
 import { OFFICE_PHONE } from '@/lib/constants';
+import { isShabbat } from '@/lib/booking-notices';
 import { randomUUID } from 'node:crypto';
 import { termsConsent } from '@/lib/consent';
 import { getSmartCarServiceAnswer, getSmartCarApprovedFacts } from '@/lib/smartcar-service-knowledge';
@@ -1463,8 +1464,14 @@ function summary(state: RebuildState): string {
   const needs = state.locale === 'en'
     ? `${b.passengers ? `Passengers: ${b.passengers}\n` : ''}${b.luggage ? `Bags: ${b.luggage}${b.luggageSize === 'large' ? ' (large)' : ''}\n` : ''}${b.childSeats ? `Requested child seats: ${b.childSeats} (subject to availability, terms and fit for the specific car)\n` : ''}`
     : `${b.passengers ? `נוסעים: ${b.passengers}\n` : ''}${b.luggage ? `מזוודות: ${b.luggage}${b.luggageSize === 'large' ? ' (גדולות)' : ''}\n` : ''}${b.childSeats ? `בקשת כיסאות בטיחות: ${b.childSeats} (בכפוף לזמינות, לתנאים ולהתאמה לרכב המסוים)\n` : ''}`;
-  if (state.locale === 'en') return `Here are your request details:\nVehicle: ${b.vehicleNeed}\n${needs}Dates: ${date(b.pickupDate)}–${date(b.returnDate)}\nPickup: ${b.pickupLocation}\nReturn: ${b.returnLocation}\nDriver age: ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}\nName: ${b.customerName}${b.customerEmail ? `\nEmail: ${b.customerEmail}` : ''}\n\nThis request is subject to SmartCar's review and confirmation. Before sending it, please confirm the following statement:\n“${consent.text}”\nTerms: https://www.smartcar.co.il/en/terms\nPrivacy: https://www.smartcar.co.il/en/privacy\nIf everything is correct and you agree, reply “I confirm” to send the request.`;
-  return `אלה פרטי הבקשה שלכם:\nרכב: ${b.vehicleNeed}\n${needs}תאריכים: ${date(b.pickupDate)}–${date(b.returnDate)}\nאיסוף: ${b.pickupLocation}\nהחזרה: ${b.returnLocation}\nגיל הנהג: ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}\nשם: ${b.customerName}${b.customerEmail ? `\nמייל: ${b.customerEmail}` : ''}\n\nהבקשה תועבר לאישור SmartCar. לפני השליחה, אנא אשרו את ההצהרה:\n״${consent.text}״\nתנאי השימוש: https://www.smartcar.co.il/he/terms\nמדיניות הפרטיות: https://www.smartcar.co.il/he/privacy\nאם הכול נכון ואתם מסכימים, שלחו ״אני מאשר/ת״ כדי לשלוח את הבקשה.`;
+  // The same notices the website booking form shows: Shabbat and Ben Gurion (no amounts — owner rule).
+  const shabbat = isShabbat(b.pickupDate) || isShabbat(b.returnDate);
+  const airport = /נתב.?ג|Ben Gurion|airport/iu.test(`${b.pickupLocation ?? ''} ${b.returnLocation ?? ''}`);
+  const notes = state.locale === 'en'
+    ? `${shabbat ? '\nNote: a Saturday pickup or return is arranged in advance and may carry an extra charge.' : ''}${airport ? '\nNote: pickup or return at Ben Gurion Airport carries a surcharge.' : ''}`
+    : `${shabbat ? '\nשימו לב: איסוף או החזרה בשבת מתואמים מראש ועשויים להיות כרוכים בתוספת תשלום.' : ''}${airport ? '\nשימו לב: על איסוף או החזרה בנתב״ג יש תוספת.' : ''}`;
+  if (state.locale === 'en') return `Here are your request details:\nVehicle: ${b.vehicleNeed}\n${needs}Dates: ${date(b.pickupDate)}–${date(b.returnDate)}\nPickup: ${b.pickupLocation}\nReturn: ${b.returnLocation}\nDriver age: ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}\nName: ${b.customerName}${b.customerEmail ? `\nEmail: ${b.customerEmail}` : ''}${notes}\n\nThis request is subject to SmartCar's review and confirmation. Before sending it, please confirm the following statement:\n“${consent.text}”\nTerms: https://www.smartcar.co.il/en/terms\nPrivacy: https://www.smartcar.co.il/en/privacy\nIf everything is correct and you agree, reply “I confirm” to send the request.`;
+  return `אלה פרטי הבקשה שלכם:\nרכב: ${b.vehicleNeed}\n${needs}תאריכים: ${date(b.pickupDate)}–${date(b.returnDate)}\nאיסוף: ${b.pickupLocation}\nהחזרה: ${b.returnLocation}\nגיל הנהג: ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}\nשם: ${b.customerName}${b.customerEmail ? `\nמייל: ${b.customerEmail}` : ''}${notes}\n\nהבקשה תועבר לאישור SmartCar. לפני השליחה, אנא אשרו את ההצהרה:\n״${consent.text}״\nתנאי השימוש: https://www.smartcar.co.il/he/terms\nמדיניות הפרטיות: https://www.smartcar.co.il/he/privacy\nאם הכול נכון ואתם מסכימים, שלחו ״אני מאשר/ת״ כדי לשלוח את הבקשה.`;
 }
 
 const RECEIPT_NEED_FIELDS = /child seats?|car seats?|passengers?|bags?|luggage|נוסעים|מזוודות?|כיסא(?:ות)? בטיחות/iu;
