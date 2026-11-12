@@ -2397,6 +2397,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     source = 'local';
   }
   // A pre-purchase inspection question gets a car-specific, non-promising answer.
+  // Purchase: point to the published cars-for-sale page instead of describing stock.
+  if (state.interest === 'sale' && !escalate && !state.handedOff && !/cars-for-sale/.test(reply)
+    && /יש לכם|מה יש|אילו רכבים|איזה רכבים|דגמים|אפשרויות|מלאי|לראות|לבוא|what (?:do you have|cars|models)|available|options|stock|come (?:and )?see|view (?:it|them|the car)/iu.test(input)) {
+    reply = `${reply.trim()}\n\n${he ? 'את הרכבים שמוצעים כרגע למכירה אפשר לראות כאן: https://www.smartcar.co.il/he/cars-for-sale' : 'You can see the cars currently offered for sale here: https://www.smartcar.co.il/en/cars-for-sale'}`;
+  }
   if (state.interest === 'sale' && !escalate && /בדיקה במכון|מכון בדיקה|בדיקת מכון|לבדוק במוסך|pre[- ]?purchase inspection|mechanic(?:al)? (?:check|inspection)|inspection before/iu.test(input) && !/מכון|inspection/iu.test(reply)) {
     reply = `${reply.trim()} ${he ? 'בדיקה במכון לפני רכישה מתואמת עם נציג SmartCar לפי הרכב המסוים.' : 'A pre-purchase inspection is arranged with a SmartCar representative for the specific car.'}`;
   }

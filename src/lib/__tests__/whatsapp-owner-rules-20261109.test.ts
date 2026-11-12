@@ -450,3 +450,12 @@ describe('english business leasing shorthand', () => {
     expect(go.escalate).toBe(true);
   });
 });
+
+// Live Chrome on 03724e9 (Hebrew used-car purchase): "יש לנו מבחר רכבים משומשים" stock claim, no pointer to the listing.
+describe('used-car purchase', () => {
+  it('rejects a stock claim and links the cars-for-sale page', async () => {
+    const r = await chat(null, 'בשמחה! יש לנו מבחר רכבים משומשים ונשמח לעזור. מה השימוש המתוכנן?').send('היי ראיתי שאתם מוכרים רכבים משומשים, יש לכם משהו משפחתי עד 80 אלף?');
+    expect(r.reply).not.toMatch(/יש לנו מבחר/);
+    expect(r.reply).toContain('https://www.smartcar.co.il/he/cars-for-sale');
+  });
+});
