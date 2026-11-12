@@ -2278,7 +2278,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = state.interest
         ? (he ? `בשמחה, נציג SmartCar יחזור אליכם לגבי ${state.interest === 'sale' ? 'רכישת הרכב' : 'הליסינג'}. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up about your ${state.interest === 'sale' ? 'car purchase' : 'leasing'} enquiry. You can also call ${OFFICE_PHONE}.`)
         : (he ? `בשמחה, נציג SmartCar יחזור אליכם. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up. You can also call ${OFFICE_PHONE}.`);
-    } else if (state.phase === 'service' || reading?.route === 'service' || rentalChangeRequest(input) && Boolean(explicitServiceReference(input)) || /הזמנה קיימת|ההזמנה שלי|שכרתי|existing booking|my booking|I rented|יש לי (?:כבר )?הזמנה|הזמנתי (?:אצלכם|מכם|רכב)|\bI (?:have|made) a (?:booking|reservation)\b|\bI booked\b|\bmy (?:car |rental )?(?:booking|reservation)\b|אני עם (?:ה)?רכב (?:שלכם|שלקחתי)|הרכב שלכם (?:אצלי|איתי)|(?:לקחתי|אספתי) (?:מכם|אצלכם) רכב|\bI (?:have|got) (?:your|a) (?:car|rental) (?:from you|right now|now)\b|\bI(?:'m| am) (?:in|driving) your car\b/i.test(input)) {
+    } else if (state.phase === 'service' || reading?.route === 'service' || state.phase !== 'booking' && Boolean(explicitServiceReference(input)) || /הזמנה קיימת|ההזמנה שלי|שכרתי|existing booking|my booking|I rented|יש לי (?:כבר )?הזמנה|הזמנתי (?:אצלכם|מכם|רכב)|\bI (?:have|made) a (?:booking|reservation)\b|\bI booked\b|\bmy (?:car |rental )?(?:booking|reservation)\b|אני עם (?:ה)?רכב (?:שלכם|שלקחתי)|הרכב שלכם (?:אצלי|איתי)|(?:לקחתי|אספתי) (?:מכם|אצלכם) רכב|\bI (?:have|got) (?:your|a) (?:car|rental) (?:from you|right now|now)\b|\bI(?:'m| am) (?:in|driving) your car\b/i.test(input)) {
       state.phase = 'service';
       const booking = await store.activeBooking(phone);
       const answer = getSmartCarServiceAnswer(input, state.locale);
@@ -2629,6 +2629,21 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   for (const key of ['pickupLocation', 'returnLocation'] as const) {
     const value = state.booking[key];
     if (value && value.length <= 6) { const expanded = expandBranchAbbreviations(value); if (expanded !== value) state.booking[key] = expanded; }
+  }
+  // A frustrated customer waiting for a pickup, an urgent follow-up and a compensation ask:
+  // acknowledge the situation, point to the fastest route and never promise compensation.
+  const waitingForPickup = /(?:waiting|been here|nobody(?: is)? here|no one(?: is)? here|nobody showed|no one showed|no one came|nobody came)\b|(?:מחכה|ממתין|ממתינה|מחכים)\s+(?:כבר\s+)?(?:\d+\s*)?(?:דקות|שעה|פה|בסניף)|אין (?:פה )?(?:אף אחד|אף אחת|אף נציג)|אף אחד לא (?:הגיע|בא|פה)/iu.test(input);
+  const urgentNow = /\b(?:now|asap|urgent|right away|flight|plane|late for)\b|דחוף|עכשיו|מיד|טיסה|מאחר|מאחרת/iu.test(input);
+  const compensationAsk = /\bcompensat|\bdiscount for (?:this|the wait)|\bmake (?:it|this) right|פיצוי|לפצות|הנחה על (?:זה|העיכוב)/iu.test(input);
+  const waitedEarlier = state.history.some(entry => entry.from === 'customer' && /(?:waiting|nobody(?: is)? here|no one(?: is)? here)\b|(?:מחכה|ממתין|ממתינה)\s+(?:כבר\s+)?(?:\d+\s*)?(?:דקות|שעה|פה|בסניף)|אין (?:פה )?(?:אף אחד|אף נציג)/iu.test(entry.text));
+  if (state.phase === 'service' && state.handedOff && !state.safetyKind
+    && (waitingForPickup && /branch|סניף|pickup|איסוף|לאסוף|here|פה/iu.test(input) || waitedEarlier && (urgentNow || compensationAsk) || compensationAsk && state.handoffKind === 'service_issue')) {
+    const ref = state.serviceReference ? (he ? ` (הזמנה ${state.serviceReference})` : ` (booking ${state.serviceReference})`) : '';
+    reply = compensationAsk
+      ? (he ? `אני מבין שזה מתסכל. פיצוי אני לא יכול להבטיח כאן, אבל הוספתי את הבקשה לפנייה${ref} כדי שנציג SmartCar יתייחס אליה. לעזרה מיידית: ${OFFICE_PHONE}.` : `I understand this is frustrating. I cannot promise compensation here, but I have added your request to your message${ref} so a SmartCar representative can respond to it. For immediate help: ${OFFICE_PHONE}.`)
+      : waitingForPickup
+      ? (he ? `מצטער שאתם מחכים. הפנייה שלכם${ref} כבר אצל נציג SmartCar. הדרך המהירה ביותר עכשיו היא להתקשר ל־${OFFICE_PHONE}.` : `I am sorry you have been waiting. Your message${ref} is already with a SmartCar representative. The fastest way to get help right now is to call ${OFFICE_PHONE}.`)
+      : (he ? `מבין שזה דחוף. הכי מהר יהיה להתקשר עכשיו ל־${OFFICE_PHONE}; הפנייה שלכם${ref} כבר אצל נציג.` : `I understand it is urgent. The fastest way is to call ${OFFICE_PHONE} now; your message${ref} is already with a representative.`);
   }
   // Card brands are not published: answer honestly instead of ignoring the question.
   if (!escalate && /\b(?:amex|american express|diners|visa|mastercard|master card|isracard)\b|אמריקן אקספרס|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט/iu.test(input)

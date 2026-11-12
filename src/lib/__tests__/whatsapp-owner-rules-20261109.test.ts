@@ -924,3 +924,18 @@ describe('casual wedding trip (2)', () => {
     } finally { vi.useRealTimers(); }
   });
 });
+
+// Live Chrome on 1d1a5aa: a customer waiting 40 minutes at the branch got three identical robotic lines.
+describe('frustrated customer waiting at the branch', () => {
+  it('acknowledges, gives the fastest route and does not promise compensation', async () => {
+    const c = chat(null, 'x', 'en');
+    const first = await c.send('this is ridiculous. im at your tel aviv branch for 40 min, nobody is here and my pickup was at 10. booking 778820');
+    expect(first.escalate).toBe(true);
+    expect(first.reply).toMatch(/sorry you have been waiting/i);
+    expect(first.reply).toContain('778820');
+    const urgent = await c.send('seriously?? i have a flight to catch, i need the car NOW');
+    expect(urgent.reply).toMatch(/urgent/i);
+    const comp = await c.send('fine. but i want some kind of compensation for this');
+    expect(comp.reply).toMatch(/cannot promise compensation/i);
+  });
+});
