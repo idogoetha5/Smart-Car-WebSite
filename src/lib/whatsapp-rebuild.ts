@@ -422,6 +422,11 @@ function cancellationRequest(input: string): boolean {
 }
 
 function explicitServiceReference(input: string): string | undefined {
+  // "תבטלו לי את ההזמנה בבקשה, 334455": a lone booking-length number in a cancellation/change message.
+  if (/לבטל|תבטל|ביטול|cancel|להזיז|לשנות|להאריך|change|extend|move/iu.test(input)) {
+    const lone = input.match(/(?:^|[\s,.:])(\d{5,8})(?=[\s,.!?]|$)/u);
+    if (lone && !/(?:\d{5,8})\s*(?:₪|ש["״]?ח|nis|ils|km|ק["״]?מ)|0\d{8,9}/iu.test(input)) return lone[1];
+  }
   const bare = input.match(/(?:^|[\s,.])(?:ה)?הזמנה\s+(?:שלי\s+)?(\d{5,12})(?!\d)|\b(?:booking|reservation|ref\.?|ref(?:erence)? (?:no\.?|number|#))(?:\s+(?:is|number|no\.?|#))?\s*#?\s*(\d{5,12})(?!\d)/iu);
   if (bare && !/(?:\d{5,12})\s*(?:₪|ש["״]?ח|nis|ils|km|ק["״]?מ)/iu.test(input)) return bare[1] ?? bare[2];
   const value = input.match(/(?:מספר\s+ה?הזמנה|booking\s+number|(?:booking\s+)?reference|(?:booking|הזמנה)\s*#|ההזמנה\s+שלי\s+מספר\s*#)[\s,:#]*(?:(?:שלי|הוא|it\s+is|it['’]s|is)[\s,:#]*)*([A-Z0-9-]*\d[A-Z0-9-]{2,})(?![A-Z0-9-])/i)?.[1];
@@ -2611,7 +2616,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     reply = `${reply.trim()} ${he ? `מספר המשרד: ${OFFICE_PHONE}.` : `Office: ${OFFICE_PHONE}.`}`;
   }
   // After a collision, "should I take his details?" deserves a direct answer.
-  if (state.handoffKind === 'safety' && (state.safetyKind === 'accident' || !state.safetyKind) && /(?:get|take|exchange|collect) (?:his|her|their|the other (?:driver['’]?s?|party['’]?s?)) (?:details|info|information|insurance)|(?:the )?other driver['’]?s? (?:details|info)|פרטים (?:מ|של )?(?:ה)?נהג|הנהג השני|פרטי (?:ה)?נהג/iu.test(input)
+  if (state.handoffKind === 'safety' && (state.safetyKind === 'accident' || !state.safetyKind) && /(?:get|take|exchange|collect) (?:his|her|their|the other (?:driver['’]?s?|party['’]?s?)) (?:details|info|information|insurance)|(?:the )?other driver['’]?s? (?:details|info)|פרטים (?:מ|של )?(?:ה)?נהג|הנהג השני|פרטי (?:ה)?נהג|(?:לקחת|לבקש|לקבל|להחליף)\s+(?:ממנו|ממנה|איתו|איתה)\s+(?:את\s+)?(?:ה)?פרטים|(?:לקחת|לבקש)\s+(?:את\s+)?(?:ה)?פרטים\s+(?:שלו|שלה|ממנו|ממנה)/iu.test(input)
     && !/פרטי הנהג השני|other driver['’]?s details/iu.test(reply)) {
     reply = `${he ? 'כן, אם בטוח לעשות זאת רשמו את פרטי הנהג השני: שם, טלפון, מספר רכב ופרטי הביטוח שלו, וצלמו את הנזק.' : 'Yes, if it is safe, note the other driver’s details: name, phone, plate number and insurance details, and photograph the damage.'} ${reply}`;
   }

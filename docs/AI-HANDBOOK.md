@@ -1353,3 +1353,4 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 - 2026-11-12 — WhatsApp bot: route clauses ("מחזיר בירושלים") and place words are never a customer name. No migrations.
 - 2026-11-12 — WhatsApp bot purchase: listing link for "do you sell used cars"; validator `financing_claim`; purchase interest kept on financing questions. Evidence: evidence/20261112-chrome-en-used-car-financing.md. No migrations.
 - 2026-11-12 — WhatsApp bot purchase: financing questions get fixed wording (cannot confirm here; a representative can say what exists). No migrations.
+- 2026-11-12 — WhatsApp bot regression sweep fixes: "לקחת ממנו פרטים" after a collision; lone booking number in a cancellation/change message. Evidence: evidence/20261112-chrome-regression-sweep.md. No migrations.

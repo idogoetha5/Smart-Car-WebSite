@@ -830,3 +830,19 @@ describe('english used-car purchase with financing', () => {
     expect(call.reply).not.toMatch(/leasing/i);
   });
 });
+
+// Live regression sweep on 13346c1: "צריך לקחת ממנו פרטים?" after a collision got the generic safety line;
+// "תבטלו לי את ההזמנה בבקשה, 334455" asked for the booking number.
+describe('regression sweep 2026-11-12', () => {
+  it('answers the other-driver details question', async () => {
+    const c = chat(null, 'x');
+    await c.send('מישהו נכנס בי מאחורה ברמזור, אני עם הרכב שלכם');
+    const r = await c.send('צריך לקחת ממנו פרטים?');
+    expect(r.reply).toMatch(/פרטי הנהג השני/);
+  });
+  it('takes a lone booking number in a cancellation message', async () => {
+    const r = await chat(null, 'x').send('תבטלו לי את ההזמנה בבקשה, 334455');
+    expect(r.state.serviceReference).toBe('334455');
+    expect(r.escalate).toBe(true);
+  });
+});
