@@ -949,3 +949,17 @@ describe('booking for a family member', () => {
     expect(r.state.booking.driverAgeRange).toBe('24-plus');
   });
 });
+
+// Live Chrome on c5aba0f (mixed Hebrew/English, changes of mind): "רשמתי את בקשתכם", vehicle switch
+// "בעצם תעשה משפחתי" ignored, and "רועי אזולאי בן 26 תסגור" did not start intake.
+describe('changes of mind and casual closing', () => {
+  it('switches the vehicle, blocks the claim and starts intake on "תסגור"', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', history: [], booking: { pickupDate: '2026-12-10', returnDate: '2026-12-14', pickupLocation: 'הרצליה', vehicleNeed: 'רכב פנאי' } } as RebuildState, 'בשמחה! רשמתי את בקשתכם לרכב. האם תרצו להוסיף משהו?');
+    const swap = await c.send('בעצם תעשה משפחתי זה יותר זול לא?');
+    expect(swap.state.booking.vehicleNeed).toBe('רכב משפחתי');
+    expect(swap.reply).not.toMatch(/רשמתי את בקשתכם/);
+    const go = await c.send('כן נחזיר בירושלים. רועי אזולאי בן 26 תסגור');
+    expect(go.state.phase).toBe('booking');
+    expect(go.state.booking.customerName).toBe('רועי אזולאי');
+  });
+});

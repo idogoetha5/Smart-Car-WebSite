@@ -581,6 +581,7 @@ function explicitBooking(input: string): boolean {
   if (/(?<!\b(?:to|if|decide to|before I)\s)\b(?:go ahead|book it|let['’]?s book(?: it)?)\b[,.!\s]+(?:i['’]?m|im|i am|my name is|name['’]?s)\s+(?!(?:still|not|just|only|comparing|thinking|unsure|sure|ok|fine|good|ready|looking|asking|waiting|deciding|a|the|so|also|very|really)\b)[\p{L}'-]{2,20}/iu.test(input) && !/\b(?:don['’]?t|do not|not yet|no change request|still comparing)\b/i.test(input)) return true;
   if (/^(?:ok(?:ay)?|fine|sure|yes|yeah)?[.,!\s]*(?:book it|let['’]?s book it)[.!\s]*$/iu.test(input.trim())) return true;
   if (/^(?:(?:ok(?:ay)?|fine|sure|yes|yeah|great|perfect|cool)[.,!\s]+)?(?:book it|let['’]?s book it|go ahead)[.,!]\s+[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\b/iu.test(input.trim())) return true;
+  if (/(?:^|[\s,.!])(?:תסגור|תסגרו|סגור|סגרנו|נסגור)(?:\s+(?:לי|לנו|את זה|אותו))?\s*[.!]?$/u.test(input.trim()) && !/(?:^|\s)(?:לא|אל|עוד לא)\s+(?:תסגור|לסגור)/u.test(input)) return true;
   if (/(?:^|[\s,.!])(?:תרשום|תרשמו|רשום|רשמו|תפתח(?:ו)?)\s+(?:לי\s+)?(?:את\s+(?:זה|הבקשה)\s+)?על\s+שם\s+[\p{L}'-]{2,20}/u.test(input) || /\b(?:book|put) it under\s+[\p{L}'-]{2,20}/iu.test(input)) return true;
   if (/^(?:יאללה|סבבה|אוקיי?|טוב|כן)?[,\s]*(?:תפתח(?:ו)?|פתח(?:ו)?|תתקדם|תתקדמו|נתקדם|תרשום|תרשמו)(?:\s+לי)?[,.!\s]+[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}(?:\s*,?\s*(?:(?:בן|בת)\s*)?\d{2})?\s*[.!]?$/u.test(input.trim())) return true;
   if (/^(?:(?:ok(?:ay)?|sure|great|perfect|yes|yeah|אוקיי?|מעולה|כן)[,.!\s]+)?(?:יאללה|סבבה|אוקיי?|טוב|ok(?:ay)?|go ahead|let['’]?s (?:go|do it|do this))[.,!\s]+[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}(?:\s*,?\s*(?:(?:בן|בת|aged?)\s*)?\d{2})?\s*[.!]?$/iu.test(input.trim())) return true;
@@ -819,7 +820,7 @@ function explicitVehicleNeed(input: string, locale: Locale): string | null {
 function customerVehicleChoice(input: string, state: RebuildState): string | null {
   if (/^(?:ו?מה אם|האם|אולי|למה|מה לגבי|what if|would|should|could)\s/iu.test(input)) return null;
   const vehicle = '(?:רכב\\s+)?(?:שבעה\\s+מקומות|7\\s*מקומות|משפחתית|משפחתי|קטן|קומפקטית|קומפקטי|פנאי|ג[׳\'י]?יפ(?:ון)?|compact(?:\\s+rental)?\\s+car|small(?:\\s+rental)?\\s+car|family\\s+car|suv|seven[- ]?seat(?:er)?)';
-  const choice = new RegExp(`(?:רוצה|רוצים|צריך|צריכה|צריכים|מחפש|מחפשת|מעדיף|מעדיפה|אבחר|נבחר|בחרתי|בחרנו|בוחר|בוחרת|החלטתי על|החלטנו על|נלך על|אלך על|אקח|want|need|prefer|choose|chose|looking for|would like|go with)\\s+(?:(?:לשכור|להזמין|to rent|to book|an?)\\s+)?(${vehicle})`, 'giu');
+  const choice = new RegExp(`(?:רוצה|רוצים|צריך|צריכה|צריכים|מחפש|מחפשת|מעדיף|מעדיפה|אבחר|נבחר|בחרתי|בחרנו|בוחר|בוחרת|החלטתי על|החלטנו על|נלך על|אלך על|אקח|תעשה|תעשו|תשים|תשימו|תחליף ל|תחליפו ל|נעבור ל|עדיף|בעצם|want|need|prefer|choose|chose|looking for|would like|go with|make it|switch to|change (?:it )?to|actually)\\s+(?:(?:לשכור|להזמין|to rent|to book|an?)\\s+)?(${vehicle})`, 'giu');
   const matches = [...input.matchAll(choice)].filter(match => !/(?:לא|don'?t)\s*$/iu.test(input.slice(0, match.index)));
   const chosen = matches.at(-1)?.[1];
   if (chosen) return explicitVehicleNeed(chosen, state.locale);
@@ -1452,7 +1453,7 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
   // After an explicit start, a two-word clause on its own between commas or at the
   // end ("יאללה בואו נתקדם, דנה בדיקה, נהג ראשי בעלי בן 38") is the name.
   const trailingName = (explicitStart || state.phase === 'booking' && state.step === 'rental_name') && !introducedName
-    ? input.split(/[,.!;\n]/u).slice(1).map(part => part.trim().replace(/\s+(?:בן|בת|aged?)\s*\d{2}$/iu, '')).find(part => /^[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}$/u.test(part)
+    ? input.split(/[,.!;\n]/u).slice(1).map(part => part.trim().replace(/\s+(?:תסגור|תסגרו|סגור|תפתח|תפתחו|יאללה|please|thanks)\s*$/iu, '').replace(/\s+(?:בן|בת|aged?)\s*\d{2}$/iu, '')).find(part => /^[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}$/u.test(part)
       // Route clauses ("מחזיר בירושלים", "returning to Haifa") and places are never a name.
       && !/(?:^|\s)(?:מחזיר\S*|מחזירה|מחזירים|נחזיר|אחזיר|אוסף|אוספת|אוספים|נאסוף|אאסוף|איסוף|החזרה|returning|return|pickup|collecting|from|to)(?:\s|$)|(?:^|\s)[בלמה]?(?:ירושלים|תל|אביב|הרצליה|נתב\S*|חיפה|אילת|פתח|תקווה|Jerusalem|Herzliya|Tel|Aviv|Haifa|Eilat|airport)(?:\s|$)/iu.test(part)
       && (!/^(?:תודה|בבקשה|יאללה|סבבה|אחלה|מעולה|בסדר|קדימה|רק|גם|עם|בלי|thank|thanks|please|ok|okay|great|cool|sounds|with|without|also|just|asap|soon|today|tomorrow|מחר|היום)(?=\s|$)|(?:^|\s)(?:רכב|car|יום|ימים|days?|בקשה|request|הצעה|quote|מחיר|price|רבה|גדול|קטן|משפחתי|big|small)(?=\s|$)/iu.test(part))
