@@ -939,3 +939,13 @@ describe('frustrated customer waiting at the branch', () => {
     expect(comp.reply).toMatch(/cannot promise compensation/i);
   });
 });
+
+// Live Chrome on 8485966: a mother booking for her daughter — "היא בת 24" was not stored.
+describe('booking for a family member', () => {
+  it('takes the daughter\'s age as the driver age', async () => {
+    const c = chat(null, 'x');
+    await c.send('שלום אני מתקשרת בשביל הבת שלי היא מגיעה מחול בעוד שבועיים והיא צריכה רכב לכמה ימים היא נוחתת בנתבג');
+    const r = await c.send('היא בת 24 יש לה רישיון ישראלי');
+    expect(r.state.booking.driverAgeRange).toBe('24-plus');
+  });
+});
