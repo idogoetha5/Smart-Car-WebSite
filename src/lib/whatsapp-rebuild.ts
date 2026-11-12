@@ -263,6 +263,15 @@ function relativeRentalDuration(input: string): { pickupDate: string; returnDate
 }
 
 function explicitDateRange(input: string): { pickupDate: string; returnDate: string } | null {
+  // "מה 17 לחודש הבא עד ה 20" / "17 עד 20 לחודש הבא": both days in next month.
+  const nextMonth = input.match(/(?:מה?|מ-|מ־)?\s*(\d{1,2})\s+(?:ל|ב)חודש הבא\s+(?:עד|ועד|-)\s*(?:ה|ה-|ה־)?\s*(\d{1,2})(?!\d)/u)
+    ?? input.match(/(?:מה?|מ-|מ־)?\s*(\d{1,2})\s+(?:עד|ועד|-)\s*(?:ה|ה-|ה־)?\s*(\d{1,2})\s+(?:ל|ב)חודש הבא/u);
+  if (nextMonth && !/(?:^|\s)אם\s|מה אם|אולי/u.test(input)) {
+    const today = israelDate(); const y = Number(today.slice(0, 4)); const m = Number(today.slice(5, 7));
+    const nm = m === 12 ? 1 : m + 1; const ny = m === 12 ? y + 1 : y;
+    const nested = explicitDateRange(`${nextMonth[1]}/${nm}/${ny}-${nextMonth[2]}/${nm}/${ny}`);
+    if (nested) return nested;
+  }
   // "מחמישי 19.11 עד ראשון 22.11" / "thu 19.11 - sun 22.11": a weekday before an explicit date is decoration.
   const withoutWeekdays = input
     .replace(/(?<![\p{L}])([מל]?)(?:יום\s+)?(?:ה)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)\s+(?=(?:ה|ה-|ה־)?\d{1,2}[./])/gu, '$1')
@@ -572,6 +581,7 @@ function explicitBooking(input: string): boolean {
   if (/(?<!\b(?:to|if|decide to|before I)\s)\b(?:go ahead|book it|let['’]?s book(?: it)?)\b[,.!\s]+(?:i['’]?m|im|i am|my name is|name['’]?s)\s+(?!(?:still|not|just|only|comparing|thinking|unsure|sure|ok|fine|good|ready|looking|asking|waiting|deciding|a|the|so|also|very|really)\b)[\p{L}'-]{2,20}/iu.test(input) && !/\b(?:don['’]?t|do not|not yet|no change request|still comparing)\b/i.test(input)) return true;
   if (/^(?:ok(?:ay)?|fine|sure|yes|yeah)?[.,!\s]*(?:book it|let['’]?s book it)[.!\s]*$/iu.test(input.trim())) return true;
   if (/^(?:(?:ok(?:ay)?|fine|sure|yes|yeah|great|perfect|cool)[.,!\s]+)?(?:book it|let['’]?s book it|go ahead)[.,!]\s+[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\b/iu.test(input.trim())) return true;
+  if (/(?:^|[\s,.!])(?:תרשום|תרשמו|רשום|רשמו|תפתח(?:ו)?)\s+(?:לי\s+)?(?:את\s+(?:זה|הבקשה)\s+)?על\s+שם\s+[\p{L}'-]{2,20}/u.test(input) || /\b(?:book|put) it under\s+[\p{L}'-]{2,20}/iu.test(input)) return true;
   if (/^(?:יאללה|סבבה|אוקיי?|טוב|כן)?[,\s]*(?:תפתח(?:ו)?|פתח(?:ו)?|תתקדם|תתקדמו|נתקדם|תרשום|תרשמו)(?:\s+לי)?[,.!\s]+[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}(?:\s*,?\s*(?:(?:בן|בת)\s*)?\d{2})?\s*[.!]?$/u.test(input.trim())) return true;
   if (/^(?:(?:ok(?:ay)?|sure|great|perfect|yes|yeah|אוקיי?|מעולה|כן)[,.!\s]+)?(?:יאללה|סבבה|אוקיי?|טוב|ok(?:ay)?|go ahead|let['’]?s (?:go|do it|do this))[.,!\s]+[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}(?:\s*,?\s*(?:(?:בן|בת|aged?)\s*)?\d{2})?\s*[.!]?$/iu.test(input.trim())) return true;
   if (/(?:^|[\s,.!])(?:סבבה|יאללה|טוב|אוקיי?|אז)?\s*(?:תפתח(?:ו)?|פתח(?:ו)?|תכין|תכינו)\s+(?:לי\s+)?(?:בקש(?:ה|ת השכרה)|הזמנה)(?![\p{L}])|\b(?:go ahead and )?open (?:a |the |my )?(?:rental )?(?:request|booking)\b/iu.test(input)) return true;
@@ -1417,7 +1427,8 @@ function applySelectedFacts(input: string, state: RebuildState, reading: BotRead
 }
 
 function privateDetail(input: string, state: RebuildState, explicitStart = false): boolean {
-  const labelledName = input.match(/(?:קוראים לי|שמי|השם שלי|השם הוא|my name is)\s+([\p{L}' -]{3,60})/iu)?.[1];
+  const labelledName = input.match(/(?:קוראים לי|שמי|השם שלי|השם הוא|my name is)\s+([\p{L}' -]{3,60})/iu)?.[1]
+    ?? input.match(/(?:על\s+שם|\bunder (?:the name )?)\s*([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})(?=\s*(?:[,.!]|$|\s+(?:בן|בת|אני|aged?|I['’]?m)\b))/iu)?.[1];
   // A voluntary labelled name during an established rental enquiry is useful
   // before formal intake. Capture it locally, without treating it as consent.
   const voluntaryRentalName = state.phase === 'explore' && !state.interest && !state.completedRequestId && labelledName
@@ -2613,6 +2624,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   // An additional-driver change request: say what the driver will need.
   if (escalate && state.handoffKind === 'booking_change' && /\badd (?:an? )?(?:another|second|additional|extra)? ?driver\b|להוסיף\s+(?:\S+\s+){0,2}(?:כ)?נהג/iu.test(input) && !/licen[cs]e|רישיון/iu.test(reply)) {
     reply = `${reply.trim()} ${he ? 'הנהג הנוסף יצטרך להציג רישיון בתוקף ולהירשם בחוזה לפני שהוא נוהג.' : 'The additional driver will need to show a valid licence and be named in the agreement before driving.'}`;
+  }
+  // Model-extracted locations may keep abbreviations ("ת\"א"); store the branch name.
+  for (const key of ['pickupLocation', 'returnLocation'] as const) {
+    const value = state.booking[key];
+    if (value && value.length <= 6) { const expanded = expandBranchAbbreviations(value); if (expanded !== value) state.booking[key] = expanded; }
   }
   // Card brands are not published: answer honestly instead of ignoring the question.
   if (!escalate && /\b(?:amex|american express|diners|visa|mastercard|master card|isracard)\b|אמריקן אקספרס|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט/iu.test(input)

@@ -910,3 +910,17 @@ describe('casual wedding trip', () => {
     expect(r.state.booking).toMatchObject({ pickupLocation: pickup, returnLocation: ret });
   });
 });
+
+describe('casual wedding trip (2)', () => {
+  it('reads "מה 17 לחודש הבא עד ה 20" and "תרשום על שם אלון ברק, אני 29"', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-12T12:00:00Z'));
+    try {
+      const c = chat(null, 'x');
+      const first = await c.send('הייי מה קורה😊 תשמע אני צריך אוטו לחתונה של אחי בצפון, משהו נחמד לא סתם קטנטן, אנחנו 4 + תיק כל אחד. בערך מה 17 לחודש הבא עד ה 20, אוסף מת"א');
+      expect(first.state.booking).toMatchObject({ pickupDate: '2026-12-17', returnDate: '2026-12-20', pickupLocation: 'תל אביב' });
+      const go = await c.send('אחזיר גם בת"א. משפחתי. סבבה תרשום על שם אלון ברק, אני 29');
+      expect(go.state.booking.customerName).toBe('אלון ברק');
+      expect(go.state.phase).toBe('booking');
+    } finally { vi.useRealTimers(); }
+  });
+});

@@ -1360,3 +1360,4 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 - 2026-11-12 — WhatsApp bot: policy questions after a handoff get the approved answer; international licence / IDP wording maps to `driver_documents`. No migrations.
 - 2026-11-12 — WhatsApp bot status recorded in AI-HANDOFF §6: all stories in the final Chrome regression sweep pass on bc5737f; ready for Daniel's acceptance test in the demo; real-channel gates (YCloud, staff alert, duplicates/timeouts) still to be done before activation. No migrations.
 - 2026-11-12 — WhatsApp bot: branch abbreviations (ת"א, י-ם, TLV) in location parsing; "יוצא יקר?" triggers the owner price line. Evidence: evidence/20261112-chrome-he-wedding-north.md. No migrations.
+- 2026-11-12 — WhatsApp bot: "D לחודש הבא עד D"; stored location abbreviations expanded; "תרשום על שם <name>" starts intake with the name. No migrations.
