@@ -29,3 +29,14 @@ to Hebrew and English, visible site copy, search/share metadata and bot replies.
 Review the rendered text on a phone as well as the metadata and actual model
 responses. A list of prohibited words or a passing unit test cannot by itself
 establish that the writing sounds human.
+
+
+## Never publish internal pricing mechanisms (owner, 2026-11-12)
+
+Public pages, FAQs, structured data and search snippets must not describe how
+prices are built: duration-discount tiers, minimum/floor prices, display vs
+booking price, seasonal multipliers, coupon caps or any calculation rule. The
+only price facts allowed in copy are ones the owner explicitly asked to show to
+customers (currently: the ₪150 Ben Gurion Airport surcharge and the notice that
+Shabbat pickup/return may carry an extra charge). Prices shown by the booking
+widget and vehicle cards are fine; prose about them is not.

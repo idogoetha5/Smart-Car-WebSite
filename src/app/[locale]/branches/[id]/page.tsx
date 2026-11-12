@@ -6,6 +6,15 @@ import { BRANCHES, BRANCH_HOURS, mapsUrl, wazeUrl, type BranchId } from '@/lib/b
 import { localeAlternates } from '@/lib/seo';
 import { BRANCH_RENTAL_ADVICE, rentalCopy } from '@/lib/public-rental-content';
 import PublicRentalAdvice from '@/components/content/PublicRentalAdvice';
+import BranchLocalGuide from '@/components/content/BranchLocalGuide';
+import JsonLd from '@/components/seo/JsonLd';
+import { BRANCH_LOCAL } from '@/lib/branch-local-content';
+import { getRentalPageVehicles } from '@/lib/rental-page-data';
+import { canonicalVehicles } from '@/lib/vehicle-canonical';
+import { serviceVehicles } from '@/lib/service-page-content';
+
+// Static per branch, refreshed hourly so the fleet examples follow the live fleet.
+export const revalidate = 3600;
 
 export function generateStaticParams() {
   return BRANCHES.map((b) => ({ id: b.id }));
@@ -106,6 +115,9 @@ export default async function BranchDetailPage({
     : (isHe
       ? `הסניף נמצא ב${branch.streetHe}, ${branch.cityHe}.`
       : `The branch is at ${branch.streetEn}, ${branch.cityEn}.`);
+  const local = BRANCH_LOCAL[branch.id];
+  // Public fleet read; a database hiccup only hides the fleet examples.
+  const fleet = canonicalVehicles(await getRentalPageVehicles().catch(() => []));
   const locationFaq = [
     {
       question: locationQuestion,
@@ -123,7 +135,13 @@ export default async function BranchDetailPage({
         ? 'כן, אפשר לתאם איסוף והחזרה בסניפים או בכתובות שונות בארץ. השירות והמחיר נקבעים לפי הכתובת, השעה והזמינות.'
         : 'Yes. Collection and return can be coordinated at branches or different addresses across Israel. The service and price depend on the address, time and availability.',
     },
+    ...local.questions.map(item => ({ question: item.q[isHe ? 'he' : 'en'], answer: item.a[isHe ? 'he' : 'en'] })),
   ];
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: locationFaq.map(item => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })),
+  };
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -201,7 +219,10 @@ export default async function BranchDetailPage({
 
         <PublicRentalAdvice advice={BRANCH_RENTAL_ADVICE[branch.id]} locale={locale} />
 
+        <BranchLocalGuide local={local} city={city} locale={locale} vehicles={serviceVehicles('daily', fleet)} />
+
         <section className="mb-8" aria-labelledby="branch-rental-faq">
+            <JsonLd data={faqJsonLd} />
             <h2 id="branch-rental-faq" className="text-2xl font-bold text-[#0D2B2B] mb-4">
               {isHe ? `השכרת רכב ב${city} — שאלות נפוצות` : `Car rental in ${city} — common questions`}
             </h2>

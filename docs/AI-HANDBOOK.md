@@ -1114,6 +1114,8 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 
 ### Change log
 
+- 2026-11-12 — SEO for the priority pages (Tel Aviv, Herzliya, Jerusalem, airport). Competitor branch pages that rank (Eldan, Suncar) carry directions, distances, local tips and longer FAQs; ours had ~300 words. Each branch page now adds fleet examples, how to get there / receive the car, an approximate driving-distance table, driving and parking tips and extra FAQ (Shabbat, delivery to hotel/home, documents; airport: ₪150 fee, 24/7, return elsewhere) with FAQPage data (`src/lib/branch-local-content.ts`, `src/components/content/BranchLocalGuide.tsx`). Monthly page gets a 'who is it for' question. Owner rule added to `docs/PUBLIC-COPY.md`: never publish internal pricing mechanisms.
+
 - 2026-11-12 — Owner: footer had become too long. Compacted it without removing any link: link lists sit side by side on phones, tighter rows (40px touch height on phones, 32px on desktop), and the four branch links moved from a separate row into Quick Links. Footer height 1445→1013px on a 390px phone, 737→497px on desktop.
 
 - 2026-11-12 — SEO, continued: service pages (`/services/<type>`) now end with matching fleet models linking to their vehicle pages, a visible FAQ with FAQPage data, and links to related services and branches (`src/components/content/ServiceExtras.tsx`, content in `src/lib/service-page-content.ts`; answers repeat only facts already published in `faq-data.ts`, terms and branch pages — no prices or plan contents). Footer gained commercial and business service links and a sitewide row linking the four branch pages. No existing section removed.

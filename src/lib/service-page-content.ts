@@ -84,7 +84,19 @@ export const SERVICE_QUESTIONS: Record<string, ServiceQuestion[]> = {
     DOCUMENTS,
   ],
   'new-driver': [AGE, INSURANCE, DOCUMENTS, CANCELLATION],
-  monthly: [RENT_VS_LEASE, DELIVERY, DOCUMENTS, CANCELLATION],
+  monthly: [
+    {
+      q: { he: 'למי מתאימה השכרת רכב לחודש?', en: 'Who is monthly car rental for?' },
+      a: {
+        he: 'למי שהרכב שלו במוסך לתקופה ארוכה, מחכה למסירת רכב חדש, עובר דירה או עבודה, מגיע לביקור ארוך בארץ או צריך רכב לפרויקט – ולא רוצה להתחייב לליסינג של שנים.',
+        en: 'For anyone whose car is in the garage for a while, who is waiting for a new car, moving home or job, visiting Israel for a long stay or needs a car for a project – without committing to years of leasing.',
+      },
+    },
+    RENT_VS_LEASE,
+    DELIVERY,
+    DOCUMENTS,
+    CANCELLATION,
+  ],
   daily: [CANCELLATION, DELIVERY, AIRPORT, DOCUMENTS],
   hourly: [
     {
