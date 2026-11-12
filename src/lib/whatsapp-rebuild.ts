@@ -2442,6 +2442,17 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     && !/delay|late|מתעכב|עיכוב|מאחר/iu.test(reply)) {
     reply = `${reply.trim()} ${he ? 'אם הטיסה מתעכבת, עדכנו את SmartCar בהקדם כדי לתאם מחדש את המסירה בנתב״ג.' : 'If your flight is delayed, let SmartCar know as soon as you can so the airport handover can be rearranged.'}`;
   }
+  // An airport surcharge question always gets the surcharge answer, even inside a price question.
+  const airportFeeAsked = /(?:נתב.?ג|שדה (?:ה)?תעופה|airport|ben gurion).{0,40}(?:תוספת|עמלה|תשלום נוסף|חיוב נוסף|extra|surcharge|fee|charge)|(?:תוספת|עמלה|תשלום נוסף|extra|surcharge|fee|charge).{0,40}(?:נתב.?ג|שדה (?:ה)?תעופה|airport|ben gurion)/iu.test(input);
+  if (!escalate && airportFeeAsked && !/תוספת|surcharge/iu.test(reply)) {
+    const fee = getSmartCarApprovedFacts(state.locale).find(fact => fact.id === 'airport_fee')?.text;
+    if (fee) reply = `${fee} ${reply.replace(priceAnswer(state.locale), '').trim()}`.trim();
+  }
+  // Airport surcharge and the website: mention the website estimate only when the customer asks about it.
+  if (!escalate && /אתר|website|\bsite\b|online|באינטרנט/iu.test(input) && /נתב.?ג|שדה (?:ה)?תעופה|airport|ben gurion/iu.test(`${input} ${reply}`)
+    && /(?:תוספת|surcharge)/iu.test(reply) && !/אתר|website/iu.test(reply)) {
+    reply = `${reply.trim()} ${he ? 'התוספת הזו לא כלולה במחיר המשוער שמופיע באתר.' : 'This surcharge is not included in the estimate shown on the website.'}`;
+  }
   // Card brands are not published: answer honestly instead of ignoring the question.
   if (!escalate && /\b(?:amex|american express|diners|visa|mastercard|master card|isracard)\b|אמריקן אקספרס|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט/iu.test(input)
     && !/amex|american express|diners|visa|mastercard|isracard|אמריקן|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט|סוג הכרטיס|card type|card brand/iu.test(reply)) {

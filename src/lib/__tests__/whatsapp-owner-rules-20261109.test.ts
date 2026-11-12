@@ -508,3 +508,17 @@ describe('airport surcharge without an amount', () => {
     expect(r.reply).not.toMatch(/150|₪/);
   });
 });
+
+// Owner, 2026-11-12: answer like a person; mention the website only when asked about it.
+describe('airport surcharge wording', () => {
+  it('does not mention the website unless asked', async () => {
+    const r = await chat(null, 'x').send('יש תוספת על איסוף מנתב״ג?');
+    expect(r.reply).toMatch(/תוספת/);
+    expect(r.reply).not.toMatch(/אתר/);
+  });
+  it('explains the website estimate when the customer asks about it', async () => {
+    const r = await chat(null, 'x').send('באתר ראיתי מחיר, התוספת של נתב״ג כלולה בו?');
+    expect(r.reply).toMatch(/לא כלולה במחיר המשוער שמופיע באתר/);
+    expect(r.reply).not.toMatch(/150|₪/);
+  });
+});
