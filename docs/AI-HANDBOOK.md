@@ -1343,3 +1343,4 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 - 2026-11-12 — WhatsApp bot: Shabbat follow-up answered briefly, next missing route field asked; "לקבל רכב … בהרצליה" sets the pickup. No migrations.
 - 2026-11-12 — WhatsApp bot: a vehicle word as its own clause ("משפחתי.", "SUV.") in a go-ahead message sets the vehicle. No migrations.
 - 2026-11-12 — WhatsApp bot leasing: tentative "maybe … for 2 years" keeps term and named model; "pass it to someone" hands off. Evidence: evidence/20261112-chrome-en-leasing-tucson-early-exit.md. No migrations.
+- 2026-11-12 — WhatsApp bot: "תביאו לי רכב הביתה לפתח תקווה" = home delivery with the city. Evidence: evidence/20261112-chrome-he-home-delivery-pt.md. No migrations.

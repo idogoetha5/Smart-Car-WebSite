@@ -1970,8 +1970,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     }
     // Home delivery/collection: keep the customer's city (never a street address).
     const customerTexts = [input, ...state.history.filter(entry => entry.from === 'customer' && !entry.private).map(entry => entry.text)];
-    const deliveryAsked = customerTexts.some(text => /עד הבית|לבית שלי|לכתובת|מסירה (?:לבית|לכתובת|עד הבית)|deliver(?:y)? (?:to )?(?:my )?(?:home|house|address)|bring (?:the )?car to (?:my )?(?:home|house)/iu.test(text));
+    const deliveryAsked = customerTexts.some(text => /עד הבית|לבית שלי|לכתובת|הביתה|מסירה (?:לבית|לכתובת|עד הבית)|(?:תביאו|תביא|להביא|תשלחו)\s+(?:לי\s+|לנו\s+)?(?:את\s+)?(?:ה)?רכב\s+(?:הביתה|לבית|ל[\p{L}])|deliver(?:y)? (?:to )?(?:my )?(?:home|house|address)|bring (?:the )?car to (?:my )?(?:home|house)|deliver (?:it|the car) to\b/iu.test(text));
     const homeCity = customerTexts.map(text => text.match(/(?:^|[\s,])(?:אני|אנחנו|גר(?:ה|ים)?)\s+ב(?!בית)([\p{L}]{2,12}(?:\s+[\p{L}]{2,12})?)(?=[\s,.!?]|$)/u)?.[1]
+      ?? text.match(/(?:הביתה|לבית(?:\s+שלי)?|עד הבית)\s+ב?ל?(?!בית)([\p{L}]{2,12}(?:\s+[\p{L}]{2,12})?)(?=[\s,.!?]|$)/u)?.[1]
+      ?? text.match(/\b(?:deliver|bring)\b[^.!?]{0,30}\bto (?:my )?(?:home|house)? ?in ([A-Z][\p{L}]{2,15}(?:\s+[A-Z][\p{L}]{2,15})?)/u)?.[1]
       ?? text.match(/\b(?:I(?:'m| am)|we(?:'re| are)|I live|we live)\s+in\s+([A-Z][\p{L}]{2,15}(?:\s+[A-Z][\p{L}]{2,15})?)/u)?.[1]).find(Boolean);
     if (deliveryAsked && homeCity && !temporalLocation(homeCity)) {
       state.booking.pickupLocation ??= he ? `מסירה עד הבית (${homeCity})` : `Home delivery (${homeCity})`;

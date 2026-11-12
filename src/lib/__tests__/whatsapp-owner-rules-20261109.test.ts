@@ -737,3 +737,12 @@ describe('tentative leasing preferences', () => {
     expect(r.escalate).toBe(true);
   });
 });
+
+// Live Chrome on b1c2b59: "תביאו לי רכב הביתה לפתח תקווה" asked where to pick up.
+describe('home delivery phrased as "bring it home to <city>"', () => {
+  it('stores home delivery with the city', async () => {
+    const r = await chat(null, 'x').send('היי, אפשר שתביאו לי רכב הביתה לפתח תקווה? מ-3.12 עד 7.12');
+    expect(r.state.booking.pickupLocation).toBe('מסירה עד הבית (פתח תקווה)');
+    expect(r.reply).not.toMatch(/מאיפה תרצו לאסוף/);
+  });
+});
