@@ -705,8 +705,10 @@ describe('shabbat pickup', () => {
     const c = chat(null, 'הסניפים שלנו סגורים בשבת, אפשר לאסוף ביום שישי.');
     const first = await c.send('שלום, אפשר לקבל רכב בשבת בבוקר בהרצליה? 28.11 עד 1.12');
     expect(first.reply).toMatch(/אפשר לתאם מראש איסוף או החזרה בשבת/);
+    expect(first.state.booking.pickupLocation).toBe('הרצליה');
+    expect(first.reply).toMatch(/להחזיר/);
     const fee = await c.send('יש על זה תוספת?');
-    expect(fee.reply).toMatch(/בשבת עשויה להיות תוספת/);
+    expect(fee.reply).toMatch(/^כן, על איסוף או החזרה בשבת עשויה להיות תוספת/);
     expect(fee.reply).not.toMatch(/נתב/);
   });
 });

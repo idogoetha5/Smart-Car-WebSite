@@ -491,8 +491,9 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
   }
   if (draft.pickupLocation && !draft.returnLocation && /\bsame place\b|\bsame location\b|\breturn(?:ing)? (?:it )?there\b|לאותו מקום|באותו מקום/iu.test(input)) draft.returnLocation = draft.pickupLocation;
   // "צריך רכב לסופש מתל אביב": a branch after "מ" in a rental need is the pickup.
-  if (!draft.pickupLocation && /(?:צריך|צריכה|צריכים|רוצה|רוצים|מחפש|מחפשת|לשכור|להשכיר)\s+(?:[\p{L}]+\s+){0,4}?(?:רכב|אוטו)|(?:רכב|אוטו)\s+(?:[\p{L}]+\s+){0,3}?מ(?:תל אביב|הרצליה|ירושלים)/u.test(input)) {
-    const branch = input.match(/(?<![\p{L}])מ(תל אביב|הרצליה|ירושלים)(?![\p{L}])/u);
+  if (!draft.pickupLocation && /(?:צריך|צריכה|צריכים|רוצה|רוצים|מחפש|מחפשת|לשכור|להשכיר|לקבל|לאסוף)\s+(?:[\p{L}]+\s+){0,4}?(?:רכב|אוטו)|(?:רכב|אוטו)\s+(?:[\p{L}]+\s+){0,3}?מ(?:תל אביב|הרצליה|ירושלים)/u.test(input)) {
+    const branch = input.match(/(?<![\p{L}])מ(תל אביב|הרצליה|ירושלים)(?![\p{L}])/u)
+      ?? (!/להחזיר|החזרה|נחזיר|מחזיר/u.test(input) ? input.match(/(?<![\p{L}])ב(תל אביב|הרצליה|ירושלים)(?![\p{L}])/u) : null);
     const before = branch ? input.slice(Math.max(0, branch.index! - 12), branch.index!) : '';
     if (branch && !/(?:להחזיר|החזרה|נחזיר|מחזיר|עד|ל)\s*$/u.test(before)) draft.pickupLocation = branch[1];
   }
@@ -2521,9 +2522,14 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   const shabbatFeeFollowUp = /תוספת|עולה|יותר יקר|תשלום|extra|charge|fee|cost more/iu.test(input) && /(?:ב)?שבת|saturday|shabbat/iu.test(lastBotForFeeShabbat(state)) && !/נתב.?ג|airport/iu.test(input);
   if (!escalate && !state.handedOff && state.phase !== 'service' && !cancellationRequest(input) && !mentionsRentalChange(input)
     && (shabbatAsked && /[?؟]|אפשר|can i|could i|is it possible/iu.test(input) || shabbatFeeFollowUp) && !airportFeeAsked) {
-    const fact = getSmartCarApprovedFacts(state.locale).find(fact => fact.id === 'shabbat')?.text;
-    const next = !state.booking.returnLocation && state.booking.pickupLocation ? ` ${question('returnLocation', state.locale)}` : '';
-    if (fact) reply = `${fact}${next}`;
+    const fact = shabbatFeeFollowUp
+      ? (he ? 'כן, על איסוף או החזרה בשבת עשויה להיות תוספת תשלום. את הסכום ואת המחיר הסופי סוגרים מול נציג SmartCar.' : 'Yes, a Saturday pickup or return may carry an extra charge. The amount and the final price are set with a SmartCar representative.')
+      : getSmartCarApprovedFacts(state.locale).find(fact => fact.id === 'shabbat')?.text;
+    const missing = !state.booking.pickupDate ? (he ? 'לאילו תאריכים תצטרכו את הרכב?' : 'What dates do you need the car for?')
+      : !state.booking.returnDate ? question('returnDate', state.locale)
+      : !state.booking.pickupLocation ? question('pickupLocation', state.locale)
+      : !state.booking.returnLocation ? question('returnLocation', state.locale) : '';
+    if (fact) reply = `${fact}${missing ? ` ${missing}` : ''}`;
   }
   // "How much is the airport surcharge?" — a fixed, human answer without the amount (owner decision).
   const lastBotForFee = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
