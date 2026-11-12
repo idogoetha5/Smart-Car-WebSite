@@ -252,6 +252,12 @@ function relativeRentalDuration(input: string): { pickupDate: string; returnDate
 }
 
 function explicitDateRange(input: string): { pickupDate: string; returnDate: string } | null {
+  // "מחמישי 19.11 עד ראשון 22.11" / "thu 19.11 - sun 22.11": a weekday before an explicit date is decoration.
+  const withoutWeekdays = input
+    .replace(/(?<![\p{L}])([מל]?)(?:יום\s+)?(?:ה)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)\s+(?=(?:ה|ה-|ה־)?\d{1,2}[./])/gu, '$1')
+    .replace(/(?<![\p{L}])מיום\s+(?=\d{1,2}[./])/gu, 'מ')
+    .replace(/\b(?:mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)(?:day|nesday|sday|urday)?\.?,?\s+(?=\d{1,2}[./])/giu, '');
+  if (withoutWeekdays !== input) return explicitDateRange(withoutWeekdays);
   const mon: Record<string, number> = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };
   const abbrev = input.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\s*(?:to|until|till|-|–)\s*(?:(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?\s+)?(\d{1,2})(?:st|nd|rd|th)?\b/i);
   if (abbrev && !/\bwhat if\b|\bif\b|\bmaybe\b/i.test(input)) {
@@ -782,8 +788,14 @@ function driverAgeRange(input: string, state: RebuildState): '21-23' | '24-plus'
   const selfAge = input.match(/(?:^|[\s,])ו?אני\s+(?:(?:בן|בת)\s+)?(\d{2})(?!\d)|\b(?:I am|I'm)\s+(\d{2})(?!\d)|\b(?:I am|I['’]?m|im)\s+[\p{L}'-]{2,20}(?:\s+[\p{L}'-]{2,20})?,?\s+(?:aged\s+)?(\d{2})(?!\d)(?!\s*(?:days?|nights?|km|%|₪|nis))/iu);
   // "sarah cohen, 27" as its own clause: a name followed by the driver's age.
   const nameAge = input.trim().match(/(?:^|[.!]\s*|,\s*)[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*,\s*(\d{2})\s*[.!]?$/u)?.[1];
-  const primaryAge = input.match(/(?:הנהג הראשי|הנהגת הראשית|main driver|primary driver)\s+(?:(?:בן|בת|is|aged)\s+)?(\d{2})(?!\d)/iu)?.[1];
+  const primaryAge = input.match(/(?:הנהג הראשי|הנהגת הראשית|main driver|primary driver)\s+(?:(?:בן|בת|is|aged)\s+)?(\d{2})(?!\d)/iu)?.[1]
+    ?? input.match(/(?:ה)?נהג(?:ת)?\s+(?:ה)?ראשי(?:ת)?\s+(?:[\p{L}]+\s+){0,2}(?:בן|בת)\s*(\d{2})(?!\d)/u)?.[1];
   if (!selfAge && !primaryAge && !nameAge && !/(?:בן|בת|גיל|age|aged|\bI am\b|\bI'm\b)/i.test(input) && !(state.phase === 'booking' && state.step === 'rental_age')) return null;
+  // Another person's age ("הוא בן 25", "my friend is 25") is not the main driver's age.
+  const otherPersonAge = /(?:(?<![\p{L}])(?:הוא|היא|חבר(?:ה)?\s+שלי|אשתי|בעלי|אחי|אחותי|אבא שלי|אמא שלי|הבן שלי|הבת שלי|הנהג(?:ת)? הנוסף(?:ת)?|נהג(?:ת)? נוסף(?:ת)?)[^.!?\n]{0,25}(?:בן|בת)\s*\d{2})|\b(?:he|she|my (?:friend|wife|husband|partner|brother|sister|dad|mom|son|daughter)|the (?:other|second|additional) driver)(?:['’]s| is)?[^.!?\n]{0,15}\b\d{2}\b/iu.test(input);
+  // "אחותי בת 25 תנהג" names the driver; "שגם חבר שלי ינהג" adds one.
+  const otherIsTheDriver = /(?:תנהג|ינהג|נוהג|נוהגת|will (?:be )?driv|is (?:the )?driv)/iu.test(input) && !/(?:^|\s|ש)גם(?:\s|$)|נוסף|נוספת|\balso\b|\btoo\b|additional|second driver/iu.test(input);
+  if (otherPersonAge && !otherIsTheDriver && !selfAge && !primaryAge && !nameAge) return null;
   const age = primaryAge ?? nameAge ?? selfAge?.[1] ?? selfAge?.[2] ?? selfAge?.[3] ?? input.match(/(?:בן|בת|גיל|age(?:d)?(?: is)?|\bI am|\bI'm)\s*(\d{2})(?!\d)/i)?.[1]
     ?? (state.phase === 'booking' && state.step === 'rental_age' ? input.trim().match(/^(\d{2})$/)?.[1] : undefined);
   if (!age) return null;

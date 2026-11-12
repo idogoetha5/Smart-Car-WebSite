@@ -613,3 +613,20 @@ describe('car will not start', () => {
     expect(cancel.reply).not.toMatch(/keep driving/);
   });
 });
+
+// Live Chrome on 22edfad (young driver + friend): weekday-prefixed dates lost the pickup, and the
+// friend's age replaced the main driver's age group.
+describe('young driver with a friend', () => {
+  it('keeps the 21-23 group and reads weekday-prefixed dates', async () => {
+    const c = chat(null, 'x');
+    await c.send('אהלן אני בן 22, אפשר לשכור אצלכם? צריך רכב לסופש מתל אביב');
+    const dates = await c.send('מחמישי 19.11 עד ראשון 22.11, מחזיר בתל אביב');
+    expect(dates.state.booking).toMatchObject({ pickupDate: '2026-11-19', returnDate: '2026-11-22', returnLocation: 'תל אביב' });
+    const friend = await c.send('ואפשר שגם חבר שלי ינהג? הוא בן 25');
+    expect(friend.state.booking.driverAgeRange).toBe('21-23');
+  });
+  it.each(['מיום חמישי 19.11 עד יום ראשון 22.11', 'thu 19.11 to sun 22.11'])('weekday-prefixed range: %s', async (input) => {
+    const r = await chat(null, 'x').send(input);
+    expect(r.state.booking).toMatchObject({ pickupDate: '2026-11-19', returnDate: '2026-11-22' });
+  });
+});
