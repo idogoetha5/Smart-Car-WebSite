@@ -106,6 +106,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (hasAffirmativeMatch(reply, /\b(?:your|the|these|those)\s+(?:(?:one|two|three|four|five|\d+)\s+)?(?:bags|suitcases|luggage|stroller|child seat|equipment)\s+(?:will|can definitely|will definitely) fit\b|המזוודות (?:שלך |שלכם )?(?:ייכנסו|יתאימו)|העגלה (?:תיכנס|תתאים)/gi)) return reject('fit_assurance');
   if (hasAffirmativeMatch(reply, /\b(?:car|vehicle|seat) will fit (?:your|the|all)\b|(?:הרכב|הכיסא) יתאים בוודאות/gi)) return reject('fit_assurance');
   if (hasAffirmativeMatch(reply, /\b(?:we have (?:a |the )?(?:car|vehicle) available|(?:a car|the car|vehicle|it) is available (?:now|for|on)|available for (?:your|the) (?:dates|trip))\b|יש לנו רכב (?:פנוי|זמין)|הרכב (?:פנוי|זמין) (?:עכשיו|לתאריכים)/gi)) return reject('stock_assurance');
+  // Published fees (airport surcharge, Shabbat) may not be denied.
+  if (hasAffirmativeMatch(reply, /\bno (?:separate |extra |additional )?(?:public )?(?:branch |airport )?(?:fee|charge|surcharge)s?\b|\bfree of charge\b|\bat no (?:extra )?cost\b|(?:אין|ללא|בלי) (?:תוספת|עמלה|חיוב נוסף|תשלום נוסף)/giu)) return reject('fee_denial');
   if (hasAffirmativeMatch(reply, /\bin stock\b|יש במלאי|יש לנו (?:מבחר|מגוון|כמה|הרבה|רכבים)|\bwe (?:have|carry|offer) (?:a (?:wide |great |good )?(?:range|selection|variety)|several|plenty|many) (?:of )?(?:cars|vehicles|models|options)\b/giu)) return reject('stock_assurance');
   // The assistant can prepare a request for review, never reserve a car or
   // update a request that does not exist yet.

@@ -458,4 +458,29 @@ describe('used-car purchase', () => {
     expect(r.reply).not.toMatch(/יש לנו מבחר/);
     expect(r.reply).toContain('https://www.smartcar.co.il/he/cars-for-sale');
   });
+  it('does not repeat the link on the next turn and fixes "בה בהחלט"', async () => {
+    const c = chat(null, 'אפשר בה בהחלט לתאם הגעה לסניף. איזה סניף נוח לכם?');
+    await c.send('היי ראיתי שאתם מוכרים רכבים משומשים, יש לכם משהו משפחתי?');
+    const r = await c.send('אפשר לבוא לראות מחר?');
+    expect(r.reply).not.toContain('cars-for-sale');
+    expect(r.reply).not.toMatch(/בה בהחלט/);
+  });
+});
+
+// Live Chrome on d4441bb (English tourist at Ben Gurion): arrival not taken as pickup, and the model
+// denied the published ₪150 airport surcharge.
+describe('airport arrival and surcharge', () => {
+  it('takes landing at the airport as pickup and returning there as return', async () => {
+    const r = await chat(null, 'A compact is a good start.', 'en').send('hi! landing at ben gurion dec 4 at 11pm, need a small car till dec 10, returning at the airport too');
+    expect(r.state.booking).toMatchObject({ pickupLocation: 'Ben Gurion Airport', returnLocation: 'Ben Gurion Airport' });
+  });
+  it('states the airport surcharge and never denies it', async () => {
+    const r = await chat(null, 'There is no separate public branch fee for airport collection.', 'en').send('is there an extra charge for the airport?');
+    expect(r.reply).not.toMatch(/no separate/i);
+    expect(r.reply).toMatch(/₪150/);
+  });
+  it('hebrew arrival', async () => {
+    const r = await chat(null, 'x').send('אנחנו נוחתים בנתב״ג ב-4.12 בלילה וצריכים רכב עד 10.12, נחזיר גם בנתב״ג');
+    expect(r.state.booking).toMatchObject({ pickupLocation: 'נתב״ג', returnLocation: 'נתב״ג' });
+  });
 });

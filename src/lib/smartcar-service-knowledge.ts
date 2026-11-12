@@ -11,7 +11,7 @@ export type ServiceLocale = 'he' | 'en';
 export type ServiceKnowledgeTopic =
   | 'insurance' | 'deposit' | 'fuel' | 'mileage' | 'driver_documents'
   | 'age_licence' | 'different_location' | 'cancellation' | 'availability'
-  | 'damage_accident' | 'opening_hours' | 'branches' | 'fines' | 'toll_roads';
+  | 'damage_accident' | 'opening_hours' | 'branches' | 'fines' | 'toll_roads' | 'airport_fee';
 
 export type ServiceKnowledgeAnswer = {
   topic: ServiceKnowledgeTopic;
@@ -73,6 +73,11 @@ export const ANSWERS: Record<ServiceKnowledgeTopic, LocalisedAnswer> = {
     topic: 'fines', href: '/terms', linkLabelHe: 'לתנאי הדוחות והקנסות', linkLabelEn: 'Fines terms',
     he: 'לפי תנאי ההשכרה, דוחות, קנסות ועיצומים מתקופת השכירות חלים על השוכר. דוחות חניה ומהירות שמגיעים לחברה אחרי החזרת הרכב מועברים לשוכר בדואר רשום, ואי־תשלום תוך 30 יום ממסירתם נושא ריבית פיגורים. החברה רשאית לנכות מהפיקדון קנסות מתקופת השכירות.',
     en: 'Under the rental terms, fines, tickets and penalties from the rental period are the renter’s responsibility. Parking and speeding notices that reach the company after return are forwarded to the renter by registered mail, and unpaid fines after 30 days carry statutory late interest. The company may deduct fines from the rental period from the deposit.',
+  },
+  airport_fee: {
+    topic: 'airport_fee', href: '/terms', linkLabelHe: 'לתנאי ההשכרה', linkLabelEn: 'Rental terms',
+    he: 'איסוף או החזרה בנתב״ג כרוכים בתוספת של 150 ₪, שאינה כלולה במחיר המשוער באתר. המסירה בנתב״ג מתואמת מראש ופועלת 24/7. המחיר הסופי נסגר מול נציג SmartCar.',
+    en: 'Pickup or return at Ben Gurion Airport carries a ₪150 surcharge, not included in the website estimate. Airport handover is arranged in advance and runs 24/7. The final price is set with a SmartCar representative.',
   },
   toll_roads: {
     topic: 'toll_roads', href: '/terms', linkLabelHe: 'לתנאי ההשכרה', linkLabelEn: 'Rental terms',
@@ -138,6 +143,7 @@ export function getSmartCarApprovedFacts(locale: ServiceLocale): SmartCarApprove
 }
 
 const TOPIC_PATTERNS: Array<[ServiceKnowledgeTopic, RegExp]> = [
+  ['airport_fee', /(?:נתב.?ג|שדה (?:ה)?תעופה|airport|ben gurion).{0,40}(?:תוספת|עמלה|תשלום נוסף|חיוב נוסף|עולה|יקר|extra|surcharge|fee|charge|cost)|(?:תוספת|עמלה|תשלום נוסף|extra|surcharge|fee|charge).{0,40}(?:נתב.?ג|שדה (?:ה)?תעופה|airport|ben gurion)/iu],
   ['toll_roads', /כביש\s*6|כביש אגרה|כבישי אגרה|נתיב(?:י)? (?:ה)?אגרה|הנתיב המהיר|highway\s*6|road\s*6|route\s*6|toll(?:\s*road|s)?\b|fast lane/i],
   ['fines', /דו["״׳']?ח(?:ות)?\s+(?:חניה|מהירות|תנועה)|קנס|קנסות|עיצום|parking (?:ticket|fine)|speeding (?:ticket|fine)|traffic (?:ticket|fine)|\bgot (?:a |an )?(?:fine|ticket)\b|\bfined\b/i],
   ['damage_accident', /תאונה|התנגשות|נזק|פגיעה|גניבה|accident|collision|damage|theft/i],

@@ -167,7 +167,7 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
       if (process.env.NODE_ENV === 'production') console.warn('WhatsApp AI draft fallback', { reason });
     },
   });
-  return validated && state.locale === 'he' ? neutralHebrewAddress(validated).replace(/(?<![\p{L}])ממ(?=ירושלים)/gu, 'מ') : validated;
+  return validated && state.locale === 'he' ? neutralHebrewAddress(validated).replace(/(?<![\p{L}])ממ(?=ירושלים)/gu, 'מ').replace(/(?<![\p{L}])בה בהחלט/gu, 'בהחלט') : validated;
 }
 
 /** "אני משה כהן" / "שמי דנה לוי" / "קוראים לי רון" as its own clause. Verbs, ages,
@@ -472,6 +472,13 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
   const enReturn = input.match(/(?:return|drop.?off)\s+(?:(?:the car|it)\s+)?(?:(?:will be|will remain|stays?|remains?)\s+)?(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:on\s+\d{1,2}|tomorrow|today|day after tomorrow|for\s+(?:one|two|three|four|five)\s+days?)|[,.!?]|$)/iu)?.[1];
   const returnLocation = (heReturn ?? enReturn)?.split(/\s+(?:במקום|instead of)\s+/i)[0].trim().replace(/(?:\s+(?:בסוף|לבסוף|כרגיל|בבקשה|גם|אחר כך|please|too|as well|also|then))+$/iu, '');
   if (returnLocation && !temporalLocation(returnLocation)) draft.returnLocation = returnLocation;
+  // "landing at ben gurion" / "נוחתים בנתב״ג": arrival at the airport is the pickup;
+  // "returning at the airport (too)" is the return.
+  const airportLabel = /[א-ת]/u.test(input) && !/[a-z]{4,}/i.test(input) ? 'נתב״ג' : 'Ben Gurion Airport';
+  const airportWord = '(?:ben gurion(?: airport)?|tlv(?: airport)?|natbag|the airport|airport|נתב.?ג|נמל התעופה|שדה התעופה)';
+  if (!draft.pickupLocation && new RegExp(`\\b(?:landing|land|arriving|arrive|fly(?:ing)? into)\\s+(?:at|in|to|into)?\\s*${airportWord}|(?:נוחת(?:ים|ת)?|נוחתות|ננחת|אנחת|מגיע(?:ים|ה)?)\\s+(?:ל|ב)${airportWord.replace('(?:', '(?:')}`, 'iu').test(input)
+    && !/(?:^|\s)אם\s|\bif\b|what if/iu.test(input)) draft.pickupLocation = airportLabel;
+  if (!draft.returnLocation && new RegExp(`\\b(?:returning|return(?:ing)? it|drop(?:ping)? (?:it )?off)\\s+(?:at|to)\\s+${airportWord}|(?:מחזיר(?:ים|ה)?|נחזיר|להחזיר)\\s+(?:גם\\s+)?(?:ב|ל)${airportWord}`, 'iu').test(input)) draft.returnLocation = airportLabel;
   if (bothLabel) { draft.pickupLocation = bothLabel; draft.returnLocation = bothLabel; }
   const dateText = `(?:\\d{1,2}[./]\\d{1,2}(?:[./]20\\d{2})?|\\d{1,2}\\s+(?:ב)?(?:${Object.keys(MONTHS).join('|')})(?:\\s+20\\d{2})?)`;
   // Parse each labelled date independently: customers may correct the return
@@ -2399,6 +2406,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   // A pre-purchase inspection question gets a car-specific, non-promising answer.
   // Purchase: point to the published cars-for-sale page instead of describing stock.
   if (state.interest === 'sale' && !escalate && !state.handedOff && !/cars-for-sale/.test(reply)
+    && !state.history.slice(-4).some(entry => entry.from === 'bot' && /cars-for-sale/.test(entry.text))
     && /יש לכם|מה יש|אילו רכבים|איזה רכבים|דגמים|אפשרויות|מלאי|לראות|לבוא|what (?:do you have|cars|models)|available|options|stock|come (?:and )?see|view (?:it|them|the car)/iu.test(input)) {
     reply = `${reply.trim()}\n\n${he ? 'את הרכבים שמוצעים כרגע למכירה אפשר לראות כאן: https://www.smartcar.co.il/he/cars-for-sale' : 'You can see the cars currently offered for sale here: https://www.smartcar.co.il/en/cars-for-sale'}`;
   }
