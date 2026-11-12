@@ -2222,7 +2222,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         || /תבדקו|תבדוק|תבדקי|בדקו לי|check (?:it|that|for me)|go ahead|please do/iu.test(input)
           && state.history.filter(entry => entry.from === 'bot').slice(-3).some(entry => offersServiceChangeReview(entry.text));
       const acceptsChangeReview = (affirms(input) || insistsOnOffer || leadingYes || /^(?:okay|ok)[.!?\s]*$/i.test(input) || /^(?:כן[,\s]*)?(?:תבדקו|תבדוק|בדקו)(?:\s+לי)?/iu.test(input.trim())) && recentChangeOffer && !advisoryRentalChange(input);
-      if (rentalChangeRequest(input) || acceptsChangeReview) state.serviceChangeRequested = true;
+      // "כן תבדקו לי, הזמנה 771204" after an extension discussion asks for the check even without an explicit offer.
+      const asksToCheckChange = /(?:^|[\s,])(?:תבדקו|תבדוק|תבדקי|בדקו)(?:\s+לי|\s+את זה)?(?![\p{L}])|\b(?:please )?check (?:it|that|for me)\b|\bgo ahead and check\b/iu.test(input)
+        && !/(?:^|\s)(?:לא|אל)\s+תבדק|\bdon['’]?t check\b/iu.test(input)
+        && state.history.some(entry => entry.from === 'customer' && mentionsRentalChange(entry.text));
+      if (rentalChangeRequest(input) || acceptsChangeReview || asksToCheckChange) state.serviceChangeRequested = true;
       const changePending = state.serviceChangeRequested === true;
       const changeDiscussion = mentionsRentalChange(input) || state.history.some(entry => entry.from === 'customer' && mentionsRentalChange(entry.text));
       const directChangeVerb = /לקצר|קיצור|תקצרו|shorten|לשנות|לשינוי|להאריך|לדחות|לדחייה|להקדים|להזיז|יום ההחזרה|יום מאוחר|change|extend|postpone|move (?:the )?return|return date/i.test(input);
@@ -2236,7 +2240,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         reply = he ? `אפשר לבקש להזיז את מועדי ההזמנה. לפי תנאי ההשכרה, שינוי תאריכים בלי חיוב נוסף אפשרי עד 48 שעות לפני האיסוף, בכפוף לזמינות ולאישור SmartCar. ${suppliedReference ? 'לאילו תאריכים תרצו להזיז?' : 'מה מספר ההזמנה, ולאילו תאריכים תרצו להזיז?'}`
           : `You can ask to move the booking dates. Under the rental terms, date changes are free up to 48 hours before pickup, subject to availability and SmartCar confirmation. ${suppliedReference ? 'Which dates would you like instead?' : 'What is the booking number, and which dates would you like instead?'}`;
       } else if (!cancellationPending && !changePending && changeDiscussion) {
-        reply = answer?.reply ?? (he ? 'אפשר לברר על הארכה בלי להגיש בקשת שינוי. עד לאישור מפורש, מועד ההחזרה המקורי מחייב, והמחיר עשוי להשתנות.' : 'We can discuss an extension without submitting a change request. Until explicitly approved, the original return deadline remains binding and the price may change.');
+        reply = answer?.reply ?? (he ? 'אפשר לבקש הארכה. היא כפופה לזמינות ולאישור SmartCar, ועד לאישור מפורש מועד ההחזרה המקורי מחייב והמחיר עשוי להשתנות. תרצו שנבדוק את ההארכה עבורכם?' : 'You can ask for an extension. It is subject to availability and SmartCar confirmation; until explicitly approved, the original return deadline remains binding and the price may change. Would you like us to check the extension for you?');
       } else if (!cancellationPending && changePending && advisoryChange) {
         reply = he ? 'אפשר לברר על הארכה בלי להגיש בקשת שינוי כרגע. הארכה כפופה לזמינות, לתנאים ולאישור SmartCar; עד לאישור, מועד ההחזרה הקיים נשאר בתוקף והמחיר עשוי להשתנות.' : 'We can discuss an extension without submitting a change request now. An extension depends on availability, terms and SmartCar confirmation; until confirmed, the current return deadline remains in effect and the price may change.';
       } else if (!cancellationPending && changePending && !directChangeVerb && !suppliedReference && !booking) {

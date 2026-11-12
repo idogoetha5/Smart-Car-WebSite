@@ -666,3 +666,15 @@ describe('extension accepted after a side question', () => {
     expect(r.reply).toMatch(/בקשת השינוי|הארכה/);
   });
 });
+
+describe('extension check requested without an explicit offer', () => {
+  it('hands off "כן תבדקו לי, הזמנה …" after an extension question', async () => {
+    const c = chat(null, 'x');
+    const first = await c.send('היי אני עם הרכב שלכם עכשיו באילת, אפשר להחזיר אותו בעוד יומיים במקום מחר?');
+    expect(first.reply).toMatch(/תרצו שנבדוק/);
+    await c.send('ואם אני מחזיר בלי דלק מלא מה קורה?');
+    const r = await c.send('כן תבדקו לי, הזמנה 771204');
+    expect(r.escalate).toBe(true);
+    expect(r.state.handoffKind).toBe('booking_change');
+  });
+});
