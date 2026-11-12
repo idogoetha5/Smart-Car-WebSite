@@ -24,6 +24,9 @@ export default function ServiceExtras({ type, locale, fleet }: { type: string; l
                   ? (isHe ? 'רכבים קטנים שמתאימים לנהגים חדשים' : 'Small cars that suit new drivers')
                   : (isHe ? 'דוגמאות מהצי' : 'Examples from our fleet')}
             </h2>
+            <p className="mb-4 text-start text-gray-700 leading-relaxed">
+              {isHe ? 'אלה רק כמה דוגמאות מתוך הצי. את כל הרכבים אפשר לראות בדף הרכבים.' : 'These are only a few examples from the fleet. All the cars are on the cars page.'}
+            </p>
             <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {vehicles.map(vehicle => {
                 const name = `${vehicle.make} ${vehicle.model}`;
@@ -45,7 +48,7 @@ export default function ServiceExtras({ type, locale, fleet }: { type: string; l
             </ul>
             <p className="mt-4 text-sm text-start">
               <Link href={`/${locale}/${type === 'commercial' ? 'rental?category=COMMERCIAL' : 'rental'}`} className="font-semibold text-[#2D5F5F] underline underline-offset-4">
-                {isHe ? 'לכל הרכבים ובחירת תאריכים' : 'See all cars and choose dates'}
+                {isHe ? 'לכל הרכבים בצי' : 'See the whole fleet'}
               </Link>
             </p>
           </div>

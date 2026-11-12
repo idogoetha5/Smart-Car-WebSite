@@ -14,6 +14,11 @@ export default function BranchLocalGuide({ local, city, locale, vehicles }: { lo
           <h2 id="branch-cars" className="text-2xl font-bold text-[#0D2B2B] mb-4">
             {isHe ? `רכבים להשכרה ב${city}` : `Cars to rent in ${city}`}
           </h2>
+          <p className="mb-4 text-gray-700 leading-relaxed">
+            {isHe
+              ? 'אלה רק כמה דוגמאות. הצי של SmartCar כולל יותר מ־400 רכבים מכל הסוגים, וכולם זמינים להזמנה גם כאן.'
+              : 'These are only a few examples. The SmartCar fleet has more than 400 vehicles of every type, all available to book here too.'}
+          </p>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {vehicles.map(vehicle => {
               const name = `${vehicle.make} ${vehicle.model}`;
@@ -32,11 +37,12 @@ export default function BranchLocalGuide({ local, city, locale, vehicles }: { lo
               );
             })}
           </ul>
-          <p className="mt-3 text-sm">
-            <Link href={`/${locale}/rental`} className="font-semibold text-[#2D5F5F] underline underline-offset-4">
-              {isHe ? 'לכל הרכבים ובחירת תאריכים' : 'See all cars and choose dates'}
-            </Link>
-          </p>
+          <Link
+            href={`/${locale}/rental`}
+            className="mt-4 flex min-h-12 items-center justify-center rounded-xl bg-[#2D5F5F] px-5 py-3 font-bold text-white hover:bg-[#1a3f3f] transition-colors"
+          >
+            {isHe ? 'לכל הרכבים בצי' : 'See the whole fleet'}
+          </Link>
         </section>
       )}
 
