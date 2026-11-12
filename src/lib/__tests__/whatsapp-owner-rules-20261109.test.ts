@@ -775,3 +775,19 @@ describe('home collection acknowledged', () => {
     expect(r.reply).toMatch(/איזה רכב/);
   });
 });
+
+// Live Chrome on 614fa1f (English, scraped in a parking lot): no handoff, a liability "yes you pay",
+// a generic line for "can i keep driving" and "my booking is 905512" not parsed.
+describe('parking-lot scrape on a rental', () => {
+  it('hands off, does not decide liability and takes the booking number', async () => {
+    const c = chat(null, 'Yes, repair costs up to the excess are the renter\'s responsibility.', 'en');
+    const first = await c.send('ugh someone scraped my rental in a parking lot in tel aviv, small dent on the rear door. nobody hurt');
+    expect(first.escalate).toBe(true);
+    expect(first.reply).toContain('09-9509757');
+    const pay = await c.send('do i have to pay for it?');
+    expect(pay.reply).not.toMatch(/renter's responsibility|yes, you/i);
+    const ref = await c.send('ok thanks, my booking is 905512');
+    expect(ref.state.serviceReference).toBe('905512');
+    expect(ref.reply).toContain('905512');
+  });
+});

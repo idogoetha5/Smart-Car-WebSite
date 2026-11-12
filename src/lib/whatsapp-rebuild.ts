@@ -416,7 +416,7 @@ function cancellationRequest(input: string): boolean {
 }
 
 function explicitServiceReference(input: string): string | undefined {
-  const bare = input.match(/(?:^|[\s,.])(?:ה)?הזמנה\s+(?:שלי\s+)?(\d{5,12})(?!\d)|\b(?:booking|reservation|ref\.?|ref(?:erence)? (?:no\.?|number|#))\s*#?\s*(\d{5,12})(?!\d)/iu);
+  const bare = input.match(/(?:^|[\s,.])(?:ה)?הזמנה\s+(?:שלי\s+)?(\d{5,12})(?!\d)|\b(?:booking|reservation|ref\.?|ref(?:erence)? (?:no\.?|number|#))(?:\s+(?:is|number|no\.?|#))?\s*#?\s*(\d{5,12})(?!\d)/iu);
   if (bare && !/(?:\d{5,12})\s*(?:₪|ש["״]?ח|nis|ils|km|ק["״]?מ)/iu.test(input)) return bare[1] ?? bare[2];
   const value = input.match(/(?:מספר\s+ה?הזמנה|booking\s+number|(?:booking\s+)?reference|(?:booking|הזמנה)\s*#|ההזמנה\s+שלי\s+מספר\s*#)[\s,:#]*(?:(?:שלי|הוא|it\s+is|it['’]s|is)[\s,:#]*)*([A-Z0-9-]*\d[A-Z0-9-]{2,})(?![A-Z0-9-])/i)?.[1];
   return value && value.length <= 40 ? value : undefined;
@@ -872,7 +872,7 @@ function safety(input: string): 'accident' | 'breakdown' | null {
 }
 
 function reportedRentalDamage(input: string): boolean {
-  return /(?:רכב(?:י|נו)? השכור|הרכב השכור|רכב ששכרתי|שכרתי (?:את )?הרכב|הרכב שלכם|(?:my|the|our) rental car|car (?:i|we) rented|your car)/i.test(input)
+  return /(?:רכב(?:י|נו)? השכור|הרכב השכור|רכב ששכרתי|שכרתי (?:את )?הרכב|הרכב שלכם|(?:my|the|our) rental(?: car)?\b|car (?:i|we) rented|your car)/i.test(input)
     && /שרט|שריט|שפשוף|נזק|מכה(?:\s+(?:בדלת|בחניה|ברכב))?|פגיעה|מעוך|נמעך|פגוש|\b(?:scratch(?:ed|es)?|scrap(?:e|ed)|dent(?:ed|s)?|damage(?:d)?|bumper)\b/i.test(input);
 }
 

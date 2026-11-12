@@ -83,6 +83,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (!/deposit|פיקדון/iu.test(reply) && /(?:refund|זיכוי|החזר(?: הכספי| הכסף)?)[^.!?\n]{0,90}(?:\d+\s*)?(?:(?:a few|several|few)\s+)?(?:business days|working days|days|weeks|ימי עסקים|ימים|שבועות)/iu.test(reply)) return reject('refund_timing');
   // Invoices/receipts in a company name are confirmed by a representative, not promised in chat.
   if (hasAffirmativeMatch(reply, /\b(?:we|I) (?:can|will|'ll) (?:issue|provide|send|prepare|make out) (?:you )?(?:an? |the )?(?:invoice|receipt)|\byes,? (?:we|you) can (?:get|have|receive) (?:an? )?(?:invoice|receipt)|(?:נוציא|נשלח|נכין|אפשר להוציא|ניתן להוציא|נפיק)\s+(?:לכם\s+)?(?:חשבונית|קבלה)/giu)) return reject('invoice_claim');
+  // Liability for damage is decided by SmartCar after review, never in chat.
+  if (hasAffirmativeMatch(reply, /\byes,? (?:you|the renter) (?:will |would )?(?:have to|need to|must)? ?pay\b|\b(?:are|is) the renter['’]?s responsibility\b|\byou (?:will|would) (?:have to )?pay (?:for (?:it|the damage|the repair)|up to)\b|(?:כן,?\s+)?(?:תצטרכו|תצטרך|תשלמו|אתם משלמים|באחריותכם)\s+(?:לשלם\s+)?(?:על\s+)?(?:הנזק|התיקון|ההשתתפות)/giu)) return reject('liability_claim');
   // Instruction text leaking into the reply ("רק אם הלקוח שואל…", "if the customer asks").
   if (/(?:^|[\s:,(])(?:ה)?לקוח(?:ה|ות)?\s+(?:שואל|שואלת|שאל|שאלה|מבקש|מבקשת|לא שאל)|רק אם הלקוח|\b(?:if|when|only if) the customer (?:asks|asked|wants|did not)\b|\bthe customer (?:asks|asked)\b|approvedFacts|\bfact\b:/iu.test(reply)) return reject('instruction_leak');
   // "תודה רציתי לשאול," — names reach the model redacted, so a salutation with a name-like
