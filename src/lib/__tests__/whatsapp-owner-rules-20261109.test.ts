@@ -814,3 +814,19 @@ describe('route clause is not a name', () => {
     expect(r.state.booking.customerName).toBe('דוד מזרחי');
   });
 });
+
+// Live Chrome on 39764b1 (English used-car purchase): no listing link, "Yes, we offer financing",
+// and the enquiry switched to leasing.
+describe('english used-car purchase with financing', () => {
+  it('links the listing, does not promise financing and stays a purchase', async () => {
+    const c = chat(null, 'Yes, we offer financing options for vehicle purchases. Would you prefer leasing or a direct purchase?', 'en');
+    const first = await c.send('hey do you sell used cars? looking for a hybrid under 90k shekels');
+    expect(first.reply).toContain('https://www.smartcar.co.il/en/cars-for-sale');
+    const fin = await c.send('do you do financing?');
+    expect(fin.reply).not.toMatch(/we offer financing/i);
+    expect(fin.state.interest).toBe('sale');
+    const call = await c.send('ok have someone call me, im noa');
+    expect(call.escalate).toBe(true);
+    expect(call.reply).not.toMatch(/leasing/i);
+  });
+});

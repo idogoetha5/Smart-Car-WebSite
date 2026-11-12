@@ -2050,7 +2050,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       && (!state.booking.vehicleNeed || /^רכב (?:לנוסע אחד|ל־\d+ נוסעים)|^car for \d+ passengers?/i.test(state.booking.vehicleNeed)
         || /בעצם|מעדיף|במקום|החלטתי על|החלטנו על|בוחר|בוחרת|actually|instead|prefer/i.test(input))) state.booking.vehicleNeed = statedVehicle;
     if (rentalPivot || switchesToRental) { carryCommercialRentalNeeds(state); state.interest = undefined; delete state.commercial; }
-    else if (reading?.route === 'leasing' || /ליסינג|leasing/i.test(input)) state.interest = 'leasing';
+    // A purchase customer asking about financing stays a purchase enquiry unless they name leasing.
+    else if (/ליסינג|leasing/i.test(input) || reading?.route === 'leasing' && state.interest !== 'sale') state.interest = 'leasing';
     else if (reading?.route === 'sale' || state.phase !== 'booking' && /נסיעת מבחן|test drive/i.test(input) || /לקנייה|למכירה|רכב לקנות|רוצה לקנות|לקנות (?:את ה)?רכב|(?:מוכרים|מוכרות|מוכר) (?:גם )?רכבים|רכב יד (?:2|שתיים|שנייה)|יד (?:2|שתיים|שנייה)(?![\p{L}\d])|רכב משומש|buy(?:ing)? (?:a |the )?(?:used |new )?(?:family |compact |small |suv )?(?:car|vehicle)|purchas(?:e|ing) (?:a |the )?car|car for sale|used car/iu.test(input)) state.interest = 'sale';
     if (state.interest) {
       if (!state.commercial) {
@@ -2495,7 +2496,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   // Purchase: point to the published cars-for-sale page instead of describing stock.
   if (state.interest === 'sale' && !escalate && !state.handedOff && !/cars-for-sale/.test(reply)
     && !state.history.slice(-4).some(entry => entry.from === 'bot' && /cars-for-sale/.test(entry.text))
-    && /יש לכם|מה יש|אילו רכבים|איזה רכבים|דגמים|אפשרויות|מלאי|לראות|לבוא|what (?:do you have|cars|models)|available|options|stock|come (?:and )?see|view (?:it|them|the car)/iu.test(input)) {
+    && /יש לכם|מה יש|אילו רכבים|איזה רכבים|דגמים|אפשרויות|מלאי|לראות|לבוא|מוכרים|למכירה|what (?:do you have|cars|models)|available|options|stock|come (?:and )?see|view (?:it|them|the car)|do you sell|for sale|used cars?/iu.test(input)) {
     reply = `${reply.trim()}\n\n${he ? 'את הרכבים שמוצעים כרגע למכירה אפשר לראות כאן: https://www.smartcar.co.il/he/cars-for-sale' : 'You can see the cars currently offered for sale here: https://www.smartcar.co.il/en/cars-for-sale'}`;
   }
   if (state.interest === 'sale' && !escalate && /בדיקה במכון|מכון בדיקה|בדיקת מכון|לבדוק במוסך|pre[- ]?purchase inspection|mechanic(?:al)? (?:check|inspection)|inspection before/iu.test(input) && !/מכון|inspection/iu.test(reply)) {
