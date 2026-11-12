@@ -433,3 +433,20 @@ describe('leasing Kia Niro replay', () => {
     expect(yes.escalate).toBe(true);
   });
 });
+
+// Live Chrome on 98003bd (English business leasing): "3 yrs" and "25k a year" were not taken,
+// so the bot asked for the term three times.
+describe('english business leasing shorthand', () => {
+  it('takes yrs, k-a-year mileage, fleet size and the go-ahead', async () => {
+    let state = { version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: {}, history: [] } as RebuildState;
+    const readTurn = vi.fn(async () => ({ route: 'explore', direction: 'none', fields: {}, reply: 'Business leasing for an Octavia is a good fit. Is there anything else you would like to add?', source: 'gemini', model: 'f', groundedContext: true } as BotReading));
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn };
+    await getRebuiltBotReply('biz', 'hey, looking at business leasing for 2 company cars, something like a skoda octavia, 3 yrs', store);
+    expect(state.commercial).toMatchObject({ termMonths: 36, fleetSize: 2, vehicleModel: 'skoda octavia' });
+    const second = await getRebuiltBotReply('biz', 'each does maybe 25k a year', store);
+    expect(state.commercial?.annualMileageKm).toBe(25000);
+    expect(second.reply).toMatch(/representative/i);
+    const go = await getRebuiltBotReply('biz', 'sure pass it on. its for my company, im avi', store);
+    expect(go.escalate).toBe(true);
+  });
+});

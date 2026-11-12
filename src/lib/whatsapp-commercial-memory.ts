@@ -9,6 +9,8 @@ export type CommercialMemory = {
   vehiclePreference?: 'compact' | 'family' | 'suv' | 'seven_seat' | null;
   /** A named model in the customer's own words ("קורולה היברידית"), for the representative. */
   vehicleModel?: string;
+  /** Number of vehicles for a business enquiry ("2 company cars"). */
+  fleetSize?: number;
   usage?: Array<'city' | 'family' | 'business' | 'long_distance' | 'commuting'>;
   passengers?: number;
   luggage?: number;
@@ -87,12 +89,12 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   }
   const namedYears = text.match(/(?:ל)?(שלוש|ארבע|חמש)\s+שנים/u);
   if (namedYears && !negatedBefore(text, namedYears.index!)) termMatches.push({ value: ({ שלוש: 3, ארבע: 4, חמש: 5 }[namedYears[1]] ?? 0) * 12, index: namedYears.index!, evidence: namedYears[0] });
-  for (const match of text.matchAll(/\b(\d{1,3}|one|two|three|four|five)\s*(months?|years?)\b|(\d{1,3})\s*(חודשים|חודש|שנים|שנה)|שנתיים|לשנה/giu)) {
+  for (const match of text.matchAll(/\b(\d{1,3}|one|two|three|four|five)\s*(months?|mos?|years?|yrs?)\b|(\d{1,3})\s*(חודשים|חודש|שנים|שנה)|שנתיים|לשנה/giu)) {
     if (negatedBefore(text, match.index!) || termChoicePrefix(text, match.index!).hypothetical) continue;
     if (match[0] === 'לשנה' && /(?:קמ|ק[״"]מ|קילומטר(?:ים)?|km)\s*$/i.test(text.slice(Math.max(0, match.index! - 18), match.index!))) continue;
     const wordNumbers: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5 };
     const number = match[1] ? wordNumbers[match[1].toLowerCase()] ?? Number(match[1]) : match[3] ? Number(match[3]) : /שנתיים/.test(match[0]) ? 2 : 1;
-    const months = /year|שנ/i.test(match[2] ?? match[4] ?? match[0]) ? number * 12 : number;
+    const months = /year|yr|שנ/i.test(match[2] ?? match[4] ?? match[0]) ? number * 12 : number;
     if (months >= 1 && months <= 120) termMatches.push({ value: months, index: match.index!, evidence: match[0] });
   }
   const comparesTerms = /(?:\b24\b.{0,25}\b36\b|\b36\b.{0,25}\b24\b)/i.test(text)
@@ -121,6 +123,14 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
       if (negatedBefore(text, match.index!) || /\bwhat if\b|\bif\b|מה אם|(?:^|\s)אם\s/iu.test(clause)) continue;
       const value = amount(match[1], match[2]);
       if (value > 0 && value <= 200000) next.annualMileageKm = value;
+    }
+    // "each does maybe 25k a year" / "בערך 20 אלף בשנה": a thousands figure per year with no currency.
+    const bareAnnual = new RegExp(`${NUMBER}\\s*(אלף|thousand|k\\b)\\s*(?:a year|per year|annually|/\\s*(?:year|yr)|לשנה|בשנה)`, 'giu');
+    for (const match of text.matchAll(bareAnnual)) {
+      const clause = text.slice(0, match.index! + match[0].length).split(/[.!?;\n]/u).at(-1) ?? '';
+      if (negatedBefore(text, match.index!) || /\bwhat if\b|\bif\b|מה אם|(?:^|\s)אם\s|₪|ש["״]?ח|\$|€|\bnis\b|shekel|budget|תקציב|salary|משכורת/iu.test(clause)) continue;
+      const value = amount(match[1], match[2]);
+      if (value >= 1000 && value <= 200000) next.annualMileageKm = value;
     }
     const labelledMileage = new RegExp(`(?:annual mileage|קילומטראז[׳']?\\s+שנתי)(?:\\s+(?:is|now|הוא|עכשיו))*[ :]*${NUMBER}`, 'giu');
     for (const match of text.matchAll(labelledMileage)) {
@@ -174,6 +184,11 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
     if (count > 0 && count <= 20) next[/נוסעים|אנשים|passenger|people/i.test(match[2]) ? 'passengers' : 'luggage'] = count;
   }
   if (/זוג (?:עם|ו)\s*שני ילדים|two adults and two children|two adults with two children/i.test(text)) next.passengers = 4;
+  const fleet = text.match(/(?<![\p{L}\d])(\d{1,2}|two|three|four|five|six|ten|שני|שתי|שלושה|ארבעה|חמישה)\s+(?:company\s+|business\s+)?(?:cars|vehicles|רכבים|רכבי חברה)(?![\p{L}])/iu);
+  if (fleet && !/\bif\b|what if|מה אם|(?:^|\s)אם\s/iu.test(text)) {
+    const n = /^\d+$/.test(fleet[1]) ? Number(fleet[1]) : ({ two: 2, three: 3, four: 4, five: 5, six: 6, ten: 10, שני: 2, שתי: 2, שלושה: 3, ארבעה: 4, חמישה: 5 } as Record<string, number>)[fleet[1].toLowerCase()];
+    if (n && n >= 2 && n <= 99) next.fleetSize = n;
+  }
   const named = text.match(NAMED_MODEL);
   if (named && !negatedBefore(text, named.index!) && !/\bif\b|\bmaybe\b|אולי|מה אם/iu.test(text.slice(Math.max(0, named.index! - 20), named.index! + named[0].length))) next.vehicleModel = named[1].trim().slice(0, 40);
   return next;
@@ -188,6 +203,7 @@ export function renderCommercialMemory(memory: CommercialMemory | undefined, loc
   if (memory.annualMileageKm !== undefined) parts.push(`${he ? 'קילומטראז׳ שנתי' : 'Annual mileage'}: ${memory.annualMileageKm === null ? (he ? 'טרם הוחלט' : 'undecided') : `${memory.annualMileageKm} km`}`);
   const names = he ? { compact: 'קומפקטי', family: 'משפחתי', suv: 'רכב פנאי', seven_seat: 'שבעה מקומות' } : { compact: 'compact', family: 'family', suv: 'SUV', seven_seat: 'seven-seat' };
   if (memory.vehiclePreference !== undefined) parts.push(`${he ? 'העדפת רכב' : 'Vehicle preference'}: ${memory.vehiclePreference === null ? (he ? 'פתוחה' : 'open') : names[memory.vehiclePreference]}`);
+  if (memory.fleetSize) parts.push(`${he ? 'מספר רכבים' : 'Number of cars'}: ${memory.fleetSize}`);
   if (memory.vehicleModel) parts.push(`${he ? 'דגם מבוקש' : 'Requested model'}: ${memory.vehicleModel}`);
   if (memory.passengers !== undefined) parts.push(`${he ? 'נוסעים' : 'Passengers'}: ${memory.passengers}`);
   if (memory.luggage !== undefined) parts.push(`${he ? 'מזוודות' : 'Bags'}: ${memory.luggage}`);
