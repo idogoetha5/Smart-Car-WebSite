@@ -823,7 +823,7 @@ describe('english used-car purchase with financing', () => {
     const first = await c.send('hey do you sell used cars? looking for a hybrid under 90k shekels');
     expect(first.reply).toContain('https://www.smartcar.co.il/en/cars-for-sale');
     const fin = await c.send('do you do financing?');
-    expect(fin.reply).not.toMatch(/we offer financing/i);
+    expect(fin.reply).toMatch(/cannot confirm financing/i);
     expect(fin.state.interest).toBe('sale');
     const call = await c.send('ok have someone call me, im noa');
     expect(call.escalate).toBe(true);

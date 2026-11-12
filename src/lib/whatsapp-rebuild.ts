@@ -2576,6 +2576,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const nextQ = !state.booking.vehicleNeed && !state.booking.passengers ? (he ? 'איזה רכב תרצו, או כמה נוסעים תהיו?' : 'Which car would you like, or how many passengers will there be?') : '';
     reply = `${he ? 'רשמתי גם איסוף של הרכב מהבית בסוף ההשכרה.' : 'Noted: collection of the car from your home at the end of the rental.'}${nextQ ? ` ${nextQ}` : ` ${reply.trim()}`}`.trim();
   }
+  // Financing for a purchase is not published: fixed, honest wording.
+  if (!escalate && state.interest === 'sale' && /financ|loan|payment plan|installments?|מימון|הלוואה|תשלומים|פריסה/iu.test(input)) {
+    reply = he ? 'לגבי מימון או תשלומים אני לא יכול לאשר כאן מה אפשרי. נציג SmartCar יוכל לומר אילו אפשרויות קיימות לרכב מסוים. תרצו שנציג יחזור אליכם?'
+      : 'I cannot confirm financing or payment plans here. A SmartCar representative can tell you what is available for a specific car. Would you like a representative to get back to you?';
+  }
   // Card brands are not published: answer honestly instead of ignoring the question.
   if (!escalate && /\b(?:amex|american express|diners|visa|mastercard|master card|isracard)\b|אמריקן אקספרס|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט/iu.test(input)
     && !/amex|american express|diners|visa|mastercard|isracard|אמריקן|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט|סוג הכרטיס|card type|card brand/iu.test(reply)) {

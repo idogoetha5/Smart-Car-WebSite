@@ -1352,3 +1352,4 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 - 2026-11-12 — WhatsApp bot: `unknown_place` rejection (invented cities); owner price line for "כמה בערך / כמה לחודש / ballpark". Evidence: evidence/20261112-chrome-he-month-cheapest.md. No migrations.
 - 2026-11-12 — WhatsApp bot: route clauses ("מחזיר בירושלים") and place words are never a customer name. No migrations.
 - 2026-11-12 — WhatsApp bot purchase: listing link for "do you sell used cars"; validator `financing_claim`; purchase interest kept on financing questions. Evidence: evidence/20261112-chrome-en-used-car-financing.md. No migrations.
+- 2026-11-12 — WhatsApp bot purchase: financing questions get fixed wording (cannot confirm here; a representative can say what exists). No migrations.
