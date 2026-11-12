@@ -846,3 +846,21 @@ describe('regression sweep 2026-11-12', () => {
     expect(r.escalate).toBe(true);
   });
 });
+
+describe('regression sweep 2026-11-12 (2)', () => {
+  it('answers a refund question after a cancellation handoff with the tiers', async () => {
+    const c = chat(null, 'x');
+    await c.send('תבטלו לי את ההזמנה בבקשה, 334455');
+    const r = await c.send('יחזירו לי את הכסף?');
+    expect(r.reply).toMatch(/72/);
+    expect(r.reply).toMatch(/לא מתבצע אוטומטית/);
+  });
+  it('"יאללה תפתח, משה לוי בן 45" starts intake and the model cannot claim the details were saved', async () => {
+    const c = chat(null, 'הפרטים שלכם נשמרו לבקשת ההשכרה. האם תרצו להוסיף משהו?');
+    await c.send('היי צריך רכב 7 מקומות מחר בבוקר מהרצליה לשלושה ימים, להחזיר בתל אביב. אנחנו 6');
+    const r = await c.send('יאללה תפתח, משה לוי בן 45');
+    expect(r.state.phase).toBe('booking');
+    expect(r.state.booking.customerName).toBe('משה לוי');
+    expect(r.reply).not.toMatch(/נשמרו לבקשת/);
+  });
+});

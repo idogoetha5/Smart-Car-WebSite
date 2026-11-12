@@ -4,3 +4,7 @@
 - "אפשר לנסוע עם הרכב לאילת? כמה קילומטרים מותר?" → published mileage allowance (pass; the Eilat part itself is not addressed beyond mileage).
 - "תבטלו לי את ההזמנה בבקשה, 334455" → **asked for the booking number again**.
 Fixes (next release): "לקחת ממנו פרטים" wording; a lone 5–8 digit number in a cancellation/change message is the reference.
+
+## Replay on 42ce018
+Other-driver details answered; lone cancellation number handed off (fixes confirmed). New: "יחזירו לי את הכסף?" after the cancellation handoff got the generic line; "יאללה תפתח, משה לוי בן 45" did not start intake and the model claimed "הפרטים שלכם נשמרו לבקשת ההשכרה".
+Fixes (next release): refund question after a cancellation handoff gets the tiers and "not automatic"; "יאללה תפתח, <name> בן N" starts intake; validator rejects "הפרטים נשמרו לבקשה".
