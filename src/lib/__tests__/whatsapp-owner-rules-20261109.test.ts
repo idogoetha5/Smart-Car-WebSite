@@ -549,3 +549,13 @@ describe('airport surcharge amount question', () => {
     expect(r.reply).toMatch(/נציג SmartCar/);
   });
 });
+
+describe('airport surcharge amount follow-up', () => {
+  it('answers "כמה בערך התוספת?" without an amount or an invented reason', async () => {
+    const c = chat(null, 'התוספת המדויקת נקבעת בהתאם להזמנה.');
+    await c.send('היי, אם אני אוסף את הרכב בנתב״ג יש תוספת?');
+    const r = await c.send('כמה בערך התוספת?');
+    expect(r.reply).toMatch(/מוסר נציג SmartCar/);
+    expect(r.reply).not.toMatch(/בהתאם להזמנה|משתנה|150|₪/);
+  });
+});

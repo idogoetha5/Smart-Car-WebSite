@@ -2437,26 +2437,36 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const body = reply.trim().replace(/(?:^|(?<=[.!:\n]))[^.!:?؟\n]*[?؟]\s*$/u, '').trim();
     reply = `${body} ${he ? 'יש לי את התקופה, הקילומטראז׳ והרכב שביקשתם. תרצו שאעביר את הפרטים לנציג SmartCar להכנת הצעה מפורטת?' : 'I have your term, mileage and vehicle. Would you like me to pass them to a SmartCar representative for a detailed offer?'}`.trim();
   }
-  // A late flight at the airport: answer that part too, without promising the car will wait.
-  if (!escalate && /\b(?:flight|plane)\b.{0,30}\b(?:late|delayed|delay)\b|\b(?:late|delayed) (?:flight|landing)|הטיסה.{0,20}(?:מתעכבת|תתעכב|מאחרת|תאחר|מתאחרת)|עיכוב (?:ב)?טיסה/iu.test(input)
-    && !/delay|late|מתעכב|עיכוב|מאחר/iu.test(reply)) {
-    reply = `${reply.trim()} ${he ? 'אם הטיסה מתעכבת, עדכנו את SmartCar בהקדם כדי לתאם מחדש את המסירה בנתב״ג.' : 'If your flight is delayed, let SmartCar know as soon as you can so the airport handover can be rearranged.'}`;
-  }
   // An airport surcharge question always gets the surcharge answer, even inside a price question.
   const airportFeeAsked = /(?:נתב.?ג|שדה (?:ה)?תעופה|airport|ben gurion).{0,40}(?:תוספת|עמלה|תשלום נוסף|חיוב נוסף|extra|surcharge|fee|charge)|(?:תוספת|עמלה|תשלום נוסף|extra|surcharge|fee|charge).{0,40}(?:נתב.?ג|שדה (?:ה)?תעופה|airport|ben gurion)/iu.test(input);
-  if (!escalate && airportFeeAsked && !/תוספת|surcharge/iu.test(reply)) {
+  if (!escalate && airportFeeAsked && !/כמה|מה הסכום|\bhow much\b/iu.test(input) && !/אתר|website/iu.test(input)) {
+    // Fixed wording: the model kept inventing reasons ("depends on the booking", "it varies").
     const fee = getSmartCarApprovedFacts(state.locale).find(fact => fact.id === 'airport_fee')?.text;
-    if (fee) reply = `${fee} ${reply.replace(priceAnswer(state.locale), '').trim()}`.trim();
+    const next = !state.booking.pickupDate ? (he ? ' לאילו תאריכים תצטרכו את הרכב?' : ' What dates do you need the car for?') : '';
+    if (fee) reply = `${fee}${next}`;
+  }
+  // "How much is the airport surcharge?" — a fixed, human answer without the amount (owner decision).
+  const lastBotForFee = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+  const asksFeeAmount = /כמה|מה הסכום|\bhow much\b|\bwhat(?:'s| is) the (?:amount|fee|surcharge)\b/iu.test(input)
+    && (airportFeeAsked || /תוספת|surcharge|fee/iu.test(input) && /(?:תוספת|surcharge)/iu.test(lastBotForFee) && /נתב.?ג|airport|ben gurion/iu.test(lastBotForFee));
+  if (!escalate && asksFeeAmount && !/אתר|website/iu.test(input)) {
+    const next = !state.booking.pickupDate ? (he ? ' לאילו תאריכים תצטרכו את הרכב?' : ' What dates do you need the car for?') : '';
+    reply = he ? `את סכום התוספת על נתב״ג מוסר נציג SmartCar, יחד עם המחיר המלא של ההשכרה.${next}` : `A SmartCar representative gives you the Ben Gurion surcharge together with the full rental price.${next}`;
   }
   // Airport surcharge and the website: mention the website estimate only when the customer asks about it.
   const lastBotText = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
   if (!escalate && /אתר|website|\bsite\b|online|באינטרנט/iu.test(input) && /כלול|included|include|incl/iu.test(input)
-    && /(?:תוספת|surcharge)/iu.test(lastBotText) && /נתב.?ג|airport|ben gurion/iu.test(lastBotText) && !/אתר|website/iu.test(reply)) {
+    && (airportFeeAsked || /(?:תוספת|surcharge)/iu.test(lastBotText) && /נתב.?ג|airport|ben gurion/iu.test(lastBotText))) {
     reply = `${he ? 'לא, התוספת על נתב״ג לא כלולה במחיר המשוער שמופיע באתר. את הסכום ואת המחיר הסופי סוגרים מול נציג SmartCar.' : 'No, the Ben Gurion surcharge is not included in the estimate shown on the website. The amount and the final price are set with a SmartCar representative.'}`;
   }
   if (!escalate && /אתר|website|\bsite\b|online|באינטרנט/iu.test(input) && /נתב.?ג|שדה (?:ה)?תעופה|airport|ben gurion/iu.test(`${input} ${reply}`)
     && /(?:תוספת|surcharge)/iu.test(reply) && !/אתר|website/iu.test(reply)) {
     reply = `${reply.trim()} ${he ? 'התוספת הזו לא כלולה במחיר המשוער שמופיע באתר.' : 'This surcharge is not included in the estimate shown on the website.'}`;
+  }
+  // A late flight at the airport: answer that part too, without promising the car will wait.
+  if (!escalate && /\b(?:flight|plane)\b.{0,30}\b(?:late|delayed|delay)\b|\b(?:late|delayed) (?:flight|landing)|הטיסה.{0,20}(?:מתעכבת|תתעכב|מאחרת|תאחר|מתאחרת)|עיכוב (?:ב)?טיסה/iu.test(input)
+    && !/delay|late|מתעכב|עיכוב|מאחר/iu.test(reply)) {
+    reply = `${reply.trim()} ${he ? 'אם הטיסה מתעכבת, עדכנו את SmartCar בהקדם כדי לתאם מחדש את המסירה בנתב״ג.' : 'If your flight is delayed, let SmartCar know as soon as you can so the airport handover can be rearranged.'}`;
   }
   // Card brands are not published: answer honestly instead of ignoring the question.
   if (!escalate && /\b(?:amex|american express|diners|visa|mastercard|master card|isracard)\b|אמריקן אקספרס|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט/iu.test(input)
