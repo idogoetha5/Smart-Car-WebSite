@@ -559,3 +559,19 @@ describe('airport surcharge amount follow-up', () => {
     expect(r.reply).not.toMatch(/בהתאם להזמנה|משתנה|150|₪/);
   });
 });
+
+// Live Chrome on f04f261: moving an upcoming booking got the extension text, and the bot kept
+// asking "shall we pass it on?" after the reference and the new date were given.
+describe('moving an upcoming booking', () => {
+  it('answers with the published 48h rule, takes the reference and hands off on the concrete change', async () => {
+    const c = chat(null, 'בשמחה, נעדכן את הבקשה. האם תרצו שנעביר את השינוי לבדיקה?');
+    const first = await c.send('היי יש לי הזמנה לשבוע הבא, אפשר להזיז אותה ביומיים?');
+    expect(first.reply).toMatch(/48 שעות לפני האיסוף/);
+    expect(first.reply).toMatch(/מספר ההזמנה/);
+    const ref = await c.send('מספר הזמנה 556120');
+    expect(ref.state.serviceReference).toBe('556120');
+    const change = ref.escalate ? ref : await c.send('במקום ראשון שיהיה שלישי, אותו מספר ימים');
+    expect(change.escalate).toBe(true);
+    expect(change.reply).not.toMatch(/נעדכן את הבקשה/);
+  });
+});

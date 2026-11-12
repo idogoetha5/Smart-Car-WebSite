@@ -380,6 +380,8 @@ function mentionsRentalChange(input: string): boolean {
 /** A topic mention is not authority to queue a change, now or in history. */
 function rentalChangeRequest(input: string): boolean {
   if (advisoryRentalChange(input)) return false;
+  // "במקום ראשון שיהיה שלישי" / "make it Tuesday instead of Sunday": a concrete new date is a request.
+  if (/במקום\s+(?:יום\s+)?[\p{L}\d./]{2,12}\s+(?:ש)?(?:יהיה|תהיה|נעשה|נזיז ל|ל)\s*(?:יום\s+)?[\p{L}\d./]{2,12}|\b(?:make it|move it to|change it to)\s+[\p{L}\d./ ]{2,20}\s+instead of\b/iu.test(input) && !/(?:^|\s)אם\s|\bif\b|what if|מה אם/iu.test(input)) return true;
   if (/^(?:רוצה|רוצים|צריך|צריכה|מבקש|מבקשת)\s+(?:לשנות|להאריך|לדחות|להקדים|להזיז|לקצר)/u.test(input)) return true;
   return /(?:אני|אנחנו)\s+(?:כבר\s+)?(?:רוצה|רוצים|צריך|צריכה|צריכים|מבקש|מבקשת|מבקשים)\s+(?:לשנות|להאריך|לדחות|להקדים|להזיז|לקצר)|(?:החלטתי|החלטנו)\s+(?:להאריך|לשנות|לדחות|לקצר)|(?:בבקשה\s+)?(?:תאריכו|האריכו|תדחו|תשנו|תזיזו|תקצרו|קצרו)(?:\s|[.!?]|$)|(?:^|[.!?]\s*|,\s*)(?:בבקשה\s+)?(?:תעבירו|שלחו)\s+(?:לי\s+)?בקשת\s+(?:הארכה|שינוי|קיצור)|(?:אני|אנחנו)\s+(?:כבר\s+)?(?:רוצה|רוצים|מבקש|מבקשת)\s+(?:להעביר|לשלוח)\s+בקשת\s+(?:הארכה|שינוי|קיצור)/iu.test(input)
     // Asking SmartCar to request/add the extra day is a selected change request.
@@ -1460,6 +1462,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   }
   const he = state.locale === 'he';
   let reply = '';
+  // Set when the reply is an approved policy answer that model wording must not replace.
+  let policyLocked = false;
   let source: RebuildResult['source'] = 'local';
   let model: string | undefined;
   let escalate = false;
@@ -2165,7 +2169,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = state.interest
         ? (he ? `בשמחה, נציג SmartCar יחזור אליכם לגבי ${state.interest === 'sale' ? 'רכישת הרכב' : 'הליסינג'}. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up about your ${state.interest === 'sale' ? 'car purchase' : 'leasing'} enquiry. You can also call ${OFFICE_PHONE}.`)
         : (he ? `בשמחה, נציג SmartCar יחזור אליכם. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up. You can also call ${OFFICE_PHONE}.`);
-    } else if (state.phase === 'service' || reading?.route === 'service' || /הזמנה קיימת|ההזמנה שלי|שכרתי|existing booking|my booking|I rented/i.test(input)) {
+    } else if (state.phase === 'service' || reading?.route === 'service' || /הזמנה קיימת|ההזמנה שלי|שכרתי|existing booking|my booking|I rented|יש לי (?:כבר )?הזמנה|הזמנתי (?:אצלכם|מכם|רכב)|\bI (?:have|made) a (?:booking|reservation)\b|\bI booked\b/i.test(input)) {
       state.phase = 'service';
       const booking = await store.activeBooking(phone);
       const answer = getSmartCarServiceAnswer(input, state.locale);
@@ -2183,7 +2187,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       // A known reference is a fact, not consent to a hypothetical change.
       // This narrow deferral boundary does not infer every service intent.
       const advisoryChange = advisoryRentalChange(input);
-      if (!cancellationPending && !changePending && changeDiscussion) {
+      const prePickupMove = /להזיז|לדחות|להקדים|להעביר (?:את )?(?:ה)?(?:תאריכים|מועד)|לשנות (?:את )?(?:ה)?(?:תאריכים|מועד(?:ים)?|תאריך)|\b(?:move|postpone|reschedule|bring forward|change the dates)\b/iu.test(input)
+        && !/להאריך|הארכה|יום נוסף|עוד יום|לקצר|\bextend|extension|extra day|shorten/iu.test(input) && !state.history.some(entry => entry.from === 'customer' && /אני עם הרכב|כבר (?:לקחתי|אספתי)|I (?:have|picked up) the car/iu.test(entry.text));
+      if (!cancellationPending && !changePending && changeDiscussion && prePickupMove) {
+        policyLocked = true;
+        reply = he ? `אפשר לבקש להזיז את מועדי ההזמנה. לפי תנאי ההשכרה, שינוי תאריכים בלי חיוב נוסף אפשרי עד 48 שעות לפני האיסוף, בכפוף לזמינות ולאישור SmartCar. ${suppliedReference ? 'לאילו תאריכים תרצו להזיז?' : 'מה מספר ההזמנה, ולאילו תאריכים תרצו להזיז?'}`
+          : `You can ask to move the booking dates. Under the rental terms, date changes are free up to 48 hours before pickup, subject to availability and SmartCar confirmation. ${suppliedReference ? 'Which dates would you like instead?' : 'What is the booking number, and which dates would you like instead?'}`;
+      } else if (!cancellationPending && !changePending && changeDiscussion) {
         reply = answer?.reply ?? (he ? 'אפשר לברר על הארכה בלי להגיש בקשת שינוי. עד לאישור מפורש, מועד ההחזרה המקורי מחייב, והמחיר עשוי להשתנות.' : 'We can discuss an extension without submitting a change request. Until explicitly approved, the original return deadline remains binding and the price may change.');
       } else if (!cancellationPending && changePending && advisoryChange) {
         reply = he ? 'אפשר לברר על הארכה בלי להגיש בקשת שינוי כרגע. הארכה כפופה לזמינות, לתנאים ולאישור SmartCar; עד לאישור, מועד ההחזרה הקיים נשאר בתוקף והמחיר עשוי להשתנות.' : 'We can discuss an extension without submitting a change request now. An extension depends on availability, terms and SmartCar confirmation; until confirmed, the current return deadline remains in effect and the price may change.';
@@ -2300,7 +2310,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // Actions, private details, safety and the final consent summary remain
     // application-owned. For ordinary discussion the grounded AI answer is the
     // default; deterministic paragraphs above are the outage/rejection backup.
-    if (!escalate && (!state.handedOff || continuedServiceAdvice) && !gotPrivate && !state.durationClarification
+    if (!escalate && !policyLocked && (!state.handedOff || continuedServiceAdvice) && !gotPrivate && !state.durationClarification
       && !state.completedRequestId) {
       const questionTurn = /[?؟]/u.test(input) || reading?.route === 'policy';
       const canUseDraft = state.phase !== 'booking' || questionTurn;
