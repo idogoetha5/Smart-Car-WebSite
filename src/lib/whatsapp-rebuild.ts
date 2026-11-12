@@ -2650,6 +2650,28 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       ? (he ? `מצטער שאתם מחכים. הפנייה שלכם${ref} כבר אצל נציג SmartCar. הדרך המהירה ביותר עכשיו היא להתקשר ל־${OFFICE_PHONE}.` : `I am sorry you have been waiting. Your message${ref} is already with a SmartCar representative. The fastest way to get help right now is to call ${OFFICE_PHONE}.`)
       : (he ? `מבין שזה דחוף. הכי מהר יהיה להתקשר עכשיו ל־${OFFICE_PHONE}; הפנייה שלכם${ref} כבר אצל נציג.` : `I understand it is urgent. The fastest way is to call ${OFFICE_PHONE} now; your message${ref} is already with a representative.`);
   }
+  // Several questions in one message ("1. מאיזה גיל? 2. צריך אשראי? 3. … 4. …"): answer each known topic,
+  // and say plainly that a representative answers the rest, instead of answering only one.
+  let multiAnswered = false;
+  const questionParts = input.split(/(?:^|\s)\d{1,2}[.)]\s+|[?؟]\s*/u).map(part => part.trim()).filter(part => part.length >= 4);
+  if (!escalate && !state.handedOff && state.phase !== 'booking' && questionParts.length >= 3) {
+    const seen = new Set<string>(); const answers: string[] = []; let unanswered = 0;
+    // Keep each answer short: the opening sentences carry the rule; details come on request.
+    const brief = (text: string, topic: string) => { const body = text.replace(/^(?:בשמחה|כן|Of course|Yes)[.,—–\s]+/u, '').split(/(?<=[.!?])\s+/u).slice(0, topic === 'deposit' ? 1 : 2).join(' '); return body.charAt(0).toUpperCase() + body.slice(1); };
+    for (const part of questionParts) {
+      if (/חשמלי|electric|\bEV\b/iu.test(part)) {
+        if (!seen.has('ev')) { seen.add('ev'); answers.push(he ? 'יש אצלנו גם קטגוריה של רכבים חשמליים; הזמינות נבדקת לפי התאריכים.' : 'We also have an electric-car category; availability is checked for your dates.'); }
+        continue;
+      }
+      const found = getSmartCarServiceAnswer(part, state.locale);
+      if (found) { if (!seen.has(found.topic)) { seen.add(found.topic); answers.push(brief(found.reply, found.topic)); } }
+      else if (!/^(?:(?:יש לי )?(?:כמה |מספר )?שאלות|(?:(?:a )?(?:few|quick|couple of|some) )?questions?|היי|hi|hello|hey|שלום)[:\s]*$/iu.test(part)) unanswered += 1;
+    }
+    if (answers.length >= 2) {
+      multiAnswered = true;
+      reply = answers.map(answer => `• ${answer}`).join('\n') + (unanswered ? `\n\n${he ? 'על שאר השאלות נציג SmartCar ישמח לענות.' : 'A SmartCar representative will be happy to answer the rest.'}` : '');
+    }
+  }
   // Card brands are not published: answer honestly instead of ignoring the question.
   if (!escalate && /\b(?:amex|american express|diners|visa|mastercard|master card|isracard)\b|אמריקן אקספרס|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט/iu.test(input)
     && !/amex|american express|diners|visa|mastercard|isracard|אמריקן|אמקס|דיינרס|ויזה|מאסטרקארד|ישראכרט|סוג הכרטיס|card type|card brand/iu.test(reply)) {
@@ -2691,7 +2713,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   }
   // Contact details keep a turn away from the wording provider. An approved-
   // policy question in that same message must still be answered, not dropped.
-  if (source === 'local' && !escalate && state.phase !== 'service' && /[?؟]/u.test(input) && !state.completedRequestId) {
+  if (source === 'local' && !escalate && !multiAnswered && state.phase !== 'service' && /[?؟]/u.test(input) && !state.completedRequestId) {
     const sideFact = getSmartCarServiceAnswer(input, state.locale);
     const contactTurn = privateTurn || /(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}|[^\s@]+@[^\s@]+\.[^\s@]+/u.test(input);
     // Policy facts a customer asked about directly; location/branch facts carry

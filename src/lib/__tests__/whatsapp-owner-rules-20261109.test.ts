@@ -972,3 +972,22 @@ describe('no invented one-way fee', () => {
     expect(r.reply).not.toMatch(/תוספת/);
   });
 });
+
+// Live Chrome on ca1bae5: four numbered questions, only the credit-card one answered.
+describe('several questions in one message', () => {
+  it('answers each known topic', async () => {
+    const r = await chat(null, 'x').send('שאלות: 1. מאיזה גיל אפשר? 2. צריך כרטיס אשראי? 3. אפשר לצאת עם הרכב לאילת? 4. יש לכם רכבים חשמליים?');
+    expect(r.reply).toMatch(/21/);
+    expect(r.reply.match(/כרטיס אשראי תקף/g)).toHaveLength(1);
+    expect(r.reply.length).toBeLessThan(520);
+    expect(r.reply).toMatch(/נציג SmartCar ישמח/);
+    expect(r.reply).toMatch(/כרטיס אשראי/);
+    expect(r.reply).toMatch(/חשמליים/);
+  });
+  it('english', async () => {
+    const r = await chat(null, 'x', 'en').send('quick questions: 1) minimum age? 2) do i need a credit card? 3) is fuel included?');
+    expect(r.reply.split('•').length).toBe(4);
+    expect(r.reply).not.toMatch(/answer the rest/);
+  });
+});
+
