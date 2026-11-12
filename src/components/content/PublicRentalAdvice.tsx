@@ -13,12 +13,18 @@ export default function PublicRentalAdvice({ advice, locale }: { advice: RentalA
   return (
     <section aria-label={isHe ? 'תכנון ההשכרה' : 'Planning your rental'} className="my-8 text-start">
       <p className="text-lg leading-relaxed text-gray-700 mb-6">{rentalCopy(advice.description, locale)}</p>
-      <div className="space-y-6">
-        {advice.sections.map((section) => (
-          <div key={section.heading.en}>
-            <h2 className="text-xl sm:text-2xl font-bold text-[#0D2B2B] mb-2">{rentalCopy(section.heading, locale)}</h2>
-            <p className="text-gray-700 leading-relaxed">{rentalCopy(section.text, locale)}</p>
-          </div>
+      {/* Each topic opens on tap: long pages stay short on a phone, and the
+          text is still in the HTML for search engines. The first topic starts
+          open so the page never looks empty. */}
+      <div className="space-y-3">
+        {advice.sections.map((section, index) => (
+          <details key={section.heading.en} open={index === 0} className="group rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.04]">
+            <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+              <h2 className="text-lg sm:text-xl font-bold text-[#0D2B2B]">{rentalCopy(section.heading, locale)}</h2>
+              <span aria-hidden="true" className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#F4F7F7] text-xl leading-none text-[#2D5F5F] transition-transform group-open:rotate-45">+</span>
+            </summary>
+            <p className="px-4 pb-4 text-gray-700 leading-relaxed">{rentalCopy(section.text, locale)}</p>
+          </details>
         ))}
       </div>
       <nav aria-label={isHe ? 'מידע נוסף להשכרה' : 'More rental information'} className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2">

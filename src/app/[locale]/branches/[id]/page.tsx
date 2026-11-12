@@ -245,7 +245,7 @@ export default async function BranchDetailPage({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-gray-600 shrink-0">📞</span>
-            <a href={`tel:${branch.phone}`} className="text-[#B64916] font-bold hover:underline">
+            <a href={`tel:${branch.phone}`} className="inline-flex min-h-11 items-center text-[#B64916] font-bold hover:underline">
               {branch.phone}
             </a>
           </div>
@@ -288,7 +288,7 @@ export default async function BranchDetailPage({
 
         <Link
           href={`/${locale}/branches`}
-          className="text-sm text-[#2D5F5F] hover:underline font-medium"
+          className="inline-flex min-h-11 items-center text-sm text-[#2D5F5F] hover:underline font-medium"
         >
           {isHe ? '← כל הסניפים ושעות הפעילות' : '← All branches and opening hours'}
         </Link>
