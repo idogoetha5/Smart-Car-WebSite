@@ -573,5 +573,21 @@ describe('moving an upcoming booking', () => {
     const change = ref.escalate ? ref : await c.send('במקום ראשון שיהיה שלישי, אותו מספר ימים');
     expect(change.escalate).toBe(true);
     expect(change.reply).not.toMatch(/נעדכן את הבקשה/);
+    const pay = await c.send('ויש על זה תשלום?');
+    expect(pay.reply).toMatch(/48 שעות לפני האיסוף/);
+    expect(pay.reply).not.toMatch(/מועד ההחזרה הקיים/);
+  });
+});
+
+// Live Chrome on d9ac586 (English cancellation): "my car booking" not recognised, no handoff after the
+// reference, and an invented refund timing.
+describe('english cancellation of a car booking', () => {
+  it('hands off with the reference and does not invent refund timing', async () => {
+    const c = chat(null, 'Refunds typically show up within a few business days.', 'en');
+    await c.send('hi, my trip got cancelled, need to cancel my car booking for this saturday. do i get my money back?');
+    const ref = await c.send('ref 440871');
+    expect(ref.escalate).toBe(true);
+    const timing = await c.send('how long until the refund comes through?');
+    expect(timing.reply).not.toMatch(/business days|few days/i);
   });
 });

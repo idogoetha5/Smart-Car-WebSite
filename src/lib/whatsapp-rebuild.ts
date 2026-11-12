@@ -402,11 +402,11 @@ function cancellationRequest(input: string): boolean {
   // Everyday decisions: "טוב בואו נבטל", "תבטלו לי", "let's cancel it".
   if (!/[?؟]\s*$/u.test(input.split(/[.!]/u).find(part => /נבטל|תבטל|cancel/iu.test(part)) ?? '')
     && /(?:^|[\s,.!])(?:בוא(?:ו)?|יאללה|טוב|אז)\s+נבטל(?![\p{L}])|(?:^|[\s,.!])(?:בבקשה\s+)?(?:תבטלו|בטלו)(?:\s+(?:לי|לנו|את\s+ה(?:הזמנה|השכרה)|אותה|אותו))?(?![\p{L}])|\blet['’]?s cancel\b|\b(?:please |just )?cancel (?:it|that|my reservation|the reservation|our booking)\b|\bgo ahead and cancel\b/iu.test(input)) return true;
-  return /(?:רוצה|רוצים|מבקש|מבקשת|צריך|צריכה|אפשר).{0,18}(?:לבטל|ביטול).{0,25}(?:הזמנה|השכרה)|(?:הזמנה|השכרה).{0,100}לבטל\s+(?:אותה|אותו|את הקיימת)|(?:want|need|would like) to cancel (?:my |the )?(?:booking|rental)|(?:booking|rental).{0,100}(?:want|need|would like) to cancel (?:it|that)/i.test(input);
+  return /(?:רוצה|רוצים|מבקש|מבקשת|צריך|צריכה|אפשר).{0,18}(?:לבטל|ביטול).{0,25}(?:הזמנה|השכרה)|(?:הזמנה|השכרה).{0,100}לבטל\s+(?:אותה|אותו|את הקיימת)|(?:want|need|have|would like) to cancel (?:my |the |our )?(?:car |rental )?(?:booking|rental|reservation)|(?:booking|rental).{0,100}(?:want|need|would like) to cancel (?:it|that)/i.test(input);
 }
 
 function explicitServiceReference(input: string): string | undefined {
-  const bare = input.match(/(?:^|[\s,.])(?:ה)?הזמנה\s+(?:שלי\s+)?(\d{5,12})(?!\d)|\b(?:booking|reservation)\s+(\d{5,12})(?!\d)/iu);
+  const bare = input.match(/(?:^|[\s,.])(?:ה)?הזמנה\s+(?:שלי\s+)?(\d{5,12})(?!\d)|\b(?:booking|reservation|ref\.?|ref(?:erence)? (?:no\.?|number|#))\s*#?\s*(\d{5,12})(?!\d)/iu);
   if (bare && !/(?:\d{5,12})\s*(?:₪|ש["״]?ח|nis|ils|km|ק["״]?מ)/iu.test(input)) return bare[1] ?? bare[2];
   const value = input.match(/(?:מספר\s+ה?הזמנה|booking\s+number|(?:booking\s+)?reference|(?:booking|הזמנה)\s*#|ההזמנה\s+שלי\s+מספר\s*#)[\s,:#]*(?:(?:שלי|הוא|it\s+is|it['’]s|is)[\s,:#]*)*([A-Z0-9-]*\d[A-Z0-9-]{2,})(?![A-Z0-9-])/i)?.[1];
   return value && value.length <= 40 ? value : undefined;
@@ -1606,6 +1606,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         + (rentalDamage && asksDamageDocumentation ? (he ? ' צלמו את הנזק ואת סביבת האירוע, כולל הרכב השני אם אפשר ובטוח לעשות זאת. דווחו גם בלי מספר ההזמנה כרגע; אפשר למסור אותו בהמשך.' : ' Photograph the damage and scene, including the other vehicle if possible and safe. Report it even without the booking reference for now; you can provide it later.') : '')
       : state.interest && /מה.{0,35}(?:זוכר|שמורים|רשמת|שמרת)|(?:what|which).{0,45}(?:remember|recorded|saved|details do you have)/i.test(input)
       ? commercialReply(input, state).reply
+      : handoffKind === 'booking_change' && !cancellationPending && /תשלום|חיוב|עולה|עלות|מחיר|תוספת|charge|cost|fee|pay|price/iu.test(input)
+        && state.history.some(entry => entry.from === 'bot' && /48 שעות לפני האיסוף|48 hours before pickup/u.test(entry.text))
+      ? (he ? 'לפי תנאי ההשכרה, שינוי תאריכים בלי חיוב נוסף אפשרי עד 48 שעות לפני האיסוף, בכפוף לזמינות. נציג SmartCar יאשר את השינוי ויעדכן אם יש הבדל במחיר.' : 'Under the rental terms, date changes are free up to 48 hours before pickup, subject to availability. A SmartCar representative will confirm the change and tell you if the price differs.')
       : handoffKind === 'booking_change' && !cancellationPending
       && /אושר|אישור|להניח|המחיר|מחיר|עלות|תשלום|תוספת|קוצר|הוארך|שונה|יוחזר|החזר|הפרש|זיכוי|approv|confirm|assume|price|cost|charge|rate|shortened|extended|refund|difference|credit/i.test(input)
       ? (he ? 'השינוי המבוקש עדיין לא אושר. עד לאישור מפורש של SmartCar, מועד ההחזרה הקיים נשאר בתוקף. גם המחיר המעודכן אינו מובטח; הזמינות והמחיר ייבדקו לפני אישור השינוי.' : 'The requested change is not approved yet. Until SmartCar explicitly confirms it, the existing agreed return deadline remains in effect. The previous rate is not guaranteed; availability and the revised price will be checked before confirming the change.')
@@ -2169,7 +2172,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = state.interest
         ? (he ? `בשמחה, נציג SmartCar יחזור אליכם לגבי ${state.interest === 'sale' ? 'רכישת הרכב' : 'הליסינג'}. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up about your ${state.interest === 'sale' ? 'car purchase' : 'leasing'} enquiry. You can also call ${OFFICE_PHONE}.`)
         : (he ? `בשמחה, נציג SmartCar יחזור אליכם. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up. You can also call ${OFFICE_PHONE}.`);
-    } else if (state.phase === 'service' || reading?.route === 'service' || /הזמנה קיימת|ההזמנה שלי|שכרתי|existing booking|my booking|I rented|יש לי (?:כבר )?הזמנה|הזמנתי (?:אצלכם|מכם|רכב)|\bI (?:have|made) a (?:booking|reservation)\b|\bI booked\b/i.test(input)) {
+    } else if (state.phase === 'service' || reading?.route === 'service' || /הזמנה קיימת|ההזמנה שלי|שכרתי|existing booking|my booking|I rented|יש לי (?:כבר )?הזמנה|הזמנתי (?:אצלכם|מכם|רכב)|\bI (?:have|made) a (?:booking|reservation)\b|\bI booked\b|\bmy (?:car |rental )?(?:booking|reservation)\b/i.test(input)) {
       state.phase = 'service';
       const booking = await store.activeBooking(phone);
       const answer = getSmartCarServiceAnswer(input, state.locale);
