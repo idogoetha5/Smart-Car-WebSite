@@ -789,14 +789,18 @@ function customerVehicleChoice(input: string, state: RebuildState): string | nul
   const matches = [...input.matchAll(choice)].filter(match => !/(?:לא|don'?t)\s*$/iu.test(input.slice(0, match.index)));
   const chosen = matches.at(-1)?.[1];
   if (chosen) return explicitVehicleNeed(chosen, state.locale);
-  if (explicitBooking(input) && !/(?:לא רוצה|don't want|do not want)/iu.test(input)) return explicitVehicleNeed(input, state.locale);
+  if (explicitBooking(input) && !/(?:לא רוצה|don't want|do not want)/iu.test(input)) { const need = explicitVehicleNeed(input, state.locale); if (need) return need; }
   const statedPreference = input.match(new RegExp(`(${vehicle})\\s+(?:עדיף|עדיפה|מתאים\\s+לי|מתאים\\s+לנו|works better|is better for us)`, 'iu'))?.[1];
   if (statedPreference && !/[?؟]/u.test(input)) return explicitVehicleNeed(statedPreference, state.locale);
   // "משהו נוח לנסיעות ארוכות, סדאן נגיד" — a stated body type, not a question.
   if (!/[?؟]/u.test(input) && /(?:^|[\s,])(?:סדאן|סדן|sedan)(?:\s+(?:נגיד|בערך|אולי|maybe|I guess|probably))?\s*[.!]?\s*$/iu.test(input) && !/(?:לא|בלי|not|no)\s+(?:סדאן|סדן|sedan)/iu.test(input)) return explicitVehicleNeed('sedan', state.locale);
   // A short stated preference before a separate question ("nothing fancy. can i get an invoice?").
-  const statedClause = input.split(/(?<=[.!])\s+/u).find(part => !/[?؟]/u.test(part) && /^(?:משהו|רכב|something|nothing|just|a|רק)?\s*(?:קטן|פשוט|small|fancy|basic|compact|קומפקטי)/iu.test(part.trim()));
-  if (statedClause && statedClause.trim().length <= 30) { const need = explicitVehicleNeed(statedClause, state.locale); if (need) return need; }
+  const statedClause = input.split(/(?<=[.!,])\s+/u).find(part => !/[?؟]/u.test(part) && /^(?:משהו|רכב|something|nothing|just|a|an|רק)?\s*(?:קטן|פשוט|small|fancy|basic|compact|קומפקטי(?:ת)?|משפחתי(?:ת)?|family(?: car)?|suv|רכב פנאי|ג['׳י]?יפ|שבעה מקומות|7 מקומות|seven[- ]seat(?:er)?)(?:\s+(?:בבקשה|please))?[.!,]?$/iu.test(part.trim()));
+  if (statedClause && statedClause.trim().length <= 30) {
+    const clause = statedClause.trim().replace(/[.!,]+$/u, '').replace(/\s+(?:בבקשה|please)$/iu, '');
+    const need = explicitVehicleNeed(/^משפחתי(?:ת)?$/u.test(clause) ? 'רכב משפחתי' : clause, state.locale);
+    if (need) return need;
+  }
   if (/[?؟]/u.test(input) || /(?:לא רוצה|לא מעדיף|don't want|do not want)/iu.test(input)) return null;
   const lastBot = state.history.at(-1)?.text ?? '';
   return state.phase === 'booking' && (state.step === 'rental_vehicle' || /איזה סוג רכב|what kind of car/i.test(lastBot) || input.trim().length <= 20)

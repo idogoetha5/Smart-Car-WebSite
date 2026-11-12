@@ -6,3 +6,6 @@ Fixes (next release): approved fact `shabbat` (branches closed; Saturday pickup/
 
 ## Replay on 634f468
 Shabbat notice given (fix confirmed) but repeated word-for-word for "יש על זה תוספת?", no next question, and "רכב … בהרצליה" not stored as the pickup (later asked "מאיפה תרצו לאסוף?"). Fixed (next release): short direct follow-up answer, the next missing route question after the notice, "לקבל רכב … ב<branch>" = pickup.
+
+## Replay on 378a033
+Shabbat notice + return question, short surcharge follow-up, passengers/luggage/return stored, summary reached (fixes confirmed). "משפחתי." at the start of the go-ahead message was not taken as the vehicle (summary showed "רכב ל־4 נוסעים ול־2 מזוודות"). Fixed (next release).

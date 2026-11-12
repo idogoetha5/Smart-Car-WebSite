@@ -712,3 +712,12 @@ describe('shabbat pickup', () => {
     expect(fee.reply).not.toMatch(/נתב/);
   });
 });
+
+describe('vehicle stated at the start of a go-ahead message', () => {
+  it.each([['משפחתי. יאללה תפתח בקשה, אבי כהן בן 40', 'רכב משפחתי'], ['SUV. ok lets do it. dan levi, 33', 'SUV']])('%s', async (input, vehicle) => {
+    const locale = /[א-ת]/.test(input) ? 'he' : 'en';
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale, history: [], booking: { passengers: 4, luggage: 2, pickupDate: '2026-12-12', returnDate: '2026-12-15', pickupLocation: locale === 'he' ? 'הרצליה' : 'Herzliya', returnLocation: locale === 'he' ? 'הרצליה' : 'Herzliya' } } as RebuildState, 'x', locale);
+    const r = await c.send(input);
+    expect(r.state.booking.vehicleNeed).toBe(vehicle);
+  });
+});
