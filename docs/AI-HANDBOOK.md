@@ -1358,3 +1358,4 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 - 2026-11-12 — WhatsApp bot: request summary adds the website's Shabbat and Ben Gurion notices (no amounts; `isShabbat` from `booking-notices.ts`). No migrations.
 - 2026-11-12 — WhatsApp bot: "add another driver to my booking N" / "להוסיף את אשתי כנהגת להזמנה N" is a change request (handoff + licence note); "להזמנה N" parsed. No migrations.
 - 2026-11-12 — WhatsApp bot: policy questions after a handoff get the approved answer; international licence / IDP wording maps to `driver_documents`. No migrations.
+- 2026-11-12 — WhatsApp bot status recorded in AI-HANDOFF §6: all stories in the final Chrome regression sweep pass on bc5737f; ready for Daniel's acceptance test in the demo; real-channel gates (YCloud, staff alert, duplicates/timeouts) still to be done before activation. No migrations.
