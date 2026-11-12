@@ -7,3 +7,6 @@ Fixes (next release): approved fact `airport_fee` (₪150, not in the website es
 ## Replay on b7f1568
 Arrival and return at the airport stored (fix confirmed); surcharge answered correctly (₪150, final price with a representative). Still: the late-flight part was not answered, and "ok lets do it. sarah cohen, 27" did not start intake — the model claimed a representative "will finalise the request".
 Fixes (next release): late-flight sentence (tell SmartCar to rearrange the handover, no promise); "ok lets do it. <first last>, <age>" starts intake; validator rejects "will finalise/complete/confirm the request".
+
+## Replay on 501c128
+Late flight answered; surcharge correct; "ok lets do it. sarah cohen, 27" started intake (fix confirmed) but asked the age group although 27 was given. Fix (next release): "<first last>, NN" sets the driver age.

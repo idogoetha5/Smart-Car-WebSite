@@ -1319,3 +1319,4 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 - 2026-11-12 — WhatsApp bot purchase: broader stock-claim rejection; questions about available cars/viewing get the /cars-for-sale link. Evidence: evidence/20261112-chrome-he-used-car.md. No migrations.
 - 2026-11-12 — WhatsApp bot: approved fact `airport_fee` (published ₪150 Ben Gurion surcharge) and validator `fee_denial` after the model denied the surcharge live; airport arrival/return phrases fill pickup/return; sale link not repeated; "בה בהחלט" cleaned. Evidence: evidence/20261112-chrome-en-airport-tourist.md. No migrations.
 - 2026-11-12 — WhatsApp bot airport replay: late-flight answer; "ok lets do it. <name>, <age>" starts intake; validator rejects "will finalise the request". No migrations.
+- 2026-11-12 — WhatsApp bot: "<first last>, NN" clause sets the driver age group (`driverAgeRange`). No migrations.

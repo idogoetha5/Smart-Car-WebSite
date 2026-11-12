@@ -494,6 +494,7 @@ describe('airport tourist replay', () => {
     const go = await c.send('ok lets do it. sarah cohen, 27');
     expect(go.state.phase).toBe('booking');
     expect(go.state.booking.customerName).toBe('sarah cohen');
+    expect(go.state.booking.driverAgeRange).toBe('24-plus');
     expect(go.reply).not.toMatch(/will finalise the request/);
   });
 });

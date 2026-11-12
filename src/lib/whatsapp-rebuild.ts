@@ -778,9 +778,11 @@ function driverAgeRange(input: string, state: RebuildState): '21-23' | '24-plus'
   if (/(?:^|\D)21\s*[-–]\s*23(?:\D|$)/u.test(input)) return '21-23';
   if (/(?:^|\D)24\s*\+(?:\D|$)/u.test(input)) return '24-plus';
   const selfAge = input.match(/(?:^|[\s,])ו?אני\s+(?:(?:בן|בת)\s+)?(\d{2})(?!\d)|\b(?:I am|I'm)\s+(\d{2})(?!\d)|\b(?:I am|I['’]?m|im)\s+[\p{L}'-]{2,20}(?:\s+[\p{L}'-]{2,20})?,?\s+(?:aged\s+)?(\d{2})(?!\d)(?!\s*(?:days?|nights?|km|%|₪|nis))/iu);
+  // "sarah cohen, 27" as its own clause: a name followed by the driver's age.
+  const nameAge = input.trim().match(/(?:^|[.!]\s*|,\s*)[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*,\s*(\d{2})\s*[.!]?$/u)?.[1];
   const primaryAge = input.match(/(?:הנהג הראשי|הנהגת הראשית|main driver|primary driver)\s+(?:(?:בן|בת|is|aged)\s+)?(\d{2})(?!\d)/iu)?.[1];
-  if (!selfAge && !primaryAge && !/(?:בן|בת|גיל|age|aged|\bI am\b|\bI'm\b)/i.test(input) && !(state.phase === 'booking' && state.step === 'rental_age')) return null;
-  const age = primaryAge ?? selfAge?.[1] ?? selfAge?.[2] ?? selfAge?.[3] ?? input.match(/(?:בן|בת|גיל|age(?:d)?(?: is)?|\bI am|\bI'm)\s*(\d{2})(?!\d)/i)?.[1]
+  if (!selfAge && !primaryAge && !nameAge && !/(?:בן|בת|גיל|age|aged|\bI am\b|\bI'm\b)/i.test(input) && !(state.phase === 'booking' && state.step === 'rental_age')) return null;
+  const age = primaryAge ?? nameAge ?? selfAge?.[1] ?? selfAge?.[2] ?? selfAge?.[3] ?? input.match(/(?:בן|בת|גיל|age(?:d)?(?: is)?|\bI am|\bI'm)\s*(\d{2})(?!\d)/i)?.[1]
     ?? (state.phase === 'booking' && state.step === 'rental_age' ? input.trim().match(/^(\d{2})$/)?.[1] : undefined);
   if (!age) return null;
   const value = Number(age);
