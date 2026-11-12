@@ -804,3 +804,13 @@ describe('month-long rental price questions', () => {
     expect(r.reply).toMatch(/המחיר נסגר סופית מול נציג SmartCar/);
   });
 });
+
+// Live Chrome on c4e0b4b: the name was stored as "מחזיר בירושלים".
+describe('route clause is not a name', () => {
+  it('takes "דוד מזרחי", not "מחזיר בירושלים"', async () => {
+    const c = chat(null, 'x');
+    await c.send('היי מה הרכב הכי זול שיש לכם? צריך לחודש שלם מירושלים, מתחילת ינואר');
+    const r = await c.send('אוקיי, מה-3.1 עד ה-2.2, מחזיר בירושלים. תפתח בקשה, דוד מזרחי בן 50');
+    expect(r.state.booking.customerName).toBe('דוד מזרחי');
+  });
+});

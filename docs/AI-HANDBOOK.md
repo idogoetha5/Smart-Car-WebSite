@@ -1350,3 +1350,4 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 - 2026-11-12 — WhatsApp bot: home collection added mid-conversation is acknowledged, then the missing vehicle is asked. No migrations.
 - 2026-11-12 — WhatsApp bot: "my rental" damage reports hand off; validator `liability_claim` (liability is never decided in chat); "my booking is N" parsed. Evidence: evidence/20261112-chrome-en-parking-scrape.md. No migrations.
 - 2026-11-12 — WhatsApp bot: `unknown_place` rejection (invented cities); owner price line for "כמה בערך / כמה לחודש / ballpark". Evidence: evidence/20261112-chrome-he-month-cheapest.md. No migrations.
+- 2026-11-12 — WhatsApp bot: route clauses ("מחזיר בירושלים") and place words are never a customer name. No migrations.

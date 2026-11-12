@@ -1420,6 +1420,8 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
   // end ("יאללה בואו נתקדם, דנה בדיקה, נהג ראשי בעלי בן 38") is the name.
   const trailingName = (explicitStart || state.phase === 'booking' && state.step === 'rental_name') && !introducedName
     ? input.split(/[,.!;\n]/u).slice(1).map(part => part.trim().replace(/\s+(?:בן|בת|aged?)\s*\d{2}$/iu, '')).find(part => /^[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}$/u.test(part)
+      // Route clauses ("מחזיר בירושלים", "returning to Haifa") and places are never a name.
+      && !/(?:^|\s)(?:מחזיר\S*|מחזירה|מחזירים|נחזיר|אחזיר|אוסף|אוספת|אוספים|נאסוף|אאסוף|איסוף|החזרה|returning|return|pickup|collecting|from|to)(?:\s|$)|(?:^|\s)[בלמה]?(?:ירושלים|תל|אביב|הרצליה|נתב\S*|חיפה|אילת|פתח|תקווה|Jerusalem|Herzliya|Tel|Aviv|Haifa|Eilat|airport)(?:\s|$)/iu.test(part)
       && (!/^(?:תודה|בבקשה|יאללה|סבבה|אחלה|מעולה|בסדר|קדימה|רק|גם|עם|בלי|thank|thanks|please|ok|okay|great|cool|sounds|with|without|also|just|asap|soon|today|tomorrow|מחר|היום)(?=\s|$)|(?:^|\s)(?:רכב|car|יום|ימים|days?|בקשה|request|הצעה|quote|מחיר|price|רבה|גדול|קטן|משפחתי|big|small)(?=\s|$)/iu.test(part))
       && !/(?:^|\s)(?:אני|אנחנו|הוא|היא|זה|זאת|הנהג|הנהגת|נהג|נהגת|ראשי|ראשית|בעלי|אשתי|I|we|he|she|it|this|the|להחזיר|לאסוף|בואו|נתקדם|יאללה|קדימה|בבקשה|תודה|גם|רק|עם|בלי|מחר|היום|main|driver|return|pick|please|thanks|let['’]?s|go|ahead|also|only|with|without|tomorrow|today)(?=\s|$)/iu.test(part))
     : undefined;
