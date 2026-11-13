@@ -923,7 +923,11 @@ describe('replacement SmartCar conversation core', () => {
     expect(update.escalate).toBe(false);
     expect(tow.escalate).toBe(false);
     expect(tow.reply).toContain('לתיאום גרר');
-    expect(chat.readTurn).not.toHaveBeenCalled();
+    // Owner direction 2026-11-13: the model may answer a follow-up, but the safety line and office number stay
+    // and it can never clear the car for driving.
+    expect(update.reply).toContain('09-9509757');
+    expect(update.reply).toMatch(/אל תמשיכו לנסוע/);
+    expect(update.reply).not.toMatch(/(?:אפשר|מותר|בטוח) (?:להמשיך|לנסוע)/);
   });
 
   it('retains leasing context, answers a monthly price question and advances to a team offer', async () => {

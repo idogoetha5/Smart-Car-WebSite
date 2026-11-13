@@ -1908,7 +1908,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // a thank-you gets a short closing, and a new question is answered by the model from approved facts.
     const safetyReceipt = handoffKind === 'safety' && /^(?:תודה על העדכון\. אל תמשיכו לנסוע|Thanks for the update\. Do not keep driving)/u.test(reply) && input.trim().length >= 8;
     if ((safetyReceipt || handoffKind !== 'safety' && /^(?:תודה על העדכון\. נציג SmartCar יטפל|Thanks for the update\. A SmartCar representative will handle|קיבלנו את בקשת השינוי\. נציג|We have received your change request)/u.test(reply))
-      && (/[?؟]/u.test(input) || state.history.some(entry => entry.from === 'bot' && entry.text === reply))) {
+      && (safetyReceipt || /[?؟]/u.test(input) || state.history.some(entry => entry.from === 'bot' && entry.text === reply))) {
       if (/^\s*(?:תודה(?: רבה)?|תודה אחי|תודה לך|מעולה|סבבה|אוקיי?|אחלה|בסדר(?: גמור)?|thanks?(?: a lot| so much)?|thank you|ok(?:ay)?|great|cool|perfect|cheers)[\s!.🙏👍😊]*(?:אחי|גבר|bro|mate)?[\s!.🙏👍😊]*$/iu.test(input)) {
         reply = he ? 'בשמחה. אם צריך עוד משהו, אנחנו כאן.' : 'You’re welcome. We’re here if you need anything else.';
       } else {
@@ -2875,8 +2875,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       // No new timing promise ("מחר בבוקר", "today", "בהקדם") that the application did not make.
       const timing = /(?<![\p{L}])(?:מחר|היום|הערב|בבוקר|בהקדם|תוך|בעוד|מיד|עוד מעט)(?![\p{L}])|\b(?:tomorrow|today|tonight|this (?:morning|evening|afternoon)|shortly|soon|within|right away|asap)\b/giu;
       const timingOk = (text.match(timing) ?? []).every(word => new RegExp(word, 'iu').test(reply));
-      const sameQuestionShape = timingOk && /[?؟]/u.test(reply) ? /[?؟]/u.test(text) : !/[?؟]/u.test(text) || state.phase === 'service' && !state.serviceReference && (text.match(/[?؟]/gu) ?? []).length === 1
-        && /(?:מספר ה?הזמנה|השם ש?על ההזמנה|על איזה שם|booking (?:number|reference)|name on the booking)[^.!?؟]{0,60}[?؟]/iu.test(text);
+      const sameQuestionShape = timingOk && (/[?؟]/u.test(reply) ? /[?؟]/u.test(text) : !/[?؟]/u.test(text) || state.phase === 'service' && !state.serviceReference && (text.match(/[?؟]/gu) ?? []).length === 1
+        && /(?:מספר ה?הזמנה|השם ש?על ההזמנה|על איזה שם|booking (?:number|reference)|name on the booking)[^.!?؟]{0,60}[?؟]/iu.test(text));
       const languageOk = state.locale === 'he' ? /[א-ת]/u.test(text) : !/[א-ת]/u.test(text) && /[A-Za-z]/.test(text);
       if (text && text !== reply && keepsNumbers && sameQuestionShape && languageOk && text.length >= reply.length * 0.5 && text.length <= Math.min(650, reply.length * 1.7 + 40)
         && !/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/u.test(text) && (reply.includes('₪') || !/₪|ש״ח|NIS/u.test(text))) {

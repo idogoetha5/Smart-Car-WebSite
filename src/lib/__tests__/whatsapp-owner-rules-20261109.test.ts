@@ -1117,3 +1117,25 @@ describe('Israeli date forms in model replies', () => {
   });
 });
 
+// Live on 4202d22: a rewording promised "נציג יחזור אליכם מחר בבוקר" (the timing guard had an operator-precedence
+// bug), and "הוא ברח, לא לקחתי פרטים" after a collision got the safety receipt again.
+describe('timing promises and safety follow-up statements', () => {
+  it('rejects a rewording that adds a callback time', async () => {
+    let state: RebuildState | null = null;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: 'x', source: 'gemini', model: 'f', groundedContext: true } as BotReading),
+      rewordTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: 'בשמחה, קיבלנו את הבקשה להאריך. נציג יחזור אליכם מחר בבוקר; ההארכה תקפה רק אחרי אישור. לעזרה מיידית ל־09-9509757.', source: 'gemini', model: 'f', groundedContext: true, rephrased: true } as BotReading) };
+    const r = await getRebuiltBotReply('fictional-timing', 'אני רוצה להאריך את הרכב בעוד שבוע, אפשר?', store);
+    expect(r.reply).not.toMatch(/מחר בבוקר/);
+  });
+  it('answers a statement after a collision with the model, keeping the safety line', async () => {
+    let state: RebuildState | null = null;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: 'לא נורא שלא לקחתם פרטים. צלמו את הנזק ואת המקום, וכדאי לבדוק אם יש מצלמות בחניון.', source: 'gemini', model: 'f', groundedContext: true } as BotReading) };
+    await getRebuiltBotReply('fictional-hitrun', 'נהג ממונית חסם אותי בחניה והרכב שלכם קיבל מכה קטנה בדלת', store);
+    const r = await getRebuiltBotReply('fictional-hitrun', 'הוא ברח, לא לקחתי פרטים', store);
+    expect(r.reply).toMatch(/לא נורא/);
+    expect(r.reply).toContain('09-9509757');
+  });
+});
+
