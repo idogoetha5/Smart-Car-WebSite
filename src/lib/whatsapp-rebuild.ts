@@ -180,7 +180,7 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
   }
   const validated = validateConversationalReply({
     // Today's date is always a supported number (a draft may say "היום, 13 בנובמבר").
-    reply: reading.reply, input, locale: state.locale, known: { ...conversationalKnown(state), today: israelDate() },
+    reply: reading.reply, input, locale: state.locale, known: { ...conversationalKnown(state), today: israelDate(), rentalDraft: state.phase !== 'service' && !state.interest && !state.handedOff && !state.completedRequestId ? 'open' : undefined },
     approvedFacts: getSmartCarApprovedFacts(state.locale).map(fact => fact.text),
     handoffDeferred: Boolean(state.humanHandoffDeferred), bookingPhase: state.phase === 'booking',
     nextMissingField: state.phase === 'booking' ? nextMissing(state.booking) ?? undefined : undefined,
@@ -2069,6 +2069,15 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       && /(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}|[^\s@]+@[^\s@]+\.[^\s@]+/u.test(input)
       && Boolean(state.booking.pickupDate || state.booking.pickupLocation || state.booking.vehicleNeed || state.booking.passengers);
     if (answersContactPrompt) {
+      state.phase = 'booking';
+      state.requestKey ??= randomUUID();
+    }
+    // A customer who gives a name (and maybe an age) in the middle of an established rental draft is moving
+    // forward, the way "תרשום על שם…" would be at a desk. Continue the request intake; sending still needs consent.
+    const namesInDraft = state.phase === 'explore' && !state.interest && !state.completedRequestId && !state.handedOff
+      && Boolean(state.booking.pickupDate || state.booking.returnDate) && Boolean(state.booking.pickupLocation || state.booking.vehicleNeed)
+      && (/^\s*(?:(?:great|ok(?:ay)?|perfect|sounds good|thanks|cool|יאללה|סבבה|אחלה|מעולה|טוב|בסדר)[,.!\s]+)?(?:i['’]?m|i am|my name is|this is|אני|שמי|קוראים לי)?\s*[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*,?\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)\s*[.!]?\s*$/iu.test(input));
+    if (namesInDraft) {
       state.phase = 'booking';
       state.requestKey ??= randomUUID();
     }

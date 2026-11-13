@@ -83,6 +83,9 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (asksRentalAgeTerms(input) && !/\bage\b|\b21\b|young[- ]driver|licen[cs]e|גיל|רישיון|נהג צעיר/i.test(reply)) return reject('unanswered_age_terms');
   if (asksRentalAgeTerms(input) && /deposit|פיקדון/i.test(input) && !/deposit|card hold|פיקדון/i.test(reply)) return reject('unanswered_deposit');
   if (reply.length > 650) return reject('too_long');
+  // In a rental enquiry nothing reaches a representative until the customer approves sending the request,
+  // so the model may not say that someone will contact or review now.
+  if (known.rentalDraft === 'open' && hasAffirmativeMatch(reply, /נציג(?:\s+(?:של\s+)?SmartCar)?\s+(?:יצור|ייצור|יחזור|יבדוק|יעבור על|יאשר)(?:\s+(?:עמכם|איתכם|אליכם|את))?|(?:representative|someone|our team)\s+will\s+(?:contact|call|get back|review|reach out|be in touch|confirm)/giu)) return reject('action_claim');
   // Privacy markers belong to the model's input, never to a customer reply.
   if (/\[(?:phone|email|name|address|payment detail|id) removed\]/iu.test(reply)) return reject('privacy_marker');
   // Model glitches: letters from scripts the customer is not writing in (observed: Thai inside a Hebrew word).
