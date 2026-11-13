@@ -991,3 +991,23 @@ describe('several questions in one message', () => {
   });
 });
 
+// Live Chrome on 9593a2d: "איפה תרצו להחזיר אותו?" was appended to four replies in a row while the
+// customer asked other things. A representative asks once, answers, and confirms the obvious default.
+describe('no repeated question after every answer', () => {
+  const start = () => chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-11-19', returnDate: '2026-11-22', pickupLocation: 'הרצליה' }, history: [{ from: 'customer', text: 'מחמישי עד ראשון מהרצליה' }, { from: 'bot', text: 'איפה תרצו להחזיר אותו?' }] } as RebuildState, 'באיסוף נדרש כרטיס אשראי תקף על שם השוכר. איפה תרצו להחזיר אותו?');
+  it('answers a side question without re-asking', async () => {
+    const r = await start().send('אפשר לשלם מזומן?');
+    expect(r.reply).toMatch(/כרטיס אשראי/);
+    expect(r.reply).not.toMatch(/איפה תרצו להחזיר/);
+  });
+  it('confirms the same place on a go-ahead, and takes "כן" as the answer', async () => {
+    const c = start();
+    const r = await c.send('טוב תשריין לי אחד');
+    expect(r.reply).not.toMatch(/איפה תרצו להחזיר/);
+    if (/להחזיר גם בהרצליה\?/.test(r.reply)) {
+      const yes = await c.send('כן');
+      expect(yes.state.booking.returnLocation).toBe('הרצליה');
+    }
+  });
+});
+

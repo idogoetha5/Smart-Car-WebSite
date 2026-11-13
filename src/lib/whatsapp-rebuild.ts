@@ -1352,6 +1352,9 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
     const statedValues = field?.evidence.match(/\d{1,2}|אחד|אחת|שניים|שתיים|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש|שבעה|שבע|שמונה|one|two|three|four|five|six|seven|eight/gi) ?? [];
     if (field && evidenceMatches && statedValues.some(value => statedCount(value) === count) && input.toLocaleLowerCase().includes(field.evidence.toLocaleLowerCase()) && Number.isInteger(count) && count >= 0 && count <= 20) state.booking[name] = count;
   }
+  // "להחזיר גם בהרצליה?" answered with a plain yes means the same place.
+  const askedSameReturn = /להחזיר גם ב|Return it to .{2,30} as well\?/u.test([...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '');
+  if (!state.booking.returnLocation && state.booking.pickupLocation && askedSameReturn && /^\s*(?:כן|בטח|ברור|נכון|בדיוק|אותו דבר|yes|yep|yeah|sure|correct|right)(?![\p{L}])/iu.test(input)) state.booking.returnLocation = state.booking.pickupLocation;
   if (!state.booking.returnLocation && state.booking.pickupLocation && (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input))) state.booking.returnLocation = state.booking.pickupLocation;
   if (state.booking.pickupDate && state.booking.returnDate && state.booking.returnDate < state.booking.pickupDate) delete state.booking.returnDate;
 }
@@ -2061,6 +2064,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     if (state.booking.pickupDate && state.booking.returnDate) delete state.booking.datePreference;
     applyPromptedLocation(input, state, lastBot, pendingFieldAtTurnStart);
     if (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input)) state.booking.returnLocation = state.booking.pickupLocation;
+    if (!state.booking.returnLocation && state.booking.pickupLocation && /להחזיר גם ב|Return it to .{2,30} as well\?/u.test(lastBot) && /^\s*(?:כן|בטח|ברור|נכון|בדיוק|אותו דבר|yes|yep|yeah|sure|correct|right)(?![\p{L}])/iu.test(input)) state.booking.returnLocation = state.booking.pickupLocation;
     const statedAgeRange = driverAgeRange(input, state);
     if (statedAgeRange) state.booking.driverAgeRange = statedAgeRange;
     const declines = /לא רוצה להזמין|לא מבקש להזמין|אל תזמין|לא עכשיו|רק מתעניין|עדיין בודק|don't book|cancel this request|not ready to book|just looking/i.test(input);
@@ -2721,6 +2725,18 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // Rental policy facts are not leasing/sale terms.
     const side = sideFact && !state.interest && (contactTurn || ['driver_documents', 'insurance', 'deposit', 'age_licence', 'fuel', 'mileage'].includes(sideFact.topic)) ? sideFact.reply : undefined;
     if (side && !reply.includes(side.slice(0, 40))) reply = `${side} ${reply}`;
+  }
+  // A representative does not repeat the same question after every answer. If the reply ends with a
+  // question the previous bot message already asked and the customer asked something else instead,
+  // answer and leave it; on a go-ahead, ask it the way a person would ("להחזיר גם בהרצליה?").
+  {
+    const previousBot = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+    const returnQuestion = question('returnLocation', state.locale);
+    const trailing = [returnQuestion, question('pickupLocation', state.locale), question('vehicleNeed', state.locale)].find(q => reply.trim().endsWith(q) && previousBot.includes(q));
+    const body = trailing ? reply.trim().slice(0, -trailing.length).trim() : '';
+    const sameReturn = trailing === returnQuestion && state.booking.pickupLocation && (state.phase === 'booking' || explicitBooking(input))
+      ? (he ? ` להחזיר גם ב${state.booking.pickupLocation}?` : ` Return it to ${state.booking.pickupLocation} as well?`) : '';
+    if (trailing && body.length >= 12 && (state.phase !== 'booking' || sameReturn)) reply = `${body}${sameReturn}`;
   }
   pushHistory(state, input, reply, privateTurn);
   if (escalate && !store.isSimulation) await store.beforeEscalationSave?.(phone);
