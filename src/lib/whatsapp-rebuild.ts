@@ -1653,13 +1653,14 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   if (runningLate && state.handoffKind !== 'safety' && !state.interest) {
     const forPickup = /לאסוף|לקחת את הרכב|איסוף|pick.?up|collect/iu.test(input) && !/להחזיר|החזרה|return|drop.?off/iu.test(input);
     const already = state.handedOff && state.history.slice(-4).some(entry => entry.from === 'bot' && /תודה שעדכנתם|Thanks for letting us know/u.test(entry.text));
-    state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'service_issue';
-    escalate = !already;
+    // Owner decision 2026-11-13: up to an hour late on a return is fine; more than that, the customer calls the office.
+    // Only a late pickup is passed to a representative (the handover has to be rearranged).
+    if (forPickup) { state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'service_issue'; escalate = !already; }
     const reply = forPickup
       ? (he ? `תודה שעדכנתם, העברתי את זה לנציג SmartCar כדי שיתאם את המסירה. סעו בזהירות; אם יש שינוי נוסף או משהו דחוף, התקשרו ל־${OFFICE_PHONE}.`
         : `Thanks for letting us know — I have passed it to a SmartCar representative so the handover can be rearranged. Drive safely; for any further change or anything urgent, call ${OFFICE_PHONE}.`)
-      : (he ? `תודה שעדכנתם, העברתי את זה לנציג SmartCar. סעו בזהירות ואל תמהרו. מועד ההחזרה שבהסכם נשאר המחייב, ואיחור עשוי להיות כרוך בחיוב לפי ההסכם; הנציג יעדכן אתכם. לתיאום מיידי התקשרו ל־${OFFICE_PHONE}.`
-        : `Thanks for letting us know — I have passed it to a SmartCar representative. Drive safely and don't rush. The return time in your agreement still applies, and a late return may be charged under the agreement; the representative will update you. To arrange it right away, call ${OFFICE_PHONE}.`);
+      : (he ? `תודה שעדכנתם, סעו בזהירות ואל תמהרו. איחור של עד שעה בהחזרה זה בסדר. אם זה יהיה יותר משעה, התקשרו לעדכן אותנו ב־${OFFICE_PHONE}.`
+        : `Thanks for letting us know — drive safely and don't rush. Returning up to an hour late is fine. If it will be more than an hour, please call us on ${OFFICE_PHONE} to update.`);
     pushHistory(state, input, reply, false);
     if (escalate && !store.isSimulation) await store.beforeEscalationSave?.(phone);
     await store.saveState(phone, state);

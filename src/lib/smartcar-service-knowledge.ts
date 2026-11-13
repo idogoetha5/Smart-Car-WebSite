@@ -123,6 +123,9 @@ export function getSmartCarApprovedFacts(locale: ServiceLocale): SmartCarApprove
     { id: 'airport_fee_website', text: locale === 'he'
       ? 'התוספת על נתב״ג לא כלולה במחיר המשוער שמופיע באתר.'
       : 'The Ben Gurion surcharge is not included in the estimate shown on the website.' },
+    { id: 'late_return', text: locale === 'he'
+      ? 'איחור של עד שעה בהחזרת הרכב זה בסדר. באיחור של יותר משעה צריך להתקשר למשרד ולעדכן.'
+      : 'Returning the car up to an hour late is fine. For more than an hour, the customer should call the office to update.' },
     { id: 'rental_extension', text: locale === 'he'
       ? 'הארכת השכרה דורשת בדיקת זמינות ואישור מפורש של SmartCar לפני מועד ההחזרה הקיים. עד לאישור, מועד ההחזרה המקורי נשאר בתוקף; אין להניח שמותר להמשיך להחזיק ברכב מעבר לו. המחיר לימים הנוספים עשוי להשתנות ואינו מובטח כמחיר היומי המקורי. אפשר להסביר זאת גם אם מספר ההזמנה עדיין אינו זמין; שיחת בירור אינה אישור הארכה.'
       : 'A rental extension requires an availability check and explicit SmartCar confirmation before the existing return deadline. Until confirmed, the original agreed return deadline remains binding; do not assume permission to keep the car beyond it. Extra days may have a different rate; the original daily price is not guaranteed. These conditions can be explained even when the booking reference is not handy. An advisory discussion is not extension approval.' },
