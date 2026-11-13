@@ -103,13 +103,13 @@ function question(key: BookingKey, locale: Locale): string {
   const he: Record<BookingKey, string> = {
     pickupDate: 'באיזה תאריך תרצו לאסוף את הרכב?', returnDate: 'באיזה תאריך תחזירו את הרכב?',
     pickupLocation: 'מאיפה תרצו לאסוף את הרכב?', returnLocation: 'איפה תרצו להחזיר אותו?',
-    vehicleNeed: 'איזה סוג רכב תרצו, או כמה נוסעים וציוד יהיו?', driverAgeRange: 'מה קבוצת הגיל של הנהג? בחרו 21–23 או 24+ (גיל 24 שייך ל־24+).', customerName: 'על איזה שם לרשום את הבקשה?',
+    vehicleNeed: 'איזה סוג רכב תרצו, או כמה נוסעים וציוד יהיו?', driverAgeRange: 'בן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה.', customerName: 'על איזה שם לרשום את הבקשה?',
     customerEmail: 'מה כתובת המייל ליצירת קשר לגבי הבקשה?',
   };
   const en: Record<BookingKey, string> = {
     pickupDate: 'What date would you like to pick up the car?', returnDate: 'What date will you return it?',
     pickupLocation: 'Where would you like to pick it up?', returnLocation: 'Where will you return it?',
-    vehicleNeed: 'What kind of car do you need, or how many passengers and bags?', driverAgeRange: 'What is the driver age group: 21–23 or 24+? Age 24 belongs to 24+.', customerName: 'What name should I put on the request?',
+    vehicleNeed: 'What kind of car do you need, or how many passengers and bags?', driverAgeRange: 'How old is the driver? The driver age group is enough: 21–23 or 24 and over.', customerName: 'What name should I put on the request?',
     customerEmail: 'What email address can we use to contact you about the request?',
   };
   return (locale === 'he' ? he : en)[key];
@@ -1869,7 +1869,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // After a non-safety handoff the chat should still feel like a person, not a receipt on repeat:
     // a thank-you gets a short closing, and a new question is answered by the model from approved facts.
     if (handoffKind !== 'safety' && /^(?:תודה על העדכון\. נציג SmartCar יטפל|Thanks for the update\. A SmartCar representative will handle|קיבלנו את בקשת השינוי\. נציג|We have received your change request)/u.test(reply)
-      && state.history.some(entry => entry.from === 'bot' && entry.text === reply)) {
+      && (/[?؟]/u.test(input) || state.history.some(entry => entry.from === 'bot' && entry.text === reply))) {
       if (/^\s*(?:תודה(?: רבה)?|תודה אחי|תודה לך|מעולה|סבבה|אוקיי?|אחלה|בסדר(?: גמור)?|thanks?(?: a lot| so much)?|thank you|ok(?:ay)?|great|cool|perfect|cheers)[\s!.🙏👍😊]*(?:אחי|גבר|bro|mate)?[\s!.🙏👍😊]*$/iu.test(input)) {
         reply = he ? 'בשמחה. אם צריך עוד משהו, אנחנו כאן.' : 'You’re welcome. We’re here if you need anything else.';
       } else {
