@@ -155,6 +155,13 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
     [/אשתך|אשתכם|your wife/iu, /אשתי|אישתי|אשתו|my wife|wife/iu],
     [/בעלך|בעלכם|your husband/iu, /בעלי|בעלה|my husband|husband/iu],
   ].some(([inReply, stated]) => inReply.test(reading.reply) && !stated.test(customerText));
+  // "אין בצי רכבים עם וו גרירה" stated as a fact when nothing approved says so. Equipment or models that the
+  // approved facts do not cover are checked by a representative, not denied (commercial vehicles are approved).
+  const absence = reading.reply.match(/(?:אין (?:לנו|אצלנו|בצי(?: הרכבים)?(?: שלנו)?)|לא קיימ(?:ים|ות)? (?:אצלנו|בצי)|we (?:do not|don['’]?t) (?:have|offer|carry)|not (?:available )?in our fleet)[^.!?\n]{0,80}/iu)?.[0];
+  if (absence && !/מסחרי|טנדר|commercial|van|סניף|branch|מידע|information/iu.test(absence)) {
+    onReject('unapproved_absence');
+    return null;
+  }
   if (relationMismatch) {
     onReject?.('relationship_mismatch');
     return null;
@@ -2884,6 +2891,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = askedJustNow && rest.length >= 12 && state.phase !== 'booking' ? rest : `${rest} ${sameReturn}`.trim();
     } else if (trailing && body.length >= 12 && state.phase !== 'booking') reply = body;
   }
+  // A person greets once. Later replies start with the answer.
+  if (state.history.some(entry => entry.from === 'bot')) {
+    const withoutGreeting = reply.replace(/^\s*(?:שלום(?: רב)?|היי|הי|אהלן|בוקר טוב|ערב טוב|צהריים טובים|hi(?: there)?|hello|hey|good (?:morning|evening|afternoon))\s*[!,.]\s*/iu, '');
+    if (withoutGreeting.length >= 12 && withoutGreeting !== reply) reply = withoutGreeting.charAt(0).toUpperCase() + withoutGreeting.slice(1);
+  }
+  // One mention of calling the office is enough.
+  if (reply.includes(OFFICE_PHONE)) reply = reply.replace(/\s*(?:אפשר גם להתקשר אלינו(?: למשרד)?(?: ישירות)?(?: בכל עת)?|You can also call (?:us|our office)(?: directly)?(?: at any time)?)\.(?=\s)/giu, '');
   pushHistory(state, input, reply, privateTurn);
   if (escalate && !store.isSimulation) await store.beforeEscalationSave?.(phone);
   await store.saveState(phone, state);
