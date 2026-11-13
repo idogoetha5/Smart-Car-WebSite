@@ -551,6 +551,11 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
     if (enBranch) draft.pickupLocation = { 'tel aviv': 'Tel Aviv', herzliya: 'Herzliya', jerusalem: 'Jerusalem' }[enBranch.toLowerCase()] ?? enBranch;
   }
   if (draft.pickupLocation && !draft.returnLocation && /\bsame place\b|\bsame location\b|\breturn(?:ing)? (?:it )?there\b|לאותו מקום|באותו מקום/iu.test(input)) draft.returnLocation = draft.pickupLocation;
+  // A reply that opens with "מירושלים, …" / "from Herzliya, …" is where the car is picked up.
+  const openingBranch = input.match(/^\s*(?:מ|from\s+)(תל אביב|הרצליה|ירושלים|tel aviv|herzliya|jerusalem)(?![\p{L}])/iu)?.[1];
+  if (!draft.pickupLocation && openingBranch && !/(?:^|\s)אם\s|\bif\b/iu.test(input)) {
+    draft.pickupLocation = ({ 'tel aviv': 'Tel Aviv', herzliya: 'Herzliya', jerusalem: 'Jerusalem' } as Record<string, string>)[openingBranch.toLowerCase()] ?? openingBranch;
+  }
   // "צריך רכב לסופש מתל אביב": a branch after "מ" in a rental need is the pickup.
   if (!draft.pickupLocation && /(?:צריך|צריכה|צריכים|רוצה|רוצים|מחפש|מחפשת|לשכור|להשכיר|לקבל|לאסוף)\s+(?:[\p{L}]+\s+){0,4}?(?:רכב|אוטו)|(?:רכב|אוטו)\s+(?:[\p{L}]+\s+){0,3}?מ(?:תל אביב|הרצליה|ירושלים)/u.test(input)) {
     const branch = input.match(/(?<![\p{L}])מ(תל אביב|הרצליה|ירושלים)(?![\p{L}])/u)
