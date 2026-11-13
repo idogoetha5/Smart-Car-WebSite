@@ -87,6 +87,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   // so the model may not say that someone will contact or review now.
   if (known.rentalDraft === 'open' && hasAffirmativeMatch(reply, /נציג(?:\s+(?:של\s+)?SmartCar)?\s+(?:יצור|ייצור|יחזור|יבדוק|יעבור על)(?:\s+(?:עמכם|איתכם|אליכם|את))?|(?:representative|someone|our team)\s+will\s+(?:contact|call|get back|review|reach out|be in touch)/giu)) return reject('action_claim');
   if (known.rentalDraft === 'open' && hasAffirmativeMatch(reply, /\bwe (?:have|['’]ve got|['’]ve recorded|['’]ve registered) your (?:request|booking|reservation)\b|\byour (?:request|booking|reservation) is (?:in|registered|recorded|confirmed)\b|הבקשה (?:שלכם )?(?:נרשמה|נקלטה|התקבלה)|רשמנו את הבקשה/giu)) return reject('action_claim');
+  if (hasAffirmativeMatch(reply, /\byou(?:['’]re| are) all set\b|\byou(?:['’]re| are) (?:approved|eligible)\b|אתם מאושרים|אתה מאושר|את מאושרת|הכול מסודר/giu)) return reject('action_claim');
   // Privacy markers belong to the model's input, never to a customer reply.
   if (/\[(?:phone|email|name|address|payment detail|id) removed\]/iu.test(reply)) return reject('privacy_marker');
   // Model glitches: letters from scripts the customer is not writing in (observed: Thai inside a Hebrew word).
