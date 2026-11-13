@@ -95,7 +95,7 @@ describe('no stall in a rental draft', () => {
   it('asks the missing return place when the model reply asks nothing', async () => {
     const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { passengers: 4, pickupDate: '2026-12-15', returnDate: '2026-12-19', pickupLocation: 'הרצליה' }, history: [] } as RebuildState, 'עגלה נכנסת בדרך כלל במשפחתי, וההתאמה תלויה בדגם ובמידות העגלה.');
     const result = await c.send('ועגלה נכנסת במשפחתי?');
-    expect(result.reply).toMatch(/איפה תרצו להחזיר אותו\?/);
+    expect(result.reply).toMatch(/להחזיר גם בהרצליה\?/);
   });
 });
 

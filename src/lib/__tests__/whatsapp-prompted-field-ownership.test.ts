@@ -14,7 +14,7 @@ describe('one bare answer belongs to the field asked at turn start', () => {
     expect(pickup.state.booking.pickupLocation).toBe('הרצליה');
     expect(pickup.state.booking.returnLocation).toBeUndefined();
     expect(pickup.state.step).toBe('rental_locations');
-    expect(pickup.reply).toMatch(/איפה.*להחזיר/);
+    expect(pickup.reply).toMatch(/להחזיר/);
     const returned = await send('ירושלים');
     expect(returned.state.booking).toMatchObject({ pickupLocation: 'הרצליה', returnLocation: 'ירושלים' });
     expect(returned.state.step).toBe('rental_age');

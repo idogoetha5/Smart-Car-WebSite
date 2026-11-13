@@ -1354,7 +1354,7 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
   }
   // "להחזיר גם בהרצליה?" answered with a plain yes means the same place.
   const askedSameReturn = /להחזיר גם ב|Return it to .{2,30} as well\?/u.test([...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '');
-  if (!state.booking.returnLocation && state.booking.pickupLocation && askedSameReturn && /^\s*(?:כן|בטח|ברור|נכון|בדיוק|אותו דבר|yes|yep|yeah|sure|correct|right)(?![\p{L}])/iu.test(input)) state.booking.returnLocation = state.booking.pickupLocation;
+  if (!state.booking.returnLocation && state.booking.pickupLocation && askedSameReturn && /^\s*(?:כן|בטח|ברור|נכון|בדיוק|אותו דבר|yes|yep|yeah|sure|correct|right)(?![\p{L}])/iu.test(input) && !/להחזיר|החזרה|לאסוף|תאספו|איסוף|return|collect|pick/iu.test(input)) state.booking.returnLocation = state.booking.pickupLocation;
   if (!state.booking.returnLocation && state.booking.pickupLocation && (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input))) state.booking.returnLocation = state.booking.pickupLocation;
   if (state.booking.pickupDate && state.booking.returnDate && state.booking.returnDate < state.booking.pickupDate) delete state.booking.returnDate;
 }
@@ -2064,7 +2064,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     if (state.booking.pickupDate && state.booking.returnDate) delete state.booking.datePreference;
     applyPromptedLocation(input, state, lastBot, pendingFieldAtTurnStart);
     if (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input)) state.booking.returnLocation = state.booking.pickupLocation;
-    if (!state.booking.returnLocation && state.booking.pickupLocation && /להחזיר גם ב|Return it to .{2,30} as well\?/u.test(lastBot) && /^\s*(?:כן|בטח|ברור|נכון|בדיוק|אותו דבר|yes|yep|yeah|sure|correct|right)(?![\p{L}])/iu.test(input)) state.booking.returnLocation = state.booking.pickupLocation;
+    if (!state.booking.returnLocation && state.booking.pickupLocation && /להחזיר גם ב|Return it to .{2,30} as well\?/u.test(lastBot) && /^\s*(?:כן|בטח|ברור|נכון|בדיוק|אותו דבר|yes|yep|yeah|sure|correct|right)(?![\p{L}])/iu.test(input) && !/להחזיר|החזרה|לאסוף|תאספו|איסוף|return|collect|pick/iu.test(input)) state.booking.returnLocation = state.booking.pickupLocation;
     const statedAgeRange = driverAgeRange(input, state);
     if (statedAgeRange) state.booking.driverAgeRange = statedAgeRange;
     const declines = /לא רוצה להזמין|לא מבקש להזמין|אל תזמין|לא עכשיו|רק מתעניין|עדיין בודק|don't book|cancel this request|not ready to book|just looking/i.test(input);
@@ -2734,9 +2734,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const returnQuestion = question('returnLocation', state.locale);
     const trailing = [returnQuestion, question('pickupLocation', state.locale), question('vehicleNeed', state.locale)].find(q => reply.trim().endsWith(q) && previousBot.includes(q));
     const body = trailing ? reply.trim().slice(0, -trailing.length).trim() : '';
-    const sameReturn = trailing === returnQuestion && state.booking.pickupLocation && (state.phase === 'booking' || explicitBooking(input))
-      ? (he ? ` להחזיר גם ב${state.booking.pickupLocation}?` : ` Return it to ${state.booking.pickupLocation} as well?`) : '';
-    if (trailing && body.length >= 12 && (state.phase !== 'booking' || sameReturn)) reply = `${body}${sameReturn}`;
+    const sameReturn = state.booking.pickupLocation ? (he ? `להחזיר גם ב${state.booking.pickupLocation}?` : `Return it to ${state.booking.pickupLocation} as well?`) : '';
+    if (sameReturn && !state.booking.returnLocation && reply.trim().endsWith(returnQuestion)) {
+      // With a known pickup, ask about the return the way a person would; never ask it twice in a row.
+      const rest = reply.trim().slice(0, -returnQuestion.length).trim();
+      const askedJustNow = previousBot.includes(returnQuestion) || previousBot.includes(sameReturn);
+      reply = askedJustNow && rest.length >= 12 && state.phase !== 'booking' ? rest : `${rest} ${sameReturn}`.trim();
+    } else if (trailing && body.length >= 12 && state.phase !== 'booking') reply = body;
   }
   pushHistory(state, input, reply, privateTurn);
   if (escalate && !store.isSimulation) await store.beforeEscalationSave?.(phone);
