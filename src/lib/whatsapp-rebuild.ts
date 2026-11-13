@@ -2061,7 +2061,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         },
       };
       reading = await (store.readTurn ?? readBotTurn)(redactServiceReference(input, state.serviceReference), modelContext);
-      if (reading) { model = reading.model; applyFields(input, state, reading); }
+      if (reading) { model = reading.model; if (store.isSimulation) draftNotes.push(`read ${reading.route}/${reading.direction} patches=${JSON.stringify(reading.factPatches ?? []).slice(0, 400)} fields=${JSON.stringify(reading.fields ?? {}).slice(0, 200)}`); applyFields(input, state, reading); }
     }
     const statedRange = explicitDateRange(input);
     if (statedRange) Object.assign(state.booking, statedRange);
