@@ -1525,7 +1525,9 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
   // "אבי בדיקה 41" sent while a rental draft already has dates is the customer giving name and age.
   const draftNameAge = state.phase === 'explore' && !state.interest && !state.completedRequestId && Boolean(state.booking.pickupDate || state.booking.pickupLocation)
     && /^\s*(?:(?:great|ok(?:ay)?|perfect|sounds good|cool|thanks|yes|sure|יאללה|סבבה|אחלה|מעולה|טוב|בסדר|כן|תודה)[,.!\s]+)*(?:i['’]?m |i am |my name is |אני |שמי )?[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*,?\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)\s*[.!]?\s*$/u.test(input);
-  if (state.phase !== 'booking' && !explicitStart && !voluntaryRentalName && !draftNameAge) return false;
+  const draftTrailingNameAge = state.phase === 'explore' && !state.interest && !state.completedRequestId && Boolean(state.booking.pickupDate || state.booking.pickupLocation)
+    && /[,.!]\s*[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*,?\s*(?:בן|בת|age|aged)?\s*\d{2}\s*[.!]?\s*$/u.test(input);
+  if (state.phase !== 'booking' && !explicitStart && !voluntaryRentalName && !draftNameAge && !draftTrailingNameAge) return false;
   let captured = false;
   if (explicitStart || state.step === 'rental_name' || state.step === 'rental_email' || state.step === 'rental_confirm' || /המייל שלי|המייל הוא|my email|email\s*:/i.test(input)) {
     const email = input.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0];
@@ -1547,7 +1549,7 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
       && !/(?:^|\s)(?:אני|אנחנו|הוא|היא|זה|זאת|הנהג|הנהגת|נהג|נהגת|ראשי|ראשית|בעלי|אשתי|I|we|he|she|it|this|the|להחזיר|לאסוף|בואו|נתקדם|יאללה|קדימה|בבקשה|תודה|גם|רק|עם|בלי|מחר|היום|main|driver|return|pick|please|thanks|let['’]?s|go|ahead|also|only|with|without|tomorrow|today)(?=\s|$)/iu.test(part))
     : undefined;
   // "יוסי בדיקה, בן 35" during intake is a name with an age, whatever question was pending.
-  const nameAgeClause = (state.phase === 'booking' || draftNameAge) && !introducedName
+  const nameAgeClause = (state.phase === 'booking' || draftNameAge || draftTrailingNameAge || explicitStart) && !introducedName
     ? input.replace(/^\s*(?:(?:great|ok(?:ay)?|perfect|sounds good|cool|thanks|yes|sure|יאללה|סבבה|אחלה|מעולה|טוב|בסדר|כן|תודה)[,.!\s]+)*(?:i['’]?m|i am|my name is|this is|אני|שמי|קוראים לי)?\s*/iu, '').match(/^\s*([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})\s*,?\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)/u)?.[1]
       // or as the last clause: "טוב סגור, רותם בדיקה 33"
       ?? input.match(/[,.!]\s*([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})\s*,?\s*(?:בן|בת|age|aged)?\s*\d{2}\s*[.!]?\s*$/u)?.[1] : undefined;
@@ -1950,7 +1952,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // a thank-you gets a short closing, and a new question is answered by the model from approved facts.
     const safetyReceipt = handoffKind === 'safety' && /^(?:תודה על העדכון\. אל תמשיכו לנסוע|Thanks for the update\. Do not keep driving)/u.test(reply) && input.trim().length >= 8;
     if ((safetyReceipt || handoffKind !== 'safety' && /^(?:תודה על העדכון\. נציג SmartCar יטפל|Thanks for the update\. A SmartCar representative will handle|קיבלנו את בקשת השינוי\. נציג|We have received your change request)/u.test(reply))
-      && (safetyReceipt || /[?؟]/u.test(input) || state.history.some(entry => entry.from === 'bot' && entry.text === reply))) {
+      && (safetyReceipt || /[?؟]/u.test(input) || input.trim().length >= 4 || state.history.some(entry => entry.from === 'bot' && entry.text === reply))) {
       if (/^\s*(?:תודה(?: רבה)?|תודה אחי|תודה לך|מעולה|סבבה|אוקיי?|אחלה|בסדר(?: גמור)?|thanks?(?: a lot| so much)?|thank you|ok(?:ay)?|great|cool|perfect|cheers)[\s!.🙏👍😊]*(?:אחי|גבר|bro|mate)?[\s!.🙏👍😊]*$/iu.test(input)) {
         reply = he ? 'בשמחה. אם צריך עוד משהו, אנחנו כאן.' : 'You’re welcome. We’re here if you need anything else.';
       } else {
@@ -2969,6 +2971,15 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const askedJustNow = previousBot.includes(returnQuestion) || previousBot.includes(sameReturn);
       reply = askedJustNow && rest.length >= 12 && state.phase !== 'booking' ? rest : `${rest} ${sameReturn}`.trim();
     } else if (trailing && body.length >= 12 && state.phase !== 'booking') reply = body;
+  }
+  // "5 days in March" then "we land March 12": once the pickup is known, the earlier length gives the return.
+  if (state.booking.pickupDate && !state.booking.returnDate && !state.interest && state.phase !== 'service') {
+    const days = [...state.history.filter(entry => entry.from === 'customer').map(entry => entry.text), input].map(text => statedDurationDays(text.replace(/\b(?:in|ב)\s*(?:january|february|march|april|may|june|july|august|september|october|november|december|ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\b/giu, ''))).filter((value): value is number => Boolean(value)).at(-1);
+    if (days && days <= 60) {
+      const start = new Date(`${state.booking.pickupDate}T12:00:00Z`);
+      start.setUTCDate(start.getUTCDate() + days);
+      state.booking.returnDate = start.toISOString().slice(0, 10);
+    }
   }
   // One name for the airport in the request ("the airport", "TLV", "נתב\"ג" → the branch label).
   for (const key of ['pickupLocation', 'returnLocation'] as const) {
