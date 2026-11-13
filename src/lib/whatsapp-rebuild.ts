@@ -1406,9 +1406,9 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
       }
       // The model reads loose timing ("לסופ״ש הזה", "this weekend", "for a week") from the calendar it is given;
       // its evidence is verbatim, so only a hypothetical phrase is refused.
-      if (!/\d{1,2}|היום|מחר|מחרתיים|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|today|tomorrow|(?:mon|tues|wed|thurs|fri|sat|sun)|מוצ.?ש|מוצאי|סופ.?ש|סוף ה?שבוע|weekend/i.test(field.evidence) && !(source === 'returnDate' && state.booking.pickupDate && /שבוע|ימים|יומיים|חודש|week|days?|month/i.test(field.evidence)) || isHypotheticalFactEvidence(input, field.evidence)) continue;
+      if (!/\d{1,2}|היום|מחר|מחרתיים|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|today|tomorrow|(?:mon|tues|wed|thurs|fri|sat|sun)|מוצ.?ש|מוצאי|סופ.?ש|סוף ה?שבוע|weekend|(?:תחילת|ראשית|אמצע|סוף|בתחילת|מתחילת|באמצע|בסוף)\s+(?:חודש\s+)?(?:ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)|(?:beginning|start|early|mid|middle|end)(?:\s+of)?\s+(?:january|february|march|april|may|june|july|august|september|october|november|december)/i.test(field.evidence) && !(source === 'returnDate' && state.booking.pickupDate && /שבוע|ימים|יומיים|חודש|week|days?|month/i.test(field.evidence)) || isHypotheticalFactEvidence(input, field.evidence)) continue;
       // A length or a month alone ("for 5 days in March") is not a start date.
-      if ((source === 'pickupDate' || source === 'returnDate' && !state.booking.pickupDate) && !/\d{1,2}(?!\d|\s*(?:days?|nights?|weeks?|months?|ימים|לילות|שבועות|חודשים|יום))|היום|מחר|מחרתיים|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|today|tomorrow|(?:mon|tues|wed|thurs|fri|sat|sun)|מוצ.?ש|מוצאי|סופ.?ש|סוף ה?שבוע|weekend/i.test(field.evidence)) continue;
+      if ((source === 'pickupDate' || source === 'returnDate' && !state.booking.pickupDate) && !/\d{1,2}(?!\d|\s*(?:days?|nights?|weeks?|months?|ימים|לילות|שבועות|חודשים|יום))|היום|מחר|מחרתיים|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|today|tomorrow|(?:mon|tues|wed|thurs|fri|sat|sun)|מוצ.?ש|מוצאי|סופ.?ש|סוף ה?שבוע|weekend|(?:תחילת|ראשית|אמצע|סוף|בתחילת|מתחילת|באמצע|בסוף)\s+(?:חודש\s+)?(?:ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)|(?:beginning|start|early|mid|middle|end)(?:\s+of)?\s+(?:january|february|march|april|may|june|july|august|september|october|november|december)/i.test(field.evidence)) continue;
       const latest = new Date(`${israelDate()}T00:00:00Z`);
       latest.setUTCFullYear(latest.getUTCFullYear() + 2);
       if (!validDate(field.value) || field.value < israelDate() || field.value > latest.toISOString().slice(0, 10)) continue;
@@ -2211,6 +2211,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       };
       reading = await (store.readTurn ?? readBotTurn)(redactServiceReference(input, state.serviceReference), modelContext);
       if (reading) { modelNeedsRepresentative = reading.needsRepresentative === true; modelRoute = reading.route; model = reading.model; if (store.isSimulation) draftNotes.push(`read ${reading.route}/${reading.direction} patches=${JSON.stringify(reading.factPatches ?? []).slice(0, 400)} fields=${JSON.stringify(reading.fields ?? {}).slice(0, 200)}`); applyFields(input, state, reading); }
+      // A length said earlier ("לחודש", "for 5 days") gives the return as soon as the start is known, before the reply asks for it.
+      if (state.booking.pickupDate && !state.booking.returnDate && !state.interest && state.phase !== 'service') {
+        const days = [...state.history.filter(entry => entry.from === 'customer').map(entry => entry.text), input].map(text => statedDurationDays(text.replace(/\b(?:in|ב)\s*(?:january|february|march|april|may|june|july|august|september|october|november|december|ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\b/giu, ''))).filter((value): value is number => Boolean(value)).at(-1);
+        if (days && days <= 60) { const end = new Date(`${state.booking.pickupDate}T12:00:00Z`); end.setUTCDate(end.getUTCDate() + days); state.booking.returnDate = end.toISOString().slice(0, 10); }
+      }
     }
     const statedRange = explicitDateRange(input);
     if (statedRange) Object.assign(state.booking, statedRange);
@@ -2315,6 +2320,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     if (statedVehicle && (wantsBooking || state.phase === 'booking' || !commercialVehicle && !state.interest)
       && (!state.booking.vehicleNeed || /^רכב (?:לנוסע אחד|ל־\d+ נוסעים)|^car for \d+ passengers?/i.test(state.booking.vehicleNeed)
         || /בעצם|מעדיף|במקום|החלטתי על|החלטנו על|בוחר|בוחרת|actually|instead|prefer/i.test(input))) state.booking.vehicleNeed = statedVehicle;
+    // "משהו חסכוני, אני נוסע הרבה" answering the car question: the model's category reading is the choice.
+    if (!state.booking.vehicleNeed && !statedVehicle && reading?.direction && reading.direction !== 'none' && !state.interest && state.phase !== 'service' && !commercialVehicle
+      && !/[?؟]/u.test(input) && /קבוצת רכב|איזה רכב|איזה סוג רכב|סוג רכב|קומפקטי|משפחתי|vehicle (?:category|group)|car (?:category|group)|which car|what (?:kind of |type of )?car/iu.test(lastBot)) {
+      const names = he ? { compact: 'רכב קומפקטי', family: 'רכב משפחתי', suv: 'רכב פנאי', seven_seat: 'רכב שבעה מקומות' } : { compact: 'compact car', family: 'family car', suv: 'SUV', seven_seat: 'seven-seat car' };
+      state.booking.vehicleNeed = names[reading.direction];
+    }
     if (rentalPivot || switchesToRental) { carryCommercialRentalNeeds(state); state.interest = undefined; delete state.commercial; }
     // A purchase customer asking about financing stays a purchase enquiry unless they name leasing.
     else if (/ליסינג|leasing/i.test(input) || reading?.route === 'leasing' && state.interest !== 'sale') state.interest = 'leasing';

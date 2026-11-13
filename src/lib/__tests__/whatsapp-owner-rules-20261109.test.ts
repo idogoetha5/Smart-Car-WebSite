@@ -1255,3 +1255,24 @@ describe('a minor collision where everyone is fine', () => {
     expect(r.reply).toContain('09-9509757');
   });
 });
+
+// Live Chrome on 105a4a2: "מתחילת דצמבר" was not taken as a start date and "משהו חסכוני" after the car question was lost.
+describe('month starts and a plain car preference', () => {
+  function withReading(state: RebuildState, reading: Partial<BotReading>) {
+    let current = state;
+    const readTurn = vi.fn(async () => ({ route: 'explore', direction: 'none', fields: {}, reply: 'בסדר גמור.', source: 'gemini', model: 'controlled-fixture', groundedContext: true, ...reading } as BotReading));
+    const store: RebuildStore = { isSimulation: true, loadState: async () => current, saveState: async (_p, next) => { current = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn };
+    return (input: string) => getRebuiltBotReply('fictional-month', input, store);
+  }
+  it('takes "מתחילת דצמבר" and derives a month from "לחודש"', async () => {
+    const send = withReading({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [{ from: 'customer', text: 'אני מחפש רכב לחודש לעבודה' }, { from: 'bot', text: 'מאיזה תאריך?' }] } as RebuildState, { fields: { pickupDate: { value: '2026-12-01', evidence: 'מתחילת דצמבר' } } } as Partial<BotReading>);
+    const r = await send('מתחילת דצמבר');
+    expect(r.state.booking.pickupDate).toBe('2026-12-01');
+    expect(r.state.booking.returnDate).toBe('2026-12-31');
+  });
+  it('takes the model category when the customer answers the car question', async () => {
+    const send = withReading({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-12-01' }, history: [{ from: 'bot', text: 'באיזו קבוצת רכב תרצו לבחור?' }] } as RebuildState, { direction: 'compact' });
+    const r = await send('משהו חסכוני, אני נוסע הרבה');
+    expect(r.state.booking.vehicleNeed).toBe('רכב קומפקטי');
+  });
+});
