@@ -2843,6 +2843,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     escalate = true; draftNotes.push('handoff_from_model_promise');
     if (!reply.includes(OFFICE_PHONE)) reply = `${reply.trim()} ${he ? `לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `For immediate help call ${OFFICE_PHONE}.`}`;
   }
+  // Outside a service matter nobody is alerted, so a reply that points the customer to a representative
+  // must at least say how to reach one.
+  if (source === 'gemini' && !escalate && !state.handedOff && !reply.includes(OFFICE_PHONE)
+    && /נציג(?:\s+(?:של\s+)?SmartCar)?\s+(?:יבדוק|יעדכן|יחזור|יצור|ייצור)|(?:representative)\s+will\s+(?:check|update|get back|contact|call)/iu.test(reply)) {
+    reply = `${reply.trim()} ${he ? `אפשר לברר את זה מול המשרד בטלפון ${OFFICE_PHONE}.` : `You can confirm it with our office on ${OFFICE_PHONE}.`}`;
+  }
   // Code decides, the model speaks: a reply produced by fixed application wording is reworded by the model in
   // a human voice, as an answer to what the customer actually wrote. The facts stay the application's — the
   // rewording is used only if it keeps every number/phone, adds none, and keeps or omits a question as the
