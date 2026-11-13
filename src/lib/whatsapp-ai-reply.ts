@@ -88,6 +88,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (known.rentalDraft === 'open' && hasAffirmativeMatch(reply, /נציג(?:\s+(?:של\s+)?SmartCar)?\s+(?:יצור|ייצור|יחזור|יבדוק|יעבור על)(?:\s+(?:עמכם|איתכם|אליכם|את))?|(?:representative|someone|our team)\s+will\s+(?:contact|call|get back|review|reach out|be in touch)/giu)) return reject('action_claim');
   if (known.rentalDraft === 'open' && hasAffirmativeMatch(reply, /\bwe (?:have|['’]ve got|['’]ve recorded|['’]ve registered) your (?:request|booking|reservation)\b|\byour (?:request|booking|reservation) is (?:in|registered|recorded|confirmed)\b|הבקשה (?:שלכם )?(?:נרשמה|נקלטה|התקבלה|תועבר|הועברה)|רשמנו את (?:פרטי )?הבקשה|נעביר את הבקשה|העברנו את הבקשה/giu)) return reject('action_claim');
   if (hasAffirmativeMatch(reply, /\byou(?:['’]re| are) all set\b|\byou(?:['’]re| are) (?:approved|eligible)\b|אתם מאושרים|אתה מאושר|את מאושרת|הכול מסודר/giu)) return reject('action_claim');
+  // Asking for the booking number again after the customer gave it.
+  if (known.hasServiceReference === 'yes' && /(?:מספר ה?הזמנה|booking (?:number|reference))[^.!?؟]{0,40}[?؟]|(?:ציינו|שלחו|תשלחו|כתבו)\s+(?:לנו\s+)?(?:את\s+)?מספר ה?הזמנה|(?:send|share|give)(?: us)? (?:your|the) booking (?:number|reference)/iu.test(reply)) return reject('asks_known_reference');
   // Privacy markers belong to the model's input, never to a customer reply.
   if (/\[(?:phone|email|name|address|payment detail|id) removed\]/iu.test(reply)) return reject('privacy_marker');
   // Model glitches: letters from scripts the customer is not writing in (observed: Thai inside a Hebrew word).

@@ -188,7 +188,7 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
   }
   const validated = validateConversationalReply({
     // Today's date is always a supported number (a draft may say "היום, 13 בנובמבר").
-    reply: reading.reply, input, locale: state.locale, known: { ...conversationalKnown(state), today: israelDate(), rentalDraft: state.phase !== 'service' && !state.interest && !state.handedOff && !state.completedRequestId ? 'open' : undefined },
+    reply: reading.reply, input, locale: state.locale, known: { ...conversationalKnown(state), today: israelDate(), rentalDraft: state.phase !== 'service' && !state.interest && !state.handedOff && !state.completedRequestId ? 'open' : undefined, hasServiceReference: state.serviceReference ? 'yes' : undefined },
     approvedFacts: getSmartCarApprovedFacts(state.locale).map(fact => fact.text),
     handoffDeferred: Boolean(state.humanHandoffDeferred), bookingPhase: state.phase === 'booking',
     nextMissingField: state.phase === 'booking' ? nextMissing(state.booking) ?? undefined : undefined,
