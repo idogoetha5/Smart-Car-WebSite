@@ -64,6 +64,8 @@ export async function POST(request: NextRequest) {
     state: store.currentState(),
     source: result.source,
     model: result.model,
+    // Reason codes only (e.g. price_talk); helps testers see why a canned reply replaced the model's draft.
+    notes: result.notes,
     understood: wantsPrivateDebug ? store.understood() : undefined,
   });
 }

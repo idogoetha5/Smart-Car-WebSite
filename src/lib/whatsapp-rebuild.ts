@@ -38,7 +38,7 @@ export type RebuildState = {
   humanHandoffDeferred?: boolean;
 };
 
-export type RebuildResult = { reply: string; state: RebuildState; escalate?: boolean; source: 'gemini' | 'local' | 'safety'; model?: string };
+export type RebuildResult = { reply: string; state: RebuildState; escalate?: boolean; source: 'gemini' | 'local' | 'safety'; model?: string; notes?: string[] };
 export type RebuildStore = {
   isSimulation?: boolean;
   beforeEscalationSave?: (phone: string) => Promise<void>;
@@ -137,7 +137,11 @@ function conversationalKnown(state: RebuildState): GeminiBotContext['known'] {
   };
 }
 
-function groundedModelReply(reading: BotReading | null, input: string, state: RebuildState, onReject?: (reason: string) => void): string | null {
+/** Demo diagnostics only: why the last model draft was not used (reason codes, never customer text). */
+let draftNotes: string[] = [];
+function groundedModelReply(reading: BotReading | null, input: string, state: RebuildState, onRejectOuter?: (reason: string) => void): string | null {
+  const onReject = (reason: string) => { draftNotes.push(reason); onRejectOuter?.(reason); };
+  if (!reading) draftNotes.push('no_reading'); else if (!reading.groundedContext) draftNotes.push('not_grounded');
   // The provider boundary attaches this flag only after approved facts were
   // actually supplied. It is context provenance, not a promise of correctness.
   if (!reading?.groundedContext) return null;
@@ -170,7 +174,7 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
     handoffDeferred: Boolean(state.humanHandoffDeferred), bookingPhase: state.phase === 'booking',
     nextMissingField: state.phase === 'booking' ? nextMissing(state.booking) ?? undefined : undefined,
     onReject: reason => {
-      onReject?.(reason);
+      onReject(reason);
       if (process.env.NODE_ENV === 'production') console.warn('WhatsApp AI draft fallback', { reason });
     },
   });
@@ -1542,6 +1546,7 @@ function pushHistory(state: RebuildState, input: string, reply: string, privateT
 }
 
 export async function getRebuiltBotReply(phone: string, raw: string, store: RebuildStore): Promise<RebuildResult> {
+  draftNotes = [];
   const input = raw.trim().slice(0, 1000);
   const stored = await store.loadState(phone);
   const state = stored?.version === 2 ? structuredClone(stored) : fresh(language(input, 'he'));
@@ -2802,5 +2807,5 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   pushHistory(state, input, reply, privateTurn);
   if (escalate && !store.isSimulation) await store.beforeEscalationSave?.(phone);
   await store.saveState(phone, state);
-  return { reply, state, escalate, source, model };
+  return { reply, state, escalate, source, model, notes: store.isSimulation ? [...new Set(draftNotes)] : undefined };
 }
