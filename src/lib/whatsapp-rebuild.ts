@@ -2859,7 +2859,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const original = digits(reply);
       const keepsNumbers = digits(text).every(n => original.includes(n)) && original.every(n => digits(text).includes(n));
       // A question in the application wording must survive; one added question is allowed only for a missing booking reference.
-      const sameQuestionShape = /[?؟]/u.test(reply) ? /[?؟]/u.test(text) : !/[?؟]/u.test(text) || state.phase === 'service' && !state.serviceReference && (text.match(/[?؟]/gu) ?? []).length === 1;
+      const sameQuestionShape = /[?؟]/u.test(reply) ? /[?؟]/u.test(text) : !/[?؟]/u.test(text) || state.phase === 'service' && !state.serviceReference && (text.match(/[?؟]/gu) ?? []).length === 1
+        && /(?:מספר ה?הזמנה|השם ש?על ההזמנה|על איזה שם|booking (?:number|reference)|name on the booking)[^.!?؟]{0,60}[?؟]/iu.test(text);
       const languageOk = state.locale === 'he' ? /[א-ת]/u.test(text) : !/[א-ת]/u.test(text) && /[A-Za-z]/.test(text);
       if (text && text !== reply && keepsNumbers && sameQuestionShape && languageOk && text.length >= reply.length * 0.5 && text.length <= Math.min(650, reply.length * 1.7 + 40)
         && !/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/u.test(text) && (reply.includes('₪') || !/₪|ש״ח|NIS/u.test(text))) {
