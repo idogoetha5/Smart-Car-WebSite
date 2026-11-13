@@ -1943,7 +1943,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         const clearsDriving = /(?:אפשר|מותר|בטוח|ניתן|תוכלו|אתם יכולים)\s+(?:להמשיך|לנסוע|לנהוג)|(?:safe|ok|okay|fine|alright)\s+to\s+(?:drive|continue|keep)|you\s+(?:can|may)\s+(?:drive|continue|keep (?:driving|going))/iu.test(drafted ?? '');
         if (drafted && drafted.trim().length >= 25 && !(safetyReceipt && clearsDriving) && !state.history.some(entry => entry.from === 'bot' && entry.text === drafted)) {
           if (followUp) model = followUp.model;
-          reply = safetyReceipt
+          reply = safetyReceipt && drafted.includes(OFFICE_PHONE)
+            ? `${drafted.trim()} ${he ? 'אל תמשיכו לנסוע אם יש חשש בטיחותי.' : 'Do not keep driving if the car may be unsafe.'}`
+            : safetyReceipt
             ? `${drafted.trim()} ${he ? `אל תמשיכו לנסוע אם יש חשש בטיחותי; לתיאום עזרה התקשרו ל־${OFFICE_PHONE}.` : `Do not keep driving if the car may be unsafe; to arrange help call ${OFFICE_PHONE}.`}`
             : `${drafted.trim()} ${he ? 'הפנייה שלכם כבר אצל נציג SmartCar.' : 'Your request is already with a SmartCar representative.'}`;
         }

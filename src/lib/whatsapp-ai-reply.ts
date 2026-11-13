@@ -85,7 +85,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (reply.length > 650) return reject('too_long');
   // In a rental enquiry nothing reaches a representative until the customer approves sending the request,
   // so the model may not say that someone will contact or review now.
-  if (known.rentalDraft === 'open' && hasAffirmativeMatch(reply, /נציג(?:\s+(?:של\s+)?SmartCar)?\s+(?:יצור|ייצור|יחזור|יבדוק|יעבור על|יאשר)(?:\s+(?:עמכם|איתכם|אליכם|את))?|(?:representative|someone|our team)\s+will\s+(?:contact|call|get back|review|reach out|be in touch|confirm)/giu)) return reject('action_claim');
+  if (known.rentalDraft === 'open' && hasAffirmativeMatch(reply, /נציג(?:\s+(?:של\s+)?SmartCar)?\s+(?:יצור|ייצור|יחזור|יבדוק|יעבור על)(?:\s+(?:עמכם|איתכם|אליכם|את))?|(?:representative|someone|our team)\s+will\s+(?:contact|call|get back|review|reach out|be in touch)/giu)) return reject('action_claim');
   // Privacy markers belong to the model's input, never to a customer reply.
   if (/\[(?:phone|email|name|address|payment detail|id) removed\]/iu.test(reply)) return reject('privacy_marker');
   // Model glitches: letters from scripts the customer is not writing in (observed: Thai inside a Hebrew word).
@@ -120,7 +120,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (locale === 'he' && !/[א-ת]/.test(reply) || locale === 'en' && (/[א-ת]/.test(reply) || !/[A-Za-z]/.test(reply))) return reject('language');
   if (/[\u0600-\u06ff]/u.test(reply)) return reject('language');
   if (/@|https?:\/\/|www\.|\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(reply)) return reject('contact_or_link');
-  if (/(?<!\d)(?:\+\d{1,3}[ ()-]*|0[2-9])[\d ()-]{7,}/.test(reply)) return reject('contact_or_link');
+  // SmartCar's own published office number is allowed; any other phone number is not.
+  if (/(?<!\d)(?:\+\d{1,3}[ ()-]*|0[2-9])[\d ()-]{7,}/.test(reply.replace(/09-?9509757/g, ''))) return reject('contact_or_link');
   if (/system prompt|backend|internal (?:workflow|system|process)|language model|Gemini|הנחיות המערכת|תהליך פנימי|המודל|אין לי גישה/i.test(reply)) return reject('internal_details');
   if (/\b(?:taxi|taxis|bus|buses|train|uber|avis|hertz|sixt|eldan)\b|מונית|מוניות|אוטובוס|רכבת|אוויס|הרץ|סיקסט|אלדן/i.test(reply)) return reject('outside_business');
   if (/\b(?:I am|I'm|as)\s+(?:a |an )?(?:bot|AI|artificial intelligence|digital assistant)\b|\b(?:I am|I'm).{0,25}\b(?:bot|AI|digital assistant)\b|אני (?:בוט|רובוט|ה?עוזר ה?דיגיטלי|בינה מלאכותית)/i.test(reply)) return reject('identity');
