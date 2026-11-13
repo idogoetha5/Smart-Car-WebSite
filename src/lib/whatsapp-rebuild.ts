@@ -1367,6 +1367,19 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
     : !state.booking.returnLocation ? question('returnLocation', state.locale)
     : (he ? 'תרצו שנתחיל בקשה לבדיקה עם הפרטים שכבר מסרתם?' : 'Would you like to start a request for review with the details you already gave?');
   const price = PRICE_OR_AVAILABILITY.test(input) ? `${priceAnswer(state.locale)} ` : '';
+  // No car direction to talk about: say back what we understood instead of a generic sales line.
+  if (group === 'none' && topic === 'trip') {
+    const dm = (iso?: string) => iso ? `${Number(iso.slice(8, 10))}.${Number(iso.slice(5, 7))}` : '';
+    const parts = [
+      state.booking.pickupDate && state.booking.returnDate ? (he ? `${dm(state.booking.pickupDate)}–${dm(state.booking.returnDate)}` : `${dm(state.booking.pickupDate)}–${dm(state.booking.returnDate)}`) : state.booking.pickupDate ? (he ? `מ־${dm(state.booking.pickupDate)}` : `from ${dm(state.booking.pickupDate)}`) : '',
+      state.booking.pickupLocation ? (he ? `איסוף ב${state.booking.pickupLocation.replace(/^(?=[א-ת])/u, '')}` : `pickup in ${state.booking.pickupLocation}`) : '',
+      state.booking.passengers ? (he ? `ל־${state.booking.passengers} נוסעים` : `for ${state.booking.passengers}`) : '',
+    ].filter(Boolean);
+    if (parts.length) {
+      const vehicleQuestion = he ? 'איזה רכב מתאים לכם — קטן, משפחתי או משהו גדול יותר?' : 'What kind of car suits you — small, family or something bigger?';
+      return `${he ? 'מעולה' : 'Great'}, ${parts.join(', ')}. ${price}${state.booking.vehicleNeed ? next : vehicleQuestion}`.replace(/\s+/g, ' ').trim();
+    }
+  }
   return `${lead}. ${benefit} ${price}${next}`.replace(/\s+/g, ' ').trim();
 }
 
