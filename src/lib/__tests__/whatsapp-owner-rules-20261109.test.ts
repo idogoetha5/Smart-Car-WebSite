@@ -1197,3 +1197,15 @@ describe('the model decides when a representative is needed now', () => {
   });
 });
 
+// Live on 9842d31: "what happens if i get a flat tire?" raised a safety alert to the office.
+describe('what-if questions about incidents', () => {
+  it.each(['what happens if i get a flat tire?', 'מה עושים אם יש פנצ׳ר בדרך?'])('do not raise an alert: %s', async input => {
+    const r = await chat(null, 'If you get a flat tyre, stop somewhere safe and call the office; do not change it yourself.', /[א-ת]/.test(input) ? 'he' : 'en').send(input);
+    expect(r.escalate).toBeFalsy();
+  });
+  it.each(['i have a flat tire right now on route 1', 'יש לי פנצ׳ר עכשיו בכביש 6'])('still raise one for a real report: %s', async input => {
+    const r = await chat(null, 'x', /[א-ת]/.test(input) ? 'he' : 'en').send(input);
+    expect(r.escalate).toBe(true);
+  });
+});
+

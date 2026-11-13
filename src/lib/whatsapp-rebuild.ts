@@ -1779,7 +1779,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     await store.saveState(phone, state);
     return { reply, state, escalate, source: 'local' };
   }
-  const incident = safety(input);
+  // "What happens if I get a flat tire?" asks about the procedure; it is not a report and must not alert anyone.
+  const whatIfOnly = /(?:^|[.!?]\s*)(?:(?:what (?:happens|do i do|should i do|do we do|is the procedure)|and)\s+)?(?:if (?:i|we) (?:get|have|had)|what if)\b|מה (?:קורה|עושים|יקרה|עושים במקרה ש)\s*(?:אם|כש|במקרה)|מה הנוהל (?:אם|במקרה)/iu.test(input)
+    && !/(?:right now|just now|now|already|i have a|i got a|i(?:'m| am) (?:stuck|on|at)|עכשיו|כרגע|קרה לי|יש לי (?:פנצ|תקלה)|נתקעתי|עשיתי תאונה)/iu.test(input);
+  const incident = whatIfOnly ? null : safety(input);
   if (incident) {
     state.phase = 'service'; state.handedOff = true; state.handoffAt ??= new Date().toISOString(); state.handoffKind = 'safety';
     state.safetyKind = incident;
