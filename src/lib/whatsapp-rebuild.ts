@@ -2826,7 +2826,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         known: conversationalKnown(state), approvedFacts: getSmartCarApprovedFacts(state.locale), applicationReply: reply,
         conversation: { interest: state.interest, handoffDeferred: false, hasServiceReference: Boolean(state.serviceReference), step: state.step, completedRequest: false },
       });
-      const text = reworded?.rephrased ? reworded.reply.trim() : '';
+      let text = reworded?.rephrased ? reworded.reply.trim() : '';
+      // The office number is the one thing the model tends to drop; the application puts it back.
+      if (text && reply.includes(OFFICE_PHONE) && !text.includes(OFFICE_PHONE)) {
+        text = `${text.replace(/\s*(?:אפשר גם להתקשר(?: אלינו)?(?: ישירות)?|You can also call us(?: directly)?)\.?\s*$/iu, '').trim()} ${he ? `לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `For immediate help call ${OFFICE_PHONE}.`}`;
+      }
       const digits = (value: string) => (value.match(/\d[\d\-–.,:/]*\d|\d/gu) ?? []).map(n => n.replace(/[^\d]/g, ''));
       const original = digits(reply);
       const keepsNumbers = digits(text).every(n => original.includes(n)) && original.every(n => digits(text).includes(n));
