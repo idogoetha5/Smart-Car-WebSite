@@ -3,6 +3,8 @@ import type { BranchId } from '@/lib/branches';
 // Local information for the four branch landing pages ("השכרת רכב ב<עיר>").
 // Competing branch pages that rank (Eldan, Suncar, Shlomo Sixt, Hertz) add
 // directions, parking, driving distances, local driving tips and a longer FAQ;
+// Distances: Google Maps driving distance from the branch address, checked
+// 14 Nov 2026 and rounded to 5 km. Re-check before changing them.
 // ours had about 300 words. Everything here is either general public
 // knowledge about the city (rounded, "about") or a SmartCar fact already
 // published elsewhere on the site (faq-data.ts, terms, branch hours, owner-
@@ -46,9 +48,9 @@ export const BRANCH_LOCAL: Record<BranchId, BranchLocal> = {
       en: 'The branch is at HaYarkon 112, on the hotel strip along the beach and close to the promenade. Guests at nearby hotels can walk over and collect the car; anyone who prefers not to come in can ask for delivery to a hotel or another address in the city.',
     },
     distances: [
-      { to: { he: 'נמל התעופה בן גוריון', en: 'Ben Gurion Airport' }, km: 20 },
+      { to: { he: 'נמל התעופה בן גוריון', en: 'Ben Gurion Airport' }, km: 25 },
       { to: { he: 'הרצליה', en: 'Herzliya' }, km: 15 },
-      { to: { he: 'ירושלים', en: 'Jerusalem' }, km: 65 },
+      { to: { he: 'ירושלים', en: 'Jerusalem' }, km: 70 },
       { to: { he: 'חיפה', en: 'Haifa' }, km: 95 },
       { to: { he: 'ים המלח (עין גדי)', en: 'Dead Sea (Ein Gedi)' }, km: 150 },
       { to: { he: 'אילת', en: 'Eilat' }, km: 350 },
@@ -77,7 +79,7 @@ export const BRANCH_LOCAL: Record<BranchId, BranchLocal> = {
     distances: [
       { to: { he: 'תל אביב', en: 'Tel Aviv' }, km: 15 },
       { to: { he: 'נתניה', en: 'Netanya' }, km: 20 },
-      { to: { he: 'נמל התעופה בן גוריון', en: 'Ben Gurion Airport' }, km: 30 },
+      { to: { he: 'נמל התעופה בן גוריון', en: 'Ben Gurion Airport' }, km: 35 },
       { to: { he: 'ירושלים', en: 'Jerusalem' }, km: 75 },
       { to: { he: 'חיפה', en: 'Haifa' }, km: 80 },
     ],
@@ -99,11 +101,11 @@ export const BRANCH_LOCAL: Record<BranchId, BranchLocal> = {
       en: 'The branch is at King David 8 in the city centre, near Mamilla and many hotels. Guests nearby can walk over; delivery to a hotel or another Jerusalem address can also be arranged.',
     },
     distances: [
-      { to: { he: 'נמל התעופה בן גוריון', en: 'Ben Gurion Airport' }, km: 50 },
+      { to: { he: 'נמל התעופה בן גוריון', en: 'Ben Gurion Airport' }, km: 55 },
       { to: { he: 'תל אביב', en: 'Tel Aviv' }, km: 65 },
-      { to: { he: 'ים המלח (עין גדי)', en: 'Dead Sea (Ein Gedi)' }, km: 85 },
+      { to: { he: 'ים המלח (עין גדי)', en: 'Dead Sea (Ein Gedi)' }, km: 80 },
       { to: { he: 'מצדה', en: 'Masada' }, km: 100 },
-      { to: { he: 'אילת', en: 'Eilat' }, km: 310 },
+      { to: { he: 'אילת', en: 'Eilat' }, km: 335 },
     ],
     tips: [
       {
@@ -127,10 +129,10 @@ export const BRANCH_LOCAL: Record<BranchId, BranchLocal> = {
       en: 'With SmartCar there is no counter to find and no shuttle to an off-site rental lot: a representative meets you with the car at Ben Gurion Airport at a meeting point agreed in advance, and collects it again before your flight. Available 24/7 by prior arrangement.',
     },
     distances: [
-      { to: { he: 'תל אביב', en: 'Tel Aviv' }, km: 20 },
-      { to: { he: 'הרצליה', en: 'Herzliya' }, km: 30 },
-      { to: { he: 'ירושלים', en: 'Jerusalem' }, km: 50 },
-      { to: { he: 'חיפה', en: 'Haifa' }, km: 110 },
+      { to: { he: 'תל אביב', en: 'Tel Aviv' }, km: 25 },
+      { to: { he: 'הרצליה', en: 'Herzliya' }, km: 35 },
+      { to: { he: 'ירושלים', en: 'Jerusalem' }, km: 55 },
+      { to: { he: 'חיפה', en: 'Haifa' }, km: 115 },
       { to: { he: 'אילת', en: 'Eilat' }, km: 330 },
     ],
     tips: [

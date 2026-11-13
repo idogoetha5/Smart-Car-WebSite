@@ -1114,6 +1114,8 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 
 ### Change log
 
+- 2026-11-14 — Branch-page distance tables corrected after the owner asked whether they were checked (they had been estimates). All 21 distances re-measured as Google Maps driving distance from the branch address and rounded to 5 km; ten were off by 5–25 km (e.g. airport→Haifa 110→115, Jerusalem→Eilat 310→335, Tel Aviv→airport 20→25). Rule: never publish distances, times or local facts without checking a source.
+
 - 2026-11-13 — Mobile tidy-up of the public content pages: `PublicRentalAdvice` topics are now tap-to-open cards (`<details>`, first one open; text stays in the HTML), branch-page phone and 'all branches' links are 44px tall, and the monthly FAQ no longer repeats a topic already in the advice. Audited 10 pages at 360px and 1366px: no horizontal scroll, no tap target under 40px.
 
 - 2026-11-12 — SEO quick wins for queries already at positions 8–25 in Search Console: extra advice sections on Tel Aviv (hourly, HaYarkon/hotels), Jerusalem (young driver, neighbourhood delivery), airport (three steps, phone) and monthly rental (who, how to book, cities, car types) in `public-rental-content.ts`; leasing page H1 now says 'ליסינג פרטי ועסקי', three new leasing sections and the leasing FAQ (`ServiceExtras`). About page: one factual opening paragraph ADDED above the story — owner rule: the existing About text must never be edited, only added to. IndexNow key file added under `public/`. No prices or pricing rules in any new copy.
