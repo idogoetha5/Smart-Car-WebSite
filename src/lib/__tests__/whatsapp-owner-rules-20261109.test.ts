@@ -1219,3 +1219,16 @@ describe('an acknowledgement never ends the rental conversation', () => {
     expect(r.reply).toMatch(/\?/);
   });
 });
+
+// Live Chrome on 06c2e89: "can i pick up the car at 6am on saturday from tel aviv?" left the date empty and asked for dates.
+describe('a plain weekday is the coming one', () => {
+  it.each([['en', 'can i pick up the car at 6am on saturday from tel aviv?'], ['he', 'אפשר לאסוף רכב ביום חמישי מהרצליה?']] as const)('%s: %s', async (locale, input) => {
+    const r = await chat(null, locale === 'en' ? 'Sure, what time?' : 'בטח, באיזו שעה?', locale).send(input);
+    expect(r.state.booking.pickupDate).toMatch(/^\d{4}-\d\d-\d\d$/);
+    expect(r.state.booking.pickupDate! > new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date())).toBe(true);
+  });
+  it('leaves a what-if alone', async () => {
+    const r = await chat(null, 'x', 'en').send('what if i want to pick up on saturday?');
+    expect(r.state.booking.pickupDate).toBeUndefined();
+  });
+});

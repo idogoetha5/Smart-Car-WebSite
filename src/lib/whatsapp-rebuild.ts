@@ -1465,6 +1465,17 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
     || Boolean(state.booking.pickupLocation) && /[?؟]\s*$/u.test(previousBotForReturn.trim()) && new RegExp(`(?:להחזיר|החזרה|return)[^?؟]{0,40}${state.booking.pickupLocation!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'iu').test(previousBotForReturn);
   if (!state.booking.returnLocation && state.booking.pickupLocation && askedSameReturn && /^\s*(?:כן|בטח|ברור|נכון|בדיוק|אותו דבר|yes|yep|yeah|sure|correct|right)(?![\p{L}])/iu.test(input) && !/להחזיר|החזרה|לאסוף|תאספו|איסוף|return|collect|pick/iu.test(input)) state.booking.returnLocation = sameReturnLabel(state);
   if (!state.booking.returnLocation && state.booking.pickupLocation && (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input))) state.booking.returnLocation = sameReturnLabel(state);
+  // "can I pick up the car on saturday?" — the model sometimes leaves a plain weekday out; it means the coming one.
+  if (!state.booking.pickupDate && state.phase !== 'service' && !/\d/u.test(input.replace(/\b\d{1,2}(?::\d\d)?\s*(?:am|pm)\b|(?<!\d)\d{1,2}:\d\d(?!\d)|(?:ב|בשעה\s*)[-־]?\d{1,2}(?:\s*(?:בבוקר|בערב|בצהריים))?(?!\d)/giu, '')) && /איסוף|לאסוף|לקחת|לקבל|צריך רכב|pick(?:\s+(?:it|the car))?[\s-]*up|collect|need (?:a|the) car|rent/iu.test(input) && !/(?:^|\s)(?:what if|if i|אם)\s|every|כל יום/iu.test(input)) {
+    const days = [['sunday', 'יום ראשון'], ['monday', 'יום שני'], ['tuesday', 'יום שלישי'], ['wednesday', 'יום רביעי'], ['thursday', 'יום חמישי'], ['friday', 'יום שישי'], ['saturday', 'שבת']] as const;
+    const hits = days.map(([en, heDay], index) => ({ index, hit: new RegExp(`\\b${en}\\b`, 'iu').test(input) || (index === 6 ? /(?<![\p{L}])(?:ב)?שבת(?![\p{L}])/u.test(input) : new RegExp(`(?<![\\p{L}])ב?${heDay}(?![\\p{L}])`, 'u').test(input)) })).filter(day => day.hit);
+    if (hits.length === 1 && !/today|tomorrow|היום|מחר/iu.test(input)) {
+      const date = new Date(`${israelDate()}T12:00:00Z`);
+      const ahead = (hits[0].index - date.getUTCDay() + 7) % 7 || 7;
+      date.setUTCDate(date.getUTCDate() + ahead);
+      state.booking.pickupDate = date.toISOString().slice(0, 10);
+    }
+  }
   if (state.booking.pickupDate && state.booking.returnDate && state.booking.returnDate < state.booking.pickupDate) delete state.booking.returnDate;
 }
 
