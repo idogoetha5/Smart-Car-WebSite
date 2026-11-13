@@ -1387,7 +1387,9 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
       }
       // The model reads loose timing ("לסופ״ש הזה", "this weekend", "for a week") from the calendar it is given;
       // its evidence is verbatim, so only a hypothetical phrase is refused.
-      if (!/\d{1,2}|היום|מחר|מחרתיים|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|today|tomorrow|(?:mon|tues|wed|thurs|fri|sat|sun)|מוצ.?ש|מוצאי|סופ.?ש|סוף ה?שבוע|שבוע|ימים|יומיים|חודש|הקרוב|הבא|weekend|week|days?|month|next|this/i.test(field.evidence) || isHypotheticalFactEvidence(input, field.evidence)) continue;
+      if (!/\d{1,2}|היום|מחר|מחרתיים|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|today|tomorrow|(?:mon|tues|wed|thurs|fri|sat|sun)|מוצ.?ש|מוצאי|סופ.?ש|סוף ה?שבוע|weekend/i.test(field.evidence) && !(source === 'returnDate' && state.booking.pickupDate && /שבוע|ימים|יומיים|חודש|week|days?|month/i.test(field.evidence)) || isHypotheticalFactEvidence(input, field.evidence)) continue;
+      // A length or a month alone ("for 5 days in March") is not a start date.
+      if ((source === 'pickupDate' || source === 'returnDate' && !state.booking.pickupDate) && !/\d{1,2}(?!\d|\s*(?:days?|nights?|weeks?|months?|ימים|לילות|שבועות|חודשים|יום))|היום|מחר|מחרתיים|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|today|tomorrow|(?:mon|tues|wed|thurs|fri|sat|sun)|מוצ.?ש|מוצאי|סופ.?ש|סוף ה?שבוע|weekend/i.test(field.evidence)) continue;
       const latest = new Date(`${israelDate()}T00:00:00Z`);
       latest.setUTCFullYear(latest.getUTCFullYear() + 2);
       if (!validDate(field.value) || field.value < israelDate() || field.value > latest.toISOString().slice(0, 10)) continue;
@@ -1633,6 +1635,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   draftNotes = [];
   const input = raw.trim().slice(0, 1000);
   const stored = await store.loadState(phone);
+  const turnStartPickup = stored?.booking?.pickupDate;
+  const turnStartReturn = stored?.booking?.returnDate;
   const state = stored?.version === 2 ? structuredClone(stored) : fresh(language(input, 'he'));
   // One-time legacy interpretation; ordinary future discussion cannot turn
   // a keyword in history into a selected request on every subsequent turn.
@@ -2983,7 +2987,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else if (trailing && body.length >= 12 && state.phase !== 'booking') reply = body;
   }
   // "5 days in March" then "we land March 12": once the pickup is known, the earlier length gives the return.
-  if (state.booking.pickupDate && !state.booking.returnDate && !state.interest && state.phase !== 'service') {
+  // Also when the pickup moved this turn and the return was not restated ("land March 12" after a guess of the 14th).
+  const pickupMoved = Boolean(turnStartPickup && state.booking.pickupDate !== turnStartPickup && state.booking.returnDate === turnStartReturn);
+  if (state.booking.pickupDate && (!state.booking.returnDate || pickupMoved) && !state.interest && state.phase !== 'service') {
     const days = [...state.history.filter(entry => entry.from === 'customer').map(entry => entry.text), input].map(text => statedDurationDays(text.replace(/\b(?:in|ב)\s*(?:january|february|march|april|may|june|july|august|september|october|november|december|ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\b/giu, ''))).filter((value): value is number => Boolean(value)).at(-1);
     if (days && days <= 60) {
       const start = new Date(`${state.booking.pickupDate}T12:00:00Z`);
