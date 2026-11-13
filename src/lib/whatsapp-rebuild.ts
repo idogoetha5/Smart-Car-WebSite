@@ -1539,7 +1539,10 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
     const explicit = explicitName?.split(/\s+(?:ואני|ואין|אין לי|and I|and my|but I)\s+/i)[0].trim();
     // A customer answering the name prompt may append a separate correction
     // or decline optional email. Only the leading name clause is private data.
-    const leading = input.split(/[,!.;\n]/u, 1)[0].trim();
+    // Drop a leading acknowledgement and self-introduction ("great, im mike test, 30" → "mike test").
+    const introCandidate = input.replace(/^\s*(?:(?:great|ok(?:ay)?|perfect|sounds good|cool|thanks|yes|sure|יאללה|סבבה|אחלה|מעולה|טוב|בסדר|כן|תודה)[,.!\s]+)*(?:i['’]?m|i am|my name is|this is|name is|it['’]?s|אני|שמי|קוראים לי|השם)\s+/iu, '');
+    const introStripped = /^(?:not|unsure|still|looking|just|here|visiting|only|sorry|trying|waiting|renting|booking|confused|going|thinking|interested|לא|עדיין|רק|מחפש|מחפשת|חושב|חושבת|מעוניין|מעוניינת|צריך|צריכה|רוצה)\b/iu.test(introCandidate) ? input : introCandidate;
+    const leading = introStripped.split(/[,!.;\n]/u, 1)[0].trim().replace(/\s*(?:בן|בת|age|aged)?\s*\d{2}$/u, '').trim();
     const promptedName = !explicitStart && state.step === 'rental_name'
       && /^[\p{L}' -]{3,60}$/u.test(leading)
       && !/^(?:I|we|please|actually|no|yes|thanks?|before|after|not|do|don['’]?t|what|how|when|where|why|can|could|should|would|is|are|אני|אנחנו|לא|כן|תודה|בעצם|לפני|אחרי|אפשר|מה|איך|למה|מתי|כמה)(?:\s|$)/iu.test(leading)
