@@ -1503,8 +1503,8 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
   const voluntaryRentalName = state.phase === 'explore' && !state.interest && !state.completedRequestId && labelledName
     && Boolean(state.booking.pickupDate || state.booking.pickupLocation || state.booking.vehicleNeed || state.booking.passengers);
   // "אבי בדיקה 41" sent while a rental draft already has dates is the customer giving name and age.
-  const draftNameAge = state.phase === 'explore' && !state.interest && !state.completedRequestId && Boolean(state.booking.pickupDate)
-    && /^\s*[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*,?\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)\s*[.!]?\s*$/u.test(input);
+  const draftNameAge = state.phase === 'explore' && !state.interest && !state.completedRequestId && Boolean(state.booking.pickupDate || state.booking.pickupLocation)
+    && /^\s*(?:(?:great|ok(?:ay)?|perfect|sounds good|cool|thanks|yes|sure|יאללה|סבבה|אחלה|מעולה|טוב|בסדר|כן|תודה)[,.!\s]+)*(?:i['’]?m |i am |my name is |אני |שמי )?[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*,?\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)\s*[.!]?\s*$/u.test(input);
   if (state.phase !== 'booking' && !explicitStart && !voluntaryRentalName && !draftNameAge) return false;
   let captured = false;
   if (explicitStart || state.step === 'rental_name' || state.step === 'rental_email' || state.step === 'rental_confirm' || /המייל שלי|המייל הוא|my email|email\s*:/i.test(input)) {
@@ -1528,7 +1528,7 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
     : undefined;
   // "יוסי בדיקה, בן 35" during intake is a name with an age, whatever question was pending.
   const nameAgeClause = (state.phase === 'booking' || draftNameAge) && !introducedName
-    ? input.match(/^\s*([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})\s*,?\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)/u)?.[1] : undefined;
+    ? input.replace(/^\s*(?:(?:great|ok(?:ay)?|perfect|sounds good|cool|thanks|yes|sure|יאללה|סבבה|אחלה|מעולה|טוב|בסדר|כן|תודה)[,.!\s]+)*(?:i['’]?m|i am|my name is|this is|אני|שמי|קוראים לי)?\s*/iu, '').match(/^\s*([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})\s*,?\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)/u)?.[1] : undefined;
   const validNameAge = nameAgeClause && !/(?:^|\s)(?:אני|אנחנו|הוא|היא|זה|כן|לא|תודה|רכב|נהג|נהגת|להחזיר|לאסוף|מחר|היום|עד|עם|בלי|I|we|yes|no|car|driver|return|pick|from|to|the|a|an)(?:\s|$)/iu.test(nameAgeClause) && !/\d/.test(nameAgeClause) ? nameAgeClause : undefined;
   const validTrailingName = trailingName && !/^(?:תודה|בבקשה|יאללה|סבבה|אחלה|מעולה|בסדר|קדימה|רק|גם|עם|בלי|thank|thanks|please|ok|okay|great|cool|sounds|with|without|also|just|asap|soon|today|tomorrow|מחר|היום)(?=\s|$)|(?:^|\s)(?:רכב|car|יום|ימים|days?|בקשה|request|הצעה|quote|מחיר|price|רבה|גדול|קטן|משפחתי|big|small)(?=\s|$)/iu.test(trailingName) ? trailingName : undefined;
   const validIntroducedName = introducedName && !/^(?:not|unsure|still|looking|just|here|visiting|only|sorry|trying|waiting|renting|booking|confused|from|in|at|ok|okay|fine|good|sure|ready|interested|a|an|the|so|also|very|really|going|coming|staying|flying|landing|travel+ing|married|single)\b/i.test(introducedName) ? introducedName : undefined;
@@ -2082,7 +2082,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // A customer who gives a name (and maybe an age) in the middle of an established rental draft is moving
     // forward, the way "תרשום על שם…" would be at a desk. Continue the request intake; sending still needs consent.
     const namesInDraft = state.phase === 'explore' && !state.interest && !state.completedRequestId && !state.handedOff
-      && Boolean(state.booking.pickupDate || state.booking.returnDate) && Boolean(state.booking.pickupLocation || state.booking.vehicleNeed)
+      && [state.booking.pickupDate || state.booking.returnDate, state.booking.pickupLocation, state.booking.vehicleNeed, state.booking.passengers].filter(Boolean).length >= 2
       && (/^\s*(?:(?:great|ok(?:ay)?|perfect|sounds good|thanks|cool|יאללה|סבבה|אחלה|מעולה|טוב|בסדר)[,.!\s]+)?(?:i['’]?m|i am|my name is|this is|אני|שמי|קוראים לי)?\s*[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*,?\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)\s*[.!]?\s*$/iu.test(input));
     if (namesInDraft) {
       state.phase = 'booking';
@@ -2943,6 +2943,16 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const askedJustNow = previousBot.includes(returnQuestion) || previousBot.includes(sameReturn);
       reply = askedJustNow && rest.length >= 12 && state.phase !== 'booking' ? rest : `${rest} ${sameReturn}`.trim();
     } else if (trailing && body.length >= 12 && state.phase !== 'booking') reply = body;
+  }
+  // A person does not open every message with the same word ("בשמחה!", "Got it,").
+  {
+    const opener = (text: string) => text.trim().match(/^([\p{L}'’]+(?:\s[\p{L}'’]+)?)[!,.—–]/u)?.[1]?.toLowerCase();
+    const previousBotText = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+    const current = opener(reply);
+    if (current && current === opener(previousBotText) && reply.length > current.length + 15) {
+      const rest = reply.trim().slice(current.length).replace(/^[!,.—–\s]+/u, '');
+      reply = rest.charAt(0).toUpperCase() + rest.slice(1);
+    }
   }
   // Known Hebrew slips of the model (wording only, not meaning).
   if (he) reply = reply.replace(/(?<![\p{L}])אני מצער(?![\p{L}])/gu, 'אני מצטער').replace(/(?<![\p{L}])בבשמחה(?![\p{L}])/gu, 'בשמחה');
