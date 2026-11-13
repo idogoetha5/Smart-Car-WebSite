@@ -123,6 +123,19 @@ export function getSmartCarApprovedFacts(locale: ServiceLocale): SmartCarApprove
     { id: 'airport_fee_website', text: locale === 'he'
       ? 'התוספת על נתב״ג לא כלולה במחיר המשוער שמופיע באתר.'
       : 'The Ben Gurion surcharge is not included in the estimate shown on the website.' },
+    // Owner-confirmed facts, 2026-11-13 (the bot had answered these correctly; now they are approved).
+    { id: 'fleet_transmission', text: locale === 'he'
+      ? 'רוב הרכבים בצי אוטומטיים; את הדגם המדויק מאשרים מול נציג SmartCar.'
+      : 'Most of the fleet is automatic; the exact model is confirmed with a SmartCar representative.' },
+    { id: 'eilat', text: locale === 'he'
+      ? 'אפשר לנסוע עם הרכב לאילת, ואפשר לתאם מראש החזרה באילת.'
+      : 'The car may be driven to Eilat, and a return in Eilat can be arranged in advance.' },
+    { id: 'minimum_rental', text: locale === 'he'
+      ? 'אפשר לשכור רכב גם ליום אחד.'
+      : 'A car can be rented for as little as one day.' },
+    { id: 'no_commercial_vehicles', text: locale === 'he'
+      ? 'אין בצי רכבים מסחריים או טנדרים. יש רכבים פרטיים, משפחתיים, רכבי פנאי (SUV) ורכבי 7 מקומות.'
+      : 'The fleet has no commercial vehicles or vans. It has private cars, family cars, SUVs and seven-seaters.' },
     { id: 'late_return', text: locale === 'he'
       ? 'איחור של עד שעה בהחזרת הרכב זה בסדר. באיחור של יותר משעה צריך להתקשר למשרד ולעדכן.'
       : 'Returning the car up to an hour late is fine. For more than an hour, the customer should call the office to update.' },
