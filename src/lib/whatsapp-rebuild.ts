@@ -1627,6 +1627,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   let policyLocked = false;
   let source: RebuildResult['source'] = 'local';
   let modelRoute: string | undefined;
+  let modelNeedsRepresentative = false;
   let model: string | undefined;
   let escalate = false;
   let privateTurn = false;
@@ -2129,7 +2130,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         },
       };
       reading = await (store.readTurn ?? readBotTurn)(redactServiceReference(input, state.serviceReference), modelContext);
-      if (reading) { modelRoute = reading.route; model = reading.model; if (store.isSimulation) draftNotes.push(`read ${reading.route}/${reading.direction} patches=${JSON.stringify(reading.factPatches ?? []).slice(0, 400)} fields=${JSON.stringify(reading.fields ?? {}).slice(0, 200)}`); applyFields(input, state, reading); }
+      if (reading) { modelNeedsRepresentative = reading.needsRepresentative === true; modelRoute = reading.route; model = reading.model; if (store.isSimulation) draftNotes.push(`read ${reading.route}/${reading.direction} patches=${JSON.stringify(reading.factPatches ?? []).slice(0, 400)} fields=${JSON.stringify(reading.fields ?? {}).slice(0, 200)}`); applyFields(input, state, reading); }
     }
     const statedRange = explicitDateRange(input);
     if (statedRange) Object.assign(state.booking, statedRange);
@@ -2867,13 +2868,18 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   // The model understood an existing-booking matter and told the customer that a representative will deal
   // with it. The application makes that true: the case is passed on now (one alert), instead of leaving a
   // promise nobody hears about. Limited to service matters; sales wording is checked by the validator.
-  if (source === 'gemini' && !escalate && !state.handedOff && !state.interest && !state.completedRequestId
-    && (state.phase === 'service' || modelRoute === 'service' || modelRoute === 'human')
-    && /נציג(?:\s+(?:של\s+)?SmartCar)?\s+(?:יחזור|יצור|ייצור|יטפל|יבדוק|יעבור על|יעדכן)|(?:representative|someone from (?:our|the) team|our team)\s+will\s+(?:get back|be in touch|contact|call|handle|look into|review|check|update)/iu.test(reply)) {
+  // The model judged that a SmartCar person has to act now (owner, 2026-11-14: a problem with the car the customer
+  // has goes to a representative immediately, with the office number in case it is urgent). The model decides;
+  // the application performs the handoff the model cannot perform itself.
+  const modelAsksForPerson = modelNeedsRepresentative && !/מה (?:קורה|עושים) אם|what (?:happens )?if|(?:^|\s)אם\s|\bif\b/iu.test(input);
+  if (source === 'gemini' && !escalate && !state.handedOff && !state.completedRequestId && (modelAsksForPerson
+    || !state.interest && (state.phase === 'service' || modelRoute === 'service' || modelRoute === 'human')
+    && /נציג(?:\s+(?:של\s+)?SmartCar)?\s+(?:יחזור|יצור|ייצור|יטפל|יבדוק|יעבור על|יעדכן)|(?:representative|someone from (?:our|the) team|our team)\s+will\s+(?:get back|be in touch|contact|call|handle|look into|review|check|update)/iu.test(reply))) {
     state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString();
     state.handoffKind = cancellationRequest(input) || mentionsRentalChange(input) ? 'booking_change' : 'service_issue';
-    escalate = true; draftNotes.push('handoff_from_model_promise');
-    if (!reply.includes(OFFICE_PHONE)) reply = `${reply.trim()} ${he ? `לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `For immediate help call ${OFFICE_PHONE}.`}`;
+    escalate = true; draftNotes.push(modelAsksForPerson ? 'handoff_model_judgement' : 'handoff_from_model_promise');
+    if (!/נציג|representative/iu.test(reply)) reply = `${reply.trim()} ${he ? 'העברתי את זה עכשיו לנציג SmartCar.' : 'I have passed this to a SmartCar representative now.'}`;
+    if (!reply.includes(OFFICE_PHONE)) reply = `${reply.trim()} ${he ? `אם זה דחוף, התקשרו ל־${OFFICE_PHONE}.` : `If it is urgent, call ${OFFICE_PHONE}.`}`;
   }
   // Outside a service matter nobody is alerted, so a reply that points the customer to a representative
   // must at least say how to reach one.

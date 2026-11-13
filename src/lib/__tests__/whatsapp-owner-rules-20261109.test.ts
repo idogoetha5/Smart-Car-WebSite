@@ -1171,3 +1171,29 @@ describe('the office number in a model answer', () => {
   });
 });
 
+// Owner decision 2026-11-14: a problem with the car the customer has (live: "the car smells like cigarettes, i just
+// picked it up") goes to a representative immediately with the office number. The model decides that, not a word list.
+describe('the model decides when a representative is needed now', () => {
+  const run = async (input: string, needsRepresentative: boolean, reply: string, locale: 'he' | 'en' = 'en') => {
+    let state: RebuildState | null = { version: 2, phase: 'explore', step: 'menu', locale, booking: {}, history: [] };
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply, source: 'gemini', model: 'f', groundedContext: true, needsRepresentative } as BotReading) };
+    return getRebuiltBotReply('fictional-needs-rep', input, store);
+  };
+  it('hands off with the office number when the model says a person must act', async () => {
+    const r = await run('bro the car smells like cigarettes, i just picked it up', true, "Sorry about that — that's not how the car should be.");
+    expect(r.escalate).toBe(true);
+    expect(r.state.handedOff).toBe(true);
+    expect(r.reply).toMatch(/representative/);
+    expect(r.reply).toContain('09-9509757');
+  });
+  it('does not hand off a question about what would happen', async () => {
+    const r = await run('what if the car smells of smoke when I get it?', true, 'If the car is not clean at pickup, tell us right away and we will sort it out.');
+    expect(r.escalate).toBeFalsy();
+  });
+  it('does not hand off when the model says no person is needed', async () => {
+    const r = await run('is the car cleaned between rentals?', false, 'Yes, every car is cleaned before it is handed over.');
+    expect(r.escalate).toBeFalsy();
+  });
+});
+
