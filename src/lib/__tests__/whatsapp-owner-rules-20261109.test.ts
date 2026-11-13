@@ -1043,3 +1043,29 @@ describe('running late and human follow-ups', () => {
   });
 });
 
+// Owner direction 2026-11-13: code decides, the model speaks. Fixed application wording is reworded by the
+// model only when it keeps the facts (numbers, phone, question shape, language).
+describe('rewording of fixed application replies', () => {
+  const run = async (rewrite: string, input = 'אני רוצה להאריך את הרכב בעוד שבוע, אפשר?') => {
+    let state: RebuildState | null = null;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: 'x', source: 'gemini', model: 'fixture', groundedContext: true } as BotReading),
+      rewordTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: rewrite, source: 'gemini', model: 'fixture', groundedContext: true, rephrased: true } as BotReading) };
+    return getRebuiltBotReply('fictional-reword', input, store);
+  };
+  it('uses a rewording that keeps the phone number', async () => {
+    const r = await run('בשמחה, קיבלנו את הבקשה להאריך בשבוע. ההארכה תיכנס לתוקף רק אחרי שנבדוק זמינות ונאשר; אם זה דחוף אפשר להתקשר ל־09-9509757.');
+    expect(r.reply).toMatch(/^בשמחה, קיבלנו את הבקשה/);
+    expect(r.escalate).toBe(true);
+  });
+  it.each([
+    'בשמחה, ההארכה אושרה. נתראה!',
+    'קיבלנו את הבקשה. ההארכה תעלה 200 ₪ ליום; לעזרה התקשרו ל־09-9509757.',
+    'We received your request; call 09-9509757 for urgent help.',
+  ])('keeps the application wording when the rewording changes facts: %s', async rewrite => {
+    const r = await run(rewrite);
+    expect(r.reply).not.toBe(rewrite);
+    expect(r.reply).toContain('09-9509757');
+  });
+});
+

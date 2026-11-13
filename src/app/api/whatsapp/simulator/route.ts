@@ -29,6 +29,7 @@ function simulationStore(sessionId: string, initialState: RebuildState | null, u
     saveState: async (_phone, next) => { state = next; },
     createRentalRequest: async () => `SIM-${sessionId.slice(0, 6).toUpperCase()}`,
     readTurn: async (...args) => { understood = useAi ? await readBotTurn(...args) : null; return understood; },
+    rewordTurn: useAi ? readBotTurn : undefined,
     currentState: () => state,
     understood: () => understood,
   } satisfies RebuildStore & { currentState: () => RebuildState | null; understood: () => BotReading | null };

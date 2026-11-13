@@ -47,6 +47,9 @@ export type RebuildStore = {
   activeBooking(phone: string): Promise<{ id: string; status: string; pickup_date: string; dropoff_date: string; pickup_location: string; dropoff_location: string } | null>;
   createRentalRequest(phone: string, state: RebuildState): Promise<string | null>;
   readTurn?: typeof readBotTurn;
+  /** Rewording of fixed application replies. Defaults to the live reader; a store that injects its own
+   * readTurn (tests, evaluation) gets rewording only if it also provides this. */
+  rewordTurn?: typeof readBotTurn;
 };
 
 // WhatsApp itself is the required contact channel. Email is welcome when offered,
@@ -1458,7 +1461,10 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
   // before formal intake. Capture it locally, without treating it as consent.
   const voluntaryRentalName = state.phase === 'explore' && !state.interest && !state.completedRequestId && labelledName
     && Boolean(state.booking.pickupDate || state.booking.pickupLocation || state.booking.vehicleNeed || state.booking.passengers);
-  if (state.phase !== 'booking' && !explicitStart && !voluntaryRentalName) return false;
+  // "אבי בדיקה 41" sent while a rental draft already has dates is the customer giving name and age.
+  const draftNameAge = state.phase === 'explore' && !state.interest && !state.completedRequestId && Boolean(state.booking.pickupDate)
+    && /^\s*[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*,?\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)\s*[.!]?\s*$/u.test(input);
+  if (state.phase !== 'booking' && !explicitStart && !voluntaryRentalName && !draftNameAge) return false;
   let captured = false;
   if (explicitStart || state.step === 'rental_name' || state.step === 'rental_email' || state.step === 'rental_confirm' || /המייל שלי|המייל הוא|my email|email\s*:/i.test(input)) {
     const email = input.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0];
@@ -1480,8 +1486,8 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
       && !/(?:^|\s)(?:אני|אנחנו|הוא|היא|זה|זאת|הנהג|הנהגת|נהג|נהגת|ראשי|ראשית|בעלי|אשתי|I|we|he|she|it|this|the|להחזיר|לאסוף|בואו|נתקדם|יאללה|קדימה|בבקשה|תודה|גם|רק|עם|בלי|מחר|היום|main|driver|return|pick|please|thanks|let['’]?s|go|ahead|also|only|with|without|tomorrow|today)(?=\s|$)/iu.test(part))
     : undefined;
   // "יוסי בדיקה, בן 35" during intake is a name with an age, whatever question was pending.
-  const nameAgeClause = state.phase === 'booking' && !introducedName
-    ? input.match(/^\s*([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})\s*,\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)/u)?.[1] : undefined;
+  const nameAgeClause = (state.phase === 'booking' || draftNameAge) && !introducedName
+    ? input.match(/^\s*([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})\s*,?\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)/u)?.[1] : undefined;
   const validNameAge = nameAgeClause && !/(?:^|\s)(?:אני|אנחנו|הוא|היא|זה|כן|לא|תודה|רכב|נהג|נהגת|להחזיר|לאסוף|מחר|היום|עד|עם|בלי|I|we|yes|no|car|driver|return|pick|from|to|the|a|an)(?:\s|$)/iu.test(nameAgeClause) && !/\d/.test(nameAgeClause) ? nameAgeClause : undefined;
   const validTrailingName = trailingName && !/^(?:תודה|בבקשה|יאללה|סבבה|אחלה|מעולה|בסדר|קדימה|רק|גם|עם|בלי|thank|thanks|please|ok|okay|great|cool|sounds|with|without|also|just|asap|soon|today|tomorrow|מחר|היום)(?=\s|$)|(?:^|\s)(?:רכב|car|יום|ימים|days?|בקשה|request|הצעה|quote|מחיר|price|רבה|גדול|קטן|משפחתי|big|small)(?=\s|$)/iu.test(trailingName) ? trailingName : undefined;
   const validIntroducedName = introducedName && !/^(?:not|unsure|still|looking|just|here|visiting|only|sorry|trying|waiting|renting|booking|confused|from|in|at|ok|okay|fine|good|sure|ready|interested|a|an|the|so|also|very|really|going|coming|staying|flying|landing|travel+ing|married|single)\b/i.test(introducedName) ? introducedName : undefined;
@@ -2787,6 +2793,32 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // Rental policy facts are not leasing/sale terms.
     const side = sideFact && !state.interest && (contactTurn || ['driver_documents', 'insurance', 'deposit', 'age_licence', 'fuel', 'mileage'].includes(sideFact.topic)) ? sideFact.reply : undefined;
     if (side && !reply.includes(side.slice(0, 40))) reply = `${side} ${reply}`;
+  }
+  // Code decides, the model speaks: a reply produced by fixed application wording is reworded by the model in
+  // a human voice, as an answer to what the customer actually wrote. The facts stay the application's — the
+  // rewording is used only if it keeps every number/phone, adds none, and keeps or omits a question as the
+  // original did. Safety wording, summaries, consent steps, links and private turns are never reworded.
+  if (source !== 'gemini' && !privateTurn && !PRIVATE_PAYMENT_DETAIL.test(input) && !/\d[\d\s()-]{6,}\d|@/u.test(input) && state.handoffKind !== 'safety' && reply.length >= 45 && reply.length <= 600
+    && !/https?:\/\//u.test(reply) && !(state.phase === 'booking' && state.step === 'rental_confirm') && !state.completedRequestId) {
+    try {
+      const reworder = store.rewordTurn ?? (store.readTurn ? undefined : readBotTurn);
+      const reworded = !reworder ? null : await reworder(redactServiceReference(input, state.serviceReference), {
+        locale: state.locale, phase: state.phase, today: israelDate(),
+        recent: state.history.filter(item => !item.private).slice(-6).map(({ from, text }) => ({ from, text: redactServiceReference(text, state.serviceReference) })),
+        known: conversationalKnown(state), approvedFacts: getSmartCarApprovedFacts(state.locale), applicationReply: reply,
+        conversation: { interest: state.interest, handoffDeferred: false, hasServiceReference: Boolean(state.serviceReference), step: state.step, completedRequest: false },
+      });
+      const text = reworded?.rephrased ? reworded.reply.trim() : '';
+      const digits = (value: string) => (value.match(/\d[\d\-–.,:/]*\d|\d/gu) ?? []).map(n => n.replace(/[^\d]/g, ''));
+      const original = digits(reply);
+      const keepsNumbers = digits(text).every(n => original.includes(n)) && original.every(n => digits(text).includes(n));
+      const sameQuestionShape = /[?؟]/u.test(reply) === /[?؟]/u.test(text);
+      const languageOk = state.locale === 'he' ? /[א-ת]/u.test(text) : !/[א-ת]/u.test(text) && /[A-Za-z]/.test(text);
+      if (text && keepsNumbers && sameQuestionShape && languageOk && text.length >= reply.length * 0.5 && text.length <= Math.min(650, reply.length * 1.7 + 40)
+        && !/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/u.test(text) && (reply.includes('₪') || !/₪|ש״ח|NIS/u.test(text))) {
+        reply = text; model = reworded!.model; draftNotes.push('reworded');
+      } else if (store.isSimulation) draftNotes.push(`reword_rejected: ${text.slice(0, 120)}`);
+    } catch { /* keep the application wording */ }
   }
   // A representative does not repeat the same question after every answer. If the reply ends with a
   // question the previous bot message already asked and the customer asked something else instead,
