@@ -3001,7 +3001,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       // With a known pickup, ask about the return the way a person would; never ask it twice in a row.
       const rest = reply.trim().slice(0, -returnQuestion.length).trim();
       const askedJustNow = previousBot.includes(returnQuestion) || previousBot.includes(sameReturn);
-      reply = askedJustNow && rest.length >= 12 && state.phase !== 'booking' ? rest : `${rest} ${sameReturn}`.trim();
+      // One question at a time: if the rest already asks something, the return question waits.
+      reply = (askedJustNow || /[?؟]/u.test(rest)) && rest.length >= 12 && state.phase !== 'booking' ? rest.replace(/[:：]\s*$/u, '?') : `${rest} ${sameReturn}`.trim();
     } else if (trailing && body.length >= 12 && state.phase !== 'booking') reply = body;
   }
   // "5 days in March" then "we land March 12": once the pickup is known, the earlier length gives the return.
@@ -3031,7 +3032,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     }
   }
   // Known Hebrew slips of the model (wording only, not meaning).
-  if (he) reply = reply.replace(/(?<![\p{L}])אני מצער(?![\p{L}])/gu, 'אני מצטער').replace(/(?<![\p{L}])בבשמחה(?![\p{L}])/gu, 'בשמחה');
+  if (he) reply = reply.replace(/(?<![\p{L}])(אנו|אנחנו) מצערים(?![\p{L}])/gu, '$1 מצטערים').replace(/(?<![\p{L}])אני מצער(?![\p{L}])/gu, 'אני מצטער').replace(/(?<![\p{L}])בבשמחה(?![\p{L}])/gu, 'בשמחה');
   // A person greets once. Later replies start with the answer.
   if (state.history.some(entry => entry.from === 'bot')) {
     const withoutGreeting = reply.replace(/^\s*(?:שלום(?: רב)?|היי|הי|אהלן|בוקר טוב|ערב טוב|צהריים טובים|hi(?: there)?|hello|hey|good (?:morning|evening|afternoon))\s*[!,.]\s*/iu, '');
