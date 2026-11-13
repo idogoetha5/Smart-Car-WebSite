@@ -2369,7 +2369,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       } else reply = he ? 'הבנתי, נחזור לבדוק השכרה. לתקופה שתבחר חשוב להתאים רכב וקילומטראז׳ למסלול; באילו תאריכים תרצה לאסוף ולהחזיר?' : 'Understood, let us check a rental. The vehicle and mileage terms should fit the period you choose. What pickup and return dates do you need?';
     } else if (specificProblem) {
       state.phase = 'service'; state.step = 'menu'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'service_issue'; escalate = true;
-      reply = he ? `תודה שפניתם אלינו. נציג SmartCar יבדוק את המקרה ויחזור אליכם; לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `Thank you for contacting us. A SmartCar representative will review your case and follow up; for immediate help call ${OFFICE_PHONE}.`;
+      reply = he ? `מצטערים לשמוע. העברתי את זה עכשיו לנציג SmartCar והוא יחזור אליכם. אם זה דחוף, התקשרו ל־${OFFICE_PHONE}.` : `Sorry to hear that. I have passed this to a SmartCar representative now and they will get back to you. If it is urgent, call ${OFFICE_PHONE}.`;
     } else if (declinesHuman && state.interest && !clearlyRental) {
       state.humanHandoffDeferred = true;
       const undecidedVehicle = /לא בחרתי|לא החלטתי|אין לי העדפה|not chosen|not decided|(?:keep|leave).{0,35}open/i.test(input);
@@ -2544,7 +2544,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = cancellationPending ? 'booking_change' : 'service_issue'; escalate = true;
         reply = cancellationPending
           ? (he ? `קיבלנו את מספר ההזמנה לבקשת הביטול. נציג SmartCar יחזור אליכם; הביטול תקף רק לאחר אישור. לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `We have the reference for your cancellation request. A SmartCar representative will follow up; cancellation takes effect only after confirmation. For immediate help call ${OFFICE_PHONE}.`)
-          : (he ? `תודה שפניתם אלינו. נציג SmartCar יבדוק את המקרה ויחזור אליכם; לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `Thank you for contacting us. A SmartCar representative will review your case and follow up; for immediate help call ${OFFICE_PHONE}.`);
+          : (he ? `מצטערים לשמוע. העברתי את זה עכשיו לנציג SmartCar והוא יחזור אליכם. אם זה דחוף, התקשרו ל־${OFFICE_PHONE}.` : `Sorry to hear that. I have passed this to a SmartCar representative now and they will get back to you. If it is urgent, call ${OFFICE_PHONE}.`);
       } else if (/מקדמה|advance payment|pay.{0,30}deposit|payment.{0,25}(?:arrived|received)/i.test(input)) reply = he
         ? 'מקדמה היא תשלום מראש, והפיקדון באיסוף הוא חסימה זמנית בכרטיס אשראי לפי תנאי ההסכם. אי אפשר לבצע תשלום או לאשר קבלת כסף בשיחה הזאת. אין לשלוח מספר כרטיס מלא או קוד אבטחה; לביצוע או לבירור תשלום יש להשתמש בערוץ התשלום הרשמי של SmartCar.'
         : 'An advance payment and the temporary credit-card security hold at pickup are separate. Their terms are set in the agreement. This chat does not process payments or verify receipt of money. Do not send a full card number or security code; use SmartCar’s official payment channel to pay or check receipt.';

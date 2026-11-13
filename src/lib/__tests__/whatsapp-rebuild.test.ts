@@ -1013,7 +1013,7 @@ describe('replacement SmartCar conversation core', () => {
     const problem = await chat.send('יש לי הזמנה קיימת וחויבתי פעמיים, אפשר לבדוק?');
     expect(problem.escalate).toBe(true);
     expect(problem.state.handedOff).toBe(true);
-    expect(problem.reply).toContain('נציג SmartCar יבדוק');
+    expect(problem.reply).toContain('העברתי את זה עכשיו לנציג SmartCar');
     expect(problem.reply).not.toContain('נדרש מספר ההזמנה');
     const detail = await chat.send('מספר ההזמנה שלי TEST-123');
     expect(detail.escalate).toBe(false);
@@ -1027,7 +1027,7 @@ describe('replacement SmartCar conversation core', () => {
     const problem = await chat.send('חויבתי פעמיים על אותה השכרה');
     expect(problem.escalate).toBe(true);
     expect(problem.state.handoffKind).toBe('service_issue');
-    expect(problem.reply).toContain('נציג SmartCar יבדוק');
+    expect(problem.reply).toContain('העברתי את זה עכשיו לנציג SmartCar');
   });
 
   it('recognizes a booking reference supplied after a generic service enquiry', async () => {
