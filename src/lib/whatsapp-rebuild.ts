@@ -261,6 +261,11 @@ function statedDurationDays(input: string): number | null {
   const en = input.match(/\bfor\s+(?:a|one|two|three|four|five|six|seven|ten|\d{1,2})\s+(?:days?|weeks?)\b/iu)?.[0];
   const words: Record<string, number> = { 'שבוע': 7, 'שבועיים': 14, 'יום אחד': 1, 'יומיים': 2, 'שלושה ימים': 3, 'ארבעה ימים': 4, 'חמישה ימים': 5, 'שישה ימים': 6, 'עשרה ימים': 10 };
   if (he) return words[he] ?? Number(he.match(/\d+/)?.[0]) ?? null;
+  // "רכב לחודש לעבודה" / "for a month": a rental month is 30 days. Not "לחודש הבא" (next month) or a price per month.
+  if (!/כמה|מחיר|עולה|עלות|תשלום|ליסינג|how much|price|cost|per month|a month\?|leasing/iu.test(input)) {
+    if (/(?:למשך\s+|ל[-־]?)חודשיים(?![\p{L}])|\bfor\s+(?:two|2)\s+months\b/iu.test(input)) return 60;
+    if (/(?:למשך\s+|ל[-־]?)חודש(?![\p{L}])(?!\s*(?:הבא|הקרוב|הזה|דצמבר|ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר))|\bfor\s+(?:a|one|1)\s+month\b/iu.test(input)) return 30;
+  }
   if (en) {
     const n = en.match(/\d+/)?.[0] ? Number(en.match(/\d+/)![0]) : ({ a: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, ten: 10 } as Record<string, number>)[en.split(/\s+/)[1].toLowerCase()];
     return n ? (/week/i.test(en) ? n * 7 : n) : null;
@@ -1798,8 +1803,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     state.phase = 'service'; state.handedOff = true; state.handoffAt ??= new Date().toISOString(); state.handoffKind = 'safety';
     state.safetyKind = incident;
     const recentAlert = state.safetyAlertAt && Date.now() - Date.parse(state.safetyAlertAt) < 24 * 60 * 60 * 1000;
-    reply = reportedRentalDamage(input)
-      ? (he ? `מצטער לשמוע. ${/(?:אף אחד|איש|כולם|כולנו)\s+(?:לא נפגע|בסדר)|no one (?:is |was )?hurt|everyone(?:'s| is) (?:ok|fine)/iu.test(input) ? 'טוב שאיש לא נפגע. ' : 'אם מישהו נפגע, פנו קודם לגורמי החירום. '}צלמו את הנזק ואת מקום האירוע אם בטוח לעשות זאת, והתקשרו ל־SmartCar בתוך שעה לדיווח ולהנחיות: ${OFFICE_PHONE}. את מספר ההזמנה אפשר למסור גם בהמשך.` : `I am sorry this happened. I am glad no one was hurt. If it is safe, photograph the damage and the scene, then call SmartCar within one hour to report it and get guidance: ${OFFICE_PHONE}. You can provide the booking reference later.`)
+    const noOneHurt = /(?:אף אחד|איש|כולם|כולנו)\s+(?:לא נפגע|בסדר)|no one (?:is |was )?hurt|nobody (?:is |was )?hurt|everyone(?:'s| is) (?:ok|okay|fine)|we(?:'re| are) (?:all )?(?:ok|okay|fine)/iu.test(input);
+    const minorCollision = /תאונה|התנגשות|נכנס(?:ו)? ב(?:י|נו)|פגע(?:ו)? ב(?:י|נו)|accident|collision|hit (?:me|us)|rear-?ended|bumped into/iu.test(input) && !/עשן|smoke|fire|אש|דליפ|leak|נפגע(?!\s*\S*\s*לא)|injur|ambulance|אמבולנס|בית חולים|hospital/iu.test(input.replace(/(?:אף אחד|איש)\s+לא נפגע/gu, ''));
+    reply = reportedRentalDamage(input) || minorCollision && noOneHurt
+      ? (he ? `מצטער לשמוע. ${/(?:אף אחד|איש|כולם|כולנו)\s+(?:לא נפגע|בסדר)|no one (?:is |was )?hurt|everyone(?:'s| is) (?:ok|fine)/iu.test(input) ? 'טוב שאיש לא נפגע. ' : 'אם מישהו נפגע, פנו קודם לגורמי החירום. '}צלמו את הנזק ואת מקום האירוע אם בטוח לעשות זאת, והתקשרו ל־SmartCar בתוך שעה לדיווח ולהנחיות: ${OFFICE_PHONE}. את מספר ההזמנה אפשר למסור גם בהמשך.` : `I am sorry this happened. ${noOneHurt ? 'I am glad no one was hurt. ' : 'If anyone is hurt, call emergency services first. '}If it is safe, photograph the damage and the scene, then call SmartCar within one hour to report it and get guidance: ${OFFICE_PHONE}. You can provide the booking reference later.`)
       : /(?:won['’]?t|doesn['’]?t|will not|does not|can['’]?t get (?:it|the car) to) start|just clicks|dead battery|battery (?:is )?dead|לא (?:מניע|מתניע|נדלק)|הרכב לא מתניע|המצבר (?:מת|נגמר)|רק (?:מקליק|עושה קליק)|flat (?:tyre|tire)|פנצ['׳]?ר/iu.test(input) && !/תאונה|accident|collision|smoke|עשן|fire|אש/iu.test(input)
       ? (he ? `מצטער לשמוע. אם אתם במקום בטוח, הישארו שם ואל תנסו לתקן בעצמכם. התקשרו עכשיו ל־SmartCar כדי לתאם עזרה: ${OFFICE_PHONE}. הפנייה שלכם כבר אצל נציג.` : `Sorry to hear that. If you are somewhere safe, stay there and do not try to fix it yourself. Call SmartCar now to arrange help: ${OFFICE_PHONE}. Your message is already with a representative.`)
       : /גרר|tow|roadside/i.test(input) && recentAlert

@@ -1232,3 +1232,26 @@ describe('a plain weekday is the coming one', () => {
     expect(r.state.booking.pickupDate).toBeUndefined();
   });
 });
+
+// Live Chrome on 87e88db: "רכב לחודש לעבודה" then "מתחילת דצמבר" — the bot asked for the end date instead of taking a month.
+describe('a month-long rental gives the return date', () => {
+  it('derives the return from "לחודש" once the start is known', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-12-01' }, history: [{ from: 'customer', text: 'שלום אני מחפש רכב לחודש לעבודה, אני גר ברעננה' }, { from: 'bot', text: 'באיזה תאריך תרצו שנתחיל?' }] } as RebuildState, 'בסדר גמור. איזה רכב?');
+    const r = await c.send('משהו חסכוני');
+    expect(r.state.booking.returnDate).toBe('2026-12-31');
+  });
+  it('does not read "לחודש הבא" or a monthly price as a length', async () => {
+    const r = await chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-12-01' }, history: [] } as RebuildState, 'בסדר.').send('צריך רכב לחודש הבא');
+    expect(r.state.booking.returnDate).toBeUndefined();
+  });
+});
+
+// Live Chrome on 87e88db: "תאונה קטנה, מישהו נכנס בי מאחור, כולם בסדר" got the generic do-not-drive text, ignoring that everyone is fine.
+describe('a minor collision where everyone is fine', () => {
+  it.each([['he', 'הייתה לי תאונה קטנה, מישהו נכנס בי מאחור, כולם בסדר'], ['en', 'someone rear-ended me at a light, everyone is ok']] as const)('%s: acknowledges and explains what to do', async (locale, input) => {
+    const r = await chat(null, 'x', locale).send(input);
+    expect(r.escalate).toBe(true);
+    expect(r.reply).toMatch(/טוב שאיש לא נפגע|glad no one was hurt/);
+    expect(r.reply).toContain('09-9509757');
+  });
+});
