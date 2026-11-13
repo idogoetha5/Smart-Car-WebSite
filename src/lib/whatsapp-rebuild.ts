@@ -481,7 +481,7 @@ function applyPromptedDate(input: string, state: RebuildState, lastBot: string):
 }
 
 function temporalLocation(value: string): boolean {
-  return /^(?:ב[-־]?\s*)?(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת|היום|מחר(?:תיים)?)(?:\s|$)|^(?:on\s+)?(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow)(?:\s|$)|^\d{1,4}[-/.]\d/i.test(value.trim());
+  return /^(?:ב[-־]?\s*)?(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת|היום|מחר(?:תיים)?|מוצ["״']?ש|מוצאי שבת|הבוקר|הערב|בערב|בבוקר|בצהריים|הלילה)(?:\s|$)|^(?:on\s+)?(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow)(?:\s|$)|^\d{1,4}[-/.]\d/i.test(value.trim());
 }
 
 /** Everyday branch abbreviations: ת"א / ת״א / תא → תל אביב, י-ם → ירושלים, נתבג → נתב״ג, TLV → Tel Aviv (airport if "TLV airport"). */
@@ -1899,7 +1899,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           : (he ? `קיבלנו את בקשת השינוי. נציג SmartCar יחזור אליכם; השינוי תקף רק לאחר אישור. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `We have your change request. A SmartCar representative will follow up; the change takes effect only after confirmation. You can also call ${OFFICE_PHONE}.`);
     // After a non-safety handoff the chat should still feel like a person, not a receipt on repeat:
     // a thank-you gets a short closing, and a new question is answered by the model from approved facts.
-    if (handoffKind !== 'safety' && /^(?:תודה על העדכון\. נציג SmartCar יטפל|Thanks for the update\. A SmartCar representative will handle|קיבלנו את בקשת השינוי\. נציג|We have received your change request)/u.test(reply)
+    const safetyReceipt = handoffKind === 'safety' && /^(?:תודה על העדכון\. אל תמשיכו לנסוע|Thanks for the update\. Do not keep driving)/u.test(reply) && /[?؟]/u.test(input);
+    if ((safetyReceipt || handoffKind !== 'safety' && /^(?:תודה על העדכון\. נציג SmartCar יטפל|Thanks for the update\. A SmartCar representative will handle|קיבלנו את בקשת השינוי\. נציג|We have received your change request)/u.test(reply))
       && (/[?؟]/u.test(input) || state.history.some(entry => entry.from === 'bot' && entry.text === reply))) {
       if (/^\s*(?:תודה(?: רבה)?|תודה אחי|תודה לך|מעולה|סבבה|אוקיי?|אחלה|בסדר(?: גמור)?|thanks?(?: a lot| so much)?|thank you|ok(?:ay)?|great|cool|perfect|cheers)[\s!.🙏👍😊]*(?:אחי|גבר|bro|mate)?[\s!.🙏👍😊]*$/iu.test(input)) {
         reply = he ? 'בשמחה. אם צריך עוד משהו, אנחנו כאן.' : 'You’re welcome. We’re here if you need anything else.';
@@ -1911,9 +1912,14 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           conversation: { interest: state.interest, handoffDeferred: false, hasServiceReference: Boolean(state.serviceReference), step: state.step, completedRequest: Boolean(state.completedRequestId) },
         });
         const drafted = groundedModelReply(followUp, input, state);
-        if (drafted && drafted.trim().length >= 25 && !state.history.some(entry => entry.from === 'bot' && entry.text === drafted)) {
+        // After a safety report the model may answer a question (who pays, what happens next) but may never
+        // clear the car for driving; the safety line and the office number stay.
+        const clearsDriving = /(?:אפשר|מותר|בטוח|ניתן|תוכלו|אתם יכולים)\s+(?:להמשיך|לנסוע|לנהוג)|(?:safe|ok|okay|fine|alright)\s+to\s+(?:drive|continue|keep)|you\s+(?:can|may)\s+(?:drive|continue|keep (?:driving|going))/iu.test(drafted ?? '');
+        if (drafted && drafted.trim().length >= 25 && !(safetyReceipt && clearsDriving) && !state.history.some(entry => entry.from === 'bot' && entry.text === drafted)) {
           if (followUp) model = followUp.model;
-          reply = `${drafted.trim()} ${he ? 'הפנייה שלכם כבר אצל נציג SmartCar.' : 'Your request is already with a SmartCar representative.'}`;
+          reply = safetyReceipt
+            ? `${drafted.trim()} ${he ? `אל תמשיכו לנסוע אם יש חשש בטיחותי; לתיאום עזרה התקשרו ל־${OFFICE_PHONE}.` : `Do not keep driving if the car may be unsafe; to arrange help call ${OFFICE_PHONE}.`}`
+            : `${drafted.trim()} ${he ? 'הפנייה שלכם כבר אצל נציג SmartCar.' : 'Your request is already with a SmartCar representative.'}`;
         }
       }
     }
@@ -2430,6 +2436,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         ? (he ? 'בשמחה. מספר ההזמנה שמסרת נשמר בפנייה.' : 'You are welcome. The booking reference you supplied is saved in the enquiry.')
         : (he ? 'מספר ההזמנה שמסרת נשמר בפנייה. הוא לא מאמת את מצב ההזמנה או התשלום; אפשר להמשיך לברר כאן, וביצוע שינוי מחייב אישור SmartCar.' : 'The booking reference you supplied is saved in the enquiry. It does not verify booking or payment status; we can keep discussing your question here, and any change requires SmartCar confirmation.');
       else if (booking) reply = he ? `מצאתי את ההזמנה שלכם. לבירור או לשינוי נשמח לעזור בטלפון ${OFFICE_PHONE}.` : `I found your booking. For details or changes, we will be happy to help at ${OFFICE_PHONE}.`;
+      else if (!/[?؟]/u.test(input) && input.length >= 8 && /מספר ההזמנה|השם ש?על ההזמנה|booking (?:number|reference)|name on the booking/iu.test([...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '')) {
+        // We asked for the booking number or the name and the customer answered with what they have.
+        // A representative takes it from here instead of asking for the number again.
+        state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'service_issue'; escalate = true;
+        reply = he ? `תודה, העברתי את הפרטים לנציג SmartCar שיבדוק ויחזור אליכם. לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `Thank you — I have passed the details to a SmartCar representative, who will check and get back to you. For immediate help call ${OFFICE_PHONE}.`;
+      }
       else reply = he ? `כדי לבדוק מקרה מסוים נדרש מספר ההזמנה. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `To check a specific case, please send the booking reference or call ${OFFICE_PHONE}.`;
     } else if (state.interest) {
       const answer = commercialReply(input, state);
