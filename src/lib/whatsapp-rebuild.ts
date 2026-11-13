@@ -140,7 +140,7 @@ function conversationalKnown(state: RebuildState): GeminiBotContext['known'] {
 /** Demo diagnostics only: why the last model draft was not used (reason codes, never customer text). */
 let draftNotes: string[] = [];
 function groundedModelReply(reading: BotReading | null, input: string, state: RebuildState, onRejectOuter?: (reason: string) => void): string | null {
-  const onReject = (reason: string) => { draftNotes.push(reason); onRejectOuter?.(reason); };
+  const onReject = (reason: string) => { draftNotes.push(`${reason}: ${(reading?.reply ?? '').slice(0, 160)}`); onRejectOuter?.(reason); };
   if (!reading) draftNotes.push('no_reading'); else if (!reading.groundedContext) draftNotes.push('not_grounded');
   // The provider boundary attaches this flag only after approved facts were
   // actually supplied. It is context provenance, not a promise of correctness.
