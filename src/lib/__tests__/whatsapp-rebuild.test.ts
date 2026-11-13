@@ -97,7 +97,7 @@ describe('replacement SmartCar conversation core', () => {
     const chat = memory(() => ({ ...base, direction: 'suv', reply: 'רכב פנאי (SUV) יהיה בחירה מצוינת בזכות הישיבה הגבוהה והנוחות בדרכים מתפתלות. באיזה תאריכים תרצו לצאת לטיול?' }));
     const advice = await chat.send('איזה רכב כדאי לי לטיול משפחתי בצפון?');
     expect(advice.state.booking.vehicleNeed).toBeUndefined();
-    expect(advice.reply).toContain('משפחתית');
+    expect(advice.reply).toContain('משפחתי');
     expect(advice.reply).not.toContain('בחירה מצוינת');
   });
 
@@ -848,7 +848,7 @@ describe('replacement SmartCar conversation core', () => {
   it('does not make a child-seat fit promise or put it in the boot', async () => {
     const chat = memory(() => ({ ...base, direction: 'family', reply: 'משפחתית תספיק בוודאות לכיסא הבטיחות.' }));
     const result = await chat.send('אנחנו זוג עם תינוק וכיסא בטיחות לטיול בצפון. מה מתאים?');
-    expect(result.reply).toContain('משפחתית');
+    expect(result.reply).toContain('משפחתי');
     expect(result.reply).toMatch(/לוודא שכיסא הבטיחות מתאים/);
     expect(result.reply).not.toMatch(/בוודאות|לתא המטען.*כיסא/);
   });

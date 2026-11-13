@@ -1054,7 +1054,7 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(seat.reply).toContain('נבדוק אפשרות');
     expect(seat.reply).not.toContain('לאילו תאריכים');
     const compact = await chat.send('היית ממליץ על קטן?');
-    expect(compact.reply).toContain('משפחתית');
+    expect(compact.reply).toContain('משפחתי');
     expect(compact.reply).not.toContain('לאילו תאריכים');
     const closing = await chat.send('תודה, אעדכן כשאדע תאריכים');
     expect(closing.reply).toContain('בשמחה');
@@ -1064,7 +1064,7 @@ describe('regressions found in 15 live Gemini conversations', () => {
   it('answers a combined family recommendation and undecided-dates message without asking for dates', async () => {
     const chat = conversation(469, { ...modelReading, reply: 'משפחתית יכולה להתאים. לאילו תאריכים תצטרכו את הרכב?' });
     const first = await chat.send('היי, אנחנו זוג עם תינוק ומחפשים רכב נוח לסוף שבוע. לא סגורים על התאריכים. מה היית ממליץ?');
-    expect(first.reply).toContain('משפחתית');
+    expect(first.reply).toContain('משפחתי');
     expect(first.reply).not.toContain('לאילו תאריכים');
     expect(first.state.booking.passengers).toBe(3);
     expect(first.state.booking.childSeats).toBe(1);
@@ -1183,13 +1183,13 @@ describe('regressions found in 15 live Gemini conversations', () => {
     await chat.send('אני נוסע בעיקר בעיר לבד');
     const comparison = await chat.send('קטן או משפחתי?');
     expect(comparison.reply).toContain('קומפקטי');
-    expect(comparison.reply).toContain('משפחתית');
+    expect(comparison.reply).toContain('משפחתי');
     const recommendation = await chat.send('מה הכי מתאים לדעתך?');
     expect(recommendation.reply).not.toBe(comparison.reply);
     const parking = await chat.send('ומה לגבי חניה?');
     expect(parking.reply).toContain('לחניה');
     const alternative = await chat.send('אולי יש כיוון אחר?');
-    expect(alternative.reply).toContain('משפחתית');
+    expect(alternative.reply).toContain('משפחתי');
     const later = await chat.send('אולי אשכור בסוף החודש');
     expect(later.reply).not.toContain('לאילו תאריכים');
     const noDate = await chat.send('אין תאריך סופי');

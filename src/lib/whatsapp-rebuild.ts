@@ -219,6 +219,12 @@ function lastBotForFeeShabbat(state: RebuildState): string {
   return [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
 }
 
+/** Return place for "same place": a home delivery becomes a collection from the same home. */
+function sameReturnLabel(state: RebuildState): string | undefined {
+  const city = state.booking.pickupLocation?.match(/^(?:מסירה עד הבית|Home delivery) \((.+)\)$/u)?.[1];
+  return city ? (state.locale === 'he' ? `איסוף מהבית (${city})` : `Collection from home (${city})`) : state.booking.pickupLocation;
+}
+
 /** The customer's gender is unknown: feminine-singular second person in model
  * wording becomes the plural form used elsewhere (תרצו, תוכלו, לכם). */
 const FEMININE_TO_PLURAL: Array<[string, string]> = [
@@ -710,7 +716,7 @@ function applyPromptedLocation(input: string, state: RebuildState, lastBot: stri
   const location = plainLocationAnswer(input, state.locale);
   if (!location) return;
   if (sameLocationAnswer(location)) {
-    if (state.booking.pickupLocation) state.booking.returnLocation = state.booking.pickupLocation;
+    if (state.booking.pickupLocation) state.booking.returnLocation = sameReturnLabel(state);
     return;
   }
   // Bare city answers belong to the pending field, independently of how the
@@ -1320,7 +1326,7 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
   const group = direction(reading, state.booking, input);
   const topic = /תינוק|ילד|כיסא(?:\s+ה?)?בטיחות|baby|child seat|car seat/i.test(input) || Boolean(state.booking.childSeats) ? 'child' :
     /פגיש|עיר|חניה|city|meeting|parking/i.test(input) ? 'city' : 'trip';
-  const lead = he ? ({ compact: 'רכב קומפקטי של SmartCar יכול להתאים לנסיעה שלכם', family: 'משפחתית של SmartCar יכולה להתאים לנסיעה שלכם', suv: 'רכב פנאי של SmartCar יכול להתאים לנסיעה שלכם', seven_seat: 'רכב שבעה מקומות של SmartCar יכול להתאים לנסיעה שלכם', none: 'נשמח לעזור לכם לבחור רכב מתאים ב־SmartCar' } as const)[group]
+  const lead = he ? ({ compact: 'רכב קומפקטי של SmartCar יכול להתאים לנסיעה שלכם', family: 'רכב משפחתי של SmartCar יכול להתאים לנסיעה שלכם', suv: 'רכב פנאי של SmartCar יכול להתאים לנסיעה שלכם', seven_seat: 'רכב שבעה מקומות של SmartCar יכול להתאים לנסיעה שלכם', none: 'נשמח לעזור לכם לבחור רכב מתאים ב־SmartCar' } as const)[group]
     : ({ compact: 'I would start with a SmartCar compact', family: 'I would start with a SmartCar family car', suv: 'A SmartCar SUV is a direction to check', seven_seat: 'I would check a SmartCar seven-seater', none: 'We can choose a SmartCar car around your trip' } as const)[group];
   const benefit = he ? topic === 'child' ? 'נוכל לבחור יחד דגם עם מקום לנוסעים ולציוד, ולוודא שכיסא הבטיחות מתאים לו.' : topic === 'city' ? 'רכב שיעמוד לרשותכם בין היעדים נותן גמישות לאורך היום.' : 'כך אפשר להתאים את המרחב והנוחות למשך הנסיעה ולציוד שלכם.'
     : topic === 'child' ? 'It is a good starting point for passenger and luggage space; the child seat must be checked against the actual car.' : topic === 'city' ? 'Having the car at your disposal gives flexibility between stops during the day.' : 'We can match passenger space and comfort to the trip and your luggage.';
@@ -1376,8 +1382,9 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
       // Delivery to the customer's home, hotel or office in a city ("my hotel in herzliya", "הבית שלי בנתניה"):
       // keep the city only, as a home-delivery pickup — never the street address.
       const deliveryCity = source === 'pickupLocation' && !state.booking.pickupLocation && /deliver|bring|hotel|home|house|office|work|apartment|מסירה|להביא|יביא|תביא|הביתה|לבית|בית|מלון|משרד|עבודה|דירה/iu.test(`${field.value} ${input}`)
-        ? (field.value.match(/(?:\bin|(?<![\p{L}])ב)\s*([\p{L}]{3,15}(?:[ -][\p{L}]{3,15})?)\s*$/iu)?.[1]) : undefined;
-      if (deliveryCity && !/\d/.test(field.value) && !temporalLocation(deliveryCity) && !isHypotheticalFactEvidence(input, field.evidence)) {
+        // City from the customer's own words (the evidence), not the model's value, which can be garbled.
+        ? (field.evidence.match(/(?:\bin|(?<![\p{L}])ב)\s*([\p{L}]{3,15}(?:[ -](?!(?:tomorrow|today|tonight|morning|evening|next|this|on|for|from|at|by|and|please)\b)[\p{L}]{3,15})?)\s*$/iu)?.[1]) : undefined;
+      if (deliveryCity && !/\d/.test(field.evidence) && !temporalLocation(deliveryCity) && !isHypotheticalFactEvidence(input, field.evidence)) {
         const city = state.locale === 'en' ? deliveryCity.replace(/\b\p{L}/gu, letter => letter.toUpperCase()) : deliveryCity;
         state.booking.pickupLocation = state.locale === 'he' ? `מסירה עד הבית (${city})` : `Home delivery (${city})`;
         continue;
@@ -1407,9 +1414,9 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
     if (field && evidenceMatches && statedValues.some(value => statedCount(value) === count) && input.toLocaleLowerCase().includes(field.evidence.toLocaleLowerCase()) && Number.isInteger(count) && count >= 0 && count <= 20) state.booking[name] = count;
   }
   // "להחזיר גם בהרצליה?" answered with a plain yes means the same place.
-  const askedSameReturn = /להחזיר גם ב|Return it to .{2,30} as well\?/u.test([...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '');
-  if (!state.booking.returnLocation && state.booking.pickupLocation && askedSameReturn && /^\s*(?:כן|בטח|ברור|נכון|בדיוק|אותו דבר|yes|yep|yeah|sure|correct|right)(?![\p{L}])/iu.test(input) && !/להחזיר|החזרה|לאסוף|תאספו|איסוף|return|collect|pick/iu.test(input)) state.booking.returnLocation = state.booking.pickupLocation;
-  if (!state.booking.returnLocation && state.booking.pickupLocation && (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input))) state.booking.returnLocation = state.booking.pickupLocation;
+  const askedSameReturn = /להחזיר גם ב|לאסוף את הרכב גם מהבית|Return it to .{2,30} as well\?|collect the car from the same place/u.test([...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '');
+  if (!state.booking.returnLocation && state.booking.pickupLocation && askedSameReturn && /^\s*(?:כן|בטח|ברור|נכון|בדיוק|אותו דבר|yes|yep|yeah|sure|correct|right)(?![\p{L}])/iu.test(input) && !/להחזיר|החזרה|לאסוף|תאספו|איסוף|return|collect|pick/iu.test(input)) state.booking.returnLocation = sameReturnLabel(state);
+  if (!state.booking.returnLocation && state.booking.pickupLocation && (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input))) state.booking.returnLocation = sameReturnLabel(state);
   if (state.booking.pickupDate && state.booking.returnDate && state.booking.returnDate < state.booking.pickupDate) delete state.booking.returnDate;
 }
 
@@ -2136,9 +2143,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     }
     // Home delivery/collection: keep the customer's city (never a street address).
     const customerTexts = [input, ...state.history.filter(entry => entry.from === 'customer' && !entry.private).map(entry => entry.text)];
-    const deliveryAsked = customerTexts.some(text => /עד הבית|לבית שלי|לכתובת|הביתה|מסירה (?:לבית|לכתובת|עד הבית)|(?:תביאו|תביא|להביא|תשלחו)\s+(?:לי\s+|לנו\s+)?(?:את\s+)?(?:ה)?רכב\s+(?:הביתה|לבית|ל[\p{L}])|deliver(?:y)? (?:to )?(?:my )?(?:home|house|address)|bring (?:the )?car to (?:my )?(?:home|house)|deliver (?:it|the car) to\b/iu.test(text));
+    const deliveryAsked = customerTexts.some(text => /(?:יביא|יביאו|תביא|תביאו|להביא|לשלוח|תשלחו|למסור|deliver|bring|drop (?:it|the car) (?:off )?at)[^.!?\n]{0,30}(?:בית|הביתה|מלון|משרד|עבודה|דירה|home|house|hotel|office|work|apartment)/iu.test(text) || /עד הבית|לבית שלי|לכתובת|הביתה|מסירה (?:לבית|לכתובת|עד הבית)|(?:תביאו|תביא|להביא|תשלחו)\s+(?:לי\s+|לנו\s+)?(?:את\s+)?(?:ה)?רכב\s+(?:הביתה|לבית|ל[\p{L}])|deliver(?:y)? (?:to )?(?:my )?(?:home|house|address)|bring (?:the )?car to (?:my )?(?:home|house)|deliver (?:it|the car) to\b/iu.test(text));
     const homeCity = customerTexts.map(text => text.match(/(?:^|[\s,])(?:אני|אנחנו|גר(?:ה|ים)?)\s+ב(?!בית)([\p{L}]{2,12}(?:\s+[\p{L}]{2,12})?)(?=[\s,.!?]|$)/u)?.[1]
       ?? text.match(/(?:הביתה|לבית(?:\s+שלי)?|עד הבית)\s+ב?ל?(?!בית)([\p{L}]{2,12}(?:\s+[\p{L}]{2,12})?)(?=[\s,.!?]|$)/u)?.[1]
+      ?? text.match(/(?:בית|הביתה|מלון|משרד|עבודה|דירה)(?:\s+(?:שלי|שלנו))?\s+ב(?!בית|סוף|הסוף|בוקר|ערב|צהריים|שבוע|יום|חודש|זמן|דרך|תיאום)([\p{L}]{3,12}(?:\s+[\p{L}]{3,12})?)(?=[\s,.!?]|$)/u)?.[1]
+      ?? text.match(/\b(?:home|house|hotel|office|apartment|work)\s+in\s+([\p{L}]{3,15}(?:\s+(?!(?:tomorrow|today|tonight|morning|evening|next|this|on|for|from|at|by|and|please)\b)[\p{L}]{3,15})?)(?=[\s,.!?]|$)/iu)?.[1]?.replace(/\b\p{L}/gu, letter => letter.toUpperCase())
       ?? text.match(/\b(?:deliver|bring)\b[^.!?]{0,30}\bto (?:my )?(?:home|house)? ?in ([A-Z][\p{L}]{2,15}(?:\s+[A-Z][\p{L}]{2,15})?)/u)?.[1]
       ?? text.match(/\b(?:I(?:'m| am)|we(?:'re| are)|I live|we live)\s+in\s+([A-Z][\p{L}]{2,15}(?:\s+[A-Z][\p{L}]{2,15})?)/u)?.[1]).find(Boolean);
     if (deliveryAsked && homeCity && !temporalLocation(homeCity)) {
@@ -2172,8 +2181,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     }
     if (state.booking.pickupDate && state.booking.returnDate) delete state.booking.datePreference;
     applyPromptedLocation(input, state, lastBot, pendingFieldAtTurnStart);
-    if (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input)) state.booking.returnLocation = state.booking.pickupLocation;
-    if (!state.booking.returnLocation && state.booking.pickupLocation && /להחזיר גם ב|Return it to .{2,30} as well\?/u.test(lastBot) && /^\s*(?:כן|בטח|ברור|נכון|בדיוק|אותו דבר|yes|yep|yeah|sure|correct|right)(?![\p{L}])/iu.test(input) && !/להחזיר|החזרה|לאסוף|תאספו|איסוף|return|collect|pick/iu.test(input)) state.booking.returnLocation = state.booking.pickupLocation;
+    if (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input)) state.booking.returnLocation = sameReturnLabel(state);
+    if (!state.booking.returnLocation && state.booking.pickupLocation && /להחזיר גם ב|לאסוף את הרכב גם מהבית|Return it to .{2,30} as well\?|collect the car from the same place/u.test(lastBot) && /^\s*(?:כן|בטח|ברור|נכון|בדיוק|אותו דבר|yes|yep|yeah|sure|correct|right)(?![\p{L}])/iu.test(input) && !/להחזיר|החזרה|לאסוף|תאספו|איסוף|return|collect|pick/iu.test(input)) state.booking.returnLocation = sameReturnLabel(state);
     const statedAgeRange = driverAgeRange(input, state);
     if (statedAgeRange) state.booking.driverAgeRange = statedAgeRange;
     const declines = /לא רוצה להזמין|לא מבקש להזמין|אל תזמין|לא עכשיו|רק מתעניין|עדיין בודק|don't book|cancel this request|not ready to book|just looking/i.test(input);
@@ -2901,7 +2910,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const returnQuestion = question('returnLocation', state.locale);
     const trailing = [returnQuestion, question('pickupLocation', state.locale), question('vehicleNeed', state.locale)].find(q => reply.trim().endsWith(q) && previousBot.includes(q));
     const body = trailing ? reply.trim().slice(0, -trailing.length).trim() : '';
-    const sameReturn = state.booking.pickupLocation ? (he ? `להחזיר גם ב${state.booking.pickupLocation}?` : `Return it to ${state.booking.pickupLocation} as well?`) : '';
+    const homeCity = state.booking.pickupLocation?.match(/^(?:מסירה עד הבית|Home delivery) \((.+)\)$/u)?.[1];
+    const sameReturn = !state.booking.pickupLocation ? '' : homeCity
+      ? (he ? `ובסוף לאסוף את הרכב גם מהבית ב${homeCity}?` : `And collect the car from the same place in ${homeCity} at the end?`)
+      : (he ? `להחזיר גם ב${state.booking.pickupLocation}?` : `Return it to ${state.booking.pickupLocation} as well?`);
     if (sameReturn && !state.booking.returnLocation && reply.trim().endsWith(returnQuestion)) {
       // With a known pickup, ask about the return the way a person would; never ask it twice in a row.
       const rest = reply.trim().slice(0, -returnQuestion.length).trim();
