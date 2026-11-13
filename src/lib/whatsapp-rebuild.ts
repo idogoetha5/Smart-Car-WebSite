@@ -1969,7 +1969,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           : (he ? `קיבלנו את בקשת השינוי. נציג SmartCar יחזור אליכם; השינוי תקף רק לאחר אישור. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `We have your change request. A SmartCar representative will follow up; the change takes effect only after confirmation. You can also call ${OFFICE_PHONE}.`);
     // After a non-safety handoff the chat should still feel like a person, not a receipt on repeat:
     // a thank-you gets a short closing, and a new question is answered by the model from approved facts.
-    const safetyReceipt = handoffKind === 'safety' && /^(?:תודה על העדכון\. אל תמשיכו לנסוע|Thanks for the update\. Do not keep driving)/u.test(reply) && input.trim().length >= 8;
+    const safetyReceipt = handoffKind === 'safety' && /^(?:תודה על העדכון\. אל תמשיכו לנסוע|Thanks for the update\. Do not keep driving)/u.test(reply) && input.trim().length >= 4;
     if ((safetyReceipt || handoffKind !== 'safety' && /^(?:תודה על העדכון\. נציג SmartCar יטפל|Thanks for the update\. A SmartCar representative will handle|קיבלנו את בקשת השינוי\. נציג|We have received your change request)/u.test(reply))
       && (safetyReceipt || /[?؟]/u.test(input) || input.trim().length >= 4 || state.history.some(entry => entry.from === 'bot' && entry.text === reply))) {
       if (/^\s*(?:תודה(?: רבה)?|תודה אחי|תודה לך|מעולה|סבבה|אוקיי?|אחלה|בסדר(?: גמור)?|thanks?(?: a lot| so much)?|thank you|ok(?:ay)?|great|cool|perfect|cheers)[\s!.🙏👍😊]*(?:אחי|גבר|bro|mate)?[\s!.🙏👍😊]*$/iu.test(input)) {
@@ -2934,7 +2934,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   // Outside a service matter nobody is alerted, so a reply that points the customer to a representative
   // must at least say how to reach one.
   if (source === 'gemini' && !escalate && !state.handedOff && !reply.includes(OFFICE_PHONE)
-    && /נציג(?:\s+(?:של\s+)?SmartCar)?\s+(?:יבדוק|יעדכן|יחזור|יצור|ייצור)|(?:representative)\s+will\s+(?:check|update|get back|contact|call)/iu.test(reply)) {
+    && /נציג(?:\s+(?:של\s+)?SmartCar|\s+שלנו)?\s+(?:ישמח\s+ל)?(?:יבדוק|יעדכן|יחזור|יצור|ייצור|יתאם|בדוק|עדכן|תאם)|(?:representative)\s+will\s+(?:check|update|get back|contact|call|coordinate|arrange)/iu.test(reply)) {
     reply = `${reply.trim()} ${he ? `אפשר לברר את זה מול המשרד בטלפון ${OFFICE_PHONE}.` : `You can confirm it with our office on ${OFFICE_PHONE}.`}`;
   }
   // Code decides, the model speaks: a reply produced by fixed application wording is reworded by the model in
