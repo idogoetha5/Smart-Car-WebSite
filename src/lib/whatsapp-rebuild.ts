@@ -58,7 +58,7 @@ const ORDER: BookingKey[] = ['pickupDate', 'returnDate', 'pickupLocation', 'retu
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Final consent stays an explicit confirmation, with only a short casual lead
 // ("אוקיי אני מאשר") or courtesy tail. Any other content keeps the summary open.
-const FINAL_CONSENT = /^(?:(?:אוקיי?|אוקי|טוב|סבבה|יאללה|כן|ok(?:ay)?|yes)[,!.\s]+)?(?:אני מאשר(?:ת)?|מאשר(?:ת)?|i confirm|confirm(?:ed)?)(?:[,\s]+(?:בבקשה|תודה|please|thanks|thank you))?[.!\s]*\p{Extended_Pictographic}*$/iu;
+const FINAL_CONSENT = /^(?:(?:אוקיי?|אוקי|טוב|סבבה|יאללה|כן|ok(?:ay)?|yes)[,!.\s]+)?(?:אני מאשר(?:ת)?|מאשר(?:ת)?|i confirm|confirm(?:ed)?|(?:please )?send it|(?:go ahead and )?send (?:it|the request)|תשלח(?:ו)?(?: את זה| את הבקשה)?|שלח(?:ו)?(?: את הבקשה)?)(?:[,\s]+(?:בבקשה|תודה|please|thanks|thank you))?[.!\s]*\p{Extended_Pictographic}*$/iu;
 const PRIVATE_PAYMENT_DETAIL = /מספר (?:כרטיס|אשראי)|קוד אבטחה|\b(?:full card|(?:credit )?card number|security code|CVV|CVC)\b/i;
 const PRICE_OR_AVAILABILITY = /מחיר|(?<![לב])עלות|כמה.{0,12}(?:עול|יעל)|(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:prices?|cost|rate|available|availability)\b/iu;
 const AVAILABILITY_ONLY = /(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:available|availability|in stock)\b/iu;
@@ -717,6 +717,8 @@ function plainLocationAnswer(input: string, locale: Locale): string | null {
     || /רכב|מעדיף|בעצם|רוצה|צריך|מחפש|מחיר|תאריך|זמינ|שאלה|ליסינג|לקנות|rent|prefer|price|booking/i.test(location)) return null;
   if (/לא בטוח|לא יודעת|לא יודע|not sure|don['’]?t know|do not know/i.test(location)) return null;
   if (affirms(location) || /^(?:thanks?(?: a lot)?|thank you(?: very much)?|תודה(?: רבה)?)[.!\s]*$/i.test(location)) return null;
+  // "yes send it", "ok go ahead", "תשלח": an answer or a command, never a place.
+  if (/^(?:yes|yeah|yep|ok(?:ay)?|sure|please|go|send|do|book|confirm|כן|אוקיי|סבבה|יאללה|תשלח|תשלחו|שלח|תזמין|תסגור|מאשר|מאשרת)(?:\s|$)/iu.test(location.trim()) || /\b(?:send|book|confirm|go ahead|do it)\b/iu.test(location)) return null;
   const serviceTopic = getSmartCarServiceAnswer(input, locale)?.topic;
   if (serviceTopic && serviceTopic !== 'branches' && serviceTopic !== 'different_location') return null;
   // A sentence containing both locations has already been parsed by
@@ -726,6 +728,14 @@ function plainLocationAnswer(input: string, locale: Locale): string | null {
 }
 
 function applyPromptedLocation(input: string, state: RebuildState, lastBot: string, pendingField: BookingKey | null): void {
+  // "Shall we have the car ready at Ben Gurion Airport?" answered "yes" / "ok lets do it": the suggested place.
+  if (!state.booking.pickupLocation && (affirms(input) || explicitBooking(input) || /^\s*(?:yes|כן)\b/iu.test(input)) && /[?؟]\s*$/u.test(lastBot.trim())) {
+    const suggested = lastBot.match(/(?:ready|pick(?:\s+it)?\s*up|collect|meet you|לאסוף|איסוף|יחכה|מוכן)[^?؟]{0,60}?(?:\bat\b|\bin\b|\bfrom\b|ב|מ)\s*(Ben Gurion Airport|the airport|Tel Aviv|Herzliya|Jerusalem|נתב״ג|נתב"ג|נתבג|שדה התעופה|תל אביב|הרצליה|ירושלים)/iu)?.[1];
+    if (suggested) {
+      state.booking.pickupLocation = /airport|נתב|שדה/iu.test(suggested) ? (state.locale === 'he' ? 'נתב״ג' : 'Ben Gurion Airport') : suggested;
+      return;
+    }
+  }
   const location = plainLocationAnswer(input, state.locale);
   if (!location) return;
   if (sameLocationAnswer(location)) {
