@@ -683,6 +683,7 @@ function offersRentalRequest(reply: string): boolean {
   if (/(?:would you like|shall (?:we|I)|do you want|want (?:me|us) to)[^?]{0,40}\b(?:price )?(?:quote|offer)\b[^?]{0,60}\?|(?:תרצ(?:ה|ו)|האם (?:תרצ(?:ה|ו)|נכין))[^?؟]{0,40}הצע(?:ת|ה)[^?؟]{0,60}[?؟]/iu.test(reply)) return true;
   // Reserve/hold wording is still only an invitation to prepare a request.
   if (/(?:האם|תרצ(?:ה|ו)|שנ)?\s*(?:נשריין|לשריין|שנשריין)[^?؟]{0,80}[?؟]|\b(?:shall|should|can) (?:we|I) (?:reserve|hold|book)\b[^?]{0,80}\?|\bwould you like (?:us|me) to (?:reserve|hold|book)\b[^?]{0,80}\?/iu.test(reply)) return true;
+  if (/(?:לאשר|לשלוח|להעביר|נשלח|נעביר|שנגיש|להגיש)[^?؟]{0,40}(?:את )?ה?בקשה[^?؟]{0,40}[?؟]|(?:אפשר|האם) לאשר[^?؟]{0,40}[?؟]|\b(?:confirm|send|submit)\b[^?]{0,40}\b(?:request|booking)\b[^?]{0,30}\?/iu.test(reply)) return true;
   return /(?:נמשיך|נתקדם|להתקדם|נתחיל|להתחיל|שנתחיל|נאסוף|לאסוף).{0,85}(?:הזמנה|בקשה|פרטים|זמינות)|(?:הזמנה|בקשה).{0,55}(?:נתקדם|נתחיל|נמשיך)|(?:continue|proceed|start|prepare|check).{0,70}(?:booking|rental|request|availability)/i.test(reply);
 }
 
@@ -1446,7 +1447,9 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
     if (field && evidenceMatches && statedValues.some(value => statedCount(value) === count) && input.toLocaleLowerCase().includes(field.evidence.toLocaleLowerCase()) && Number.isInteger(count) && count >= 0 && count <= 20) state.booking[name] = count;
   }
   // "להחזיר גם בהרצליה?" answered with a plain yes means the same place.
-  const askedSameReturn = /להחזיר גם ב|לאסוף את הרכב גם מהבית|Return it to .{2,30} as well\?|collect the car from the same place/u.test([...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '');
+  const previousBotForReturn = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+  const askedSameReturn = /להחזיר גם ב|לאסוף את הרכב גם מהבית|Return it to .{2,30} as well\?|collect the car from the same place/u.test(previousBotForReturn)
+    || Boolean(state.booking.pickupLocation) && /[?؟]\s*$/u.test(previousBotForReturn.trim()) && new RegExp(`(?:להחזיר|החזרה|return)[^?؟]{0,40}${state.booking.pickupLocation!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'iu').test(previousBotForReturn);
   if (!state.booking.returnLocation && state.booking.pickupLocation && askedSameReturn && /^\s*(?:כן|בטח|ברור|נכון|בדיוק|אותו דבר|yes|yep|yeah|sure|correct|right)(?![\p{L}])/iu.test(input) && !/להחזיר|החזרה|לאסוף|תאספו|איסוף|return|collect|pick/iu.test(input)) state.booking.returnLocation = sameReturnLabel(state);
   if (!state.booking.returnLocation && state.booking.pickupLocation && (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input))) state.booking.returnLocation = sameReturnLabel(state);
   if (state.booking.pickupDate && state.booking.returnDate && state.booking.returnDate < state.booking.pickupDate) delete state.booking.returnDate;
@@ -1529,6 +1532,8 @@ function applySelectedFacts(input: string, state: RebuildState, reading: BotRead
 
 function privateDetail(input: string, state: RebuildState, explicitStart = false): boolean {
   const labelledName = input.match(/(?:קוראים לי|שמי|השם שלי|השם הוא|my name is)\s+([\p{L}' -]{3,60})/iu)?.[1]
+    ?? input.match(/(?:ת?רשו?[םמ](?:ו)?|תרשמו|לרשום|תשים|תכתוב|תכתבו)\s+(?:את (?:זה|הבקשה)\s+)?על\s+(?:שם\s+)?([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})(?=\s*(?:[,.!]|$|\s+(?:בן|בת)\b))/u)?.[1]
+    ?? input.match(/\b(?:put it|book it|register it)\s+under\s+(?:the name\s+)?([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})(?=\s*(?:[,.!]|$))/iu)?.[1]
     ?? input.match(/(?:על\s+שם|\bunder (?:the name )?)\s*([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})(?=\s*(?:[,.!]|$|\s+(?:בן|בת|אני|aged?|I['’]?m)\b))/iu)?.[1];
   // A voluntary labelled name during an established rental enquiry is useful
   // before formal intake. Capture it locally, without treating it as consent.
@@ -2123,7 +2128,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       && !/(?:^|\s)(?:אני|אנחנו|לא|בעוד|עוד|בערך|יש|we|not|in|for|about)\s+[\p{L}'-]{2,20}\s*,?\s*\d{2}\s*[.!]?\s*$/iu.test(input);
     const namesInDraft = state.phase === 'explore' && !state.interest && !state.completedRequestId && !state.handedOff
       && [state.booking.pickupDate || state.booking.returnDate, state.booking.pickupLocation, state.booking.vehicleNeed, state.booking.passengers].filter(Boolean).length >= 2
-      && (lastClauseNameAge || /^\s*(?:(?:great|ok(?:ay)?|perfect|sounds good|thanks|cool|yes|sure|יאללה|סבבה|אחלה|מעולה|טוב|בסדר|כן)[,.!\s]+)*(?:i['’]?m|i am|my name is|this is|אני|שמי|קוראים לי)?\s*[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*,?\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)\s*[.!]?\s*$/iu.test(input));
+      && (lastClauseNameAge || /(?:ת?רשו?[םמ]|תרשמו|לרשום)\s+(?:את (?:זה|הבקשה)\s+)?על\s+(?:שם\s+)?[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}|\b(?:put|book|register) it under\b/u.test(input) || /^\s*(?:(?:great|ok(?:ay)?|perfect|sounds good|thanks|cool|yes|sure|יאללה|סבבה|אחלה|מעולה|טוב|בסדר|כן)[,.!\s]+)*(?:i['’]?m|i am|my name is|this is|אני|שמי|קוראים לי)?\s*[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*,?\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)\s*[.!]?\s*$/iu.test(input));
     if (namesInDraft) {
       state.phase = 'booking';
       state.requestKey ??= randomUUID();
