@@ -162,6 +162,14 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
     onReject('unapproved_absence');
     return null;
   }
+  // The model said the case is being passed on, but it did not judge that a person must act now, or the message
+  // is a what-if question: nothing will be passed on, so the sentence would be untrue.
+  const hypotheticalAsk = /מה (?:קורה|עושים|יקרה) אם|what (?:happens )?if|(?:^|\s)אם\s|\bif\b/iu.test(input);
+  if ((hypotheticalAsk || !reading.needsRepresentative) && !state.handedOff
+    && /עוב(?:ר|רת) (?:כרגע |עכשיו )?(?:לטיפול|לנציג)|(?:אני )?מעביר(?:ה)? (?:את זה |את הפנייה )?(?:עכשיו |מיד )?(?:לטיפול|לנציג)|העברתי (?:את זה |את הפנייה )?(?:לטיפול|לנציג)|\b(?:i am|i['’]m|we are|we['’]re) passing (?:this|it) on\b|\bpassed (?:this|it) (?:on )?to\b/iu.test(reading.reply)) {
+    onReject('handoff_claim');
+    return null;
+  }
   if (relationMismatch) {
     onReject?.('relationship_mismatch');
     return null;
@@ -766,6 +774,12 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   const luggage = [...input.matchAll(new RegExp(`${count}\\s+(?:(?:small|medium|large|קטנות|בינוניות|גדולות)\\s+)?(?:מזוודות|מזוודה|תיקים|תיקי נסיעה|bags?|suitcases?)(?![\\p{L}])`, 'giu'))]
     .find(match => !negatedLuggageMention(input, match.index) && !isHypotheticalFactEvidence(input, match[0]) && !isRentalCapacityQuestionEvidence(input, match[0]));
   const passengerCount = statedCount(passengers?.[1] ?? passengers?.[2] ?? '');
+  // "2 adults 2 kids" / "3 מבוגרים ושני ילדים": everyone counts.
+  const adultsKids = input.match(new RegExp(`${count}\\s+(?:adults?|grown[- ]ups|מבוגרים|מבוגרות)\\s*(?:,|and|\\+|ו[־-]?|עם|with)?\\s*${count}\\s+(?:kids?|children|child|babies|ילדים|ילדות|ילד|ילדה|תינוקות)`, 'iu'));
+  if (adultsKids && !/(?:^|\s)אם\s|מה אם|\bif\b|what if/iu.test(input)) {
+    const adults = statedCount(adultsKids[1]); const kids = statedCount(adultsKids[2]);
+    if (adults && kids) draft.passengers = adults + kids;
+  }
   // "זוג עם 2 ילדים" / "couple with two kids": two adults plus the stated children.
   const family = input.match(new RegExp(`(?:זוג|שני הורים|אני ו(?:אשתי|בעלי|בן הזוג שלי|בת הזוג שלי)|(?:a |we(?:'re| are) a )?couple|two adults|me and my (?:wife|husband|partner))\\s+(?:עם|ו[־-]?|with|and|\\+)\\s*${count}\\s+(?:ילדים|ילדות|ילד|ילדה|kids|children|child)`, 'iu'));
   if (family && !passengers && !/(?:^|\s)אם\s|מה אם|\bif\b|what if/iu.test(input)) {
@@ -778,7 +792,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
     && !isHypotheticalFactEvidence(input, input) && !/what if|\bif\b|\bmaybe\b|מה אם|(?:^|\s)אם\s|אולי/iu.test(input);
   if (coupleOnly && draft.passengers === undefined) draft.passengers = 2;
   const luggageCount = statedCount(luggage?.[1] ?? '');
-  if (passengerCount !== null) draft.passengers = passengerCount;
+  if (passengerCount !== null && !(adultsKids && draft.passengers && draft.passengers > passengerCount)) draft.passengers = passengerCount;
   if (luggageCount !== null) draft.luggage = luggageCount;
   if (/מזווד.{0,18}גדול|large (?:bags?|suitcases?|luggage)(?![\p{L}])/iu.test(input) && (luggageCount !== null || !luggage && /מזווד.{0,18}גדול/u.test(input))) draft.luggageSize = 'large';
   if (!family && /אנחנו זוג|זוג עם|שני אנשים|שני נוסעים|we are a couple|two of us/i.test(input)) draft.passengers = 2;
@@ -2084,7 +2098,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // forward, the way "תרשום על שם…" would be at a desk. Continue the request intake; sending still needs consent.
     const namesInDraft = state.phase === 'explore' && !state.interest && !state.completedRequestId && !state.handedOff
       && [state.booking.pickupDate || state.booking.returnDate, state.booking.pickupLocation, state.booking.vehicleNeed, state.booking.passengers].filter(Boolean).length >= 2
-      && (/^\s*(?:(?:great|ok(?:ay)?|perfect|sounds good|thanks|cool|יאללה|סבבה|אחלה|מעולה|טוב|בסדר)[,.!\s]+)?(?:i['’]?m|i am|my name is|this is|אני|שמי|קוראים לי)?\s*[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*,?\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)\s*[.!]?\s*$/iu.test(input));
+      && (/^\s*(?:(?:great|ok(?:ay)?|perfect|sounds good|thanks|cool|yes|sure|יאללה|סבבה|אחלה|מעולה|טוב|בסדר|כן)[,.!\s]+)*(?:i['’]?m|i am|my name is|this is|אני|שמי|קוראים לי)?\s*[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*,?\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)\s*[.!]?\s*$/iu.test(input));
     if (namesInDraft) {
       state.phase = 'booking';
       state.requestKey ??= randomUUID();
@@ -2944,6 +2958,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const askedJustNow = previousBot.includes(returnQuestion) || previousBot.includes(sameReturn);
       reply = askedJustNow && rest.length >= 12 && state.phase !== 'booking' ? rest : `${rest} ${sameReturn}`.trim();
     } else if (trailing && body.length >= 12 && state.phase !== 'booking') reply = body;
+  }
+  // One name for the airport in the request ("the airport", "TLV", "נתב\"ג" → the branch label).
+  for (const key of ['pickupLocation', 'returnLocation'] as const) {
+    const place = state.booking[key];
+    if (place && /^(?:(?:the )?airport|tlv|ben[- ]gurion(?: airport)?|natbag|נתב.?ג|שדה ה?תעופה(?: בן גוריון)?)$/iu.test(place.trim())) state.booking[key] = he ? 'נתב״ג' : 'Ben Gurion Airport';
   }
   // A person does not open every message with the same word ("בשמחה!", "Got it,").
   {

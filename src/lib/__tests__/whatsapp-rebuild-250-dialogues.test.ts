@@ -44,7 +44,7 @@ async function completeRental(chat: ReturnType<typeof conversation>, english: bo
   const locations = [
     { he: 'איסוף מהרצליה והחזרה בתל אביב', en: 'Pickup in Herzliya and return in Tel Aviv', returnHe: 'תל אביב', returnEn: 'Tel Aviv' },
     { he: 'איסוף מתל אביב והחזרה בהרצליה', en: 'Pickup in Tel Aviv and return in Herzliya', returnHe: 'הרצליה', returnEn: 'Herzliya' },
-    { he: 'איסוף מהרצליה והחזרה בנתבג', en: 'Pickup in Herzliya and return at Ben Gurion Airport', returnHe: 'נתבג', returnEn: 'Ben Gurion Airport' },
+    { he: 'איסוף מהרצליה והחזרה בנתבג', en: 'Pickup in Herzliya and return at Ben Gurion Airport', returnHe: 'נתב״ג', returnEn: 'Ben Gurion Airport' },
   ];
   const location = locations[index % locations.length];
   const age = index % 3 === 0 ? '21–23' : '24+';

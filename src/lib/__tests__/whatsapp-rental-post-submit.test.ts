@@ -12,7 +12,7 @@ describe('rental status after simulated submission', () => {
     const send = (message: string) => getRebuiltBotReply('fictional-hebrew-dates', message, store);
     await send('היי, מחפשים רכב לכמה ימים בדצמבר. אנחנו זוג ושני ילדים עם מזוודה גדולה. עוד מתלבטים אם קטן יספיק או שכדאי משפחתי.');
     const result = await send('בסדר, נבחר משפחתי ונתחיל בקשה. איסוף בתל אביב ב־10 בדצמבר 2026 והחזרה בנתבג ב־14 בדצמבר 2026. אני בן 35.');
-    expect(result.state.booking).toMatchObject({ pickupDate: '2026-12-10', returnDate: '2026-12-14', pickupLocation: 'תל אביב', returnLocation: 'נתבג', vehicleNeed: 'רכב משפחתי', driverAgeRange: '24-plus' });
+    expect(result.state.booking).toMatchObject({ pickupDate: '2026-12-10', returnDate: '2026-12-14', pickupLocation: 'תל אביב', returnLocation: 'נתב״ג', vehicleNeed: 'רכב משפחתי', driverAgeRange: '24-plus' });
     expect(result.state.step).toBe('rental_name');
     expect(result.reply).not.toMatch(/תאריך|מאיפה|להחזיר|שנתחיל/);
   });

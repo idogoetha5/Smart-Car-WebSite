@@ -905,7 +905,7 @@ describe('casual wedding trip', () => {
     const price = await c.send('רגע לא, עדיף מה 18. וזה יוצא יקר?');
     expect(price.reply).toMatch(/המחיר נסגר סופית מול נציג SmartCar/);
   });
-  it.each([['אוסף מת״א ומחזיר בי-ם', 'תל אביב', 'ירושלים'], ['איסוף בנתבג והחזרה בת"א', 'נתבג', 'תל אביב']])('%s', async (input, pickup, ret) => {
+  it.each([['אוסף מת״א ומחזיר בי-ם', 'תל אביב', 'ירושלים'], ['איסוף בנתבג והחזרה בת"א', 'נתב״ג', 'תל אביב']])('%s', async (input, pickup, ret) => {
     const r = await chat(null, 'x').send(`צריך רכב 3.12 עד 6.12, ${input}`);
     expect(r.state.booking).toMatchObject({ pickupLocation: pickup, returnLocation: ret });
   });
