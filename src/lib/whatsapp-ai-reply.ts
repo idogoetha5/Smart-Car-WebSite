@@ -76,6 +76,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (asksRentalAgeTerms(input) && !/\bage\b|\b21\b|young[- ]driver|licen[cs]e|גיל|רישיון|נהג צעיר/i.test(reply)) return reject('unanswered_age_terms');
   if (asksRentalAgeTerms(input) && /deposit|פיקדון/i.test(input) && !/deposit|card hold|פיקדון/i.test(reply)) return reject('unanswered_deposit');
   if (reply.length > 650) return reject('too_long');
+  // Model glitches: letters from scripts the customer is not writing in (observed: Thai inside a Hebrew word).
+  if (/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF\u0900-\u097F]/u.test(reply)) return reject('foreign_script');
   if (wrongWeekday(reply)) return reject('wrong_weekday');
   // The airport surcharge is a fixed published amount; the model may not invent that it varies.
   if (/(?:נתב.?ג|airport|surcharge|תוספת)/iu.test(reply) && /(?:שהוא|שהיא|הסכום|התוספת|הוא|היא)\s+(?:משתנה|משתנים|לא קבוע)|\b(?:it|the (?:amount|surcharge|fee)) (?:varies|changes|is not fixed)\b/iu.test(reply)) return reject('invented_reason');

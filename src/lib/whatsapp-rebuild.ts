@@ -825,6 +825,19 @@ function customerVehicleChoice(input: string, state: RebuildState): string | nul
   const chosen = matches.at(-1)?.[1];
   if (chosen) return explicitVehicleNeed(chosen, state.locale);
   if (explicitBooking(input) && !/(?:לא רוצה|don't want|do not want)/iu.test(input)) { const need = explicitVehicleNeed(input, state.locale); if (need) return need; }
+  // Accepting the one category the previous bot message recommended ("תשריין לי אחד", "יאללה נלך על זה",
+  // "sounds good, book it") chooses that category, as a representative would understand it.
+  if (!state.booking.vehicleNeed && !/[?؟]/u.test(input) && !/(?:לא רוצה|don't want|do not want)/iu.test(input)
+    && (explicitBooking(input) || /(?:^|\s)(?:אחד כזה|כזה|את זה|על זה|נשמע טוב|מתאים לי|מתאים לנו|תשריינ?ו?|תזמינ?ו?|תסגור|סגור)(?![\p{L}])|\b(?:that one|that works|sounds good|i['’]?ll take (?:it|that|one)|book it|reserve (?:it|one))\b/iu.test(input))) {
+    const previous = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+    const offered = [
+      [/מכונית קטנה|רכב קטן|קומפקטי|small car|compact|economy/iu, state.locale === 'he' ? 'רכב קומפקטי' : 'compact car'],
+      [/משפחתי|family car/iu, state.locale === 'he' ? 'רכב משפחתי' : 'family car'],
+      [/רכב פנאי|ג[׳'י]?יפ|\bSUV\b/iu, state.locale === 'he' ? 'רכב פנאי' : 'SUV'],
+      [/שבעה מקומות|7 מקומות|seven[- ]?seat/iu, state.locale === 'he' ? 'רכב שבעה מקומות' : 'seven-seat car'],
+    ].filter(([pattern]) => (pattern as RegExp).test(previous));
+    if (offered.length === 1) return offered[0][1] as string;
+  }
   const statedPreference = input.match(new RegExp(`(${vehicle})\\s+(?:עדיף|עדיפה|מתאים\\s+לי|מתאים\\s+לנו|works better|is better for us)`, 'iu'))?.[1];
   if (statedPreference && !/[?؟]/u.test(input)) return explicitVehicleNeed(statedPreference, state.locale);
   // "משהו נוח לנסיעות ארוכות, סדאן נגיד" — a stated body type, not a question.
@@ -1462,9 +1475,13 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
       && (!/^(?:תודה|בבקשה|יאללה|סבבה|אחלה|מעולה|בסדר|קדימה|רק|גם|עם|בלי|thank|thanks|please|ok|okay|great|cool|sounds|with|without|also|just|asap|soon|today|tomorrow|מחר|היום)(?=\s|$)|(?:^|\s)(?:רכב|car|יום|ימים|days?|בקשה|request|הצעה|quote|מחיר|price|רבה|גדול|קטן|משפחתי|big|small)(?=\s|$)/iu.test(part))
       && !/(?:^|\s)(?:אני|אנחנו|הוא|היא|זה|זאת|הנהג|הנהגת|נהג|נהגת|ראשי|ראשית|בעלי|אשתי|I|we|he|she|it|this|the|להחזיר|לאסוף|בואו|נתקדם|יאללה|קדימה|בבקשה|תודה|גם|רק|עם|בלי|מחר|היום|main|driver|return|pick|please|thanks|let['’]?s|go|ahead|also|only|with|without|tomorrow|today)(?=\s|$)/iu.test(part))
     : undefined;
+  // "יוסי בדיקה, בן 35" during intake is a name with an age, whatever question was pending.
+  const nameAgeClause = state.phase === 'booking' && !introducedName
+    ? input.match(/^\s*([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})\s*,\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)/u)?.[1] : undefined;
+  const validNameAge = nameAgeClause && !/(?:^|\s)(?:אני|אנחנו|הוא|היא|זה|כן|לא|תודה|רכב|נהג|נהגת|להחזיר|לאסוף|מחר|היום|עד|עם|בלי|I|we|yes|no|car|driver|return|pick|from|to|the|a|an)(?:\s|$)/iu.test(nameAgeClause) && !/\d/.test(nameAgeClause) ? nameAgeClause : undefined;
   const validTrailingName = trailingName && !/^(?:תודה|בבקשה|יאללה|סבבה|אחלה|מעולה|בסדר|קדימה|רק|גם|עם|בלי|thank|thanks|please|ok|okay|great|cool|sounds|with|without|also|just|asap|soon|today|tomorrow|מחר|היום)(?=\s|$)|(?:^|\s)(?:רכב|car|יום|ימים|days?|בקשה|request|הצעה|quote|מחיר|price|רבה|גדול|קטן|משפחתי|big|small)(?=\s|$)/iu.test(trailingName) ? trailingName : undefined;
   const validIntroducedName = introducedName && !/^(?:not|unsure|still|looking|just|here|visiting|only|sorry|trying|waiting|renting|booking|confused|from|in|at|ok|okay|fine|good|sure|ready|interested|a|an|the|so|also|very|really|going|coming|staying|flying|landing|travel+ing|married|single)\b/i.test(introducedName) ? introducedName : undefined;
-  if (explicitStart || state.step === 'rental_name' || state.step === 'rental_confirm' || labelledName || validIntroducedName || state.phase === 'booking' && askedForName) {
+  if (explicitStart || state.step === 'rental_name' || state.step === 'rental_confirm' || labelledName || validIntroducedName || validNameAge || state.phase === 'booking' && askedForName) {
     const unlabelledName = !explicitStart && (state.step === 'rental_name' || state.step === 'rental_confirm')
       ? input.match(/I am\s+([\p{L}' -]{3,60})/iu)?.[1] : undefined;
     const explicitName = labelledName ?? (unlabelledName && !/^(?:not|unsure|still|looking|just|here|visiting|only|sorry|trying|waiting|renting|booking|confused)\b/i.test(unlabelledName) ? unlabelledName : undefined);
@@ -1481,7 +1498,7 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
       && /^[\p{L}' -]{3,60}$/u.test(leading) && leading.split(/\s+/).length <= 4
       && !/^(?:I|we|please|actually|no|yes|thanks?|before|after|not|do|don['’]?t|what|how|when|where|why|can|could|should|would|is|are|ok|okay|sure|אני|אנחנו|לא|כן|תודה|בעצם|לפני|אחרי|אפשר|מה|איך|למה|מתי|כמה|בסדר|סבבה|יאללה|רגע)(?:\s|$)/iu.test(leading)
       ? leading : '';
-    const candidate = explicit ?? (promptedName || answeredNamePrompt || validIntroducedName || validTrailingName);
+    const candidate = explicit ?? (promptedName || answeredNamePrompt || validIntroducedName || validTrailingName || validNameAge);
     if (candidate && candidate.split(/\s+/).length <= 4) { state.booking.customerName = candidate; captured = true; }
   }
   return captured;
@@ -1624,6 +1641,25 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       : he
       ? `נורת אזהרה צריכה בדיקה של נציג SmartCar, והעברתי אליו את הפנייה. אם יש חשש בטיחותי — עשן, רעש חריג או שהרכב לא מתנהג כרגיל — עצרו במקום בטוח. לעזרה מיידית התקשרו ל־${OFFICE_PHONE}.`
       : `A warning light needs a SmartCar representative to check it, and I have passed your message on. If there is any safety concern — smoke, unusual noise or the car not behaving normally — stop somewhere safe. For immediate help call ${OFFICE_PHONE}.`;
+    pushHistory(state, input, reply, false);
+    if (escalate && !store.isSimulation) await store.beforeEscalationSave?.(phone);
+    await store.saveState(phone, state);
+    return { reply, state, escalate, source: 'local' };
+  }
+  // "I'm stuck in traffic, I'll be an hour late" is a heads-up, not an extension request. A representative
+  // thanks the customer, passes it to the branch and is honest that the agreed time still applies.
+  const runningLate = /(?<![\p{L}])(?:אאחר|נאחר|מאחר(?:ת|ים)?|אתעכב|מתעכב(?:ת|ים)?|תקוע(?:ה|ים)?\s+בפקק\S*|לא (?:אספיק|נספיק) (?:להחזיר|להגיע))(?![\p{L}])|\b(?:running late|(?:will|gonna|going to|i['’]?ll|we['’]?ll) be (?:\S+ ){0,3}late|stuck in traffic|won['’]?t make it (?:back )?(?:on time|by|in time))\b/iu.test(input)
+    && !/מה (?:קורה|עושים) אם|what if|\bif i\b|(?:^|\s)אם\s/iu.test(input) && !safety(input);
+  if (runningLate && state.handoffKind !== 'safety' && !state.interest) {
+    const forPickup = /לאסוף|לקחת את הרכב|איסוף|pick.?up|collect/iu.test(input) && !/להחזיר|החזרה|return|drop.?off/iu.test(input);
+    const already = state.handedOff && state.history.slice(-4).some(entry => entry.from === 'bot' && /תודה שעדכנתם|Thanks for letting us know/u.test(entry.text));
+    state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'service_issue';
+    escalate = !already;
+    const reply = forPickup
+      ? (he ? `תודה שעדכנתם, העברתי את זה לנציג SmartCar כדי שיתאם את המסירה. סעו בזהירות; אם יש שינוי נוסף או משהו דחוף, התקשרו ל־${OFFICE_PHONE}.`
+        : `Thanks for letting us know — I have passed it to a SmartCar representative so the handover can be rearranged. Drive safely; for any further change or anything urgent, call ${OFFICE_PHONE}.`)
+      : (he ? `תודה שעדכנתם, העברתי את זה לנציג SmartCar. סעו בזהירות ואל תמהרו. מועד ההחזרה שבהסכם נשאר המחייב, ואיחור עשוי להיות כרוך בחיוב לפי ההסכם; הנציג יעדכן אתכם. לתיאום מיידי התקשרו ל־${OFFICE_PHONE}.`
+        : `Thanks for letting us know — I have passed it to a SmartCar representative. Drive safely and don't rush. The return time in your agreement still applies, and a late return may be charged under the agreement; the representative will update you. To arrange it right away, call ${OFFICE_PHONE}.`);
     pushHistory(state, input, reply, false);
     if (escalate && !store.isSimulation) await store.beforeEscalationSave?.(phone);
     await store.saveState(phone, state);
@@ -1830,6 +1866,26 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         : cancellationPending
           ? (he ? `קיבלנו את בקשת הביטול. נציג SmartCar יחזור אליכם; הביטול תקף רק לאחר אישור. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `We have your cancellation request. A SmartCar representative will follow up; cancellation takes effect only after confirmation. You can also call ${OFFICE_PHONE}.`)
           : (he ? `קיבלנו את בקשת השינוי. נציג SmartCar יחזור אליכם; השינוי תקף רק לאחר אישור. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `We have your change request. A SmartCar representative will follow up; the change takes effect only after confirmation. You can also call ${OFFICE_PHONE}.`);
+    // After a non-safety handoff the chat should still feel like a person, not a receipt on repeat:
+    // a thank-you gets a short closing, and a new question is answered by the model from approved facts.
+    if (handoffKind !== 'safety' && /^(?:תודה על העדכון\. נציג SmartCar יטפל|Thanks for the update\. A SmartCar representative will handle|קיבלנו את בקשת השינוי\. נציג|We have received your change request)/u.test(reply)
+      && state.history.some(entry => entry.from === 'bot' && entry.text === reply)) {
+      if (/^\s*(?:תודה(?: רבה)?|תודה אחי|תודה לך|מעולה|סבבה|אוקיי?|אחלה|בסדר(?: גמור)?|thanks?(?: a lot| so much)?|thank you|ok(?:ay)?|great|cool|perfect|cheers)[\s!.🙏👍😊]*(?:אחי|גבר|bro|mate)?[\s!.🙏👍😊]*$/iu.test(input)) {
+        reply = he ? 'בשמחה. אם צריך עוד משהו, אנחנו כאן.' : 'You’re welcome. We’re here if you need anything else.';
+      } else {
+        const followUp = await (store.readTurn ?? readBotTurn)(redactServiceReference(input, state.serviceReference), {
+          locale: state.locale, phase: state.phase, today: israelDate(),
+          recent: state.history.filter(item => !item.private).slice(-8).map(({ from, text }) => ({ from, text: redactServiceReference(text, state.serviceReference) })),
+          known: conversationalKnown(state), approvedFacts: getSmartCarApprovedFacts(state.locale),
+          conversation: { interest: state.interest, handoffDeferred: false, hasServiceReference: Boolean(state.serviceReference), step: state.step, completedRequest: Boolean(state.completedRequestId) },
+        });
+        const drafted = groundedModelReply(followUp, input, state);
+        if (drafted && drafted.trim().length >= 25 && !state.history.some(entry => entry.from === 'bot' && entry.text === drafted)) {
+          if (followUp) model = followUp.model;
+          reply = `${drafted.trim()} ${he ? 'הפנייה שלכם כבר אצל נציג SmartCar.' : 'Your request is already with a SmartCar representative.'}`;
+        }
+      }
+    }
   } else if (state.durationClarification) {
     const corrected = explicitDateRange(input);
     if (corrected) {

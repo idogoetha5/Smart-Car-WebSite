@@ -1011,3 +1011,39 @@ describe('no repeated question after every answer', () => {
   });
 });
 
+// Live Chrome on 6465929: after "the most economical is a small car", "טוב תשריין לי אחד" did not take the
+// small car, and "יוסי בדיקה, בן 35" was ignored while the vehicle question repeated three times.
+describe('a representative understands what was just offered', () => {
+  it('takes the recommended category on a go-ahead and keeps a name given early', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-11-19', returnDate: '2026-11-22', pickupLocation: 'הרצליה', returnLocation: 'הרצליה' }, history: [{ from: 'customer', text: 'מה הכי זול שיש לכם' }, { from: 'bot', text: 'האפשרות החסכונית ביותר היא מכונית קטנה, שמתאימה לזוג או ליחיד.' }] } as RebuildState, 'x');
+    const first = await c.send('טוב תשריין לי אחד');
+    expect(first.state.booking.vehicleNeed).toBe('רכב קומפקטי');
+    const second = await c.send('יוסי בדיקה, בן 35');
+    expect(second.state.booking.customerName).toBe('יוסי בדיקה');
+    expect(second.state.booking.driverAgeRange).toBe('24-plus');
+  });
+});
+
+// Live Chrome on 6465929: "אאחר בשעה" was answered as an extension request, a reply contained Thai letters,
+// and after the handoff every message (even "תודה אחי") got the same receipt line.
+describe('running late and human follow-ups', () => {
+  it('treats a delay as a heads-up, hands off once and stays human afterwards', async () => {
+    const c = chat(null, 'לפי התנאים, ניקוי חריג עשוי להיות מחויב מהפיקדון; כדאי לנער את החול לפני ההחזרה.');
+    const late = await c.send('היי אני אמור להחזיר היום ב5 את הרכב אבל תקוע בפקקים, אאחר בשעה בערך');
+    expect(late.escalate).toBe(true);
+    expect(late.reply).toMatch(/תודה שעדכנתם/);
+    expect(late.reply).not.toMatch(/הארכ/);
+    await c.send('אוקיי');
+    const sand = await c.send('והרכב קצת מלוכלך מהחוף, זה בעיה?');
+    expect(sand.reply).toMatch(/ניקוי חריג/);
+    expect(sand.escalate).toBeFalsy();
+    const thanks = await c.send('תודה אחי');
+    expect(thanks.reply).toBe('בשמחה. אם צריך עוד משהו, אנחנו כאן.');
+  });
+  it('keeps a hypothetical advisory and rejects foreign-script glitches', async () => {
+    const r = await chat(null, 'חיוב על יวัน נוסף תלוי באישור.').send('מה קורה אם אני מאחר בהחזרה?');
+    expect(r.escalate).toBeFalsy();
+    expect(r.reply).not.toMatch(/วัน/);
+  });
+});
+
