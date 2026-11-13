@@ -130,7 +130,10 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
     /\b(?:the|your) child[- ]seat (?:is (?:a )?request|request (?:is|remains|has been) (?:noted|included|saved|pending|recorded))\b|\b(?:your|the) (?:request|draft|summary) (?:still )?(?:includes?|contains?) (?:one|a|\d+) (?:child|car) seats?\b|בקשת כיסא(?:ות)? הבטיחות (?:נשמרה|כלולה|רשומה)|כיסא הבטיחות הוא בקשה|כיסא(?:ות)? הבטיחות (?:כלול|רשום|נשמר)(?:ה|ים|ות)? (?:בבקשה|בטיוטה|בסיכום)/gi,
   )) return reject('seat_request_conflict');
 
-  const allowedNumbers = new Set(numberTokens([input, ...Object.values(known).filter(value => value !== undefined).map(String), ...approvedFacts].join(' ')));
+  // A known ISO date may be written the Israeli way in the reply ("13.11", "13.11.2026").
+  const dateForms = Object.values(known).map(String).flatMap(value => [...value.matchAll(/(20\d{2})-(\d{2})-(\d{2})/g)])
+    .flatMap(([, y, m, d]) => { const dd = String(Number(d)), mm = String(Number(m)); return [`${dd}.${mm}`, `${d}.${m}`, `${dd}.${mm}.${y}`, `${d}.${m}.${y}`, `${dd}.${m}`, `${d}.${mm}`]; });
+  const allowedNumbers = new Set([...numberTokens([input, ...Object.values(known).filter(value => value !== undefined).map(String), ...approvedFacts].join(' ')), ...dateForms.map(form => form.replace(/^0+(?=\d)/, ''))]);
   if (numberTokens(reply).some(token => !allowedNumbers.has(token))) return reject('unsupported_number');
 
   // Negative or conditional discussion is useful advice. Positive assurances

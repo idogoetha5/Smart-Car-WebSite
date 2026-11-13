@@ -1100,3 +1100,20 @@ describe('a promise that a representative will handle it is backed by a handoff'
   });
 });
 
+// Live on 7dd693d: "שישי עד מוצש" — the model read Saturday as the return, but the date evidence "מוצש" was
+// refused and its reply "מיום שישי ה־13.11 עד מוצאי השבת ה־14.11" was rejected as unsupported numbers.
+describe('Israeli date forms in model replies', () => {
+  it('keeps a return read from מוצ״ש and allows 13.11 for a known date', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-13T08:00:00Z'));
+    try {
+      let state: RebuildState | null = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] };
+      const reply = 'בסדר גמור, איסוף בהרצליה מיום שישי ה־13.11 עד מוצאי השבת ה־14.11. איזה רכב תרצו?';
+      const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+        readTurn: async () => ({ route: 'book', direction: 'none', fields: { pickupDate: { value: '2026-11-13', evidence: 'שישי' }, returnDate: { value: '2026-11-14', evidence: 'מוצש' }, pickupLocation: { value: 'הרצליה', evidence: 'מהרצליה' } }, reply, source: 'gemini', model: 'f', groundedContext: true } as BotReading) };
+      const r = await getRebuiltBotReply('fictional-motzash', 'מהרצליה, שישי עד מוצש', store);
+      expect(r.state.booking.returnDate).toBe('2026-11-14');
+      expect(r.reply).toContain('13.11');
+    } finally { vi.useRealTimers(); }
+  });
+});
+

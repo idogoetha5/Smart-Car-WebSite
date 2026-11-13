@@ -1351,7 +1351,7 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
       }
       // The model reads loose timing ("לסופ״ש הזה", "this weekend", "for a week") from the calendar it is given;
       // its evidence is verbatim, so only a hypothetical phrase is refused.
-      if (!/\d{1,2}|היום|מחר|מחרתיים|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|today|tomorrow|(?:mon|tues|wed|thurs|fri|sat|sun)|סופ.?ש|סוף ה?שבוע|שבוע|ימים|יומיים|חודש|הקרוב|הבא|weekend|week|days?|month|next|this/i.test(field.evidence) || isHypotheticalFactEvidence(input, field.evidence)) continue;
+      if (!/\d{1,2}|היום|מחר|מחרתיים|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|today|tomorrow|(?:mon|tues|wed|thurs|fri|sat|sun)|מוצ.?ש|מוצאי|סופ.?ש|סוף ה?שבוע|שבוע|ימים|יומיים|חודש|הקרוב|הבא|weekend|week|days?|month|next|this/i.test(field.evidence) || isHypotheticalFactEvidence(input, field.evidence)) continue;
       const latest = new Date(`${israelDate()}T00:00:00Z`);
       latest.setUTCFullYear(latest.getUTCFullYear() + 2);
       if (!validDate(field.value) || field.value < israelDate() || field.value > latest.toISOString().slice(0, 10)) continue;
@@ -1709,7 +1709,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     state.safetyKind = incident;
     const recentAlert = state.safetyAlertAt && Date.now() - Date.parse(state.safetyAlertAt) < 24 * 60 * 60 * 1000;
     reply = reportedRentalDamage(input)
-      ? (he ? `מצטער לשמוע. טוב שאיש לא נפגע. צלמו את הנזק ואת מקום האירוע אם בטוח לעשות זאת, והתקשרו ל־SmartCar בתוך שעה לדיווח ולהנחיות: ${OFFICE_PHONE}. את מספר ההזמנה אפשר למסור גם בהמשך.` : `I am sorry this happened. I am glad no one was hurt. If it is safe, photograph the damage and the scene, then call SmartCar within one hour to report it and get guidance: ${OFFICE_PHONE}. You can provide the booking reference later.`)
+      ? (he ? `מצטער לשמוע. ${/(?:אף אחד|איש|כולם|כולנו)\s+(?:לא נפגע|בסדר)|no one (?:is |was )?hurt|everyone(?:'s| is) (?:ok|fine)/iu.test(input) ? 'טוב שאיש לא נפגע. ' : 'אם מישהו נפגע, פנו קודם לגורמי החירום. '}צלמו את הנזק ואת מקום האירוע אם בטוח לעשות זאת, והתקשרו ל־SmartCar בתוך שעה לדיווח ולהנחיות: ${OFFICE_PHONE}. את מספר ההזמנה אפשר למסור גם בהמשך.` : `I am sorry this happened. I am glad no one was hurt. If it is safe, photograph the damage and the scene, then call SmartCar within one hour to report it and get guidance: ${OFFICE_PHONE}. You can provide the booking reference later.`)
       : /(?:won['’]?t|doesn['’]?t|will not|does not|can['’]?t get (?:it|the car) to) start|just clicks|dead battery|battery (?:is )?dead|לא (?:מניע|מתניע|נדלק)|הרכב לא מתניע|המצבר (?:מת|נגמר)|רק (?:מקליק|עושה קליק)|flat (?:tyre|tire)|פנצ['׳]?ר/iu.test(input) && !/תאונה|accident|collision|smoke|עשן|fire|אש/iu.test(input)
       ? (he ? `מצטער לשמוע. אם אתם במקום בטוח, הישארו שם ואל תנסו לתקן בעצמכם. התקשרו עכשיו ל־SmartCar כדי לתאם עזרה: ${OFFICE_PHONE}. הפנייה שלכם כבר אצל נציג.` : `Sorry to hear that. If you are somewhere safe, stay there and do not try to fix it yourself. Call SmartCar now to arrange help: ${OFFICE_PHONE}. Your message is already with a representative.`)
       : /גרר|tow|roadside/i.test(input) && recentAlert
@@ -1906,7 +1906,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           : (he ? `קיבלנו את בקשת השינוי. נציג SmartCar יחזור אליכם; השינוי תקף רק לאחר אישור. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `We have your change request. A SmartCar representative will follow up; the change takes effect only after confirmation. You can also call ${OFFICE_PHONE}.`);
     // After a non-safety handoff the chat should still feel like a person, not a receipt on repeat:
     // a thank-you gets a short closing, and a new question is answered by the model from approved facts.
-    const safetyReceipt = handoffKind === 'safety' && /^(?:תודה על העדכון\. אל תמשיכו לנסוע|Thanks for the update\. Do not keep driving)/u.test(reply) && /[?؟]/u.test(input);
+    const safetyReceipt = handoffKind === 'safety' && /^(?:תודה על העדכון\. אל תמשיכו לנסוע|Thanks for the update\. Do not keep driving)/u.test(reply) && input.trim().length >= 8;
     if ((safetyReceipt || handoffKind !== 'safety' && /^(?:תודה על העדכון\. נציג SmartCar יטפל|Thanks for the update\. A SmartCar representative will handle|קיבלנו את בקשת השינוי\. נציג|We have received your change request)/u.test(reply))
       && (/[?؟]/u.test(input) || state.history.some(entry => entry.from === 'bot' && entry.text === reply))) {
       if (/^\s*(?:תודה(?: רבה)?|תודה אחי|תודה לך|מעולה|סבבה|אוקיי?|אחלה|בסדר(?: גמור)?|thanks?(?: a lot| so much)?|thank you|ok(?:ay)?|great|cool|perfect|cheers)[\s!.🙏👍😊]*(?:אחי|גבר|bro|mate)?[\s!.🙏👍😊]*$/iu.test(input)) {
@@ -2872,7 +2872,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const original = digits(reply);
       const keepsNumbers = digits(text).every(n => original.includes(n)) && original.every(n => digits(text).includes(n));
       // A question in the application wording must survive; one added question is allowed only for a missing booking reference.
-      const sameQuestionShape = /[?؟]/u.test(reply) ? /[?؟]/u.test(text) : !/[?؟]/u.test(text) || state.phase === 'service' && !state.serviceReference && (text.match(/[?؟]/gu) ?? []).length === 1
+      // No new timing promise ("מחר בבוקר", "today", "בהקדם") that the application did not make.
+      const timing = /(?<![\p{L}])(?:מחר|היום|הערב|בבוקר|בהקדם|תוך|בעוד|מיד|עוד מעט)(?![\p{L}])|\b(?:tomorrow|today|tonight|this (?:morning|evening|afternoon)|shortly|soon|within|right away|asap)\b/giu;
+      const timingOk = (text.match(timing) ?? []).every(word => new RegExp(word, 'iu').test(reply));
+      const sameQuestionShape = timingOk && /[?؟]/u.test(reply) ? /[?؟]/u.test(text) : !/[?؟]/u.test(text) || state.phase === 'service' && !state.serviceReference && (text.match(/[?؟]/gu) ?? []).length === 1
         && /(?:מספר ה?הזמנה|השם ש?על ההזמנה|על איזה שם|booking (?:number|reference)|name on the booking)[^.!?؟]{0,60}[?؟]/iu.test(text);
       const languageOk = state.locale === 'he' ? /[א-ת]/u.test(text) : !/[א-ת]/u.test(text) && /[A-Za-z]/.test(text);
       if (text && text !== reply && keepsNumbers && sameQuestionShape && languageOk && text.length >= reply.length * 0.5 && text.length <= Math.min(650, reply.length * 1.7 + 40)
