@@ -140,7 +140,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   const dateForms = Object.values(known).map(String).flatMap(value => [...value.matchAll(/(20\d{2})-(\d{2})-(\d{2})/g)])
     .flatMap(([, y, m, d]) => { const dd = String(Number(d)), mm = String(Number(m)); return [`${dd}.${mm}`, `${d}.${m}`, `${dd}.${mm}.${y}`, `${d}.${m}.${y}`, `${dd}.${m}`, `${d}.${mm}`]; });
   const allowedNumbers = new Set([...numberTokens([input, ...Object.values(known).filter(value => value !== undefined).map(String), ...approvedFacts].join(' ')), ...dateForms.map(form => form.replace(/^0+(?=\d)/, ''))]);
-  if (numberTokens(reply).some(token => !allowedNumbers.has(token))) return reject('unsupported_number');
+  if (numberTokens(reply.replace(/09-?9509757/g, '')).some(token => !allowedNumbers.has(token))) return reject('unsupported_number');
 
   // Negative or conditional discussion is useful advice. Positive assurances
   // about a transaction, stock, personal cover or physical fit are not.

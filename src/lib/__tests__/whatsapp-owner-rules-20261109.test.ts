@@ -1157,3 +1157,17 @@ describe('home or hotel delivery as the pickup', () => {
   });
 });
 
+// Live on 43ed4a4: after a hit-and-run the model's answer named the office number and was rejected twice
+// (contact_or_link, then unsupported_number), so the customer got the fixed receipt again.
+describe('the office number in a model answer', () => {
+  it('is accepted in a safety follow-up', async () => {
+    let state: RebuildState | null = null;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: 'מצטער לשמוע שהוא ברח. כדאי לצלם את הנזק, ובכל מקרה לדווח ל־SmartCar בתוך שעה בטלפון 09-9509757.', source: 'gemini', model: 'f', groundedContext: true } as BotReading) };
+    await getRebuiltBotReply('fictional-office', 'נהג ממונית חסם אותי בחניה והרכב שלכם קיבל מכה קטנה בדלת', store);
+    const r = await getRebuiltBotReply('fictional-office', 'הוא ברח, לא לקחתי פרטים', store);
+    expect(r.reply).toMatch(/מצטער לשמוע שהוא ברח/);
+    expect(r.reply.match(/09-9509757/g)).toHaveLength(1);
+  });
+});
+
