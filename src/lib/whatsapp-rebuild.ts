@@ -1948,6 +1948,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
             ? `${drafted.trim()} ${he ? 'אל תמשיכו לנסוע אם יש חשש בטיחותי.' : 'Do not keep driving if the car may be unsafe.'}`
             : safetyReceipt
             ? `${drafted.trim()} ${he ? `אל תמשיכו לנסוע אם יש חשש בטיחותי; לתיאום עזרה התקשרו ל־${OFFICE_PHONE}.` : `Do not keep driving if the car may be unsafe; to arrange help call ${OFFICE_PHONE}.`}`
+            : /נציג|representative/iu.test(drafted) ? drafted.trim()
             : `${drafted.trim()} ${he ? 'הפנייה שלכם כבר אצל נציג SmartCar.' : 'Your request is already with a SmartCar representative.'}`;
         }
       }
@@ -2221,7 +2222,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       && Boolean(state.booking.pickupDate || state.booking.vehicleNeed || state.booking.passengers || offersRentalRequest(lastBot));
     const wantsBooking = !declines && !asksHuman && !modelHumanConsent && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || !serviceInterpretation && (acceptsRentalOffer || wantsToContinueRental || state.phase === 'booking'));
     const rentalPivot = /מעדיף (?:את ה)?השכרה|מעדיף לשכור|עדיף לי לשכור|אעדיף לשכור|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|prefer to rent|back to renting/i.test(input);
-    const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|(?:רכב|הרכב).{0,35}מלוכלך|לא קיבלתי|(?:מזגן|מיזוג).{0,25}(?:לא עובד|מקולקל)|(?:air conditioning|car ac).{0,25}(?:not working|broken)|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input);
+    const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|(?:רכב|הרכב).{0,35}מלוכלך|לא קיבלתי|(?:מזגן|מיזוג).{0,25}(?:לא עובד|מקולקל)|(?:air conditioning|car ac).{0,25}(?:not working|broken)|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input)
+      // "What happens if the car is dirty?" is a question about policy, not a reported problem.
+      && !/מה (?:קורה|עושים|יקרה) אם|what (?:happens|do i do|if)|(?:^|\s)אם\s|\bif\b/iu.test(input);
     const statedVehicle = customerVehicleChoice(input, state);
     if (acceptsRentalOffer && !state.booking.vehicleNeed) {
       const offeredVehicle = explicitVehicleNeed(lastBot, state.locale);
@@ -2941,6 +2944,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = askedJustNow && rest.length >= 12 && state.phase !== 'booking' ? rest : `${rest} ${sameReturn}`.trim();
     } else if (trailing && body.length >= 12 && state.phase !== 'booking') reply = body;
   }
+  // Known Hebrew slips of the model (wording only, not meaning).
+  if (he) reply = reply.replace(/(?<![\p{L}])אני מצער(?![\p{L}])/gu, 'אני מצטער').replace(/(?<![\p{L}])בבשמחה(?![\p{L}])/gu, 'בשמחה');
   // A person greets once. Later replies start with the answer.
   if (state.history.some(entry => entry.from === 'bot')) {
     const withoutGreeting = reply.replace(/^\s*(?:שלום(?: רב)?|היי|הי|אהלן|בוקר טוב|ערב טוב|צהריים טובים|hi(?: there)?|hello|hey|good (?:morning|evening|afternoon))\s*[!,.]\s*/iu, '');
