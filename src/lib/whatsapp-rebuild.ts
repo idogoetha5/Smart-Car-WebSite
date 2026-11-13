@@ -1600,6 +1600,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   // Set when the reply is an approved policy answer that model wording must not replace.
   let policyLocked = false;
   let source: RebuildResult['source'] = 'local';
+  let modelRoute: string | undefined;
   let model: string | undefined;
   let escalate = false;
   let privateTurn = false;
@@ -2085,7 +2086,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         },
       };
       reading = await (store.readTurn ?? readBotTurn)(redactServiceReference(input, state.serviceReference), modelContext);
-      if (reading) { model = reading.model; if (store.isSimulation) draftNotes.push(`read ${reading.route}/${reading.direction} patches=${JSON.stringify(reading.factPatches ?? []).slice(0, 400)} fields=${JSON.stringify(reading.fields ?? {}).slice(0, 200)}`); applyFields(input, state, reading); }
+      if (reading) { modelRoute = reading.route; model = reading.model; if (store.isSimulation) draftNotes.push(`read ${reading.route}/${reading.direction} patches=${JSON.stringify(reading.factPatches ?? []).slice(0, 400)} fields=${JSON.stringify(reading.fields ?? {}).slice(0, 200)}`); applyFields(input, state, reading); }
     }
     const statedRange = explicitDateRange(input);
     if (statedRange) Object.assign(state.booking, statedRange);
@@ -2811,6 +2812,17 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // Rental policy facts are not leasing/sale terms.
     const side = sideFact && !state.interest && (contactTurn || ['driver_documents', 'insurance', 'deposit', 'age_licence', 'fuel', 'mileage'].includes(sideFact.topic)) ? sideFact.reply : undefined;
     if (side && !reply.includes(side.slice(0, 40))) reply = `${side} ${reply}`;
+  }
+  // The model understood an existing-booking matter and told the customer that a representative will deal
+  // with it. The application makes that true: the case is passed on now (one alert), instead of leaving a
+  // promise nobody hears about. Limited to service matters; sales wording is checked by the validator.
+  if (source === 'gemini' && !escalate && !state.handedOff && !state.interest && !state.completedRequestId
+    && (state.phase === 'service' || modelRoute === 'service' || modelRoute === 'human')
+    && /נציג(?:\s+(?:של\s+)?SmartCar)?\s+(?:יחזור|יצור|ייצור|יטפל|יבדוק|יעבור על|יעדכן)|(?:representative|someone from (?:our|the) team|our team)\s+will\s+(?:get back|be in touch|contact|call|handle|look into|review|check|update)/iu.test(reply)) {
+    state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString();
+    state.handoffKind = cancellationRequest(input) || mentionsRentalChange(input) ? 'booking_change' : 'service_issue';
+    escalate = true; draftNotes.push('handoff_from_model_promise');
+    if (!reply.includes(OFFICE_PHONE)) reply = `${reply.trim()} ${he ? `לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `For immediate help call ${OFFICE_PHONE}.`}`;
   }
   // Code decides, the model speaks: a reply produced by fixed application wording is reworded by the model in
   // a human voice, as an answer to what the customer actually wrote. The facts stay the application's — the

@@ -1087,3 +1087,16 @@ describe('trusting the model on a branch pickup', () => {
   });
 });
 
+// Live on 81ff53b: "רציתי לבטל את ההזמנה שלי למחר" was answered "נציג SmartCar יבדוק ויטפל בבקשה" with no
+// handoff behind it. The promise must be real.
+describe('a promise that a representative will handle it is backed by a handoff', () => {
+  it('passes the case on when the model says a representative will deal with it', async () => {
+    let state: RebuildState | null = { version: 2, phase: 'service', step: 'menu', locale: 'he', booking: {}, history: [] };
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'service', direction: 'none', fields: {}, reply: 'בסדר גמור. נציג SmartCar יבדוק את הפרטים ויטפל בבקשה.', source: 'gemini', model: 'f', groundedContext: true } as BotReading) };
+    const r = await getRebuiltBotReply('fictional-promise', 'שכחתי משקפי שמש ברכב שהחזרתי אתמול בהרצליה', store);
+    if (r.source === 'gemini') { expect(r.escalate).toBe(true); expect(r.state.handedOff).toBe(true); expect(r.reply).toContain('09-9509757'); }
+    else expect(r.reply).not.toMatch(/יטפל בבקשה/);
+  });
+});
+
