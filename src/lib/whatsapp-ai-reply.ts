@@ -83,6 +83,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (asksRentalAgeTerms(input) && !/\bage\b|\b21\b|young[- ]driver|licen[cs]e|גיל|רישיון|נהג צעיר/i.test(reply)) return reject('unanswered_age_terms');
   if (asksRentalAgeTerms(input) && /deposit|פיקדון/i.test(input) && !/deposit|card hold|פיקדון/i.test(reply)) return reject('unanswered_deposit');
   if (reply.length > 650) return reject('too_long');
+  // Privacy markers belong to the model's input, never to a customer reply.
+  if (/\[(?:phone|email|name|address|payment detail|id) removed\]/iu.test(reply)) return reject('privacy_marker');
   // Model glitches: letters from scripts the customer is not writing in (observed: Thai inside a Hebrew word).
   if (/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF\u0900-\u097F]/u.test(reply)) return reject('foreign_script');
   if (wrongWeekday(reply)) return reject('wrong_weekday');

@@ -1373,6 +1373,15 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
         : /^(?:הרצליה|herzliya)$/iu.test(value) ? 'herzliya' : /^(?:תל אביב|tel aviv|tlv)$/iu.test(value) ? 'telaviv' : /^(?:ירושלים|jerusalem)$/iu.test(value) ? 'jerusalem' : undefined;
       const evidence = field.evidence.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const destination = new RegExp(`\\b(?:to|towards|around|visit(?:ing)?|trip to|drive to)\\s+(?:the\\s+)?${evidence}|(?<![\\p{L}])ל${evidence}`, 'iu').test(input);
+      // Delivery to the customer's home, hotel or office in a city ("my hotel in herzliya", "הבית שלי בנתניה"):
+      // keep the city only, as a home-delivery pickup — never the street address.
+      const deliveryCity = source === 'pickupLocation' && !state.booking.pickupLocation && /deliver|bring|hotel|home|house|office|work|apartment|מסירה|להביא|יביא|תביא|הביתה|לבית|בית|מלון|משרד|עבודה|דירה/iu.test(`${field.value} ${input}`)
+        ? (field.value.match(/(?:\bin|(?<![\p{L}])ב)\s*([\p{L}]{3,15}(?:[ -][\p{L}]{3,15})?)\s*$/iu)?.[1]) : undefined;
+      if (deliveryCity && !/\d/.test(field.value) && !temporalLocation(deliveryCity) && !isHypotheticalFactEvidence(input, field.evidence)) {
+        const city = state.locale === 'en' ? deliveryCity.replace(/\b\p{L}/gu, letter => letter.toUpperCase()) : deliveryCity;
+        state.booking.pickupLocation = state.locale === 'he' ? `מסירה עד הבית (${city})` : `Home delivery (${city})`;
+        continue;
+      }
       const modelRole = source === 'pickupLocation' && Boolean(branchKey) && !state.booking.pickupLocation && !destination && !isHypotheticalFactEvidence(input, field.evidence);
       if (!explicitRole && !promptedRole && !modelRole) continue;
       if (modelRole && !explicitRole && !promptedRole) {
@@ -2863,7 +2872,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         known: conversationalKnown(state), approvedFacts: getSmartCarApprovedFacts(state.locale), applicationReply: reply,
         conversation: { interest: state.interest, handoffDeferred: false, hasServiceReference: Boolean(state.serviceReference), step: state.step, completedRequest: false },
       });
-      let text = reworded?.rephrased ? reworded.reply.trim() : '';
+      let text = reworded?.rephrased && !/\[[a-z ]+ removed\]/iu.test(reworded.reply) ? reworded.reply.trim() : '';
       // The office number is the one thing the model tends to drop; the application puts it back.
       if (text && reply.includes(OFFICE_PHONE) && !text.includes(OFFICE_PHONE)) {
         text = `${text.replace(/\s*(?:אפשר גם להתקשר(?: אלינו)?(?: ישירות)?|You can also call us(?: directly)?)\.?\s*$/iu, '').trim()} ${he ? `לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `For immediate help call ${OFFICE_PHONE}.`}`;

@@ -1139,3 +1139,21 @@ describe('timing promises and safety follow-up statements', () => {
   });
 });
 
+// Live on 1194bd0: delivery to a hotel/home was understood by the model but not kept, so the bot asked which
+// branch to pick up from; and the office number in history reached the model as "[phone removed]".
+describe('home or hotel delivery as the pickup', () => {
+  const run = async (input: string, value: string, locale: 'he' | 'en') => {
+    let state: RebuildState | null = { version: 2, phase: 'explore', step: 'menu', locale, booking: {}, history: [] };
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(),
+      readTurn: async () => ({ route: 'book', direction: 'none', fields: { pickupLocation: { value, evidence: value } }, reply: 'Sure.', source: 'gemini', model: 'f', groundedContext: true } as BotReading) };
+    return (await getRebuiltBotReply('fictional-delivery', input, store)).state.booking.pickupLocation;
+  };
+  it('keeps the city only', async () => {
+    expect(await run('hey, can you deliver a car to my hotel in herzliya tomorrow morning?', 'my hotel in herzliya', 'en')).toBe('Home delivery (Herzliya)');
+    expect(await run('אפשר שמישהו יביא לי את הרכב לבית בנתניה?', 'לבית בנתניה', 'he')).toBe('מסירה עד הבית (נתניה)');
+  });
+  it('never stores a street address', async () => {
+    expect((await run('תביאו לי את הרכב להרצל 12 בנתניה', 'הרצל 12 בנתניה', 'he')) ?? '').not.toMatch(/12|הרצל/);
+  });
+});
+
