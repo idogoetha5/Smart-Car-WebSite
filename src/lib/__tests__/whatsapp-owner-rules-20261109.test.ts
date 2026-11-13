@@ -1069,3 +1069,21 @@ describe('rewording of fixed application replies', () => {
   });
 });
 
+// Live on 54632e2: the model read "landing at TLV" as an airport pickup, but the code dropped it and later
+// asked "Where would you like to pick it up?".
+describe('trusting the model on a branch pickup', () => {
+  const reading = (fields: BotReading['fields']) => ({ route: 'book', direction: 'none', fields, reply: 'Sure.', source: 'gemini', model: 'f', groundedContext: true } as BotReading);
+  const run = async (input: string, fields: BotReading['fields'], locale: 'he' | 'en' = 'en') => {
+    let state: RebuildState | null = { version: 2, phase: 'explore', step: 'menu', locale, booking: {}, history: [] };
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn: async () => reading(fields) };
+    return (await getRebuiltBotReply('fictional-tlv', input, store)).state.booking;
+  };
+  it('keeps the airport for a landing message', async () => {
+    expect((await run('hi, landing at TLV on dec 3 at 2am, can someone meet me with the car?', { pickupLocation: { value: 'TLV', evidence: 'TLV' } })).pickupLocation).toBe('Ben Gurion Airport');
+  });
+  it('does not turn a destination into the pickup', async () => {
+    expect((await run('we are driving to Jerusalem for a week', { pickupLocation: { value: 'Jerusalem', evidence: 'Jerusalem' } })).pickupLocation).toBeUndefined();
+    expect((await run('אנחנו נוסעים לירושלים לשבוע', { pickupLocation: { value: 'ירושלים', evidence: 'ירושלים' } }, 'he')).pickupLocation).toBeUndefined();
+  });
+});
+

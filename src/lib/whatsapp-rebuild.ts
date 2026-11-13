@@ -172,7 +172,8 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
     if (!customerSaid.toLowerCase().includes(city[1].toLowerCase())) { onReject?.('unknown_place'); return null; }
   }
   const validated = validateConversationalReply({
-    reply: reading.reply, input, locale: state.locale, known: conversationalKnown(state),
+    // Today's date is always a supported number (a draft may say "היום, 13 בנובמבר").
+    reply: reading.reply, input, locale: state.locale, known: { ...conversationalKnown(state), today: israelDate() },
     approvedFacts: getSmartCarApprovedFacts(state.locale).map(fact => fact.text),
     handoffDeferred: Boolean(state.humanHandoffDeferred), bookingPhase: state.phase === 'booking',
     nextMissingField: state.phase === 'booking' ? nextMissing(state.booking) ?? undefined : undefined,
@@ -1341,7 +1342,9 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
         const expected = source === 'returnDate' ? singleDateAnswer(input, state.booking.pickupDate) : plainDate;
         if (source !== pending || field.value !== expected) continue;
       }
-      if (!/\d{1,2}|היום|מחר|מחרתיים|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|today|tomorrow|(?:mon|tues|wed|thurs|fri|sat|sun)/i.test(field.evidence)) continue;
+      // The model reads loose timing ("לסופ״ש הזה", "this weekend", "for a week") from the calendar it is given;
+      // its evidence is verbatim, so only a hypothetical phrase is refused.
+      if (!/\d{1,2}|היום|מחר|מחרתיים|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|today|tomorrow|(?:mon|tues|wed|thurs|fri|sat|sun)|סופ.?ש|סוף ה?שבוע|שבוע|ימים|יומיים|חודש|הקרוב|הבא|weekend|week|days?|month|next|this/i.test(field.evidence) || isHypotheticalFactEvidence(input, field.evidence)) continue;
       const latest = new Date(`${israelDate()}T00:00:00Z`);
       latest.setUTCFullYear(latest.getUTCFullYear() + 2);
       if (!validDate(field.value) || field.value < israelDate() || field.value > latest.toISOString().slice(0, 10)) continue;
@@ -1355,7 +1358,22 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
       const explicitRole = source === 'pickupLocation' ? /איסוף|לאסוף|pick(?:\s+(?:it|the car))?[\s-]*up/i.test(input) || fromLocation
         : /להחזיר|נחזיר|אחזיר|מחזיר|החזרה|return|drop.?off/i.test(input) || samePlace && Boolean(state.booking.pickupLocation);
       const promptedRole = state.phase === 'booking' && state.step === 'rental_locations' && pending === source && plainLocation && !samePlace;
-      if (!explicitRole && !promptedRole) continue;
+      // Trust the model's reading of the pickup when it points at a SmartCar branch or the airport with verbatim
+      // evidence ("landing at TLV", "אני בתל אביב") — unless the phrase is where the trip is going.
+      const value = field.value.trim();
+      const flight = /land(?:ing|s)?|flight|arriv|נוחת|נוחתים|נחיתה|טיסה/iu.test(input);
+      const branchKey = /^(?:ben gurion(?: airport)?|(?:the )?airport|נתב.?ג|שדה ה?תעופה)$/iu.test(value) || /^tlv$/iu.test(value) && flight ? 'airport'
+        : /^(?:הרצליה|herzliya)$/iu.test(value) ? 'herzliya' : /^(?:תל אביב|tel aviv|tlv)$/iu.test(value) ? 'telaviv' : /^(?:ירושלים|jerusalem)$/iu.test(value) ? 'jerusalem' : undefined;
+      const evidence = field.evidence.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const destination = new RegExp(`\\b(?:to|towards|around|visit(?:ing)?|trip to|drive to)\\s+(?:the\\s+)?${evidence}|(?<![\\p{L}])ל${evidence}`, 'iu').test(input);
+      const modelRole = source === 'pickupLocation' && Boolean(branchKey) && !state.booking.pickupLocation && !destination && !isHypotheticalFactEvidence(input, field.evidence);
+      if (!explicitRole && !promptedRole && !modelRole) continue;
+      if (modelRole && !explicitRole && !promptedRole) {
+        state.booking.pickupLocation = (state.locale === 'he'
+          ? { herzliya: 'הרצליה', telaviv: 'תל אביב', jerusalem: 'ירושלים', airport: 'נתב״ג' }
+          : { herzliya: 'Herzliya', telaviv: 'Tel Aviv', jerusalem: 'Jerusalem', airport: 'Ben Gurion Airport' })[branchKey!];
+        continue;
+      }
     }
     if (source === 'vehicleNeed' && !customerVehicleChoice(input, state)) continue;
     state.booking[target] = source === 'vehicleNeed'
@@ -2812,9 +2830,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const digits = (value: string) => (value.match(/\d[\d\-–.,:/]*\d|\d/gu) ?? []).map(n => n.replace(/[^\d]/g, ''));
       const original = digits(reply);
       const keepsNumbers = digits(text).every(n => original.includes(n)) && original.every(n => digits(text).includes(n));
-      const sameQuestionShape = /[?؟]/u.test(reply) === /[?؟]/u.test(text);
+      // A question in the application wording must survive; one added question is allowed only for a missing booking reference.
+      const sameQuestionShape = /[?؟]/u.test(reply) ? /[?؟]/u.test(text) : !/[?؟]/u.test(text) || state.phase === 'service' && !state.serviceReference && (text.match(/[?؟]/gu) ?? []).length === 1;
       const languageOk = state.locale === 'he' ? /[א-ת]/u.test(text) : !/[א-ת]/u.test(text) && /[A-Za-z]/.test(text);
-      if (text && keepsNumbers && sameQuestionShape && languageOk && text.length >= reply.length * 0.5 && text.length <= Math.min(650, reply.length * 1.7 + 40)
+      if (text && text !== reply && keepsNumbers && sameQuestionShape && languageOk && text.length >= reply.length * 0.5 && text.length <= Math.min(650, reply.length * 1.7 + 40)
         && !/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/u.test(text) && (reply.includes('₪') || !/₪|ש״ח|NIS/u.test(text))) {
         reply = text; model = reworded!.model; draftNotes.push('reworded');
       } else if (store.isSimulation) draftNotes.push(`reword_rejected: ${text.slice(0, 120)}`);

@@ -34,6 +34,13 @@ function hasAffirmativeMatch(text: string, pattern: RegExp, unverifiedPrefix?: R
   for (const match of text.matchAll(pattern)) {
     const prefix = text.slice(Math.max(0, match.index! - 55), match.index);
     if (unverifiedPrefix?.test(prefix)) continue;
+    // An offer or a question about a next step ("האם תרצו שנציג יחזור אליכם?", "would you like us to check?")
+    // is not a claim that the step happened.
+    const rest = text.slice(match.index!);
+    const sentenceEnd = rest.search(/[.!?؟\n]/u);
+    const asksOrOffers = sentenceEnd >= 0 && /[?؟]/u.test(rest[sentenceEnd])
+      && /(?:האם\s+)?(?:תרצו|תרצה|רוצים|רוצה|נוח לכם|מתאים לכם)\s+ש?\s*$|(?:האם\s+)?(?:תרצו|תרצה|רוצים)\s+ש[^.!?\n]{0,45}$|\b(?:would you like|do you want|shall (?:i|we)|should (?:i|we)|want (?:me|us) to)\b[^.!?\n]{0,45}$/iu.test(prefix);
+    if (asksOrOffers) continue;
     if (/(?:cannot|can['’]?t|do not|don['’]?t)\s+(?:guarantee|promise|confirm|say)\s+(?:that\s+)?$|whether\s*$|אי אפשר (?:להבטיח|לאשר)\s*(?:ש)?$/i.test(prefix)) continue;
     if (/(?:\bnot|\bnever|\bno|\bcannot|\bcan['’]?t|\bisn['’]?t|\baren['’]?t|לא|אינו|אינה|איננו|אין)\s+(?:(?:be|been|being|already|yet|necessarily|a|the|כבר|עדיין|בהכרח)\s+){0,3}$/i.test(prefix)) continue;
     return true;
