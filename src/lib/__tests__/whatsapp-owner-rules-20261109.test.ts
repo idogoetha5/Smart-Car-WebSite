@@ -1209,3 +1209,13 @@ describe('what-if questions about incidents', () => {
   });
 });
 
+
+// Live Chrome on 370856b: "Daniel, 21" after the car-category question got only "Thanks, Daniel." — a dead end.
+describe('an acknowledgement never ends the rental conversation', () => {
+  it('keeps the open question when the customer only gave details', async () => {
+    const q = 'What car category would you prefer for your trip?';
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: { pickupDate: '2026-11-20', returnDate: '2026-11-25', pickupLocation: 'Ben Gurion Airport', driverAgeRange: '21-23' }, history: [{ from: 'customer', text: 'yes I am 21' }, { from: 'bot', text: `Got it. ${q}` }] } as RebuildState, `Thanks, Daniel. ${q}`, 'en');
+    const r = await c.send('Daniel, 21');
+    expect(r.reply).toMatch(/\?/);
+  });
+});
