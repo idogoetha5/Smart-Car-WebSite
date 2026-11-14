@@ -191,6 +191,7 @@ function InquiryContent({ vehicles, locale }: { vehicles: Vehicle[]; locale: str
                       src={selectedVehicle.imageUrls[0]}
                       alt={`${selectedVehicle.make} ${selectedVehicle.model}`}
                       fill
+                      sizes="(max-width: 768px) 100vw, 600px"
                       className="object-cover"
                     />
                   </div>

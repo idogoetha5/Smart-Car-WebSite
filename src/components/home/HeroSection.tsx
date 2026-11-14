@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import DatePickerInput, { type DatePickerHandle } from '@/components/ui/DatePickerInput';
@@ -503,18 +504,24 @@ export default function HeroSection({ locale }: { locale: string }) {
         <motion.div
           className="absolute right-0 bottom-0"
           style={{ width: '55%', maxWidth: '600px', perspective: 1000 }}
-          initial={{ x: '25%', opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
+          // Visible from the first paint: an opacity-0 start hid the page's largest image until
+          // JavaScript ran, which pushed mobile LCP to ~15 s. The drive-in stays.
+          initial={{ x: '25%' }}
+          animate={{ x: 0 }}
           transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.1 }}
           onPointerMove={handleCarPointerMove}
           onPointerLeave={handleCarPointerLeave}
         >
           <motion.div style={{ rotateX: carRotateX, rotateY: carRotateY, transformStyle: 'preserve-3d' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src="/images/hero-car.webp"
               alt="SmartCar"
-              className="w-full"
+              className="w-full h-auto"
+              width={1400}
+              height={959}
+              // The page's largest image: preloaded, and sized to the box it fills (55% wide, at most 600px).
+              preload
+              sizes="(max-width: 1100px) 55vw, 600px"
               style={{
                 objectFit: 'contain',
                 objectPosition: 'bottom right',

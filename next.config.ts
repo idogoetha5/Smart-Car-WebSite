@@ -89,18 +89,17 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'iovpoxmdsgsstaduggvb.supabase.co' },
     ],
     formats: ['image/avif', 'image/webp'],
-    // TEMPORARY (2026-08-10): Vercel's Image Optimization is returning 402
-    // OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED account-wide — every vehicle
-    // image on the live site is broken. This bypasses Vercel's optimizer
-    // entirely so <Image> falls back to serving the original file directly,
-    // unresized/unconverted, which does not depend on that quota/billing at
-    // all. Revert once the Vercel plan/usage issue is actually resolved —
-    // this trades image weight and format conversion for the site working.
-    unoptimized: true,
+    // Vercel image optimization was switched off on 2026-08-10 while the account returned 402
+    // for it; on Pro (2026-11-14) it answers again (branch photo 190 KB -> 17 KB AVIF), so it is back on.
+    // Gallery files are versioned (-v2), so a month-long cache is safe and avoids re-optimizing.
+    minimumCacheTTL: 2678400,
   },
   async headers() {
     return [
       { source: '/(.*)', headers: securityHeaders },
+      // Public photos are served with max-age=0 by default, so every visit re-checked each one.
+      // A day in the browser and a month of background refresh; file names change when a photo does.
+      { source: '/images/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=2592000' }] },
       { source: '/:locale/my-bookings/:path*', headers: noIndexHeaders },
       { source: '/:locale/booking-confirmation/:path*', headers: noIndexHeaders },
       { source: '/:locale/condition-report/:path*', headers: noIndexHeaders },

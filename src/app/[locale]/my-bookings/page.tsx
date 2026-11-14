@@ -397,7 +397,7 @@ export default function MyBookingsPage() {
                       <div className="flex items-center gap-4 p-5">
                         {img ? (
                           <div className="relative w-24 h-16 flex-shrink-0 rounded-xl overflow-hidden bg-[#eef6f6]">
-                            <Image src={img} alt={`${booking.vehicle?.make} ${booking.vehicle?.model}`} fill className="object-contain p-1" />
+                            <Image src={img} alt={`${booking.vehicle?.make} ${booking.vehicle?.model}`} fill sizes="96px" className="object-contain p-1" />
                           </div>
                         ) : (
                           <div className="w-24 h-16 flex-shrink-0 rounded-xl bg-[#eef6f6] flex items-center justify-center">

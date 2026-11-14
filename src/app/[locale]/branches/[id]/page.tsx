@@ -201,7 +201,8 @@ export default async function BranchDetailPage({
           src={branch.image}
           alt={isHe ? `סניף SmartCar ${city}` : `SmartCar ${city} branch`}
           fill
-          priority
+          preload
+          sizes="100vw"
           className="object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/10" />

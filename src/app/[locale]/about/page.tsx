@@ -40,6 +40,7 @@ export default async function AboutPage({
             src="/images/cars-fleet.jpg"
             alt="SmartCar fleet overview"
             fill
+            sizes="100vw"
             className="object-cover"
           />
         </div>
@@ -105,6 +106,7 @@ export default async function AboutPage({
                   src="/images/about-image.png"
                   alt="Liliana Nardea, SmartCar founder"
                   fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
                   className="object-cover rounded-3xl"
                 />
               </div>

@@ -58,6 +58,7 @@ export default function BranchesSection({ locale }: { locale: string }) {
                   alt={isHe ? `${branch.nameHe} – ${branch.addressHe}` : `${branch.nameEn} – ${branch.addressEn}`}
                   fill
                   loading="lazy"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                   className="object-cover"
                 />
               </div>

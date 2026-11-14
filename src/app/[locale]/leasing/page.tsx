@@ -48,6 +48,7 @@ function VehicleLeaseCard({ vehicle, locale }: { vehicle: Vehicle; locale: strin
               src={img}
               alt={`${vehicle.make} ${vehicle.model}`}
               fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className="object-contain"
             />
             {/* Same ground-shadow recipe as VehicleCard (src/components/catalog/VehicleCard.tsx):
