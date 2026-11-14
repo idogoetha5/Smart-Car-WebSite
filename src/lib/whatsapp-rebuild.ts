@@ -1343,8 +1343,8 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
     ? 'בשמחה אעזור לבחור. כמה אנשים ומזוודות יהיו בנסיעה, והאם היא בעיקר בעיר או גם מחוץ לעיר?'
     : 'Happy to help choose. How many people and bags will travel, and is the driving mainly in town or beyond it?';
   if (explicitDateRange(input) && state.booking.pickupDate && state.booking.returnDate) return he
-    ? `הבנתי את תאריכי האיסוף וההחזרה. ${state.booking.pickupLocation ? question('returnLocation', 'he') : question('pickupLocation', 'he')}`
-    : `I have the pickup and return dates. ${state.booking.pickupLocation ? question('returnLocation', 'en') : question('pickupLocation', 'en')}`;
+    ? `מעולה, רשמתי את התאריכים. ${state.booking.pickupLocation ? question('returnLocation', 'he') : question('pickupLocation', 'he')}`
+    : `Great, I have the dates. ${state.booking.pickupLocation ? question('returnLocation', 'en') : question('pickupLocation', 'en')}`;
   if (state.booking.pickupLocation && state.booking.returnLocation && /איסוף|לאסוף|החזרה|להחזיר|pick.?up|drop.?off|return/i.test(input)) {
     const next = state.booking.passengers === 1
       ? (he ? 'כמה ציוד תביא לנסיעה?' : 'How much luggage will you bring?')
@@ -2416,10 +2416,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else if (dateFallback && vagueDateAnswer(input) && (!state.booking.pickupDate || !state.booking.returnDate)) {
       const timing = input.match(VAGUE_DATE_PHRASE)?.[0];
       state.booking.datePreference = [state.booking.datePreference, timing].filter(Boolean).join(' עד ').slice(0, 120);
-      const clarifiedAlready = state.history.some(entry => entry.from === 'bot' && /באילו תאריכים מדויקים|כשתדעו את התאריכים המדויקים|which exact pickup and return dates|when you know the exact dates/i.test(entry.text));
+      const clarifiedAlready = state.history.some(entry => entry.from === 'bot' && /באילו תאריכים מדויקים|מאיזה יום ועד איזה יום|כשתדעו את התאריכים המדויקים|which exact pickup and return dates|which day would you like to pick it up|when you know the exact dates/i.test(entry.text));
       reply = clarifiedAlready
         ? (he ? 'הבנתי את הטווח המשוער. כשתדעו את התאריכים המדויקים, כתבו אותם כאן ונמשיך.' : 'I understand the approximate timing. Send the exact dates here when you know them and we can continue.')
-        : (he ? 'הבנתי את הכיוון. כדי לבדוק זמינות ולהכין בקשה, באילו תאריכים מדויקים תרצו לאסוף ולהחזיר את הרכב?' : 'I understand the approximate timing. Which exact pickup and return dates would you like?');
+        : (he ? 'בשמחה. מאיזה יום ועד איזה יום תצטרכו את הרכב?' : 'Sure. Which day would you like to pick it up, and when will you bring it back?');
     } else if (completedRouteInCurrentTurn && state.phase === 'explore' && !state.interest && !explicitBooking(input)
       && (!/[?؟]/u.test(input) || !reading?.groundedContext)) {
       const stroller = /עגלה|stroller|pushchair/i.test(input)

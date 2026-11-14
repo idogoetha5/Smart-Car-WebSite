@@ -323,7 +323,7 @@ describe('replacement SmartCar conversation core', () => {
     await chat.send('מה אתם מציעים?');
     const first = await chat.send('מעוד שבוע');
     expect(first.state.booking.pickupDate).toBeUndefined();
-    expect(first.reply).toContain('תאריכים מדויקים');
+    expect(first.reply).toContain('מאיזה יום ועד איזה יום');
     expect(first.reply).not.toContain('מאיפה');
     const second = await chat.send('עוד חודש');
     expect(second.state.booking.datePreference).toContain('מעוד שבוע עד עוד חודש');
