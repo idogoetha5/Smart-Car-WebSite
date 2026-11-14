@@ -1306,3 +1306,16 @@ describe('the same-return question is not asked a third time', () => {
     expect(r.reply).not.toMatch(/להחזיר גם בתל אביב/);
   });
 });
+
+// Live Chrome on 7a896d8: the model opened with "בכיחוד!" and asked the return place in its own words twice.
+describe('model wording slips around the return question', () => {
+  it('drops a garbled one-word opener', async () => {
+    const r = await chat(null, 'בכיחוד! מאיזה סניף תרצו לאסוף?').send('אני צריך רכב');
+    expect(r.reply).not.toMatch(/בכיחוד/);
+  });
+  it('counts the model wording of the same-return question', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-11-15', returnDate: '2026-11-18', pickupLocation: 'תל אביב', vehicleNeed: 'רכב קומפקטי' }, history: [{ from: 'bot', text: 'להחזיר גם בתל אביב?' }, { from: 'customer', text: 'קטן' }, { from: 'bot', text: 'מעולה. האם תרצו להחזיר את הרכב בתל אביב או בסניף אחר?' }] } as RebuildState, 'תודה, יוסי.');
+    const r = await c.send('בן 30, יוסי');
+    expect(r.state.booking.returnLocation).toBe('תל אביב');
+  });
+});

@@ -1474,7 +1474,8 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
   // Asked twice whether to return it to the same place and the customer moved on both times: a representative takes
   // the same place (it is in the summary to correct) instead of asking a third time.
   const botTurns = state.history.filter(entry => entry.from === 'bot').slice(-2).map(entry => entry.text);
-  const sameReturnAsked = (text: string) => /להחזיר גם ב|להחזיר (?:אותו )?גם ב|לאסוף את הרכב גם מהבית|להחזיר את הרכב[^?؟]{0,30}(?:אותו|באותו)|Return it to .{2,30} as well\?|collect the car from the same place|return (?:it|the car) (?:to|at) the same/iu.test(text);
+  const pickupPattern = state.booking.pickupLocation ? state.booking.pickupLocation.replace(/^(?:מסירה עד הבית|Home delivery) \((.+)\)$/u, '$1').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+  const sameReturnAsked = (text: string) => Boolean(pickupPattern) && /[?؟]/u.test(text) && new RegExp(`(?:להחזיר|החזרה|return)[^?؟]{0,45}${pickupPattern}`, 'iu').test(text) || /להחזיר גם ב|להחזיר (?:אותו )?גם ב|לאסוף את הרכב גם מהבית|להחזיר את הרכב[^?؟]{0,30}(?:אותו|באותו)|Return it to .{2,30} as well\?|collect the car from the same place|return (?:it|the car) (?:to|at) the same/iu.test(text);
   if (!state.booking.returnLocation && state.booking.pickupLocation && botTurns.length === 2 && botTurns.every(sameReturnAsked)
     && !/להחזיר|החזרה|נחזיר|אחזיר|return|drop.?off|במקום אחר|elsewhere|different place|[?؟]/iu.test(input)) state.booking.returnLocation = sameReturnLabel(state);
   // "can I pick up the car on saturday?" — the model sometimes leaves a plain weekday out; it means the coming one.
@@ -3092,6 +3093,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   }
   // Known Hebrew slips of the model (wording only, not meaning).
   if (he) reply = reply.replace(/(?<![\p{L}])(אנו|אנחנו) מצערים(?![\p{L}])/gu, '$1 מצטערים').replace(/(?<![\p{L}])אני מצער(?![\p{L}])/gu, 'אני מצטער').replace(/(?<![\p{L}])בבשמחה(?![\p{L}])/gu, 'בשמחה').replace(/^\s*בכיכר\s*([,!.])/u, 'בכיף$1');
+  // The light model sometimes opens with a non-word ("בכיחוד!"); a lone unknown exclamation word is dropped.
+  if (he) {
+    const opener = reply.match(/^\s*([\u0590-\u05FF]+)!\s+/u);
+    if (opener && !/^(?:בשמחה|מעולה|בטח|מצוין|אחלה|בכיף|סבבה|נהדר|וואו|היי|שלום|תודה|אוקיי|כמובן|ברור|יופי|נעים|איזה|אוי|אחי|הי|ערב|בוקר|מזל|כיף|יאללה|נשמע|טוב|בהחלט|בדיוק|נכון|חבל|מצטער|מצטערת|מצטערים|סליחה|ממש|רגע|הבנתי)$/u.test(opener[1])) reply = reply.slice(opener[0].length);
+  }
   // A person greets once. Later replies start with the answer.
   if (state.history.some(entry => entry.from === 'bot')) {
     const withoutGreeting = reply.replace(/^\s*(?:שלום(?: רב)?|היי|הי|אהלן|בוקר טוב|ערב טוב|צהריים טובים|hi(?: there)?|hello|hey|good (?:morning|evening|afternoon))\s*[!,.]\s*/iu, '');
