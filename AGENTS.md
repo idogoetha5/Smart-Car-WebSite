@@ -10,6 +10,10 @@ Read `docs/DEPLOYMENT-SAFETY.md` before changing or publishing anything. The own
 
 <!-- BEGIN:nextjs-agent-rules -->
 
+## Accessibility statement belongs to the accessibility coordinator
+
+Owner direction, 2026-11-14: never change the accessibility statement (`src/app/[locale]/accessibility/page.tsx`) or its "last updated" date. Technical accessibility fixes on the site are welcome; the statement's text and date are updated only by the accessibility coordinator.
+
 ## This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
