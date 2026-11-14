@@ -1284,3 +1284,25 @@ describe('a rental enquiry never ends on a statement', () => {
     expect(r.reply).toMatch(/[?]/);
   });
 });
+
+// Live Chrome on 4f6e3f3: after "shall I pass the details to a representative?", "דני 0521234567" got the same question again.
+describe('a phone number answers the leasing follow-up offer', () => {
+  it('hands the leasing enquiry over', async () => {
+    const c = chat(null, 'בסדר גמור, רכב משפחתי ל־20,000 ק״מ בשנה. תרצו שאעביר את הפרטים לנציג SmartCar להכנת הצעה מפורטת?');
+    await c.send('מעוניין בליסינג פרטי');
+    await c.send('36 חודשים');
+    await c.send('משהו משפחתי, בערך 20 אלף קמ בשנה');
+    const r = await c.send('דני 0521234567');
+    expect(r.escalate).toBe(true);
+  });
+});
+
+// Live Chrome on 4f6e3f3: "להחזיר גם בתל אביב?" was asked four times while the customer gave other details.
+describe('the same-return question is not asked a third time', () => {
+  it('takes the same place after two unanswered asks', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-11-15', returnDate: '2026-11-18', pickupLocation: 'תל אביב', vehicleNeed: 'רכב קומפקטי' }, history: [{ from: 'bot', text: 'בסדר גמור. להחזיר גם בתל אביב?' }, { from: 'customer', text: 'קטן' }, { from: 'bot', text: 'רכב קומפקטי מתאים. להחזיר גם בתל אביב?' }] } as RebuildState, 'נעים להכיר, יוסי!');
+    const r = await c.send('בן 30, יוסי');
+    expect(r.state.booking.returnLocation).toBe('תל אביב');
+    expect(r.reply).not.toMatch(/להחזיר גם בתל אביב/);
+  });
+});
