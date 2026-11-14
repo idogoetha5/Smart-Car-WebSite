@@ -3060,6 +3060,16 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = `${reply} ${ask}`.trim();
     }
   }
+  // Owner rule: the airport surcharge is mentioned (without the amount) once the airport is part of the rental.
+  {
+    const airport = /^(?:נתב״ג|Ben Gurion Airport)$/u.test(state.booking.pickupLocation ?? '') || /^(?:נתב״ג|Ben Gurion Airport)$/u.test(state.booking.returnLocation ?? '');
+    const mentioned = [...state.history.filter(entry => entry.from === 'bot').map(entry => entry.text), reply].some(text => /(?:נתב.?ג|airport)[^.!?؟]{0,60}(?:תוספת|surcharge|extra charge|fee)|(?:תוספת|surcharge|extra charge|fee)[^.!?؟]{0,60}(?:נתב.?ג|airport)/iu.test(text));
+    if (airport && !mentioned && state.phase === 'explore' && !state.interest && !state.handedOff && !state.completedRequestId && source !== 'safety' && state.step !== 'rental_confirm' && reply.length < 400) {
+      const note = he ? 'רק לידיעתכם, על איסוף או החזרה בנתב״ג יש תוספת, והסכום נסגר מול נציג SmartCar.' : 'Just so you know, there is a surcharge for pickup or return at Ben Gurion Airport; the amount is set with a SmartCar representative.';
+      const ask = reply.match(/[^.!?؟]*[?؟]\s*$/u)?.[0] ?? '';
+      reply = ask ? `${reply.slice(0, reply.length - ask.length).trim()} ${note} ${ask.trim()}`.trim() : `${reply} ${note}`.trim();
+    }
+  }
   {
     const firstName = !turnStartName && state.booking.customerName ? state.booking.customerName.split(/\s+/)[0] : '';
     if (firstName && !reply.includes(firstName) && !state.interest && !state.handedOff && !state.completedRequestId && source !== 'safety'

@@ -1319,3 +1319,15 @@ describe('model wording slips around the return question', () => {
     expect(r.state.booking.returnLocation).toBe('תל אביב');
   });
 });
+
+// Live Chrome on 340aaff: a family landing at night was given the airport pickup with no word about the surcharge.
+describe('airport surcharge is mentioned once', () => {
+  it('adds it before the question when the airport becomes the pickup', async () => {
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-12-02', returnDate: '2026-12-16', pickupLocation: 'נתב״ג' }, history: [] } as RebuildState, 'בשמחה, הרכב יחכה לכם בנתב״ג. להחזיר גם בנתב״ג?');
+    const r = await c.send('אנחנו נוחתים ב-2 בדצמבר, 4 אנשים, לשבועיים');
+    expect(r.reply).toMatch(/תוספת/);
+    expect(r.reply.trim()).toMatch(/[?]$/);
+    const again = await c.send('4 אנשים עם הרבה מזוודות');
+    expect(again.reply.match(/תוספת/g)?.length ?? 0).toBe(0);
+  });
+});
