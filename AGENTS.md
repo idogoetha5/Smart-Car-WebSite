@@ -6,7 +6,7 @@ Before any bot work, read [docs/whatsapp-bot/AI-HANDOFF.md](docs/whatsapp-bot/AI
 
 Owner direction, 2026-11-05: never change the company domain or its DNS records. Bot, SEO and availability work do not authorize domain/DNS changes. Diagnose access problems read-only and preserve the existing configuration.
 
-Read `docs/DEPLOYMENT-SAFETY.md` before changing or publishing anything. The owner explicitly forbids removing, hiding, rolling back or omitting existing features/assets without telling him and receiving approval first. Build from the latest fetched `origin/clean-main`, not a partial export or old checkout. Coordinate simultaneous publishers. Run `node scripts/ci/deploy-preservation.mjs` in the exact release checkout before deploy/promotion; failure blocks publication. Verify images, Search Console and X2 display 850 / booking minimum 950 on the actual production domain. A bot-only task must never replace the website with a bot-only source copy.
+Read `docs/DEPLOYMENT-SAFETY.md` before changing or publishing anything. The owner explicitly forbids removing, hiding, rolling back or omitting existing features/assets without telling him and receiving approval first. Build from the latest fetched `origin/clean-main`, not a partial export or old checkout. Coordinate simultaneous publishers. Run `node scripts/ci/deploy-preservation.mjs` in the exact release checkout before deploy/promotion; failure blocks publication. Verify images, Search Console and X2 display/booking minimum as set in the admin (owner raised them on 2026-11-14 to display 890 / minimum 1000) on the actual production domain. A bot-only task must never replace the website with a bot-only source copy.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
