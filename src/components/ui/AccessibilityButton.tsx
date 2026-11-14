@@ -32,14 +32,10 @@ export default function AccessibilityButton() {
   // lands directly on it, which is the one thing this button must not do.
   // The bottom-left corner is free: WhatsApp floats bottom-right, and the
   // cookie bar is z-50 so it correctly covers this while it is up.
-  // Homepage only. A statutory accessibility statement has to be reachable
-  // from every page, but it does not have to float over every page — the
-  // footer carries a permanent "נגישות" / "Accessibility" text link
-  // site-wide, which is reachable by keyboard and reads properly to a screen
-  // reader. Repeating it as an overlay everywhere just covered content, and
-  // in the staff-only admin area it sat on top of the controls.
-  const isHome = pathname === `/${locale}` || pathname === `/${locale}/`;
-  if (!isHome || isAdminArea(pathname, locale)) return null;
+  // Every public page (owner direction 2026-11-14: the branch, delivery and service pages must carry
+  // the same accessibility button as the home page). The footer "נגישות" link stays as well. Only the
+  // staff-only admin area is excluded, where the floating button sat on top of controls.
+  if (isAdminArea(pathname, locale)) return null;
 
   const desktopTop = hidesSiteHeader(pathname, locale) ? 'md:top-4' : 'md:top-20';
 
