@@ -1131,8 +1131,8 @@ describe('replacement SmartCar conversation core', () => {
       } }));
       const result = await chat.send('אני רוצה להזמין מרביעי עד שני');
       expect(result.state.booking.pickupDate).toBe('2026-10-28');
-      expect(result.state.booking.returnDate).toBeUndefined();
-      expect(result.reply).toMatch(/תאריך תחזירו/);
+      // The model's reversed Monday is refused; "מרביעי עד שני" is read as the following Monday.
+      expect(result.state.booking.returnDate).toBe('2026-11-02');
       expect(chat.create).not.toHaveBeenCalled();
     } finally { vi.useRealTimers(); }
   });

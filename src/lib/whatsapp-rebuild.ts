@@ -297,6 +297,24 @@ function relativeRentalDuration(input: string): { pickupDate: string; returnDate
 }
 
 function explicitDateRange(input: string): { pickupDate: string; returnDate: string } | null {
+  // "monday to friday" / "משני עד שישי": the coming such days.
+  {
+    const en = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const he = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+    const enRange = input.match(/\b(sun|mon|tue|tues|wed|thu|thur|thurs|fri|sat)[a-z]*\.?\s*(?:to|until|till|through|thru|-|–)\s*(sun|mon|tue|tues|wed|thu|thur|thurs|fri|sat)[a-z]*\b/iu);
+    const heRange = input.match(/(?<![\p{L}])מ(?:יום\s+)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)\s*(?:עד|ועד|-|–)\s*(?:יום\s+)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת|מוצ["״']?ש)(?![\p{L}])/u);
+    const index = (value: string) => he.includes(value) ? he.indexOf(value) : /^מוצ/u.test(value) ? 6 : en.findIndex(day => day.startsWith(value.toLowerCase().slice(0, 3)));
+    const pair = enRange ? [enRange[1], enRange[2]] : heRange ? [heRange[1], heRange[2]] : null;
+    if (pair && !/\d{1,2}[./]\d|(?:^|\s)אם\s|מה אם|אולי|\bwhat if\b|\bif\b|\bmaybe\b/iu.test(input)) {
+      const first = index(pair[0]); const last = index(pair[1]);
+      if (first >= 0 && last >= 0) {
+        const start = new Date(`${israelDate()}T12:00:00Z`);
+        start.setUTCDate(start.getUTCDate() + ((first - start.getUTCDay() + 7) % 7 || 7));
+        const end = new Date(start); end.setUTCDate(end.getUTCDate() + ((last - first + 7) % 7 || 7));
+        return { pickupDate: start.toISOString().slice(0, 10), returnDate: end.toISOString().slice(0, 10) };
+      }
+    }
+  }
   // "נוחתים ב-2 בדצמבר, לשבועיים" / "on dec 5 for 4 days": one date and a length make the range.
   {
     const heMonths = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];

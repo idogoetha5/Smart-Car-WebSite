@@ -1368,3 +1368,15 @@ describe('backup path reads one date with a length', () => {
     expect(r.state.booking.returnDate).toContain(end);
   });
 });
+
+describe('backup path reads a weekday range', () => {
+  it.each([['en', 'monday to friday'], ['he', 'משני עד שישי']] as const)('%s: %s', async (locale, input) => {
+    let state = { version: 2, phase: 'explore', step: 'menu', locale, booking: { pickupLocation: locale === 'he' ? 'ירושלים' : 'Jerusalem' }, history: [{ from: 'bot', text: locale === 'he' ? 'לאילו תאריכים?' : 'Which dates?' }] } as unknown as RebuildState;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn: vi.fn(async () => null) };
+    const r = await getRebuiltBotReply('fictional-weekdays', input, store);
+    const start = new Date(`${r.state.booking.pickupDate}T12:00:00Z`); const end = new Date(`${r.state.booking.returnDate}T12:00:00Z`);
+    expect(start.getUTCDay()).toBe(1);
+    expect(end.getUTCDay()).toBe(5);
+    expect((end.getTime() - start.getTime()) / 86400000).toBe(4);
+  });
+});
