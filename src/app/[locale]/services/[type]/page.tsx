@@ -198,6 +198,14 @@ const SERVICES: Record<string, ServiceData> = {
   },
 };
 
+// Static per service, refreshed every few minutes so the matching-cars list follows the fleet
+// (same pattern as the branch pages). It used to be rendered on every visit.
+export const revalidate = 300;
+
+export function generateStaticParams() {
+  return Object.keys(SERVICES).map((type) => ({ type }));
+}
+
 export async function generateMetadata({
   params,
 }: {

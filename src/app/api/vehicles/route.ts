@@ -31,5 +31,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 });
   }
 
-  return NextResponse.json({ data: (data ?? []).map(mapRow) });
+  // Public fleet list, read on every catalogue visit: the CDN keeps it for a minute (as the rental
+  // page's own fleet cache does) instead of a database query per visitor. Errors are not cached.
+  return NextResponse.json({ data: (data ?? []).map(mapRow) }, {
+    headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+  });
 }
