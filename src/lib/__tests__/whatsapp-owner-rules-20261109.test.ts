@@ -1276,3 +1276,11 @@ describe('month starts and a plain car preference', () => {
     expect(r.state.booking.vehicleNeed).toBe('רכב קומפקטי');
   });
 });
+
+// Live Chrome on fb4d617: "משהו חסכוני" after the return question got a statement with no next question.
+describe('a rental enquiry never ends on a statement', () => {
+  it('asks the next missing detail', async () => {
+    const r = await chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-12-01', returnDate: '2026-12-31', pickupLocation: 'מסירה עד הבית (רעננה)' }, history: [{ from: 'bot', text: 'ובסוף לאסוף את הרכב גם מהבית ברעננה?' }] } as RebuildState, 'רכב קומפקטי חסכוני מתאים מאוד לנסיעות מרובות.').send('משהו חסכוני, אני נוסע הרבה');
+    expect(r.reply).toMatch(/[?]/);
+  });
+});

@@ -1670,6 +1670,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   const input = raw.trim().slice(0, 1000);
   const stored = await store.loadState(phone);
   const turnStartPickup = stored?.booking?.pickupDate;
+  const turnStartName = stored?.booking?.customerName;
   const turnStartReturn = stored?.booking?.returnDate;
   const state = stored?.version === 2 ? structuredClone(stored) : fresh(language(input, 'he'));
   // One-time legacy interpretation; ordinary future discussion cannot turn
@@ -2322,7 +2323,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         || /בעצם|מעדיף|במקום|החלטתי על|החלטנו על|בוחר|בוחרת|actually|instead|prefer/i.test(input))) state.booking.vehicleNeed = statedVehicle;
     // "משהו חסכוני, אני נוסע הרבה" answering the car question: the model's category reading is the choice.
     if (!state.booking.vehicleNeed && !statedVehicle && reading?.direction && reading.direction !== 'none' && !state.interest && state.phase !== 'service' && !commercialVehicle
-      && !/[?؟]/u.test(input) && /קבוצת רכב|איזה רכב|איזה סוג רכב|סוג רכב|קומפקטי|משפחתי|vehicle (?:category|group)|car (?:category|group)|which car|what (?:kind of |type of )?car/iu.test(lastBot)) {
+      && !/[?؟]/u.test(input) && (reading.direction === 'compact' && /חסכוני|חיסכון בדלק|economical|fuel.?efficient|good on fuel/iu.test(input) || /קבוצת רכב|איזה רכב|איזה סוג רכב|סוג רכב|קומפקטי|משפחתי|vehicle (?:category|group)|car (?:category|group)|which car|what (?:kind of |type of )?car/iu.test(lastBot))) {
       const names = he ? { compact: 'רכב קומפקטי', family: 'רכב משפחתי', suv: 'רכב פנאי', seven_seat: 'רכב שבעה מקומות' } : { compact: 'compact car', family: 'family car', suv: 'SUV', seven_seat: 'seven-seat car' };
       state.booking.vehicleNeed = names[reading.direction];
     }
@@ -3038,6 +3039,20 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else if (trailing && body.length >= 12 && state.phase !== 'booking'
       // Only when the customer asked something else or the answer already moves on; "Daniel, 21" must not end on "Thanks, Daniel."
       && (/[?؟]/u.test(body) || /[?؟]|^\s*(?:מה|איך|כמה|האם|אפשר|יש|למה|מתי|what|how|can|do|does|is|are|why|when|could)(?![\p{L}])/iu.test(input))) reply = body;
+  }
+  // A rental enquiry in progress never ends on a statement: the next thing still needed is asked, and a name given now is thanked.
+  if (state.phase === 'explore' && !state.interest && !state.handedOff && !state.completedRequestId && source !== 'safety'
+    && (state.booking.pickupDate || state.booking.pickupLocation || state.booking.vehicleNeed)) {
+    const firstName = !turnStartName && state.booking.customerName ? state.booking.customerName.split(/\s+/)[0] : '';
+    if (firstName && !reply.includes(firstName)) reply = `${he ? `תודה, ${firstName}.` : `Thanks, ${firstName}.`} ${reply}`.trim();
+    const missing = nextMissing(state.booking);
+    if (!/[?؟]/u.test(reply) && missing && missing !== 'customerEmail' && !/לא יודע|לא בטוח|אין לי מושג|עוד לא החלטתי|don'?t know|not sure|no idea|haven'?t decided/iu.test(input) && !/כשתרצ|when(?:ever)? you(?:'re| are)? ready/iu.test(reply)) {
+      const homeCity = state.booking.pickupLocation?.match(/^(?:מסירה עד הבית|Home delivery) \((.+)\)$/u)?.[1];
+      const ask = missing === 'returnLocation' && state.booking.pickupLocation
+        ? (homeCity ? (he ? `ובסוף לאסוף את הרכב גם מהבית ב${homeCity}?` : `And collect the car from the same place in ${homeCity} at the end?`) : (he ? `להחזיר גם ב${state.booking.pickupLocation}?` : `Return it to ${state.booking.pickupLocation} as well?`))
+        : question(missing, state.locale);
+      reply = `${reply} ${ask}`.trim();
+    }
   }
   // "5 days in March" then "we land March 12": once the pickup is known, the earlier length gives the return.
   // Also when the pickup moved this turn and the return was not restated ("land March 12" after a guess of the 14th).
