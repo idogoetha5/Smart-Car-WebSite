@@ -87,6 +87,9 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'iovpoxmdsgsstaduggvb.supabase.co' },
+      // Vehicle gallery URLs come from the database as absolute site URLs.
+      { protocol: 'https', hostname: 'www.smartcar.co.il', pathname: '/images/**' },
+      { protocol: 'https', hostname: 'smartcar.co.il', pathname: '/images/**' },
     ],
     formats: ['image/avif', 'image/webp'],
     // Vercel image optimization was switched off on 2026-08-10 while the account returned 402
