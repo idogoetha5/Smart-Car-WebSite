@@ -24,7 +24,9 @@ const getCachedPricingConfig = unstable_cache(
 export async function GET() {
   try {
     const data = await getCachedPricingConfig();
-    return NextResponse.json({ data });
+    // The same 30-second ceiling at the CDN, so visits stop waking a function (p75 ~820 ms).
+    // Prices shown here are estimates; the booking total is always recalculated on the server.
+    return NextResponse.json({ data }, { headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=30' } });
   } catch (error) {
     console.error((error as Error).message);
     return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 });

@@ -12,7 +12,9 @@ export async function GET() {
     .order('date', { ascending: false });
 
   if (error) return NextResponse.json({ data: [] });
-  return NextResponse.json({ data: data ?? [] });
+  // Approved reviews change only when an admin approves one: the CDN keeps the list five minutes
+  // instead of a database query on every home-page visit (p75 was ~780 ms).
+  return NextResponse.json({ data: data ?? [] }, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' } });
 }
 
 export async function POST(request: NextRequest) {
