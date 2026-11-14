@@ -1,3 +1,4 @@
+import { lastGeminiFailure } from './whatsapp-gemini-client';
 import { OFFICE_PHONE } from '@/lib/constants';
 import { isShabbat } from '@/lib/booking-notices';
 import { randomUUID } from 'node:crypto';
@@ -144,7 +145,7 @@ function conversationalKnown(state: RebuildState): GeminiBotContext['known'] {
 let draftNotes: string[] = [];
 function groundedModelReply(reading: BotReading | null, input: string, state: RebuildState, onRejectOuter?: (reason: string) => void): string | null {
   const onReject = (reason: string) => { draftNotes.push(`${reason}: ${(reading?.reply ?? '').slice(0, 160)}`); onRejectOuter?.(reason); };
-  if (!reading) draftNotes.push('no_reading'); else if (!reading.groundedContext) draftNotes.push('not_grounded');
+  if (!reading) draftNotes.push(`no_reading ${(() => { try { return lastGeminiFailure(); } catch { return ''; } })()}`.trim()); else if (!reading.groundedContext) draftNotes.push('not_grounded');
   // The provider boundary attaches this flag only after approved facts were
   // actually supplied. It is context provenance, not a promise of correctness.
   if (!reading?.groundedContext) return null;

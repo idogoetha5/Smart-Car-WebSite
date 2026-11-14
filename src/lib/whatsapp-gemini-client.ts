@@ -28,6 +28,10 @@ async function notify(kind: BotIncident) {
   catch { console.error('[whatsapp-gemini] incident notification unavailable'); }
 }
 
+/** Last failure on this instance, as a fixed category (status and kind only) for the admin demo notes. */
+let lastFailure = '';
+export function lastGeminiFailure(): string { return lastFailure; }
+
 export type GeminiConnectionResult =
   | { ok: true; text: string }
   | { ok: false; reason: 'missing_key' | 'cooldown' | 'timeout' | 'network' | 'http' | 'empty'; status?: number };
@@ -49,7 +53,7 @@ export async function generateSmartCarContent(params: { model: string; body: unk
   if (!activeModelEvaluation()) reportedMissingKey = false;
   // Reset naturally when the configured model changes. Never retain the key.
   const circuit = circuits.get(params.model);
-  if (circuit && (circuit.until > Date.now() || circuit.probing)) return { ok: false, reason: 'cooldown' };
+  if (circuit && (circuit.until > Date.now() || circuit.probing)) { lastFailure = `cooldown after ${lastFailure || 'failure'}`.slice(0, 80); return { ok: false, reason: 'cooldown' }; }
   if (circuit) circuit.probing = true;
   const coolDown = (ms: number) => circuits.set(params.model, { until: Date.now() + ms, probing: false });
   try {
@@ -68,7 +72,9 @@ export async function generateSmartCarContent(params: { model: string; body: unk
         ? Math.max(30_000, Math.min(Number.isFinite(retryAfter) ? retryAfter * 1000 : 60_000, 300_000))
         : [400, 401, 403, 404].includes(response.status) ? 300_000 : 30_000;
       coolDown(delay);
-      console.error('[whatsapp-gemini] provider HTTP %s (%s); using local knowledge', response.status, await rejectionCategory(response));
+      const category = await rejectionCategory(response);
+      lastFailure = `http ${response.status} ${category}`;
+      console.error('[whatsapp-gemini] provider HTTP %s (%s); using local knowledge', response.status, category);
       await notify('ai_unavailable');
       return { ok: false, reason: 'http', status: response.status };
     }
@@ -79,6 +85,7 @@ export async function generateSmartCarContent(params: { model: string; body: unk
       .map((part: { text?: string }) => part.text ?? '').join('') ?? '';
     if (!text.trim()) {
       coolDown(15_000);
+      lastFailure = 'empty';
       await notify('ai_unavailable');
       return { ok: false, reason: 'empty' };
     }
@@ -87,6 +94,7 @@ export async function generateSmartCarContent(params: { model: string; body: unk
     return { ok: true, text };
   } catch (error) {
     coolDown(30_000);
+    lastFailure = error instanceof Error ? `error ${error.name}` : 'error';
     await notify('ai_unavailable');
     return { ok: false, reason: error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name) ? 'timeout' : 'network' };
   }
