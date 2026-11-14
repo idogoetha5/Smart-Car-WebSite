@@ -297,6 +297,23 @@ function relativeRentalDuration(input: string): { pickupDate: string; returnDate
 }
 
 function explicitDateRange(input: string): { pickupDate: string; returnDate: string } | null {
+  // "נוחתים ב-2 בדצמבר, לשבועיים" / "on dec 5 for 4 days": one date and a length make the range.
+  {
+    const heMonths = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'];
+    const enMonths = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    const heDate = input.match(/(?<![\d./])(\d{1,2})\s*(?:ב|ל)?(ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)/u);
+    const enDate = input.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b|\b(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b/iu);
+    const day = heDate ? Number(heDate[1]) : enDate ? Number(enDate[2] ?? enDate[3]) : 0;
+    const month = heDate ? heMonths.indexOf(heDate[2]) + 1 : enDate ? enMonths.indexOf((enDate[1] ?? enDate[4]).toLowerCase().slice(0, 3)) + 1 : 0;
+    const length = statedDurationDays(input);
+    if (day >= 1 && day <= 31 && month >= 1 && length && length <= 60 && !/(?:עד|until|till|to)\s+(?:ה[-־]?)?\d|\d\s*[-–]\s*\d/iu.test(input) && !/(?:^|\s)אם\s|מה אם|אולי|\bwhat if\b|\bif\b|\bmaybe\b/iu.test(input)) {
+      const today = israelDate(); let year = Number(today.slice(0, 4));
+      const iso = (y: number) => `${y}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      if (iso(year) < today) year += 1;
+      const start = iso(year);
+      if (validDate(start)) { const end = new Date(`${start}T12:00:00Z`); end.setUTCDate(end.getUTCDate() + length); return { pickupDate: start, returnDate: end.toISOString().slice(0, 10) }; }
+    }
+  }
   // "מה 17 לחודש הבא עד ה 20" / "17 עד 20 לחודש הבא": both days in next month.
   const nextMonth = input.match(/(?:מה?|מ-|מ־)?\s*(\d{1,2})\s+(?:ל|ב)חודש הבא\s+(?:עד|ועד|-)\s*(?:ה|ה-|ה־)?\s*(\d{1,2})(?!\d)/u)
     ?? input.match(/(?:מה?|מ-|מ־)?\s*(\d{1,2})\s+(?:עד|ועד|-)\s*(?:ה|ה-|ה־)?\s*(\d{1,2})\s+(?:ל|ב)חודש הבא/u);
@@ -1365,8 +1382,8 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
     /פגיש|עיר|חניה|city|meeting|parking/i.test(input) ? 'city' : 'trip';
   const lead = he ? ({ compact: 'רכב קומפקטי של SmartCar יכול להתאים לנסיעה שלכם', family: 'רכב משפחתי של SmartCar יכול להתאים לנסיעה שלכם', suv: 'רכב פנאי של SmartCar יכול להתאים לנסיעה שלכם', seven_seat: 'רכב שבעה מקומות של SmartCar יכול להתאים לנסיעה שלכם', none: 'נשמח לעזור לכם לבחור רכב מתאים ב־SmartCar' } as const)[group]
     : ({ compact: 'I would start with a SmartCar compact', family: 'I would start with a SmartCar family car', suv: 'A SmartCar SUV is a direction to check', seven_seat: 'I would check a SmartCar seven-seater', none: 'We can choose a SmartCar car around your trip' } as const)[group];
-  const benefit = he ? topic === 'child' ? 'נוכל לבחור יחד דגם עם מקום לנוסעים ולציוד, ולוודא שכיסא הבטיחות מתאים לו.' : topic === 'city' ? 'רכב שיעמוד לרשותכם בין היעדים נותן גמישות לאורך היום.' : 'כך אפשר להתאים את המרחב והנוחות למשך הנסיעה ולציוד שלכם.'
-    : topic === 'child' ? 'It is a good starting point for passenger and luggage space; the child seat must be checked against the actual car.' : topic === 'city' ? 'Having the car at your disposal gives flexibility between stops during the day.' : 'We can match passenger space and comfort to the trip and your luggage.';
+  const benefit = he ? topic === 'child' ? 'נוכל לבחור יחד דגם עם מקום לנוסעים ולציוד, ולוודא שכיסא הבטיחות מתאים לו.' : topic === 'city' ? 'רכב שיעמוד לרשותכם בין היעדים נותן גמישות לאורך היום.' : ''
+    : topic === 'child' ? 'It is a good starting point for passenger and luggage space; the child seat must be checked against the actual car.' : topic === 'city' ? 'Having the car at your disposal gives flexibility between stops during the day.' : '';
   const next = !state.booking.pickupDate ? (datesUndecided ? waitForDates : he ? 'לאילו תאריכים תצטרכו את הרכב?' : 'What dates do you need the car?')
     : !state.booking.returnDate ? question('returnDate', state.locale)
     : !state.booking.pickupLocation ? question('pickupLocation', state.locale)

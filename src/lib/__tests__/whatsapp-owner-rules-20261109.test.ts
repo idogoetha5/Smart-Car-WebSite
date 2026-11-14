@@ -1357,3 +1357,14 @@ describe('no pasted repeats', () => {
     expect(r.reply).not.toContain('כך אפשר להתאים את המרחב');
   });
 });
+
+// Live Chrome with Gemini unavailable: "נוחתים ב-2 בדצמבר ... לשבועיים" lost both dates in the backup path.
+describe('backup path reads one date with a length', () => {
+  it.each([['he', 'שלום, אנחנו נוחתים ב-2 בדצמבר בלילה, 4 אנשים עם הרבה מזוודות, לשבועיים', '-12-02', '-12-16'], ['en', 'we land on dec 5, need a small car for 4 days', '-12-05', '-12-09']] as const)('%s', async (locale, input, start, end) => {
+    let state = { version: 2, phase: 'explore', step: 'menu', locale, booking: {}, history: [] } as unknown as RebuildState;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn: vi.fn(async () => null) };
+    const r = await getRebuiltBotReply('fictional-backup', input, store);
+    expect(r.state.booking.pickupDate).toContain(start);
+    expect(r.state.booking.returnDate).toContain(end);
+  });
+});
