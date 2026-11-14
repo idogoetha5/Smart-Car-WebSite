@@ -193,10 +193,10 @@ export default function CustomerDetailsForm({
                 const active = number === step;
                 return (
                   <li key={label} className="min-w-0 text-center">
-                    <div className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full text-sm font-black ${done || active ? 'bg-[#2D5F5F] text-white' : 'bg-gray-100 text-gray-400'}`}>
+                    <div className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full text-sm font-black ${done || active ? 'bg-[#2D5F5F] text-white' : 'bg-gray-100 text-gray-600'}`}>
                       {done ? <Check className="h-4 w-4" aria-hidden="true" /> : number}
                     </div>
-                    <span className={`mt-2 block truncate text-xs font-bold ${active ? 'text-[#0D2B2B]' : 'text-gray-400'}`}>{label}</span>
+                    <span className={`mt-2 block truncate text-xs font-bold ${active ? 'text-[#0D2B2B]' : 'text-gray-500'}`}>{label}</span>
                   </li>
                 );
               })}

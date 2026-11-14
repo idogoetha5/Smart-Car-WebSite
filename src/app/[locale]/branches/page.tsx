@@ -188,7 +188,7 @@ export default async function BranchesPage({
 
         {/* Deliberately understated — not a nav item, just enough of a real
             on-site link for the delivery/[city] pages to not be orphaned. */}
-        <p className="text-center text-xs text-gray-400 mt-10">
+        <p className="text-center text-xs text-gray-500 mt-10">
           {isHe ? 'מספקים גם ל: ' : 'We also deliver to: '}
           {DELIVERY_CITIES.map((c, i) => (
             <span key={c.slug}>

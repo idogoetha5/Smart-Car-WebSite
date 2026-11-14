@@ -155,7 +155,7 @@ export default async function DeliveryCityPage({
           href={`https://wa.me/${WHATSAPP_NUMBER}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-1 text-center bg-[#25D366] hover:opacity-90 text-white font-bold rounded-full px-6 py-3 transition-opacity"
+          className="flex-1 text-center bg-[#0E7A3C] hover:bg-[#0A6230] text-white font-bold rounded-full px-6 py-3 transition-opacity"
         >
           {isHe ? 'וואטסאפ' : 'WhatsApp'}
         </a>

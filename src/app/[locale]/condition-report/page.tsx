@@ -114,7 +114,7 @@ function ConditionReportForm() {
                 : "The report has been saved. If you don't hear from our team soon, please contact us and mention the reference ID.")}
         </p>
         {reportId && (
-          <p className="text-gray-400 text-xs mt-3">
+          <p className="text-gray-500 text-xs mt-3">
             {isHe ? 'מספר אסמכתא: ' : 'Reference ID: '}{reportId}
           </p>
         )}

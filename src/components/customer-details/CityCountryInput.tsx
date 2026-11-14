@@ -147,7 +147,7 @@ export default function CityCountryInput({ id, locale, city, country, onChange, 
           </ul>
         )}
       </div>
-      <p className="mt-0.5 text-[11px] text-gray-400">{isHe ? 'חיפוש מקומות: © OpenStreetMap contributors' : 'Place search: © OpenStreetMap contributors'}</p>
+      <p className="mt-0.5 text-[11px] text-gray-500">{isHe ? 'חיפוש מקומות: © OpenStreetMap contributors' : 'Place search: © OpenStreetMap contributors'}</p>
     </div>
   );
 }
