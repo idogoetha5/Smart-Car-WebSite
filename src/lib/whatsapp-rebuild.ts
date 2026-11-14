@@ -907,6 +907,8 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
 
 function explicitVehicleNeed(input: string, locale: Locale): string | null {
   if (/^\s*קטן\s*$/u.test(input)) return locale === 'he' ? 'רכב קומפקטי' : 'compact car';
+  if (/^\s*(?:a |the )?(?:compact|small|economy|cheapest)(?: one| car)?[.!]?\s*$/iu.test(input)) return locale === 'he' ? 'רכב קומפקטי' : 'compact car';
+  if (/^\s*(?:a |the )?family(?: one| car)?[.!]?\s*$/iu.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
   if (/^\s*משפחתי(?:ת)?\s*$/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
   if (/שבעה מקומות|7\s*מקומות|7[- ]?seater|seven[- ]?seater/i.test(input)) return locale === 'he' ? 'רכב שבעה מקומות' : 'seven-seat car';
   if (/רכב\s+משפחתי|רכב\s+למשפחה|^\s*משפחתית\s*$|(?:רוצה|מחפש|צריך|מעדיף)\s+(?:רכב\s+)?משפחתית|(?:רוצה|מחפש|צריך|מעדיף)\s+משפחתי|family car/i.test(input)) return locale === 'he' ? 'רכב משפחתי' : 'family car';
@@ -919,6 +921,8 @@ function explicitVehicleNeed(input: string, locale: Locale): string | null {
 
 function customerVehicleChoice(input: string, state: RebuildState): string | null {
   if (/^(?:ו?מה אם|האם|אולי|למה|מה לגבי|what if|would|should|could)\s/iu.test(input)) return null;
+  // A bare category ("compact", "קטן", "SUV") during a rental enquiry is the choice.
+  if (!state.booking.vehicleNeed && input.trim().split(/\s+/).length <= 3 && !/[?؟]/u.test(input)) { const bare = explicitVehicleNeed(input.trim(), state.locale); if (bare && /^\s*(?:a |the |רכב )?(?:compact|small|economy|cheapest|family|suv|jeep|sedan|seven[- ]?seat(?:er)?|7[- ]?seat(?:er)?|קטן|משפחתי|משפחתית|קומפקטי|קומפקטית|פנאי|ג['׳]?יפ|סדאן|7 מקומות|שבעה מקומות)(?: one| car)?[.!]?\s*$/iu.test(input)) return bare; }
   const vehicle = '(?:רכב\\s+)?(?:שבעה\\s+מקומות|7\\s*מקומות|משפחתית|משפחתי|קטן|קומפקטית|קומפקטי|פנאי|ג[׳\'י]?יפ(?:ון)?|compact(?:\\s+rental)?\\s+car|small(?:\\s+rental)?\\s+car|family\\s+car|suv|seven[- ]?seat(?:er)?)';
   const choice = new RegExp(`(?:רוצה|רוצים|צריך|צריכה|צריכים|מחפש|מחפשת|מעדיף|מעדיפה|אבחר|נבחר|בחרתי|בחרנו|בוחר|בוחרת|החלטתי על|החלטנו על|נלך על|אלך על|אקח|תעשה|תעשו|תשים|תשימו|תחליף ל|תחליפו ל|נעבור ל|עדיף|בעצם|want|need|prefer|choose|chose|looking for|would like|go with|make it|switch to|change (?:it )?to|actually)\\s+(?:(?:לשכור|להזמין|to rent|to book|an?)\\s+)?(${vehicle})`, 'giu');
   const matches = [...input.matchAll(choice)].filter(match => !/(?:לא|don'?t)\s*$/iu.test(input.slice(0, match.index)));
@@ -2313,7 +2317,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       ?? text.match(/(?:בית|הביתה|מלון|משרד|עבודה|דירה)(?:\s+(?:שלי|שלנו))?\s+ב(?!בית|סוף|הסוף|בוקר|ערב|צהריים|שבוע|יום|חודש|זמן|דרך|תיאום)([\p{L}]{3,12}(?:\s+[\p{L}]{3,12})?)(?=[\s,.!?]|$)/u)?.[1]
       ?? text.match(/\b(?:home|house|hotel|office|apartment|work)\s+in\s+([\p{L}]{3,15}(?:\s+(?!(?:tomorrow|today|tonight|morning|evening|next|this|on|for|from|at|by|and|please)\b)[\p{L}]{3,15})?)(?=[\s,.!?]|$)/iu)?.[1]?.replace(/\b\p{L}/gu, letter => letter.toUpperCase())
       ?? text.match(/\b(?:deliver|bring)\b[^.!?]{0,30}\bto (?:my )?(?:home|house)? ?in ([A-Z][\p{L}]{2,15}(?:\s+[A-Z][\p{L}]{2,15})?)/u)?.[1]
-      ?? text.match(/\b(?:I(?:'m| am)|we(?:'re| are)|I live|we live)\s+in\s+([A-Z][\p{L}]{2,15}(?:\s+[A-Z][\p{L}]{2,15})?)/u)?.[1]).find(Boolean);
+      ?? text.match(/\b(?:I(?:'m| am)|we(?:'re| are)|I live|we live)\s+in\s+([A-Z][\p{L}]{2,15}(?:\s+[A-Z][\p{L}]{2,15})?)/u)?.[1])
+      // "הביתה בנתניה מחר": the city, without the timing word after it.
+      .map(city => city?.replace(/\s+(?:מחר|מחרתיים|היום|הערב|בבוקר|בערב|לשבוע|ליומיים|ל[\p{L}]+|tomorrow|today|tonight|next)$/u, '')).find(Boolean);
     if (deliveryAsked && homeCity && !temporalLocation(homeCity)) {
       state.booking.pickupLocation ??= he ? `מסירה עד הבית (${homeCity})` : `Home delivery (${homeCity})`;
       if (customerTexts.some(text => /(?:יאספו|תאספו|לאסוף|איסוף)\s+(?:אותו|אתו|את הרכב)?\s*מהבית|collect (?:it )?from (?:my )?(?:home|house)|pick (?:it )?up from (?:my )?(?:home|house)/iu.test(text))) {

@@ -1399,3 +1399,21 @@ describe('backup path places', () => {
     expect(r.state.booking.pickupLocation).toBe(place);
   });
 });
+
+describe('a bare category answer is the car choice', () => {
+  it.each([['en', 'compact', 'compact car'], ['he', 'קטן', 'רכב קומפקטי'], ['en', 'SUV', 'SUV']] as const)('%s: %s', async (locale, input, need) => {
+    let current = { version: 2, phase: 'explore', step: 'menu', locale, booking: { pickupDate: '2026-11-16', returnDate: '2026-11-20', pickupLocation: locale === 'he' ? 'ירושלים' : 'Jerusalem' }, history: [{ from: 'bot', text: locale === 'he' ? 'להחזיר גם בירושלים?' : 'Return it to Jerusalem as well?' }] } as unknown as RebuildState;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => current, saveState: async (_p, next) => { current = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn: vi.fn(async () => null) };
+    const r = await getRebuiltBotReply('fictional-bare', input, store);
+    expect(r.state.booking.vehicleNeed).toBe(need);
+  });
+});
+
+describe('backup path home delivery', () => {
+  it('keeps the city from "הביתה בנתניה מחר"', async () => {
+    let current = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] } as unknown as RebuildState;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => current, saveState: async (_p, next) => { current = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn: vi.fn(async () => null) };
+    const r = await getRebuiltBotReply('fictional-home', 'שלום, תוכלו להביא לי רכב הביתה בנתניה מחר לשלושה ימים?', store);
+    expect(r.state.booking.pickupLocation).toBe('מסירה עד הבית (נתניה)');
+  });
+});
