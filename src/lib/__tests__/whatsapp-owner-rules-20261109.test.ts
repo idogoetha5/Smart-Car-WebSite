@@ -1380,3 +1380,22 @@ describe('backup path reads a weekday range', () => {
     expect((end.getTime() - start.getTime()) / 86400000).toBe(4);
   });
 });
+
+// Backup path (Gemini unavailable): "compact" was stored as the pickup place, and "מנתב״ג" / "in jerusalem" were not taken.
+describe('backup path places', () => {
+  const backup = (state: RebuildState) => {
+    let current = state;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => current, saveState: async (_p, next) => { current = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn: vi.fn(async () => null) };
+    return (input: string) => getRebuiltBotReply('fictional-backup-places', input, store);
+  };
+  it('never stores a car category as the place', async () => {
+    const send = backup({ version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: { pickupDate: '2026-11-16', returnDate: '2026-11-20' }, history: [{ from: 'bot', text: 'Where would you like to pick it up?' }] } as unknown as RebuildState);
+    const r = await send('compact');
+    expect(r.state.booking.pickupLocation).toBeUndefined();
+  });
+  it.each([['he', 'אני רוצה רכב 7 מקומות מ20.12 עד 27.12 מנתב״ג', 'נתב״ג'], ['en', 'hi need a car next week in jerusalem', 'Jerusalem']] as const)('%s: takes the one branch named', async (locale, input, place) => {
+    const send = backup({ version: 2, phase: 'explore', step: 'menu', locale, booking: {}, history: [] } as unknown as RebuildState);
+    const r = await send(input);
+    expect(r.state.booking.pickupLocation).toBe(place);
+  });
+});

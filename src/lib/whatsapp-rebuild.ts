@@ -638,6 +638,13 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
     if (date) draft.returnDate = date;
     if (!temporalLocation(datedReturn[2])) draft.returnLocation = datedReturn[2].trim();
   }
+  // "רכב 7 מקומות … מנתב״ג", "need a car next week in jerusalem": one branch named in a rental request is the pickup.
+  if (!draft.pickupLocation && /רכב|לשכור|השכרה|car|rent|vehicle|suv|van/iu.test(input) && !/\bwhat if\b|\bif\b|\bmaybe\b|מה אם|(?:^|\s)אם\s|אולי|להחזיר|החזרה|return|drop.?off/iu.test(input)) {
+    const he = /[א-ת]/u.test(input);
+    const found = [...input.matchAll(/(?:^|[\s,.])(?:from |in |at |מ|ב)(the airport|ben gurion(?: airport)?|tlv|natbag|herzliya|tel aviv|jerusalem|נתב["״׳']?ג|שדה התעופה|הרצליה|תל אביב|ירושלים)(?![\p{L}])/giu)].map(match => match[1]);
+    const keys = [...new Set(found.map(place => /air|ben gurion|tlv|natbag|נתב|שדה/iu.test(place) ? 'airport' : /herz|הרצ/iu.test(place) ? 'herzliya' : /tel aviv|תל אביב/iu.test(place) ? 'telaviv' : 'jerusalem'))];
+    if (keys.length === 1) draft.pickupLocation = (he ? { airport: 'נתב״ג', herzliya: 'הרצליה', telaviv: 'תל אביב', jerusalem: 'ירושלים' } : { airport: 'Ben Gurion Airport', herzliya: 'Herzliya', telaviv: 'Tel Aviv', jerusalem: 'Jerusalem' })[keys[0] as 'airport'];
+  }
   if (draft.pickupLocation && (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input))) draft.returnLocation = draft.pickupLocation;
 }
 
@@ -755,7 +762,9 @@ function plainLocationAnswer(input: string, locale: Locale): string | null {
   if (temporalLocation(location)) return null;
   if (sameLocationAnswer(location)) return location;
   if (!/^[\p{L}'׳״ -]{2,45}$/u.test(location) || location.split(/\s+/).length > 3 || /^(?:כן|לא|לא יודע|תודה|yes|no|not sure)$/i.test(location)
-    || /רכב|מעדיף|בעצם|רוצה|צריך|מחפש|מחיר|תאריך|זמינ|שאלה|ליסינג|לקנות|rent|prefer|price|booking/i.test(location)) return null;
+    || /רכב|מעדיף|בעצם|רוצה|צריך|מחפש|מחיר|תאריך|זמינ|שאלה|ליסינג|לקנות|rent|prefer|price|booking/i.test(location)
+    // A car category ("compact", "קטן", "SUV") answers the car question, never the place.
+    || /^(?:a |an |the )?(?:compact|small|big|large|family|suv|jeep|sedan|van|minivan|seven[- ]?seat(?:er)?|7[- ]?seat(?:er)?|economy|cheap(?:est)?|קטן|קטנה|גדול|גדולה|משפחתי|משפחתית|קומפקטי|קומפקטית|פנאי|ג['׳]?יפ|ג['׳]?יפון|חסכוני|זול|7 מקומות|שבעה מקומות)(?: car| one| רכב)?$/iu.test(location.trim())) return null;
   if (/לא בטוח|לא יודעת|לא יודע|not sure|don['’]?t know|do not know/i.test(location)) return null;
   if (affirms(location) || /^(?:thanks?(?: a lot)?|thank you(?: very much)?|תודה(?: רבה)?)[.!\s]*$/i.test(location)) return null;
   // "yes send it", "ok go ahead", "תשלח": an answer or a command, never a place.
