@@ -61,7 +61,7 @@ export default async function AccessibilityPage({ params }: { params: Promise<{ 
           {isHe ? 'הצהרת נגישות' : 'Accessibility Statement'}
         </h1>
         <p className="text-gray-600 text-sm">
-          {isHe ? 'עדכון אחרון: 14 בנובמבר 2026' : 'Statement last updated: November 14, 2026'}
+          {isHe ? 'עדכון אחרון: 29 ביולי 2026' : 'Statement last updated: July 29, 2026'}
         </p>
       </div>
 
