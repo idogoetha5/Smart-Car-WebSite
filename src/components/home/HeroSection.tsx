@@ -520,7 +520,7 @@ export default function HeroSection({ locale }: { locale: string }) {
               width={1400}
               height={959}
               // The page's largest image: preloaded, and sized to the box it fills (55% wide, at most 600px).
-              preload
+              fetchPriority="high"
               sizes="(max-width: 1100px) 55vw, 600px"
               style={{
                 objectFit: 'contain',
