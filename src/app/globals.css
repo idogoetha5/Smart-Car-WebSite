@@ -230,3 +230,15 @@ input[type="date"] {
     box-shadow: none;
   }
 }
+
+/* ── Keyboard focus on the public site (IS 5568 / WCAG 2.4.7) ──────────
+   Many inputs and buttons use `outline-none`, which left keyboard users
+   with no visible focus. Every focusable control on the public pages now
+   shows a teal ring with a white halo, so it stays visible on the dark
+   sections too. Mouse and touch clicks do not show it (:focus-visible).
+   The admin and manager apps keep their own softer ring above. */
+:where(a[href], button, input, select, textarea, summary, [role="button"], [role="tab"], [tabindex]:not([tabindex="-1"])):focus-visible:not(.smartcar-admin *):not(.manager-app *) {
+  outline: 3px solid #2D5F5F !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 5px #ffffff !important;
+}

@@ -146,9 +146,9 @@ export default async function RentalDetailPage({
 
           {vehicle.features?.length > 0 && (
             <div>
-              <h3 className="font-semibold text-gray-800 mb-3">
+              <h2 className="font-semibold text-gray-800 mb-3">
                 {locale === 'he' ? 'ציוד ואביזרים' : 'Features'}
-              </h3>
+              </h2>
               <div className="flex flex-wrap gap-2">
                 {vehicle.features.map((f) => (
                   <span

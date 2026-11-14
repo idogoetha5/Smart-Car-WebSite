@@ -129,6 +129,8 @@ export default async function CarsForSalePage({
           </div>
         </div>
       ) : (
+        <>
+        <h2 className="sr-only">{isHe ? 'רכבים למכירה' : 'Cars for sale'}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
           {cars.map((car) => (
             <div
@@ -207,6 +209,7 @@ export default async function CarsForSalePage({
             </div>
           ))}
         </div>
+        </>
       )}
 
       <div className="mt-16 p-8 bg-[#0D2B2B] rounded-2xl text-center text-white">

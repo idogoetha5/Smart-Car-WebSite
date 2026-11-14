@@ -35,6 +35,8 @@ export default async function CatalogPage({
         </p>
       </div>
 
+      {/* Screen-reader heading so the car names (h3) sit under a section, not straight under the h1. */}
+      <h2 className="sr-only">{isHe ? 'רשימת הרכבים' : 'Vehicle list'}</h2>
       <CatalogResults initialVehicles={vehicles} />
     </div>
   );

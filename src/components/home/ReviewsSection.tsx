@@ -201,14 +201,19 @@ export default function ReviewsSection({ locale }: { locale: string }) {
                 {'‹'}
               </button>
 
-              <div className="flex gap-2">
+              <div className="flex">
                 {reviews.map((_, i) => (
+                  // 24px tap area around the small dot (WCAG 2.5.8), in the page language, with the current one announced.
                   <button
                     key={i}
+                    type="button"
                     onClick={() => setActive(i)}
-                    aria-label={`review ${i + 1}`}
-                    className={`w-2 h-2 rounded-full transition-all ${i === active ? 'bg-[#C24E17] w-6' : 'bg-gray-300'}`}
-                  />
+                    aria-label={isHe ? `ביקורת ${i + 1} מתוך ${reviews.length}` : `Review ${i + 1} of ${reviews.length}`}
+                    aria-current={i === active ? 'true' : undefined}
+                    className="flex h-6 min-w-6 items-center justify-center px-1"
+                  >
+                    <span aria-hidden="true" className={`block h-2 rounded-full transition-all ${i === active ? 'bg-[#C24E17] w-6' : 'w-2 bg-gray-500'}`} />
+                  </button>
                 ))}
               </div>
 

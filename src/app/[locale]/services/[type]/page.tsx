@@ -265,7 +265,7 @@ export default async function ServicePage({
       {/* Hero */}
       <div className="bg-[#0D2B2B] py-20 px-6 text-center">
         {SERVICE_ICONS[type]}
-        <p className="text-[#B64916] font-medium mb-3 tracking-wide text-sm">
+        <p className="text-[#F0915A] font-medium mb-3 tracking-wide text-sm">
           {isHe ? 'השירותים שלנו' : 'Our Services'}
         </p>
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{title}</h1>

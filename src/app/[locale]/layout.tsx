@@ -8,6 +8,7 @@ import { localeAlternates, ogImage, siteUrl, ORGANIZATION_ID } from '@/lib/seo';
 import JsonLd from '@/components/seo/JsonLd';
 import { FACEBOOK_PAGE_URL } from '@/lib/constants';
 import Navbar from '@/components/layout/Navbar';
+import MotionPreferences from '@/components/ui/MotionPreferences';
 import AccessibilityButton from '@/components/ui/AccessibilityButton';
 import Footer from '@/components/layout/Footer';
 import WhatsAppFloat from '@/components/ui/WhatsAppFloat';
@@ -161,9 +162,11 @@ export default async function LocaleLayout({
             {isRTL ? 'דלג לתוכן הראשי' : 'Skip to main content'}
           </a>
           <AccessibilityButton />
+          <MotionPreferences>
           <Navbar />
           <main id="main-content" className="flex-1">{children}</main>
           <Footer />
+          </MotionPreferences>
           <WhatsAppFloat />
           <CookieBanner />
           <ConsentedAnalytics />

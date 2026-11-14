@@ -195,8 +195,10 @@ export default function MyBookingsPage() {
 
   if (!sessionChecked) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-20 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5F5F] mx-auto" />
+      <div className="max-w-3xl mx-auto px-4 py-20 text-center" role="status">
+        <h1 className="sr-only">{isHe ? 'ההזמנות שלי' : 'My Bookings'}</h1>
+        <div aria-hidden="true" className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2D5F5F] mx-auto" />
+        <span className="sr-only">{isHe ? 'טוען…' : 'Loading…'}</span>
       </div>
     );
   }
