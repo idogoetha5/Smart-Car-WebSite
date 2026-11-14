@@ -419,7 +419,7 @@ export default function VerificationForm({ locale, token }: { locale: Lang; toke
     </div>
   );
 
-  const mainBtn = 'flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#E8743B] text-[17px] font-bold text-white shadow-[0_8px_20px_rgba(232,116,59,0.35)] transition active:scale-[0.985] active:bg-[#D9652D] disabled:opacity-60 disabled:shadow-none';
+  const mainBtn = 'flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#C24E17] text-[17px] font-bold text-white shadow-[0_8px_20px_rgba(194,78,23,0.3)] transition active:scale-[0.985] active:bg-[#A8420F] disabled:opacity-60 disabled:shadow-none';
   const spinner = <span className="h-5 w-5 animate-spin rounded-full border-[3px] border-white/40 border-t-white" aria-hidden />;
 
   /* ---------------- states ---------------- */

@@ -159,7 +159,7 @@ export default function CustomerDetailsForm({
           <button
             type="button"
             onClick={() => { setValues(emptyForm(initialBranch)); setPhoneCountry(DEFAULT_PHONE_COUNTRY); setPhoneNational(''); setPhoneCountryChosen(false); setInvoiceNoticeAccepted(false); setTurnstileToken(''); setReferenceId(''); setStep(1); }}
-            className="mt-8 min-h-12 rounded-xl bg-[#E8743B] px-6 py-3 font-bold text-white transition hover:bg-[#d4632a] focus:outline-none focus:ring-4 focus:ring-[#E8743B]/25"
+            className="mt-8 min-h-12 rounded-xl bg-[#C24E17] px-6 py-3 font-bold text-white transition hover:bg-[#A8420F] focus:outline-none focus:ring-4 focus:ring-[#E8743B]/25"
           >
             {text.another}
           </button>
@@ -287,9 +287,9 @@ export default function CustomerDetailsForm({
             <div className="mt-8 flex items-center gap-3">
               {step > 1 && <button type="button" onClick={() => { setError(''); setStep((current) => current - 1); }} className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-gray-300 px-5 font-bold text-gray-700 transition hover:bg-gray-50">{isHe ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}{text.back}</button>}
               {step < 3 ? (
-                <button type="button" onClick={goNext} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#E8743B] px-5 font-black text-white transition hover:bg-[#d4632a] focus:outline-none focus:ring-4 focus:ring-[#E8743B]/25">{text.next}{isHe ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
+                <button type="button" onClick={goNext} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#C24E17] px-5 font-black text-white transition hover:bg-[#A8420F] focus:outline-none focus:ring-4 focus:ring-[#E8743B]/25">{text.next}{isHe ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
               ) : (
-                <button type="submit" disabled={loading} className="min-h-12 flex-1 rounded-xl bg-[#E8743B] px-5 font-black text-white transition hover:bg-[#d4632a] disabled:cursor-wait disabled:opacity-60 focus:outline-none focus:ring-4 focus:ring-[#E8743B]/25">{loading ? text.sending : text.submit}</button>
+                <button type="submit" disabled={loading} className="min-h-12 flex-1 rounded-xl bg-[#C24E17] px-5 font-black text-white transition hover:bg-[#A8420F] disabled:cursor-wait disabled:opacity-60 focus:outline-none focus:ring-4 focus:ring-[#E8743B]/25">{loading ? text.sending : text.submit}</button>
               )}
             </div>
           </form>
