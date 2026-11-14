@@ -3043,8 +3043,6 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   // A rental enquiry in progress never ends on a statement: the next thing still needed is asked, and a name given now is thanked.
   if (state.phase === 'explore' && !state.interest && !state.handedOff && !state.completedRequestId && source !== 'safety'
     && (state.booking.pickupDate || state.booking.pickupLocation || state.booking.vehicleNeed)) {
-    const firstName = !turnStartName && state.booking.customerName ? state.booking.customerName.split(/\s+/)[0] : '';
-    if (firstName && !reply.includes(firstName)) reply = `${he ? `תודה, ${firstName}.` : `Thanks, ${firstName}.`} ${reply}`.trim();
     const missing = nextMissing(state.booking);
     if (!/[?؟]/u.test(reply) && missing && missing !== 'customerEmail' && !/לא יודע|לא בטוח|אין לי מושג|עוד לא החלטתי|don'?t know|not sure|no idea|haven'?t decided/iu.test(input) && !/כשתרצ|when(?:ever)? you(?:'re| are)? ready/iu.test(reply)) {
       const homeCity = state.booking.pickupLocation?.match(/^(?:מסירה עד הבית|Home delivery) \((.+)\)$/u)?.[1];
@@ -3053,6 +3051,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         : question(missing, state.locale);
       reply = `${reply} ${ask}`.trim();
     }
+  }
+  {
+    const firstName = !turnStartName && state.booking.customerName ? state.booking.customerName.split(/\s+/)[0] : '';
+    if (firstName && !reply.includes(firstName) && !state.interest && !state.handedOff && !state.completedRequestId && source !== 'safety'
+      && state.step !== 'rental_confirm' && /[?؟]\s*$/u.test(reply) && reply.length < 200) reply = `${he ? `תודה, ${firstName}.` : `Thanks, ${firstName}.`} ${reply}`.trim();
   }
   // "5 days in March" then "we land March 12": once the pickup is known, the earlier length gives the return.
   // Also when the pickup moved this turn and the return was not restated ("land March 12" after a guess of the 14th).
