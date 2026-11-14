@@ -1389,6 +1389,16 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
   return `${lead}. ${benefit} ${price}${next}`.replace(/\s+/g, ' ').trim();
 }
 
+function takeSameReturnAfterTwoAsks(input: string, state: RebuildState): void {
+  // Asked twice whether to return it to the same place and the customer moved on both times: a representative takes
+  // the same place (it is in the summary to correct) instead of asking a third time.
+  const botTurns = state.history.filter(entry => entry.from === 'bot').slice(-2).map(entry => entry.text);
+  const pickupPattern = state.booking.pickupLocation ? state.booking.pickupLocation.replace(/^(?:מסירה עד הבית|Home delivery) \((.+)\)$/u, '$1').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+  const sameReturnAsked = (text: string) => Boolean(pickupPattern) && /[?؟]/u.test(text) && new RegExp(`(?:להחזיר|החזרה|return)[^?؟]{0,45}${pickupPattern}`, 'iu').test(text) || /להחזיר גם ב|להחזיר (?:אותו )?גם ב|לאסוף את הרכב גם מהבית|להחזיר את הרכב[^?؟]{0,30}(?:אותו|באותו)|Return it to .{2,30} as well\?|collect the car from the same place|return (?:it|the car) (?:to|at) the same/iu.test(text);
+  if (!state.booking.returnLocation && state.booking.pickupLocation && botTurns.length === 2 && botTurns.every(sameReturnAsked)
+    && !/להחזיר|החזרה|נחזיר|אחזיר|return|drop.?off|במקום אחר|elsewhere|different place|[?؟]/iu.test(input)) state.booking.returnLocation = sameReturnLabel(state);
+}
+
 function applyFields(input: string, state: RebuildState, reading: BotReading | null): void {
   if (!reading) return;
   const fields = reading.fields;
@@ -1471,13 +1481,6 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
     || Boolean(state.booking.pickupLocation) && /[?؟]\s*$/u.test(previousBotForReturn.trim()) && new RegExp(`(?:להחזיר|החזרה|return)[^?؟]{0,40}${state.booking.pickupLocation!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'iu').test(previousBotForReturn);
   if (!state.booking.returnLocation && state.booking.pickupLocation && askedSameReturn && /^\s*(?:כן|בטח|ברור|נכון|בדיוק|אותו דבר|yes|yep|yeah|sure|correct|right)(?![\p{L}])/iu.test(input) && !/להחזיר|החזרה|לאסוף|תאספו|איסוף|return|collect|pick/iu.test(input)) state.booking.returnLocation = sameReturnLabel(state);
   if (!state.booking.returnLocation && state.booking.pickupLocation && (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input))) state.booking.returnLocation = sameReturnLabel(state);
-  // Asked twice whether to return it to the same place and the customer moved on both times: a representative takes
-  // the same place (it is in the summary to correct) instead of asking a third time.
-  const botTurns = state.history.filter(entry => entry.from === 'bot').slice(-2).map(entry => entry.text);
-  const pickupPattern = state.booking.pickupLocation ? state.booking.pickupLocation.replace(/^(?:מסירה עד הבית|Home delivery) \((.+)\)$/u, '$1').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
-  const sameReturnAsked = (text: string) => Boolean(pickupPattern) && /[?؟]/u.test(text) && new RegExp(`(?:להחזיר|החזרה|return)[^?؟]{0,45}${pickupPattern}`, 'iu').test(text) || /להחזיר גם ב|להחזיר (?:אותו )?גם ב|לאסוף את הרכב גם מהבית|להחזיר את הרכב[^?؟]{0,30}(?:אותו|באותו)|Return it to .{2,30} as well\?|collect the car from the same place|return (?:it|the car) (?:to|at) the same/iu.test(text);
-  if (!state.booking.returnLocation && state.booking.pickupLocation && botTurns.length === 2 && botTurns.every(sameReturnAsked)
-    && !/להחזיר|החזרה|נחזיר|אחזיר|return|drop.?off|במקום אחר|elsewhere|different place|[?؟]/iu.test(input)) state.booking.returnLocation = sameReturnLabel(state);
   // "can I pick up the car on saturday?" — the model sometimes leaves a plain weekday out; it means the coming one.
   if (!state.booking.pickupDate && state.phase !== 'service' && !/\d/u.test(input.replace(/\b\d{1,2}(?::\d\d)?\s*(?:am|pm)\b|(?<!\d)\d{1,2}:\d\d(?!\d)|(?:ב|בשעה\s*)[-־]?\d{1,2}(?:\s*(?:בבוקר|בערב|בצהריים))?(?!\d)/giu, '')) && /איסוף|לאסוף|לקחת|לקבל|צריך רכב|pick(?:\s+(?:it|the car))?[\s-]*up|collect|need (?:a|the) car|rent/iu.test(input) && !/(?:^|\s)(?:what if|if i|אם)\s|every|כל יום/iu.test(input)) {
     const days = [['sunday', 'יום ראשון'], ['monday', 'יום שני'], ['tuesday', 'יום שלישי'], ['wednesday', 'יום רביעי'], ['thursday', 'יום חמישי'], ['friday', 'יום שישי'], ['saturday', 'שבת']] as const;
@@ -1581,7 +1584,12 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
     && /^\s*(?:(?:great|ok(?:ay)?|perfect|sounds good|cool|thanks|yes|sure|יאללה|סבבה|אחלה|מעולה|טוב|בסדר|כן|תודה)[,.!\s]+)*(?:i['’]?m |i am |my name is |אני |שמי )?[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*,?\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)\s*[.!]?\s*$/u.test(input);
   const draftTrailingNameAge = state.phase === 'explore' && !state.interest && !state.completedRequestId && Boolean(state.booking.pickupDate || state.booking.pickupLocation)
     && /[,.!]\s*[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*,?\s*(?:בן|בת|age|aged)?\s*\d{2}\s*[.!]?\s*$/u.test(input);
-  if (state.phase !== 'booking' && !explicitStart && !voluntaryRentalName && !draftNameAge && !draftTrailingNameAge) return false;
+  // "בן 30, יוסי" / "Daniel, 21" / "יוסי בן 30": an age with one or two name words on their own.
+  const shortNameAge = (state.phase === 'explore' || state.phase === 'booking') && !state.interest && !state.completedRequestId && Boolean(state.booking.pickupDate || state.booking.pickupLocation)
+    ? (input.match(/^\s*(?:בן|בת|aged?)?\s*\d{2}\s*[,،]\s*([\p{L}'-]{2,20}(?:\s+[\p{L}'-]{2,20})?)\s*[.!]?\s*$/u)?.[1]
+      ?? input.match(/^\s*([\p{L}'-]{2,20})\s*,?\s*(?:בן|בת|age|aged)?\s*\d{2}(?!\d)\s*[.!]?\s*$/u)?.[1])
+    : undefined;
+  if (state.phase !== 'booking' && !explicitStart && !voluntaryRentalName && !draftNameAge && !draftTrailingNameAge && !shortNameAge) return false;
   let captured = false;
   if (explicitStart || state.step === 'rental_name' || state.step === 'rental_email' || state.step === 'rental_confirm' || /המייל שלי|המייל הוא|my email|email\s*:/i.test(input)) {
     const email = input.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0];
@@ -1603,11 +1611,11 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
       && !/(?:^|\s)(?:אני|אנחנו|הוא|היא|זה|זאת|הנהג|הנהגת|נהג|נהגת|ראשי|ראשית|בעלי|אשתי|I|we|he|she|it|this|the|להחזיר|לאסוף|בואו|נתקדם|יאללה|קדימה|בבקשה|תודה|גם|רק|עם|בלי|מחר|היום|main|driver|return|pick|please|thanks|let['’]?s|go|ahead|also|only|with|without|tomorrow|today)(?=\s|$)/iu.test(part))
     : undefined;
   // "יוסי בדיקה, בן 35" during intake is a name with an age, whatever question was pending.
-  const nameAgeClause = (state.phase === 'booking' || draftNameAge || draftTrailingNameAge || explicitStart) && !introducedName
+  const nameAgeClause = shortNameAge && !introducedName ? shortNameAge : (state.phase === 'booking' || draftNameAge || draftTrailingNameAge || explicitStart) && !introducedName
     ? input.replace(/^\s*(?:(?:great|ok(?:ay)?|perfect|sounds good|cool|thanks|yes|sure|יאללה|סבבה|אחלה|מעולה|טוב|בסדר|כן|תודה)[,.!\s]+)*(?:i['’]?m|i am|my name is|this is|אני|שמי|קוראים לי)?\s*/iu, '').match(/^\s*([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})\s*,?\s*(?:בן|בת|גיל|age|aged)?\s*\d{2}(?!\d)/u)?.[1]
       // or as the last clause: "טוב סגור, רותם בדיקה 33"
       ?? input.match(/[,.!]\s*([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})\s*,?\s*(?:בן|בת|age|aged)?\s*\d{2}\s*[.!]?\s*$/u)?.[1] : undefined;
-  const validNameAge = nameAgeClause && !/(?:^|\s)(?:אני|אנחנו|הוא|היא|זה|כן|לא|תודה|רכב|נהג|נהגת|להחזיר|לאסוף|מחר|היום|עד|עם|בלי|I|we|yes|no|car|driver|return|pick|from|to|the|a|an)(?:\s|$)/iu.test(nameAgeClause) && !/\d/.test(nameAgeClause) ? nameAgeClause : undefined;
+  const validNameAge = nameAgeClause && !/\s(?:בן|בת)$/u.test(nameAgeClause) && !/(?:^|\s)(?:אני|אנחנו|הוא|היא|זה|כן|לא|תודה|רכב|נהג|נהגת|להחזיר|לאסוף|מחר|היום|עד|עם|בלי|I|we|yes|no|car|driver|return|pick|from|to|the|a|an)(?:\s|$)/iu.test(nameAgeClause) && !/\d/.test(nameAgeClause) ? nameAgeClause : undefined;
   const validTrailingName = trailingName && !/^(?:תודה|בבקשה|יאללה|סבבה|אחלה|מעולה|בסדר|קדימה|רק|גם|עם|בלי|thank|thanks|please|ok|okay|great|cool|sounds|with|without|also|just|asap|soon|today|tomorrow|מחר|היום)(?=\s|$)|(?:^|\s)(?:רכב|car|יום|ימים|days?|בקשה|request|הצעה|quote|מחיר|price|רבה|גדול|קטן|משפחתי|big|small)(?=\s|$)/iu.test(trailingName) ? trailingName : undefined;
   const validIntroducedName = introducedName && !/^(?:not|unsure|still|looking|just|here|visiting|only|sorry|trying|waiting|renting|booking|confused|from|in|at|ok|okay|fine|good|sure|ready|interested|a|an|the|so|also|very|really|going|coming|staying|flying|landing|travel+ing|married|single)\b/i.test(introducedName) ? introducedName : undefined;
   if (explicitStart || state.step === 'rental_name' || state.step === 'rental_confirm' || labelledName || validIntroducedName || validNameAge || state.phase === 'booking' && askedForName) {
@@ -2184,6 +2192,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     privateTurn = state.phase === 'booking' && (state.step === 'rental_name' || state.step === 'rental_email');
     const gotPrivate = privateDetail(input, state, (!state.interest || switchesToRental) && explicitBooking(input));
     privateTurn ||= gotPrivate;
+    if (state.phase !== 'service' && !state.interest) takeSameReturnAfterTwoAsks(input, state);
     let reading: BotReading | null = null;
     let modelContext: GeminiBotContext | undefined;
     if (!gotPrivate && !resumedIntake && !(state.phase === 'booking' && affirms(input)) && !(state.phase === 'booking' && state.step === 'rental_age' && driverAgeRange(input, state)) && !EMAIL.test(input) && !/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/.test(input)) {
@@ -2329,6 +2338,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     if (statedVehicle && (wantsBooking || state.phase === 'booking' || !commercialVehicle && !state.interest)
       && (!state.booking.vehicleNeed || /^רכב (?:לנוסע אחד|ל־\d+ נוסעים)|^car for \d+ passengers?/i.test(state.booking.vehicleNeed)
         || /בעצם|מעדיף|במקום|החלטתי על|החלטנו על|בוחר|בוחרת|actually|instead|prefer/i.test(input))) state.booking.vehicleNeed = statedVehicle;
+    // "רגע, אפשר במקום זה רכב משפחתי?" switches the chosen category; the model's reading names the new one.
+    if (state.booking.vehicleNeed && !statedVehicle && reading?.direction && reading.direction !== 'none' && !state.interest && state.phase !== 'service' && !commercialVehicle
+      && /במקום|בעצם|נחליף|להחליף|תחליף|instead|switch|change (?:it |that )?to|rather|actually/iu.test(input) && !/מה (?:ההבדל|יותר)|difference|compare|which is better/iu.test(input)) {
+      const current = /שבעה מקומות|seven.?seat/i.test(state.booking.vehicleNeed) ? 'seven_seat' : /רכב פנאי|\bSUV\b/i.test(state.booking.vehicleNeed) ? 'suv' : /משפחתי|family/i.test(state.booking.vehicleNeed) ? 'family' : /קומפקטי|compact/i.test(state.booking.vehicleNeed) ? 'compact' : 'other';
+      if (current !== reading.direction) state.booking.vehicleNeed = (he ? { compact: 'רכב קומפקטי', family: 'רכב משפחתי', suv: 'רכב פנאי', seven_seat: 'רכב שבעה מקומות' } : { compact: 'compact car', family: 'family car', suv: 'SUV', seven_seat: 'seven-seat car' })[reading.direction];
+    }
     // "משהו חסכוני, אני נוסע הרבה" answering the car question: the model's category reading is the choice.
     if (!state.booking.vehicleNeed && !statedVehicle && reading?.direction && reading.direction !== 'none' && !state.interest && state.phase !== 'service' && !commercialVehicle
       && !/[?؟]/u.test(input) && (reading.direction === 'compact' && /חסכוני|חיסכון בדלק|economical|fuel.?efficient|good on fuel/iu.test(input) || /קבוצת רכב|איזה רכב|איזה סוג רכב|סוג רכב|קומפקטי|משפחתי|vehicle (?:category|group)|car (?:category|group)|which car|what (?:kind of |type of )?car/iu.test(lastBot))) {

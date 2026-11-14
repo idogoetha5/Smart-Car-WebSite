@@ -1331,3 +1331,19 @@ describe('airport surcharge is mentioned once', () => {
     expect(again.reply.match(/תוספת/g)?.length ?? 0).toBe(0);
   });
 });
+
+// Live Chrome on e556c03: "בן 30, יוסי" was not kept as the name, and "אפשר במקום זה רכב משפחתי?" left the compact car.
+describe('short name answers and category switches', () => {
+  const base = () => ({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-11-15', returnDate: '2026-11-18', pickupLocation: 'תל אביב', returnLocation: 'תל אביב', vehicleNeed: 'רכב קומפקטי' }, history: [{ from: 'bot', text: 'בן כמה הנהג?' }] } as RebuildState);
+  it.each(['בן 30, יוסי', 'יוסי בן 30', 'יוסי, 30'])('keeps the name from "%s"', async input => {
+    const r = await chat(base(), 'תודה, יוסי.').send(input);
+    expect(r.state.booking.customerName).toBe('יוסי');
+  });
+  it('switches the category on "במקום זה"', async () => {
+    let current = base();
+    const readTurn = vi.fn(async () => ({ route: 'book', direction: 'family', fields: {}, reply: 'בטח, נעבור לרכב משפחתי.', source: 'gemini', model: 'controlled-fixture', groundedContext: true } as BotReading));
+    const store: RebuildStore = { isSimulation: true, loadState: async () => current, saveState: async (_p, next) => { current = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn };
+    const r = await getRebuiltBotReply('fictional-switch', 'רגע, אפשר במקום זה רכב משפחתי?', store);
+    expect(r.state.booking.vehicleNeed).toBe('רכב משפחתי');
+  });
+});
