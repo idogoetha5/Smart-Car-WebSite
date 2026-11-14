@@ -17,18 +17,20 @@ import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
 import HumanSpeedInsights from '@/components/analytics/HumanSpeedInsights';
 import '../globals.css';
 
+// Both are variable fonts: one file per subset covers every weight, instead of a file per weight
+// (62 @font-face rules before). Nunito is used only on English pages, so it is not preloaded on
+// every page, where it competed with the page's main image on slow mobile connections.
 const nunito = Nunito({
   subsets: ['latin'],
   variable: '--font-nunito',
   display: 'swap',
-  weight: ['400', '500', '600', '700', '800', '900'],
+  preload: false,
 });
 
 const heebo = Heebo({
   subsets: ['hebrew', 'latin'],
   variable: '--font-heebo',
   display: 'swap',
-  weight: ['400', '500', '600', '700', '800', '900'],
 });
 
 export async function generateMetadata({
