@@ -1347,3 +1347,13 @@ describe('short name answers and category switches', () => {
     expect(r.state.booking.vehicleNeed).toBe('רכב משפחתי');
   });
 });
+
+// Live Chrome on 8737cc1 with the model unavailable: the same two advisor sentences were repeated on three turns.
+describe('no pasted repeats', () => {
+  it('drops sentences the previous message already said', async () => {
+    const said = 'רכב קומפקטי של SmartCar יכול להתאים לנסיעה שלכם. כך אפשר להתאים את המרחב והנוחות למשך הנסיעה ולציוד שלכם.';
+    const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-11-15', returnDate: '2026-11-18', pickupLocation: 'תל אביב', vehicleNeed: 'רכב קומפקטי' }, history: [{ from: 'bot', text: `${said} להחזיר גם בתל אביב?` }] } as RebuildState, `${said} להחזיר גם בתל אביב?`);
+    const r = await c.send('אוקיי');
+    expect(r.reply).not.toContain('כך אפשר להתאים את המרחב');
+  });
+});

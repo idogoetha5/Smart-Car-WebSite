@@ -3075,6 +3075,15 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = `${reply} ${ask}`.trim();
     }
   }
+  // A person does not paste the same sentences twice in a row (the backup wording when the model is unavailable).
+  {
+    const previousBot = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+    if (previousBot && !reply.includes('\n') && state.step !== 'rental_confirm' && state.phase !== 'service' && source !== 'safety' && !state.handedOff) {
+      const sentences = reply.match(/[^.!?؟]+[.!?؟]+/gu) ?? [];
+      const kept = sentences.filter(sentence => /[?؟]/u.test(sentence) || sentence.trim().length < 25 || sentence.includes(OFFICE_PHONE) || !previousBot.includes(sentence.trim()));
+      if (kept.length && kept.length < sentences.length && kept.join('').trim().length >= 12) reply = kept.join('').trim();
+    }
+  }
   // Owner rule: the airport surcharge is mentioned (without the amount) once the airport is part of the rental.
   {
     const airport = /^(?:נתב״ג|Ben Gurion Airport)$/u.test(state.booking.pickupLocation ?? '') || /^(?:נתב״ג|Ben Gurion Airport)$/u.test(state.booking.returnLocation ?? '');
