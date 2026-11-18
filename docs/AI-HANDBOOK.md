@@ -1451,3 +1451,12 @@ After **every** task that changes behaviour, data, routes, env, deploy steps or 
 - 2026-11-14 — Owner direction 2026-11-14: the accessibility statement and its date belong to the accessibility coordinator; agents must never change the statement or its date. Restored 'עדכון אחרון: 29 ביולי 2026' / 'July 29, 2026'. Technical accessibility fixes to the site are fine; the statement text is not ours to edit. No migrations.
 - 2026-11-14 — AGENTS.md now records the owner rule: agents never edit the accessibility statement or its date. No migrations.
 - 2026-11-14 — AGENTS.md accessibility-statement rule: changes by the coordinator, or by an agent only with Ido's explicit approval for that specific change. No migrations.
+
+
+### Bot recovery — 2026-11-18 (offline verification; live acceptance remains pending)
+
+Service menu labels establish service context and pass through Gemini rather than selecting an early canned answer. Existing grounded-answer validation, consent, safety and private-data protections remain in force. During provider outage, service fallback asks what happened without demanding a booking reference first. Weekday-only pickup/return answers and Hebrew ranges without a leading מ now populate rental memory; a range starting today stays in the current week. HTTP 402 is classified as billing_required and backs off for five minutes; it is not mislabeled as ordinary quota and alerts remain enabled.
+
+Live evidence before this release: the public demo repeated date questions and runtime logs showed provider HTTP 402. The owner funded the Google project; the billing page showed ₪59.98 and one subsequent demo response addressed the family's stated needs. This is not full acceptance or proof of provider usage for every turn. The owner then stopped paid tests. No real Gemini requests are part of this release's offline checks. Keep the larger readiness goal paused; do not activate customer WhatsApp or claim all conversation paths passed.
+
+Change log: 2026-11-18 — fixed weekday/date-loop recovery and service-menu AI bypass, categorized billing failure with bounded cooldown, added mocked regressions. Preserved the concurrent office-approval booking change at 330d3b7 and the complete website. No DNS, payment, environment, database or customer-channel changes.

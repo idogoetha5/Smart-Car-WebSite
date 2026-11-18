@@ -326,3 +326,18 @@ describe('evidenced understanding reaches canonical rental memory', () => {
     expect(hypothetical.escalate).toBe(false);
   });
 });
+
+
+describe('service menu keeps the AI conversation available', () => {
+  it.each(['הזמנה קיימת', 'עזרה בדרך', 'existing booking', 'roadside assistance'])('passes %s to AI with service context and uses its safe answer', async input => {
+    const reply = /[א-ת]/u.test(input) ? 'מה קרה עם הרכב ואיך אפשר לעזור לכם כרגע?' : 'What happened with the car and how can I help you now?';
+    const c = chat(null, () => ({ ...base(reply), route: 'service' }));
+    const result = await c.send(input);
+    expect(c.readTurn).toHaveBeenCalled();
+    expect(c.readTurn.mock.calls[0][1].phase).toBe('service');
+    expect(result.reply).toBe(reply);
+    expect(result.source).toBe('gemini');
+    expect(result.escalate).toBe(false);
+    expect(c.create).not.toHaveBeenCalled();
+  });
+});

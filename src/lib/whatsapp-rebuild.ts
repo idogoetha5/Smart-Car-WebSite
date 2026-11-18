@@ -303,14 +303,14 @@ function explicitDateRange(input: string): { pickupDate: string; returnDate: str
     const en = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const he = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
     const enRange = input.match(/\b(sun|mon|tue|tues|wed|thu|thur|thurs|fri|sat)[a-z]*\.?\s*(?:to|until|till|through|thru|-|–)\s*(sun|mon|tue|tues|wed|thu|thur|thurs|fri|sat)[a-z]*\b/iu);
-    const heRange = input.match(/(?<![\p{L}])מ(?:יום\s+)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)\s*(?:עד|ועד|-|–)\s*(?:יום\s+)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת|מוצ["״']?ש)(?![\p{L}])/u);
+    const heRange = input.match(/(?<![\p{L}])מ?(?:יום\s+)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)\s*(?:עד|ועד|-|–)\s*(?:יום\s+)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת|מוצ["״']?ש)(?![\p{L}])/u);
     const index = (value: string) => he.includes(value) ? he.indexOf(value) : /^מוצ/u.test(value) ? 6 : en.findIndex(day => day.startsWith(value.toLowerCase().slice(0, 3)));
     const pair = enRange ? [enRange[1], enRange[2]] : heRange ? [heRange[1], heRange[2]] : null;
     if (pair && !/\d{1,2}[./]\d|(?:^|\s)אם\s|מה אם|אולי|\bwhat if\b|\bif\b|\bmaybe\b/iu.test(input)) {
       const first = index(pair[0]); const last = index(pair[1]);
       if (first >= 0 && last >= 0) {
         const start = new Date(`${israelDate()}T12:00:00Z`);
-        start.setUTCDate(start.getUTCDate() + ((first - start.getUTCDay() + 7) % 7 || 7));
+        start.setUTCDate(start.getUTCDate() + ((first - start.getUTCDay() + 7) % 7));
         const end = new Date(start); end.setUTCDate(end.getUTCDate() + ((last - first + 7) % 7 || 7));
         return { pickupDate: start.toISOString().slice(0, 10), returnDate: end.toISOString().slice(0, 10) };
       }
@@ -428,6 +428,15 @@ function singleDateAnswer(input: string, after?: string): string | null {
   const value = input.trim();
   const today = israelDate();
   const reference = after ?? today;
+  const weekday = value.match(/^(?:ב|מ)?(?:יום\s+)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)$/u)
+    ?? value.match(/^(?:on\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/iu);
+  if (weekday) {
+    const names = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const day = names.indexOf(weekday[1].toLowerCase()) % 7;
+    const date = new Date(`${reference}T12:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + ((day - date.getUTCDay() + 7) % 7 || (after ? 7 : 0)));
+    return date.toISOString().slice(0, 10);
+  }
   const relative = /^(?:היום|מחר|מחרתיים|today|tomorrow|day after tomorrow)$/i.test(value);
   if (relative) {
     const date = new Date(`${today}T00:00:00Z`);
@@ -1780,6 +1789,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   const continuedServiceAdvice = Boolean(unselectedChangeHandoff || state.handedOff && serviceQuestion && depositEnquiry
     && (state.handoffKind === 'human' || state.handoffKind === 'service_issue'));
   const lastBotReply = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+  const serviceEntry = /^(?:הזמנה קיימת|שירות לקוחות|עזרה עם (?:ה)?הזמנה|existing booking|existing reservation|customer service|help with my booking)[.!?\s]*$/iu.test(input);
+  const roadsideEntry = /^(?:עזרה בדרך|סיוע בדרך|roadside(?: help| assistance)?|help on the road)[.!?\s]*$/iu.test(input);
   // An explicit correction to existing-rental service must be able to escape
   // an accidentally started intake. It does not approve a service action or
   // discard any pending rental draft.
@@ -1865,7 +1876,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   const whatIfOnly = /(?:^|[.!?]\s*)(?:(?:what (?:happens|do i do|should i do|do we do|is the procedure)|and)\s+)?(?:if (?:i|we) (?:get|have|had)|what if)\b|מה (?:קורה|עושים|יקרה|עושים במקרה ש)\s*(?:אם|כש|במקרה)|מה הנוהל (?:אם|במקרה)/iu.test(input)
     && !/(?:right now|just now|now|already|i have a|i got a|i(?:'m| am) (?:stuck|on|at)|עכשיו|כרגע|קרה לי|יש לי (?:פנצ|תקלה)|נתקעתי|עשיתי תאונה)/iu.test(input);
   const incident = whatIfOnly ? null : safety(input);
-  if (incident) {
+  // Menu labels establish context; the model still interprets and answers the turn.
+  if ((serviceEntry || roadsideEntry) && !state.handedOff) {
+    state.phase = 'service'; state.step = 'menu'; state.interest = undefined;
+  }
+  if (incident && !roadsideEntry) {
     state.phase = 'service'; state.handedOff = true; state.handoffAt ??= new Date().toISOString(); state.handoffKind = 'safety';
     state.safetyKind = incident;
     const recentAlert = state.safetyAlertAt && Date.now() - Date.parse(state.safetyAlertAt) < 24 * 60 * 60 * 1000;
@@ -2652,7 +2667,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = 'service_issue'; escalate = true;
         reply = he ? `תודה, העברתי את הפרטים לנציג SmartCar שיבדוק ויחזור אליכם. לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `Thank you — I have passed the details to a SmartCar representative, who will check and get back to you. For immediate help call ${OFFICE_PHONE}.`;
       }
-      else reply = he ? `כדי לבדוק מקרה מסוים נדרש מספר ההזמנה. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `To check a specific case, please send the booking reference or call ${OFFICE_PHONE}.`;
+      else if (roadsideEntry) reply = he ? `מה קרה עם הרכב, והאם אתם במקום בטוח? אם יש סכנה מיידית, התרחקו מהסכנה ופנו לשירותי החירום. לעזרה דחופה התקשרו ל־${OFFICE_PHONE}.` : `What happened with the car, and are you somewhere safe? If there is immediate danger, move away from it and contact emergency services. For urgent help call ${OFFICE_PHONE}.`;
+      else reply = he ? `ספרו מה תרצו לבדוק או מה קרה, ונמשיך משם. אפשר להתחיל גם בלי מספר ההזמנה; לעזרה דחופה התקשרו ל־${OFFICE_PHONE}.` : `Tell me what you need to check or what happened, and we can start there, even without a booking reference. For urgent help call ${OFFICE_PHONE}.`;
     } else if (state.interest) {
       const answer = commercialReply(input, state);
       reply = answer.reply; escalate = answer.escalate;

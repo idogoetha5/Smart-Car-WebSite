@@ -9,6 +9,7 @@ let reportedMissingKey = false;
 
 /** Fixed diagnostics only: never log the provider's raw message or customer input. */
 async function rejectionCategory(response: Response): Promise<string> {
+  if (response.status === 402) return 'billing_required';
   try {
     const data = await response.json();
     const message = typeof data?.error?.message === 'string' ? data.error.message : '';
@@ -70,7 +71,7 @@ export async function generateSmartCarContent(params: { model: string; body: unk
       const retryAfter = Number(response.headers.get('retry-after'));
       const delay = response.status === 429
         ? Math.max(30_000, Math.min(Number.isFinite(retryAfter) ? retryAfter * 1000 : 60_000, 300_000))
-        : [400, 401, 403, 404].includes(response.status) ? 300_000 : 30_000;
+        : [400, 401, 402, 403, 404].includes(response.status) ? 300_000 : 30_000;
       coolDown(delay);
       const category = await rejectionCategory(response);
       lastFailure = `http ${response.status} ${category}`;

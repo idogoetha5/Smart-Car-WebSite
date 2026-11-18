@@ -1233,3 +1233,28 @@ describe('replacement SmartCar conversation core', () => {
     expect(driving.reply).not.toContain('תודה על העדכון');
   });
 });
+
+
+describe('weekday intake survives provider outage without repeating supplied dates', () => {
+  it.each(['חמישי עד ראשון', 'יום חמישי עד יום ראשון', 'מחמישי עד ראשון', 'Thursday to Sunday'])('stores the range from %s after a partial weekday and correction', async range => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-18T09:00:00Z'));
+    onTestFinished(() => { vi.useRealTimers(); });
+    const chat = memory(() => null);
+    await chat.send('אני רוצה לשכור רכב');
+    const partial = await chat.send('יום חמישי');
+    expect(partial.state.booking.pickupDate).toBe('2026-11-19');
+    await chat.send('חמישע עד ראשון');
+    const corrected = await chat.send(range);
+    expect(corrected.state.booking.pickupDate).toBe('2026-11-19');
+    expect(corrected.state.booking.returnDate).toBe('2026-11-22');
+    expect(corrected.reply).not.toContain('לאילו תאריכים');
+    expect(chat.create).not.toHaveBeenCalled();
+  });
+  it('accepts today as pickup without pushing the range a week forward', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-20T09:00:00Z'));
+    onTestFinished(() => { vi.useRealTimers(); });
+    const result = await memory(() => null).send('אני רוצה לשכור רכב שישי עד מוצש');
+    expect(result.state.booking.pickupDate).toBe('2026-11-20');
+    expect(result.state.booking.returnDate).toBe('2026-11-21');
+  });
+});

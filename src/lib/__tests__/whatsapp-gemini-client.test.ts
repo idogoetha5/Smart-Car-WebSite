@@ -53,7 +53,7 @@ describe('replacement Gemini connection', () => {
     vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ candidates: [{ content: { parts: [{ thought: true, text: 'private reasoning' }, { text: '{"intent":"policy"}' }] } }] })));
     expect(await generateSmartCarContent({ model: 'test-success', body: { contents: [] } })).toEqual({ ok: true, text: '{"intent":"policy"}' });
   });
-  it.each([429, 503, 403, 404])('uses immediate local fallback and cooldown after HTTP %s', async (status) => {
+  it.each([402, 429, 503, 403, 404])('uses immediate local fallback and cooldown after HTTP %s', async (status) => {
     const { generateSmartCarContent } = await import('@/lib/whatsapp-gemini-client');
     vi.mocked(fetch).mockResolvedValue(new Response('{}', { status }));
     const params = { model: `test-${status}`, body: {} };
@@ -72,4 +72,22 @@ describe('replacement Gemini connection', () => {
     expect(await generateSmartCarContent({ model: 'test-no-key', body: {} })).toEqual({ ok: false, reason: 'missing_key' });
     expect(fetch).not.toHaveBeenCalled();
   });
+});
+
+
+it('classifies exhausted billing and retries after a bounded cooldown without leaking provider text', async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2030-01-01T00:00:00Z'));
+  const { generateSmartCarContent, resetModelCooldowns } = await import('@/lib/whatsapp-gemini-client');
+  resetModelCooldowns();
+  const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.mocked(fetch).mockResolvedValueOnce(new Response('private billing detail', { status: 402 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'recovered' }] } }] })));
+  const request = { model: 'billing-recovery', body: {} };
+  expect(await generateSmartCarContent(request)).toMatchObject({ ok: false, status: 402 });
+  expect(log).toHaveBeenCalledWith('[whatsapp-gemini] provider HTTP %s (%s); using local knowledge', 402, 'billing_required');
+  vi.advanceTimersByTime(31_000);
+  expect(await generateSmartCarContent(request)).toMatchObject({ reason: 'cooldown' });
+  expect(fetch).toHaveBeenCalledTimes(1);
+  vi.advanceTimersByTime(270_000);
+  expect(await generateSmartCarContent(request)).toEqual({ ok: true, text: 'recovered' });
 });
