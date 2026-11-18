@@ -139,8 +139,7 @@ export async function POST(request: NextRequest) {
   // catalog shows only part of the company's fleet, so an apparent
   // conflict here must never block a customer from submitting. A request
   // is always saved and a representative checks the full fleet (same
-  // group / similar vehicle). The real availability gate is admin
-  // approval, which re-checks conflicts against total_units atomically
+  // group / similar vehicle). Admin approval is an office decision recorded atomically
   // (see api/admin/bookings/[id]/route.ts).
 
   const totalDays = Math.ceil(

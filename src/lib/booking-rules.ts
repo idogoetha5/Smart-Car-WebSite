@@ -37,8 +37,8 @@ export function matchStatusFor(
 
 /**
  * A booking submission is a REQUEST, never a reservation. No availability
- * outcome may block it — the real gate is admin approval, which re-checks
- * conflicts against total_units atomically via the approve_booking RPC.
+ * outcome may block it. The office decides whether to approve it; the
+ * approve_booking RPC makes that decision atomic without an inventory gate.
  *
  * This exists so the guarantee is stated in one place the route depends on,
  * rather than as a comment that the code beneath it can quietly contradict.

@@ -168,10 +168,8 @@ export async function PATCH(
   let transitionedToRejected = false;
 
   if (dbStatus === 'CONFIRMED') {
-    // Availability re-check and the transition into CONFIRMED happen in a
-    // single database transaction (see database/migrations/add-approve-booking-rpc.sql).
-    // Doing the count here and the UPDATE separately let two concurrent
-    // approvals for the same vehicle both pass the check and oversell it.
+    // The office decides availability. The RPC locks this booking and makes
+    // the transition atomic so a retry cannot send a second customer email.
     const { data: rpcRows, error: rpcError } = await supabase
       .rpc('approve_booking', { p_booking_id: id });
 
@@ -191,11 +189,6 @@ export async function PATCH(
       case 'ALREADY_CONFIRMED':
         transitionedToConfirmed = false;
         break;
-      case 'NO_UNITS':
-        return NextResponse.json(
-          { error: 'לא ניתן לאשר: כל היחידות של רכב זה כבר מאושרות להזמנות חופפות בתאריכים אלה' },
-          { status: 409 }
-        );
       case 'NOT_FOUND':
         return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
       case 'VEHICLE_NOT_FOUND':
