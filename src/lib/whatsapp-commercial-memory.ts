@@ -52,7 +52,7 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   const text = message.slice(0, 1000)
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '')
     .replace(/(?<!\d)(?:\+972|0[2-9])[\d ()-]{7,}/g, '');
-  const budget = new RegExp(`(?:תקציב|budget)(?:\\s+(?:עכשיו|שלי|הוא|שלנו|של|עד|סביב|ירד|עלה|ל|is|now|of|up to|around|to|reduced|changed))*[ :₪$€־-]*${NUMBER}\\s*(אלף|thousand|k\\b)?`, 'giu');
+  const budget = new RegExp(`(?:תקציב|budget)(?:\\s+(?:עכשיו|שלי|הוא|שלנו|של|עד|סביב|בערך|כנראה|ירד|עלה|ל|is|now|of|up to|around|about|roughly|probably|to|reduced|changed))*[ :₪$€־-]*${NUMBER}\\s*(אלף|thousand|k\\b)?`, 'giu');
   for (const match of text.matchAll(budget)) {
     if (negatedBefore(text, match.index!) || isHypotheticalFactEvidence(text, match[0])) continue;
     const value = amount(match[1], match[2]);
@@ -158,7 +158,7 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
       ?? text.match(/(?:^|[.;]\s*)(?:a )?(compact car|small car|family car|SUV|seven[- ]seat(?:er)?)\s+for\s+(?:business|family|city|commuting)\b/iu);
     const leasingPrefix = leasingChoice ? text.slice(0, leasingChoice.index!).split(/[.!?;\n]/u).at(-1) ?? '' : '';
     const positiveLeasingChoice = /\b(?:not|never|don['’]?t|do not)\b[^.!?;\n]{0,40}$/iu.test(leasingPrefix) ? null : leasingChoice;
-    const choice = text.match(/(?:מעדיף|בחרתי|החלטתי על|רוצה|מחפש|לקנות|חשוב(?:ה)? ל(?:י|נו)|prefer|choose|chosen|decided on|want|looking for|buy|purchase|keep|probably|important to (?:me|us) to have)\s+(?:a |the |את ה|רכב )?(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות|compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)/iu)
+    const choice = text.match(/(?:מעדיף|בחרתי|החלטתי על|נלך על(?: כיוון של)?|רוצה|מחפש|לקנות|חשוב(?:ה)? ל(?:י|נו)|prefer|choose|chosen|decided on|go with|want|looking for|buy|purchase|keep|probably|important to (?:me|us) to have)\s+(?:a |the |את ה|רכב )?(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות|compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)/iu)
       ?? positiveLeasingChoice
       ?? text.match(/(compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)\s+is important to (?:me|us)/iu)
       ?? text.match(/(?:^|[,;.]\s*|ל)רכב\s+(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות)/iu)

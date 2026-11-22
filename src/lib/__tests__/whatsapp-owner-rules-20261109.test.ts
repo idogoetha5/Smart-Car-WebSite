@@ -1048,6 +1048,17 @@ describe('running late and human follow-ups', () => {
 // Owner direction 2026-11-13: code decides, the model speaks. Fixed application wording is reworded by the
 // model only when it keeps the facts (numbers, phone, question shape, language).
 describe('rewording of fixed application replies', () => {
+  it('does not turn a sale enquiry handoff into a promised appointment', async () => {
+    let state: RebuildState | null = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, interest: 'sale', history: [] };
+    const rewrite = 'בשמחה, נציג SmartCar יעביר את הפרטים ויתאם אתכם פגישה בסניף הרצליה כשיהיה נוח. אפשר גם להתקשר למשרד ב־09-9509757.';
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn: async () => null,
+      rewordTurn: async () => ({ route: 'human', direction: 'none', fields: {}, reply: rewrite, source: 'gemini', model: 'fixture', groundedContext: true, rephrased: true } as BotReading) };
+    const r = await getRebuiltBotReply('fictional-sale-appointment', 'אשמח לראות רכב בהרצליה בשבוע הבא. אין לי שעה עדיין, תעבירו לנציג?', store);
+    expect(r.escalate).toBe(true);
+    expect(r.state.handedOff).toBe(true);
+    expect(r.reply).not.toMatch(/יתאם.*פגישה/);
+    expect(r.reply).toContain('09-9509757');
+  });
   const run = async (rewrite: string, input = 'אני רוצה להאריך את הרכב בעוד שבוע, אפשר?') => {
     let state: RebuildState | null = null;
     const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, n) => { state = structuredClone(n); }, activeBooking: async () => null, createRentalRequest: vi.fn(),

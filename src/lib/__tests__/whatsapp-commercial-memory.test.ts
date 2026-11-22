@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { updateCommercialMemory, renderCommercialMemory } from '@/lib/whatsapp-commercial-memory';
 
 describe('durable explicit commercial facts', () => {
+  it('keeps an approximate sale budget and an explicitly chosen family category from separate turns', () => {
+    const first = updateCommercialMemory(undefined, 'אני מחפשת רכב יד שנייה למשפחה. התקציב כנראה סביב 70 אלף, אבל עוד לא החלטנו.');
+    expect(first.budget).toEqual({ amount: 70000, currency: 'unspecified' });
+    expect(first.vehiclePreference).toBeUndefined();
+    const chosen = updateCommercialMemory(first, 'נלך על כיוון של משפחתית. אפשר לקבוע צפייה בלי התחייבות?');
+    expect(chosen.vehiclePreference).toBe('family');
+    expect(renderCommercialMemory(chosen, 'he')).toContain('70000');
+  });
   it.each([
     'התקציב שלי עד 2,500 שקל בחודש וחשוב לי רכב משפחתי. עדיין בלי שיחה או פגישה. תזכיר לי איזה תקופה, קילומטראז׳ ותקציב שמרת?',
     'My budget is up to 2500 shekels a month and a family car is important to me. No call or meeting yet. Remind me which term, mileage and budget you kept?',

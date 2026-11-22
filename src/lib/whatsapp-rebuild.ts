@@ -3140,8 +3140,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const sameQuestionShape = timingOk && (/[?؟]/u.test(reply) ? /[?؟]/u.test(text) : !/[?؟]/u.test(text) || state.phase === 'service' && !state.serviceReference && (text.match(/[?؟]/gu) ?? []).length === 1
         && /(?:מספר ה?הזמנה|השם ש?על ההזמנה|על איזה שם|booking (?:number|reference)|name on the booking)[^.!?؟]{0,60}[?؟]/iu.test(text));
       const languageOk = state.locale === 'he' ? /[א-ת]/u.test(text) : !/[א-ת]/u.test(text) && /[A-Za-z]/.test(text);
+      // Rewording may improve the voice, but cannot turn an enquiry into a
+      // scheduled viewing or promise an appointment the source did not make.
+      const appointmentPromise = /(?:יתאם|נקבע|קבענו|סגרנו|תואמה|תיאמנו)[^.!?\n]{0,45}(?:פגישה|צפייה|נסיעת מבחן)|(?:appointment|viewing|test drive)[^.!?\n]{0,45}(?:scheduled|booked|arranged)|(?:will|we'll)\s+(?:schedule|book|arrange)[^.!?\n]{0,45}(?:appointment|viewing|test drive)/iu;
+      const commitmentOk = !appointmentPromise.test(text) || appointmentPromise.test(reply);
       if (text && text !== reply && keepsNumbers && sameQuestionShape && languageOk && text.length >= reply.length * 0.5 && text.length <= Math.min(650, reply.length * 1.7 + 40)
-        && !/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/u.test(text) && (reply.includes('₪') || !/₪|ש״ח|NIS/u.test(text))) {
+        && commitmentOk && !/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/u.test(text) && (reply.includes('₪') || !/₪|ש״ח|NIS/u.test(text))) {
         reply = text; model = reworded!.model; draftNotes.push('reworded');
       } else if (store.isSimulation) draftNotes.push(`reword_rejected: ${text.slice(0, 120)}`);
     } catch { /* keep the application wording */ }
