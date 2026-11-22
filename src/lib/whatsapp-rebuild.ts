@@ -2270,7 +2270,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const answersContactPrompt = state.phase === 'explore' && !state.interest && !state.completedRequestId
       && /שמך|השם שלך|על איזה שם|באיזה שם|your (?:full )?name|what name/iu.test(lastBot)
       && (/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}|[^\s@]+@[^\s@]+\.[^\s@]+/u.test(input)
-        || /^[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*[.!]?$/u.test(input))
+        || /^[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*[.!]?$/u.test(input)
+        || /(?:על שם|השם שלי|שמי|קוראים לי|my name is|under the name of?)\s+[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}/iu.test(input))
       && [state.booking.pickupDate || state.booking.returnDate, state.booking.pickupLocation, state.booking.vehicleNeed, state.booking.passengers].filter(Boolean).length >= 2;
     if (answersContactPrompt) {
       state.phase = 'booking';
@@ -3122,6 +3123,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // their own date/route prompts and stay with their dedicated branches.
     // Rental policy facts are not leasing/sale terms.
     const side = sideFact && !state.interest && !(sideFact.topic === 'airport_fee' && airportFeeAsked)
+      && !(sideFact.topic === 'age_licence' && state.step === 'rental_new_driver')
       && (contactTurn || ['driver_documents', 'insurance', 'deposit', 'age_licence', 'fuel', 'mileage'].includes(sideFact.topic)) ? sideFact.reply : undefined;
     if (side && !reply.includes(side.slice(0, 40))) reply = `${side} ${reply}`;
   }

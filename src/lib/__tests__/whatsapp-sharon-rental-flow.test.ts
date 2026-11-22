@@ -23,6 +23,19 @@ function conversation(initial: RebuildState) {
 }
 
 describe('live name-prompt rental dead end', () => {
+  it('accepts a labelled name with licence context after the name prompt and advances to the new-driver question', async () => {
+    const initial = draft([{ from: 'bot', text: 'באיזה שם תרצו שנדאג לפתוח את הבקשה?' }]);
+    initial.booking.driverAgeRange = '21-23';
+    const { send, createRentalRequest } = conversation(initial);
+    const result = await send('על שם נועה בדיקה. אני בן 23, יש לי רישיון כבר שלוש שנים. צריך עוד משהו כדי להעביר את הבקשה?');
+    expect(result.state.booking.customerName).toBe('נועה בדיקה');
+    expect(result.state.phase).toBe('booking');
+    expect(result.state.step).toBe('rental_new_driver');
+    expect(result.reply).toMatch(/נהג חדש/u);
+    expect(result.reply).not.toMatch(/אפשר לשכור מגיל 21/u);
+    expect(createRentalRequest).not.toHaveBeenCalled();
+  });
+
   it('treats a bare name answering the bot as intake and asks only the missing age', async () => {
     const { send } = conversation(draft([{ from: 'bot', text: 'באיזה שם תרצו שהבקשה תהיה רשומה?' }]));
     const result = await send('שרון בדיקה');
