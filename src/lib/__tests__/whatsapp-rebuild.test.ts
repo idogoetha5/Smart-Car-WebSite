@@ -21,7 +21,7 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
-  it('starts a tourist rental request and retains a selected family car without promising it is ready', async () => {
+  it.each(['Can you start the rental request?', 'Please start the rental request.'])('starts a tourist rental request (%s) and retains the selected car', async request => {
     let state: RebuildState | null = {
       version: 2, phase: 'explore', step: 'menu', locale: 'en',
       booking: { pickupDate: '2026-12-12', returnDate: '2026-12-19' },
@@ -34,14 +34,17 @@ describe('replacement SmartCar conversation core', () => {
       isSimulation: true, loadState: async () => state,
       saveState: async (_phone, next) => { state = structuredClone(next); },
       activeBooking: async () => null, createRentalRequest: async () => 'SIM',
-      readTurn: async () => ({ ...base, reply: 'We can certainly have the car ready at Ben Gurion Airport for your dates.' }),
+      readTurn: async () => ({ ...base, reply: request.startsWith('Please')
+        ? 'We will arrange your family car pickup and return at Ben Gurion Airport from December 12 to 19.'
+        : 'We can certainly have the car ready at Ben Gurion Airport for your dates.' }),
     };
-    const result = await getRebuiltBotReply('fictional-tourist', 'No delivery, please. We will pick up at Ben Gurion Airport and return it there. A family car sounds good. Can you start the rental request?', store);
+    const result = await getRebuiltBotReply('fictional-tourist', `No delivery, please. We will pick up at Ben Gurion Airport and return it there. A family car sounds good. ${request}`, store);
     expect(result.state.phase).toBe('booking');
     expect(result.state.booking.vehicleNeed).toBe('family car');
     expect(result.state.booking.pickupLocation).toBe('Ben Gurion Airport');
     expect(result.state.booking.returnLocation).toBe('Ben Gurion Airport');
     expect(result.reply).not.toMatch(/(?:will|can certainly) have .*car ready/i);
+    expect(result.reply).not.toMatch(/will arrange .*car pickup/i);
     expect(result.state.completedRequestId).toBeUndefined();
   });
 

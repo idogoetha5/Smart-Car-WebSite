@@ -13,6 +13,9 @@ describe('output checks for natural conversational drafts', () => {
   ])('rejects an unverified vehicle-ready promise: %s', reply => {
     expect(check(reply, { locale: /[א-ת]/u.test(reply) ? 'he' : 'en' })).toBeNull();
   });
+  it('rejects an unperformed rental arrangement promise', () => {
+    expect(check('We will arrange your family car pickup and return at Ben Gurion Airport from December 12 to 19.')).toBeNull();
+  });
 
   it.each([
     'הפרטים יועברו לטיפול בלי שהשיחה כאן משנה דבר אוטומטית.',
