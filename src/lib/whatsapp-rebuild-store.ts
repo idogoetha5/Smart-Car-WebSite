@@ -34,7 +34,9 @@ async function saveState(phone: string, state: RebuildState): Promise<void> {
 
 async function createRentalRequest(phone: string, state: RebuildState, turn?: PhoneTurn): Promise<string | null> {
   const b = state.booking;
-  if (!state.requestKey || !b.pickupDate || !b.returnDate || !b.pickupLocation || !b.returnLocation || !b.vehicleNeed || !['21-23', '24-plus'].includes(b.driverAgeRange ?? '') || !b.customerName) return null;
+  if (!state.requestKey || !b.pickupDate || !b.returnDate || !b.pickupLocation || !b.returnLocation || !b.vehicleNeed
+    || !b.customerName || !b.driverAgeRange && !b.ageDeferredToRepresentative
+    || b.driverAgeRange && !['21-23', '24-plus'].includes(b.driverAgeRange)) return null;
   const canonical = normalizeWhatsAppPhone(phone);
   if (!canonical) return null;
   const consent = termsConsent(state.locale);
@@ -44,8 +46,8 @@ async function createRentalRequest(phone: string, state: RebuildState, turn?: Ph
     phone: canonical, customer_name: b.customerName, customer_email: b.customerEmail ?? null,
     pickup_date: b.pickupDate, dropoff_date: b.returnDate,
     pickup_location: b.pickupLocation, dropoff_location: b.returnLocation,
-    vehicle_preference: b.vehicleNeed, driver_age_range: b.driverAgeRange,
-    trip_needs: [b.passengers && `${b.passengers} passengers`, b.luggage && `${b.luggage} ${b.luggageSize === 'large' ? 'large ' : ''}luggage`, b.childSeats && `${b.childSeats} child seats`, 'times not given — coordinate with customer'].filter(Boolean).join(', '),
+    vehicle_preference: b.vehicleNeed, driver_age_range: b.driverAgeRange ?? null,
+    trip_needs: [b.passengers && `${b.passengers} passengers`, b.luggage && `${b.luggage} ${b.luggageSize === 'large' ? 'large ' : ''}luggage`, b.childSeats && `${b.childSeats} child seats`, !b.driverAgeRange && 'driver age to verify before confirmation', 'times not given — coordinate with customer'].filter(Boolean).join(', '),
     locale: state.locale, status: 'PENDING', terms_version: consent.version,
     terms_text_hash: consent.hash, terms_accepted_at: new Date().toISOString(), consent_source: 'whatsapp',
   };

@@ -104,11 +104,19 @@ describe('rebuilt rental request persistence', () => {
     expect(db.writes.every(row => !('pickup_time' in row) && !('return_time' in row))).toBe(true);
   });
 
-  it('will not save a request without the required driver age group', async () => {
+  it('saves a pending request with a WhatsApp number and name even when age is not yet known', async () => {
     db.writes.length = 0;
     const missingAge = structuredClone(ready);
     delete missingAge.booking.driverAgeRange;
-    expect(await persistentRebuildStore.createRentalRequest('972501234567', missingAge)).toBeNull();
+    missingAge.booking.ageDeferredToRepresentative = true;
+    missingAge.requestKey = 'a separate request';
+    expect(await persistentRebuildStore.createRentalRequest('972501234567', missingAge)).toBe('42');
+    expect(db.writes[0].driver_age_range).toBeNull();
+    expect(db.writes[0].trip_needs).toContain('driver age to verify');
+    const ordinaryDraft = structuredClone(missingAge);
+    delete ordinaryDraft.booking.ageDeferredToRepresentative;
+    db.writes.length = 0;
+    expect(await persistentRebuildStore.createRentalRequest('972501234567', ordinaryDraft)).toBeNull();
     expect(db.writes).toHaveLength(0);
   });
 });

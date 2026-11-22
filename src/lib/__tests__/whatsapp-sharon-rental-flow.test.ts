@@ -23,13 +23,14 @@ function conversation(initial: RebuildState) {
 }
 
 describe('live name-prompt rental dead end', () => {
-  it('treats a bare name answering the bot as intake and asks only the missing age', async () => {
+  it('treats a bare name answering the bot as intake and shows the consent summary', async () => {
     const { send } = conversation(draft([{ from: 'bot', text: 'באיזה שם תרצו שהבקשה תהיה רשומה?' }]));
     const result = await send('שרון בדיקה');
     expect(result.state.booking.customerName).toBe('שרון בדיקה');
     expect(result.state.phase).toBe('booking');
-    expect(result.state.step).toBe('rental_age');
-    expect(result.reply).toMatch(/גיל|21–23|24/);
+    expect(result.state.step).toBe('rental_confirm');
+    expect(result.reply).toContain('שרון בדיקה');
+    expect(result.reply).not.toContain('גיל הנהג:');
     expect(result.reply).not.toMatch(/משהו נוסף|עוד משהו/);
   });
 
@@ -46,14 +47,9 @@ describe('live name-prompt rental dead end', () => {
     });
     const continued = await send('לא, זה הכל');
     expect(continued.state.booking).toMatchObject({ customerName: 'שרון בדיקה', childSeats: 1 });
-    expect(continued.state.step).toBe('rental_age');
+    expect(continued.state.step).toBe('rental_confirm');
     expect(continued.reply).not.toMatch(/משהו נוסף|עוד משהו/);
-    expect(createRentalRequest).not.toHaveBeenCalled();
-
-    const age = await send('אני בת 35');
-    expect(age.state.step).toBe('rental_confirm');
-    expect(age.reply).toContain('שרון בדיקה');
-    expect(age.reply).toContain('בקשת כיסאות בטיחות: 1');
+    expect(continued.reply).toContain('בקשת כיסאות בטיחות: 1');
     expect(createRentalRequest).not.toHaveBeenCalled();
 
     const confirmed = await send('אני מאשרת');
