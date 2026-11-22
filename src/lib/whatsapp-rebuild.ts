@@ -12,7 +12,7 @@ import { isHypotheticalFactEvidence, isRentalCapacityQuestionEvidence, validateF
 type Locale = 'he' | 'en';
 type Phase = 'explore' | 'booking' | 'service';
 type BookingKey = 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'driverAgeRange' | 'customerName' | 'customerEmail';
-type BookingDraft = Partial<Record<BookingKey, string>> & { passengers?: number; luggage?: number; luggageSize?: 'large'; childSeats?: number; datePreference?: string; ageDeferredToRepresentative?: boolean };
+type BookingDraft = Partial<Record<BookingKey, string>> & { passengers?: number; luggage?: number; luggageSize?: 'large'; childSeats?: number; datePreference?: string };
 type HistoryEntry = { from: 'customer' | 'bot'; text: string; private?: boolean };
 
 export type RebuildState = {
@@ -93,10 +93,7 @@ function fresh(locale: Locale): RebuildState {
 }
 
 function nextMissing(draft: BookingDraft): BookingKey | null {
-  // A customer who answered our name prompt after describing the rental can
-  // send a pending enquiry without another age question. The representative
-  // must verify driver eligibility before confirming any car.
-  return ORDER.find(key => !draft[key] && !(key === 'driverAgeRange' && draft.ageDeferredToRepresentative && draft.customerName)) ?? null;
+  return ORDER.find(key => !draft[key]) ?? null;
 }
 
 function bookingStep(missing: BookingKey | null): RebuildState['step'] {
@@ -1735,8 +1732,8 @@ function summary(state: RebuildState): string {
   const notes = state.locale === 'en'
     ? `${shabbat ? '\nNote: a Saturday pickup or return is arranged in advance and may carry an extra charge.' : ''}${airport ? '\nNote: pickup or return at Ben Gurion Airport carries a surcharge.' : ''}`
     : `${shabbat ? '\nשימו לב: איסוף או החזרה בשבת מתואמים מראש ועשויים להיות כרוכים בתוספת תשלום.' : ''}${airport ? '\nשימו לב: על איסוף או החזרה בנתב״ג יש תוספת.' : ''}`;
-  if (state.locale === 'en') return `Here are your request details:\nVehicle: ${b.vehicleNeed}\n${needs}Dates: ${date(b.pickupDate)}–${date(b.returnDate)}\nPickup: ${b.pickupLocation}\nReturn: ${b.returnLocation}\n${b.driverAgeRange ? `Driver age: ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}\n` : ''}Name: ${b.customerName}${b.customerEmail ? `\nEmail: ${b.customerEmail}` : ''}${notes}\n\nThis request is subject to SmartCar's review and confirmation. Before sending it, please confirm the following statement:\n“${consent.text}”\nTerms: https://www.smartcar.co.il/en/terms\nPrivacy: https://www.smartcar.co.il/en/privacy\nIf everything is correct and you agree, reply “I confirm” to send the request.`;
-  return `אלה פרטי הבקשה שלכם:\nרכב: ${b.vehicleNeed}\n${needs}תאריכים: ${date(b.pickupDate)}–${date(b.returnDate)}\nאיסוף: ${b.pickupLocation}\nהחזרה: ${b.returnLocation}\n${b.driverAgeRange ? `גיל הנהג: ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}\n` : ''}שם: ${b.customerName}${b.customerEmail ? `\nמייל: ${b.customerEmail}` : ''}${notes}\n\nהבקשה תועבר לאישור SmartCar. לפני השליחה, אנא אשרו את ההצהרה:\n״${consent.text}״\nתנאי השימוש: https://www.smartcar.co.il/he/terms\nמדיניות הפרטיות: https://www.smartcar.co.il/he/privacy\nאם הכול נכון ואתם מסכימים, שלחו ״אני מאשר/ת״ כדי לשלוח את הבקשה.`;
+  if (state.locale === 'en') return `Here are your request details:\nVehicle: ${b.vehicleNeed}\n${needs}Dates: ${date(b.pickupDate)}–${date(b.returnDate)}\nPickup: ${b.pickupLocation}\nReturn: ${b.returnLocation}\nDriver age: ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}\nName: ${b.customerName}${b.customerEmail ? `\nEmail: ${b.customerEmail}` : ''}${notes}\n\nThis request is subject to SmartCar's review and confirmation. Before sending it, please confirm the following statement:\n“${consent.text}”\nTerms: https://www.smartcar.co.il/en/terms\nPrivacy: https://www.smartcar.co.il/en/privacy\nIf everything is correct and you agree, reply “I confirm” to send the request.`;
+  return `אלה פרטי הבקשה שלכם:\nרכב: ${b.vehicleNeed}\n${needs}תאריכים: ${date(b.pickupDate)}–${date(b.returnDate)}\nאיסוף: ${b.pickupLocation}\nהחזרה: ${b.returnLocation}\nגיל הנהג: ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}\nשם: ${b.customerName}${b.customerEmail ? `\nמייל: ${b.customerEmail}` : ''}${notes}\n\nהבקשה תועבר לאישור SmartCar. לפני השליחה, אנא אשרו את ההצהרה:\n״${consent.text}״\nתנאי השימוש: https://www.smartcar.co.il/he/terms\nמדיניות הפרטיות: https://www.smartcar.co.il/he/privacy\nאם הכול נכון ואתם מסכימים, שלחו ״אני מאשר/ת״ כדי לשלוח את הבקשה.`;
 }
 
 const RECEIPT_NEED_FIELDS = /child seats?|car seats?|passengers?|bags?|luggage|נוסעים|מזוודות?|כיסא(?:ות)? בטיחות/iu;
@@ -1780,7 +1777,6 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       if (!/^[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*[.!]?$/u.test(candidate)
         || /^(?:אני|אנחנו|לא|כן|תודה|אפשר|מה|איך|רכב|בסדר|סבבה|יאללה|I|we|no|yes|thanks?|please|car)(?:\s|$)/iu.test(candidate)) continue;
       state.booking.customerName = candidate.replace(/[.!]$/u, '');
-      state.booking.ageDeferredToRepresentative = true;
       recent[i + 1].private = true;
       state.phase = 'booking';
       state.requestKey ??= randomUUID();
@@ -2298,7 +2294,6 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const switchesToRental = Boolean(state.interest && explicitBooking(input) && /לשכור|להשכיר|השכרה|rental|rent/i.test(input));
     privateTurn = state.phase === 'booking' && (state.step === 'rental_name' || state.step === 'rental_email');
     const gotPrivate = privateDetail(input, state, (!state.interest || switchesToRental) && explicitBooking(input));
-    if (answersContactPrompt && gotPrivate && state.booking.customerName) state.booking.ageDeferredToRepresentative = true;
     privateTurn ||= gotPrivate;
     if (state.phase !== 'service' && !state.interest) takeSameReturnAfterTwoAsks(input, state);
     const precedingCustomer = [...state.history].reverse().find(entry => entry.from === 'customer')?.text ?? '';
