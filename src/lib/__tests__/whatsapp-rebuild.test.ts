@@ -34,14 +34,14 @@ describe('replacement SmartCar conversation core', () => {
       isSimulation: true, loadState: async () => state,
       saveState: async (_phone, next) => { state = structuredClone(next); },
       activeBooking: async () => null, createRentalRequest: async () => 'SIM',
-      readTurn: async () => ({ ...base, reply: 'We will have your family car ready at Ben Gurion Airport for your dates.' }),
+      readTurn: async () => ({ ...base, reply: 'We can certainly have the car ready at Ben Gurion Airport for your dates.' }),
     };
     const result = await getRebuiltBotReply('fictional-tourist', 'No delivery, please. We will pick up at Ben Gurion Airport and return it there. A family car sounds good. Can you start the rental request?', store);
     expect(result.state.phase).toBe('booking');
     expect(result.state.booking.vehicleNeed).toBe('family car');
     expect(result.state.booking.pickupLocation).toBe('Ben Gurion Airport');
     expect(result.state.booking.returnLocation).toBe('Ben Gurion Airport');
-    expect(result.reply).not.toMatch(/will have .*car ready/i);
+    expect(result.reply).not.toMatch(/(?:will|can certainly) have .*car ready/i);
     expect(result.state.completedRequestId).toBeUndefined();
   });
 

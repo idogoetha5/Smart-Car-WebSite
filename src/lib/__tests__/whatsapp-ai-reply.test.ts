@@ -7,6 +7,7 @@ const check = (reply: string, rest: Partial<ConversationalReplyInput> = {}) => v
 describe('output checks for natural conversational drafts', () => {
   it.each([
     'We will have your family car ready at Ben Gurion Airport for your dates.',
+    'We can certainly have the car ready at Ben Gurion Airport for your dates.',
     'Your car will be ready when you land.',
     'הרכב שלכם יהיה מוכן בנתב״ג.',
   ])('rejects an unverified vehicle-ready promise: %s', reply => {
