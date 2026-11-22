@@ -1671,7 +1671,7 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
     if (email && EMAIL.test(email) && email.length <= 160) { state.booking.customerEmail = email; captured = true; }
   }
   const lastBot = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
-  const askedForName = /שמך|השם שלך|את השם|על איזה שם|שם מלא|your (?:full )?name|what name/iu.test(lastBot);
+  const askedForName = /שמך|השם שלך|את השם|על איזה שם|באיזה שם|שם מלא|your (?:full )?name|what name/iu.test(lastBot);
   const introducedName = state.phase === 'booking' || explicitStart
     ? input.match(/(?:^|[.!,;]\s*)(?:I am|I['’]?m|im)\s+([\p{L}'-]{2,20}(?:\s+[\p{L}'-]{2,20})?)(?=\s*(?:,|$|\s+\d{2}\b|\s+and\b|[.!]))/iu)?.[1]
       ?? hebrewIntroducedName(input)
@@ -1709,7 +1709,7 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
       && !/^(?:I|we|please|actually|no|yes|thanks?|before|after|not|do|don['’]?t|what|how|when|where|why|can|could|should|would|is|are|אני|אנחנו|לא|כן|תודה|בעצם|לפני|אחרי|אפשר|מה|איך|למה|מתי|כמה)(?:\s|$)/iu.test(leading)
       ? leading : '';
     const contactAttached = /(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}|[^\s@]+@[^\s@]+\.[^\s@]+/u.test(input);
-    const answeredNamePrompt = !promptedName && state.phase === 'booking' && askedForName && (contactAttached || /^[\p{L}' -]{3,60}[,،]/u.test(input))
+    const answeredNamePrompt = !promptedName && state.phase === 'booking' && askedForName && (contactAttached || /^[\p{L}' -]{3,60}[,،]/u.test(input) || /^[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*[.!]?$/u.test(input))
       && /^[\p{L}' -]{3,60}$/u.test(leading) && leading.split(/\s+/).length <= 4
       && !/^(?:I|we|please|actually|no|yes|thanks?|before|after|not|do|don['’]?t|what|how|when|where|why|can|could|should|would|is|are|ok|okay|sure|אני|אנחנו|לא|כן|תודה|בעצם|לפני|אחרי|אפשר|מה|איך|למה|מתי|כמה|בסדר|סבבה|יאללה|רגע)(?:\s|$)/iu.test(leading)
       ? leading : '';
@@ -1764,6 +1764,26 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   const turnStartName = stored?.booking?.customerName;
   const turnStartReturn = stored?.booking?.returnDate;
   const state = stored?.version === 2 ? structuredClone(stored) : fresh(language(input, 'he'));
+  // Older live drafts could receive a bare name in answer to a name prompt
+  // while still in explore. Recover that answer once, so the next customer
+  // turn advances to the missing field instead of asking for extras forever.
+  if (state.phase === 'explore' && !state.interest && !state.completedRequestId && !state.booking.customerName
+    && [state.booking.pickupDate || state.booking.returnDate, state.booking.pickupLocation, state.booking.vehicleNeed].filter(Boolean).length >= 2) {
+    const recent = state.history.slice(-10);
+    for (let i = recent.length - 2; i >= 0; i--) {
+      if (recent[i].from !== 'bot' || recent[i + 1].from !== 'customer'
+        || !/באיזה שם|על איזה שם|שמך|השם שלך|what name|your (?:full )?name/iu.test(recent[i].text)) continue;
+      const candidate = recent[i + 1].text.trim();
+      if (!/^[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*[.!]?$/u.test(candidate)
+        || /^(?:אני|אנחנו|לא|כן|תודה|אפשר|מה|איך|רכב|בסדר|סבבה|יאללה|I|we|no|yes|thanks?|please|car)(?:\s|$)/iu.test(candidate)) continue;
+      state.booking.customerName = candidate.replace(/[.!]$/u, '');
+      recent[i + 1].private = true;
+      state.phase = 'booking';
+      state.requestKey ??= randomUUID();
+      state.step = bookingStep(nextMissing(state.booking));
+      break;
+    }
+  }
   // One-time legacy interpretation; ordinary future discussion cannot turn
   // a keyword in history into a selected request on every subsequent turn.
   state.serviceChangeRequested ??= state.phase === 'service'
@@ -2247,12 +2267,14 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // customer supplied it with contact details. That continues the request
     // draft; final consent to send remains a separate step.
     const answersContactPrompt = state.phase === 'explore' && !state.interest && !state.completedRequestId
-      && /שמך|השם שלך|your (?:full )?name/iu.test(lastBot)
-      && /(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}|[^\s@]+@[^\s@]+\.[^\s@]+/u.test(input)
-      && Boolean(state.booking.pickupDate || state.booking.pickupLocation || state.booking.vehicleNeed || state.booking.passengers);
+      && /שמך|השם שלך|על איזה שם|באיזה שם|your (?:full )?name|what name/iu.test(lastBot)
+      && (/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}|[^\s@]+@[^\s@]+\.[^\s@]+/u.test(input)
+        || /^[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*[.!]?$/u.test(input))
+      && [state.booking.pickupDate || state.booking.returnDate, state.booking.pickupLocation, state.booking.vehicleNeed, state.booking.passengers].filter(Boolean).length >= 2;
     if (answersContactPrompt) {
       state.phase = 'booking';
       state.requestKey ??= randomUUID();
+      state.step = 'rental_name';
     }
     // A customer who gives a name (and maybe an age) in the middle of an established rental draft is moving
     // forward, the way "תרשום על שם…" would be at a desk. Continue the request intake; sending still needs consent.
