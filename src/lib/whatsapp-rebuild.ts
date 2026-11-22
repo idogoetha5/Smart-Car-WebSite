@@ -2924,8 +2924,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   if (!escalate && airportFeeAsked && !/כמה|מה הסכום|\bhow much\b/iu.test(input) && !/אתר|website/iu.test(input)) {
     // Fixed wording: the model kept inventing reasons ("depends on the booking", "it varies").
     const fee = getSmartCarApprovedFacts(state.locale).find(fact => fact.id === 'airport_fee')?.text;
+    const asksIncluded = /(?:כלול|included|include).{0,35}(?:מחיר|price)|(?:מחיר|price).{0,35}(?:כלול|included|include)/iu.test(input);
     const next = !state.booking.pickupDate ? (he ? ' לאילו תאריכים תצטרכו את הרכב?' : ' What dates do you need the car for?') : '';
-    if (fee) reply = `${fee}${next}`;
+    if (asksIncluded) reply = he
+      ? `התוספת על נתב״ג היא חיוב נוסף. נציג SmartCar ימסור את המחיר הכולל עם התוספת לפני אישור ההשכרה.${next}`
+      : `The Ben Gurion Airport surcharge is an extra charge. A SmartCar representative will give you the full price including it before the rental is confirmed.${next}`;
+    else if (fee) reply = `${fee}${next}`;
   }
   // Shabbat pickup/return: the published notice, in fixed wording (owner rule: no amount).
   const shabbatAsked = /(?<![\p{L}])(?:ב)?שבת(?![\p{L}])|\bsaturday\b|\bshabbat\b/iu.test(input) && /רכב|לקבל|לאסוף|איסוף|להחזיר|החזרה|מסירה|car|pick|collect|return|drop/iu.test(`${input} ${lastBotForFeeShabbat(state)}`)
@@ -2949,12 +2953,6 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   if (!escalate && asksFeeAmount && !/אתר|website/iu.test(input)) {
     const next = !state.booking.pickupDate ? (he ? ' לאילו תאריכים תצטרכו את הרכב?' : ' What dates do you need the car for?') : '';
     reply = he ? `את סכום התוספת על נתב״ג מוסר נציג SmartCar, יחד עם המחיר המלא של ההשכרה.${next}` : `A SmartCar representative gives you the Ben Gurion surcharge together with the full rental price.${next}`;
-    // The fee override must not erase a second, independent insurance question.
-    if (/ביטוח|כיסוי ביטוחי|insurance|insurance cover/iu.test(input)) {
-      const insurance = getSmartCarServiceAnswer('insurance', state.locale)?.reply
-        .replace(/^(?:שאלה חשובה|Important question)\.\s*/u, '');
-      if (insurance) reply = `${reply} ${insurance}`;
-    }
   }
   // Airport surcharge and the website: mention the website estimate only when the customer asks about it.
   const lastBotText = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
@@ -2966,6 +2964,16 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     && /(?:תוספת|surcharge)/iu.test(reply) && !/אתר|website/iu.test(reply)) {
     reply = `${reply.trim()} ${he ? 'התוספת הזו לא כלולה במחיר המשוער שמופיע באתר.' : 'This surcharge is not included in the estimate shown on the website.'}`;
   }
+  // Airport-fee policy wording has several paths. None should erase a second
+  // insurance question or the consent summary once all rental fields are known.
+  if (!escalate && airportFeeAsked && /ביטוח|כיסוי ביטוחי|insurance|insurance cover/iu.test(input)
+    && !/בכל השכרה כלול כיסוי בסיסי|Every rental includes basic cover/iu.test(reply)) {
+    const insurance = getSmartCarServiceAnswer('insurance', state.locale)?.reply
+      .replace(/^(?:שאלה חשובה|Important question)\.\s*/u, '');
+    if (insurance) reply = `${reply.trim()} ${insurance}`;
+  }
+  if (!escalate && airportFeeAsked && state.phase === 'booking' && state.step === 'rental_confirm' && !state.completedRequestId
+    && !/הנה פרטי הבקשה|Here are your request details/iu.test(reply)) reply = `${reply.trim()}\n\n${summary(state)}`;
   // A late flight at the airport: answer that part too, without promising the car will wait.
   if (!escalate && /\b(?:flight|plane)\b.{0,30}\b(?:late|delayed|delay)\b|\b(?:late|delayed) (?:flight|landing)|הטיסה.{0,20}(?:מתעכבת|תתעכב|מאחרת|תאחר|מתאחרת)|עיכוב (?:ב)?טיסה/iu.test(input)
     && !/delay|late|מתעכב|עיכוב|מאחר/iu.test(reply)) {

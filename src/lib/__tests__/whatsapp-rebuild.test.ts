@@ -62,11 +62,37 @@ describe('replacement SmartCar conversation core', () => {
       readTurn: async () => ({ ...base, reply: 'A representative will provide the final price.' }),
     };
     const result = await getRebuiltBotReply('fictional-tourist', 'Before I confirm, how much is the airport surcharge and does the rental include insurance?', store);
-    expect(result.reply).toMatch(/Ben Gurion surcharge/);
+    expect(result.reply).toMatch(/Ben Gurion.*surcharge/);
     expect(result.reply).toMatch(/Every rental includes basic cover/);
     expect(result.reply).toMatch(/excess/);
     expect(result.state.booking.customerName).toBe('Laura Bennett');
     expect(result.state.step).toBe('rental_confirm');
+    expect(result.state.completedRequestId).toBeUndefined();
+  });
+
+  it('keeps the consent summary after a name, age, airport-fee and insurance answer in one turn', async () => {
+    let state: RebuildState | null = {
+      version: 2, phase: 'booking', step: 'rental_age', locale: 'en',
+      booking: {
+        pickupDate: '2026-12-12', returnDate: '2026-12-19', pickupLocation: 'Ben Gurion Airport',
+        returnLocation: 'Ben Gurion Airport', vehicleNeed: 'family car',
+      },
+      history: [{ from: 'bot', text: 'There is a surcharge at Ben Gurion Airport. How old is the driver?' }],
+    };
+    const store: RebuildStore = {
+      isSimulation: true, loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null, createRentalRequest: async () => 'SIM',
+      readTurn: async () => ({ ...base, reply: 'The airport fee depends on the request.' }),
+    };
+    const result = await getRebuiltBotReply('fictional-tourist', 'I am 34. The rental should be under Laura Bennett. Is the airport surcharge already included in the price, and what insurance comes with the car?', store);
+    expect(result.state.booking.customerName).toBe('Laura Bennett');
+    expect(result.state.booking.driverAgeRange).toBe('24-plus');
+    expect(result.reply).toMatch(/Ben Gurion.*surcharge/);
+    expect(result.reply).toMatch(/full price including it/);
+    expect(result.reply).toMatch(/Every rental includes basic cover/);
+    expect(result.reply).toMatch(/Here are your request details/);
+    expect(result.reply).toMatch(/reply “I confirm”/);
     expect(result.state.completedRequestId).toBeUndefined();
   });
 
