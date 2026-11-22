@@ -715,6 +715,11 @@ function affirms(input: string): boolean {
   return /^(?:כן(?:\s+כן)?|נו\s*כן|אני\s+מאשר(?:ת)?|מאשר(?:ת)?|יאללה|בטח|סבבה|מעולה|אפשר|yes|yeah|sure|go ahead)(?:[,\s]+(?:בבקשה|תודה|תתקדמו|נתקדם|קדימה|תתחילו|תעבירו|please|go ahead|let'?s proceed))*[!?.\s]*$/i.test(input);
 }
 
+// Customers often accept a direct offer and ask about its terms in the same message.
+function acceptsHumanOffer(input: string): boolean {
+  return affirms(input) || /^(?:כן|בטח|סבבה|יאללה|yes|yeah|sure|ok(?:ay)?)(?=[\s,.!]|$)/iu.test(input.trim());
+}
+
 function declinesHumanHandoff(input: string): boolean {
   return /אל תתקשרו|אל תתקשר|אל תחזרו אלי|לא לחזור אלי|(?:לא רוצה|לא רוצים|לא צריך|לא צריכים|עדיין לא).{0,45}(?:שיחזרו|תחזרו|שיתקשרו|תתקשרו)|אל תעביר|לא להעביר|אל תשלח|לא לשלוח|(?:do not|don['’]?t)\s+(?:pass|send|contact|call)\b|(?:לא רוצה|לא רוצים|לא מוכן|לא מוכנה|לא מוכנים|לא עכשיו|עדיין לא|בלי|לא צריך|לא צריכה|לא צריכים|אין צורך|אין לי צורך).{0,45}(?:נציג|בן אדם|לדבר)|(?:not ready|do not want|don['’]?t want|do not need|don['’]?t need|not yet|no need).{0,60}(?:representative|human|person|call)|\bno\s+(?:representative|human|person|callback|call)\b|(?:representative|human|person).{0,25}(?:not yet|later)|נציג.{0,15}לא עכשיו/i.test(input);
 }
@@ -2395,7 +2400,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // callback request or acceptance of a preceding representative invitation.
     const modelHumanConsent = !declinesHuman
       && (reading?.route === 'human' && /call (?:me|us) back|תחזרו אלי|שיחזרו אלי/i.test(input)
-        || affirms(input) && offersHumanHandoff(lastBot));
+        || acceptsHumanOffer(input) && offersHumanHandoff(lastBot));
     const clearlyRental = /לשכור|להשכיר|השכרה|rental|rent/i.test(input);
     const leaveVehicleOpen = /(?:leave|keep).{0,30}(?:vehicle|car).{0,30}(?:open|undecided)|(?:not|don'?t).{0,30}(?:choose|decide).{0,30}(?:vehicle|car)|לא (?:בחרתי|בחרנו|החלטתי|החלטנו).{0,20}(?:סוג|קבוצת).{0,8}רכב/iu.test(input);
     const wantsToContinueRental = !state.interest && (/^(?:אני רוצה להתקדם|רוצה להתקדם|בוא(?:ו)? נתקדם|I want to proceed|let'?s continue)[.!\s]*$/i.test(input)
@@ -2613,8 +2618,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else if (modelHumanConsent || asksHuman) {
       state.humanHandoffDeferred = false;
       state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString(); state.handoffKind = state.interest ? 'commercial' : 'human'; escalate = true;
+      const leasingTerms = state.interest === 'leasing' && /מקדמה|מה כלול|תשלום חודשי|down.?payment|deposit|included|monthly payment/iu.test(input)
+        ? (he ? ' בהצעה יובהרו גם המקדמה, אם יש, ומה כלול בתשלום החודשי.' : ' The proposal will also clarify any down payment and what the monthly payment includes.')
+        : '';
       reply = state.interest
-        ? (he ? `בשמחה, נציג SmartCar יחזור אליכם לגבי ${state.interest === 'sale' ? 'רכישת הרכב' : 'הליסינג'}. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up about your ${state.interest === 'sale' ? 'car purchase' : 'leasing'} enquiry. You can also call ${OFFICE_PHONE}.`)
+        ? (he ? `בשמחה, נציג SmartCar יחזור אליכם לגבי ${state.interest === 'sale' ? 'רכישת הרכב' : 'הליסינג'}.${leasingTerms} אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up about your ${state.interest === 'sale' ? 'car purchase' : 'leasing'} enquiry.${leasingTerms} You can also call ${OFFICE_PHONE}.`)
         : (he ? `בשמחה, נציג SmartCar יחזור אליכם. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up. You can also call ${OFFICE_PHONE}.`);
     } else if (state.phase === 'service' || reading?.route === 'service' || state.phase !== 'booking' && Boolean(explicitServiceReference(input)) || /הזמנה קיימת|ההזמנה שלי|שכרתי|existing booking|my booking|I rented|יש לי (?:כבר )?הזמנה|הזמנתי (?:אצלכם|מכם|רכב)|\bI (?:have|made) a (?:booking|reservation)\b|\bI booked\b|\bmy (?:car |rental )?(?:booking|reservation)\b|אני עם (?:ה)?רכב (?:שלכם|שלקחתי)|הרכב שלכם (?:אצלי|איתי)|(?:לקחתי|אספתי) (?:מכם|אצלכם) רכב|\bI (?:have|got) (?:your|a) (?:car|rental) (?:from you|right now|now)\b|\bI(?:'m| am) (?:in|driving) your car\b/i.test(input)) {
       state.phase = 'service';

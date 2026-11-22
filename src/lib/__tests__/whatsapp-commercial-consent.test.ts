@@ -12,6 +12,45 @@ function conversation() {
 }
 
 describe('commercial advice before handoff', () => {
+  it('hands off a leasing enquiry when acceptance includes questions about the proposal', async () => {
+    let state: RebuildState | null = {
+      version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, interest: 'leasing',
+      commercial: { termMonths: 24, annualMileageKm: 20000, vehiclePreference: 'family' },
+      history: [
+        { from: 'customer', text: 'מחפש ליסינג לרכב משפחתי לשנתיים, 20 אלף ק״מ בשנה' },
+        { from: 'bot', text: 'האם תרצו שנחבר אתכם עם נציג לבחינת ההצעה?' },
+      ],
+    };
+    const store: RebuildStore = {
+      isSimulation: true, loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null, createRentalRequest: async () => 'SIM',
+      readTurn: async () => ({ route: 'human', direction: 'none', reply: 'נציג SmartCar יסגור איתכם את כל הפרטים.', fields: {}, source: 'gemini', model: 'test-model' }),
+    };
+    const accepted = await getRebuiltBotReply('fictional', 'כן, אשמח שתכינו הצעה מסודרת. יש מקדמה? ומה כלול בתשלום החודשי?', store);
+    expect(accepted.escalate).toBe(true);
+    expect(accepted.state.handedOff).toBe(true);
+    expect(accepted.state.handoffKind).toBe('commercial');
+    expect(accepted.reply).toMatch(/מקדמה/);
+    expect(accepted.reply).toMatch(/מה כלול/);
+  });
+
+  it('does not hand off when a leading yes explicitly declines the representative', async () => {
+    let state: RebuildState | null = {
+      version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, interest: 'leasing',
+      history: [{ from: 'bot', text: 'האם תרצו שנחבר אתכם עם נציג לבחינת ההצעה?' }],
+    };
+    const store: RebuildStore = {
+      isSimulation: true, loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null, createRentalRequest: async () => 'SIM',
+      readTurn: async () => ({ route: 'human', direction: 'none', reply: 'נציג יחזור אליכם.', fields: {}, source: 'gemini', model: 'test-model' }),
+    };
+    const declined = await getRebuiltBotReply('fictional', 'כן, אבל אל תעבירו אותי לנציג עדיין. קודם מה כלול?', store);
+    expect(declined.escalate).toBe(false);
+    expect(declined.state.handedOff).not.toBe(true);
+  });
+
   it('continues leasing quote questions and indecision until explicit handoff consent', async () => {
     const send = conversation();
     await send('I am interested in leasing for two years.');
