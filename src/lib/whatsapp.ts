@@ -1,4 +1,5 @@
 import { normalizeWhatsAppPhone } from '@/lib/rental-quote';
+import { quickStartListForGreeting } from '@/lib/whatsapp-quick-start';
 
 /**
  * Provider transport is selected at deployment time. YCloud Coexistence is
@@ -73,14 +74,14 @@ async function sendYCloud(recipient: string, body: string): Promise<SendWhatsApp
   if (!apiKey) throw new Error('[whatsapp] WHATSAPP_YCLOUD_API_KEY is not configured');
   if (!sender) throw new Error('[whatsapp] WHATSAPP_BUSINESS_PHONE is not configured');
 
+  const quickStart = quickStartListForGreeting(body);
   return providerRequest('https://api.ycloud.com/v2/whatsapp/messages/sendDirectly', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
     body: JSON.stringify({
       from: `+${sender}`,
       to: `+${recipient}`,
-      type: 'text',
-      text: { body },
+      ...(quickStart ? { type: 'interactive', interactive: quickStart } : { type: 'text', text: { body } }),
     }),
   }, data => {
     const value = data as { id?: unknown; wamid?: unknown } | null;

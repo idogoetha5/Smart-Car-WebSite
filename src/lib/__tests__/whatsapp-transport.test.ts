@@ -91,6 +91,22 @@ describe('YCloud WhatsApp transport', () => {
     );
   });
 
+  it('sends selectable topics only for a greeting', async () => {
+    configure();
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ wamid: 'wamid.menu' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await sendWhatsAppMessage('972501234567', 'היי 🙂 מה נשמע? איך אפשר לעזור לך היום?');
+    const menu = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(menu.type).toBe('interactive');
+    expect(menu.interactive.action.sections[0].rows.map((row: { title: string }) => row.title)).toEqual([
+      'השכרת רכב', 'הזמנה קיימת', 'ליסינג', 'רכישת רכב', 'עזרה בדרך', 'English',
+    ]);
+    await sendWhatsAppMessage('972501234567', 'היי שוב 🙂 מה תרצה לבדוק?');
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).type).toBe('interactive');
+    await sendWhatsAppMessage('972501234567', 'לאיזה תאריכים תרצו את הרכב?');
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toMatchObject({ type: 'text' });
+  });
+
   it('does not send when the YCloud business number is missing', async () => {
     process.env.WHATSAPP_TRANSPORT = 'ycloud';
     process.env.WHATSAPP_YCLOUD_API_KEY = 'local-test-key';

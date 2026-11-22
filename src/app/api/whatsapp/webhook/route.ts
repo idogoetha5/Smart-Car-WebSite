@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { OFFICE_PHONE } from '@/lib/constants';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { sendWhatsAppMessage, normalizeWhatsAppSender } from '@/lib/whatsapp';
+import { quickStartMessageFromReply } from '@/lib/whatsapp-quick-start';
 import { logWhatsAppMessage, isConversationSilenced } from '@/lib/whatsapp-conversations';
 import { getRebuiltBotReply, isRebuiltSafetyMessage } from '@/lib/whatsapp-rebuild';
 import { createPersistentRebuildStore } from '@/lib/whatsapp-rebuild-store';
@@ -41,6 +42,7 @@ interface InboundMessage {
   to?: string;
   id?: string;
   text?: { body?: string };
+  interactive?: { type?: string; list_reply?: { id?: string } };
   type?: string;
   groupId?: string;
 }
@@ -66,7 +68,10 @@ function extractChanges(payload: unknown): WebhookChange[] {
 }
 
 function messageBody(msg: InboundMessage): string {
-  return msg.text?.body?.trim() || '[הודעה לא טקסטואלית]';
+  return msg.text?.body?.trim()
+    || (msg.type === 'interactive' && msg.interactive?.type === 'list_reply'
+      ? quickStartMessageFromReply(msg.interactive.list_reply?.id) : null)
+    || '[הודעה לא טקסטואלית]';
 }
 
 function hexDecode(hex: string): ArrayBuffer {
@@ -181,7 +186,9 @@ async function handleCustomerMessage(msg: InboundMessage, botEnabled: boolean) {
   }
 
   const messageId = msg.id;
-  const textMessage = (!msg.type || msg.type === 'text') && Boolean(msg.text?.body?.trim());
+  const textMessage = ((!msg.type || msg.type === 'text') && Boolean(msg.text?.body?.trim()))
+    || (msg.type === 'interactive' && msg.interactive?.type === 'list_reply'
+      && Boolean(quickStartMessageFromReply(msg.interactive.list_reply?.id)));
   // Only original trusted inbound text can invoke safety priority. An old
   // escalation flag never bypasses uncertainty or a representative's reply.
   const isEmergency = textMessage && isRebuiltSafetyMessage(body);

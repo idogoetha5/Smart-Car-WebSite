@@ -737,6 +737,7 @@ function carryCommercialRentalNeeds(state: RebuildState): void {
 }
 
 function offersRentalRequest(reply: string): boolean {
+  if (/(?:האם|תרצ(?:ה|ו))[^?؟]{0,65}(?:נתקדם|להתקדם)[^?؟]{0,55}(?:להשכרה|עם (?:ה)?(?:רכב|קומפקטי|משפחתי))[^?؟]*[?؟]/iu.test(reply)) return true;
   if (/(?:would you like|shall (?:we|I)|do you want|want (?:me|us) to)[^?]{0,40}\b(?:price )?(?:quote|offer)\b[^?]{0,60}\?|(?:תרצ(?:ה|ו)|האם (?:תרצ(?:ה|ו)|נכין))[^?؟]{0,40}הצע(?:ת|ה)[^?؟]{0,60}[?؟]/iu.test(reply)) return true;
   // Reserve/hold wording is still only an invitation to prepare a request.
   if (/(?:האם|תרצ(?:ה|ו)|שנ)?\s*(?:נשריין|לשריין|שנשריין)[^?؟]{0,80}[?؟]|\b(?:shall|should|can) (?:we|I) (?:reserve|hold|book)\b[^?]{0,80}\?|\bwould you like (?:us|me) to (?:reserve|hold|book)\b[^?]{0,80}\?/iu.test(reply)) return true;

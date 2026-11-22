@@ -24,6 +24,19 @@ describe('natural acceptance with contact details after a rental invitation', ()
     expect(result.escalate).toBe(false);
     expect(result.state.history.at(-2)?.private).toBe(true);
   });
+  it('starts intake after yes to a suggested compact rental and keeps the name on the next turn', async () => {
+    const c = chat('he', 'רכב קומפקטי הוא אפשרות נוחה ליחיד. האם נתקדם עם הקומפקטי להשכרה מהרצליה עד יום שלישי?', {
+      pickupDate: '2026-12-01', returnDate: '2026-12-03', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב קומפקטי', driverAgeRange: '24-plus',
+    });
+    const accepted = await c.send('כן');
+    expect(accepted.state.phase).toBe('booking');
+    const named = await c.send('דניאל נרדאה');
+    expect(named.state.phase).toBe('booking');
+    expect(named.state.booking.customerName).toBe('דניאל נרדאה');
+    expect(named.reply).not.toMatch(/תרצו (?:שנתחיל|שנפתח)|האם נתקדם/);
+    expect(c.create).not.toHaveBeenCalled();
+  });
+
   it.each(['כן אבל עדיין לא להתחיל בקשה. רק רוצה לברר מחיר.', "Yes, but don't start a request yet."])('does not override a refusal: %s', async input => {
     const c = chat('he', heOffer);
     expect((await c.send(input)).state.phase).not.toBe('booking');

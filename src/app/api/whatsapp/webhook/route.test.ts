@@ -342,6 +342,20 @@ describe('local WhatsApp webhook boundary', () => {
     }));
   });
 
+  it('treats a signed list selection as the matching demo topic', async () => {
+    process.env.WHATSAPP_TRANSPORT = 'ycloud';
+    process.env.WHATSAPP_YCLOUD_WEBHOOK_SECRET = 'local-ycloud-secret';
+    const selected = JSON.stringify({
+      id: 'evt-list-1', type: 'whatsapp.inbound_message.received',
+      whatsappInboundMessage: {
+        wamid: 'wamid.list-1', from: '+972501234567', type: 'interactive',
+        interactive: { type: 'list_reply', list_reply: { id: 'smartcar_he_rental', title: 'השכרת רכב' } },
+      },
+    });
+    expect((await POST(ycloudRequest(selected))).status).toBe(200);
+    expect(mocks.flow).toHaveBeenCalledWith('972501234567', 'אני רוצה לשכור רכב', expect.any(Object));
+  });
+
   it('ignores a signed YCloud group message', async () => {
     process.env.WHATSAPP_TRANSPORT = 'ycloud';
     process.env.WHATSAPP_YCLOUD_WEBHOOK_SECRET = 'local-ycloud-secret';
