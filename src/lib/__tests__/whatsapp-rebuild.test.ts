@@ -21,6 +21,31 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('answers both airport surcharge and insurance before a tourist confirms a ready rental request', async () => {
+    let state: RebuildState | null = {
+      version: 2, phase: 'booking', step: 'rental_confirm', locale: 'en',
+      booking: {
+        pickupDate: '2026-12-12', returnDate: '2026-12-19', pickupLocation: 'Ben Gurion Airport',
+        returnLocation: 'Ben Gurion Airport', vehicleNeed: 'family car', driverAgeRange: '24-plus',
+        customerName: 'Laura Bennett', passengers: 2, luggage: 2,
+      },
+      history: [{ from: 'bot', text: 'Note: pickup or return at Ben Gurion Airport carries a surcharge. Reply “I confirm” to send the request.' }],
+    };
+    const store: RebuildStore = {
+      isSimulation: true, loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null, createRentalRequest: async () => 'SIM',
+      readTurn: async () => ({ ...base, reply: 'A representative will provide the final price.' }),
+    };
+    const result = await getRebuiltBotReply('fictional-tourist', 'Before I confirm, how much is the airport surcharge and does the rental include insurance?', store);
+    expect(result.reply).toMatch(/Ben Gurion surcharge/);
+    expect(result.reply).toMatch(/Every rental includes basic cover/);
+    expect(result.reply).toMatch(/excess/);
+    expect(result.state.booking.customerName).toBe('Laura Bennett');
+    expect(result.state.step).toBe('rental_confirm');
+    expect(result.state.completedRequestId).toBeUndefined();
+  });
+
   it('pauses unknown English dates and never loops after the customer asks it to stop', async () => {
     const chat = memory(() => null);
     await chat.send('We are two adults with a baby. I do not know the dates yet.');

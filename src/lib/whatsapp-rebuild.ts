@@ -2947,6 +2947,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   if (!escalate && asksFeeAmount && !/אתר|website/iu.test(input)) {
     const next = !state.booking.pickupDate ? (he ? ' לאילו תאריכים תצטרכו את הרכב?' : ' What dates do you need the car for?') : '';
     reply = he ? `את סכום התוספת על נתב״ג מוסר נציג SmartCar, יחד עם המחיר המלא של ההשכרה.${next}` : `A SmartCar representative gives you the Ben Gurion surcharge together with the full rental price.${next}`;
+    // The fee override must not erase a second, independent insurance question.
+    if (/ביטוח|כיסוי ביטוחי|insurance|insurance cover/iu.test(input)) {
+      const insurance = getSmartCarServiceAnswer('insurance', state.locale)?.reply
+        .replace(/^(?:שאלה חשובה|Important question)\.\s*/u, '');
+      if (insurance) reply = `${reply} ${insurance}`;
+    }
   }
   // Airport surcharge and the website: mention the website estimate only when the customer asks about it.
   const lastBotText = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
