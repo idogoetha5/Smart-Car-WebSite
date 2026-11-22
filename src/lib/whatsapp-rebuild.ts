@@ -18,7 +18,7 @@ type HistoryEntry = { from: 'customer' | 'bot'; text: string; private?: boolean 
 export type RebuildState = {
   version: 2;
   phase: Phase;
-  step: 'menu' | 'rental_dates' | 'rental_locations' | 'rental_vehicle' | 'rental_age' | 'rental_name' | 'rental_email' | 'rental_confirm';
+  step: 'menu' | 'rental_dates' | 'rental_locations' | 'rental_vehicle' | 'rental_age' | 'rental_name' | 'rental_email' | 'rental_new_driver' | 'rental_confirm';
   locale: Locale;
   /** Display name supplied by the signed WhatsApp provider webhook. */
   whatsappProfileName?: string;
@@ -39,6 +39,7 @@ export type RebuildState = {
   completedRental?: Pick<BookingDraft, 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'passengers' | 'luggage' | 'childSeats'>;
   durationClarification?: boolean;
   humanHandoffDeferred?: boolean;
+  newDriverStatus?: 'yes' | 'no';
 };
 
 export type RebuildResult = { reply: string; state: RebuildState; escalate?: boolean; source: 'gemini' | 'local' | 'safety'; model?: string; notes?: string[] };
@@ -2531,6 +2532,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else if (/את[ה]? סוגר(?:ת)? לי רכב|סוגר(?:ת)? לי (?:את ה)?רכב|האם (?:זה|הרכב) (?:כבר )?סגור|are you booking (?:me |the )?(?:a )?car|is (?:the )?car booked/i.test(input)) {
       reply = he ? 'אפשר להכין בקשת השכרה עם הפרטים שלך. הרכב והמחיר יאושרו לפני שההזמנה תהיה סופית. תרצה שנתקדם לבקשה?' : 'We can prepare a rental request with your details. The car and price are confirmed before the booking becomes final. Would you like to proceed with the request?';
     } else if (wantsBooking) {
+      const answeringNewDriver = state.step === 'rental_new_driver';
+      if (state.booking.driverAgeRange === '21-23') {
+        if (/(?:לא (?:נהג|נהגת) חדש(?:ה)?|not a new driver|experienced driver)/iu.test(input)
+          || answeringNewDriver && /^(?:לא|no|nope)(?:[.!,\s]|$)/iu.test(input)) state.newDriverStatus = 'no';
+        else if (/(?:אני|הנהג(?:ת)?|i am|i'm)\s+(?:נהג חדש|נהגת חדשה|a new driver)/iu.test(input)
+          || answeringNewDriver && /^(?:כן|yes|yep)(?:[.!,\s]|$)/iu.test(input)) state.newDriverStatus = 'yes';
+      } else if (state.booking.driverAgeRange === '24-plus') state.newDriverStatus = undefined;
       if (state.phase !== 'booking') state.serviceChangeRequested = false;
       state.phase = 'booking';
       state.interest = undefined;
@@ -2549,7 +2557,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         && /קומפקט|קטן|compact|small car/i.test(lastBot);
       const asksModelGuarantee = /דגם מדויק|דגם מסוים|דגם ספציפי|הדגם (?:המדויק|המסוים|הספציפי)|רק (?:ה)?(?:קבוצה|קטגוריה)|exact model|specific model|particular model|car group|vehicle group|just (?:the |a )?(?:group|category)/i.test(input)
         && /מובטח|מבטיח|הבטחה|בוודאות|guarantee|guaranteed|only|just (?:the |a )?(?:group|category)|רק (?:ה)?(?:קבוצה|קטגוריה)/i.test(input);
-      if (asksModelGuarantee) {
+      if (state.booking.driverAgeRange === '21-23' && state.newDriverStatus === 'yes') {
+        state.phase = 'explore'; state.step = 'menu';
+        reply = he ? 'לצערנו, אין לנו רכבים זמינים לנהגים חדשים בתאריכים שביקשתם.' : 'Sorry, we do not have cars available for new drivers on the dates you requested.';
+      } else if (state.booking.driverAgeRange === '21-23' && !state.newDriverStatus && !missing) {
+        state.step = 'rental_new_driver';
+        reply = he ? 'האם הנהג הוא נהג חדש?' : 'Is the driver a new driver?';
+      } else if (asksModelGuarantee) {
         reply = `${he ? 'סוג הרכב או הדגם המועדף נרשמים כבקשה. דגם מסוים אינו מובטח אלא אם SmartCar מאשרת אותו במפורש; את הרכב, הזמינות והתנאים נוודא לפני אישור ההשכרה.' : 'The vehicle group or preferred model is recorded as a request. An exact model is not guaranteed unless SmartCar explicitly confirms it; the car, availability and terms will be checked before rental confirmation.'} ${missing ? question(missing, state.locale) : summary(state)}`;
       } else if (openVehicleChoice) {
         state.booking.vehicleNeed = he ? `רכב לנוסע אחד; סוג הרכב ייקבע לפי התאמה` : 'car for one person; vehicle group to be matched';
@@ -3166,8 +3180,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       // scheduled viewing or promise an appointment the source did not make.
       const appointmentPromise = /(?:יתאם|נקבע|קבענו|סגרנו|תואמה|תיאמנו)[^.!?\n]{0,45}(?:פגישה|צפייה|נסיעת מבחן)|(?:appointment|viewing|test drive)[^.!?\n]{0,45}(?:scheduled|booked|arranged)|(?:will|we'll)\s+(?:schedule|book|arrange)[^.!?\n]{0,45}(?:appointment|viewing|test drive)/iu;
       const commitmentOk = !appointmentPromise.test(text) || appointmentPromise.test(reply);
+      const newDriverMeaningOk = state.newDriverStatus !== 'yes' || !/new drivers|נהגים חדשים/u.test(reply)
+        || (state.locale === 'he'
+          ? /(?:אין|לא (?:קיימים|זמינים|נוכל (?:להציע|לספק)))[^.!?؟\n]{0,90}(?:רכב|רכבים|מכוניות)[^.!?؟\n]{0,90}(?:נהג(?:ים|ות)? חדש|חדש(?:ים|ות)?)/u.test(text) && /תאריכ|מועדי/u.test(text)
+          : /(?:no|not|unavailable)[^.!?\n]{0,90}(?:car|vehicle)[^.!?\n]{0,90}new driver/i.test(text) && /date/i.test(text));
       if (text && text !== reply && keepsNumbers && sameQuestionShape && languageOk && text.length >= reply.length * 0.5 && text.length <= Math.min(650, reply.length * 1.7 + 40)
-        && commitmentOk && !/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/u.test(text) && (reply.includes('₪') || !/₪|ש״ח|NIS/u.test(text))) {
+        && commitmentOk && newDriverMeaningOk && !/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/u.test(text) && (reply.includes('₪') || !/₪|ש״ח|NIS/u.test(text))) {
         reply = text; model = reworded!.model; draftNotes.push('reworded');
       } else if (store.isSimulation) draftNotes.push(`reword_rejected: ${text.slice(0, 120)}`);
     } catch { /* keep the application wording */ }

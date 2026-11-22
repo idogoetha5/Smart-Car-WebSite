@@ -57,6 +57,7 @@ async function completeRental(chat: ReturnType<typeof conversation>, english: bo
     else if (!draft.vehicleNeed) await chat.send(english ? 'A small car' : 'רכב קטן');
     else if (!draft.driverAgeRange) await chat.send(age);
     else if (!draft.customerName) await chat.send(english ? 'Noa Cohen' : 'נועה כהן');
+    else if (state!.step === 'rental_new_driver') await chat.send(english ? 'No, I am not a new driver' : 'לא, אני לא נהג חדש');
   }
   expect(chat.state()?.step).toBe('rental_confirm');
   const summary = chat.turns.at(-1)!.result.reply;
@@ -861,6 +862,7 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(repeatedAge.reply).toContain('שם');
     await chat.send('איתן לוי');
     await chat.send('eitan@example.invalid');
+    await chat.send('לא, אני לא נהג חדש');
     const finish = await chat.send('אני מאשר');
     expect(finish.state.completedRequestId).toBeDefined();
     expect(chat.requests()).toBe(1);

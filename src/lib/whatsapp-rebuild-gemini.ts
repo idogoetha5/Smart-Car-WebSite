@@ -37,7 +37,7 @@ export type GeminiBotContext = {
     interest?: 'leasing' | 'sale';
     handoffDeferred?: boolean;
     nextMissingField?: 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'driverAgeRange' | 'customerName' | 'customerEmail';
-    step?: 'menu' | 'rental_dates' | 'rental_locations' | 'rental_vehicle' | 'rental_age' | 'rental_name' | 'rental_email' | 'rental_confirm';
+    step?: 'menu' | 'rental_dates' | 'rental_locations' | 'rental_vehicle' | 'rental_age' | 'rental_name' | 'rental_email' | 'rental_new_driver' | 'rental_confirm';
     completedRequest?: boolean;
     hasServiceReference?: boolean;
   };

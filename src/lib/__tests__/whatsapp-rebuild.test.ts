@@ -1188,8 +1188,11 @@ describe('replacement SmartCar conversation core', () => {
     const calls = chat.readTurn.mock.calls.length;
     await chat.send('21–23');
     await chat.send('דניאל כהן');
-    await chat.send('daniel@example.com');
     expect(chat.readTurn).toHaveBeenCalledTimes(calls);
+    await chat.send('לא, אני לא נהג חדש');
+    const afterEligibility = chat.readTurn.mock.calls.length;
+    await chat.send('daniel@example.com');
+    expect(chat.readTurn).toHaveBeenCalledTimes(afterEligibility);
     } finally { vi.useRealTimers(); }
   });
 

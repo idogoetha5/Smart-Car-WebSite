@@ -24,9 +24,9 @@ const rentals = [
   ], confirm: 'אני מאשרת', recall: 'איזה תאריך ועיר החזרה שמרת וכמה נוסעים, מזוודות וכיסאות בטיחות?', pickup: 'ירושלים', ret: 'הרצליה', date: '2026-12-15' },
   { locale: 'en', turns: [
     'Hi, I am 22 and travelling with my partner and one small bag. We are comparing a compact and family car for city driving, not booking yet.',
-    'I have held a full licence for 18 months. Am I eligible, and is there a young driver charge or deposit? No callback yet.',
+    'I have held a full licence for three years. Am I eligible, and is there a young driver charge or deposit? No callback yet.',
     'I want to rent a compact car. Pickup in Herzliya on 5 December 2026 and return in Tel Aviv on 9 December 2026, two passengers and one bag.',
-    'My name is Alex Demo, no email please. Actually I prefer a family car instead, and return on 10 December, not the 9th. Keep the same pickup.',
+    'My name is Alex Demo, no email please. I am not a new driver. Actually I prefer a family car instead, and return on 10 December, not the 9th. Keep the same pickup.',
     'What about insurance and zero excess? Do not send the request yet.',
     'A friend is joining, so three passengers and two bags, no child seat. Is that guaranteed to fit every family car?',
     'Please recap the details before sending. Is a car already confirmed?',
