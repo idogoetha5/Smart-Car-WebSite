@@ -1,5 +1,12 @@
 # WhatsApp Bot Status & Handover
 
+## 22 Nov 2026 — live channel connected, outbound delivery failed
+
+- Daniel linked the existing Smart Car number to YCloud Coexistence. Vercel Production has the YCloud transport, API key, business phone and webhook secret; the YCloud endpoint for `/api/whatsapp/webhook` is active. The same complete website source at `4c10c16` was redeployed Ready on `smartcar.co.il` before the webhook was enabled.
+- Two real inbound messages from different test numbers reached the webhook (HTTP 200) and were logged in Supabase. The Business App's automatic greeting was echoed as `human_reply` after the first test; Daniel disabled that greeting. The second number had no human echo, and with the bot enabled it generated a saved greeting, but the YCloud outbound API attempt was `rejected`. No `bot_outbound` row or customer reply was observed. The exact provider rejection is still unknown.
+- The database kill switch was returned to `whatsapp_bot_settings.enabled=false` after the failed test. WhatsApp customer messages can arrive and be logged, but the bot is **not replying**. Do not describe the customer channel as operational. The next code release adds safe provider status/error-code logging, then a fresh controlled message is needed to diagnose the outbound rejection before reopening the pilot.
+- The initial test number remains under the 24-hour human-takeover silence window because its automatic greeting was recorded as a Business App reply. Use the second number or another clean test number for the next bot send test. Preserve Daniel's manual WhatsApp Business access and test manual takeover after the send issue is fixed.
+
 ## 4 Nov 2026 — active conversational implementation and remaining acceptance
 
 - The rebuilt core now uses grounded Gemini wording for ordinary advice, including service questions; local code still owns actions, consent, private details, safety and persistence. Rejected grounded wording receives one bounded correction, then local fallback. See the new current section of `BOT-BRAIN.md`; the 15/26 Oct architecture below is historical.

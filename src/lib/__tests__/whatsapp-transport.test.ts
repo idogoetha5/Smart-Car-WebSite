@@ -22,6 +22,22 @@ describe('YCloud WhatsApp transport', () => {
     expect(await sendWhatsAppMessage('972501234567', 'fictional')).toMatchObject({ ok: false, status, outcome });
     expect(request).toHaveBeenCalledTimes(1);
   });
+  it('logs provider error codes without exposing its message or customer number', async () => {
+    configure();
+    const diagnostic = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      error: {
+        code: 'PARAM_INVALID',
+        target: '+972501234567',
+        message: 'private customer details',
+        whatsappApiError: { code: 131026 },
+      },
+    }), { status: 400 })));
+
+    await sendWhatsAppMessage('972501234567', 'fictional');
+
+    expect(diagnostic).toHaveBeenCalledWith('[whatsapp][ALERT] provider HTTP 400; code PARAM_INVALID; target unknown; WhatsApp code 131026');
+  });
   it.each(['{}', '{invalid'])('does not report acceptance without a provider reference: %s', async body => {
     configure();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(body, { status: 200 })));

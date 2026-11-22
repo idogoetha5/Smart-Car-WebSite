@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getRebuiltBotReply, type RebuildState, type RebuildStore } from '@/lib/whatsapp-rebuild';
 import type { BotReading } from '@/lib/whatsapp-rebuild-gemini';
 
@@ -617,6 +617,8 @@ describe('car will not start', () => {
 // Live Chrome on 22edfad (young driver + friend): weekday-prefixed dates lost the pickup, and the
 // friend's age replaced the main driver's age group.
 describe('young driver with a friend', () => {
+  beforeEach(() => vi.setSystemTime(new Date('2026-11-18T12:00:00Z')));
+  afterEach(() => vi.useRealTimers());
   it('keeps the 21-23 group and reads weekday-prefixed dates', async () => {
     const c = chat(null, 'x');
     await c.send('אהלן אני בן 22, אפשר לשכור אצלכם? צריך רכב לסופש מתל אביב');

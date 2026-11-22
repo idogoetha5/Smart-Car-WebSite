@@ -32,6 +32,12 @@ async function providerRequest(url: string, init: RequestInit, messageId: (data:
     const res = await fetch(url, { ...init, signal: AbortSignal.timeout(SEND_DEADLINE_MS) });
     if (!res.ok) {
       const uncertain = res.status >= 500 || res.status === 408;
+      const response: unknown = await res.json().catch(() => null);
+      const error = (response as { error?: { code?: unknown; target?: unknown; whatsappApiError?: { code?: unknown } } } | null)?.error;
+      const code = typeof error?.code === 'string' && /^[A-Z0-9_]{1,64}$/.test(error.code) ? error.code : 'unknown';
+      const target = typeof error?.target === 'string' && /^[a-zA-Z_.]{1,64}$/.test(error.target) ? error.target : 'unknown';
+      const whatsappCode = typeof error?.whatsappApiError?.code === 'number' ? error.whatsappApiError.code : 'unknown';
+      console.error(`[whatsapp][ALERT] provider HTTP ${res.status}; code ${code}; target ${target}; WhatsApp code ${whatsappCode}`);
       return { ok: false, waMessageId: null, status: res.status, outcome: uncertain ? 'uncertain' : 'rejected' };
     }
     const data: unknown = await res.json().catch(() => null);
