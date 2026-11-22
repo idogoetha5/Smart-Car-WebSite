@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase/server';
 import { verifyAdminToken, verifyInboxToken } from '@/lib/admin-auth';
+import { getYCloudContactName } from '@/lib/whatsapp-contact-names';
+
+export const maxDuration = 30;
 
 /**
  * Cheapest-possible test of the agent-inbox concept (see the plan) — no
@@ -92,11 +95,21 @@ export async function GET() {
   if (summaries.length) {
     const { data: states, error: namesError } = await supabase
       .from('whatsapp_conversation_states')
-      .select('phone, whatsappProfileName:state->>whatsappProfileName')
+      .select('phone, state')
       .in('phone', summaries.map(item => item.phone));
     if (namesError) console.error('[admin/whatsapp/conversations] profile names unavailable:', namesError.message);
-    const names = new Map((states ?? []).map(row => [row.phone, row.whatsappProfileName]));
+    const names = new Map((states ?? []).map(row => [row.phone, (row.state as { whatsappProfileName?: string } | null)?.whatsappProfileName]));
     for (const summary of summaries) summary.displayName = names.get(summary.phone) || undefined;
+
+    // YCloud's contact book also contains names for older conversations that
+    // predate local profile-name persistence. Bound each request and cache
+    // results so the five-second inbox refresh does not flood the provider.
+    const missing = summaries.filter(summary => !summary.displayName).slice(0, 80);
+    for (let i = 0; i < missing.length; i += 10) {
+      await Promise.all(missing.slice(i, i + 10).map(async summary => {
+        summary.displayName = await getYCloudContactName(summary.phone);
+      }));
+    }
   }
 
   return NextResponse.json({ data: summaries });
