@@ -3085,7 +3085,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // Policy facts a customer asked about directly; location/branch facts carry
     // their own date/route prompts and stay with their dedicated branches.
     // Rental policy facts are not leasing/sale terms.
-    const side = sideFact && !state.interest && (contactTurn || ['driver_documents', 'insurance', 'deposit', 'age_licence', 'fuel', 'mileage'].includes(sideFact.topic)) ? sideFact.reply : undefined;
+    const side = sideFact && !state.interest && !(sideFact.topic === 'airport_fee' && airportFeeAsked)
+      && (contactTurn || ['driver_documents', 'insurance', 'deposit', 'age_licence', 'fuel', 'mileage'].includes(sideFact.topic)) ? sideFact.reply : undefined;
     if (side && !reply.includes(side.slice(0, 40))) reply = `${side} ${reply}`;
   }
   // The model understood an existing-booking matter and told the customer that a representative will deal

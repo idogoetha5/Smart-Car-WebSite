@@ -96,6 +96,7 @@ describe('replacement SmartCar conversation core', () => {
     expect(result.reply).toMatch(/Every rental includes basic cover/);
     expect(result.reply).toMatch(/Here are your request details/);
     expect(result.reply).toMatch(/reply “I confirm”/);
+    expect(result.reply).not.toMatch(/Yes, there is a surcharge for pickup or return/);
     expect(result.state.completedRequestId).toBeUndefined();
   });
 
