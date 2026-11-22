@@ -21,6 +21,30 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('starts a tourist rental request and retains a selected family car without promising it is ready', async () => {
+    let state: RebuildState | null = {
+      version: 2, phase: 'explore', step: 'menu', locale: 'en',
+      booking: { pickupDate: '2026-12-12', returnDate: '2026-12-19' },
+      history: [
+        { from: 'customer', text: 'We have two big suitcases and need a rental car.' },
+        { from: 'bot', text: 'A family car generally offers more room. Would you like home or hotel delivery?' },
+      ],
+    };
+    const store: RebuildStore = {
+      isSimulation: true, loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null, createRentalRequest: async () => 'SIM',
+      readTurn: async () => ({ ...base, reply: 'We will have your family car ready at Ben Gurion Airport for your dates.' }),
+    };
+    const result = await getRebuiltBotReply('fictional-tourist', 'No delivery, please. We will pick up at Ben Gurion Airport and return it there. A family car sounds good. Can you start the rental request?', store);
+    expect(result.state.phase).toBe('booking');
+    expect(result.state.booking.vehicleNeed).toBe('family car');
+    expect(result.state.booking.pickupLocation).toBe('Ben Gurion Airport');
+    expect(result.state.booking.returnLocation).toBe('Ben Gurion Airport');
+    expect(result.reply).not.toMatch(/will have .*car ready/i);
+    expect(result.state.completedRequestId).toBeUndefined();
+  });
+
   it('answers both airport surcharge and insurance before a tourist confirms a ready rental request', async () => {
     let state: RebuildState | null = {
       version: 2, phase: 'booking', step: 'rental_confirm', locale: 'en',

@@ -6,6 +6,14 @@ const check = (reply: string, rest: Partial<ConversationalReplyInput> = {}) => v
 
 describe('output checks for natural conversational drafts', () => {
   it.each([
+    'We will have your family car ready at Ben Gurion Airport for your dates.',
+    'Your car will be ready when you land.',
+    'הרכב שלכם יהיה מוכן בנתב״ג.',
+  ])('rejects an unverified vehicle-ready promise: %s', reply => {
+    expect(check(reply, { locale: /[א-ת]/u.test(reply) ? 'he' : 'en' })).toBeNull();
+  });
+
+  it.each([
     'הפרטים יועברו לטיפול בלי שהשיחה כאן משנה דבר אוטומטית.',
     'הבקשה תועבר לבדיקה.',
     'Your request will be forwarded to the team.',

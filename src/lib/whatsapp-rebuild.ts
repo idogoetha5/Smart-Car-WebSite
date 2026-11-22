@@ -675,6 +675,8 @@ function explicitBooking(input: string): boolean {
   if (/(?:מה|אילו פרטים|איזה פרטים)\s+(?:עוד\s+)?(?:אתה|את|אתם)?\s*(?:צריך|צריכה|צריכים)\s+(?:ממני|מאיתנו|ממנו)\s+(?:כדי|בשביל)\s+(?:להתקדם|להזמין|לסגור|לשריין|להגיש)|\bwhat (?:else )?do you need from (?:me|us) to (?:proceed|book|go ahead|move forward)\b|\bwhat do (?:I|we) need to (?:give|send|provide) (?:you )?to (?:proceed|book|go ahead)\b/iu.test(input)) return true;
   if (/[?؟]/.test(input) && /כדאי|האם|should|would it|how/i.test(input)) return false;
   if (/(?:כן[,\s]*)?נתחיל\s+(?:בקש(?:ה|ת השכרה)|הזמנה)|\b(?:let'?s|let us)\s+start\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b|\bI\s+(?:want|would like)\s+to\s+(?:start|open)\s+(?:a\s+)?(?:rental\s+)?(?:request|booking)\b/i.test(input)) return true;
+  if (/\b(?:can|could) you (?:please )?(?:start|open|prepare) (?:a |the |my )?(?:rental )?(?:request|booking)\b/i.test(input)
+    && !/\b(?:if|whether|what happens)\b/i.test(input)) return true;
   if (/^(?:כן[,\s]*)?כבר ביקשתי להתחיל[.!\s]*$/i.test(input)) return true;
   if (/(?<!\b(?:to|if|decide to|before I)\s)\b(?:go ahead|book it|let['’]?s book(?: it)?)\b[,.!\s]+(?:i['’]?m|im|i am|my name is|name['’]?s)\s+(?!(?:still|not|just|only|comparing|thinking|unsure|sure|ok|fine|good|ready|looking|asking|waiting|deciding|a|the|so|also|very|really)\b)[\p{L}'-]{2,20}/iu.test(input) && !/\b(?:don['’]?t|do not|not yet|no change request|still comparing)\b/i.test(input)) return true;
   if (/^(?:ok(?:ay)?|fine|sure|yes|yeah)?[.,!\s]*(?:book it|let['’]?s book it)[.!\s]*$/iu.test(input.trim())) return true;
