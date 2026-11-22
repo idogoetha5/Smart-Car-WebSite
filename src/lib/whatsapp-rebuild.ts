@@ -20,6 +20,8 @@ export type RebuildState = {
   phase: Phase;
   step: 'menu' | 'rental_dates' | 'rental_locations' | 'rental_vehicle' | 'rental_age' | 'rental_name' | 'rental_email' | 'rental_confirm';
   locale: Locale;
+  /** Display name supplied by the signed WhatsApp provider webhook. */
+  whatsappProfileName?: string;
   booking: BookingDraft;
   requestKey?: string;
   history: HistoryEntry[];

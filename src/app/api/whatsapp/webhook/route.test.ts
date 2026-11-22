@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   loadState: vi.fn(),
   saveState: vi.fn(),
   createRentalRequest: vi.fn(),
+  createStore: vi.fn(),
   manualEventId: null as string | null,
 }));
 
@@ -53,7 +54,7 @@ vi.mock('@/lib/whatsapp-rebuild', () => ({
   getRebuiltBotReply: mocks.flow,
   isRebuiltSafetyMessage: mocks.classify,
 }));
-vi.mock('@/lib/whatsapp-rebuild-store', () => ({ createPersistentRebuildStore: () => ({ loadState: mocks.loadState, saveState: mocks.saveState, createRentalRequest: mocks.createRentalRequest }) }));
+vi.mock('@/lib/whatsapp-rebuild-store', () => ({ createPersistentRebuildStore: mocks.createStore }));
 vi.mock('@/lib/whatsapp-phone-turn', () => ({
   withSerializedPhoneTurn: async (phone: string, messageId: string, _emergency: boolean, run: (turn: unknown) => Promise<unknown>) => run({ phone, messageId, ownerToken: 'test-turn', manualEventId: mocks.manualEventId }),
   mutatePhoneTurn: async () => ({}),
@@ -135,6 +136,7 @@ beforeEach(() => {
   mocks.loadState.mockResolvedValue(null);
   mocks.saveState.mockResolvedValue(undefined);
   mocks.createRentalRequest.mockResolvedValue('unexpected');
+  mocks.createStore.mockImplementation(() => ({ loadState: mocks.loadState, saveState: mocks.saveState, createRentalRequest: mocks.createRentalRequest }));
   mocks.claim.mockImplementation(async () => {
     const prepared = mocks.prepare.mock.calls.at(-1);
     return prepared
@@ -326,6 +328,7 @@ describe('local WhatsApp webhook boundary', () => {
         wamid: 'wamid.ycloud-inbound-1',
         from: '+972501234567',
         to: '+97299509757',
+        customerProfile: { name: 'דניאל נרדאה' },
         type: 'text',
         text: { body: 'שלום' },
       },
@@ -335,6 +338,7 @@ describe('local WhatsApp webhook boundary', () => {
 
     expect(response.status).toBe(200);
     expect(mocks.flow).toHaveBeenCalledWith('972501234567', 'שלום', expect.any(Object));
+    expect(mocks.createStore).toHaveBeenCalledWith(expect.any(Object), 'דניאל נרדאה');
     expect(mocks.log).toHaveBeenCalledWith(expect.objectContaining({
       phone: '972501234567',
       source: 'customer_inbound',

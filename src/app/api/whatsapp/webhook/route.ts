@@ -45,6 +45,7 @@ interface InboundMessage {
   interactive?: { type?: string; list_reply?: { id?: string } };
   type?: string;
   groupId?: string;
+  customerProfile?: { name?: string };
 }
 
 interface WebhookChange {
@@ -193,7 +194,8 @@ async function handleCustomerMessage(msg: InboundMessage, botEnabled: boolean) {
   // escalation flag never bypasses uncertainty or a representative's reply.
   const isEmergency = textMessage && isRebuiltSafetyMessage(body);
   await withSerializedPhoneTurn(phone, messageId, isEmergency, async turn => {
-  const store = createPersistentRebuildStore(turn);
+  const whatsappProfileName = msg.customerProfile?.name?.trim().replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 80);
+  const store = createPersistentRebuildStore(turn, whatsappProfileName || undefined);
   let claim = await claimInboundMessage(messageId, phone, turn);
   if (claim.action === 'busy') throw new Error('[whatsapp] inbound processing already in progress');
   // An alert is independent of customer-reply delivery. Recover a pending

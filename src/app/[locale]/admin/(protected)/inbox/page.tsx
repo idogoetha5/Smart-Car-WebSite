@@ -7,6 +7,7 @@ import { MessageCircle, AlertCircle } from 'lucide-react';
 
 interface ConversationSummary {
   phone: string;
+  displayName?: string;
   lastMessage: string;
   lastMessageAt: string;
   lastSource: string;
@@ -47,7 +48,7 @@ export default function AdminInboxPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="sticky top-12 md:top-0 z-20 bg-white border-b px-4 py-3">
+      <header className="bg-white border-b px-4 py-3">
         <h1 className="text-lg font-bold flex items-center gap-2">
           <MessageCircle className="w-5 h-5 text-blue-600" aria-hidden="true" />
           וואטסאפ
@@ -65,13 +66,14 @@ export default function AdminInboxPage() {
           <li key={c.phone}>
             <Link
               href={`/${locale}/admin/inbox/${c.phone}`}
-              className="flex items-center gap-3 px-4 py-4 active:bg-gray-100 hover:bg-gray-50"
+              className="block min-w-0 px-4 py-4 active:bg-gray-100 hover:bg-gray-50"
             >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-900" dir="ltr">
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <span className="font-medium text-gray-900 whitespace-nowrap" dir="ltr">
                     {formatPhone(c.phone)}
                   </span>
+                  {c.displayName && <span className="min-w-0 truncate text-sm text-gray-700" title={c.displayName}>({c.displayName})</span>}
                   {c.escalated && (
                     <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 px-2 py-0.5 rounded-full">
                       <AlertCircle className="w-3 h-3" aria-hidden="true" />
@@ -79,12 +81,12 @@ export default function AdminInboxPage() {
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-500 truncate mt-0.5">
-                  <span className="text-gray-400">{SOURCE_LABEL[c.lastSource] ?? c.lastSource}:</span>{' '}
-                  {c.lastMessage}
-                </p>
+                <span className="text-xs text-gray-500 shrink-0 whitespace-nowrap">{relativeTime(c.lastMessageAt)}</span>
               </div>
-              <span className="text-xs text-gray-400 shrink-0">{relativeTime(c.lastMessageAt)}</span>
+              <p className="mt-1.5 line-clamp-2 break-words text-sm leading-6 text-gray-600">
+                <span className="text-gray-500">{SOURCE_LABEL[c.lastSource] ?? c.lastSource}:</span>{' '}
+                {c.lastMessage}
+              </p>
             </Link>
           </li>
         ))}

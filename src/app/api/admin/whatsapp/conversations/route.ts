@@ -31,6 +31,7 @@ interface MessageRow {
 
 interface ConversationSummary {
   phone: string;
+  displayName?: string;
   lastMessage: string;
   lastMessageAt: string;
   lastSource: string;
@@ -87,5 +88,16 @@ export async function GET() {
     return NextResponse.json({ error: 'שגיאת שרת, נסה שוב' }, { status: 500 });
   }
 
-  return NextResponse.json({ data: summarize((data ?? []) as MessageRow[]) });
+  const summaries = summarize((data ?? []) as MessageRow[]);
+  if (summaries.length) {
+    const { data: states, error: namesError } = await supabase
+      .from('whatsapp_conversation_states')
+      .select('phone, whatsappProfileName:state->>whatsappProfileName')
+      .in('phone', summaries.map(item => item.phone));
+    if (namesError) console.error('[admin/whatsapp/conversations] profile names unavailable:', namesError.message);
+    const names = new Map((states ?? []).map(row => [row.phone, row.whatsappProfileName]));
+    for (const summary of summaries) summary.displayName = names.get(summary.phone) || undefined;
+  }
+
+  return NextResponse.json({ data: summaries });
 }

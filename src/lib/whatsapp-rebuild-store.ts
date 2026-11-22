@@ -71,12 +71,12 @@ async function createRentalRequest(phone: string, state: RebuildState, turn?: Ph
 export const persistentRebuildStore: RebuildStore = { activeBooking, loadState, saveState, createRentalRequest };
 
 /** Production webhook writes are fenced; the simulator keeps its isolated store. */
-export function createPersistentRebuildStore(turn: PhoneTurn): RebuildStore {
+export function createPersistentRebuildStore(turn: PhoneTurn, whatsappProfileName?: string): RebuildStore {
   return {
     activeBooking, loadState,
     saveState: async (phone, state) => {
       if (phone !== turn.phone) throw new Error('[whatsapp] conversation mismatch');
-      await mutatePhoneTurn(turn, 'state', state);
+      await mutatePhoneTurn(turn, 'state', whatsappProfileName ? { ...state, whatsappProfileName } : state);
     },
     createRentalRequest: (phone, state) => createRentalRequest(phone, state, turn),
   };
