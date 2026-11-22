@@ -164,7 +164,9 @@ export async function readBotTurn(message: string, context: GeminiBotContext): P
     const raw = readJson(response.text) as Record<string, unknown>;
     if (!raw || !ROUTES.includes(raw.route as BotRoute) || !DIRECTIONS.includes(raw.direction as VehicleDirection) || typeof raw.reply !== 'string') return null;
     const reply = raw.reply.trim();
-    if (!reply || reply.length > 650) return null;
+    // A valid JSON response can still contain an unfinished customer-facing
+    // sentence (observed live: a leasing answer ended at "20,000 ק").
+    if (!reply || reply.length > 650 || !/[.!?؟][”"')\]]*$/u.test(reply)) return null;
     return { needsRepresentative: raw.needsRepresentative === true, route: raw.route as BotRoute, direction: raw.direction as VehicleDirection, reply, fields: validatedFields(raw.fields, safeMessage), factPatches: validateFactPatches(raw.factPatches, safeMessage), source: 'gemini', model, groundedContext: Boolean(approvedFacts?.length), rephrased: Boolean(context.applicationReply) };
   } catch { return null; }
 }

@@ -10,6 +10,13 @@ const context = { locale: 'he' as const, phase: 'explore' as const, recent: [], 
 beforeEach(() => { vi.clearAllMocks(); mocks.evaluation.mockReturnValue(undefined); });
 
 describe('replacement Gemini boundary', () => {
+  it('drops a leasing reply that ends mid-word even when the JSON is valid', async () => {
+    mocks.generate.mockResolvedValue({ ok: true, text: JSON.stringify({
+      route: 'leasing', direction: 'family', fields: {}, factPatches: [],
+      reply: 'אפשר לבדוק ליסינג לשנתיים עם קילומטראז של כ-20,000 ק', needsRepresentative: false,
+    }) });
+    expect(await readBotTurn('מחפש ליסינג לשנתיים', context)).toBeNull();
+  });
   it('requires structured current facts and validates each before canonical memory can consume it', async () => {
     const input = "I'd take the SUV. Pickup from Herzliya and return in Tel Aviv. Actually five travellers in total.";
     const patch = (field: string, evidence: string, value: object) => ({ field, operation: 'set', stance: 'selected', evidence, value });
