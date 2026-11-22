@@ -297,7 +297,7 @@ function relativeRentalDuration(input: string): { pickupDate: string; returnDate
   return null;
 }
 
-function explicitDateRange(input: string): { pickupDate: string; returnDate: string } | null {
+function explicitDateRange(input: string, nextWeek = false): { pickupDate: string; returnDate: string } | null {
   // "monday to friday" / "משני עד שישי": the coming such days.
   {
     const en = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -310,7 +310,12 @@ function explicitDateRange(input: string): { pickupDate: string; returnDate: str
       const first = index(pair[0]); const last = index(pair[1]);
       if (first >= 0 && last >= 0) {
         const start = new Date(`${israelDate()}T12:00:00Z`);
-        start.setUTCDate(start.getUTCDate() + ((first - start.getUTCDay() + 7) % 7));
+        if (nextWeek) {
+          // A previous "next week" still qualifies a short "Sunday to Tuesday"
+          // answer. Anchor it to next week's Sunday, even when today is Sunday.
+          start.setUTCDate(start.getUTCDate() + (7 - start.getUTCDay()));
+          start.setUTCDate(start.getUTCDate() + first);
+        } else start.setUTCDate(start.getUTCDate() + ((first - start.getUTCDay() + 7) % 7));
         const end = new Date(start); end.setUTCDate(end.getUTCDate() + ((last - first + 7) % 7 || 7));
         return { pickupDate: start.toISOString().slice(0, 10), returnDate: end.toISOString().slice(0, 10) };
       }
@@ -2258,6 +2263,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const gotPrivate = privateDetail(input, state, (!state.interest || switchesToRental) && explicitBooking(input));
     privateTurn ||= gotPrivate;
     if (state.phase !== 'service' && !state.interest) takeSameReturnAfterTwoAsks(input, state);
+    const precedingCustomer = [...state.history].reverse().find(entry => entry.from === 'customer')?.text ?? '';
+    const nextWeekContext = !/(?:השבוע|this week)/iu.test(input)
+      && (/(?:שבוע הבא|next week)/iu.test(input) || /(?:שבוע הבא|next week)/iu.test(precedingCustomer));
     let reading: BotReading | null = null;
     let modelContext: GeminiBotContext | undefined;
     if (!gotPrivate && !resumedIntake && !(state.phase === 'booking' && affirms(input)) && !(state.phase === 'booking' && state.step === 'rental_age' && driverAgeRange(input, state)) && !EMAIL.test(input) && !/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/.test(input)) {
@@ -2271,7 +2279,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         delete modelState.commercial;
         modelState.phase = 'booking';
       }
-      const modelRange = explicitDateRange(input);
+      const modelRange = explicitDateRange(input, nextWeekContext);
       if (modelRange) Object.assign(modelState.booking, modelRange);
       applyExplicitLocations(input, modelState.booking);
       const modelAge = driverAgeRange(input, state);
@@ -2300,7 +2308,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         if (days && days <= 60) { const end = new Date(`${state.booking.pickupDate}T12:00:00Z`); end.setUTCDate(end.getUTCDate() + days); state.booking.returnDate = end.toISOString().slice(0, 10); }
       }
     }
-    const statedRange = explicitDateRange(input);
+    const statedRange = explicitDateRange(input, nextWeekContext);
     if (statedRange) Object.assign(state.booking, statedRange);
     const statedDays = statedRange ? Math.round((Date.parse(statedRange.returnDate) - Date.parse(statedRange.pickupDate)) / 86_400_000) : 0;
     const mentionedOneWeek = state.history.some(entry => entry.from === 'customer' && /(?:לשבוע|למשך שבוע|לשבוע אחד|for (?:one |a )week|for one week)/i.test(entry.text));

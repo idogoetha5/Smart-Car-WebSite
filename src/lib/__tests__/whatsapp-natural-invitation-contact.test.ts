@@ -36,6 +36,27 @@ describe('natural acceptance with contact details after a rental invitation', ()
     expect(named.reply).not.toMatch(/תרצו (?:שנתחיל|שנפתח)|האם נתקדם/);
     expect(c.create).not.toHaveBeenCalled();
   });
+  it('carries next-week context into a short weekday range', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-22T12:00:00+02:00'));
+    try {
+      let state: RebuildState = {
+        version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {},
+        history: [
+          { from: 'customer', text: 'מחפש רכב לשבוע הבא, נוסע לבד' },
+          { from: 'bot', text: 'האם תרצה שנבדוק תאריכים לשבוע הבא?' },
+        ],
+      };
+      const store: RebuildStore = {
+        isSimulation: true, loadState: async () => state,
+        saveState: async (_phone, next) => { state = structuredClone(next); },
+        activeBooking: async () => null, createRentalRequest: async () => 'SIM-DATE', readTurn: async () => null,
+      };
+      const result = await getRebuiltBotReply('fictional-next-week', 'כן, מיום ראשון עד שלישי. איסוף והחזרה בהרצליה.', store);
+      expect(result.state.booking.pickupDate).toBe('2026-11-29');
+      expect(result.state.booking.returnDate).toBe('2026-12-01');
+    } finally { vi.useRealTimers(); }
+  });
 
   it.each(['כן אבל עדיין לא להתחיל בקשה. רק רוצה לברר מחיר.', "Yes, but don't start a request yet."])('does not override a refusal: %s', async input => {
     const c = chat('he', heOffer);
