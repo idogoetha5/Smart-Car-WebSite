@@ -1,5 +1,17 @@
 # Real Gemini conversation evaluation
 
+## Adaptive failure — 23 November 2026 (production `c704877`)
+
+A three-turn real-Gemini leasing-versus-rental comparison failed manual review at handoff. The customer was undecided between leasing and six-month rental, drove about 18,000 km yearly, and cared about avoiding a long commitment and early-exit terms. The handoff summary incorrectly reduced this to interest in leasing. Full transcript: `evidence/adaptive-leasing-rental-comparison-memory-failure-20261123.json`. A scoped memory/handoff fix and regression are local; it must be deployed and replayed. Do not count this as a pass.
+
+## Adaptive pass — 23 November 2026 (production `c704877`)
+
+One three-turn real-Gemini existing-rental extension/service enquiry passed manual review. The bot passed a fictional reference and extension request to a representative without confirming a change, explained that price and late return need approval, and remembered the reference without asking again. Full transcript: `evidence/adaptive-service-extension-handoff-pass-20261123.json`. Simulator-only; staff notification delivery was not verified.
+
+## Adaptive pass — 23 November 2026 (production `c704877`)
+
+One fresh five-turn rental conversation with real Gemini passed manual review. The customer was initially a 22-year-old new driver; after a correct no-availability response he proposed his 30-year-old wife as replacement main driver. The bot resumed the saved dates and Herzliya locations, captured a fictional name, asked for optional additions once, summarized all details and returned `escalated: true`, `handedOff: true`, `completedRequestId: null`. Full transcript: `evidence/adaptive-alternate-driver-handoff-pass-20261123.json`. This is one simulator handoff only; it does not prove a real WhatsApp notification was delivered to Daniel and is not overall bot readiness.
+
 ## New adaptive failure — 23 November 2026 (production `654ada0`)
 
 The young-driver chat first avoided an affirmative eligibility claim and then correctly declined a new driver. At the next customer turn, the customer proposed his wife, age 30 with ten years' licence tenure, as replacement main driver. The bot repeated generic age policy and did not continue the saved enquiry. Full real-Gemini transcript: `evidence/adaptive-new-driver-alternate-driver-failure-20261123.json`. The exact source and regression fix the replacement-driver age extraction and intake continuation; production replay is required. This is not a successful full conversation.

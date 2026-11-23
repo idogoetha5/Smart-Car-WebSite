@@ -12,6 +12,38 @@ function conversation(initial: RebuildState | null = null) {
 }
 
 describe('commercial memory after the rolling conversation window', () => {
+  it('hands off an undecided leasing-versus-rental customer with the complete comparison', async () => {
+    const send = conversation();
+    await send('היי, אני עצמאי ומתלבט בין ליסינג לרכב משפחתי לבין השכרה לחצי שנה. אני נוסע בערך 18 אלף ק״מ בשנה וחשוב לי שלא אתקע עם התחייבות ארוכה. מה היית מציע?');
+    await send('עזוב עלויות כרגע. אם אני בוחר השכרה לחצי שנה ורוצה להחזיר אחרי ארבעה חודשים, אוכל פשוט לצאת בלי קנס? ומה עם ה־18 אלף ק״מ שסיפרתי?');
+    const handed = await send('סבבה. תזכיר מה רשמת עליי עד עכשיו, ואז תעביר לנציג שיציע אפשרויות. אני לא מאשר שום עסקה כרגע.');
+    expect(handed.state.commercial).toMatchObject({ comparingLeasingAndRental: true, rentalComparisonMonths: 6, earlyExitConcern: true, annualMileageKm: 18000, vehiclePreference: 'family' });
+    expect(handed.reply).toMatch(/ליסינג.*השכרה/);
+    expect(handed.reply).toMatch(/6 חודשים/);
+    expect(handed.reply).toMatch(/יציאה מוקדמת/);
+    expect(handed.reply).toMatch(/18000/);
+    expect(handed.reply).not.toMatch(/התעניינות בליסינג(?![^.!?]{0,30}השכרה)/);
+    expect(handed.escalate).toBe(true);
+    expect(handed.state.handoffKind).toBe('commercial');
+  });
+
+  it('rejects a fluent Gemini rewrite that drops the rental alternative', async () => {
+    let state: RebuildState | null = {
+      version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, interest: 'leasing', history: [],
+      commercial: { comparingLeasingAndRental: true, rentalComparisonMonths: 6, earlyExitConcern: true, annualMileageKm: 18000, vehiclePreference: 'family' },
+    };
+    const store: RebuildStore = {
+      isSimulation: true, loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null, createRentalRequest: async () => 'SIM', readTurn: async () => null,
+      rewordTurn: async () => ({ route: 'human', direction: 'none', fields: {}, reply: 'בשמחה, נציג SmartCar יחזור אליכם לגבי הליסינג והעדפת הרכב המשפחתי. לעזרה מיידית אפשר להתקשר ל־09-9509757.', source: 'gemini', model: 'fixture', groundedContext: true, rephrased: true }),
+    };
+    const handed = await getRebuiltBotReply('fictional', 'תזכיר מה רשמת עליי עד עכשיו, ואז תעביר לנציג שיציע אפשרויות. אני לא מאשר שום עסקה כרגע.', store);
+    expect(handed.reply).toMatch(/ליסינג.*השכרה/);
+    expect(handed.reply).not.toMatch(/לגבי הליסינג והעדפת/);
+    expect(handed.escalate).toBe(true);
+  });
+
   it('recalls only latest English facts after fourteen advisory turns, including a mixed commitment question', async () => {
     const send = conversation();
     await send('I want leasing for two years, budget 70000 shekels, 12000 km a year. I prefer a compact car.');

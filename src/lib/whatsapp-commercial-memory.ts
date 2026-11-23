@@ -15,6 +15,10 @@ export type CommercialMemory = {
   passengers?: number;
   luggage?: number;
   lowMileagePreferred?: boolean;
+  /** The customer is comparing two services, rather than selecting leasing. */
+  comparingLeasingAndRental?: boolean;
+  rentalComparisonMonths?: number;
+  earlyExitConcern?: boolean;
 };
 
 const NAMED_MODEL = /(?<![\p{L}\d])[לבמה]?((?:טויוטה\s+|toyota\s+|יונדאי\s+|hyundai\s+|קיה\s+|kia\s+|סקודה\s+|skoda\s+|מאזדה\s+|mazda\s+|טסלה\s+|tesla\s+|סוזוקי\s+|suzuki\s+|פולקסווגן\s+|vw\s+|volkswagen\s+)?(?:קורולה|corolla|יאריס|yaris|ראב\s?4|rav\s?4|c-?hr|קאמרי|camry|i10|i20|i30|טוסון|tucson|קונה|kona|איוניק(?:\s?5)?|ioniq(?:\s?5)?|פיקנטו|picanto|ספורטאז['׳]?|sportage|נירו|niro|סיד|ceed|אוקטביה|octavia|פאביה|fabia|קודיאק|kodiaq|קארוק|karoq|cx-?5|cx-?30|מאזדה\s?3|mazda\s?3|סוויפט|swift|ויטרה|vitara|גולף|golf|מודל\s?(?:3|y)|model\s?(?:3|y)|אטו\s?3|atto\s?3|ZS|MG4)(?:\s+(?:היברידית|היברידי|חשמלית|חשמלי|hybrid|electric))?)(?![\p{L}\d])/iu;
@@ -52,6 +56,16 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   const text = message.slice(0, 1000)
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '')
     .replace(/(?<!\d)(?:\+972|0[2-9])[\d ()-]{7,}/g, '');
+  if (/ליסינג|leasing|lease/iu.test(text) && /השכרה|לשכור|rental|rent/iu.test(text)
+    && /מתלבט|השווא|להשוות|בין|מול|לעומת|או|unsure|undecided|compar|versus|\bvs\b|between|\bor\b/iu.test(text)) {
+    next.comparingLeasingAndRental = true;
+  }
+  if (/(?:^|[.!?]\s*)(?:אני\s+)?(?:בחרתי|החלטתי(?:\s+על)?|נלך\s+על|סגרתי\s+על)\s+(?:ב|את\s+ה)?(?:ליסינג|השכרה)|(?:^|[.!?]\s*)(?:i(?:'ve| have)?\s+)?(?:chose|chosen|decided on|settled on|go with)\s+(?:the\s+)?(?:leasing|rental)/iu.test(text)
+    && !/^(?:אם|אולי|מה אם|if|maybe)\b/iu.test(text.trim())) next.comparingLeasingAndRental = false;
+  if (next.comparingLeasingAndRental && /השכרה|לשכור|rental|rent/iu.test(text)) {
+    if (/חצי שנה|שישה חודשים|שש חודשים|six months|6 months/iu.test(text)) next.rentalComparisonMonths = 6;
+  }
+  if (/לא.{0,25}התחייבות ארוכה|בלי.{0,25}התחייבות ארוכה|יציאה מוקדמת|לצאת מוקדם|להחזיר אחרי.{0,30}חודש|early.exit|early termination|long.commitment/iu.test(text)) next.earlyExitConcern = true;
   const budget = new RegExp(`(?:תקציב|budget)(?:\\s+(?:עכשיו|שלי|הוא|שלנו|של|עד|סביב|בערך|כנראה|ירד|עלה|ל|is|now|of|up to|around|about|roughly|probably|to|reduced|changed))*[ :₪$€־-]*${NUMBER}\\s*(אלף|thousand|k\\b)?`, 'giu');
   for (const match of text.matchAll(budget)) {
     if (negatedBefore(text, match.index!) || isHypotheticalFactEvidence(text, match[0])) continue;
@@ -202,6 +216,9 @@ export function renderCommercialMemory(memory: CommercialMemory | undefined, loc
   if (!memory) return locale === 'he' ? 'עדיין לא נשמרו העדפות מסחריות.' : 'No commercial preferences have been recorded yet.';
   const he = locale === 'he';
   const parts: string[] = [];
+  if (memory.comparingLeasingAndRental) parts.push(he ? 'מתלבטים בין ליסינג להשכרה, ללא בחירה במסלול' : 'Comparing leasing and rental; no route chosen');
+  if (memory.comparingLeasingAndRental && memory.rentalComparisonMonths) parts.push(`${he ? 'השכרה להשוואה' : 'Rental being compared'}: ${memory.rentalComparisonMonths} ${he ? 'חודשים' : 'months'}`);
+  if (memory.earlyExitConcern) parts.push(he ? 'חשובים תנאי יציאה מוקדמת והימנעות מהתחייבות ארוכה' : 'Early exit and avoiding a long commitment matter');
   if (memory.budget) parts.push(`${he ? 'תקציב' : 'Budget'}: ${memory.budget.amount} ${memory.budget.currency === 'unspecified' ? (he ? '(מטבע לא צוין)' : '(currency not stated)') : memory.budget.currency}`);
   if (memory.termMonths !== undefined) parts.push(`${he ? 'תקופה' : 'Term'}: ${memory.termMonths === null ? (he ? 'טרם הוחלט' : 'undecided') : `${memory.termMonths} ${he ? 'חודשים' : 'months'}`}`);
   if (memory.annualMileageKm !== undefined) parts.push(`${he ? 'קילומטראז׳ שנתי' : 'Annual mileage'}: ${memory.annualMileageKm === null ? (he ? 'טרם הוחלט' : 'undecided') : `${memory.annualMileageKm} km`}`);

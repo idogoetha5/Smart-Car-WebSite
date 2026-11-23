@@ -2,6 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { updateCommercialMemory, renderCommercialMemory } from '@/lib/whatsapp-commercial-memory';
 
 describe('durable explicit commercial facts', () => {
+  it('keeps a six-month rental comparison and early-exit concern without selecting leasing', () => {
+    let memory = updateCommercialMemory(undefined, 'אני מתלבט בין ליסינג לבין השכרה לחצי שנה, ולא רוצה התחייבות ארוכה.');
+    memory = updateCommercialMemory(memory, 'אם אבחר השכרה לחצי שנה ואחזיר אחרי ארבעה חודשים, יש קנס?');
+    expect(memory).toMatchObject({ comparingLeasingAndRental: true, rentalComparisonMonths: 6, earlyExitConcern: true });
+    const summary = renderCommercialMemory(memory, 'he');
+    expect(summary).toMatch(/ליסינג.*השכרה/);
+    expect(summary).toMatch(/6 חודשים/);
+    expect(summary).not.toMatch(/תקופה: 4 חודשים/);
+    const chosen = updateCommercialMemory(memory, 'החלטתי על ליסינג.');
+    expect(chosen.comparingLeasingAndRental).toBe(false);
+    expect(renderCommercialMemory(chosen, 'he')).not.toMatch(/מתלבטים בין|השכרה להשוואה/);
+  });
+
   it('keeps an approximate sale budget and an explicitly chosen family category from separate turns', () => {
     const first = updateCommercialMemory(undefined, 'אני מחפשת רכב יד שנייה למשפחה. התקציב כנראה סביב 70 אלף, אבל עוד לא החלטנו.');
     expect(first.budget).toEqual({ amount: 70000, currency: 'unspecified' });

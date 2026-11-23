@@ -172,6 +172,9 @@ function conversationalKnown(state: RebuildState): GeminiBotContext['known'] {
     commercialVehiclePreference: state.commercial?.vehiclePreference === null ? 'undecided' : state.commercial?.vehiclePreference,
     commercialUse: state.commercial?.usage?.join(', '),
     commercialPassengers: state.commercial?.passengers, commercialLuggage: state.commercial?.luggage,
+    commercialComparison: state.commercial?.comparingLeasingAndRental ? 'leasing versus rental; undecided' : undefined,
+    commercialRentalComparisonMonths: state.commercial?.rentalComparisonMonths,
+    commercialEarlyExitConcern: state.commercial?.earlyExitConcern ? 'yes' : undefined,
   };
 }
 
@@ -1166,7 +1169,12 @@ function commercialReplyContent(input: string, state: RebuildState): { reply: st
   const acceptsTeamCheck = handoffOffered && ((affirms(input) || /(?:\+?972[\s-]?|0)5\d(?:[\s-]?\d){7}|\[phone removed\]|תתקשרו|תחזרו אלי|call me/iu.test(input) || /^(?:כן[, ]+תתקדמו עם הצעה|(?:כן|אוקיי|סבבה|יאללה|sure|yes|yeah|ok|okay)?[, ]*(?:תעביר|תעבירו|תעבירי|העבר|אפשר להעביר|pass (?:it|them) on|please pass (?:it|them) on|go ahead|please do))(?:[.!,]|\s|$)/iu.test(input.trim())) && !/(?:^|\s)(?:לא|עדיין לא|רגע)(?:\s|$)|\b(?:don['’]?t|not yet|wait|hold on)\b/iu.test(input));
   const asksTeamReview = !declinesHumanHandoff(input) && /תעביר(?:ו)?\s+(?:את זה|את הפרטים|את הבקשה|את הפנייה|לצוות|לנציג|להצעה)|שהצוות יבדוק|שיבדקו בשבילי|שהצוות יחזור אלי|שיחזרו אלי|תחזרו אלי|(?:have|ask) the team (?:check|review)|(?:pass|send) (?:this|it|the details|(?:my|the|this) (?:enquiry|inquiry|request|details)) to (?:a |the )?(?:team|representative)|(?:team|someone).{0,15}call me back/i.test(input);
   const asksQuote = /אפשר לקבל הצעה|תכינו (?:לי )?הצעה|אשמח להצעה|(?:can|could) I get (?:a |an )?(?:quote|offer)|please (?:send|prepare) (?:a |an )?(?:quote|offer)/i.test(input);
-  if (!declinesHumanHandoff(input) && (asksTeamReview || acceptsTeamCheck || /pass (?:this|it|the details) to a representative/i.test(input))) return { reply: he ? `בשמחה, נציג SmartCar יחזור אליכם לגבי ${state.interest === 'leasing' ? 'הליסינג' : 'רכישת הרכב'} לפי הפרטים שמסרתם. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up about your ${state.interest === 'leasing' ? 'leasing' : 'car purchase'} enquiry using the details you shared. You can also call ${OFFICE_PHONE}.`, escalate: true };
+  if (!declinesHumanHandoff(input) && (asksTeamReview || acceptsTeamCheck || /pass (?:this|it|the details) to a representative/i.test(input))) {
+    const topic = state.commercial?.comparingLeasingAndRental
+      ? (he ? 'ההשוואה בין ליסינג להשכרה' : 'your leasing and rental comparison')
+      : state.interest === 'leasing' ? (he ? 'הליסינג' : 'your leasing enquiry') : (he ? 'רכישת הרכב' : 'your car purchase enquiry');
+    return { reply: he ? `בשמחה, נציג SmartCar יחזור אליכם לגבי ${topic} לפי הפרטים שמסרתם. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `Of course. A SmartCar representative will follow up about ${topic} using the details you shared. You can also call ${OFFICE_PHONE}.`, escalate: true };
+  }
   if (asksQuote && !asksTeamReview) {
     if (state.interest === 'leasing') {
       const missing = !hasKnownTerm ? (he ? 'לכמה זמן תרצו את הרכב?' : 'What term do you have in mind?')
@@ -3314,6 +3322,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       // scheduled viewing or promise an appointment the source did not make.
       const appointmentPromise = /(?:יתאם|נקבע|קבענו|סגרנו|תואמה|תיאמנו)[^.!?\n]{0,45}(?:פגישה|צפייה|נסיעת מבחן)|(?:appointment|viewing|test drive)[^.!?\n]{0,45}(?:scheduled|booked|arranged)|(?:will|we'll)\s+(?:schedule|book|arrange)[^.!?\n]{0,45}(?:appointment|viewing|test drive)/iu;
       const commitmentOk = !appointmentPromise.test(text) || appointmentPromise.test(reply);
+      const comparisonMeaningOk = !state.commercial?.comparingLeasingAndRental || !/ליסינג|leasing/i.test(reply) || !/השכרה|rental/i.test(reply)
+        || (/ליסינג|leasing/i.test(text) && /השכרה|rental/i.test(text)
+          && /מתלבט|משוו|השווא|אפשרויות|טרם.{0,20}בחר|לא.{0,20}בחר|undecided|compar|consider|options|not chosen/i.test(text)
+          && !/בחרתי|החלטתי|סגרתי|i chose|i decided/i.test(text));
       const newDriverMeaningOk = state.newDriverStatus !== 'yes' || !/new drivers|נהגים חדשים/u.test(reply)
         || (state.locale === 'he'
           ? /(?:אין|לא נוכל|אינם זמינים|אינן זמינות)/u.test(text)
@@ -3324,7 +3336,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
             && /car|vehicle/i.test(text) && /new driver/i.test(text) && /date/i.test(text)
             && !/(?:have|available|can offer)[^.!?\n]{0,50}(?:car|vehicle)[^.!?\n]{0,50}new driver/i.test(text));
       if (text && text !== reply && keepsNumbers && sameQuestionShape && languageOk && text.length >= reply.length * 0.5 && text.length <= Math.min(650, reply.length * 1.7 + 40)
-        && commitmentOk && newDriverMeaningOk && !/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/u.test(text) && (reply.includes('₪') || !/₪|ש״ח|NIS/u.test(text))) {
+        && commitmentOk && comparisonMeaningOk && newDriverMeaningOk && !/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/u.test(text) && (reply.includes('₪') || !/₪|ש״ח|NIS/u.test(text))) {
         reply = text; model = reworded!.model; draftNotes.push('reworded');
       } else if (store.isSimulation) draftNotes.push(`reword_rejected: ${text.slice(0, 120)}`);
     } catch { /* keep the application wording */ }
