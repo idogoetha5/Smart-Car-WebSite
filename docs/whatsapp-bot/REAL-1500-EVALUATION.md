@@ -254,3 +254,10 @@ name intake. Transcript:
 `evidence/adaptive-rental-date-invitation-failure-20261123.json`.
 This is another failed conversation. A separate regression covers the
 observed invitation wording; it is not a live success.
+
+On `f4b2c32`, the first fresh production Gemini turn invented exact 4–6
+December dates from a customer's vague “weekend in December” and echoed
+them to the customer. The state also stored those dates. Transcript:
+`evidence/adaptive-vague-weekend-date-failure-20261123.json`.
+This is a failed conversation. A new regression checks that vague monthly
+weekend evidence does not yield exact dates or a reply with those dates.

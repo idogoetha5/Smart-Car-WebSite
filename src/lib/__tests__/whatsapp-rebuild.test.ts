@@ -464,6 +464,18 @@ describe('replacement SmartCar conversation core', () => {
     expect(answer.state.booking.pickupDate).toBeUndefined();
   });
 
+  it('does not accept or repeat invented dates for an unspecified weekend in a month', async () => {
+    const chat = memory(() => ({ ...base, reply: 'לזוג עם שתי מזוודות שנוסע לסוף השבוע שבין 4 ל־6 בדצמבר, רכב קומפקטי יכול להתאים. איפה תרצו לאסוף?',
+      fields: {
+        pickupDate: { value: '2026-12-04', evidence: 'לסוף שבוע בדצמבר' },
+        returnDate: { value: '2026-12-06', evidence: 'לסוף שבוע בדצמבר' },
+      } }));
+    const answer = await chat.send('שלום, אני ואשתי צריכים רכב לסוף שבוע בדצמבר. אני בן 23, לא נהג חדש. מה תמליצו לזוג עם שתי מזוודות?');
+    expect(answer.state.booking.pickupDate).toBeUndefined();
+    expect(answer.state.booking.returnDate).toBeUndefined();
+    expect(answer.reply).not.toMatch(/4 ל־6 בדצמבר/u);
+  });
+
   it('answers common policy questions and escalates a car that will not start', async () => {
     const cancellation = await memory(() => null).send('איך מבטלים הזמנה?');
     expect(cancellation.reply).toContain('72 שעות');

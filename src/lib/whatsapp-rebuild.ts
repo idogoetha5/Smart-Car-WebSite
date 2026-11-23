@@ -1526,6 +1526,10 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
     if (!field || !input.toLocaleLowerCase().includes(field.evidence.toLocaleLowerCase())) continue;
     if (source === 'pickupDate' || source === 'returnDate') {
       if (ageOnly) continue;
+      // A weekend somewhere in a named month has several possible dates.
+      // Do not turn the model's chosen weekend into a customer-supplied date.
+      if (/(?:סופ.?ש|סוף ה?שבוע|weekend)/iu.test(field.evidence)
+        && !/(?:\b\d{1,2}\b|הזה|הקרוב|הבא|this|next|coming)/iu.test(field.evidence)) continue;
       if (plainDate) {
         const expected = source === 'returnDate' ? singleDateAnswer(input, state.booking.pickupDate) : plainDate;
         if (source !== pending || field.value !== expected) continue;
