@@ -138,8 +138,8 @@ function rentalHandoffSummary(state: RebuildState): string {
   const b = state.booking;
   const date = (value?: string) => value ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : '';
   const extras = state.locale === 'he'
-    ? [b.childSeats && (b.childSeatType === 'booster' ? `${b.childSeats} בוסטר` : `${b.childSeats} כיסא/ות בטיחות`), b.additionalDriver && 'נהג נוסף', b.tollPackage && 'חבילת כביש 6 ומנהרות'].filter(Boolean).join(', ')
-    : [b.childSeats && (b.childSeatType === 'booster' ? `${b.childSeats} booster seat(s)` : `${b.childSeats} child seat(s)`), b.additionalDriver && 'an additional driver', b.tollPackage && 'the Highway 6 and tunnels package'].filter(Boolean).join(', ');
+    ? [b.childSeats && (b.childSeatType === 'booster' ? `${b.childSeats} ${b.childSeats === 1 ? 'בוסטר' : 'בוסטרים'}` : b.childSeats === 1 ? 'כיסא בטיחות אחד' : `${b.childSeats} כיסאות בטיחות`), b.additionalDriver && 'נהג נוסף', b.tollPackage && 'חבילת כביש 6 ומנהרות'].filter(Boolean).join(', ')
+    : [b.childSeats && (b.childSeatType === 'booster' ? `${b.childSeats} booster ${b.childSeats === 1 ? 'seat' : 'seats'}` : `${b.childSeats} child ${b.childSeats === 1 ? 'seat' : 'seats'}`), b.additionalDriver && 'an additional driver', b.tollPackage && 'the Highway 6 and tunnels package'].filter(Boolean).join(', ');
   const needs = state.locale === 'he'
     ? [b.passengers !== undefined && `נוסעים: ${b.passengers}`, b.luggage !== undefined && `מזוודות: ${b.luggage}`].filter(Boolean).join('; ')
     : [b.passengers !== undefined && `Passengers: ${b.passengers}`, b.luggage !== undefined && `Bags: ${b.luggage}`].filter(Boolean).join('; ');

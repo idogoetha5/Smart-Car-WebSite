@@ -145,7 +145,7 @@ describe('live name-prompt rental dead end', () => {
     const age = await send('אני בת 35');
     expect(age.state.step).toBe('menu');
     expect(age.reply).toContain('שרון בדיקה');
-    expect(age.reply).toContain('כיסא/ות בטיחות');
+    expect(age.reply).toContain('כיסא בטיחות אחד');
     expect(age.reply).not.toMatch(/להוסיף משהו|משהו נוסף/u);
     expect(age.escalate).toBe(true);
     expect(createRentalRequest).not.toHaveBeenCalled();
