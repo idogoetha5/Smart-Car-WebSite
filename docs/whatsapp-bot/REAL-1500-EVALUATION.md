@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## Privacy boundary finding — 23 November 2026 (production `4eb771e`)
+
+The successful simulator replay's name phrasing exposed a separate boundary gap: existing private-name scrubbing did not cover “Please use Emma Walker” or “Use the name Emma Walker”, so Gemini could see the name even though application state should own contact details. The customer-facing flow passed, but this privacy boundary required a separate correction. Local scrubbing and regression cover both observed forms; full gates and deployment remain required. This finding does not change the simulator pass count.
+
 ## Adaptive simulator pass — 23 November 2026 (production `4eb771e`)
 
 One fresh four-turn English tourist rental conversation passed manual review. Gemini advised a family car for three travellers and three bags, then the application retained the dates, Ben Gurion pickup, Herzliya return, age, name, own booster and stroller/bag fit check. The bot asked for additions once, summarized the complete enquiry, returned `escalated:true`, `handedOff:true`, and created no formal booking. Full transcript and review: `evidence/adaptive-english-tourist-rental-final-retest-20261123.json`. This is one production-simulator conversation; Daniel's alert receipt and real customer WhatsApp delivery were not verified. It does not establish overall readiness.

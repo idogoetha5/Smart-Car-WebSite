@@ -99,6 +99,7 @@ function scrub(text: string): string {
     .replace(/(?<![\p{L}\d])\+\d[\d ()-]{7,}\d/gu, '[phone removed]')
     .replace(/(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}/g, '[phone removed]')
     .replace(/(?:קוראים לי|שמי|השם שלי|השם הוא|my name is|(?:^|[;\n])\s*(?:שם|name)\s*:)\s+[\p{L}' -]{2,50}/giu, '[name removed]')
+    .replace(/\b(?:please\s+)?(?:use|put down|write down)\s+(?:(?:the|my)\s+)?(?:name\s+)?[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}(?=\s*(?:[,.!]|$|\s+(?:and|for|please)\b))/giu, '[name removed]')
     // Card-like sequences, unlike six-digit booking references, may never be
     // sent to the wording provider. Date groups use one/two digits and survive.
     .replace(/(?<!\d)(?:\d{12,19}|(?:\d{3,6}[ -]){2,4}\d{3,6})(?!\d)/g, '[payment detail removed]')

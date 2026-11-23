@@ -55,6 +55,14 @@ describe('replacement Gemini boundary', () => {
     expect(payload.message).toContain('11/02/2027');
     expect(payload.message).toContain('15000 km');
   });
+  it.each(['Use the name Emma Walker. We are bringing our own booster seat.', 'Please use Emma Walker. We have our own booster seat.'])('keeps a natural name answer private from Gemini: %s', async details => {
+    mocks.generate.mockResolvedValue({ ok: true, text: JSON.stringify({ route: 'book', direction: 'family', reply: 'Would you like any additions?', fields: {}, factPatches: [], needsRepresentative: false }) });
+    await readBotTurn(details, { ...context, locale: 'en', recent: [{ from: 'customer', text: details }] });
+    const payload = JSON.parse(mocks.generate.mock.calls[0][0].body.contents[0].parts[0].text);
+    expect(JSON.stringify(payload)).not.toContain('Emma Walker');
+    expect(payload.message).toContain('[name removed]');
+    expect(payload.message).toContain('booster seat');
+  });
   it('passes a correction category and asks for a fresh whole-question answer without rejected draft content', async () => {
     mocks.generate.mockResolvedValue({ ok: true, text: JSON.stringify({ route: 'policy', direction: 'none', reply: 'A child seat can be requested subject to availability and fit; the exact price depends on the dates and extras.', fields: {} }) });
     await readBotTurn('Can I request a child seat, and what determines the price?', { ...context, locale: 'en', approvedFacts: getSmartCarApprovedFacts('en'), replyCorrection: 'assurance' });

@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-11-23 — After the tourist simulator pass on `4eb771e`, inspection of a preceding failed draft revealed that natural “Please use Emma Walker” / “Use the name Emma Walker” phrases bypassed the existing private-name scrub before the Gemini request. The application owns contact details; these two forms are now redacted locally with a provider-payload regression. Full gates, preservation and deployment remain required. The customer-facing simulator pass does not prove the privacy boundary by itself.
+
 2026-11-23 — Fresh four-turn English tourist rental on production `4eb771e` passed simulator manual review: family group, three travellers/bags, stroller fit-check request, dates/locations, age, name and own booster were retained; one additions question led to a complete summary and `escalated:true` without a formal booking. Evidence: `evidence/adaptive-english-tourist-rental-final-retest-20261123.json`. Daniel alert receipt and actual WhatsApp delivery remain unverified, so the bot is not declared ready.
 
 2026-11-23 — Fresh production tourist rental replay on `7e614f3` retained family/luggage/fit details but repeated the name question after the natural answer “Please use Emma Walker. We have our own booster seat ...”. Failed transcript: `evidence/adaptive-english-tourist-rental-fit-retest-20261123.json`. A scoped contact/seat repair and exact regression are local; full gates, preservation, deployment and fresh adaptive replay remain required. Do not count this as a pass.
