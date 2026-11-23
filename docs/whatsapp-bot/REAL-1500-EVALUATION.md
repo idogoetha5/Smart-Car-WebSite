@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## Adaptive failure — 23 November 2026 (production `8b819a1`)
+
+A four-turn real-Gemini used-car buyer explicitly asked “תעבירו בבקשה לנציג” with budget, family category, preferred model and independent-inspection question. The reply claimed the details had been passed, but `escalated:false` and the state remained in explore. Full transcript: `evidence/adaptive-hebrew-sale-20261123.json`. A scoped polite-transfer detector and exact multi-turn regression are local; production replay is required. This conversation is a failure, not a pass.
+
 ## Adaptive failure — 23 November 2026 (production `e160d4e`)
 
 A four-turn real-Gemini leasing enquiry chose a family-car leasing proposal for 24 months, 18,000 km/year and a 2,500 ILS monthly budget. The handoff incorrectly summarized the customer as still comparing leasing with rental, omitted the family category and called the term undecided. Full transcript: `evidence/adaptive-hebrew-leasing-validation-20261123.json`. Scoped memory and selected-route summary corrections and an exact regression are local; production replay is required. Do not count this as a pass.

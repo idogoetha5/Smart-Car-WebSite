@@ -29,6 +29,19 @@ describe('commercial memory after the rolling conversation window', () => {
     expect(handed.state.handoffKind).toBe('commercial');
     expect(handed.state.completedRequestId).toBeUndefined();
   });
+  it('actually escalates a polite sale handoff request instead of merely saying it was sent', async () => {
+    const send = conversation();
+    await send('היי, אני מחפשת רכב יד שנייה למשפחה עם שני ילדים. התקציב בערך 70 אלף שקל, אבל אני לא מבינה ברכבים. מאיפה מתחילים?');
+    await send('משפחתית. נוסעת בעיקר בעיר, לפעמים לירושלים, וצריכה מקום לעגלה. איזה דברים חשוב לבדוק ברכב משומש לפני שאני מחליטה?');
+    await send('אם אני רוצה קורולה היברידית, אתם יודעים אם יש אחת עכשיו? ומותר לי לקחת אותה לבדיקה במכון שאני בוחרת?');
+    const handed = await send('תעבירו בבקשה לנציג את מה שסיפרתי: משפחתית עד 70 אלף, רצוי קורולה היברידית אם יש, עם מקום לעגלה. אני רוצה גם לשאול על בדיקה עצמאית. השם שלי מיכל רוזן, אפשר לחזור אליי בווטסאפ הזה.');
+    expect(handed.escalate).toBe(true);
+    expect(handed.state.handedOff).toBe(true);
+    expect(handed.state.handoffKind).toBe('commercial');
+    expect(handed.state.completedRequestId).toBeUndefined();
+    expect(handed.reply).toMatch(/רכישת הרכב|רכישה/);
+    expect(handed.reply).toMatch(/70000/);
+  });
   it('keeps an undecided leasing versus rental customer in advice rather than rental intake', async () => {
     const send = conversation();
     const turn = await send('היי, אני עצמאי ונוסע כ־18 אלף ק״מ בשנה. אני צריך רכב משפחתי ומתלבט בין ליסינג להשכרה לחצי שנה, כי עוד לא יודע אם אצטרך רכב אחר כך. מה היית ממליץ לבדוק?');
