@@ -138,4 +138,29 @@ describe('rental additions and contact in one reply', () => {
     expect(result.state.step).toBe('rental_extras');
     expect(result.reply).toMatch(/להוסיף משהו/u);
   });
+
+  it('does not offer a SmartCar child seat after the family declines one', async () => {
+    let state: RebuildState | null = {
+      version: 2, phase: 'booking', step: 'rental_age', locale: 'he',
+      booking: {
+        pickupDate: '2026-12-12', returnDate: '2026-12-16',
+        pickupLocation: 'הרצליה', returnLocation: 'הרצליה',
+        vehicleNeed: 'רכב משפחתי', passengers: 3,
+      },
+      history: [{ from: 'customer', text: 'אנחנו זוג עם ילד בן 4' }, { from: 'bot', text: 'באיזו קבוצת גיל נמצא הנהג?' }],
+    };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => null,
+      readTurn: async () => null,
+    };
+    const result = await getRebuiltBotReply('fictional-hebrew', 'אני בן 39, הנהג היחיד. נביא כיסא משלנו אז לא צריך כיסא מכם. השם שלי איתי רוזן, תחזרו אליי בוואטסאפ הזה.', store);
+    expect(result.state.booking.childSeats).toBe(0);
+    expect(result.state.step).toBe('rental_extras');
+    expect(result.reply).toMatch(/להוסיף משהו/u);
+    expect(result.reply).not.toMatch(/כיסא בטיחות/u);
+  });
 });

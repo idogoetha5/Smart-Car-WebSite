@@ -127,8 +127,8 @@ function question(key: BookingKey, locale: Locale): string {
 function rentalExtrasQuestion(state: RebuildState): string {
   const child = Boolean(state.booking.childSeats) || state.history.some(item => item.from === 'customer' && /ילד|תינוק|child|baby|infant/iu.test(item.text));
   const examples = state.locale === 'he'
-    ? [child && !state.booking.childSeats && 'כיסא בטיחות', !state.booking.additionalDriver && 'נהג נוסף', !state.booking.tollPackage && 'חבילת כביש 6 ומנהרות'].filter(Boolean).join(', ')
-    : [child && !state.booking.childSeats && 'a child seat', !state.booking.additionalDriver && 'an additional driver', !state.booking.tollPackage && 'the Highway 6 and tunnels package'].filter(Boolean).join(', ');
+    ? [child && state.booking.childSeats === undefined && 'כיסא בטיחות', !state.booking.additionalDriver && 'נהג נוסף', !state.booking.tollPackage && 'חבילת כביש 6 ומנהרות'].filter(Boolean).join(', ')
+    : [child && state.booking.childSeats === undefined && 'a child seat', !state.booking.additionalDriver && 'an additional driver', !state.booking.tollPackage && 'the Highway 6 and tunnels package'].filter(Boolean).join(', ');
   return state.locale === 'he'
     ? `לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו?${examples ? ` למשל ${examples}.` : ''} אם לא, אפשר פשוט לכתוב "לא".`
     : `Before I pass the details to a representative, would you like to add anything?${examples ? ` For example ${examples}.` : ''} If not, just say "No".`;
