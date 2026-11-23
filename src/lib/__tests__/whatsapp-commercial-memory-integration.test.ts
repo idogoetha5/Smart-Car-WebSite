@@ -21,6 +21,22 @@ describe('commercial memory after the rolling conversation window', () => {
     expect(turn.state.requestKey).toBeUndefined();
     expect(turn.reply).not.toMatch(/באיזה תאריך.*לאסוף|תאריכי איסוף והחזרה/);
   });
+  it('classifies a Gemini-led commercial handoff as commercial', async () => {
+    let state: RebuildState | null = {
+      version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, interest: 'leasing', history: [],
+      commercial: { comparingLeasingAndRental: true, rentalComparisonMonths: 6, annualMileageKm: 18000, earlyExitConcern: true },
+    };
+    const store: RebuildStore = {
+      isSimulation: true, loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null, createRentalRequest: async () => 'SIM',
+      readTurn: async () => ({ route: 'leasing', direction: 'none', fields: {}, reply: 'אני מעביר את הפרטים לנציג SmartCar כדי שישווה בין ליסינג להשכרה לחצי שנה.', source: 'gemini', model: 'fixture', groundedContext: true, needsRepresentative: true }),
+    };
+    const handed = await getRebuiltBotReply('fictional', 'תודה. קוראים לי עומר ברק וזה מספר הוואטסאפ שלי. תעביר בבקשה לנציג להשוות ליסינג מול השכרה לחצי שנה, בלי לפתוח הזמנה או להתחייב לעסקה.', store);
+    expect(handed.escalate).toBe(true);
+    expect(handed.state.handoffKind).toBe('commercial');
+    expect(handed.state.completedRequestId).toBeUndefined();
+  });
   it('answers a question before representative handoff without treating "before representative" as consent', async () => {
     const send = conversation({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, interest: 'leasing', history: [],
       commercial: { comparingLeasingAndRental: true, rentalComparisonMonths: 6, annualMileageKm: 18000, earlyExitConcern: true, vehiclePreference: 'family' } });

@@ -3287,7 +3287,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     || !state.interest && (state.phase === 'service' || modelRoute === 'service' || modelRoute === 'human')
     && /נציג(?:\s+(?:של\s+)?SmartCar)?\s+(?:יחזור|יצור|ייצור|יטפל|יבדוק|יעבור על|יעדכן)|(?:representative|someone from (?:our|the) team|our team)\s+will\s+(?:get back|be in touch|contact|call|handle|look into|review|check|update)/iu.test(reply))) {
     state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString();
-    state.handoffKind = cancellationRequest(input) || mentionsRentalChange(input) ? 'booking_change' : 'service_issue';
+    state.handoffKind = cancellationRequest(input) || mentionsRentalChange(input) ? 'booking_change'
+      : state.interest || state.commercial?.comparingLeasingAndRental ? 'commercial' : 'service_issue';
     escalate = true; draftNotes.push(modelAsksForPerson ? 'handoff_model_judgement' : 'handoff_from_model_promise');
     if (!/נציג|representative/iu.test(reply)) reply = `${reply.trim()} ${he ? 'העברתי את זה עכשיו לנציג SmartCar.' : 'I have passed this to a SmartCar representative now.'}`;
     if (!reply.includes(OFFICE_PHONE)) reply = `${reply.trim()} ${he ? `אם זה דחוף, התקשרו ל־${OFFICE_PHONE}.` : `If it is urgent, call ${OFFICE_PHONE}.`}`;
