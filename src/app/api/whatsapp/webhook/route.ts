@@ -366,7 +366,18 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ ok: true });
-  } catch {
+  } catch (error) {
+    // Do not log customer content, phone numbers or provider payloads. A fixed
+    // reason code is enough to distinguish contention from a real processing
+    // failure when investigating 503s and incident emails.
+    const message = error instanceof Error ? error.message : '';
+    const reason = message === '[whatsapp] conversation already processing' ? 'phone_busy'
+      : message === '[whatsapp] conversation claim unavailable' ? 'claim_unavailable'
+      : message === '[whatsapp] conversation owner missing' ? 'owner_missing'
+      : message === '[whatsapp] conversation release failed' ? 'release_failed'
+      : message === '[whatsapp] inbound processing already in progress' ? 'inbound_busy'
+      : 'other';
+    console.error('[whatsapp] processing_failed', { reason });
     await reportBotIncident('processing_failed');
     return NextResponse.json({ error: 'processing unavailable' }, { status: 503 });
   }

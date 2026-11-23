@@ -1,5 +1,9 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-11-23 — Production WhatsApp incident: a customer at a return location asked where to park and received a generic greeting twice. The isolated live-Gemini simulator also gave irrelevant parking-law/rental advice and, with return context, unsupported return-location guidance. The bot now treats an on-site parking question as live service logistics: it asks for the branch when unknown, never invents a parking bay, and sends an arrived return customer to a representative with the office number. A targeted regression covers the split-turn wording observed in the customer chat. The webhook now logs only a fixed, non-PII failure category alongside `processing_failed` so future 503 alerts can be diagnosed without copying customer content. This local change does not establish the cause of the earlier 503s or prove delivery of a representative notification.
+
+Change log: 2026-11-23 — added return-parking service handling, split-turn regressions and privacy-safe webhook failure categories; full gates, preservation, deployment and production replay are pending.
+
 2026-11-23 — Security maintenance: upgraded Next.js to 16.4.6 and Sentry to 11.16.0, together with the matching ESLint config and vulnerable development dependencies. Sentry v11 now uses an explicit shared data-collection restriction on browser, server and edge so customer details, request content and AI inputs/outputs are not captured by the new defaults. No website content, booking logic, WhatsApp activation, domain or DNS change. Full tests, typecheck, lint and production build passed locally; deployment verification is recorded separately when completed.
 
 Change log: 2026-11-23 — applied dependency security updates and pinned Sentry privacy settings with a regression test.

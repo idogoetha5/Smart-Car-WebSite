@@ -21,6 +21,27 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('answers a parking question at the branch and hands a return arrival to a representative', async () => {
+    const chat = memory(() => ({ ...base, route: 'social', reply: 'איך אפשר לעזור לך היום?', groundedContext: true }));
+    await chat.send('אני פה');
+    const parking = await chat.send('איפה חונים?');
+    expect(parking.reply).toMatch(/חניה|לחניה/);
+    expect(parking.reply).toMatch(/באיזה סניף/);
+    expect(parking.reply).not.toMatch(/איך אפשר לעזור לך היום/);
+    const returning = await chat.send('להחזרת רכב');
+    expect(returning.escalate).toBe(true);
+    expect(returning.state.handoffKind).toBe('service_issue');
+    expect(returning.reply).toMatch(/09-9509757/);
+    expect(returning.reply).not.toMatch(/איך אפשר לעזור לך היום/);
+  });
+  it('does not invent a parking bay for a return at an unspecified branch', async () => {
+    const chat = memory(() => ({ ...base, route: 'policy', reply: 'אפשר לחנות בכל חניה.', groundedContext: true }));
+    const turn = await chat.send('אני פה להחזרת רכב, איפה אפשר לחנות?');
+    expect(turn.escalate).toBe(true);
+    expect(turn.reply).toMatch(/נציג SmartCar/);
+    expect(turn.reply).toMatch(/09-9509757/);
+    expect(turn.reply).not.toMatch(/בכל חניה/);
+  });
   it('does not treat arrival from London as a chosen Ben Gurion pickup', async () => {
     const chat = memory(() => ({ ...base, reply: 'A family car is a starting point; we can check stroller fit for a specific model. Where would you like to pick up?', fields: {
       pickupLocation: { value: 'Ben Gurion Airport', evidence: 'flying in from London' },

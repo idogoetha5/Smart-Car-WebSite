@@ -2001,6 +2001,33 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     await store.saveState(phone, state);
     return { reply, state, escalate, source: 'local' };
   }
+  // Arrival and return parking are live logistics questions. The exact bay is
+  // not a published fact, so never answer with a generic greeting or invent a
+  // parking place. A person on site returning a car needs the branch team now.
+  const parkingQuestion = /(?:איפה|היכן)\s+(?:אפשר\s+|מותר\s+|צריך\s+)?(?:לחנות|חונים|להחנות|החניה)|(?:where|which place)\s+(?:can|should|do)\s+(?:we|i)\s+park/iu.test(input);
+  const priorCustomer = state.history.filter(entry => entry.from === 'customer').slice(-5).map(entry => entry.text);
+  const returnArrival = [input, ...priorCustomer].some(text => /(?:להחזרת|מחזיר(?:ים|ה)?|להחזיר|החזרה של|return(?:ing)? (?:the |my |our )?car|drop(?:ping)? (?:the |my |our )?car off)/iu.test(text))
+    && [input, ...priorCustomer].some(text => /(?:אני|אנחנו)\s+(?:כבר\s+)?(?:פה|כאן|במקום)|(?:i(?:'m| am)|we(?:'re| are))\s+(?:here|at the branch)/iu.test(text));
+  const parkingFollowUp = /^(?:להחזרת רכב|אני (?:פה|כאן) להחזרה|מחזיר(?:ה|ים)? את הרכב|returning the car)[.!?\s]*$/iu.test(input)
+    && priorCustomer.some(text => /(?:איפה|היכן).{0,30}(?:לחנות|חונים|להחנות|חניה)|where.{0,35}park/iu.test(text));
+  if ((parkingQuestion || parkingFollowUp) && !state.handedOff && !state.interest) {
+    if (returnArrival || parkingFollowUp) {
+      state.phase = 'service'; state.step = 'menu'; state.handedOff = true;
+      state.handoffAt = new Date().toISOString(); state.handoffKind = 'service_issue';
+      escalate = true;
+      reply = he
+        ? `מבין שאתם במקום ומחזירים את הרכב. העברתי את בקשתכם להכוונה לחניה לנציג SmartCar. כדי לקבל הנחיה מיידית לפני החניה, התקשרו ל־${OFFICE_PHONE}. באיזה סניף אתם נמצאים?`
+        : `I understand you are here to return the car. I have passed your parking question to a SmartCar representative. For directions before parking, call ${OFFICE_PHONE} now. Which branch are you at?`;
+    } else {
+      reply = he
+        ? `כדי לכוון אתכם לחניה הנכונה, באיזה סניף או מקום אתם נמצאים? אם אתם כבר שם וצריכים הכוונה מיידית, התקשרו ל־${OFFICE_PHONE}.`
+        : `Which branch or location are you at? If you are already there and need immediate parking directions, call ${OFFICE_PHONE}.`;
+    }
+    pushHistory(state, input, reply, false);
+    if (escalate && !store.isSimulation) await store.beforeEscalationSave?.(phone);
+    await store.saveState(phone, state);
+    return { reply, state, escalate, source: 'local' };
+  }
   // "I'm stuck in traffic, I'll be an hour late" is a heads-up, not an extension request. A representative
   // thanks the customer, passes it to the branch and is honest that the agreed time still applies.
   const runningLate = /(?<![\p{L}])(?:אאחר|נאחר|מאחר(?:ת|ים)?|אתעכב|מתעכב(?:ת|ים)?|תקוע(?:ה|ים)?\s+בפקק\S*|לא (?:אספיק|נספיק) (?:להחזיר|להגיע))(?![\p{L}])|\b(?:running late|(?:will|gonna|going to|i['’]?ll|we['’]?ll) be (?:\S+ ){0,3}late|stuck in traffic|won['’]?t make it (?:back )?(?:on time|by|in time))\b/iu.test(input)
