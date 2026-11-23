@@ -112,4 +112,30 @@ describe('rental additions and contact in one reply', () => {
     expect(result.reply).toMatch(/no confirmed response time/i);
     expect(result.reply).not.toMatch(/shortly|soon|today|tomorrow/i);
   });
+
+  it('treats WhatsApp as a contact channel while collecting age, name and a seat', async () => {
+    let state: RebuildState | null = {
+      version: 2, phase: 'booking', step: 'rental_age', locale: 'he',
+      booking: {
+        pickupDate: '2026-12-10', returnDate: '2026-12-17',
+        pickupLocation: 'הרצליה', returnLocation: 'הרצליה',
+        vehicleNeed: 'רכב משפחתי', passengers: 4, luggage: 2,
+      },
+      history: [{ from: 'bot', text: 'בן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה.' }],
+    };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => { throw new Error('contact preference must not create an order'); },
+      readTurn: async () => null,
+    };
+    const result = await getRebuiltBotReply('fictional-hebrew', 'אני בן 36, נהג ותיק. תוסיפו בבקשה כיסא בטיחות אחד לילד הקטן. אני תומר כהן, תחזרו אליי בוואטסאפ הזה.', store);
+    expect(result.state.booking).toMatchObject({ driverAgeRange: '24-plus', childSeats: 1, customerName: 'תומר כהן' });
+    expect(result.state.handedOff).not.toBe(true);
+    expect(result.escalate).not.toBe(true);
+    expect(result.state.step).toBe('rental_extras');
+    expect(result.reply).toMatch(/להוסיף משהו/u);
+  });
 });
