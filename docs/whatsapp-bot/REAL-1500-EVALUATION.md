@@ -278,3 +278,10 @@ first-person pickup form. Transcript:
 `evidence/adaptive-rental-pickup-repeat-failure-20261123.json`.
 This is a failed conversation. The parser regression and source correction
 must be verified on a later production release.
+
+On `b6ff383`, the next fresh Gemini rental replay reached the name and
+extras stages, but failed to save “אפשר לרשום גם את אשתי כנהגת נוספת” and
+offered an additional driver again. Transcript:
+`evidence/adaptive-rental-additional-driver-memory-failure-20261123.json`.
+This is a failed conversation, not a completed rental enquiry. The source
+now captures that request and avoids offering it twice; live replay remains.

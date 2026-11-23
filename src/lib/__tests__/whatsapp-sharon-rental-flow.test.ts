@@ -24,6 +24,21 @@ function conversation(initial: RebuildState, reading: BotReading | null = null) 
 }
 
 describe('live name-prompt rental dead end', () => {
+  it('remembers an additional driver requested with the name and does not offer that extra again', async () => {
+    const initial = draft([{ from: 'bot', text: 'על איזה שם לרשום את הבקשה?' }]);
+    initial.booking.driverAgeRange = '21-23';
+    const { send, createRentalRequest } = conversation(initial);
+    const extras = await send('יואב כהן. אני כבר אמרתי שאני בן 23 ולא נהג חדש. אפשר לרשום גם את אשתי כנהגת נוספת.');
+    expect(extras.state.booking.customerName).toBe('יואב כהן');
+    expect(extras.state.booking.additionalDriver).toBe(true);
+    expect(extras.reply).toMatch(/רשמתי גם נהג/u);
+    expect(extras.reply).not.toMatch(/למשל נהג נוסף/u);
+    const handoff = await send('לא, זה הכל. תעבירו לנציג בבקשה.');
+    expect(handoff.escalate).toBe(true);
+    expect(handoff.reply).toContain('תוספות שביקשתם: נהג נוסף');
+    expect(createRentalRequest).not.toHaveBeenCalled();
+  });
+
   it('retains an explicit Hebrew pickup even when Gemini extracts only the return branch', async () => {
     const initial = draft([{ from: 'bot', text: 'באילו תאריכים תרצו לקחת ולהחזיר את הרכב?' }]);
     delete initial.booking.pickupLocation;

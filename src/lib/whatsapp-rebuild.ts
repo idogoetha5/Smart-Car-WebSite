@@ -127,11 +127,11 @@ function question(key: BookingKey, locale: Locale): string {
 function rentalExtrasQuestion(state: RebuildState): string {
   const child = Boolean(state.booking.childSeats) || state.history.some(item => item.from === 'customer' && /ילד|תינוק|child|baby|infant/iu.test(item.text));
   const examples = state.locale === 'he'
-    ? [child && !state.booking.childSeats && 'כיסא בטיחות', 'נהג נוסף', 'חבילת כביש 6 ומנהרות'].filter(Boolean).join(', ')
-    : [child && !state.booking.childSeats && 'a child seat', 'an additional driver', 'the Highway 6 and tunnels package'].filter(Boolean).join(', ');
+    ? [child && !state.booking.childSeats && 'כיסא בטיחות', !state.booking.additionalDriver && 'נהג נוסף', !state.booking.tollPackage && 'חבילת כביש 6 ומנהרות'].filter(Boolean).join(', ')
+    : [child && !state.booking.childSeats && 'a child seat', !state.booking.additionalDriver && 'an additional driver', !state.booking.tollPackage && 'the Highway 6 and tunnels package'].filter(Boolean).join(', ');
   return state.locale === 'he'
-    ? `לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו? למשל ${examples}. אם לא, אפשר פשוט לכתוב "לא".`
-    : `Before I pass the details to a representative, would you like to add anything? For example ${examples}. If not, just say "No".`;
+    ? `לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו?${examples ? ` למשל ${examples}.` : ''} אם לא, אפשר פשוט לכתוב "לא".`
+    : `Before I pass the details to a representative, would you like to add anything?${examples ? ` For example ${examples}.` : ''} If not, just say "No".`;
 }
 
 function rentalHandoffSummary(state: RebuildState): string {
@@ -894,7 +894,7 @@ function negatedLuggageMention(input: string, index: number): boolean {
 
 function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   if (/(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|additional driver|extra driver|second driver)/iu.test(input)
-    && /(?:תוסיפו|להוסיף|אשמח|מבקש|אבקש|רוצה|please add|add an?|i(?:'d| would) like)/iu.test(input)
+    && /(?:תוסיפו|להוסיף|לצרף|תצרפו|צרפו|לרשום|תרשמו|רשמו|אפשר\s+(?:להוסיף|לצרף|לרשום)|אשמח|מבקש|אבקש|רוצה|please add|add an?|i(?:'d| would) like)/iu.test(input)
     && (!/[?؟]/u.test(input) || /(?:אשמח|מבקש|אבקש|רוצה|please add|i(?:'d| would) like)/iu.test(input))
     && !/(?:לא|בלי|אין צורך|don't|do not|no|without)\s+(?:צריך|רוצה|need|want)?\s*(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|additional driver|extra driver|second driver)/iu.test(input)) draft.additionalDriver = true;
   if (/(?:כביש\s*6(?: ומנהרות)?|highway\s*6(?: and tunnels)?)/iu.test(input)
@@ -2663,7 +2663,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         const driverAnswer = /[?؟]/u.test(input) && /(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|additional driver|extra driver|second driver)/iu.test(input)
           ? (he ? 'אפשר לבקש להוסיף נהג או נהגת נוספים; נדרש רישיון בתוקף ורישום בחוזה לפני הנהיגה. ' : 'You can request an additional driver; they need a valid licence and must be named in the agreement before driving. ')
           : '';
-        reply = `${driverAnswer}${asksModelGuarantee
+        const recordedExtra = state.booking.additionalDriver && /נהג(?:ת)? נוס(?:ף|פ(?:ת)?)/iu.test(input)
+          ? (he ? 'רשמתי גם נהג או נהגת נוספים כבקשה. ' : 'I have noted the additional driver as a request. ')
+          : '';
+        reply = `${recordedExtra}${driverAnswer}${asksModelGuarantee
           ? (he ? 'דגם מסוים אינו מובטח אלא אם SmartCar מאשרת אותו במפורש. ' : 'A particular model is not guaranteed unless SmartCar explicitly confirms it. ')
           : ''}${rentalExtrasQuestion(state)}`;
       } else if (!missing && defersHandoff) {
