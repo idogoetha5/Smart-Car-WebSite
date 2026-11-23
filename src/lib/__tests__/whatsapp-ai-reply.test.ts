@@ -53,6 +53,11 @@ describe('output checks for natural conversational drafts', () => {
     expect(check('For a family of four with luggage and a stroller, a family car or an SUV generally offers comfortable room for everyone and your gear.', { input })).toBeNull();
     expect(check('For two children and a stroller, a family car is a good starting point; we should check the exact model for everyone and the gear.', { input })).not.toBeNull();
   });
+  it('does not promise that an unspecified family car has the space this family needs', () => {
+    const input = 'We are coming from London with two kids and a stroller. Which type would you recommend?';
+    expect(check('A family car generally offers the comfortable luggage and passenger space you will need for a week.', { input })).toBeNull();
+    expect(check('A family car is a good category to compare, with stroller and child-seat fit checked for the specific model.', { input })).not.toBeNull();
+  });
   it('rejects an unperformed rental arrangement promise', () => {
     expect(check('We will arrange your family car pickup and return at Ben Gurion Airport from December 12 to 19.')).toBeNull();
   });
