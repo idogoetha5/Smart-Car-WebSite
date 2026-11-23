@@ -12,7 +12,7 @@ import { isHypotheticalFactEvidence, isRentalCapacityQuestionEvidence, validateF
 type Locale = 'he' | 'en';
 type Phase = 'explore' | 'booking' | 'service';
 type BookingKey = 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'driverAgeRange' | 'customerName' | 'customerEmail';
-type BookingDraft = Partial<Record<BookingKey, string>> & { passengers?: number; luggage?: number; luggageSize?: 'large'; childSeats?: number; additionalDriver?: boolean; tollPackage?: boolean; datePreference?: string };
+type BookingDraft = Partial<Record<BookingKey, string>> & { passengers?: number; luggage?: number; luggageSize?: 'large'; childSeats?: number; childSeatType?: 'booster'; additionalDriver?: boolean; tollPackage?: boolean; datePreference?: string };
 type HistoryEntry = { from: 'customer' | 'bot'; text: string; private?: boolean };
 
 export type RebuildState = {
@@ -36,7 +36,7 @@ export type RebuildState = {
   handoffAt?: string;
   handoffKind?: 'safety' | 'booking_change' | 'service_issue' | 'commercial' | 'human';
   completedRequestId?: string;
-  completedRental?: Pick<BookingDraft, 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'passengers' | 'luggage' | 'childSeats' | 'additionalDriver' | 'tollPackage'>;
+  completedRental?: Pick<BookingDraft, 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'passengers' | 'luggage' | 'childSeats' | 'childSeatType' | 'additionalDriver' | 'tollPackage'>;
   durationClarification?: boolean;
   humanHandoffDeferred?: boolean;
   newDriverStatus?: 'yes' | 'no';
@@ -138,8 +138,8 @@ function rentalHandoffSummary(state: RebuildState): string {
   const b = state.booking;
   const date = (value?: string) => value ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : '';
   const extras = state.locale === 'he'
-    ? [b.childSeats && `${b.childSeats} כיסא/ות בטיחות`, b.additionalDriver && 'נהג נוסף', b.tollPackage && 'חבילת כביש 6 ומנהרות'].filter(Boolean).join(', ')
-    : [b.childSeats && `${b.childSeats} child seat(s)`, b.additionalDriver && 'an additional driver', b.tollPackage && 'the Highway 6 and tunnels package'].filter(Boolean).join(', ');
+    ? [b.childSeats && (b.childSeatType === 'booster' ? `${b.childSeats} בוסטר` : `${b.childSeats} כיסא/ות בטיחות`), b.additionalDriver && 'נהג נוסף', b.tollPackage && 'חבילת כביש 6 ומנהרות'].filter(Boolean).join(', ')
+    : [b.childSeats && (b.childSeatType === 'booster' ? `${b.childSeats} booster seat(s)` : `${b.childSeats} child seat(s)`), b.additionalDriver && 'an additional driver', b.tollPackage && 'the Highway 6 and tunnels package'].filter(Boolean).join(', ');
   const needs = state.locale === 'he'
     ? [b.passengers !== undefined && `נוסעים: ${b.passengers}`, b.luggage !== undefined && `מזוודות: ${b.luggage}`].filter(Boolean).join('; ')
     : [b.passengers !== undefined && `Passengers: ${b.passengers}`, b.luggage !== undefined && `Bags: ${b.luggage}`].filter(Boolean).join('; ');
@@ -973,9 +973,10 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
       // Keep an explicit zero so later model extraction or a baby mention
       // cannot silently restore a seat request the customer declined.
       draft.childSeats = 0;
+      delete draft.childSeatType;
       continue;
     }
-    const request = clause.match(/(?:צריך(?:ה|ים)?|נבקש|נרצה|ארצה|נצטרך|אפשר לבקש|תוסיפו|תוסיף|להוסיף|we need|I need|(?:we|I) would like|(?:we|I)['’]d like|please add|\badd\b).{0,18}(?:כיסא(?:ות)? בטיחות|כיסא(?:ות)? בוסטר|בוסטר(?:ים)?|child seats?|car seats?|booster(?: seat)?s?)/i);
+    const request = clause.match(/(?:צריך(?:ה|ים)?|נבקש|נרצה|ארצה|נצטרך|אפשר לבקש|תוסיפו|תוסיף|להוסיף|we need|I need|(?:we|I) would like|(?:we|I)['’]d like|please (?:add|note)|\badd\b).{0,18}(?:כיסא(?:ות)? בטיחות|כיסא(?:ות)? בוסטר|בוסטר(?:ים)?|child seats?|car seats?|booster(?: seat)?s?)/i);
     if (!request) continue;
     // Limit counts to the requested seat phrase, never the child's later age.
     const seatText = clause.slice(request.index!, request.index! + request[0].length + 12);
@@ -986,6 +987,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
       ?? seatText.match(new RegExp(`בוסטר(?:ים)?\\s+${count}(?!\\s+ל)`, 'iu'))?.[1]
       ?? seatText.match(new RegExp(`כיסא(?:ות)? בטיחות\\s+${count}(?!\\s+ל)`, 'iu'))?.[1];
     draft.childSeats = statedCount(seatCount ?? '1') ?? 1;
+    if (/בוסטר|booster/iu.test(request[0])) draft.childSeatType = 'booster';
   }
   if (/אדם אחד|איש אחד|נוסע אחד|נוסעת אחת|אני לבד|(?:^|\s)לבד(?:\s|$)|\b(?:one person|solo|travelling alone|traveling alone)\b/i.test(input)) draft.passengers = 1;
 }
@@ -2632,9 +2634,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         && /(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|כביש\s*6|כיסא(?:ות)? בטיחות|additional driver|highway\s*6|child seat)/iu.test(input);
       const explicitlyPasses = /(?:תעביר|תעבירו|להעביר).{0,24}(?:לנציג|לנציגת|למשרד)|(?:pass|send).{0,24}(?:representative|office)/iu.test(input);
       const answersExtras = /^(?:לא(?:\s*,?\s*(?:תודה|זה הכל|אין צורך|בלי תוספות|לא צריך עוד))?|אין(?:\s+צורך)?|בלי תוספות|זה הכל|לא צריך עוד|(?:אני\s+)?מאשר(?:ת)?|(?:i\s+)?confirm|no(?:\s*,?\s*(?:thanks|(?:other )?extras?))?|none|nothing else|that's all|that is all)[.!\s]*$/iu.test(input.trim())
+        || /\b(?:nothing else|no (?:other|more) extras|that'?s all|that is all)\b/iu.test(input) && !/[?؟]/u.test(input)
         || proactiveExtra && !/[?؟]/u.test(input);
       const wantsToNameExtra = /^(?:כן|yes|sure)[.!\s]*$/iu.test(input.trim());
-      const priorExtrasPrompt = /(?:להוסיף משהו נוסף|להוסיף משהו|להוסיף עוד|משהו נוסף|anything else|add anything)/iu.test(lastBot);
+      const priorExtrasPrompt = /(?:להוסיף משהו נוסף|להוסיף משהו|להוסיף עוד|משהו נוסף|anything else|add anything|any additions)/iu.test(lastBot);
       if (priorExtrasPrompt && answersExtras && !defersHandoff) state.rentalExtrasAnswered = true;
       if (state.booking.driverAgeRange === '21-23') {
         if (/(?:לא (?:נהג|נהגת) חדש(?:ה)?|not a new driver|experienced driver)/iu.test(input)
