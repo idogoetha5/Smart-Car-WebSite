@@ -1577,3 +1577,7 @@ Change log: 2026-11-23 — preserved leasing-versus-rental comparison through di
 2026-11-23 — Fresh adaptive real-Gemini replay on `15f450a` failed at the second turn. The customer explicitly said “before a representative, I want to understand” and asked about early return and annual mileage; the direct-human matcher interpreted “representative ... I want” as consent and handed the enquiry off without answering. Full transcript: `evidence/adaptive-commercial-premature-handoff-failure-20261123.json`. A scoped matcher now treats a question before a representative as deferred handoff, with a regression for the observed sentence. Production replay is required; the conversation is not a pass.
 
 Change log: 2026-11-23 — stopped an explanatory question before representative handoff from being misread as immediate handoff consent.
+
+2026-11-23 — Fresh production Gemini replay on `8a5a327` failed on turn one: a customer explicitly undecided between leasing and six-month rental asked for advice, but the application entered rental booking and appended a pickup-date question to Gemini's comparison answer. Full transcript: `evidence/adaptive-commercial-premature-booking-failure-20261123.json`. An ambiguous “I need a family car” phrase must not count as a rental booking decision in an undecided commercial comparison. The observed case has regression coverage; production replay is required.
+
+Change log: 2026-11-23 — kept undecided leasing-versus-rental advice in exploration until a rental choice is made.

@@ -709,6 +709,11 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
 }
 
 function explicitBooking(input: string): boolean {
+  // Needing a family car is not a rental decision when the customer is still
+  // comparing rental with leasing. Keep the discussion open for Gemini.
+  if (/(?:ליסינג|leasing)/iu.test(input) && /(?:השכרה|לשכור|rental|rent)/iu.test(input)
+    && /(?:מתלבט|מתלבטת|להשוות|השוואה|לעומת|מול|unsure|undecided|comparing|compare|versus)/iu.test(input)
+    && !/(?:החלטתי|החלטנו|בחרתי|בחרנו).{0,25}(?:לשכור|השכרה)|(?:decided|chose|choose).{0,25}(?:rent|rental)/iu.test(input)) return false;
   if (/להשכיר.{0,25}(?:לכם|לחברה)|(?:הרכב שלי|רכב שבבעלותי).{0,30}להשכיר/i.test(input)) return false;
   if (/לא נתחיל\s+(?:בקש(?:ה|ת השכרה)|הזמנה)|\b(?:do not|don't) start\s+(?:a\s+)?(?:request|booking)/i.test(input)) return false;
   if (/(?:לא רוצה|לא רוצים|לא מעוניין|אל).{0,15}(?:להתחיל|להתחילו?|לפתוח).{0,12}(?:בקש(?:ה|ת השכרה)|הזמנה)/i.test(input)) return false;

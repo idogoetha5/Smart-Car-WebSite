@@ -12,6 +12,15 @@ function conversation(initial: RebuildState | null = null) {
 }
 
 describe('commercial memory after the rolling conversation window', () => {
+  it('keeps an undecided leasing versus rental customer in advice rather than rental intake', async () => {
+    const send = conversation();
+    const turn = await send('היי, אני עצמאי ונוסע כ־18 אלף ק״מ בשנה. אני צריך רכב משפחתי ומתלבט בין ליסינג להשכרה לחצי שנה, כי עוד לא יודע אם אצטרך רכב אחר כך. מה היית ממליץ לבדוק?');
+    expect(turn.state.phase).toBe('explore');
+    expect(turn.state.interest).toBe('leasing');
+    expect(turn.state.commercial?.comparingLeasingAndRental).toBe(true);
+    expect(turn.state.requestKey).toBeUndefined();
+    expect(turn.reply).not.toMatch(/באיזה תאריך.*לאסוף|תאריכי איסוף והחזרה/);
+  });
   it('answers a question before representative handoff without treating "before representative" as consent', async () => {
     const send = conversation({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, interest: 'leasing', history: [],
       commercial: { comparingLeasingAndRental: true, rentalComparisonMonths: 6, annualMileageKm: 18000, earlyExitConcern: true, vehiclePreference: 'family' } });
