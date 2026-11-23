@@ -43,6 +43,11 @@ describe('output checks for natural conversational drafts', () => {
   ])('rejects an unverified vehicle-ready promise: %s', reply => {
     expect(check(reply, { locale: /[א-ת]/u.test(reply) ? 'he' : 'en' })).toBeNull();
   });
+  it('rejects an airport-ready offer and guaranteed space before a car is identified', () => {
+    const observed = 'Welcome from London! For two kids and a stroller, a family car or an SUV would give you the space you need for luggage and comfort. Would you like to have the car ready at Ben Gurion Airport when you land?';
+    expect(check(observed, { input: 'We are arriving from London next month with two kids and a stroller. What car would you suggest?' })).toBeNull();
+    expect(check('A family car is a good starting point; we can check stroller and luggage fit for a specific model. Where would you like to pick up?', { input: 'We are arriving from London with two kids and a stroller.' })).not.toBeNull();
+  });
   it('rejects an unperformed rental arrangement promise', () => {
     expect(check('We will arrange your family car pickup and return at Ben Gurion Airport from December 12 to 19.')).toBeNull();
   });
