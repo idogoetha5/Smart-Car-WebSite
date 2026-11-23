@@ -25,6 +25,16 @@ describe('output checks for natural conversational drafts', () => {
     expect(onReject).toHaveBeenCalledExactlyOnceWith('price_comparison');
     expect(check('המחיר והתנאים של כל אפשרות ייקבעו בהצעה אישית.', { locale: 'he' })).not.toBeNull();
   });
+  it('does not mistake returning a rental early for a promised refund time', () => {
+    const onReject = vi.fn();
+    const reply = 'אם תחזירי את הרכב מוקדם אחרי 3 חודשים, תנאי היציאה נקבעים בהצעה ובהסכם. נבדוק גם התאמה לילד ולעגלה בדגם המסוים.';
+    const result = check(reply, { locale: 'he', input: 'אם אבחר השכרה ל־5 חודשים, מה קורה אם אחזיר מוקדם אחרי 3 חודשים?', onReject });
+    expect(onReject).not.toHaveBeenCalled();
+    expect(result).toBe(reply);
+    const returnReply = 'אפשרות החזרה מוקדמת אחרי 3 חודשים מתוך 5 תלויה בתנאי ההצעה וההסכם.';
+    expect(check(returnReply, { locale: 'he', input: 'מה קורה אם אחזיר אחרי 3 חודשים מתוך 5?' })).toBe(returnReply);
+    expect(check('ההחזר הכספי יגיע תוך 3 ימי עסקים.', { locale: 'he' })).toBeNull();
+  });
   it.each([
     'We will have your family car ready at Ben Gurion Airport for your dates.',
     'We can certainly have the car ready at Ben Gurion Airport for your dates.',

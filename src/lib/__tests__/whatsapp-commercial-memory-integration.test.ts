@@ -21,6 +21,13 @@ describe('commercial memory after the rolling conversation window', () => {
     expect(turn.state.requestKey).toBeUndefined();
     expect(turn.reply).not.toMatch(/באיזה תאריך.*לאסוף|תאריכי איסוף והחזרה/);
   });
+  it('does not record "return early" as a return location in commercial advice', async () => {
+    const send = conversation();
+    await send('אני עצמאית ומתלבטת בין ליסינג להשכרה לחמישה חודשים.');
+    const turn = await send('אם אבחר השכרה ל־5 חודשים, מה קורה אם אחזיר מוקדם?');
+    expect(turn.state.booking.returnLocation).toBeUndefined();
+    expect(turn.state.phase).toBe('explore');
+  });
   it('classifies a Gemini-led commercial handoff as commercial', async () => {
     let state: RebuildState | null = {
       version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, interest: 'leasing', history: [],

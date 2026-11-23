@@ -640,7 +640,7 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
     : undefined;
   const pickup = (hePickup ?? enPickup ?? enFromPickup)?.trim();
   if (pickup && !temporalLocation(pickup)) draft.pickupLocation = /^(?:the )?airport$/i.test(pickup) && /Ben Gurion Airport/i.test(input) ? 'Ben Gurion Airport' : pickup;
-  const heReturnMatch = input.match(/(?:החזרה|להחזיר|נחזיר|אחזיר|מחזיר(?:ה|ים|ות)?)\s+(?:גם\s+)?(?:(?:את\s+)?הרכב\s+)?(?:גם\s+)?(?:(?:תהיה|יהיה)\s+)?(?!מחר(?:תיים)?(?:\s|[,.!?]|$))[במ]([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:כמו|כפי|נהג|גיל|בן|בת|למשך|לתאריכים|מחרתיים|מחר|היום|ליומיים|ליום|ב[-־]?\s*\d)|[,.!?]|$)/iu);
+  const heReturnMatch = input.match(/(?:החזרה|להחזיר|נחזיר|אחזיר|מחזיר(?:ה|ים|ות)?)\s+(?:גם\s+)?(?:(?:את\s+)?הרכב\s+)?(?:גם\s+)?(?:(?:תהיה|יהיה)\s+)?(?!(?:מחר(?:תיים)?|מוקדם|מאוחר)(?:\s|[,.!?]|$))[במ]([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:כמו|כפי|נהג|גיל|בן|בת|למשך|לתאריכים|מחרתיים|מחר|היום|ליומיים|ליום|ב[-־]?\s*\d)|[,.!?]|$)/iu);
   const heReturn = heReturnMatch && !/(?:לא|אל|בלי)\s*$/u.test(input.slice(0, heReturnMatch.index)) ? heReturnMatch[1] : undefined;
   const enReturn = input.match(/(?:return|drop.?off)\s+(?:(?:the car|it)\s+)?(?:(?:will be|will remain|stays?|remains?)\s+)?(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:on\s+\d{1,2}|tomorrow|today|day after tomorrow|for\s+(?:one|two|three|four|five)\s+days?)|[,.!?]|$)/iu)?.[1];
   const returnLocation = (heReturn ?? enReturn)?.split(/\s+(?:במקום|instead of)\s+/i)[0].trim().replace(/(?:\s+(?:בסוף|לבסוף|כרגיל|בבקשה|גם|אחר כך|please|too|as well|also|then))+$/iu, '');
