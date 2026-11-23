@@ -258,4 +258,31 @@ describe('rental additions and contact in one reply', () => {
     expect(result.state.booking.passengers).toBe(3);
     expect(result.state.booking.luggage).toBe(2);
   });
+
+  it('answers a post-handoff reservation and response-time question as a new enquiry', async () => {
+    let state: RebuildState | null = {
+      version: 2, phase: 'service', step: 'menu', locale: 'he', handedOff: true, handoffKind: 'human',
+      handoffAt: new Date().toISOString(), requestKey: 'fictional-request',
+      booking: {
+        pickupDate: '2026-12-05', returnDate: '2026-12-09',
+        pickupLocation: 'הרצליה', returnLocation: 'הרצליה',
+        vehicleNeed: 'רכב משפחתי', passengers: 3, luggage: 2,
+        driverAgeRange: '24-plus', customerName: 'יעל לוי',
+      },
+      completedRental: { pickupDate: '2026-12-05', returnDate: '2026-12-09', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב משפחתי', passengers: 3, luggage: 2 },
+      history: [{ from: 'bot', text: 'סיכום הפנייה: העברתי לנציג SmartCar לבדיקה. הרכב והמחיר עדיין לא אושרו.' }],
+    };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => null,
+      readTurn: async () => null,
+    };
+    const result = await getRebuiltBotReply('fictional-hebrew', 'תודה. תוך כמה זמן מישהו יחזור אליי? ואם לא אקבל תשובה היום, הרכב כבר שמור?', store);
+    expect(result.reply).toMatch(/הרכב עדיין לא שמור/u);
+    expect(result.reply).toMatch(/אין לי מועד תשובה מאושר/u);
+    expect(result.reply).not.toMatch(/מועד ההחזרה הקיים|להחזיר את הרכב/u);
+  });
 });

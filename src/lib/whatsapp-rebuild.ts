@@ -3090,6 +3090,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   const asksDraftStatus = /מה\s+פרטי\s+(?:ההשכרה|הבקשה|ההזמנה)|מה\s+עם\s+ההשכרה\s+שלי|(?:ההזמנה|הבקשה).{0,55}(?:שעשיתי איתך|שעשינו|העברת|שלחת|נשלחה)|(?:העברת|שלחת|נשלחה).{0,45}(?:ההזמנה|הבקשה)|(?:what|which).{0,30}(?:rental|request|booking) details|did you.{0,30}(?:send|submit|pass).{0,35}(?:request|booking)/i.test(input)
     || !state.handedOff && /^(?:יחזרו אליי?\??|will (?:someone|a representative) call me back\??)$/i.test(input.trim());
   if (!state.completedRequestId && state.requestKey && asksDraftStatus && !escalate
+    && !(state.handedOff && state.completedRental)
     && state.handoffKind !== 'safety' && state.handoffKind !== 'booking_change') {
     const b = state.booking;
     const missing = nextMissing(b);
@@ -3108,13 +3109,22 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     if (!missing) privateTurn = true;
     source = 'local';
   }
+  if (state.handedOff && state.handoffKind === 'human' && state.completedRental && !escalate
+    && /(?:מתי|תוך כמה זמן|כמה זמן|יחזרו|יחזור|אקבל תשובה|נקבל תשובה|שמור|סגור|מאושר|הזמנה|when|how long|hear back|reply|reserved|booked|confirmed)/iu.test(input)) {
+    const asksTiming = /(?:מתי|תוך כמה זמן|כמה זמן|יחזרו|יחזור|אקבל תשובה|נקבל תשובה|when|how long|hear back|reply)/iu.test(input);
+    const asksReservation = /(?:שמור|סגור|מאושר|הזמנה|reserved|booked|confirmed)/iu.test(input);
+    reply = he
+      ? `הפרטים הועברו לנציג SmartCar לבדיקה.${asksReservation ? ' הרכב עדיין לא שמור וההזמנה לא אושרה.' : ''}${asksTiming ? ' אין לי מועד תשובה מאושר; אם זה דחוף, אפשר להתקשר ל־' + OFFICE_PHONE + '.' : ''}`
+      : `The details have been passed to a SmartCar representative for review.${asksReservation ? ' The car is not reserved and no booking is confirmed.' : ''}${asksTiming ? ' There is no confirmed response time; if it is urgent, please call ' + OFFICE_PHONE + '.' : ''}`;
+    source = 'local';
+  }
   if (state.phase === 'service' && PRIVATE_PAYMENT_DETAIL.test(input)
     && !/אין צורך לשלוח מספר כרטיס מלא או קוד אבטחה|Do not send a full card number or security code/i.test(reply)) {
     reply += he ? ' אין צורך לשלוח כאן מספר כרטיס או אשראי מלא, קוד אבטחה, CVV או CVC.' : ' Do not send a full credit card number, security code, CVV or CVC here.';
   }
   // While a change is pending, the contractual return time stands. Answer the
   // "if nobody replies, do I return it?" question directly.
-  if ((state.handedOff && (state.handoffKind === 'booking_change' || state.handoffKind === 'service_issue' || state.handoffKind === 'human') || state.serviceChangeRequested) && !state.history.some(entry => entry.from === 'customer' && cancellationRequest(entry.text))
+  if ((state.handedOff && (state.handoffKind === 'booking_change' || state.handoffKind === 'service_issue' || state.handoffKind === 'human') || state.serviceChangeRequested) && !state.completedRental && !state.history.some(entry => entry.from === 'customer' && cancellationRequest(entry.text))
     && /(?:^|\s)ו?אם\s+(?:לא\s+)?(?:יענו|תענו|יחזרו|תחזרו|אקבל|נקבל|יאשרו|תאשרו)|מחזיר(?:ה)?\s+או\s+ממשיכ|להחזיר\s+או\s+להמשיך|\b(?:if|what if)\b.{0,30}\b(?:no one|nobody|you don['’]?t|I don['’]?t|no) (?:answers?|repl(?:y|ies)|hear|confirm|get back)|\breturn it or keep\b|\bkeep (?:driving|it) or return\b/iu.test(input)) {
     reply = he
       ? `עד שתקבלו אישור מפורש מ־SmartCar, מועד ההחזרה הקיים נשאר בתוקף — יש להחזיר את הרכב במועד המקורי. אם לא קיבלתם תשובה עד אז, התקשרו ל־${OFFICE_PHONE} לפני מועד ההחזרה.`
