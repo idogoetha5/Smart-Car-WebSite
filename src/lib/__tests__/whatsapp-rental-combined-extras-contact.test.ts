@@ -243,4 +243,19 @@ describe('rental additions and contact in one reply', () => {
     expect(result.state.step).toBe('rental_extras');
     expect(result.reply).not.toMatch(/למשל כיסא בטיחות/u);
   });
+
+  it('retains a self-described couple and daughter as three rental passengers', async () => {
+    let state: RebuildState | null = null;
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => null,
+      readTurn: async () => null,
+    };
+    const result = await getRebuiltBotReply('fictional-hebrew', 'בוקר טוב, אני מחפש רכב לכמה ימים עם אשתי והבת שלנו. ניקח עגלה ושתי מזוודות. מה יתאים?', store);
+    expect(result.state.booking.passengers).toBe(3);
+    expect(result.state.booking.luggage).toBe(2);
+  });
 });

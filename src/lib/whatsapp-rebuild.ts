@@ -900,9 +900,10 @@ function statedCount(value: string): number | null {
 
 function explicitPartnerAndChildGroup(input: string): boolean {
   for (const sentence of input.split(/[.!?;]/u)) {
-    const match = sentence.match(/\b(?:I(?: am|['’]m)?\s+)?(?:travell?ing|going|coming)\s+with\s+my\s+(?:wife|husband|partner|spouse)\s+and\s+(?:our|my|a|one)\s+(?:child|kid|baby|infant|son|daughter)\b|(?:אני\s+)?(?:נוסע(?:ת)?|מגיע(?:ה)?)\s+עם\s+(?:(?:בן|בת)\s+הזוג\s+שלי|אשתי|בעלי)\s+ו(?:עם\s+)?(?:הילד(?:ה)?\s+שלנו|ילד(?:ה)?\s+אחד(?:ת)?)(?![\p{L}])/iu);
+    const match = sentence.match(/\b(?:I(?: am|['’]m)?\s+)?(?:travell?ing|going|coming)\s+with\s+my\s+(?:wife|husband|partner|spouse)\s+and\s+(?:our|my|a|one)\s+(?:child|kid|baby|infant|son|daughter)\b|(?:אני\s+)?(?:נוסע(?:ת)?|מגיע(?:ה)?)\s+עם\s+(?:(?:בן|בת)\s+הזוג\s+שלי|אשתי|בעלי)\s+ו(?:עם\s+)?(?:הילד(?:ה)?\s+שלנו|ילד(?:ה)?\s+אחד(?:ת)?)(?![\p{L}])|אני[^.!?]{0,90}\s+עם\s+(?:אשתי|בעלי|בן הזוג שלי|בת הזוג שלי)\s+ו(?:הבת|הבן|הילד|הילדה)\s+שלנו(?![\p{L}])/iu);
     if (!match) continue;
     const prefix = sentence.slice(0, match.index);
+    if (/(?:^|\s)לא\s+(?:נוסע(?:ת)?|מגיע(?:ה)?|מחפש(?:ת)?|צריך(?:ה)?|רוצה)(?=\s)/u.test(match[0])) continue;
     const self = /^(?:I\b|אני\s)/iu.test(match[0])
       || /,\s*$/u.test(prefix) && /\bI\b|(?:^|\s)אני(?:\s|$)/iu.test(prefix);
     // Only a declared current travelling group; not a hypothetical or someone
