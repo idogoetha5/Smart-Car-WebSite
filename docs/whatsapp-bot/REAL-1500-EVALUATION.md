@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## Adaptive failure — 23 November 2026 (production `d07ee97`)
+
+A fresh three-turn real-Gemini replay answered the exit question cautiously, then failed at direct representative handoff: the reply mentioned only leasing even though the customer remained undecided between leasing and six-month rental. The saved state also converted a tentative one-year planning horizon to a chosen 12-month term. Full transcript: `evidence/adaptive-commercial-handoff-bypass-failure-20261123.json`. A scoped handoff and memory fix passes focused regression locally; live replay remains necessary. Do not count the conversation as a pass.
+
 ## Adaptive failure — 23 November 2026 (production `d934968`)
 
 A fresh real-Gemini commercial comparison failed on its first reply: the bot claimed leasing usually has a more comfortable monthly cost than six-month rental, without a verified offer. Full transcript: `evidence/adaptive-commercial-price-comparison-failure-20261123.json`. An output check and regression are local; production replay is required. Do not count this as a pass.

@@ -131,6 +131,9 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   }
   else if (eligibleTermMatches.length) next.termMonths = eligibleTermMatches.sort((a, b) => a.index - b.index).at(-1)!.value;
   else if (termUndecided) next.termMonths = null;
+  // A need "for the coming year" while weighing leasing against a six-month
+  // rental is not a selected leasing term.
+  if (next.comparingLeasingAndRental && !explicitChoice) next.termMonths = null;
 
   const annual = /לשנה|בשנה|שנתי|a year|per year|annually|annual/i.test(text);
   if (annual || previous?.annualMileageKm !== undefined) {

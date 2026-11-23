@@ -12,6 +12,18 @@ function conversation(initial: RebuildState | null = null) {
 }
 
 describe('commercial memory after the rolling conversation window', () => {
+  it('summarizes both undecided routes when the customer asks directly for a representative', async () => {
+    const send = conversation();
+    await send('אני עצמאי. לשנה הקרובה אצטרך משפחתית אבל אולי רק לחצי שנה. מתלבט בין ליסינג להשכרה, נוסע 18 אלף ק״מ בשנה ולא רוצה התחייבות ארוכה.');
+    const handed = await send('כן, תעבירו לנציג שישווה לי את שתי האפשרויות. לא סגרתי שום עסקה.');
+    expect(handed.state.commercial?.comparingLeasingAndRental).toBe(true);
+    expect(handed.state.commercial?.termMonths).toBeNull();
+    expect(handed.reply).toMatch(/ליסינג.*השכרה/);
+    expect(handed.reply).toMatch(/18,?000|18000/);
+    expect(handed.reply).toMatch(/התחייבות ארוכה/);
+    expect(handed.reply).not.toMatch(/לגבי הליסינג\./);
+    expect(handed.escalate).toBe(true);
+  });
   it('hands off an undecided leasing-versus-rental customer with the complete comparison', async () => {
     const send = conversation();
     await send('היי, אני עצמאי ומתלבט בין ליסינג לרכב משפחתי לבין השכרה לחצי שנה. אני נוסע בערך 18 אלף ק״מ בשנה וחשוב לי שלא אתקע עם התחייבות ארוכה. מה היית מציע?');
