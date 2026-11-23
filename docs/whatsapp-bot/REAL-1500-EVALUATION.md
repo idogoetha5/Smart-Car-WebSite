@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## New adaptive failure — 23 November 2026 (production `fcf2a0e`)
+
+A 22-year-old rental customer gave dates, vehicle and licence tenure, then explicitly said he was a new driver and confirmed return in Herzliya. The bot asked for his name rather than saying no car was available for a new driver on those dates. The full real-Gemini simulator transcript is `evidence/adaptive-new-driver-decline-failure-20261123.json`. State had correctly recorded new-driver status, but a later Gemini draft replaced the application decision. The source and exact regression now prevent that replacement; production replay is required. This failed chat is not a success count.
+
 ## New adaptive failure — 31 October 2026 (production `09a4d43`)
 
 An existing-rental customer provided booking reference 123456 and said they wanted to cancel, not change dates. The reply labelled it a change request because it matched the word “change” despite the explicit cancellation. The source now prioritizes cancellation context over a negated change phrase. Production replay is required.

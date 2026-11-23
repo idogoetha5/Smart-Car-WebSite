@@ -1,5 +1,9 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-11-23 — A real Gemini production-simulator chat on `fcf2a0e` found that a 22-year-old who explicitly said he was a new driver was asked for his name. The application had correctly recorded `newDriverStatus: yes` and chosen the unavailable-car response, but a later generic Gemini draft replaced it after the state moved from booking to explore. The source now keeps that decision while still allowing Gemini to rephrase it within the existing semantic checks. Exact regression added. Failed transcript: `evidence/adaptive-new-driver-decline-failure-20261123.json`. Production replay is required; this is not a completed conversation.
+
+Change log: 2026-11-23 — kept the WhatsApp-only new-driver eligibility decision ahead of a stale Gemini intake draft. Website booking flow, schema, domain and DNS unchanged.
+
 2026-11-23 — A new adaptive production-simulator chat with real Gemini failed at turn 3: after the bot asked which name to put on a rental request, the customer gave a labelled full name, age 23, licence tenure and asked what remained. The bot answered only the age policy and stayed outside the booking flow. The full fictional transcript is `evidence/adaptive-young-driver-live-failure-20261123.json` (ignored by Git). The source now accepts a labelled two-word name with accompanying context as an answer to that prompt, advances to the new-driver question, and does not prepend a generic age policy to that question. Regression added. This repair is local and requires a fresh production replay after publication; the failed chat is not a success count.
 
 Change log: 2026-11-23 — repaired labelled-name intake after the real Gemini young-driver conversation failed. No website form, schema, domain, DNS or unrelated feature change.

@@ -10,6 +10,29 @@ function conversation() {
 }
 
 describe('young city renter keeps luggage and answers model questions during private intake', () => {
+  it('keeps the new-driver decline when Gemini asks for a name after the customer explicitly says they are new', async () => {
+    const state: RebuildState = { version: 2, phase: 'booking', step: 'rental_locations', locale: 'he', history: [
+      { from: 'customer', text: 'אני בן 22 וקיבלתי רישיון לפני חודש', private: false },
+      { from: 'bot', text: 'להחזיר גם בהרצליה?', private: false },
+    ], booking: {
+      pickupDate: '2026-12-18', returnDate: '2026-12-21', pickupLocation: 'הרצליה',
+      vehicleNeed: 'רכב משפחתי', driverAgeRange: '21-23',
+    } };
+    const createRentalRequest = vi.fn(async () => 'unexpected');
+    const result = await getRebuiltBotReply('fictional-new-driver-stale-draft',
+      'כן, גם להחזיר בהרצליה. ואני נהג חדש, הרישיון שלי מלפני חודש.', {
+        isSimulation: true, loadState: async () => structuredClone(state), saveState: async () => {},
+        activeBooking: async () => null, createRentalRequest,
+        readTurn: async () => ({ route: 'book', direction: 'family', fields: {}, source: 'gemini', model: 'test', groundedContext: true,
+          reply: 'מעולה, נחזיר גם בהרצליה. באיזה שם תרצו שנרשום את ההזמנה?' }),
+      });
+    expect(result.state.newDriverStatus).toBe('yes');
+    expect(result.reply).toMatch(/אין לנו רכבים זמינים לנהגים חדשים בתאריכים/u);
+    expect(result.reply).not.toMatch(/באיזה שם/u);
+    expect(result.state.phase).toBe('explore');
+    expect(createRentalRequest).not.toHaveBeenCalled();
+  });
+
   it('lets Gemini phrase the unavailable-new-driver answer without changing its meaning or creating a request', async () => {
     const state: RebuildState = { version: 2, phase: 'booking', step: 'rental_new_driver', locale: 'he', history: [], booking: {
       pickupDate: '2026-12-10', returnDate: '2026-12-12', pickupLocation: 'הרצליה', returnLocation: 'הרצליה',

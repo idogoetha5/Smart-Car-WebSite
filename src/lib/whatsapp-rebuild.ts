@@ -2937,6 +2937,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // application-owned. For ordinary discussion the grounded AI answer is the
     // default; deterministic paragraphs above are the outage/rejection backup.
     if (!escalate && !policyLocked && (!state.handedOff || continuedServiceAdvice) && !gotPrivate && !state.durationClarification
+      && !(state.newDriverStatus === 'yes' && /new drivers|נהגים חדשים/u.test(reply))
       && !state.completedRequestId) {
       const questionTurn = /[?؟]/u.test(input) || reading?.route === 'policy';
       const canUseDraft = state.phase !== 'booking' || questionTurn;
