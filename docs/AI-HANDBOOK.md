@@ -1,5 +1,7 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-11-23 — Fresh sale replay on `4955d3d` removed the repeated model-search offer and truly escalated the representative request, but the handoff summary omitted the buyer's chosen family category. Evidence: `evidence/adaptive-hebrew-sale-final-retest-20261123.json`. A scoped commercial-memory fix and regressions are local; full gates, preservation, deployment and live replay remain required. This is not a passed conversation.
+
 2026-11-23 — The next fresh sale chat on production `8b58ca3` revealed a repeated question: after the buyer accepted an offer to check models and gave family requirements, the bot asked the same offer again. Evidence: `evidence/adaptive-hebrew-sale-retest-20261123.json`. A scoped repeated-offer guard and regression are local; full gates, preservation, deployment and live replay remain required. This is a failed conversation.
 
 2026-11-23 — A four-turn real-Gemini used-car sale conversation produced a false handoff claim: the customer said “תעבירו בבקשה לנציג”, the bot said the details were passed, but the simulator returned `escalated:false` and state stayed in explore. Evidence: `evidence/adaptive-hebrew-sale-20261123.json`. A scoped detection fix and exact multi-turn regression are local; full gates, preservation, deployment and live replay remain required. This is a failed conversation.

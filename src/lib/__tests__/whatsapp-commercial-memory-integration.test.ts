@@ -57,6 +57,21 @@ describe('commercial memory after the rolling conversation window', () => {
     expect(answer.reply).toMatch(/תא המטען/);
     expect(answer.reply).not.toMatch(/תרצו שנבדוק דגמי/);
   });
+  it('keeps a buyer’s natural family-car choice in the final sale handoff', async () => {
+    let state: RebuildState | null = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, interest: 'sale', history: [
+      { from: 'customer', text: 'כן, נבדוק. משפחתית תהיה לי נוחה יותר, רוב הזמן בעיר והעגלה חייבת להיכנס.', private: false },
+      { from: 'bot', text: 'לרכב משפחתי כדאי לבדוק את היסטוריית הטיפולים ולבקש בדיקה עצמאית.', private: false },
+    ], commercial: { budget: { amount: 65000, currency: 'ILS' }, usage: ['city'], stroller: true } };
+    const store: RebuildStore = {
+      isSimulation: true, loadState: async () => state, saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null, createRentalRequest: async () => 'SIM', readTurn: async () => null,
+    };
+    const handed = await getRebuiltBotReply('fictional', 'בסדר, תעבירו בבקשה לנציג את הפרטים: משפחתית לשני ילדים ולעגלה, עד 65 אלף שקל, ושאלתי על בדיקה עצמאית. אני יעל שחר, תחזרו אליי פה בווטסאפ.', store);
+    expect(handed.state.commercial?.vehiclePreference).toBe('family');
+    expect(handed.reply).toMatch(/משפחתי/);
+    expect(handed.reply).toMatch(/65000/);
+    expect(handed.escalate).toBe(true);
+  });
   it('keeps an undecided leasing versus rental customer in advice rather than rental intake', async () => {
     const send = conversation();
     const turn = await send('היי, אני עצמאי ונוסע כ־18 אלף ק״מ בשנה. אני צריך רכב משפחתי ומתלבט בין ליסינג להשכרה לחצי שנה, כי עוד לא יודע אם אצטרך רכב אחר כך. מה היית ממליץ לבדוק?');

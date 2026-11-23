@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { updateCommercialMemory, renderCommercialMemory } from '@/lib/whatsapp-commercial-memory';
 
 describe('durable explicit commercial facts', () => {
+  it('remembers a natural family-car selection even without an exact model', () => {
+    const memory = updateCommercialMemory(undefined, 'כן, נבדוק. משפחתית תהיה לי נוחה יותר, רוב הזמן בעיר והעגלה חייבת להיכנס.');
+    expect(memory.vehiclePreference).toBe('family');
+    expect(updateCommercialMemory(memory, 'אני לא רוצה להתחייב על דגם מסוים.').vehiclePreference).toBe('family');
+  });
   it('retains family car, child and stroller needs through an undecided route comparison', () => {
     let memory = updateCommercialMemory(undefined, 'אני צריכה רכב משפחתי אבל מתלבטת בין ליסינג להשכרה לחמישה חודשים.');
     memory = updateCommercialMemory(memory, 'אני עם ילד קטן ועגלה. אם אחזיר אחרי שלושה חודשים, מה קורה?');

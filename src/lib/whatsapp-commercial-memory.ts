@@ -182,6 +182,7 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
       ?? text.match(/(compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)\s+is important to (?:me|us)/iu)
       ?? text.match(/(?:^|[,;.]\s*|ל)רכב\s+(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות)/iu)
       ?? text.match(/(?:הצעה\s+ל(?:ליסינג|השכרה)\s+ל|(?:כן|בסדר)[,\s]+)(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות)(?=[\s,.;!?]|$)/iu)
+      ?? text.match(/(?:^|[,;.:]\s*)(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות)\s+(?:תהיה|יהיה|תתאים|יתאים|תספיק|יספיק|ל(?:שני|שלושה|ארבעה|ילדים|משפחה))(?![\p{L}])/iu)
       ?? text.trim().match(/^(?:a |רכב )?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות|compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)[.!\s]*$/iu)
       // "משהו קטן ואמין" / "something small" / a message that opens with the category.
       ?? text.match(/(?:^|[,;.]\s*)(?:משהו|something)\s+(קטן|קומפקטי|משפחתי|משפחתית|small|compact|family)(?![\p{L}])/iu)
