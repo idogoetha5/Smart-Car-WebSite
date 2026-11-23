@@ -500,9 +500,10 @@ function singleDateAnswer(input: string, after?: string): string | null {
   if (!candidate) {
     const numeric = value.match(/^(\d{1,2})[./](\d{1,2})(?:[./](20\d{2}))?$/);
     const named = value.match(new RegExp(`^(\\d{1,2})\\s+(?:ב)?(${Object.keys(MONTHS).join('|')})(?:\\s+(20\\d{2}))?$`, 'iu'));
-    const day = numeric?.[1] ?? named?.[1];
-    const month = numeric ? Number(numeric[2]) : named ? MONTHS[named[2].toLocaleLowerCase()] : undefined;
-    const year = numeric?.[3] ?? named?.[3];
+    const namedEn = value.match(new RegExp(`^(${Object.keys(MONTHS).join('|')})\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+(20\\d{2}))?$`, 'iu'));
+    const day = numeric?.[1] ?? named?.[1] ?? namedEn?.[2];
+    const month = numeric ? Number(numeric[2]) : named ? MONTHS[named[2].toLocaleLowerCase()] : namedEn ? MONTHS[namedEn[1].toLocaleLowerCase()] : undefined;
+    const year = numeric?.[3] ?? named?.[3] ?? namedEn?.[3];
     if (day && month && month >= 1 && month <= 12) {
       let numberYear = year ? Number(year) : Number(reference.slice(0, 4));
       candidate = `${numberYear}-${String(month).padStart(2, '0')}-${day.padStart(2, '0')}`;
@@ -673,7 +674,7 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
     && !/(?:^|\s)אם\s|\bif\b|what if/iu.test(input)) draft.pickupLocation = airportLabel;
   if (!draft.returnLocation && new RegExp(`\\b(?:returning|return(?:ing)? it|drop(?:ping)? (?:it )?off)\\s+(?:at|to)\\s+${airportWord}|(?:מחזיר(?:ים|ה)?|נחזיר|להחזיר)\\s+(?:גם\\s+)?(?:ב|ל)${airportWord}`, 'iu').test(input)) draft.returnLocation = airportLabel;
   if (bothLabel) { draft.pickupLocation = bothLabel; draft.returnLocation = bothLabel; }
-  const dateText = `(?:\\d{1,2}[./]\\d{1,2}(?:[./]20\\d{2})?|\\d{1,2}\\s+(?:ב)?(?:${Object.keys(MONTHS).join('|')})(?:\\s+20\\d{2})?)`;
+  const dateText = `(?:\\d{1,2}[./]\\d{1,2}(?:[./]20\\d{2})?|\\d{1,2}\\s+(?:ב)?(?:${Object.keys(MONTHS).join('|')})(?:\\s+20\\d{2})?|(?:${Object.keys(MONTHS).join('|')})\\s+\\d{1,2}(?:st|nd|rd|th)?(?:,?\\s+20\\d{2})?)`;
   // Parse each labelled date independently: customers may correct the return
   // before restating an unchanged pickup. Never associate dates by text order.
   const labelledDates: Partial<Record<'pickupDate' | 'returnDate', string>> = {};
@@ -693,6 +694,11 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
   if (labelledDates.returnDate) {
     const date = singleDateAnswer(labelledDates.returnDate, draft.pickupDate);
     if (date) draft.returnDate = date;
+  }
+  const selectedPickup = input.match(/\b(?:pick(?:ing)?[- ]?up|collect(?:ing)?)\s+(?:at|from|in)\s+(herzliya|tel aviv|jerusalem|ben gurion(?: airport)?|the airport)\b/iu)?.[1];
+  if (selectedPickup && !/\b(?:if|maybe|perhaps|might)\b/iu.test(input)) {
+    draft.pickupLocation = /^(?:ben gurion(?: airport)?|the airport)$/iu.test(selectedPickup)
+      ? 'Ben Gurion Airport' : selectedPickup.replace(/\b\p{Ll}/gu, letter => letter.toUpperCase());
   }
   const datedReturn = input.match(new RegExp(`(?:נחזיר|אחזיר|להחזיר|return(?:\\s+(?:it|the car))?|drop.?off)\\s+(?:ב[-־]?|on\\s+)?(${dateText})\\s+(?:ב[-־]?|in\\s+|to\\s+|at\\s+)([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)(?=\\s+(?:במקום|instead\\s+of)|[,.!?]|$)`, 'iu'));
   if (datedReturn) {

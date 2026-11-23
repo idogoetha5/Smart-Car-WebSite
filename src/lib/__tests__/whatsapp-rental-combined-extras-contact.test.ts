@@ -71,4 +71,24 @@ describe('rental additions and contact in one reply', () => {
     expect(final.state.completedRental?.childSeatType).toBe('booster');
     expect(final.reply).toMatch(/family car|booster seat/i);
   });
+
+  it('keeps selected English pickup and return dates in a combined polite message', async () => {
+    let state: RebuildState | null = {
+      version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: { passengers: 4 },
+      history: [{ from: 'bot', text: 'Would you like to check dates and pickup and return locations?' }],
+    };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => null,
+      readTurn: async () => null,
+    };
+    const result = await getRebuiltBotReply('fictional-tourist', 'Yes. Could you note a family car as our preference? We would pick up in Herzliya on December 8 and return there on December 15. We will bring two medium suitcases and the stroller.', store);
+    expect(result.state.booking).toMatchObject({
+      vehicleNeed: 'family car', pickupDate: '2026-12-08', returnDate: '2026-12-15',
+      pickupLocation: 'Herzliya', returnLocation: 'Herzliya', luggage: 2,
+    });
+  });
 });
