@@ -21,6 +21,14 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('does not treat arrival from London as a chosen Ben Gurion pickup', async () => {
+    const chat = memory(() => ({ ...base, reply: 'A family car is a starting point; we can check stroller fit for a specific model. Where would you like to pick up?', fields: {
+      pickupLocation: { value: 'Ben Gurion Airport', evidence: 'flying in from London' },
+    } }));
+    const turn = await chat.send('Hi, we are flying in from London next month with two children and a stroller. We need a car for roughly a week. What would you recommend?');
+    expect(turn.state.booking.pickupLocation).toBeUndefined();
+    expect(turn.reply).not.toMatch(/surcharge for pickup or return at Ben Gurion Airport/);
+  });
   it.each(['Can you start the rental request?', 'Please start the rental request.'])('starts a tourist rental request (%s) and retains the selected car', async request => {
     let state: RebuildState | null = {
       version: 2, phase: 'explore', step: 'menu', locale: 'en',

@@ -1581,6 +1581,10 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
       const flight = /land(?:ing|s)?|flight|arriv|נוחת|נוחתים|נחיתה|טיסה/iu.test(input);
       const branchKey = /^(?:ben gurion(?: airport)?|(?:the )?airport|נתב.?ג|שדה ה?תעופה)$/iu.test(value) || /^tlv$/iu.test(value) && flight ? 'airport'
         : /^(?:הרצליה|herzliya)$/iu.test(value) ? 'herzliya' : /^(?:תל אביב|tel aviv|tlv)$/iu.test(value) ? 'telaviv' : /^(?:ירושלים|jerusalem)$/iu.test(value) ? 'jerusalem' : undefined;
+      const branchGrounded = branchKey === 'airport' ? /ben gurion|(?:^|\W)tlv(?:\W|$)|(?:the )?airport|נתב.?ג|שדה ה?תעופה/iu.test(input)
+        : branchKey === 'herzliya' ? /herzliya|הרצליה/iu.test(input)
+        : branchKey === 'telaviv' ? /tel aviv|תל אביב/iu.test(input)
+        : branchKey === 'jerusalem' ? /jerusalem|ירושלים/iu.test(input) : false;
       const evidence = field.evidence.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const destination = new RegExp(`\\b(?:to|towards|around|visit(?:ing)?|trip to|drive to)\\s+(?:the\\s+)?${evidence}|(?<![\\p{L}])ל${evidence}`, 'iu').test(input);
       // Delivery to the customer's home, hotel or office in a city ("my hotel in herzliya", "הבית שלי בנתניה"):
@@ -1593,7 +1597,7 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
         state.booking.pickupLocation = state.locale === 'he' ? `מסירה עד הבית (${city})` : `Home delivery (${city})`;
         continue;
       }
-      const modelRole = source === 'pickupLocation' && Boolean(branchKey) && !state.booking.pickupLocation && !destination && !isHypotheticalFactEvidence(input, field.evidence);
+      const modelRole = source === 'pickupLocation' && Boolean(branchKey) && branchGrounded && !state.booking.pickupLocation && !destination && !isHypotheticalFactEvidence(input, field.evidence);
       if (!explicitRole && !promptedRole && !modelRole) continue;
       if (modelRole && !explicitRole && !promptedRole) {
         state.booking.pickupLocation = (state.locale === 'he'
