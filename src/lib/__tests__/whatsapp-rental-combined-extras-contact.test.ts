@@ -285,4 +285,30 @@ describe('rental additions and contact in one reply', () => {
     expect(result.reply).toMatch(/אין לי מועד תשובה מאושר/u);
     expect(result.reply).not.toMatch(/מועד ההחזרה הקיים|להחזיר את הרכב/u);
   });
+
+  it('closes a complete rental after a natural no-more-extras reply', async () => {
+    let state: RebuildState | null = {
+      version: 2, phase: 'booking', step: 'rental_extras', locale: 'he', rentalExtrasAsked: true,
+      booking: {
+        pickupDate: '2026-12-05', returnDate: '2026-12-09',
+        pickupLocation: 'הרצליה', returnLocation: 'הרצליה',
+        vehicleNeed: 'רכב משפחתי', passengers: 3, luggage: 2,
+        driverAgeRange: '24-plus', customerName: 'עומר ברק', childSeats: 0,
+      },
+      history: [{ from: 'bot', text: 'לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו? למשל נהג נוסף, חבילת כביש 6 ומנהרות. אם לא, אפשר פשוט לכתוב "לא".' }],
+    };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => { throw new Error('handoff must not create an order'); },
+      readTurn: async () => null,
+    };
+    const result = await getRebuiltBotReply('fictional-hebrew', 'לא, זה הכל. תודה.', store);
+    expect(result.state.handedOff).toBe(true);
+    expect(result.state.handoffKind).toBe('human');
+    expect(result.reply).toMatch(/סיכום הפנייה/u);
+    expect(result.reply).toMatch(/נוסעים: 3/u);
+  });
 });

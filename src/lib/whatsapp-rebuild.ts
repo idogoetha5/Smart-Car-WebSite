@@ -2670,6 +2670,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         && /(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|כביש\s*6|כיסא(?:ות)? בטיחות|additional driver|highway\s*6|child seat)/iu.test(input);
       const explicitlyPasses = /(?:תעביר|תעבירו|להעביר).{0,24}(?:לנציג|לנציגת|למשרד)|(?:pass|send).{0,24}(?:representative|office)/iu.test(input);
       const answersExtras = /^(?:לא(?:\s*,?\s*(?:תודה|זה הכל|אין צורך|בלי תוספות|לא צריך עוד))?|אין(?:\s+צורך)?|בלי תוספות|זה הכל|לא צריך עוד|(?:אני\s+)?מאשר(?:ת)?|(?:i\s+)?confirm|no(?:\s*,?\s*(?:thanks|(?:other )?extras?))?|none|nothing else|that's all|that is all)[.!\s]*$/iu.test(input.trim())
+        || /^(?:לא|no)[,!\.\s]*(?:זה הכל|זה הכול|אין צורך|בלי תוספות|לא צריך עוד|nothing else|that'?s all|that is all|no (?:other|more) (?:extras|additions))\s*[.!\s]*(?:תודה|thanks?|thank you)?[.!\s]*$/iu.test(input.trim())
         || /\b(?:nothing else|no (?:other|more) (?:extras|additions)|that'?s all|that is all)\b/iu.test(input) && !/[?؟]/u.test(input)
         || /(?:מעבר לזה|חוץ מזה).{0,35}(?:לא צריך|אין צורך|בלי).{0,15}(?:תוספ|כלום)|(?:apart from that|otherwise).{0,35}(?:nothing else|no (?:other|more) (?:extras|additions))/iu.test(input)
         || proactiveExtra && !/[?؟]/u.test(input);
