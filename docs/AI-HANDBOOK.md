@@ -1,5 +1,9 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-11-23 — Security maintenance: upgraded Next.js to 16.4.6 and Sentry to 11.16.0, together with the matching ESLint config and vulnerable development dependencies. Sentry v11 now uses an explicit shared data-collection restriction on browser, server and edge so customer details, request content and AI inputs/outputs are not captured by the new defaults. No website content, booking logic, WhatsApp activation, domain or DNS change. Full tests, typecheck, lint and production build passed locally; deployment verification is recorded separately when completed.
+
+Change log: 2026-11-23 — applied dependency security updates and pinned Sentry privacy settings with a regression test.
+
 2026-11-23 — Fresh adaptive four-turn English tourist rental on production `4e0523a` passed simulator manual review. The exact natural “family car would be our choice” now advances to name, additions once and a full representative summary including passengers, bags, stroller fit check and own booster. Evidence: `evidence/adaptive-english-tourist-rental-choice-retest-20261123.json`. No formal booking was created. Daniel receipt and real WhatsApp delivery remain unverified; overall bot readiness is not established.
 
 2026-11-23 — The next two-turn production tourist replay on `0f996f2` failed: the customer selected “a family car would be our choice” and supplied all other core rental details, but Gemini's selected-fact patch omitted the category. Application state stayed in explore and the reply asked extras before capturing a name. Failed transcript: `evidence/adaptive-english-tourist-rental-privacy-retest-20261123.json`. A grounded selected-choice fallback and date-invitation regression pass locally; full gates, preservation, deployment and fresh replay are pending. Do not count this as a pass.
