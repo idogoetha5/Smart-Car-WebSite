@@ -48,6 +48,11 @@ describe('output checks for natural conversational drafts', () => {
     expect(check(observed, { input: 'We are arriving from London next month with two kids and a stroller. What car would you suggest?' })).toBeNull();
     expect(check('A family car is a good starting point; we can check stroller and luggage fit for a specific model. Where would you like to pick up?', { input: 'We are arriving from London with two kids and a stroller.' })).not.toBeNull();
   });
+  it('does not turn two children into a four-person party without an adult count', () => {
+    const input = 'We are coming from London next month with two children and a stroller. What would you suggest?';
+    expect(check('For a family of four with luggage and a stroller, a family car or an SUV generally offers comfortable room for everyone and your gear.', { input })).toBeNull();
+    expect(check('For two children and a stroller, a family car is a good starting point; we should check the exact model for everyone and the gear.', { input })).not.toBeNull();
+  });
   it('rejects an unperformed rental arrangement promise', () => {
     expect(check('We will arrange your family car pickup and return at Ben Gurion Airport from December 12 to 19.')).toBeNull();
   });

@@ -145,6 +145,11 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
     .flatMap(([, y, m, d]) => { const dd = String(Number(d)), mm = String(Number(m)); return [`${dd}.${mm}`, `${d}.${m}`, `${dd}.${mm}.${y}`, `${d}.${m}.${y}`, `${dd}.${m}`, `${d}.${mm}`]; });
   const allowedNumbers = new Set([...numberTokens([input, ...Object.values(known).filter(value => value !== undefined).map(String), ...approvedFacts].join(' ')), ...dateForms.map(form => form.replace(/^0+(?=\d)/, ''))]);
   if (numberTokens(reply.replace(/09-?9509757/g, '')).some(token => !allowedNumbers.has(token))) return reject('unsupported_number');
+  const familySize = reply.match(/\b(?:family|group|party) of (one|two|three|four|five|six)\b/iu)?.[1]?.toLowerCase();
+  if (familySize) {
+    const count = ({ one: 1, two: 2, three: 3, four: 4, five: 5, six: 6 } as Record<string, number>)[familySize];
+    if (known.passengers !== count && !new RegExp(`\\b(?:family|group|party) of ${familySize}\\b|\\b${count}\\s+(?:people|passengers|travellers|travelers)\\b|\\btwo adults? (?:and|with) two (?:kids?|children)\\b`, 'iu').test(input)) return reject('unsupported_number');
+  }
 
   // Negative or conditional discussion is useful advice. Positive assurances
   // about a transaction, stock, personal cover or physical fit are not.
@@ -168,6 +173,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (hasAffirmativeMatch(reply, /\b(?:your|the|these|those)\s+(?:(?:one|two|three|four|five|\d+)\s+)?(?:bags|suitcases|luggage|stroller|child seat|equipment)\s+(?:will|can definitely|will definitely) fit\b|המזוודות (?:שלך |שלכם )?(?:ייכנסו|יתאימו)|העגלה (?:תיכנס|תתאים)/gi)) return reject('fit_assurance');
   if (hasAffirmativeMatch(reply, /\b(?:car|vehicle|seat) will fit (?:your|the|all)\b|(?:הרכב|הכיסא) יתאים בוודאות/gi)) return reject('fit_assurance');
   if (/(?:family car|SUV|vehicle|car)[^.!?\n]{0,60}(?:would|will) (?:give|have|provide) (?:you|your family) (?:the )?(?:space|room) you need/iu.test(reply)) return reject('fit_assurance');
+  if (/(?:family car|SUV|vehicle|car)[^.!?\n]{0,65}(?:offers?|provides?|has) (?:comfortable|enough|sufficient) (?:space|room)[^.!?\n]{0,35}(?:everyone|all of you)[^.!?\n]{0,25}(?:gear|luggage|stroller|bags?)/iu.test(reply)) return reject('fit_assurance');
   if (hasAffirmativeMatch(reply, /\b(?:we have (?:a |the )?(?:car|vehicle) available|(?:a car|the car|vehicle|it) is available (?:now|for|on)|available for (?:your|the) (?:dates|trip))\b|יש לנו רכב (?:פנוי|זמין)|הרכב (?:פנוי|זמין) (?:עכשיו|לתאריכים)/gi)) return reject('stock_assurance');
   if (/\bwould you like (?:us )?to have (?:your|the|a) (?:[\p{L}-]+\s+){0,3}(?:car|vehicle) ready\b|\b(?:can|could) (?:we|you) have (?:your|the|a) (?:[\p{L}-]+\s+){0,3}(?:car|vehicle) ready\b/iu.test(reply)) return reject('stock_assurance');
   if (hasAffirmativeMatch(reply, /\bwe (?:can|could|will|'ll|are able to)(?: certainly| definitely)? (?:have|make|prepare) (?:your|the|a) (?:[\p{L}-]+\s+){0,3}(?:car|vehicle) ready\b|\b(?:your|the|a) (?:[\p{L}-]+\s+){0,3}(?:car|vehicle) (?:is|will be|can be|is going to be) ready\b|(?:הרכב|רכב) (?:שלכם? )?(?:יהיה|תהיה|יחכה|מוכן|מוכנה) (?:מוכן|מוכנה|לכם|לאיסוף)|(?:נכין|נעמיד) לכם רכב/giu)) return reject('stock_assurance');
