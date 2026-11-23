@@ -12,6 +12,23 @@ function conversation(initial: RebuildState | null = null) {
 }
 
 describe('commercial memory after the rolling conversation window', () => {
+  it('hands off the selected leasing request with the exact facts after an earlier comparison', async () => {
+    const send = conversation();
+    await send('שלום, אני עצמאי עם עסק קטן. מחפש רכב לעבודה ולעיתים להסעת המשפחה, ומתלבט בין ליסינג להשכרה ארוכה. מה היית ממליץ לבדוק?');
+    await send('כן. אני צריך רכב בערך לשנתיים, נוסע משהו כמו 18 אלף קילומטר בשנה, תקציב סביב 2,500 שקל בחודש. לפעמים שני ילדים איתי. מה יותר הגיוני?');
+    await send('כן, משפחתית תספיק. לא רוצה להתחייב על דגם. ואם בתקציב הזה אין הצעה, תגיד לי ישר. כמה זה יעלה לי סופית?');
+    const handed = await send('בסדר, תעביר לנציג הצעה לליסינג למשפחתית לשנתיים, 18 אלף ק״מ בשנה ועד 2,500 לחודש. קוראים לי רועי כהן ואפשר לחזור אליי בווטסאפ הזה.');
+    expect(handed.state.commercial).toMatchObject({ comparingLeasingAndRental: false, termMonths: 24, vehiclePreference: 'family', annualMileageKm: 18000, budget: { amount: 2500, currency: 'ILS' } });
+    expect(handed.reply).toMatch(/ליסינג/);
+    expect(handed.reply).toMatch(/משפחתי/);
+    expect(handed.reply).toMatch(/24 חודשים/);
+    expect(handed.reply).toMatch(/18000/);
+    expect(handed.reply).toMatch(/2500/);
+    expect(handed.reply).not.toMatch(/מתלבטים בין|השוואה בין ליסינג להשכרה|תקופה: טרם הוחלט/);
+    expect(handed.escalate).toBe(true);
+    expect(handed.state.handoffKind).toBe('commercial');
+    expect(handed.state.completedRequestId).toBeUndefined();
+  });
   it('keeps an undecided leasing versus rental customer in advice rather than rental intake', async () => {
     const send = conversation();
     const turn = await send('היי, אני עצמאי ונוסע כ־18 אלף ק״מ בשנה. אני צריך רכב משפחתי ומתלבט בין ליסינג להשכרה לחצי שנה, כי עוד לא יודע אם אצטרך רכב אחר כך. מה היית ממליץ לבדוק?');

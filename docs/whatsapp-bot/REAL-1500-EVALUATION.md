@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## Adaptive failure — 23 November 2026 (production `e160d4e`)
+
+A four-turn real-Gemini leasing enquiry chose a family-car leasing proposal for 24 months, 18,000 km/year and a 2,500 ILS monthly budget. The handoff incorrectly summarized the customer as still comparing leasing with rental, omitted the family category and called the term undecided. Full transcript: `evidence/adaptive-hebrew-leasing-validation-20261123.json`. Scoped memory and selected-route summary corrections and an exact regression are local; production replay is required. Do not count this as a pass.
+
 ## Adaptive failure — 23 November 2026 (production `15f450a`)
 
 The real-Gemini customer asked an early-return and mileage question “before a representative”. The bot immediately handed off and skipped the question because a broad representative-request phrase matched “representative ... I want”. Full transcript: `evidence/adaptive-commercial-premature-handoff-failure-20261123.json`. A scoped correction and regression are local; production replay is required. This is not a successful full conversation.

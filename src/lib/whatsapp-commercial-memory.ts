@@ -62,7 +62,7 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
     && /מתלבט|השווא|להשוות|בין|מול|לעומת|או|unsure|undecided|compar|versus|\bvs\b|between|\bor\b/iu.test(text)) {
     next.comparingLeasingAndRental = true;
   }
-  if (/(?:^|[.!?]\s*)(?:אני\s+)?(?:בחרתי|החלטתי(?:\s+על)?|נלך\s+על|סגרתי\s+על)\s+(?:ב|את\s+ה)?(?:ליסינג|השכרה)|(?:^|[.!?]\s*)(?:i(?:'ve| have)?\s+)?(?:chose|chosen|decided on|settled on|go with)\s+(?:the\s+)?(?:leasing|rental)/iu.test(text)
+  if (/(?:^|[.!?]\s*)(?:אני\s+)?(?:בחרתי|החלטתי(?:\s+על)?|נלך\s+על|סגרתי\s+על)\s+(?:ב|את\s+ה)?(?:ליסינג|השכרה)|(?:^|[.!?]\s*)(?:i(?:'ve| have)?\s+)?(?:chose|chosen|decided on|settled on|go with)\s+(?:the\s+)?(?:leasing|rental)|(?:תעביר(?:ו)?|להעביר|תכינו|להכין|אשמח(?:\s+לקבל)?)\s+[^.!?\n]{0,45}(?:הצעה|פנייה)\s+ל(?:ליסינג|השכרה)|(?:send|pass|prepare|request)\s+[^.!?\n]{0,45}(?:quote|proposal|enquiry|inquiry)\s+for\s+(?:leasing|rental)/iu.test(text)
     && !/^(?:אם|אולי|מה אם|if|maybe)\b/iu.test(text.trim())) next.comparingLeasingAndRental = false;
   if (next.comparingLeasingAndRental && /השכרה|לשכור|rental|rent/iu.test(text)) {
     if (/חצי שנה|שישה חודשים|שש חודשים|six months|6 months/iu.test(text)) next.rentalComparisonMonths = 6;
@@ -181,6 +181,7 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
       ?? positiveLeasingChoice
       ?? text.match(/(compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)\s+is important to (?:me|us)/iu)
       ?? text.match(/(?:^|[,;.]\s*|ל)רכב\s+(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות)/iu)
+      ?? text.match(/(?:הצעה\s+ל(?:ליסינג|השכרה)\s+ל|(?:כן|בסדר)[,\s]+)(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות)(?=[\s,.;!?]|$)/iu)
       ?? text.trim().match(/^(?:a |רכב )?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות|compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)[.!\s]*$/iu)
       // "משהו קטן ואמין" / "something small" / a message that opens with the category.
       ?? text.match(/(?:^|[,;.]\s*)(?:משהו|something)\s+(קטן|קומפקטי|משפחתי|משפחתית|small|compact|family)(?![\p{L}])/iu)
