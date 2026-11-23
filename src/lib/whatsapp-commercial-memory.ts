@@ -192,7 +192,7 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   const usage = new Set(next.usage ?? []);
   if (/בעיר|עירוני|\bcity\b|\burban\b/i.test(text)) usage.add('city');
   if (/למשפחה|שימוש משפחתי|בעיקר\s+משפחה|נסיעות משפחתיות|family (?:use|trips)|with (?:my |our )?(?:kids|children)/i.test(text)) usage.add('family');
-  if (/(?:אני|אנחנו|נוסעים|נוסעות|צריך(?:ה|ים)?)\s+(?:עם\s+)?(?:ילד|ילדה|ילדים|תינוק|תינוקת)|\b(?:with|travelling with|traveling with) (?:my |our |a )?(?:child|kid|baby|toddler)\b/iu.test(text)) {
+  if (/(?:אני|אנחנו|נוסעים|נוסעות|צריך(?:ה|ים)?|יש לי|יש לנו)\s+(?:עם\s+)?(?:ילד|ילדה|ילדים|תינוק|תינוקת)|\b(?:with|travelling with|traveling with|i have|we have) (?:my |our |a )?(?:child|kid|baby|toddler)\b/iu.test(text)) {
     next.travelingWithChild = true;
     usage.add('family');
   }

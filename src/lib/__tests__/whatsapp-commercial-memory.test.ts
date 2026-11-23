@@ -7,6 +7,8 @@ describe('durable explicit commercial facts', () => {
     memory = updateCommercialMemory(memory, 'אני עם ילד קטן ועגלה. אם אחזיר אחרי שלושה חודשים, מה קורה?');
     expect(memory).toMatchObject({ comparingLeasingAndRental: true, vehiclePreference: 'family', travelingWithChild: true, stroller: true });
     expect(renderCommercialMemory(memory, 'he')).toMatch(/משפחתי.*נוסעים עם ילד.*יש עגלה/);
+    const variant = updateCommercialMemory(undefined, 'צריכה רכב משפחתי ומתלבטת בין ליסינג להשכרה לחמישה חודשים. יש לי ילד קטן ועגלה.');
+    expect(variant).toMatchObject({ vehiclePreference: 'family', travelingWithChild: true, stroller: true });
   });
   it('keeps a six-month rental comparison and early-exit concern without selecting leasing', () => {
     let memory = updateCommercialMemory(undefined, 'אני מתלבט בין ליסינג לבין השכרה לחצי שנה, ולא רוצה התחייבות ארוכה.');
