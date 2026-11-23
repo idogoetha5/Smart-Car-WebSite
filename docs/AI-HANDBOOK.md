@@ -1,5 +1,9 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-11-23 — The live `654ada0` young-driver replay gave a correct no-availability answer, but its next adaptive turn failed: when the customer proposed his 30-year-old wife as the driver instead, the bot repeated generic age policy and did not resume the saved rental enquiry. Full real-Gemini transcript: `evidence/adaptive-new-driver-alternate-driver-failure-20261123.json`. The source now recognizes the explicitly named replacement main driver in this phrasing, updates the driver age group and continues the saved request. Regression covers the observed turn. Production replay is required, so this conversation is not a pass.
+
+Change log: 2026-11-23 — resumed a WhatsApp rental enquiry when the customer names an eligible replacement main driver after a new-driver decline. Website booking rules and content unchanged.
+
 2026-11-23 — A fresh real-Gemini new-driver replay on `371b49b` correctly declined the rental without asking for a name, but its first reply told a 22-year-old with a one-month licence that renting was possible before the new-driver status was established. Transcript: `evidence/adaptive-new-driver-premature-eligibility-failure-20261123.json`. The WhatsApp model instruction now asks the new-driver question before an eligibility claim for ages 21–23, and the conversation core rejects a premature affirmative availability draft for an active dated rental enquiry. A focused regression covers the observed reply; full gates and fresh live replay remain required. Website content and booking policy are unchanged.
 
 Change log: 2026-11-23 — prevented premature WhatsApp rental eligibility wording for a young driver in a dated enquiry. No website, schema, domain or DNS change.

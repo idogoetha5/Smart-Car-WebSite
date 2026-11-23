@@ -26,6 +26,29 @@ describe('young city renter keeps luggage and answers model questions during pri
     expect(result.reply).toMatch(/[?؟]/u);
   });
 
+  it('continues the saved enquiry when a 30-year-old spouse replaces the declined new driver', async () => {
+    const state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', newDriverStatus: 'yes', history: [
+      { from: 'customer', text: 'אני בן 22 ואני נהג חדש', private: false },
+      { from: 'bot', text: 'לצערנו, אין לנו רכבים זמינים לנהגים חדשים בתאריכים שביקשתם.', private: false },
+    ], booking: {
+      pickupDate: '2026-12-18', returnDate: '2026-12-21', pickupLocation: 'הרצליה', returnLocation: 'הרצליה',
+      vehicleNeed: 'רכב משפחתי', driverAgeRange: '21-23',
+    } };
+    const result = await getRebuiltBotReply('fictional-alternate-driver',
+      'הבנתי. אם אשתי בת 30 עם רישיון עשר שנים תהיה הנהגת במקום, אפשר להתקדם איתה?', {
+        isSimulation: true, loadState: async () => structuredClone(state), saveState: async () => {},
+        activeBooking: async () => null, createRentalRequest: async () => { throw new Error('no request'); },
+        readTurn: async () => ({ route: 'book', direction: 'family', fields: {}, source: 'gemini', model: 'test', groundedContext: true,
+          reply: 'כן, אפשר להמשיך עם אשתך כנהגת הראשית. על איזה שם לרשום את הפנייה?' }),
+      });
+    expect(result.state.booking.driverAgeRange).toBe('24-plus');
+    expect(result.state.newDriverStatus).toBeUndefined();
+    expect(result.state.phase).toBe('booking');
+    expect(result.reply).toMatch(/שם/u);
+    expect(result.reply).not.toMatch(/אין לנו רכבים זמינים לנהגים חדשים/u);
+  });
+
+
   it('keeps the new-driver decline when Gemini asks for a name after the customer explicitly says they are new', async () => {
     const state: RebuildState = { version: 2, phase: 'booking', step: 'rental_locations', locale: 'he', history: [
       { from: 'customer', text: 'אני בן 22 וקיבלתי רישיון לפני חודש', private: false },

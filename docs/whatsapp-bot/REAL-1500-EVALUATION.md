@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## New adaptive failure — 23 November 2026 (production `654ada0`)
+
+The young-driver chat first avoided an affirmative eligibility claim and then correctly declined a new driver. At the next customer turn, the customer proposed his wife, age 30 with ten years' licence tenure, as replacement main driver. The bot repeated generic age policy and did not continue the saved enquiry. Full real-Gemini transcript: `evidence/adaptive-new-driver-alternate-driver-failure-20261123.json`. The exact source and regression fix the replacement-driver age extraction and intake continuation; production replay is required. This is not a successful full conversation.
+
 ## New adaptive failure — 23 November 2026 (production `371b49b`)
 
 The fresh young-driver replay declined correctly at turn two without asking for a name, but turn one prematurely said a 22-year-old with a one-month licence could rent. The customer had not yet confirmed whether they were a new driver, so the later no-availability answer contradicted the first impression. Full real-Gemini transcript: `evidence/adaptive-new-driver-premature-eligibility-failure-20261123.json`. The WhatsApp model instruction and a narrow reply guard now require the new-driver question before an affirmative eligibility claim in an active dated enquiry. Production replay is required; this is not a successful full chat.

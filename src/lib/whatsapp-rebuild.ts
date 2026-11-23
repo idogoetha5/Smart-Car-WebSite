@@ -1047,7 +1047,7 @@ function driverAgeRange(input: string, state: RebuildState): '21-23' | '24-plus'
   // Another person's age ("הוא בן 25", "my friend is 25") is not the main driver's age.
   const otherPersonAge = /(?:(?<![\p{L}])(?:הוא|היא|חבר(?:ה)?\s+שלי|אשתי|בעלי|אחי|אחותי|אבא שלי|אמא שלי|הבן שלי|הבת שלי|הנהג(?:ת)? הנוסף(?:ת)?|נהג(?:ת)? נוסף(?:ת)?)[^.!?\n]{0,25}(?:בן|בת)\s*\d{2})|\b(?:he|she|my (?:friend|wife|husband|partner|brother|sister|dad|mom|son|daughter)|the (?:other|second|additional) driver)(?:['’]s| is)?[^.!?\n]{0,15}\b\d{2}\b/iu.test(input);
   // "אחותי בת 25 תנהג" names the driver; "שגם חבר שלי ינהג" adds one.
-  const otherIsTheDriver = /(?:תנהג|ינהג|נוהג|נוהגת|will (?:be )?driv|is (?:the )?driv)/iu.test(input) && !/(?:^|\s|ש)גם(?:\s|$)|נוסף|נוספת|\balso\b|\btoo\b|additional|second driver/iu.test(input);
+  const otherIsTheDriver = /(?:תנהג|ינהג|נוהג|נוהגת|(?:יהיה|תהיה)\s+(?:ה)?נהג(?:ת)?(?:\s+הראשי(?:ת)?)?|will (?:be )?driv|is (?:the )?driv)/iu.test(input) && !/(?:^|\s|ש)גם(?:\s|$)|נוסף|נוספת|\balso\b|\btoo\b|additional|second driver/iu.test(input);
   // A parent booking for a child ("בשביל הבת שלי", "for my son"): that person is the renter.
   const bookingForOther = [input, ...state.history.filter(entry => entry.from === 'customer').map(entry => entry.text)]
     .some(text => /(?:בשביל|עבור|ל)\s*(?:ה)?(?:בת|בן|הבת|הבן|אמא|אבא|אח|אחות|אשתי|בעלי)\s*(?:שלי|שלנו)?|\bfor my (?:daughter|son|mom|mum|mother|dad|father|wife|husband|brother|sister)\b/iu.test(text))
