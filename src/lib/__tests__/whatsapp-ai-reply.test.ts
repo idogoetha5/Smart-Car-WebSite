@@ -19,6 +19,12 @@ describe('output checks for natural conversational drafts', () => {
     expect(check('אפשרות סיום מוקדם והעלות שלה תלויות בתנאי ההצעה והחוזה.', { locale: 'he', onReject: allowedReject })).not.toBeNull();
     expect(allowedReject).not.toHaveBeenCalled();
   });
+  it('rejects the observed unsupported leasing-versus-rental cost comparison', () => {
+    const onReject = vi.fn();
+    expect(check('ליסינג נותן בדרך כלל עלות חודשית נוחה יותר לתקופות קבועות.', { locale: 'he', onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledExactlyOnceWith('price_comparison');
+    expect(check('המחיר והתנאים של כל אפשרות ייקבעו בהצעה אישית.', { locale: 'he' })).not.toBeNull();
+  });
   it.each([
     'We will have your family car ready at Ben Gurion Airport for your dates.',
     'We can certainly have the car ready at Ben Gurion Airport for your dates.',

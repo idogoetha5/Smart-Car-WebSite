@@ -180,6 +180,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   // Owner rule: no rental price talk in model wording (amounts, ranges, cheaper/pricier claims).
   if (/(?:₪|ש["״]?ח|\bNIS\b|\bILS\b|shekels?)/iu.test(reply) && !/פיקדון|deposit|השתתפות|excess|budget|תקציב/iu.test(reply)) return reject('price_talk');
   if (hasAffirmativeMatch(reply, /(?:זול|יקר)(?:ה|ים|ות)? יותר|(?:יוצא|ייצא|יעלה)\s+(?:בערך|כ[־-]?|בסביבות)|\b(?:cheaper|more expensive|costs? (?:around|about|roughly))\b|\bper day (?:from|starting)\b/giu)) return reject('price_talk');
+  if (/(?:עלות|מחיר|תשלום|תעריף)[^.!?\n]{0,40}(?:נוח|נמוך|גבוה|משתלם|עדיף|טוב|זול|יקר)[^.!?\n]{0,12}יותר|(?:lower|higher|better|more affordable|more economical)[^.!?\n]{0,25}(?:price|cost|rate|monthly payment)|(?:price|cost|rate|monthly payment)[^.!?\n]{0,25}(?:lower|higher|better|more affordable|more economical)/iu.test(reply)) return reject('price_comparison');
   if (/\bper day\b|ליום/u.test(reply) && /\d/.test(reply) && !/פיקדון|deposit|קילומטר|km/iu.test(reply)) return reject('price_talk');
   // Price is set in the quote; wording must not promise it in advance.
   if (hasAffirmativeMatch(reply, /(?:בלי|ללא) הפתעות|(?:ב|לפי )?(?:ה)?תעריף המקורי|אותו מחיר(?: ליום)?|המחיר (?:לא|אינו) ישתנה|\bno (?:price )?surprises\b|\b(?:the )?same (?:daily )?(?:rate|price)\b|\b(?:the )?original (?:daily )?rate\b|\bprice (?:will not|won['’]?t) change\b/giu)) return reject('price_assurance');

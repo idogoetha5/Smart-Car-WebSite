@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## Adaptive failure — 23 November 2026 (production `d934968`)
+
+A fresh real-Gemini commercial comparison failed on its first reply: the bot claimed leasing usually has a more comfortable monthly cost than six-month rental, without a verified offer. Full transcript: `evidence/adaptive-commercial-price-comparison-failure-20261123.json`. An output check and regression are local; production replay is required. Do not count this as a pass.
+
 ## Adaptive failure — 23 November 2026 (production `0ebcd85`)
 
 The fresh real-Gemini leasing/rental replay failed at turn two. The bot called 18,000 km/year equivalent to 2,500 km per 30 days and asserted an early-return charge without the contract. Full transcript: `evidence/adaptive-commercial-mileage-conversion-failure-20261123.json`. A narrow output check and regression are local; production replay is required. The conversation did not reach handoff and is not a pass.
