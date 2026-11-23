@@ -1142,7 +1142,7 @@ function safety(input: string): 'accident' | 'breakdown' | null {
 }
 
 function reportedRentalDamage(input: string): boolean {
-  return /(?:רכב(?:י|נו)? השכור|הרכב השכור|רכב ששכרתי|שכרתי (?:את )?הרכב|הרכב שלכם|(?:my|the|our) rental(?: car)?\b|car (?:i|we) rented|your car)/i.test(input)
+  return /(?:רכב(?:י|נו)? השכור|הרכב השכור|רכב ששכרתי|שכרתי (?:את )?הרכב|אני שוכר מכם רכב|אני שוכרת מכם רכב|אנחנו שוכרים מכם רכב|הרכב שלכם|(?:my|the|our) rental(?: car)?\b|car (?:i|we) rented|your car)/i.test(input)
     && /שרט|שריט|שפשוף|נזק|מכה(?:\s+(?:בדלת|בחניה|ברכב))?|פגיעה|מעוך|נמעך|פגוש|\b(?:scratch(?:ed|es)?|scrap(?:e|ed)|dent(?:ed|s)?|damage(?:d)?|bumper)\b/i.test(input);
 }
 
@@ -2021,10 +2021,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     state.phase = 'service'; state.handedOff = true; state.handoffAt ??= new Date().toISOString(); state.handoffKind = 'safety';
     state.safetyKind = incident;
     const recentAlert = state.safetyAlertAt && Date.now() - Date.parse(state.safetyAlertAt) < 24 * 60 * 60 * 1000;
-    const noOneHurt = /(?:אף אחד|איש|כולם|כולנו)\s+(?:לא נפגע|בסדר)|no one (?:is |was )?hurt|nobody (?:is |was )?hurt|everyone(?:'s| is) (?:ok|okay|fine)|we(?:'re| are) (?:all )?(?:ok|okay|fine)/iu.test(input);
+    const noOneHurt = /אין נפגעים|לא היו נפגעים|(?:אף אחד|איש|כולם|כולנו)\s+(?:לא נפגע|בסדר)|no one (?:is |was )?hurt|nobody (?:is |was )?hurt|everyone(?:'s| is) (?:ok|okay|fine)|we(?:'re| are) (?:all )?(?:ok|okay|fine)/iu.test(input);
     const minorCollision = /תאונה|התנגשות|נכנס(?:ו)? ב(?:י|נו)|פגע(?:ו)? ב(?:י|נו)|accident|collision|hit (?:me|us)|rear-?ended|bumped into/iu.test(input) && !/עשן|smoke|fire|אש|דליפ|leak|נפגע(?!\s*\S*\s*לא)|injur|ambulance|אמבולנס|בית חולים|hospital/iu.test(input.replace(/(?:אף אחד|איש)\s+לא נפגע/gu, ''));
     reply = reportedRentalDamage(input) || minorCollision && noOneHurt
-      ? (he ? `מצטער לשמוע. ${/(?:אף אחד|איש|כולם|כולנו)\s+(?:לא נפגע|בסדר)|no one (?:is |was )?hurt|everyone(?:'s| is) (?:ok|fine)/iu.test(input) ? 'טוב שאיש לא נפגע. ' : 'אם מישהו נפגע, פנו קודם לגורמי החירום. '}צלמו את הנזק ואת מקום האירוע אם בטוח לעשות זאת, והתקשרו ל־SmartCar בתוך שעה לדיווח ולהנחיות: ${OFFICE_PHONE}. את מספר ההזמנה אפשר למסור גם בהמשך.` : `I am sorry this happened. ${noOneHurt ? 'I am glad no one was hurt. ' : 'If anyone is hurt, call emergency services first. '}If it is safe, photograph the damage and the scene, then call SmartCar within one hour to report it and get guidance: ${OFFICE_PHONE}. You can provide the booking reference later.`)
+      ? (he ? `מצטער לשמוע. ${noOneHurt ? 'טוב שאיש לא נפגע. ' : 'אם מישהו נפגע, פנו קודם לגורמי החירום. '}צלמו את הנזק ואת מקום האירוע אם בטוח לעשות זאת, והתקשרו ל־SmartCar בתוך שעה לדיווח ולהנחיות: ${OFFICE_PHONE}. את מספר ההזמנה אפשר למסור גם בהמשך.` : `I am sorry this happened. ${noOneHurt ? 'I am glad no one was hurt. ' : 'If anyone is hurt, call emergency services first. '}If it is safe, photograph the damage and the scene, then call SmartCar within one hour to report it and get guidance: ${OFFICE_PHONE}. You can provide the booking reference later.`)
       : /(?:won['’]?t|doesn['’]?t|will not|does not|can['’]?t get (?:it|the car) to) start|just clicks|dead battery|battery (?:is )?dead|לא (?:מניע|מתניע|נדלק)|הרכב לא מתניע|המצבר (?:מת|נגמר)|רק (?:מקליק|עושה קליק)|flat (?:tyre|tire)|פנצ['׳]?ר/iu.test(input) && !/תאונה|accident|collision|smoke|עשן|fire|אש/iu.test(input)
       ? (he ? `מצטער לשמוע. אם אתם במקום בטוח, הישארו שם ואל תנסו לתקן בעצמכם. התקשרו עכשיו ל־SmartCar כדי לתאם עזרה: ${OFFICE_PHONE}. הפנייה שלכם כבר אצל נציג.` : `Sorry to hear that. If you are somewhere safe, stay there and do not try to fix it yourself. Call SmartCar now to arrange help: ${OFFICE_PHONE}. Your message is already with a representative.`)
       : /גרר|tow|roadside/i.test(input) && recentAlert
@@ -2083,7 +2083,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const cleanlinessIssue = handoffKind === 'service_issue' && state.history.some(entry => entry.from === 'customer' && /הרכב.{0,25}מלוכלך|רכב מלוכלך|dirty car|car was dirty/i.test(entry.text));
     const safetyKind = state.safetyKind ?? (state.history.some(entry => entry.from === 'customer' && /תאונה|התנגשות|accident|collision|crash/i.test(entry.text)) ? 'accident' : 'breakdown');
     const rentalDamage = state.history.some(entry => entry.from === 'customer' && reportedRentalDamage(entry.text));
-    const asksDriving = /(?:אפשר|מותר|האם|צריך|בטוח).{0,40}(?:לנסוע|נסיע)|(?:can|may|should|safe|okay|ok).{0,40}(?:drive|driving)|(?:continue|keep|carry on).{0,15}driving|roadworthy|drivable/i.test(input);
+    const asksDriving = /(?:אפשר|מותר|האם|צריך|בטוח|יכול|יכולה|יכולים|להמשיך).{0,40}(?:לנסוע|נסיע)|(?:can|may|should|safe|okay|ok).{0,40}(?:drive|driving)|(?:continue|keep|carry on).{0,15}driving|roadworthy|drivable/i.test(input);
     const asksDamageDocumentation = /אין לי.{0,30}מספר|לא.{0,20}מספר הזמנה|לצלם|צילום|תמונה|photo|picture|don'?t have.{0,30}(?:reference|booking number)/i.test(input);
     const commercialUpdate = (handoffKind === 'commercial' || state.interest) && /תקציב|budget|בעצם|שנים|years|לא החלטתי|not chosen|not decided/i.test(input);
     reply = handoffKind === 'safety' && asksDriving

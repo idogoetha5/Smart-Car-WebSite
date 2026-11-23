@@ -13,6 +13,7 @@ describe('actual tow and replacement status after safety handoff', () => {
     expect(result.escalate).toBe(false);
   });
   it.each([
+    ['אני שוכר מכם רכב. מישהו פגע בי מאחור עכשיו ברמזור, אני עומד בצד הדרך ולא בטוח מה לעשות. אין נפגעים אבל הפגוש שבור.', 'אני יכול להמשיך בנסיעה הביתה עם הפגוש השבור? אין לי כרגע מספר הזמנה לידי. צילמתי את הרכב של הנהג השני והנזק.', /אל תמשיכו לנסוע/, /צלמו את הנזק/, /גם בלי מספר/],
     ['הרכב השכור עמד בחניה ומישהו פגע בו. אף אחד לא נפגע, אבל יש נזק בפגוש ואני לא יודע מה לעשות עכשיו.', 'אין לי כרגע מספר הזמנה. לצלם גם את הרכב השני ואת המקום? אפשר להמשיך בינתיים בנסיעה או שצריך לחכות להנחיות?', /אל תמשיכו לנסוע/, /צלמו את הנזק/, /גם בלי מספר/],
     ['Someone damaged my rental car while parked. Nobody was hurt.', 'I do not have the booking reference yet. Should I photograph the other car too, and can I carry on driving for now?', /do not continue driving/, /Photograph the damage/, /without the booking reference/],
   ])('prioritises driving safety and still answers photos and a missing reference: %s', async (opening, question, driving, photos, reference) => {

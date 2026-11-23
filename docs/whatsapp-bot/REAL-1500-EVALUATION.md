@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## Adaptive failure — 23 November 2026 (production `aafff0b`)
+
+A renter reported a rear-end collision at a traffic light, no injuries and a broken bumper. Gemini handed the issue to a representative, but the application classified it as an ordinary service issue. On the next customer question about driving home without a booking reference, a reworded reply gave vague, ungrammatical advice instead of the required conditional no-driving guidance and photo/report instructions. Full transcript: `evidence/adaptive-hebrew-accident-20261123.json`. Scoped current-rental damage recognition, no-injury wording and driving-question handling plus the exact two-turn regression are local; production replay is required. This is a failed safety conversation.
+
 ## Adaptive failure — 23 November 2026 (production `4955d3d`)
 
 A fresh four-turn used-car conversation correctly avoided repeating an accepted model-search offer and returned `escalated:true` at the explicit handoff. The representative summary nevertheless omitted the selected family-car category despite it appearing in two customer turns. Full transcript: `evidence/adaptive-hebrew-sale-final-retest-20261123.json`. A scoped commercial-memory correction and regressions are local; production replay is required. This is a failed conversation, not a pass.
