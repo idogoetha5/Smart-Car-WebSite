@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { getRebuiltBotReply, type RebuildState, type RebuildStore } from '@/lib/whatsapp-rebuild';
+import type { BotReading } from '@/lib/whatsapp-rebuild-gemini';
 
 function draft(history: RebuildState['history']): RebuildState {
   return {
@@ -11,18 +12,40 @@ function draft(history: RebuildState['history']): RebuildState {
   };
 }
 
-function conversation(initial: RebuildState) {
+function conversation(initial: RebuildState, reading: BotReading | null = null) {
   let state: RebuildState | null = initial;
   const createRentalRequest = vi.fn(async () => 'SIM-REQUEST');
   const store: RebuildStore = {
     isSimulation: true, loadState: async () => state,
     saveState: async (_phone, next) => { state = structuredClone(next); },
-    activeBooking: async () => null, createRentalRequest, readTurn: async () => null,
+    activeBooking: async () => null, createRentalRequest, readTurn: async () => reading,
   };
   return { send: (message: string) => getRebuiltBotReply('972500000000', message, store), createRentalRequest };
 }
 
 describe('live name-prompt rental dead end', () => {
+  it('starts rental intake when a customer accepts a dates-and-pickup invitation with full details and a side question', async () => {
+    const initial = draft([
+      { from: 'customer', text: 'שלום, אנחנו זוג מתכננים סופ״ש בדצמבר ורוצים לשכור רכב. אני בן 23 ויש לי רישיון שלוש שנים.' },
+      { from: 'bot', text: 'תרצו שנתקדם בבדיקת תאריכים ומיקום איסוף לרכב?' },
+    ]);
+    initial.booking = { passengers: 2, luggage: 2, driverAgeRange: '21-23', vehicleNeed: 'רכב קומפקטי' };
+    const { send, createRentalRequest } = conversation(initial, {
+      route: 'book', direction: 'compact', reply: 'אפשר להוסיף נהג נוסף. באיזה שם תרצו לרשום את הפנייה?', fields: {
+        pickupDate: { value: '2026-12-11', evidence: '11 בדצמבר' },
+        returnDate: { value: '2026-12-13', evidence: '13 בדצמבר' },
+        pickupLocation: { value: 'הרצליה', evidence: 'מהרצליה' },
+        returnLocation: { value: 'הרצליה', evidence: 'בהרצליה' },
+      }, source: 'gemini', model: 'gemini-3.5-flash-lite', groundedContext: true,
+    });
+    const result = await send('כן, נלך על קומפקטי. ניקח מהרצליה ביום שישי 11 בדצמבר ונחזיר בהרצליה ביום ראשון 13 בדצמבר. יש אפשרות לנהג נוסף?');
+    expect(result.state.phase).toBe('booking');
+    expect(result.state.booking).toMatchObject({ pickupDate: '2026-12-11', returnDate: '2026-12-13', pickupLocation: 'הרצליה', returnLocation: 'הרצליה' });
+    expect(result.reply).toMatch(/שם/u);
+    expect(result.reply).not.toMatch(/חבילת כביש 6|תרצו להוסיף משהו/u);
+    expect(createRentalRequest).not.toHaveBeenCalled();
+  });
+
   it('accepts a labelled name with licence context after the name prompt and advances to the new-driver question', async () => {
     const initial = draft([{ from: 'bot', text: 'באיזה שם תרצו שנדאג לפתוח את הבקשה?' }]);
     initial.booking.driverAgeRange = '21-23';

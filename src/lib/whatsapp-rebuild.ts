@@ -785,6 +785,7 @@ function carryCommercialRentalNeeds(state: RebuildState): void {
 }
 
 function offersRentalRequest(reply: string): boolean {
+  if (/(?:תרצ(?:ה|ו)|האם)[^?؟]{0,55}(?:נתקדם|להתקדם)[^?؟]{0,55}(?:תאריכ|מיקום איסוף|pickup|dates?)[^?؟]*[?؟]/iu.test(reply)) return true;
   if (/(?:האם|תרצ(?:ה|ו))[^?؟]{0,65}(?:נתקדם|להתקדם)[^?؟]{0,55}(?:להשכרה|עם (?:ה)?(?:רכב|קומפקטי|משפחתי))[^?؟]*[?؟]/iu.test(reply)) return true;
   if (/(?:would you like|shall (?:we|I)|do you want|want (?:me|us) to)[^?]{0,40}\b(?:price )?(?:quote|offer)\b[^?]{0,60}\?|(?:תרצ(?:ה|ו)|האם (?:תרצ(?:ה|ו)|נכין))[^?؟]{0,40}הצע(?:ת|ה)[^?؟]{0,60}[?؟]/iu.test(reply)) return true;
   // Reserve/hold wording is still only an invitation to prepare a request.
@@ -2538,7 +2539,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = clarifiedAlready
         ? (he ? 'הבנתי את הטווח המשוער. כשתדעו את התאריכים המדויקים, כתבו אותם כאן ונמשיך.' : 'I understand the approximate timing. Send the exact dates here when you know them and we can continue.')
         : (he ? 'בשמחה. מאיזה יום ועד איזה יום תצטרכו את הרכב?' : 'Sure. Which day would you like to pick it up, and when will you bring it back?');
-    } else if (completedRouteInCurrentTurn && state.phase === 'explore' && !state.interest && !explicitBooking(input)
+    } else if (completedRouteInCurrentTurn && state.phase === 'explore' && !state.interest && !wantsBooking && !explicitBooking(input)
       && (!/[?؟]/u.test(input) || !reading?.groundedContext)) {
       const stroller = /עגלה|stroller|pushchair/i.test(input)
         || state.history.some(entry => entry.from === 'customer' && /עגלה|stroller|pushchair/i.test(entry.text));

@@ -239,3 +239,10 @@ This is a failed conversation, not a successful completion. The subsequent
 source fix and unit regressions do not count as live success. A new release
 must pass fresh adaptive production conversations before readiness can be
 claimed; historical successes are not a final-version pass.
+
+The first adaptive production Gemini conversation on `feb182e` failed on
+turn three: the customer accepted a compact-car dates/location invitation,
+provided the route, then received an extras question before name intake.
+Transcript: `evidence/adaptive-rental-progress-failure-20261123.json`.
+It is not counted as a successful rental conversation. A regression was added
+and the changed source still requires deployment and a fresh live replay.
