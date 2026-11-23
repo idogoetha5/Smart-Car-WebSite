@@ -40,6 +40,20 @@ describe('rental additions and contact in one reply', () => {
     expect(result.reply).not.toMatch(/What name should I put/);
     expect(result.escalate).toBe(false);
   });
+  it('advances when the name answer is “Please use Emma Walker”', async () => {
+    let state: RebuildState | null = { version: 2, phase: 'booking', step: 'rental_name', locale: 'en', booking: {
+      pickupDate: '2026-12-08', returnDate: '2026-12-15', pickupLocation: 'Ben Gurion Airport', returnLocation: 'Herzliya',
+      vehicleNeed: 'family car', driverAgeRange: '24-plus', passengers: 3, luggage: 3, stroller: true, fitCheckRequested: true,
+    }, history: [{ from: 'bot', text: 'What name should I put on the request?', private: false }] };
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); }, activeBooking: async () => null,
+      createRentalRequest: async () => { throw new Error('no booking'); }, readTurn: async () => null };
+    const result = await getRebuiltBotReply('fictional-tourist-please', 'Please use Emma Walker. We have our own booster seat for our daughter and will use this WhatsApp for contact.', store);
+    expect(result.state.booking.customerName).toBe('Emma Walker');
+    expect(result.state.booking.childSeats).toBe(0);
+    expect(result.state.step).toBe('rental_extras');
+    expect(result.reply).not.toMatch(/What name should I put/);
+  });
   it('hands off after the customer requests a booster and says there is nothing else', async () => {
     let state: RebuildState | null = {
       version: 2,
