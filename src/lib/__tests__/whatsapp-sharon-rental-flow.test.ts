@@ -24,6 +24,19 @@ function conversation(initial: RebuildState, reading: BotReading | null = null) 
 }
 
 describe('live name-prompt rental dead end', () => {
+  it('retains an explicit Hebrew pickup even when Gemini extracts only the return branch', async () => {
+    const initial = draft([{ from: 'bot', text: 'באילו תאריכים תרצו לקחת ולהחזיר את הרכב?' }]);
+    delete initial.booking.pickupLocation;
+    delete initial.booking.returnLocation;
+    const { send } = conversation(initial, { route: 'book', direction: 'compact', reply: 'מאיפה תרצו לאסוף את הרכב?', fields: {
+      returnLocation: { value: 'הרצליה', evidence: 'נחזיר בהרצליה' },
+    }, source: 'gemini', model: 'gemini-3.5-flash-lite' });
+    const result = await send('נאסוף בהרצליה ונחזיר בהרצליה. קומפקטי מתאים לנו.');
+    expect(result.state.booking.pickupLocation).toBe('הרצליה');
+    expect(result.state.booking.returnLocation).toBe('הרצליה');
+    expect(result.reply).not.toMatch(/מאיפה תרצו לאסוף/u);
+  });
+
   it('enters intake from a model-classified complete rental draft and accepts a bare name after its name prompt', async () => {
     const initial = draft([
       { from: 'customer', text: 'לא הקרוב, דווקא מיום שישי 11 בדצמבר עד יום ראשון 13 בדצמבר. נאסוף בהרצליה ונחזיר בהרצליה. קומפקטי נשמע טוב.' },

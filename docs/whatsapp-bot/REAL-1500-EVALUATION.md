@@ -270,3 +270,11 @@ clarification, and jumped to extras. Transcript:
 `evidence/adaptive-rental-bare-name-failure-20261123.json`.
 This is not a successful completed conversation. The source correction and
 regression require a new production release and full replay.
+
+On `2a9f46b`, the fresh rental replay reached intake, but repeated a pickup
+question after the customer explicitly said “נאסוף בהרצליה ונחזיר בהרצליה”.
+Gemini supplied only the return branch, and the local parser missed this
+first-person pickup form. Transcript:
+`evidence/adaptive-rental-pickup-repeat-failure-20261123.json`.
+This is a failed conversation. The parser regression and source correction
+must be verified on a later production release.

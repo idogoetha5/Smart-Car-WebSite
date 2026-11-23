@@ -620,8 +620,8 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
   }
   const sameCity = input.trim().match(/^([\p{L}\s'׳״-]{2,50})\s+גם\s+(?:להחזיר\s+(?:גם\s+)?לאסוף|לאסוף\s+(?:(?:וגם|גם)\s+)?להחזיר)$/u)?.[1]?.trim();
   if (sameCity && !temporalLocation(sameCity)) { draft.pickupLocation = sameCity; draft.returnLocation = sameCity; return; }
-  const stop = '(?=\\s+(?:ו?החזרה|להחזיר|נחזיר|אחזיר|נשאר(?:ת)?|מחרתיים|מחר|היום|ליומיים|ליום|tomorrow|today|day after tomorrow|for\\s+(?:one|two|three|four|five)\\s+days?|unchanged|remains?|stays?|(?:and\\s+)?return|(?:and\\s+)?drop.?off|ב[-־]?\\s*\\d)|[,.!?]|$)';
-  const hePickup = input.match(new RegExp(`(?:איסוף|לאסוף)\\s+(?!מחר(?:תיים)?(?:\\s|$))[במ]([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
+  const stop = '(?=\\s+(?:ו?החזרה|ו?להחזיר|ו?נחזיר|ו?אחזיר|נשאר(?:ת)?|מחרתיים|מחר|היום|ליומיים|ליום|tomorrow|today|day after tomorrow|for\\s+(?:one|two|three|four|five)\\s+days?|unchanged|remains?|stays?|(?:and\\s+)?return|(?:and\\s+)?drop.?off|ב[-־]?\\s*\\d)|[,.!?]|$)';
+  const hePickup = input.match(new RegExp(`(?:איסוף|לאסוף|נאסוף|אאסוף|תאספו)\\s+(?!מחר(?:תיים)?(?:\\s|$))[במ]([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
   const enPickupStop = stop.replace('(?=', '(?=\\s+on\\s+\\d{1,2}|');
   const enPickup = input.match(new RegExp(`pick.?up\\s+(?:at|from|in)\\s+([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${enPickupStop}`, 'iu'))?.[1];
   const enFromPickup = /rent|rental|pick.?up|\b(?:need|want|looking for)\b.*\b(?:suv|car|vehicle|van|sedan|minivan)\b/i.test(input)
