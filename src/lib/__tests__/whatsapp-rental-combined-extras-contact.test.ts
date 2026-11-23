@@ -218,4 +218,29 @@ describe('rental additions and contact in one reply', () => {
     expect(result.reply).toMatch(/כביש 6 נשאר להחלטה מול הנציג/u);
     expect(result.reply).toMatch(/עומר ברק/u);
   });
+
+  it('does not offer a seat when the customer says the seat is coming from home', async () => {
+    let state: RebuildState | null = {
+      version: 2, phase: 'booking', step: 'rental_name', locale: 'he',
+      booking: {
+        pickupDate: '2026-12-05', returnDate: '2026-12-09',
+        pickupLocation: 'הרצליה', returnLocation: 'הרצליה',
+        vehicleNeed: 'רכב משפחתי', passengers: 3, luggage: 2,
+        driverAgeRange: '24-plus',
+      },
+      history: [{ from: 'customer', text: 'עם אשתי והילדה' }, { from: 'bot', text: 'על איזה שם לרשום את הבקשה?' }],
+    };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => null,
+      readTurn: async () => null,
+    };
+    const result = await getRebuiltBotReply('fictional-hebrew', 'על שם עומר ברק. כיסא בטיחות נביא מהבית, אין צורך באחד מכם. תדברו איתי פה בוואטסאפ.', store);
+    expect(result.state.booking).toMatchObject({ customerName: 'עומר ברק', childSeats: 0 });
+    expect(result.state.step).toBe('rental_extras');
+    expect(result.reply).not.toMatch(/למשל כיסא בטיחות/u);
+  });
 });

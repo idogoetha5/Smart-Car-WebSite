@@ -987,7 +987,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   }
   if (/(?:can (?:you|we|i) (?:provide|add|include|arrange|request|get)|do you (?:provide|have|offer)|אפשר (?:לקבל|להוסיף)|תוכלו (?:לספק|להוסיף)|יש (?:לכם|אצלכם)?).{0,18}(?:child seat|car seat|booster|כיסא בטיחות|כיסא בוסטר|בוסטר|כיסא לילד|כיסא לתינוק)/i.test(input)) draft.childSeats ??= 1;
   for (const clause of input.split(/[.!?;,]|\bbut\b|\bactually\b|אבל|בעצם/iu)) {
-    const bringsOwnSeat = /(?:bring(?:ing)?|brought|taking)\s+(?:my|our|their)\s+own\s+(?:child|car)\s+seats?|(?:נביא|אביא|מביא(?:ים|ות|ה)?).{0,20}כיסא(?:ות)?(?: בטיחות)?.{0,15}(?:משלנו|משלי)/iu.test(clause)
+    const bringsOwnSeat = /(?:bring(?:ing)?|brought|taking)\s+(?:my|our|their)\s+own\s+(?:child|car)\s+seats?|(?:נביא|אביא|מביא(?:ים|ות|ה)?).{0,20}כיסא(?:ות)?(?: בטיחות)?.{0,15}(?:משלנו|משלי|מהבית)|כיסא(?:ות)?(?: בטיחות)?.{0,20}(?:נביא|אביא|מביא(?:ים|ות|ה)?).{0,15}(?:מהבית|משלנו|משלי)/iu.test(clause)
       && !/(?:not|n['’]t|לא).{0,12}(?:bring|brought|taking|נביא|אביא|מביא)/iu.test(clause);
     const noSeatRequested = /^\s*(?:(?:we|I) need\s+)?(?:no|zero)\s+(?:child|car)\s+seats?(?:\s+(?:needed|required|please))?\s*$/iu.test(clause)
       || /^\s*בלי\s+כיסא(?:ות)?\s+בטיחות\s*$/u.test(clause);
