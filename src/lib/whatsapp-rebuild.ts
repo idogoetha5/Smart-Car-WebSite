@@ -12,7 +12,7 @@ import { isHypotheticalFactEvidence, isRentalCapacityQuestionEvidence, validateF
 type Locale = 'he' | 'en';
 type Phase = 'explore' | 'booking' | 'service';
 type BookingKey = 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'driverAgeRange' | 'customerName' | 'customerEmail';
-type BookingDraft = Partial<Record<BookingKey, string>> & { passengers?: number; luggage?: number; luggageSize?: 'large'; childSeats?: number; childSeatType?: 'booster'; additionalDriver?: boolean; tollPackage?: boolean; datePreference?: string };
+type BookingDraft = Partial<Record<BookingKey, string>> & { passengers?: number; luggage?: number; luggageSize?: 'large'; childSeats?: number; childSeatType?: 'booster'; additionalDriver?: boolean; tollPackage?: boolean; tollPackageUndecided?: boolean; datePreference?: string };
 type HistoryEntry = { from: 'customer' | 'bot'; text: string; private?: boolean };
 
 export type RebuildState = {
@@ -36,7 +36,7 @@ export type RebuildState = {
   handoffAt?: string;
   handoffKind?: 'safety' | 'booking_change' | 'service_issue' | 'commercial' | 'human';
   completedRequestId?: string;
-  completedRental?: Pick<BookingDraft, 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'passengers' | 'luggage' | 'childSeats' | 'childSeatType' | 'additionalDriver' | 'tollPackage'>;
+  completedRental?: Pick<BookingDraft, 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'passengers' | 'luggage' | 'childSeats' | 'childSeatType' | 'additionalDriver' | 'tollPackage' | 'tollPackageUndecided'>;
   durationClarification?: boolean;
   humanHandoffDeferred?: boolean;
   newDriverStatus?: 'yes' | 'no';
@@ -140,6 +140,7 @@ function rentalHandoffSummary(state: RebuildState): string {
   const extras = state.locale === 'he'
     ? [b.childSeats && (b.childSeatType === 'booster' ? `${b.childSeats} ${b.childSeats === 1 ? 'בוסטר' : 'בוסטרים'}` : b.childSeats === 1 ? 'כיסא בטיחות אחד' : `${b.childSeats} כיסאות בטיחות`), b.additionalDriver && 'נהג נוסף', b.tollPackage && 'חבילת כביש 6 ומנהרות'].filter(Boolean).join(', ')
     : [b.childSeats && (b.childSeatType === 'booster' ? `${b.childSeats} booster ${b.childSeats === 1 ? 'seat' : 'seats'}` : `${b.childSeats} child ${b.childSeats === 1 ? 'seat' : 'seats'}`), b.additionalDriver && 'an additional driver', b.tollPackage && 'the Highway 6 and tunnels package'].filter(Boolean).join(', ');
+  const undecidedToll = b.tollPackageUndecided ? state.locale === 'he' ? ' כביש 6 נשאר להחלטה מול הנציג.' : ' The Highway 6 package remains open for discussion with the representative.' : '';
   const needs = state.locale === 'he'
     ? [b.passengers !== undefined && `נוסעים: ${b.passengers}`, b.luggage !== undefined && `מזוודות: ${b.luggage}`].filter(Boolean).join('; ')
     : [b.passengers !== undefined && `Passengers: ${b.passengers}`, b.luggage !== undefined && `Bags: ${b.luggage}`].filter(Boolean).join('; ');
@@ -149,8 +150,8 @@ function rentalHandoffSummary(state: RebuildState): string {
     ? `${shabbat ? ' איסוף או החזרה בשבת מתואמים מראש ועשויים להיות כרוכים בתוספת תשלום.' : ''}${airport ? ' על איסוף או החזרה בנתב״ג יש תוספת.' : ''}`
     : `${shabbat ? ' A Saturday pickup or return is arranged in advance and may carry an extra charge.' : ''}${airport ? ' Pickup or return at Ben Gurion Airport carries a surcharge.' : ''}`;
   return state.locale === 'he'
-    ? `סיכום הפנייה: ${b.vehicleNeed}; איסוף ב${b.pickupLocation} ב־${date(b.pickupDate)}, החזרה ב${b.returnLocation} ב־${date(b.returnDate)}; גיל הנהג ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}; על שם ${b.customerName}.${needs ? ` ${needs}.` : ''}${extras ? ` תוספות שביקשתם: ${extras}.` : ''}${notes} העברתי לנציג SmartCar לבדיקה. הרכב, התוספות והמחיר עדיין לא אושרו.`
-    : `Your enquiry: ${b.vehicleNeed}; pickup in ${b.pickupLocation} on ${date(b.pickupDate)}, return in ${b.returnLocation} on ${date(b.returnDate)}; driver age ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}; name ${b.customerName}.${needs ? ` ${needs}.` : ''}${extras ? ` Requested extras: ${extras}.` : ''}${notes} I have passed this to a SmartCar representative for review. The car, extras and price are not confirmed yet.`;
+    ? `סיכום הפנייה: ${b.vehicleNeed}; איסוף ב${b.pickupLocation} ב־${date(b.pickupDate)}, החזרה ב${b.returnLocation} ב־${date(b.returnDate)}; גיל הנהג ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}; על שם ${b.customerName}.${needs ? ` ${needs}.` : ''}${extras ? ` תוספות שביקשתם: ${extras}.` : ''}${undecidedToll}${notes} העברתי לנציג SmartCar לבדיקה. הרכב, התוספות והמחיר עדיין לא אושרו.`
+    : `Your enquiry: ${b.vehicleNeed}; pickup in ${b.pickupLocation} on ${date(b.pickupDate)}, return in ${b.returnLocation} on ${date(b.returnDate)}; driver age ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}; name ${b.customerName}.${needs ? ` ${needs}.` : ''}${extras ? ` Requested extras: ${extras}.` : ''}${undecidedToll}${notes} I have passed this to a SmartCar representative for review. The car, extras and price are not confirmed yet.`;
 }
 
 function conversationalKnown(state: RebuildState): GeminiBotContext['known'] {
@@ -921,9 +922,15 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
     && /(?:תוסיפו|להוסיף|לצרף|תצרפו|צרפו|לרשום|תרשמו|רשמו|אפשר\s+(?:להוסיף|לצרף|לרשום)|אשמח|מבקש|אבקש|רוצה|please add|add an?|i(?:'d| would) like)/iu.test(input)
     && (!/[?؟]/u.test(input) || /(?:אשמח|מבקש|אבקש|רוצה|please add|i(?:'d| would) like)/iu.test(input))
     && !/(?:לא|בלי|אין צורך|don't|do not|no|without)\s+(?:צריך|רוצה|need|want)?\s*(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|additional driver|extra driver|second driver)/iu.test(input)) draft.additionalDriver = true;
-  if (/(?:כביש\s*6(?: ומנהרות)?|highway\s*6(?: and tunnels)?)/iu.test(input)
+  if (/(?:כביש\s*6|highway\s*6)/iu.test(input) && /(?:אולי|לא החלטתי|לא החלטנו|פתוח|להשאיר.{0,15}פתוח|maybe|not (?:sure|decided)|undecided|leave (?:it )?open)/iu.test(input)) {
+    draft.tollPackageUndecided = true;
+    delete draft.tollPackage;
+  } else if (/(?:כביש\s*6(?: ומנהרות)?|highway\s*6(?: and tunnels)?)/iu.test(input)
     && /(?:תוסיפו|להוסיף|אשמח|מבקש|אבקש|רוצה|חבילה|package|please add|add an?|i(?:'d| would) like)/iu.test(input)
-    && !/(?:לא|בלי|אין צורך|don't|do not|no|without).{0,25}(?:כביש\s*6|highway\s*6)/iu.test(input)) draft.tollPackage = true;
+    && !/(?:לא|בלי|אין צורך|don't|do not|no|without).{0,25}(?:כביש\s*6|highway\s*6)/iu.test(input)) {
+    draft.tollPackage = true;
+    delete draft.tollPackageUndecided;
+  }
   const count = '(\\d{1,2}|אחד|אחת|שניים|שתיים|שתי|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש|שבעה|שבע|שמונה|one|two|three|four|five|six|seven|eight)';
   const passengers = [...input.matchAll(new RegExp(`(?:אנחנו|נהיה|we are|we['’]re|there are|there will be)\\s+${count}(?=\\s|$)|${count}\\s+(?:נוסעים|אנשים|מבוגרים|חברים|חברות|passengers|people|adults|friends|of us)`, 'giu'))]
     .filter(match => !negatedLuggageMention(input, match.index) && !isHypotheticalFactEvidence(input, match[0]) && !isRentalCapacityQuestionEvidence(input, match[0])).at(-1);
@@ -2552,7 +2559,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       && Boolean(state.booking.pickupDate && state.booking.returnDate && state.booking.pickupLocation && state.booking.returnLocation && state.booking.vehicleNeed);
     const passesRentalDetails = !state.interest && /(?:please )?pass (?:these|the|my) details to (?:your|the|a) (?:team|representative|office)|(?:תעביר|תעבירו|להעביר) (?:את )?(?:הפרטים|הפנייה) (?:לצוות|לנציג|למשרד)/iu.test(input)
       && !nextMissing(state.booking);
-    const wantsBooking = !declines && !asksHuman && !modelHumanConsent && ((explicitBooking(input) && (!state.interest || clearlyRental)) || passesRentalDetails || modelSupportedProceed || !serviceInterpretation && (acceptsRentalOffer || wantsToContinueRental || answeringRentalDates || modelReadyRental || state.phase === 'booking'));
+    const wantsBooking = !declines && !asksHuman && !modelHumanConsent && ((explicitBooking(input) && (!state.interest || clearlyRental)) || passesRentalDetails || modelSupportedProceed || state.phase === 'booking' && state.step === 'rental_extras' || !serviceInterpretation && (acceptsRentalOffer || wantsToContinueRental || answeringRentalDates || modelReadyRental || state.phase === 'booking'));
     const rentalPivot = /מעדיף (?:את ה)?השכרה|מעדיף לשכור|עדיף לי לשכור|אעדיף לשכור|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|prefer to rent|back to renting/i.test(input);
     const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|(?:רכב|הרכב).{0,35}מלוכלך|לא קיבלתי|(?:מזגן|מיזוג).{0,25}(?:לא עובד|מקולקל)|(?:air conditioning|car ac).{0,25}(?:not working|broken)|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input)
       // "What happens if the car is dirty?" is a question about policy, not a reported problem.
@@ -2656,12 +2663,14 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       // Existing conversations that already received the terms/consent summary
       // continue under that flow; do not replace a pending explicit consent.
       const answeringLegacyConfirm = state.step === 'rental_confirm' && !state.rentalExtrasAsked;
-      const defersHandoff = /(?:אל תשלח|אל תעביר|עוד לא|לא עכשיו|לא מאשר|not yet|not confirm|do not send|don't send|do not pass|don't pass)/iu.test(input);
+      const defersHandoff = /(?:אל תשלח|אל תעביר|לא עכשיו|לא מאשר|not confirm|do not send|don't send|do not pass|don't pass|עוד לא.{0,18}(?:תעביר|תשלח)|not yet.{0,18}(?:pass|send))/iu.test(input)
+        || /^(?:עוד לא|not yet)[.!?\s]*$/iu.test(input.trim());
       const proactiveExtra = Boolean(state.booking.additionalDriver || state.booking.tollPackage || state.booking.childSeats)
         && /(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|כביש\s*6|כיסא(?:ות)? בטיחות|additional driver|highway\s*6|child seat)/iu.test(input);
       const explicitlyPasses = /(?:תעביר|תעבירו|להעביר).{0,24}(?:לנציג|לנציגת|למשרד)|(?:pass|send).{0,24}(?:representative|office)/iu.test(input);
       const answersExtras = /^(?:לא(?:\s*,?\s*(?:תודה|זה הכל|אין צורך|בלי תוספות|לא צריך עוד))?|אין(?:\s+צורך)?|בלי תוספות|זה הכל|לא צריך עוד|(?:אני\s+)?מאשר(?:ת)?|(?:i\s+)?confirm|no(?:\s*,?\s*(?:thanks|(?:other )?extras?))?|none|nothing else|that's all|that is all)[.!\s]*$/iu.test(input.trim())
         || /\b(?:nothing else|no (?:other|more) (?:extras|additions)|that'?s all|that is all)\b/iu.test(input) && !/[?؟]/u.test(input)
+        || /(?:מעבר לזה|חוץ מזה).{0,35}(?:לא צריך|אין צורך|בלי).{0,15}(?:תוספ|כלום)|(?:apart from that|otherwise).{0,35}(?:nothing else|no (?:other|more) (?:extras|additions))/iu.test(input)
         || proactiveExtra && !/[?؟]/u.test(input);
       const wantsToNameExtra = /^(?:כן|yes|sure)[.!\s]*$/iu.test(input.trim());
       const priorExtrasPrompt = /(?:להוסיף משהו נוסף|להוסיף משהו|להוסיף עוד|משהו נוסף|anything else|add anything|any (?:other )?additions)/iu.test(lastBot);
