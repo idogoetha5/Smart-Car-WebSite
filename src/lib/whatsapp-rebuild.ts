@@ -1708,14 +1708,15 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
     ? (input.match(/^\s*(?:בן|בת|aged?)?\s*\d{2}\s*[,،]\s*([\p{L}'-]{2,20}(?:\s+[\p{L}'-]{2,20})?)\s*[.!]?\s*$/u)?.[1]
       ?? input.match(/^\s*([\p{L}'-]{2,20})\s*,?\s*(?:בן|בת|age|aged)?\s*\d{2}(?!\d)\s*[.!]?\s*$/u)?.[1])
     : undefined;
-  if (state.phase !== 'booking' && !explicitStart && !voluntaryRentalName && !draftNameAge && !draftTrailingNameAge && !shortNameAge) return false;
+  const lastBot = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+  const askedForName = /שמך|השם שלך|את השם|על איזה שם|באיזה שם|שם מלא|איך תרצו שנקרא לכם|your (?:full )?name|what name/iu.test(lastBot);
+  const rentalNamePrompt = askedForName && !state.interest && Boolean(state.booking.pickupDate && state.booking.returnDate && state.booking.vehicleNeed);
+  if (state.phase !== 'booking' && !explicitStart && !voluntaryRentalName && !draftNameAge && !draftTrailingNameAge && !shortNameAge && !rentalNamePrompt) return false;
   let captured = false;
   if (explicitStart || state.step === 'rental_name' || state.step === 'rental_email' || state.step === 'rental_confirm' || /המייל שלי|המייל הוא|my email|email\s*:/i.test(input)) {
     const email = input.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0];
     if (email && EMAIL.test(email) && email.length <= 160) { state.booking.customerEmail = email; captured = true; }
   }
-  const lastBot = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
-  const askedForName = /שמך|השם שלך|את השם|על איזה שם|באיזה שם|שם מלא|your (?:full )?name|what name/iu.test(lastBot);
   const introducedName = state.phase === 'booking' || explicitStart
     ? input.match(/(?:^|[.!,;]\s*)(?:I am|I['’]?m|im)\s+([\p{L}'-]{2,20}(?:\s+[\p{L}'-]{2,20})?)(?=\s*(?:,|$|\s+\d{2}\b|\s+and\b|[.!]))/iu)?.[1]
       ?? hebrewIntroducedName(input)
@@ -1737,7 +1738,7 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
   const validNameAge = nameAgeClause && !/\s(?:בן|בת)$/u.test(nameAgeClause) && !/(?:^|\s)(?:אני|אנחנו|הוא|היא|זה|כן|לא|תודה|רכב|נהג|נהגת|להחזיר|לאסוף|מחר|היום|עד|עם|בלי|I|we|yes|no|car|driver|return|pick|from|to|the|a|an)(?:\s|$)/iu.test(nameAgeClause) && !/\d/.test(nameAgeClause) ? nameAgeClause : undefined;
   const validTrailingName = trailingName && !/^(?:תודה|בבקשה|יאללה|סבבה|אחלה|מעולה|בסדר|קדימה|רק|גם|עם|בלי|thank|thanks|please|ok|okay|great|cool|sounds|with|without|also|just|asap|soon|today|tomorrow|מחר|היום)(?=\s|$)|(?:^|\s)(?:רכב|car|יום|ימים|days?|בקשה|request|הצעה|quote|מחיר|price|רבה|גדול|קטן|משפחתי|big|small)(?=\s|$)/iu.test(trailingName) ? trailingName : undefined;
   const validIntroducedName = introducedName && !/^(?:not|unsure|still|looking|just|here|visiting|only|sorry|trying|waiting|renting|booking|confused|from|in|at|ok|okay|fine|good|sure|ready|interested|a|an|the|so|also|very|really|going|coming|staying|flying|landing|travel+ing|married|single)\b/i.test(introducedName) ? introducedName : undefined;
-  if (explicitStart || state.step === 'rental_name' || state.step === 'rental_confirm' || labelledName || validIntroducedName || validNameAge || state.phase === 'booking' && askedForName) {
+  if (explicitStart || state.step === 'rental_name' || state.step === 'rental_confirm' || labelledName || validIntroducedName || validNameAge || rentalNamePrompt || state.phase === 'booking' && askedForName) {
     const unlabelledName = !explicitStart && (state.step === 'rental_name' || state.step === 'rental_confirm')
       ? input.match(/I am\s+([\p{L}' -]{3,60})/iu)?.[1] : undefined;
     const explicitName = labelledName ?? (unlabelledName && !/^(?:not|unsure|still|looking|just|here|visiting|only|sorry|trying|waiting|renting|booking|confused)\b/i.test(unlabelledName) ? unlabelledName : undefined);
@@ -1753,7 +1754,7 @@ function privateDetail(input: string, state: RebuildState, explicitStart = false
       && !/^(?:I|we|please|actually|no|yes|thanks?|before|after|not|do|don['’]?t|what|how|when|where|why|can|could|should|would|is|are|אני|אנחנו|לא|כן|תודה|בעצם|לפני|אחרי|אפשר|מה|איך|למה|מתי|כמה)(?:\s|$)/iu.test(leading)
       ? leading : '';
     const contactAttached = /(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}|[^\s@]+@[^\s@]+\.[^\s@]+/u.test(input);
-    const answeredNamePrompt = !promptedName && state.phase === 'booking' && askedForName && (contactAttached || /^[\p{L}' -]{3,60}[,،]/u.test(input) || /^[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*[.!]?$/u.test(input))
+    const answeredNamePrompt = !promptedName && (state.phase === 'booking' || rentalNamePrompt) && askedForName && (contactAttached || /^[\p{L}' -]{3,60}[,،.]/u.test(input) || /^[\p{L}'-]{2,20}\s+[\p{L}'-]{2,20}\s*[.!]?$/u.test(input))
       && /^[\p{L}' -]{3,60}$/u.test(leading) && leading.split(/\s+/).length <= 4
       && !/^(?:I|we|please|actually|no|yes|thanks?|before|after|not|do|don['’]?t|what|how|when|where|why|can|could|should|would|is|are|ok|okay|sure|אני|אנחנו|לא|כן|תודה|בעצם|לפני|אחרי|אפשר|מה|איך|למה|מתי|כמה|בסדר|סבבה|יאללה|רגע)(?:\s|$)/iu.test(leading)
       ? leading : '';
@@ -2344,6 +2345,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     privateTurn = state.phase === 'booking' && (state.step === 'rental_name' || state.step === 'rental_email');
     const gotPrivate = privateDetail(input, state, (!state.interest || switchesToRental) && explicitBooking(input));
     privateTurn ||= gotPrivate;
+    if (gotPrivate && state.phase === 'explore' && !state.interest && state.booking.customerName
+      && /שמך|השם שלך|על איזה שם|באיזה שם|איך תרצו שנקרא לכם|your (?:full )?name|what name/iu.test(lastBot)
+      && state.booking.pickupDate && state.booking.returnDate && state.booking.vehicleNeed) {
+      state.phase = 'booking';
+      state.requestKey ??= randomUUID();
+    }
     if (state.phase !== 'service' && !state.interest) takeSameReturnAfterTwoAsks(input, state);
     const precedingCustomer = [...state.history].reverse().find(entry => entry.from === 'customer')?.text ?? '';
     const nextWeekContext = !/(?:השבוע|this week)/iu.test(input)
@@ -2485,7 +2492,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const answeringRentalDates = !state.interest && asksRentalDates(lastBot)
       && Boolean(state.booking.pickupDate && state.booking.returnDate)
       && (reading?.route === 'book' || state.history.some(entry => entry.from === 'customer' && explicitBooking(entry.text)));
-    const wantsBooking = !declines && !asksHuman && !modelHumanConsent && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || !serviceInterpretation && (acceptsRentalOffer || wantsToContinueRental || answeringRentalDates || state.phase === 'booking'));
+    const modelReadyRental = !state.interest && reading?.route === 'book'
+      && Boolean(state.booking.pickupDate && state.booking.returnDate && state.booking.pickupLocation && state.booking.returnLocation && state.booking.vehicleNeed);
+    const wantsBooking = !declines && !asksHuman && !modelHumanConsent && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || !serviceInterpretation && (acceptsRentalOffer || wantsToContinueRental || answeringRentalDates || modelReadyRental || state.phase === 'booking'));
     const rentalPivot = /מעדיף (?:את ה)?השכרה|מעדיף לשכור|עדיף לי לשכור|אעדיף לשכור|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|prefer to rent|back to renting/i.test(input);
     const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|(?:רכב|הרכב).{0,35}מלוכלך|לא קיבלתי|(?:מזגן|מיזוג).{0,25}(?:לא עובד|מקולקל)|(?:air conditioning|car ac).{0,25}(?:not working|broken)|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input)
       // "What happens if the car is dirty?" is a question about policy, not a reported problem.
@@ -2651,7 +2660,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       } else if (!missing && !state.rentalExtrasAsked) {
         state.rentalExtrasAsked = true;
         state.step = 'rental_extras';
-        reply = `${asksModelGuarantee
+        const driverAnswer = /[?؟]/u.test(input) && /(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|additional driver|extra driver|second driver)/iu.test(input)
+          ? (he ? 'אפשר לבקש להוסיף נהג או נהגת נוספים; נדרש רישיון בתוקף ורישום בחוזה לפני הנהיגה. ' : 'You can request an additional driver; they need a valid licence and must be named in the agreement before driving. ')
+          : '';
+        reply = `${driverAnswer}${asksModelGuarantee
           ? (he ? 'דגם מסוים אינו מובטח אלא אם SmartCar מאשרת אותו במפורש. ' : 'A particular model is not guaranteed unless SmartCar explicitly confirms it. ')
           : ''}${rentalExtrasQuestion(state)}`;
       } else if (!missing && defersHandoff) {

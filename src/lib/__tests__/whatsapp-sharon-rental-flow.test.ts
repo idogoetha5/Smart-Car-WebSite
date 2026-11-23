@@ -24,6 +24,22 @@ function conversation(initial: RebuildState, reading: BotReading | null = null) 
 }
 
 describe('live name-prompt rental dead end', () => {
+  it('enters intake from a model-classified complete rental draft and accepts a bare name after its name prompt', async () => {
+    const initial = draft([
+      { from: 'customer', text: 'לא הקרוב, דווקא מיום שישי 11 בדצמבר עד יום ראשון 13 בדצמבר. נאסוף בהרצליה ונחזיר בהרצליה. קומפקטי נשמע טוב.' },
+      { from: 'bot', text: 'מעולה, רשמתי את האיסוף וההחזרה בהרצליה מיום שישי 11 בדצמבר עד יום ראשון 13 בדצמבר עם רכב קומפקטי. איך תרצו שנקרא לכם?' },
+    ]);
+    initial.booking = { pickupDate: '2026-12-11', returnDate: '2026-12-13', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב קומפקטי', driverAgeRange: '21-23' };
+    const { send, createRentalRequest } = conversation(initial, { route: 'book', direction: 'compact', reply: 'אפשר להוסיף נהג נוסף. תרצו להוסיף משהו?', fields: {}, source: 'gemini', model: 'gemini-3.5-flash-lite', groundedContext: true });
+    const result = await send('נועה לוי. כן, אני בן 23 אבל לא נהג חדש. אפשר לצרף את אשתי כנהגת נוספת?');
+    expect(result.state.phase).toBe('booking');
+    expect(result.state.booking.customerName).toBe('נועה לוי');
+    expect(result.state.step).toBe('rental_extras');
+    expect(result.reply).toMatch(/רישיון בתוקף/u);
+    expect(result.reply).toMatch(/להוסיף משהו/u);
+    expect(createRentalRequest).not.toHaveBeenCalled();
+  });
+
   it.each([
     'תרצו שנתקדם בבדיקת תאריכים ומיקום איסוף לרכב?',
     'באיזה תאריכים מדויקים תרצו שנבדוק את האפשרות?',

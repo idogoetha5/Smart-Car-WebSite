@@ -261,3 +261,12 @@ them to the customer. The state also stored those dates. Transcript:
 `evidence/adaptive-vague-weekend-date-failure-20261123.json`.
 This is a failed conversation. A new regression checks that vague monthly
 weekend evidence does not yield exact dates or a reply with those dates.
+
+On `6b1df1b`, the vague-weekend date failure was resolved in a fresh live
+Gemini opening, but the three-turn rental conversation still failed overall:
+after collecting exact dates, locations and a car choice, it asked for a
+name while remaining in exploration, failed to save the bare name plus age
+clarification, and jumped to extras. Transcript:
+`evidence/adaptive-rental-bare-name-failure-20261123.json`.
+This is not a successful completed conversation. The source correction and
+regression require a new production release and full replay.
