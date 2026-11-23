@@ -221,6 +221,14 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
 
   const knownValue = (...keys: string[]) => keys.some(key => known[key] !== undefined && known[key] !== '');
   const savedAnnualMileage = Number(known.commercialAnnualMileageKm ?? known.annualMileageKm);
+  // A customer's annual driving estimate is not a contractual monthly allowance.
+  // A live draft miscalculated 18,000 km/year as 2,500 km per 30 days.
+  if (Number.isFinite(savedAnnualMileage) && savedAnnualMileage > 0
+    && /שקול|כלומר|יוצא|equivalent|works out|equates/iu.test(reply)) {
+    const monthly = reply.match(/(\d{1,3}(?:,\d{3})*|\d{4,6})\s*(?:ק[״"]?מ|קילומטר(?:ים)?|km|kilomet(?:er|re)s?)\s*(?:לכל|ל|ב|per|a|each)?\s*(?:30\s*יום|חודש|month)/iu);
+    if (monthly && Math.abs(Number(monthly[1].replace(/,/g, '')) - savedAnnualMileage / 12) > Math.max(100, savedAnnualMileage / 120)) return reject('mileage_conversion');
+  }
+  if (/אין אפשרות.{0,45}(?:להחזיר מוקדם|לצאת מוקדם).{0,25}בלי (?:תשלום|עלות|קנס)|(?:cannot|can't|may not).{0,45}(?:return|end|exit).{0,35}early.{0,30}without (?:a )?(?:payment|fee|penalty)/iu.test(reply)) return reject('unsupported_early_exit_charge');
   // Wording may not claim a route or dates were recorded when application
   // state did not record them (observed: "Pickup and return … are set").
   const claimsRecorded = /\b(?:are|is) (?:now )?(?:set|saved|noted|recorded|booked|selected)\b|\b(?:I(?:'ve| have)?|we(?:'ve| have)?) (?:noted|saved|recorded|set|selected|chose|picked)\b|רשמתי|רשמנו|בחרנו|בחרתי|נרשמ(?:ו|ה)?|נשמר(?:ו|ה)?|קבענו|עדכנתי/iu;

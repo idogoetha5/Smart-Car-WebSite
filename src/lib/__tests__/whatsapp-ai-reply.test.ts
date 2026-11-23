@@ -5,6 +5,20 @@ const base: ConversationalReplyInput = { reply: '', input: '', locale: 'en', kno
 const check = (reply: string, rest: Partial<ConversationalReplyInput> = {}) => validateConversationalReply({ ...base, ...rest, reply });
 
 describe('output checks for natural conversational drafts', () => {
+  it('rejects the observed false monthly conversion even when the number appears in policy context', () => {
+    const onReject = vi.fn();
+    const reply = '18 אלף ק״מ בשנה שקולים לכ־2,500 ק״מ לכל 30 יום.';
+    expect(check(reply, { locale: 'he', input: 'ומה עם 18 אלף ק״מ בשנה?', known: { commercialAnnualMileageKm: 18000 }, approvedFacts: ['2,500 ק״מ מופיעים כדוגמה בהצעה אחרת.', '30 יום הם חודש השכרה.'], onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledExactlyOnceWith('mileage_conversion');
+  });
+  it('does not invent a mandatory early-return charge when the contract is unknown', () => {
+    const onReject = vi.fn();
+    expect(check('בהשכרה לחצי שנה אין אפשרות להחזיר מוקדם בלי תשלום אלא אם צוין אחרת בהסכם.', { locale: 'he', onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledExactlyOnceWith('unsupported_early_exit_charge');
+    const allowedReject = vi.fn();
+    expect(check('אפשרות סיום מוקדם והעלות שלה תלויות בתנאי ההצעה והחוזה.', { locale: 'he', onReject: allowedReject })).not.toBeNull();
+    expect(allowedReject).not.toHaveBeenCalled();
+  });
   it.each([
     'We will have your family car ready at Ben Gurion Airport for your dates.',
     'We can certainly have the car ready at Ben Gurion Airport for your dates.',

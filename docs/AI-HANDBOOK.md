@@ -1561,3 +1561,7 @@ On `b6ff383`, a fresh production Gemini rental progressed through dates, both lo
 Change log: 2026-11-23 — preserved undecided leasing-versus-rental enquiry facts through WhatsApp representative handoff; no website form, pricing, DNS or booking-policy change.
 
 2026-11-23 — A fresh real-Gemini three-turn existing-rental extension/service chat on production `c704877` passed manual review: a fictional booking reference was retained; the bot passed the extension request to a representative without confirming it, and follow-up questions about price and unapproved late Saturday return received qualified answers. Full transcript: `evidence/adaptive-service-extension-handoff-pass-20261123.json`. This proves a simulator handoff only, not delivery to Daniel.
+
+2026-11-23 — After releasing `0ebcd85`, the adaptive real-Gemini leasing/rental replay failed on turn two: it converted a customer's 18,000 km annual estimate to 2,500 km per 30 days (the arithmetic is wrong) and asserted an early-return charge before seeing a contract. Full transcript: `evidence/adaptive-commercial-mileage-conversion-failure-20261123.json`. The output check now rejects unsupported annual-to-monthly conversion and a categorical early-return charge; a model correction or grounded fallback must answer without those claims. Focused regression passes locally, but production replay is required. This remains a failed conversation.
+
+Change log: 2026-11-23 — added WhatsApp reply checks for observed false mileage arithmetic and unsupported early-return charges, without changing website terms.

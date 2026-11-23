@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## Adaptive failure — 23 November 2026 (production `0ebcd85`)
+
+The fresh real-Gemini leasing/rental replay failed at turn two. The bot called 18,000 km/year equivalent to 2,500 km per 30 days and asserted an early-return charge without the contract. Full transcript: `evidence/adaptive-commercial-mileage-conversion-failure-20261123.json`. A narrow output check and regression are local; production replay is required. The conversation did not reach handoff and is not a pass.
+
 ## Adaptive failure — 23 November 2026 (production `c704877`)
 
 A three-turn real-Gemini leasing-versus-rental comparison failed manual review at handoff. The customer was undecided between leasing and six-month rental, drove about 18,000 km yearly, and cared about avoiding a long commitment and early-exit terms. The handoff summary incorrectly reduced this to interest in leasing. Full transcript: `evidence/adaptive-leasing-rental-comparison-memory-failure-20261123.json`. A scoped memory/handoff fix and regression are local; it must be deployed and replayed. Do not count this as a pass.
