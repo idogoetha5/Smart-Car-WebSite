@@ -2560,7 +2560,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       && Boolean(state.booking.pickupDate && state.booking.returnDate && state.booking.pickupLocation && state.booking.returnLocation && state.booking.vehicleNeed);
     const passesRentalDetails = !state.interest && /(?:please )?pass (?:these|the|my) details to (?:your|the|a) (?:team|representative|office)|(?:תעביר|תעבירו|להעביר) (?:את )?(?:הפרטים|הפנייה) (?:לצוות|לנציג|למשרד)/iu.test(input)
       && !nextMissing(state.booking);
-    const wantsBooking = !declines && !asksHuman && !modelHumanConsent && ((explicitBooking(input) && (!state.interest || clearlyRental)) || passesRentalDetails || modelSupportedProceed || state.phase === 'booking' && state.step === 'rental_extras' || !serviceInterpretation && (acceptsRentalOffer || wantsToContinueRental || answeringRentalDates || modelReadyRental || state.phase === 'booking'));
+    let wantsBooking = !declines && !asksHuman && !modelHumanConsent && ((explicitBooking(input) && (!state.interest || clearlyRental)) || passesRentalDetails || modelSupportedProceed || state.phase === 'booking' && state.step === 'rental_extras' || !serviceInterpretation && (acceptsRentalOffer || wantsToContinueRental || answeringRentalDates || modelReadyRental || state.phase === 'booking'));
     const rentalPivot = /מעדיף (?:את ה)?השכרה|מעדיף לשכור|עדיף לי לשכור|אעדיף לשכור|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|prefer to rent|back to renting/i.test(input);
     const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|(?:רכב|הרכב).{0,35}מלוכלך|לא קיבלתי|(?:מזגן|מיזוג).{0,25}(?:לא עובד|מקולקל)|(?:air conditioning|car ac).{0,25}(?:not working|broken)|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input)
       // "What happens if the car is dirty?" is a question about policy, not a reported problem.
@@ -2599,6 +2599,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       applyPromptedMileage(input, state);
     }
     applySelectedFacts(input, state, reading, wantsBooking);
+    // The model's selected category and branch facts may only be applied above.
+    // Decide whether to enter intake after those facts exist, so a complete
+    // rental choice asks for the remaining name before optional additions.
+    if (!wantsBooking && !declines && !asksHuman && !modelHumanConsent && !serviceInterpretation && !state.interest
+      && !/[?؟]/u.test(input) && state.booking.pickupDate && state.booking.returnDate
+      && state.booking.pickupLocation && state.booking.returnLocation && state.booking.vehicleNeed
+      && (reading?.route === 'book' || state.history.some(entry => entry.from === 'customer' && explicitBooking(entry.text)))) wantsBooking = true;
     if (leaveVehicleOpen && !state.interest && state.phase !== 'service') state.booking.vehicleNeed = he ? 'סוג רכב פתוח להתאמה' : 'vehicle group to be matched';
     const completedRouteInCurrentTurn = Boolean(statedRange && state.booking.pickupLocation && state.booking.returnLocation);
     // Approximate/unknown timing is a fallback for a short date answer, not a

@@ -311,4 +311,33 @@ describe('rental additions and contact in one reply', () => {
     expect(result.reply).toMatch(/סיכום הפנייה/u);
     expect(result.reply).toMatch(/נוסעים: 3/u);
   });
+
+  it('asks for the remaining name after a selected rental trip, before extras', async () => {
+    let state: RebuildState | null = {
+      version: 2, phase: 'explore', step: 'menu', locale: 'he',
+      booking: { passengers: 3, luggage: 2 },
+      history: [
+        { from: 'customer', text: 'אנחנו זוג עם ילד קטן ורוצים לשכור רכב לחופשה.' },
+        { from: 'bot', text: 'נשמח לבדוק את התאריכים והמיקומים שתרצו לכלול בהשכרה.' },
+      ],
+    };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => null,
+      readTurn: async () => ({ route: 'book', direction: 'family', reply: 'רשמתי את פרטי הנסיעה.', fields: {
+        pickupDate: { value: '2026-12-05', evidence: 'ב־5 בדצמבר' },
+        returnDate: { value: '2026-12-09', evidence: 'ב־9 בדצמבר' },
+        pickupLocation: { value: 'הרצליה', evidence: 'מהרצליה' },
+        returnLocation: { value: 'הרצליה', evidence: 'גם בהרצליה' },
+      }, source: 'gemini', model: 'fictional', groundedContext: true }),
+    };
+    const result = await getRebuiltBotReply('fictional-hebrew', 'בסדר, משפחתית. ניקח ב־5 בדצמבר מהרצליה ונחזיר ב־9 בדצמבר גם בהרצליה. אני בן 35 והנהג היחיד.', store);
+    expect(result.state.phase).toBe('booking');
+    expect(result.state.step).toBe('rental_name');
+    expect(result.reply).toMatch(/על איזה שם/u);
+    expect(result.reply).not.toMatch(/נהג נוסף|כביש 6/u);
+  });
 });
