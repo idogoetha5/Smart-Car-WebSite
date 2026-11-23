@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## Adaptive failure — 23 November 2026 (production `0f996f2`)
+
+A fresh English tourist rental on the privacy-fix release gave dates, branches, age and the explicit choice “a family car would be our choice.” Gemini's draft recognized the request, but omitted a selected category fact patch. The application therefore left `vehicleNeed` unset and stayed in `explore`; the customer-facing reply prematurely asked about additions before a name, so the conversation stopped as failed after two turns. Full transcript: `evidence/adaptive-english-tourist-rental-privacy-retest-20261123.json`. Local selected-choice and date-invitation repairs plus a regression pass; full gates, deployment and fresh replay are required. This is not a pass.
+
 ## Privacy boundary finding — 23 November 2026 (production `4eb771e`)
 
 The successful simulator replay's name phrasing exposed a separate boundary gap: existing private-name scrubbing did not cover “Please use Emma Walker” or “Use the name Emma Walker”, so Gemini could see the name even though application state should own contact details. The customer-facing flow passed, but this privacy boundary required a separate correction. Local scrubbing and regression cover both observed forms; full gates and deployment remain required. This finding does not change the simulator pass count.

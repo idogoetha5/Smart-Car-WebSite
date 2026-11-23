@@ -833,7 +833,7 @@ function acceptsRentalInvitation(input: string, lastBot: string): boolean {
 
 function asksRentalDates(reply: string): boolean {
   if (!/[?؟]/.test(reply) && !/(?:באיזה|איזה|באילו|אילו|לאילו|מתי|מהם|אשמח לדעת|what|which|when)/i.test(reply)) return false;
-  return /(?:באיזה|איזה|באילו|אילו|לאילו|מהם)\s+(?:תאריך|תאריכים?)|(?:תאריך|תאריכ|מתי).{0,55}(?:לאסוף|להחזיר|תצטרכ|רכב|השכר|לבדוק)|(?:לאסוף|להחזיר|רכב|השכר).{0,35}(?:תאריך|תאריכים?)|(?:what|which) dates?.{0,55}(?:pick.?up|return|need|car)|when.{0,45}(?:pick.?up|return)/i.test(reply);
+  return /(?:באיזה|איזה|באילו|אילו|לאילו|מהם)\s+(?:תאריך|תאריכים?)|(?:תאריך|תאריכ|מתי).{0,55}(?:לאסוף|להחזיר|תצטרכ|רכב|השכר|לבדוק)|(?:לאסוף|להחזיר|רכב|השכר).{0,35}(?:תאריך|תאריכים?)|(?:what|which) dates?.{0,55}(?:pick.?up|return|need|car)|when.{0,45}(?:pick.?up|return)|(?:check|look at|see).{0,30}(?:available )?dates?/i.test(reply);
 }
 
 function directVehicleRequest(input: string, locale: Locale): boolean {
@@ -1066,6 +1066,8 @@ function customerVehicleChoice(input: string, state: RebuildState): string | nul
   }
   const statedPreference = input.match(new RegExp(`(${vehicle})\\s+(?:עדיף|עדיפה|מתאים\\s+לי|מתאים\\s+לנו|works better|is better for us)`, 'iu'))?.[1];
   if (statedPreference && !/[?؟]/u.test(input)) return explicitVehicleNeed(statedPreference, state.locale);
+  const namedChoice = input.match(new RegExp(`(${vehicle})\\s+(?:would be|is|will be)\\s+(?:our|my)\\s+(?:choice|preference)`, 'iu'))?.[1];
+  if (namedChoice && !/[?؟]/u.test(input) && !/\b(?:if|maybe|perhaps|might)\b|(?:^|\s)(?:אם|אולי)(?:\s|$)/iu.test(input)) return explicitVehicleNeed(namedChoice, state.locale);
   // "משהו נוח לנסיעות ארוכות, סדאן נגיד" — a stated body type, not a question.
   if (!/[?؟]/u.test(input) && /(?:^|[\s,])(?:סדאן|סדן|sedan)(?:\s+(?:נגיד|בערך|אולי|maybe|I guess|probably))?\s*[.!]?\s*$/iu.test(input) && !/(?:לא|בלי|not|no)\s+(?:סדאן|סדן|sedan)/iu.test(input)) return explicitVehicleNeed('sedan', state.locale);
   // A short stated preference before a separate question ("nothing fancy. can i get an invoice?").

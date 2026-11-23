@@ -2,6 +2,21 @@ import { describe, expect, it } from 'vitest';
 import { getRebuiltBotReply, type RebuildState, type RebuildStore } from '@/lib/whatsapp-rebuild';
 
 describe('rental additions and contact in one reply', () => {
+  it('treats “a family car would be our choice” as a selected group and starts intake', async () => {
+    let state: RebuildState | null = { version: 2, phase: 'explore', step: 'menu', locale: 'en', booking: {
+      pickupDate: '2026-12-08', returnDate: '2026-12-15', pickupLocation: 'Ben Gurion Airport', returnLocation: 'Herzliya', driverAgeRange: '24-plus',
+      passengers: 3, luggage: 3, stroller: true, fitCheckRequested: true,
+    }, history: [{ from: 'bot', text: 'Would you like to check available dates for December?', private: false }] };
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); }, activeBooking: async () => null,
+      createRentalRequest: async () => { throw new Error('no booking'); },
+      readTurn: async () => ({ route: 'book', direction: 'family', reply: 'Would you like any additions?', fields: {}, factPatches: [], source: 'gemini', model: 'test' }) };
+    const result = await getRebuiltBotReply('fictional-tourist-choice', 'A family car would be our choice. Please make sure the luggage and stroller fit the actual car before we confirm.', store);
+    expect(result.state.booking.vehicleNeed).toBe('family car');
+    expect(result.state.phase).toBe('booking');
+    expect(result.state.step).toBe('rental_name');
+    expect(result.reply).toMatch(/What name/);
+  });
   it('keeps a tourist family, bags and stroller-fit request in the representative summary', async () => {
     let state: RebuildState | null = null;
     const store: RebuildStore = { isSimulation: true, loadState: async () => state,
