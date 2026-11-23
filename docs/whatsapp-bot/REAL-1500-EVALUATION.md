@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## Adaptive failure — 23 November 2026 (production `07a863b`)
+
+An English-speaking tourist gave airport pickup, Herzliya return, dates, age and family-car choice. When she answered the name question with “Use the name Emma Walker. We are bringing our own booster seat. You can reply to me on this WhatsApp number,” the bot asked for her name again and remained at `rental_name`. Full real-Gemini transcript: `evidence/adaptive-english-tourist-rental-20261123.json`. Local parsing now captures the named customer and recognizes the customer's own booster; exact regression passes. Full gates and a fresh production replay remain required. This conversation failed.
+
 ## Adaptive failure — 23 November 2026 (production `aafff0b`)
 
 A renter reported a rear-end collision at a traffic light, no injuries and a broken bumper. Gemini handed the issue to a representative, but the application classified it as an ordinary service issue. On the next customer question about driving home without a booking reference, a reworded reply gave vague, ungrammatical advice instead of the required conditional no-driving guidance and photo/report instructions. Full transcript: `evidence/adaptive-hebrew-accident-20261123.json`. Scoped current-rental damage recognition, no-injury wording and driving-question handling plus the exact two-turn regression are local; production replay is required. This is a failed safety conversation.

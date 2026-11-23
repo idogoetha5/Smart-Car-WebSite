@@ -988,7 +988,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   }
   if (/(?:can (?:you|we|i) (?:provide|add|include|arrange|request|get)|do you (?:provide|have|offer)|אפשר (?:לקבל|להוסיף)|תוכלו (?:לספק|להוסיף)|יש (?:לכם|אצלכם)?).{0,18}(?:child seat|car seat|booster|כיסא בטיחות|כיסא בוסטר|בוסטר|כיסא לילד|כיסא לתינוק)/i.test(input)) draft.childSeats ??= 1;
   for (const clause of input.split(/[.!?;,]|\bbut\b|\bactually\b|אבל|בעצם/iu)) {
-    const bringsOwnSeat = /(?:bring(?:ing)?|brought|taking)\s+(?:my|our|their)\s+own\s+(?:child|car)\s+seats?|(?:נביא|אביא|מביא(?:ים|ות|ה)?).{0,20}כיסא(?:ות)?(?: בטיחות)?.{0,15}(?:משלנו|משלי|מהבית)|כיסא(?:ות)?(?: בטיחות)?.{0,20}(?:נביא|אביא|מביא(?:ים|ות|ה)?).{0,15}(?:מהבית|משלנו|משלי)/iu.test(clause)
+    const bringsOwnSeat = /(?:bring(?:ing)?|brought|taking)\s+(?:my|our|their)\s+own\s+(?:(?:child|car)\s+seats?|booster(?:\s+seat)?)|(?:נביא|אביא|מביא(?:ים|ות|ה)?).{0,20}כיסא(?:ות)?(?: בטיחות)?.{0,15}(?:משלנו|משלי|מהבית)|כיסא(?:ות)?(?: בטיחות)?.{0,20}(?:נביא|אביא|מביא(?:ים|ות|ה)?).{0,15}(?:מהבית|משלנו|משלי)/iu.test(clause)
       && !/(?:not|n['’]t|לא).{0,12}(?:bring|brought|taking|נביא|אביא|מביא)/iu.test(clause);
     const noSeatRequested = /^\s*(?:(?:we|I) need\s+)?(?:no|zero)\s+(?:child|car)\s+seats?(?:\s+(?:needed|required|please))?\s*$/iu.test(clause)
       || /^\s*בלי\s+כיסא(?:ות)?\s+בטיחות\s*$/u.test(clause);
@@ -1746,6 +1746,7 @@ function applySelectedFacts(input: string, state: RebuildState, reading: BotRead
 
 function privateDetail(input: string, state: RebuildState, explicitStart = false): boolean {
   const labelledName = input.match(/(?:קוראים לי|שמי|השם שלי|השם הוא|my name is)\s+([\p{L}' -]{3,60})/iu)?.[1]
+    ?? input.match(/\b(?:use|write down)\s+(?:the\s+)?name\s+([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})(?=\s*(?:[,.!]|$|\s+(?:and|for|please)\b))/iu)?.[1]
     ?? input.match(/(?:ת?רשו?[םמ](?:ו)?|תרשמו|לרשום|תשים|תכתוב|תכתבו)\s+(?:את (?:זה|הבקשה)\s+)?על\s+(?:שם\s+)?([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})(?=\s*(?:[,.!]|$|\s+(?:בן|בת|ו?תחזרו|ו?תשלחו)(?=\s|$|[,.!])))/u)?.[1]
     ?? input.match(/\b(?:put it|book it|register it)\s+under\s+(?:the name\s+)?([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})(?=\s*(?:[,.!]|$))/iu)?.[1]
     ?? input.match(/(?:על\s+שם|\bunder (?:the name )?)\s*([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})(?=\s*(?:[,.!]|$|\s+(?:בן|בת|אני|aged?|I['’]?m)\b))/iu)?.[1];
