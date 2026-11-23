@@ -1,5 +1,9 @@
 # SmartCar — Handbook for AI agents (Claude, Codex, any tool)
 
+2026-11-23 — A fresh real-Gemini new-driver replay on `371b49b` correctly declined the rental without asking for a name, but its first reply told a 22-year-old with a one-month licence that renting was possible before the new-driver status was established. Transcript: `evidence/adaptive-new-driver-premature-eligibility-failure-20261123.json`. The WhatsApp model instruction now asks the new-driver question before an eligibility claim for ages 21–23, and the conversation core rejects a premature affirmative availability draft for an active dated rental enquiry. A focused regression covers the observed reply; full gates and fresh live replay remain required. Website content and booking policy are unchanged.
+
+Change log: 2026-11-23 — prevented premature WhatsApp rental eligibility wording for a young driver in a dated enquiry. No website, schema, domain or DNS change.
+
 2026-11-23 — A real Gemini production-simulator chat on `fcf2a0e` found that a 22-year-old who explicitly said he was a new driver was asked for his name. The application had correctly recorded `newDriverStatus: yes` and chosen the unavailable-car response, but a later generic Gemini draft replaced it after the state moved from booking to explore. Release `8ed9a24` blocked that replacement, yet its fresh live replay still appended a name question after the decline. The source now excludes declined new-driver enquiries from the generic unfinished-rental question appender. Exact regression strengthened. Failed transcripts: `evidence/adaptive-new-driver-decline-failure-20261123.json` and `evidence/adaptive-new-driver-decline-replay-failure-20261123.json`. Production replay is required; neither is a completed conversation.
 
 Change log: 2026-11-23 — kept the WhatsApp-only new-driver eligibility decision ahead of a stale Gemini intake draft. Website booking flow, schema, domain and DNS unchanged.

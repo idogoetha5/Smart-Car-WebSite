@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## New adaptive failure — 23 November 2026 (production `371b49b`)
+
+The fresh young-driver replay declined correctly at turn two without asking for a name, but turn one prematurely said a 22-year-old with a one-month licence could rent. The customer had not yet confirmed whether they were a new driver, so the later no-availability answer contradicted the first impression. Full real-Gemini transcript: `evidence/adaptive-new-driver-premature-eligibility-failure-20261123.json`. The WhatsApp model instruction and a narrow reply guard now require the new-driver question before an affirmative eligibility claim in an active dated enquiry. Production replay is required; this is not a successful full chat.
+
 ## New adaptive failure — 23 November 2026 (production `fcf2a0e`)
 
 A 22-year-old rental customer gave dates, vehicle and licence tenure, then explicitly said he was a new driver and confirmed return in Herzliya. The bot asked for his name rather than saying no car was available for a new driver on those dates. The full real-Gemini simulator transcript is `evidence/adaptive-new-driver-decline-failure-20261123.json`. State had correctly recorded new-driver status, but a later Gemini draft replaced the application decision. Release `8ed9a24` blocked that draft, but its fresh real-Gemini replay still appended a name question to the decline; that failed transcript is `evidence/adaptive-new-driver-decline-replay-failure-20261123.json`. The source and exact regression now also block the generic unfinished-rental question appender. Production replay is required. Neither failed chat is a success count.

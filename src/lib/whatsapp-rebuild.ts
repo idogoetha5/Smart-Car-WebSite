@@ -186,6 +186,14 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
   // The model must not swap the relative the customer named (observed: "אמא
   // שלי" answered as "אשתך"). Only a relation the customer used may appear.
   const customerText = [input, ...state.history.filter(entry => entry.from === 'customer').map(entry => entry.text)].join('\n');
+  // The general age policy does not establish availability for this young
+  // driver's enquiry until the new-driver question has been answered.
+  if (state.phase === 'booking' && state.booking.pickupDate && state.booking.returnDate
+    && state.booking.driverAgeRange === '21-23' && !state.newDriverStatus
+    && /(?:אפשר\s+לשכור|אפשרות\s+לשכור|(?:you\s+can|may)\s+rent|rental\s+is\s+available)/iu.test(reading.reply)) {
+    onReject('young_driver_status_unknown');
+    return null;
+  }
   const relationMismatch = [
     [/אשתך|אשתכם|your wife/iu, /אשתי|אישתי|אשתו|my wife|wife/iu],
     [/בעלך|בעלכם|your husband/iu, /בעלי|בעלה|my husband|husband/iu],
@@ -2973,6 +2981,14 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         }
       }
     }
+  }
+
+  if (state.phase === 'booking' && state.booking.pickupDate && state.booking.returnDate
+    && state.booking.driverAgeRange === '21-23' && !state.newDriverStatus && !state.interest
+    && /(?:אפשר\s+לשכור|אפשרות\s+לשכור|(?:you\s+can|may)\s+rent|rental\s+is\s+available)/iu.test(reply)) {
+    state.step = 'rental_new_driver';
+    reply = he ? 'האם הנהג הוא נהג חדש?' : 'Is the driver a new driver?';
+    source = 'local';
   }
 
   if (state.phase === 'explore' && !state.interest && asksRentalDates(reply) && directVehicleRequest(input, state.locale)) {

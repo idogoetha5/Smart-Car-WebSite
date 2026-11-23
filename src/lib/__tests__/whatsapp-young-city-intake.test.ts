@@ -10,6 +10,22 @@ function conversation() {
 }
 
 describe('young city renter keeps luggage and answers model questions during private intake', () => {
+  it('does not tell a 22-year-old with a one-month licence that rental is available before asking new-driver status', async () => {
+    const state: RebuildState = { version: 2, phase: 'booking', step: 'rental_locations', locale: 'he', history: [], booking: {
+      pickupDate: '2026-12-18', returnDate: '2026-12-21', pickupLocation: 'הרצליה',
+      vehicleNeed: 'רכב משפחתי', driverAgeRange: '21-23',
+    } };
+    const result = await getRebuiltBotReply('fictional-young-unknown-status', 'אני בן 22 והרישיון מלפני חודש. אפשר לשכור?', {
+      isSimulation: true, loadState: async () => structuredClone(state), saveState: async () => {},
+      activeBooking: async () => null, createRentalRequest: async () => { throw new Error('must not create request'); },
+      readTurn: async () => ({ route: 'book', direction: 'family', fields: {}, source: 'gemini', model: 'test', groundedContext: true,
+        reply: 'אפשר לשכור מגיל 21 גם עם ותק רישיון קצר. להחזיר גם בהרצליה?' }),
+    });
+    expect(result.state.newDriverStatus).toBeUndefined();
+    expect(result.reply).not.toMatch(/אפשר לשכור|זמין לנהג/u);
+    expect(result.reply).toMatch(/[?؟]/u);
+  });
+
   it('keeps the new-driver decline when Gemini asks for a name after the customer explicitly says they are new', async () => {
     const state: RebuildState = { version: 2, phase: 'booking', step: 'rental_locations', locale: 'he', history: [
       { from: 'customer', text: 'אני בן 22 וקיבלתי רישיון לפני חודש', private: false },
