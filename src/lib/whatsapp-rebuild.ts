@@ -3437,6 +3437,18 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       // Only when the customer asked something else or the answer already moves on; "Daniel, 21" must not end on "Thanks, Daniel."
       && (/[?؟]/u.test(body) || /[?؟]|^\s*(?:מה|איך|כמה|האם|אפשר|יש|למה|מתי|what|how|can|do|does|is|are|why|when|could)(?![\p{L}])/iu.test(input))) reply = body;
   }
+  // A yes to an offer to explore models has already accepted that offer.
+  // Preserve the answer while removing the repeated offer at its end.
+  {
+    const previousBot = [...state.history].reverse().find(entry => entry.from === 'bot')?.text ?? '';
+    const accepted = /^(?:כן|בטח|בהחלט|yes|sure|okay|ok)(?=[\s,.!]|$)/iu.test(input.trim());
+    const modelSearch = /(?:נבדוק|לבדוק|check|look at|explore)[^?؟\n]{0,75}(?:דגמ|models?)/iu;
+    const repeatedQuestion = reply.match(/(?:האם\s+)?תרצ(?:ה|ו)[^?؟\n]{0,100}(?:דגמ|models?)[^?؟\n]*[?؟]|(?:would you like|shall we)[^?؟\n]{0,100}(?:models?|cars?)[^?؟\n]*[?؟]/iu);
+    if (state.interest === 'sale' && accepted && modelSearch.test(previousBot) && repeatedQuestion && modelSearch.test(repeatedQuestion[0])) {
+      const withoutRepeat = reply.replace(repeatedQuestion[0], '').trim();
+      if (withoutRepeat.length >= 25) reply = withoutRepeat;
+    }
+  }
   // A rental enquiry in progress never ends on a statement: the next thing still needed is asked, and a name given now is thanked.
   if (state.phase === 'explore' && state.newDriverStatus !== 'yes' && !state.interest && !state.handedOff && !state.completedRequestId && source !== 'safety'
     && (state.booking.pickupDate || state.booking.pickupLocation || state.booking.vehicleNeed)) {

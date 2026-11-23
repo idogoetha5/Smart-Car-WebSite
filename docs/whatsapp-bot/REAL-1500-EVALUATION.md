@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## Adaptive failure — 23 November 2026 (production `8b58ca3`)
+
+A fresh used-car buyer answered yes to the bot's offer to check suitable models and specified a family car, two children, stroller and city use. Gemini gave useful luggage advice but ended by asking again whether to check family models within the budget. Full transcript: `evidence/adaptive-hebrew-sale-retest-20261123.json`. A scoped repeated-offer guard and regression are local; production replay is required. The chat stopped as failed and is not a pass.
+
 ## Adaptive failure — 23 November 2026 (production `8b819a1`)
 
 A four-turn real-Gemini used-car buyer explicitly asked “תעבירו בבקשה לנציג” with budget, family category, preferred model and independent-inspection question. The reply claimed the details had been passed, but `escalated:false` and the state remained in explore. Full transcript: `evidence/adaptive-hebrew-sale-20261123.json`. A scoped polite-transfer detector and exact multi-turn regression are local; production replay is required. This conversation is a failure, not a pass.
