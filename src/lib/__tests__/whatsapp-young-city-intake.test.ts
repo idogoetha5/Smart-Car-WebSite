@@ -28,7 +28,7 @@ describe('young city renter keeps luggage and answers model questions during pri
       });
     expect(result.state.newDriverStatus).toBe('yes');
     expect(result.reply).toMatch(/אין לנו רכבים זמינים לנהגים חדשים בתאריכים/u);
-    expect(result.reply).not.toMatch(/באיזה שם/u);
+    expect(result.reply).not.toMatch(/באיזה שם|על איזה שם/u);
     expect(result.state.phase).toBe('explore');
     expect(createRentalRequest).not.toHaveBeenCalled();
   });

@@ -3336,7 +3336,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       && (/[?؟]/u.test(body) || /[?؟]|^\s*(?:מה|איך|כמה|האם|אפשר|יש|למה|מתי|what|how|can|do|does|is|are|why|when|could)(?![\p{L}])/iu.test(input))) reply = body;
   }
   // A rental enquiry in progress never ends on a statement: the next thing still needed is asked, and a name given now is thanked.
-  if (state.phase === 'explore' && !state.interest && !state.handedOff && !state.completedRequestId && source !== 'safety'
+  if (state.phase === 'explore' && state.newDriverStatus !== 'yes' && !state.interest && !state.handedOff && !state.completedRequestId && source !== 'safety'
     && (state.booking.pickupDate || state.booking.pickupLocation || state.booking.vehicleNeed)) {
     const missing = nextMissing(state.booking);
     if (!/[?؟]/u.test(reply) && missing && missing !== 'customerEmail' && !/לא יודע|לא בטוח|אין לי מושג|עוד לא החלטתי|don'?t know|not sure|no idea|haven'?t decided/iu.test(input) && !/כשתרצ|when(?:ever)? you(?:'re| are)? ready/iu.test(reply)) {
