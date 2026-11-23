@@ -2213,6 +2213,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           : (he ? `קיבלנו את בקשת השינוי. נציג SmartCar יחזור אליכם; השינוי תקף רק לאחר אישור. אפשר גם להתקשר ל־${OFFICE_PHONE}.` : `We have your change request. A SmartCar representative will follow up; the change takes effect only after confirmation. You can also call ${OFFICE_PHONE}.`);
     // After a non-safety handoff the chat should still feel like a person, not a receipt on repeat:
     // a thank-you gets a short closing, and a new question is answered by the model from approved facts.
+    const asksResponseTime = handoffKind !== 'safety'
+      && /(?:מתי|כמה זמן|תוך כמה זמן|when|how (?:long|soon))[^?؟\n]{0,85}(?:נציג|יחזרו|תחזרו|תשובה|reply|respond|representative|hear (?:back|from)|get (?:back|in touch))|(?:נציג|representative)[^?؟\n]{0,55}(?:מתי|when|how soon)/iu.test(input);
+    if (asksResponseTime) reply = he
+      ? `אין לי מועד תגובה מאושר למסור כרגע. הפנייה הועברה לנציג SmartCar; אם זה דחוף, אפשר להתקשר ל־${OFFICE_PHONE}.`
+      : `There is no confirmed response time I can give you. Your enquiry has been passed to a SmartCar representative; if urgent, call ${OFFICE_PHONE}.`;
     const safetyReceipt = handoffKind === 'safety' && /^(?:תודה על העדכון\. אל תמשיכו לנסוע|Thanks for the update\. Do not keep driving)/u.test(reply) && input.trim().length >= 4;
     if ((safetyReceipt || handoffKind !== 'safety' && /^(?:תודה על העדכון\. נציג SmartCar יטפל|Thanks for the update\. A SmartCar representative will handle|קיבלנו את בקשת השינוי\. נציג|We have received your change request)/u.test(reply))
       && (safetyReceipt || /[?؟]/u.test(input) || input.trim().length >= 4 || state.history.some(entry => entry.from === 'bot' && entry.text === reply))) {

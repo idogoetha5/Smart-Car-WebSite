@@ -570,7 +570,8 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(prepare.reply).toContain('תמונות');
     expect(human.reply).toContain('נציג SmartCar');
     expect(urgent.reply).toContain('התקשרו עכשיו');
-    expect(timing.reply).toContain('יחזור אליכם בהקדם');
+    expect(timing.reply).toContain('אין לי מועד תגובה מאושר');
+    expect(timing.reply).not.toContain('בהקדם');
     expect(next.reply).not.toBe(remedy.reply);
     expect(urgent.reply).not.toBe(timing.reply);
   });
@@ -590,7 +591,8 @@ describe('regressions found in 15 live Gemini conversations', () => {
     expect(prepare.reply).toContain('מספר ההזמנה');
     expect(again.reply).toContain('לא נדרשת מכם פעולה נוספת');
     expect(billing.reply).toContain('שאלת החיוב');
-    expect(timing.reply).toContain('יחזור אליכם בהקדם');
+    expect(timing.reply).toContain('אין לי מועד תגובה מאושר');
+    expect(timing.reply).not.toContain('בהקדם');
     expect(again.reply).not.toBe(next.reply);
     expect(billing.reply).not.toContain('בקשת השינוי');
   });

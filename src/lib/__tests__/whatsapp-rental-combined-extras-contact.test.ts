@@ -91,4 +91,25 @@ describe('rental additions and contact in one reply', () => {
       pickupLocation: 'Herzliya', returnLocation: 'Herzliya', luggage: 2,
     });
   });
+
+  it('does not promise a representative response time after the rental handoff', async () => {
+    let state: RebuildState | null = {
+      version: 2, phase: 'service', step: 'menu', locale: 'en',
+      booking: { customerName: 'Alex Weber', vehicleNeed: 'family car' },
+      completedRental: { vehicleNeed: 'family car', pickupDate: '2026-12-08', returnDate: '2026-12-15', pickupLocation: 'Herzliya', returnLocation: 'Herzliya' },
+      history: [{ from: 'bot', text: 'I have passed this to a SmartCar representative for review.' }],
+      handedOff: true, handoffKind: 'human', handoffAt: new Date().toISOString(),
+    };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => null,
+      readTurn: async () => null,
+    };
+    const result = await getRebuiltBotReply('fictional-tourist', 'Thanks. Roughly when should I expect the representative to reply?', store);
+    expect(result.reply).toMatch(/no confirmed response time/i);
+    expect(result.reply).not.toMatch(/shortly|soon|today|tomorrow/i);
+  });
 });
