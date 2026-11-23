@@ -94,8 +94,8 @@ describe('replacement SmartCar conversation core', () => {
     expect(result.reply).toMatch(/Ben Gurion.*surcharge/);
     expect(result.reply).toMatch(/full price including it/);
     expect(result.reply).toMatch(/Every rental includes basic cover/);
-    expect(result.reply).toMatch(/Here are your request details/);
-    expect(result.reply).toMatch(/reply “I confirm”/);
+    expect(result.state.step).toBe('rental_extras');
+    expect(result.reply).toMatch(/add anything/i);
     expect(result.reply).not.toMatch(/Yes, there is a surcharge for pickup or return/);
     expect(result.state.completedRequestId).toBeUndefined();
   });
@@ -132,7 +132,7 @@ describe('replacement SmartCar conversation core', () => {
     expect(result.state.booking.customerName).toBe('דניאל בדיקה');
     expect(result.state.booking.pickupDate).toMatch(/-12-11$/);
     expect(result.state.booking.returnDate).toMatch(/-12-16$/);
-    expect(result.state.step).toBe('rental_confirm');
+    expect(result.state.step).toBe('rental_extras');
   });
 
   it('accepts an English age statement before asking the age question', async () => {
@@ -221,10 +221,11 @@ describe('replacement SmartCar conversation core', () => {
     await chat.send('24+');
     await chat.send('נועה כהן');
     const summary = await chat.send('noa@example.invalid');
-    expect(summary.state.step).toBe('rental_confirm');
-    expect(summary.reply).toContain('החזרה: תל אביב');
-    const confirmed = await chat.send('אני מאשרת');
-    expect(confirmed.state.completedRequestId).toBe('SIM-123');
+    expect(summary.state.step).toBe('rental_extras');
+    const confirmed = await chat.send('לא, בלי תוספות');
+    expect(confirmed.reply).toContain('תל אביב');
+    expect(confirmed.state.handedOff).toBe(true);
+    expect(chat.create).not.toHaveBeenCalled();
   });
 
   it('extracts the return city before a driver-age clause in a full request', async () => {
@@ -349,7 +350,9 @@ describe('replacement SmartCar conversation core', () => {
     expect(locations.state.booking.vehicleNeed).toContain('5 נוסעים ול־3 מזוודות');
     expect(locations.reply).toContain('קבוצת הגיל');
     await chat.send('24+');
-    const summary = await chat.send('רותם לוי');
+    const extras = await chat.send('רותם לוי');
+    expect(extras.state.step).toBe('rental_extras');
+    const summary = await chat.send('לא, בלי תוספות');
     expect(summary.reply).not.toContain('ליצירת קשר');
     expect(summary.reply).not.toContain('לשלוח את סיכום');
     expect(summary.reply).toContain('נוסעים: 5');
@@ -561,9 +564,9 @@ describe('replacement SmartCar conversation core', () => {
     expect((await chat.send('תל אביב')).state.booking.pickupLocation).toBe('תל אביב');
     expect((await chat.send('אותו מקום')).state.booking.returnLocation).toBe('תל אביב');
     expect((await chat.send('24+')).state.step).toBe('rental_name');
-    expect((await chat.send('דני בדיקה')).state.step).toBe('rental_confirm');
-    expect((await chat.send('אני מאשר')).escalate).toBe(true);
-    expect(chat.create).toHaveBeenCalledOnce();
+    expect((await chat.send('דני בדיקה')).state.step).toBe('rental_extras');
+    expect((await chat.send('לא, בלי תוספות')).escalate).toBe(true);
+    expect(chat.create).not.toHaveBeenCalled();
   });
 
   it('moves past the exact repeated yes pattern reported by the owner', async () => {
@@ -625,11 +628,11 @@ describe('replacement SmartCar conversation core', () => {
     expect((await chat.send('אותו מקום')).state.booking.returnLocation).toBe('תל אביב');
     expect((await chat.send('24+')).state.step).toBe('rental_name');
     const summary = await chat.send('דני בדיקה');
-    expect(summary.state.step).toBe('rental_confirm');
+    expect(summary.state.step).toBe('rental_extras');
     expect(chat.create).not.toHaveBeenCalled();
-    const complete = await chat.send('אני מאשר');
+    const complete = await chat.send('לא, בלי תוספות');
     expect(complete.escalate).toBe(true);
-    expect(chat.create).toHaveBeenCalledOnce();
+    expect(chat.create).not.toHaveBeenCalled();
   });
 
   it('recovers a previously stalled conversation after an unnecessary time question', async () => {
@@ -764,14 +767,14 @@ describe('replacement SmartCar conversation core', () => {
     expect(age.state.booking.driverAgeRange).toBe('24-plus');
     expect(age.state.step).toBe('rental_name');
     const name = await chat.send('דני בדיקה');
-    expect(name.state.step).toBe('rental_confirm');
-    expect(name.reply).toContain('הבקשה תועבר לאישור SmartCar');
-    expect(name.reply).toContain('10/11/2026–13/11/2026');
+    expect(name.state.step).toBe('rental_extras');
+    expect(name.reply).toMatch(/תרצו להוסיף משהו/u);
     expect(chat.create).not.toHaveBeenCalled();
-    const confirmed = await chat.send('אני מאשר');
+    const confirmed = await chat.send('לא, בלי תוספות');
     expect(confirmed.escalate).toBe(true);
-    expect(confirmed.state.completedRequestId).toBe('SIM-123');
-    expect(chat.create).toHaveBeenCalledOnce();
+    expect(confirmed.reply).toContain('10/11/2026');
+    expect(confirmed.reply).toContain('13/11/2026');
+    expect(chat.create).not.toHaveBeenCalled();
   });
 
   it('explains the age limit instead of repeating an unrelated form question', async () => {
@@ -1135,7 +1138,7 @@ describe('replacement SmartCar conversation core', () => {
     } finally { vi.useRealTimers(); }
   });
 
-  it('retains booking facts and requires explicit confirmation before a request', async () => {
+  it('retains booking facts and hands off a summary without creating a formal request', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-25T12:00:00Z'));
     try {
@@ -1159,23 +1162,17 @@ describe('replacement SmartCar conversation core', () => {
     expect(second.state.booking.driverAgeRange).toBe('24-plus');
     expect(second.reply).toMatch(/שם/);
     const third = await chat.send('קוראים לי דניאל כהן');
-    expect(third.reply).toMatch(/אני מאשר/);
-    expect(third.reply).toContain('גיל הנהג: 24+');
-    expect(third.reply).toContain('קראתי ואני מסכים/ה לתנאי השימוש ולמדיניות הפרטיות של SmartCar.');
-    expect(third.reply).toContain('https://www.smartcar.co.il/he/terms');
+    expect(third.state.step).toBe('rental_extras');
+    expect(third.reply).toMatch(/תרצו להוסיף משהו/u);
     expect(chat.create).not.toHaveBeenCalled();
-    const confirmed = await chat.send('אני מאשר');
+    const confirmed = await chat.send('לא, בלי תוספות');
     expect(confirmed.escalate).toBe(true);
-    expect(chat.create).toHaveBeenCalledTimes(1);
-    const repeated = await chat.send('אני מאשר');
-    expect(repeated.reply).toContain('לא נוצרה הזמנה אמיתית');
-    expect(chat.create).toHaveBeenCalledTimes(1);
-    expect(chat.state()?.completedRequestId).toBe('SIM-123');
-    expect(chat.state()?.booking).toEqual({});
-    expect(chat.state()?.requestKey).toBeUndefined();
-    const newRequest = await chat.send('אני רוצה להזמין רכב קטן לנסיעה נוספת');
-    expect(newRequest.state.requestKey).toMatch(/^[0-9a-f-]{36}$/);
-    expect(newRequest.state.requestKey).not.toBe(first.state.requestKey);
+    expect(confirmed.reply).toContain('דניאל כהן');
+    expect(confirmed.reply).toContain('גיל הנהג 24+');
+    expect(confirmed.reply).not.toContain('תנאי השימוש');
+    expect(chat.create).not.toHaveBeenCalled();
+    expect(chat.state()?.completedRequestId).toBeUndefined();
+    expect(chat.state()?.completedRental).toMatchObject({ pickupDate: '2026-10-26', returnDate: '2026-10-28' });
     } finally { vi.useRealTimers(); }
   });
 
@@ -1265,8 +1262,8 @@ describe('replacement SmartCar conversation core', () => {
     await chat.send('לקוח בדיקה');
     await chat.send('test@example.invalid');
     const withheld = await chat.send('אני לא מאשר עדיין');
-    expect(withheld.reply).toContain('לא שלחתי בקשה');
-    expect(withheld.state.step).toBe('rental_confirm');
+    expect(withheld.reply).toContain('לא העברתי');
+    expect(withheld.state.step).toBe('rental_extras');
     expect(chat.create).not.toHaveBeenCalled();
   });
 
@@ -1282,7 +1279,7 @@ describe('replacement SmartCar conversation core', () => {
     await chat.send('old@example.invalid');
     const calls = chat.readTurn.mock.calls.length;
     const updated = await chat.send('המייל שלי new@example.invalid');
-    expect(updated.reply).toContain('new@example.invalid');
+    expect(updated.state.booking.customerEmail).toBe('new@example.invalid');
     expect(updated.reply).not.toContain('old@example.invalid');
     expect(updated.state.history.at(-2)?.private).toBe(true);
     expect(chat.readTurn).toHaveBeenCalledTimes(calls);

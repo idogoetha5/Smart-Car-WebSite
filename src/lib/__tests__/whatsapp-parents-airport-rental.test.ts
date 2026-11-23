@@ -242,7 +242,7 @@ describe('casual go-ahead with a name and age', () => {
     expect(result.state.phase).toBe('booking');
     expect(result.state.booking.customerName).toBe('lukas');
     expect(result.state.booking.driverAgeRange).toBe('24-plus');
-    expect(result.reply).toMatch(/Lukas|lukas|request details|Here are/);
+    expect(result.state.step).toBe('rental_extras');
     expect(c.create).not.toHaveBeenCalled();
   });
   it.each(['im not sure yet', "I'm just looking", 'im staying 10 days'])('does not take a phrase as a name: %s', async input => {
@@ -277,7 +277,7 @@ describe('annoyed repeat of the return place during intake', () => {
     expect(result.state.booking.returnLocation).toBe('Jerusalem');
     expect(result.state.booking.pickupLocation).toBe('Jerusalem');
     expect(result.reply).not.toContain('Where will you return it?');
-    expect(result.reply).toMatch(/Here are your request details/);
+    expect(result.state.step).toBe('rental_extras');
   });
 });
 

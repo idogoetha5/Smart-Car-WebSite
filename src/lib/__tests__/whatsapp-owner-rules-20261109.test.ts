@@ -244,7 +244,7 @@ describe('home delivery for a week', () => {
     const third = await c.send('יאללה. רוני בדיקה, בן 52');
     expect(third.state.phase).toBe('booking');
     expect(third.state.booking.customerName).toBe('רוני בדיקה');
-    expect(third.reply).toMatch(/אלה פרטי הבקשה/);
+    expect(third.state.step).toBe('rental_extras');
   });
   it.each(['מיום ראשון בערך לשבוע', 'אולי לשבוע'])('does not turn an approximate length into a return date: %s', async input => {
     const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-11-15' }, history: [] } as RebuildState, 'בשמחה.');
@@ -262,7 +262,7 @@ describe('compact english rental phrasing', () => {
     const go = await c.send('ok fine. go ahead, im dan, 34');
     expect(go.state.phase).toBe('booking');
     expect(go.state.booking.customerName).toBe('dan');
-    expect(go.reply).toMatch(/Here are your request details/);
+    expect(go.state.step).toBe('rental_extras');
   });
 });
 
@@ -631,7 +631,7 @@ describe('young driver with a friend', () => {
     expect(go.state.booking.customerName).toBe('יונתן לוי');
     expect(go.reply).toMatch(/נהג חדש/u);
     const experienced = await c.send('לא, אני לא נהג חדש');
-    expect(experienced.reply).toMatch(/אלה פרטי הבקשה/);
+    expect(experienced.state.step).toBe('rental_extras');
   });
   it.each(['מיום חמישי 19.11 עד יום ראשון 22.11', 'thu 19.11 to sun 22.11'])('weekday-prefixed range: %s', async (input) => {
     const r = await chat(null, 'x').send(input);
@@ -758,7 +758,7 @@ describe('name after a "תפתח בקשה" clause', () => {
     await c.send('כן ושתאספו אותו מהבית בסוף');
     const r = await c.send('רכב קטן, אני לבד. תפתח בקשה, רינה שמש בת 35');
     expect(r.state.booking.customerName).toBe('רינה שמש');
-    expect(r.reply).toMatch(/אלה פרטי הבקשה/);
+    expect(r.state.step).toBe('rental_extras');
   });
 });
 
@@ -874,9 +874,11 @@ describe('summary notices', () => {
   it('adds the Shabbat and airport notices without amounts', async () => {
     const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'en', history: [], booking: { vehicleNeed: 'compact car', passengers: 2, pickupDate: '2026-12-08', returnDate: '2026-12-12', pickupLocation: 'Ben Gurion Airport', returnLocation: 'Herzliya' } } as RebuildState, 'x', 'en');
     const r = await c.send('ok go ahead, im tom berg, 31');
-    expect(r.reply).toMatch(/Saturday pickup or return/);
-    expect(r.reply).toMatch(/Ben Gurion Airport carries a surcharge/);
-    expect(r.reply).not.toMatch(/₪|150/);
+    expect(r.state.step).toBe('rental_extras');
+    const summary = await c.send('No extras');
+    expect(summary.reply).toMatch(/Saturday pickup or return/);
+    expect(summary.reply).toMatch(/Ben Gurion Airport carries a surcharge/);
+    expect(summary.reply).not.toMatch(/₪|150/);
   });
 });
 

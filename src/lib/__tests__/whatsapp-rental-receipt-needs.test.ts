@@ -14,14 +14,18 @@ function conversation() {
     saveState: async (_phone, next) => { state = structuredClone(next); },
     activeBooking: async () => null, createRentalRequest: create, readTurn: async () => null,
   };
-  return { send: (input: string) => getRebuiltBotReply('fictional-receipt-needs', input, store), create };
+  return { send: (input: string) => getRebuiltBotReply('fictional-receipt-needs', input, store), create,
+    legacyConfirm: () => { if (state) { state.step = 'rental_confirm'; delete state.rentalExtrasAsked; delete state.rentalExtrasAnswered; } } };
 }
 
 for (const scenario of scenarios) {
   describe(`completed rental needs receipt in ${scenario.locale}`, () => {
     it('recalls removed seat plus route, status, passengers and bags after submission', async () => {
       const chat = conversation();
-      for (const input of [scenario.start, scenario.name, scenario.add, scenario.remove, scenario.confirm]) await chat.send(input);
+      for (const input of [scenario.start, scenario.name]) await chat.send(input);
+      chat.legacyConfirm();
+      for (const input of [scenario.add, scenario.remove]) await chat.send(input);
+      await chat.send(scenario.confirm);
       const result = await chat.send(scenario.recall);
       expect(result.reply).toContain(scenario.unconfirmed);
       expect(result.reply).toContain(scenario.location);
@@ -40,7 +44,10 @@ for (const scenario of scenarios) {
 
     it('keeps a positive seat count conditional rather than confirming availability', async () => {
       const chat = conversation();
-      for (const input of [scenario.start, scenario.name, scenario.add, scenario.confirm]) await chat.send(input);
+      for (const input of [scenario.start, scenario.name]) await chat.send(input);
+      chat.legacyConfirm();
+      await chat.send(scenario.add);
+      await chat.send(scenario.confirm);
       const result = await chat.send(scenario.seatRecall);
       expect(result.reply).toContain(scenario.positiveSeat);
       expect(result.reply).toMatch(/subject to availability|בכפוף לזמינות/u);
@@ -50,7 +57,9 @@ for (const scenario of scenarios) {
 
     it('does not infer a refused or zero seat count when no seat detail was supplied', async () => {
       const chat = conversation();
-      for (const input of [scenario.start, scenario.name, scenario.confirm]) await chat.send(input);
+      for (const input of [scenario.start, scenario.name]) await chat.send(input);
+      chat.legacyConfirm();
+      await chat.send(scenario.confirm);
       const result = await chat.send(scenario.seatRecall);
       expect(result.reply).toContain(scenario.unknownSeat);
       expect(result.reply).not.toContain(scenario.noSeat);

@@ -44,7 +44,7 @@ describe('callback refusal during business rental versus leasing discussion', ()
     expect(fifth.state.step).toBe('rental_name');
     expect(fifth.state.durationClarification).not.toBe(true);
     const sixth = await chat.send('השם הוא רוני בדיקה. לא רוצה למסור מייל.');
-    expect(sixth.state.step).toBe('rental_confirm');
+    expect(sixth.state.step).toBe('rental_extras');
     expect(sixth.state.booking).toMatchObject({ pickupDate: '2026-12-10', returnDate: '2027-02-10', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', driverAgeRange: '24-plus', customerName: 'רוני בדיקה' });
     expect(sixth.state.humanHandoffDeferred).toBe(true);
     expect(sixth.escalate).not.toBe(true);

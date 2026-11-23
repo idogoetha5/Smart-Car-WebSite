@@ -229,3 +229,13 @@ cancellation wording through follow-up turns; this version still needs a live
 replay. The first-pass collection has 15 long chats, with earlier-release
 failures retained as evidence, plus 12 separate replays. It is not a readiness
 pass for the latest source.
+
+On 2026-11-23, a four-turn real-Gemini production simulator replay against
+`0ac9a96` failed at the handoff after the customer supplied age, name,
+dates, locations and an additional-driver request. The bot escalated without
+a summary and did not save the additional driver. Transcript:
+`evidence/adaptive-young-driver-handoff-failure-20261123.json`.
+This is a failed conversation, not a successful completion. The subsequent
+source fix and unit regressions do not count as live success. A new release
+must pass fresh adaptive production conversations before readiness can be
+claimed; historical successes are not a final-version pass.

@@ -28,8 +28,9 @@ describe('rental advice to explicit intake', () => {
     expect(result.state.booking.returnDate).toMatch(/-12-14$/);
     expect(result.reply).not.toContain('שנתחיל');
     const name = await send('דניאל בדיקה');
-    expect(name.state.step).toBe('rental_confirm');
-    expect(name.reply).toContain('רכב משפחתי');
+    expect(name.state.step).toBe('rental_extras');
+    const summary = await send('לא, בלי תוספות');
+    expect(summary.reply).toContain('רכב משפחתי');
   });
 
   it('recognizes a customer reminder that they already asked to start', async () => {

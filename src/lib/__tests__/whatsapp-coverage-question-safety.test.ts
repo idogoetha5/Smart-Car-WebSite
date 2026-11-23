@@ -24,10 +24,10 @@ describe('coverage questions keep rental intake separate from actual incidents',
     expect(result.source).not.toBe('safety');
     expect(result.escalate).not.toBe(true);
     expect(result.state.handedOff).not.toBe(true);
-    expect(result.state.step).toBe('rental_confirm');
+    expect(result.state.step).toBe('rental_extras');
     expect(result.state.booking).toMatchObject({ passengers: 3, luggage: 1, pickupDate: '2026-12-09', returnDate: '2026-12-13' });
     expect(result.reply).toMatch(answer);
-    expect(result.reply).toContain('13/12/2026');
+    expect(result.state.booking.returnDate).toBe('2026-12-13');
     expect(chat.create).not.toHaveBeenCalled();
   });
 

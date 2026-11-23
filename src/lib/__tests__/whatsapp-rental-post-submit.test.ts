@@ -30,7 +30,11 @@ describe('rental status after simulated submission', () => {
       readTurn: async () => null,
     };
     const send = (message: string) => getRebuiltBotReply('fictional-post-submit', message, store);
-    for (const message of [scenario.start, scenario.dates, scenario.locations, scenario.age, scenario.name, scenario.question]) await send(message);
+    for (const message of [scenario.start, scenario.dates, scenario.locations, scenario.age, scenario.name]) await send(message);
+    // A conversation already at the legacy terms summary keeps its original explicit-consent path.
+    const legacyState = state as RebuildState | null;
+    if (legacyState) { legacyState.step = 'rental_confirm'; delete legacyState.rentalExtrasAsked; delete legacyState.rentalExtrasAnswered; }
+    await send(scenario.question);
     const submitted = await send(scenario.confirm);
     expect(submitted.state.completedRequestId).toBe('SIM-POST-SUBMIT');
     expect(created).toBe(1);

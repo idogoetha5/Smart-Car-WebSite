@@ -76,6 +76,9 @@ describe('rebuilt rental request persistence', () => {
     await send(scenario.start);
     await send(scenario.name);
     await send(scenario.correction);
+    // Verify persistence for a customer already shown the legacy consent summary.
+    const legacyState = state as RebuildState | null;
+    if (legacyState) { legacyState.step = 'rental_confirm'; delete legacyState.rentalExtrasAsked; delete legacyState.rentalExtrasAnswered; }
     const reviewed = await send(scenario.seats);
     expect(reviewed.state.step).toBe('rental_confirm');
     expect(reviewed.state.booking.childSeats).toBe(1);

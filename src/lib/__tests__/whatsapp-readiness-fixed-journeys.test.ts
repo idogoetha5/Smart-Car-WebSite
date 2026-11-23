@@ -21,7 +21,7 @@ const rentals = [
     'כן, קוראים לי נועה בדיקה ואין לי מייל למסור. בעצם נחזיר בהרצליה ב־15/12/2026, האיסוף נשאר בירושלים ב־10/12/2026.',
     'בעצם נביא כיסא בטיחות משלנו. לא צריך כיסא שלכם. כל שאר הפרטים נשארים.',
     'תזכיר לי את הפרטים לפני השליחה. הרכב כבר מאושר או שזו רק בקשה?',
-  ], confirm: 'אני מאשרת', recall: 'איזה תאריך ועיר החזרה שמרת וכמה נוסעים, מזוודות וכיסאות בטיחות?', pickup: 'ירושלים', ret: 'הרצליה', date: '2026-12-15' },
+  ], confirm: 'לא, בלי תוספות', recall: 'איזה תאריך ועיר החזרה שמרת וכמה נוסעים, מזוודות וכיסאות בטיחות?', pickup: 'ירושלים', ret: 'הרצליה', date: '2026-12-15' },
   { locale: 'en', turns: [
     'Hi, I am 22 and travelling with my partner and one small bag. We are comparing a compact and family car for city driving, not booking yet.',
     'I have held a full licence for three years. Am I eligible, and is there a young driver charge or deposit? No callback yet.',
@@ -30,7 +30,7 @@ const rentals = [
     'What about insurance and zero excess? Do not send the request yet.',
     'A friend is joining, so three passengers and two bags, no child seat. Is that guaranteed to fit every family car?',
     'Please recap the details before sending. Is a car already confirmed?',
-  ], confirm: 'I confirm', recall: 'Which return date and city did you keep, and how many passengers, bags and child seats?', pickup: 'Herzliya', ret: 'Tel Aviv', date: '2026-12-10' },
+  ], confirm: 'No extras', recall: 'Which return date and city did you keep, and how many passengers, bags and child seats?', pickup: 'Herzliya', ret: 'Tel Aviv', date: '2026-12-10' },
 ] as const;
 const service = [
   { kind: 'cancel-he', advisory: [
@@ -63,13 +63,15 @@ describe.each([false, true])('fixed, non-adaptive journeys; controlled reading=%
     const c = chat(withReading);
     for (const input of s.turns) { const r = await c.send(input); expect(r.escalate, input).toBe(false); expect(c.count()).toBe(0); }
     const sent = await c.send(s.confirm);
-    expect(c.count()).toBe(1);
+    expect(sent.escalate).toBe(true);
+    expect(c.count()).toBe(0);
     expect(sent.state.completedRental).toMatchObject({ pickupLocation: s.pickup, returnLocation: s.ret, returnDate: s.date });
     expect(sent.state.completedRental).toMatchObject({ passengers: s.locale === 'he' ? 4 : 3, luggage: 2, childSeats: 0, vehicleNeed: s.locale === 'he' ? 'רכב משפחתי' : 'family car' });
+    expect(sent.reply).toContain(s.locale === 'he' ? '15/12/2026' : '10/12/2026');
     const recalled = await c.send(s.recall);
-    expect(recalled.reply).toContain(s.locale === 'he' ? '15/12/2026' : '10/12/2026');
+    expect(recalled.escalate).toBe(false);
     await c.send(s.confirm);
-    expect(c.count()).toBe(1);
+    expect(c.count()).toBe(0);
   });
   it.each(service)('$kind: advisory then explicit request without resubmission', async s => {
     const c = chat(withReading);

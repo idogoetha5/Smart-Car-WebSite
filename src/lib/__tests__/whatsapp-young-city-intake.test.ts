@@ -28,6 +28,21 @@ describe('young city renter keeps luggage and answers model questions during pri
     expect(createRentalRequest).not.toHaveBeenCalled();
   });
 
+  it('accepts a natural new-driver answer with the eligibility before the unavailable car', async () => {
+    const state: RebuildState = { version: 2, phase: 'booking', step: 'rental_new_driver', locale: 'he', history: [], booking: {
+      pickupDate: '2026-12-10', returnDate: '2026-12-12', pickupLocation: 'הרצליה', returnLocation: 'הרצליה',
+      vehicleNeed: 'רכב משפחתי', driverAgeRange: '21-23', customerName: 'לקוח בדיקה',
+    } };
+    const natural = 'לנהגים חדשים לצערי לא נוכל להציע רכב בתאריכים שציינתם.';
+    const result = await getRebuiltBotReply('fictional-new-driver', 'כן, אני נהג חדש', {
+      isSimulation: true, loadState: async () => structuredClone(state), saveState: async () => {},
+      activeBooking: async () => null, createRentalRequest: async () => { throw new Error('must not create request'); },
+      readTurn: async () => null,
+      rewordTurn: async () => ({ route: 'book', direction: 'none', fields: {}, source: 'gemini', model: 'test', reply: natural, rephrased: true }),
+    });
+    expect(result.reply).toBe(natural);
+  });
+
   it('rejects a Gemini rewording that offers a car to an ineligible new driver', async () => {
     const state: RebuildState = { version: 2, phase: 'booking', step: 'rental_new_driver', locale: 'he', history: [], booking: {
       pickupDate: '2026-12-10', returnDate: '2026-12-12', pickupLocation: 'הרצליה', returnLocation: 'הרצליה',
@@ -65,13 +80,15 @@ describe('young city renter keeps luggage and answers model questions during pri
     const chat = conversation();
     let result;
     for (const turn of scenario.turns) result = await chat.send(turn);
-    expect(result!.state.step).toBe('rental_confirm');
+    expect(result!.state.step).toBe('rental_extras');
     expect(result!.state.booking).toMatchObject({ vehicleNeed: scenario.vehicle, passengers: 2, luggage: 1, customerName: scenario.name, driverAgeRange: '21-23', pickupDate: '2026-12-10', returnDate: '2026-12-12', pickupLocation: scenario.place, returnLocation: scenario.place });
     expect(result!.state.booking.customerEmail).toBeUndefined();
     expect(result!.reply).toMatch(scenario.conditional);
-    expect(result!.reply).toContain(scenario.bags);
-    expect(result!.reply).toContain('21–23');
     expect(result!.escalate).not.toBe(true);
+    const summary = await chat.send(/[א-ת]/u.test(scenario.name) ? 'לא, בלי תוספות' : 'No extras');
+    expect(summary.reply).toContain(scenario.bags);
+    expect(summary.reply).toContain('21–23');
+    expect(summary.escalate).toBe(true);
     expect(chat.create).not.toHaveBeenCalled();
     expect(JSON.stringify(chat.readTurn.mock.calls)).not.toContain(scenario.name);
   });

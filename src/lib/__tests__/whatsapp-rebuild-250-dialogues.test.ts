@@ -48,7 +48,7 @@ async function completeRental(chat: ReturnType<typeof conversation>, english: bo
   ];
   const location = locations[index % locations.length];
   const age = index % 3 === 0 ? '21–23' : '24+';
-  for (let turn = 0; turn < 10 && chat.state()?.step !== 'rental_confirm'; turn += 1) {
+  for (let turn = 0; turn < 10 && chat.state()?.step !== 'rental_extras'; turn += 1) {
     const state = chat.state();
     expect(state?.phase).toBe('booking');
     const draft = state!.booking;
@@ -59,15 +59,16 @@ async function completeRental(chat: ReturnType<typeof conversation>, english: bo
     else if (!draft.customerName) await chat.send(english ? 'Noa Cohen' : 'נועה כהן');
     else if (state!.step === 'rental_new_driver') await chat.send(english ? 'No, I am not a new driver' : 'לא, אני לא נהג חדש');
   }
-  expect(chat.state()?.step).toBe('rental_confirm');
-  const summary = chat.turns.at(-1)!.result.reply;
-  expect(summary).toContain(english ? `Driver age: ${age}` : `גיל הנהג: ${age}`);
-  expect(summary).toContain(english ? `Return: ${location.returnEn}` : `החזרה: ${location.returnHe}`);
-  expect(summary).not.toMatch(english ? /Email:/ : /מייל:/);
-  const completed = await chat.send(english ? 'I confirm' : 'אני מאשרת');
+  expect(chat.state()?.step).toBe('rental_extras');
+  const extras = chat.turns.at(-1)!.result.reply;
+  expect(extras).toMatch(english ? /add anything/i : /להוסיף משהו/u);
+  expect(extras).not.toMatch(/GPS/u);
+  const completed = await chat.send(english ? 'No extras' : 'לא, בלי תוספות');
+  expect(completed.reply).toContain(english ? `driver age ${age}` : `גיל הנהג ${age}`);
+  expect(completed.reply).toContain(english ? `return in ${location.returnEn}` : `החזרה ב${location.returnHe}`);
   expect(completed.escalate).toBe(true);
-  expect(chat.requests()).toBe(1);
-  expect(completed.state.completedRequestId).toMatch(/^SIM-/);
+  expect(chat.requests()).toBe(0);
+  expect(completed.state.completedRental).toBeDefined();
 }
 
 describe('250 complete SmartCar customer dialogues', () => {
@@ -248,12 +249,11 @@ describe('owner-reported consultation regression', () => {
     await chat.send('24+');
     await chat.send('נועה כהן');
     const summary = await chat.send('noa@example.invalid');
-    expect(summary.state.step).toBe('rental_confirm');
-    expect(summary.reply).toContain('איסוף: תל אביב');
-    expect(summary.reply).toContain('החזרה: תל אביב');
-    const completed = await chat.send('אני מאשרת');
+    expect(summary.state.step).toBe('rental_extras');
+    const completed = await chat.send('לא, בלי תוספות');
+    expect(completed.reply).toContain('תל אביב');
     expect(completed.escalate).toBe(true);
-    expect(chat.requests()).toBe(1);
+    expect(chat.requests()).toBe(0);
   });
 });
 
@@ -844,9 +844,9 @@ describe('regressions found in 15 live Gemini conversations', () => {
     await chat.send('24+');
     await chat.send('שני כהן');
     await chat.send('shani@example.invalid');
-    const finish = await chat.send('אני מאשרת');
-    expect(finish.state.completedRequestId).toBeDefined();
-    expect(chat.requests()).toBe(1);
+    const finish = await chat.send('לא, בלי תוספות');
+    expect(finish.state.handedOff).toBe(true);
+    expect(chat.requests()).toBe(0);
   });
 
   it('starts the rental request when a young driver asks to send it', async () => {
@@ -863,9 +863,9 @@ describe('regressions found in 15 live Gemini conversations', () => {
     await chat.send('איתן לוי');
     await chat.send('eitan@example.invalid');
     await chat.send('לא, אני לא נהג חדש');
-    const finish = await chat.send('אני מאשר');
-    expect(finish.state.completedRequestId).toBeDefined();
-    expect(chat.requests()).toBe(1);
+    const finish = await chat.send('לא, בלי תוספות');
+    expect(finish.state.handedOff).toBe(true);
+    expect(chat.requests()).toBe(0);
   });
 
   it('does not promise luggage comfort without checking a specific seven-seat car', async () => {
@@ -965,8 +965,8 @@ describe('regressions found in 15 live Gemini conversations', () => {
     await chat.send('24+');
     await chat.send('ניר כהן');
     await chat.send('nir@example.invalid');
-    const finish = await chat.send('אני מאשר');
-    expect(finish.state.completedRequestId).toBeDefined();
+    const finish = await chat.send('לא, בלי תוספות');
+    expect(finish.state.handedOff).toBe(true);
   });
 
   it('keeps the pending pickup city through side questions in advice', async () => {
@@ -989,8 +989,8 @@ describe('regressions found in 15 live Gemini conversations', () => {
     await chat.send('24+');
     await chat.send('ניר כהן');
     await chat.send('nir@example.invalid');
-    const finish = await chat.send('אני מאשר');
-    expect(finish.state.completedRequestId).toBeDefined();
+    const finish = await chat.send('לא, בלי תוספות');
+    expect(finish.state.handedOff).toBe(true);
   });
 
   it('answers both recommendation and insurance, then finishes the family request', async () => {
@@ -1008,9 +1008,9 @@ describe('regressions found in 15 live Gemini conversations', () => {
     await chat.send('24+');
     await chat.send('ענבר כהן');
     await chat.send('inbar@example.invalid');
-    const finish = await chat.send('אני מאשרת');
-    expect(finish.state.completedRequestId).toBeDefined();
-    expect(chat.requests()).toBe(1);
+    const finish = await chat.send('לא, בלי תוספות');
+    expect(finish.state.handedOff).toBe(true);
+    expect(chat.requests()).toBe(0);
   });
 
   it('does not mistake one person in an English rental enquiry for a human handoff', async () => {
@@ -1032,8 +1032,8 @@ describe('regressions found in 15 live Gemini conversations', () => {
     await chat.send('24+');
     await chat.send('Noa Cohen');
     await chat.send('noa@example.invalid');
-    const finish = await chat.send('I confirm');
-    expect(finish.state.completedRequestId).toBeDefined();
+    const finish = await chat.send('No extras');
+    expect(finish.state.handedOff).toBe(true);
   });
 
   it('keeps advising a couple with a baby even before dates are known', async () => {

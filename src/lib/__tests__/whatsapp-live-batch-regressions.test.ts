@@ -35,10 +35,11 @@ describe('independent live depth batch regressions', () => {
     expect(started.state.booking).toMatchObject({ pickupDate: '2026-12-10', returnDate: '2026-12-14', pickupLocation: 'ירושלים', returnLocation: 'תל אביב', driverAgeRange: '24-plus' });
     await c.send('כן, נרצה כיסא בטיחות אחד לבן השנתיים. זה מובטח שיהיה מתאים? ומה לגבי ביטוח וביטול השתתפות עצמית?');
     const corrected = await c.send('כן, קוראים לי נועה בדיקה ואין לי מייל למסור. בעצם נחזיר בהרצליה ב־15/12/2026, האיסוף נשאר בירושלים ב־10/12/2026.');
-    expect(corrected.state.step).toBe('rental_confirm');
+    expect(corrected.state.step).toBe('rental_extras');
     expect(corrected.state.booking).toMatchObject({ customerName: 'נועה בדיקה', returnDate: '2026-12-15', returnLocation: 'הרצליה', childSeats: 1 });
-    expect(corrected.reply).toContain('נועה בדיקה');
-    expect(corrected.reply).toContain('תנאי השימוש');
+    const handedOff = await c.send('לא, בלי תוספות');
+    expect(handedOff.reply).toContain('נועה בדיקה');
+    expect(handedOff.escalate).toBe(true);
     expect(c.create).not.toHaveBeenCalled();
     expect(JSON.stringify(c.readTurn.mock.calls)).not.toContain('נועה בדיקה');
   });

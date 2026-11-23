@@ -12,13 +12,13 @@ import { isHypotheticalFactEvidence, isRentalCapacityQuestionEvidence, validateF
 type Locale = 'he' | 'en';
 type Phase = 'explore' | 'booking' | 'service';
 type BookingKey = 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'driverAgeRange' | 'customerName' | 'customerEmail';
-type BookingDraft = Partial<Record<BookingKey, string>> & { passengers?: number; luggage?: number; luggageSize?: 'large'; childSeats?: number; datePreference?: string };
+type BookingDraft = Partial<Record<BookingKey, string>> & { passengers?: number; luggage?: number; luggageSize?: 'large'; childSeats?: number; additionalDriver?: boolean; tollPackage?: boolean; datePreference?: string };
 type HistoryEntry = { from: 'customer' | 'bot'; text: string; private?: boolean };
 
 export type RebuildState = {
   version: 2;
   phase: Phase;
-  step: 'menu' | 'rental_dates' | 'rental_locations' | 'rental_vehicle' | 'rental_age' | 'rental_name' | 'rental_email' | 'rental_new_driver' | 'rental_confirm';
+  step: 'menu' | 'rental_dates' | 'rental_locations' | 'rental_vehicle' | 'rental_age' | 'rental_name' | 'rental_email' | 'rental_new_driver' | 'rental_extras' | 'rental_confirm';
   locale: Locale;
   /** Display name supplied by the signed WhatsApp provider webhook. */
   whatsappProfileName?: string;
@@ -36,10 +36,12 @@ export type RebuildState = {
   handoffAt?: string;
   handoffKind?: 'safety' | 'booking_change' | 'service_issue' | 'commercial' | 'human';
   completedRequestId?: string;
-  completedRental?: Pick<BookingDraft, 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'passengers' | 'luggage' | 'childSeats'>;
+  completedRental?: Pick<BookingDraft, 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'passengers' | 'luggage' | 'childSeats' | 'additionalDriver' | 'tollPackage'>;
   durationClarification?: boolean;
   humanHandoffDeferred?: boolean;
   newDriverStatus?: 'yes' | 'no';
+  rentalExtrasAsked?: boolean;
+  rentalExtrasAnswered?: boolean;
 };
 
 export type RebuildResult = { reply: string; state: RebuildState; escalate?: boolean; source: 'gemini' | 'local' | 'safety'; model?: string; notes?: string[] };
@@ -120,6 +122,35 @@ function question(key: BookingKey, locale: Locale): string {
     customerEmail: 'What email address can we use to contact you about the request?',
   };
   return (locale === 'he' ? he : en)[key];
+}
+
+function rentalExtrasQuestion(state: RebuildState): string {
+  const child = Boolean(state.booking.childSeats) || state.history.some(item => item.from === 'customer' && /ילד|תינוק|child|baby|infant/iu.test(item.text));
+  const examples = state.locale === 'he'
+    ? [child && !state.booking.childSeats && 'כיסא בטיחות', 'נהג נוסף', 'חבילת כביש 6 ומנהרות'].filter(Boolean).join(', ')
+    : [child && !state.booking.childSeats && 'a child seat', 'an additional driver', 'the Highway 6 and tunnels package'].filter(Boolean).join(', ');
+  return state.locale === 'he'
+    ? `לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו? למשל ${examples}. אם לא, אפשר פשוט לכתוב "לא".`
+    : `Before I pass the details to a representative, would you like to add anything? For example ${examples}. If not, just say "No".`;
+}
+
+function rentalHandoffSummary(state: RebuildState): string {
+  const b = state.booking;
+  const date = (value?: string) => value ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : '';
+  const extras = state.locale === 'he'
+    ? [b.childSeats && `${b.childSeats} כיסא/ות בטיחות`, b.additionalDriver && 'נהג נוסף', b.tollPackage && 'חבילת כביש 6 ומנהרות'].filter(Boolean).join(', ')
+    : [b.childSeats && `${b.childSeats} child seat(s)`, b.additionalDriver && 'an additional driver', b.tollPackage && 'the Highway 6 and tunnels package'].filter(Boolean).join(', ');
+  const needs = state.locale === 'he'
+    ? [b.passengers !== undefined && `נוסעים: ${b.passengers}`, b.luggage !== undefined && `מזוודות: ${b.luggage}`].filter(Boolean).join('; ')
+    : [b.passengers !== undefined && `Passengers: ${b.passengers}`, b.luggage !== undefined && `Bags: ${b.luggage}`].filter(Boolean).join('; ');
+  const shabbat = isShabbat(b.pickupDate) || isShabbat(b.returnDate);
+  const airport = /נתב.?ג|Ben Gurion|airport/iu.test(`${b.pickupLocation ?? ''} ${b.returnLocation ?? ''}`);
+  const notes = state.locale === 'he'
+    ? `${shabbat ? ' איסוף או החזרה בשבת מתואמים מראש ועשויים להיות כרוכים בתוספת תשלום.' : ''}${airport ? ' על איסוף או החזרה בנתב״ג יש תוספת.' : ''}`
+    : `${shabbat ? ' A Saturday pickup or return is arranged in advance and may carry an extra charge.' : ''}${airport ? ' Pickup or return at Ben Gurion Airport carries a surcharge.' : ''}`;
+  return state.locale === 'he'
+    ? `סיכום הפנייה: ${b.vehicleNeed}; איסוף ב${b.pickupLocation} ב־${date(b.pickupDate)}, החזרה ב${b.returnLocation} ב־${date(b.returnDate)}; גיל הנהג ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}; על שם ${b.customerName}.${needs ? ` ${needs}.` : ''}${extras ? ` תוספות שביקשתם: ${extras}.` : ''}${notes} העברתי לנציג SmartCar לבדיקה. הרכב, התוספות והמחיר עדיין לא אושרו.`
+    : `Your enquiry: ${b.vehicleNeed}; pickup in ${b.pickupLocation} on ${date(b.pickupDate)}, return in ${b.returnLocation} on ${date(b.returnDate)}; driver age ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}; name ${b.customerName}.${needs ? ` ${needs}.` : ''}${extras ? ` Requested extras: ${extras}.` : ''}${notes} I have passed this to a SmartCar representative for review. The car, extras and price are not confirmed yet.`;
 }
 
 function conversationalKnown(state: RebuildState): GeminiBotContext['known'] {
@@ -861,6 +892,13 @@ function negatedLuggageMention(input: string, index: number): boolean {
 }
 
 function applyExplicitNeeds(input: string, draft: BookingDraft): void {
+  if (/(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|additional driver|extra driver|second driver)/iu.test(input)
+    && /(?:תוסיפו|להוסיף|אשמח|מבקש|אבקש|רוצה|please add|add an?|i(?:'d| would) like)/iu.test(input)
+    && (!/[?؟]/u.test(input) || /(?:אשמח|מבקש|אבקש|רוצה|please add|i(?:'d| would) like)/iu.test(input))
+    && !/(?:לא|בלי|אין צורך|don't|do not|no|without)\s+(?:צריך|רוצה|need|want)?\s*(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|additional driver|extra driver|second driver)/iu.test(input)) draft.additionalDriver = true;
+  if (/(?:כביש\s*6(?: ומנהרות)?|highway\s*6(?: and tunnels)?)/iu.test(input)
+    && /(?:תוסיפו|להוסיף|אשמח|מבקש|אבקש|רוצה|חבילה|package|please add|add an?|i(?:'d| would) like)/iu.test(input)
+    && !/(?:לא|בלי|אין צורך|don't|do not|no|without).{0,25}(?:כביש\s*6|highway\s*6)/iu.test(input)) draft.tollPackage = true;
   const count = '(\\d{1,2}|אחד|אחת|שניים|שתיים|שתי|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש|שבעה|שבע|שמונה|one|two|three|four|five|six|seven|eight)';
   const passengers = [...input.matchAll(new RegExp(`(?:אנחנו|נהיה|we are|we['’]re|there are|there will be)\\s+${count}(?=\\s|$)|${count}\\s+(?:נוסעים|אנשים|מבוגרים|חברים|חברות|passengers|people|adults|friends|of us)`, 'giu'))]
     .filter(match => !negatedLuggageMention(input, match.index) && !isHypotheticalFactEvidence(input, match[0]) && !isRentalCapacityQuestionEvidence(input, match[0])).at(-1);
@@ -2243,6 +2281,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const wasBooking = state.phase === 'booking';
     const previousVehicleNeed = state.booking.vehicleNeed;
     applyExplicitNeeds(input, state.booking);
+    if (state.step === 'rental_extras' && /מה תרצו להוסיף|what would you like to add/iu.test(lastBot) && !/[?؟]/u.test(input)) {
+      if (/^(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|additional driver|extra driver)[.!\s]*$/iu.test(input.trim())) state.booking.additionalDriver = true;
+      if (/^(?:חבילת )?כביש\s*6(?: ומנהרות)?[.!\s]*$/iu.test(input.trim()) || /^(?:the )?highway\s*6(?: and tunnels)?(?: package)?[.!\s]*$/iu.test(input.trim())) state.booking.tollPackage = true;
+    }
     // "Each of us with a suitcase" means one bag per known traveller, not one bag.
     if (state.booking.passengers && /(?:כל אחד|כל אחת|כל אחד מאיתנו)\s+(?:עם|לוקח(?:ת)?|מביא(?:ה)?|יהיה עם)\s+(?:מזוודה|תיק)|\b(?:each (?:of us )?(?:with|has|brings|bringing|will have)|one each)\s+(?:a |one )?(?:(?:small|medium|large|big) )?(?:suitcase|bag)\b|\b(?:a )?(?:suitcase|bag) each\b/iu.test(input)
       && !/אם|what if|\bif\b/iu.test(input)) {
@@ -2423,7 +2465,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const serviceInterpretation = reading?.route === 'service' && reading.groundedContext === true;
     const acceptsRentalOffer = confirmedOffer && !serviceInterpretation;
     const declinesHuman = declinesHumanHandoff(input);
-    const asksHuman = !declinesHuman && !/(?:^|\s)ו?אם\s+(?:לא\s+)?(?:ש?מישהו\s+)?(?:יחזרו|תחזרו|יחזור|יתקשרו|תתקשרו|יתקשר)|\bif (?:no one|nobody|you don['’]?t|you do not)\b/iu.test(input) && /(?:^|[\s,.!])(?:ש|ש?מישהו\s+|שנציג\s+)?(?:יחזרו|תחזרו|יחזור|יתקשרו|תתקשרו|יתקשר)\s+(?:אליי|אלי|אליי?נו|לי)(?![\p{L}])|\b(?:have|get) (?:someone|somebody|a (?:rep|representative|person)) (?:to )?call me\b|\b(?:can|could|would|will) (?:someone|somebody|a (?:rep|representative|person)|you(?: guys)?) (?:please )?(?:call|phone|ring) me\b|\bcall me back\b|\bplease call me\b|(?:אפשר ש|יכול |שמישהו |מישהו (?:יכול )?)(?:להתקשר|יתקשר|לחזור|יחזור)\s+(?:אליי|אלי)(?![\p{L}])|(?:רוצה|אפשר|צריך|צריכה).{0,22}(?:לדבר|נציג|בן אדם)|(?:לדבר|נציג|בן אדם).{0,22}(?:בבקשה|אפשר|רוצה)|\b(?:speak|talk|connect)\b.{0,28}\b(?:human|representative|person)\b|\bpass (?:it|this|me|them) (?:on )?to (?:someone|somebody|a (?:rep|representative|person|human))\b|(?:תעביר|תעבירו|העבירו)\s+(?:את זה\s+|אותי\s+)?(?:ל)?(?:מישהו|נציג|בן אדם)|\b(?:human|representative|real person)\b.{0,20}\b(?:please|help)\b/iu.test(input);
+    const asksHuman = !(state.phase === 'booking' && !nextMissing(state.booking) && (state.step === 'rental_new_driver' || state.step === 'rental_extras'))
+      && !declinesHuman && !/(?:^|\s)ו?אם\s+(?:לא\s+)?(?:ש?מישהו\s+)?(?:יחזרו|תחזרו|יחזור|יתקשרו|תתקשרו|יתקשר)|\bif (?:no one|nobody|you don['’]?t|you do not)\b/iu.test(input) && /(?:^|[\s,.!])(?:ש|ש?מישהו\s+|שנציג\s+)?(?:יחזרו|תחזרו|יחזור|יתקשרו|תתקשרו|יתקשר)\s+(?:אליי|אלי|אליי?נו|לי)(?![\p{L}])|\b(?:have|get) (?:someone|somebody|a (?:rep|representative|person)) (?:to )?call me\b|\b(?:can|could|would|will) (?:someone|somebody|a (?:rep|representative|person)|you(?: guys)?) (?:please )?(?:call|phone|ring) me\b|\bcall me back\b|\bplease call me\b|(?:אפשר ש|יכול |שמישהו |מישהו (?:יכול )?)(?:להתקשר|יתקשר|לחזור|יחזור)\s+(?:אליי|אלי)(?![\p{L}])|(?:רוצה|אפשר|צריך|צריכה).{0,22}(?:לדבר|נציג|בן אדם)|(?:לדבר|נציג|בן אדם).{0,22}(?:בבקשה|אפשר|רוצה)|\b(?:speak|talk|connect)\b.{0,28}\b(?:human|representative|person)\b|\bpass (?:it|this|me|them) (?:on )?to (?:someone|somebody|a (?:rep|representative|person|human))\b|(?:תעביר|תעבירו|העבירו)\s+(?:את זה\s+|אותי\s+)?(?:ל)?(?:מישהו|נציג|בן אדם)|\b(?:human|representative|real person)\b.{0,20}\b(?:please|help)\b/iu.test(input);
     // A model's human-route classification is not consent. Require an actual
     // callback request or acceptance of a preceding representative invitation.
     const modelHumanConsent = !declinesHuman
@@ -2534,6 +2577,19 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       reply = he ? 'אפשר להכין בקשת השכרה עם הפרטים שלך. הרכב והמחיר יאושרו לפני שההזמנה תהיה סופית. תרצה שנתקדם לבקשה?' : 'We can prepare a rental request with your details. The car and price are confirmed before the booking becomes final. Would you like to proceed with the request?';
     } else if (wantsBooking) {
       const answeringNewDriver = state.step === 'rental_new_driver';
+      const answeringExtras = state.step === 'rental_extras';
+      // Existing conversations that already received the terms/consent summary
+      // continue under that flow; do not replace a pending explicit consent.
+      const answeringLegacyConfirm = state.step === 'rental_confirm' && !state.rentalExtrasAsked;
+      const defersHandoff = /(?:אל תשלח|אל תעביר|עוד לא|לא עכשיו|לא מאשר|not yet|not confirm|do not send|don't send|do not pass|don't pass)/iu.test(input);
+      const proactiveExtra = Boolean(state.booking.additionalDriver || state.booking.tollPackage || state.booking.childSeats)
+        && /(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|כביש\s*6|כיסא(?:ות)? בטיחות|additional driver|highway\s*6|child seat)/iu.test(input);
+      const explicitlyPasses = /(?:תעביר|תעבירו|להעביר).{0,24}(?:לנציג|לנציגת|למשרד)|(?:pass|send).{0,24}(?:representative|office)/iu.test(input);
+      const answersExtras = /^(?:לא(?:\s*,?\s*(?:תודה|זה הכל|אין צורך|בלי תוספות|לא צריך עוד))?|אין(?:\s+צורך)?|בלי תוספות|זה הכל|לא צריך עוד|(?:אני\s+)?מאשר(?:ת)?|(?:i\s+)?confirm|no(?:\s*,?\s*(?:thanks|(?:other )?extras?))?|none|nothing else|that's all|that is all)[.!\s]*$/iu.test(input.trim())
+        || proactiveExtra && !/[?؟]/u.test(input);
+      const wantsToNameExtra = /^(?:כן|yes|sure)[.!\s]*$/iu.test(input.trim());
+      const priorExtrasPrompt = /(?:להוסיף משהו נוסף|להוסיף משהו|להוסיף עוד|משהו נוסף|anything else|add anything)/iu.test(lastBot);
+      if (priorExtrasPrompt && answersExtras && !defersHandoff) state.rentalExtrasAnswered = true;
       if (state.booking.driverAgeRange === '21-23') {
         if (/(?:לא (?:נהג|נהגת) חדש(?:ה)?|not a new driver|experienced driver)/iu.test(input)
           || answeringNewDriver && /^(?:לא|no|nope)(?:[.!,\s]|$)/iu.test(input)) state.newDriverStatus = 'no';
@@ -2564,6 +2620,42 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       } else if (state.booking.driverAgeRange === '21-23' && !state.newDriverStatus && !missing) {
         state.step = 'rental_new_driver';
         reply = he ? 'האם הנהג הוא נהג חדש?' : 'Is the driver a new driver?';
+      } else if (!missing && answeringLegacyConfirm) {
+        const policy = getSmartCarServiceAnswer(/ביטוח|כיסוי|השתתפות עצמית|insurance|basic cover|excess/iu.test(input) ? 'insurance' : withoutCoverageQuestionHazards(input), state.locale);
+        const seatQuestion = /כיסא(?:ות)? בטיחות|child seats?|car seats?/iu.test(input);
+        reply = seatQuestion && state.booking.childSeats === 0
+          ? `${he ? 'בקשת כיסא הבטיחות הוסרה מהטיוטה ומהסיכום. יתר הפרטים שמסרתם נשמרו; הבקשה טרם נשלחה.' : 'The child-seat request was removed from the draft and summary. Your other details are retained; the request has not been sent.'}\n\n${summary(state)}`
+          : seatQuestion && Boolean(state.booking.childSeats)
+            ? `${he ? 'כיסא הבטיחות הוא בקשה בלבד, לא הבטחה. נבדוק זמינות, תנאים והתאמה לרכב המסוים לפני אישור ההשכרה.' : 'The child seat is a request only, not a guarantee. Availability, terms and fit for the specific car must be checked before rental confirmation.'}\n\n${summary(state)}`
+            : policy?.topic === 'insurance' && /[?؟]/u.test(input)
+              ? `${policy.reply}\n\n${summary(state)}` : summary(state);
+      } else if (!missing && !defersHandoff && (state.rentalExtrasAnswered || answeringExtras && (answersExtras || explicitlyPasses || wantsToNameExtra) || proactiveExtra && explicitlyPasses)) {
+        if (answeringExtras && wantsToNameExtra) {
+          state.step = 'rental_extras';
+          reply = he ? 'בשמחה, מה תרצו להוסיף?' : 'Sure, what would you like to add?';
+        } else {
+          const { customerName: _customerName, customerEmail: _customerEmail, ...publicRental } = state.booking;
+          state.completedRental = publicRental;
+          state.phase = 'service'; state.step = 'menu'; state.handedOff = true;
+          state.handoffAt = new Date().toISOString(); state.handoffKind = 'human'; escalate = true;
+          reply = rentalHandoffSummary(state);
+        }
+      } else if (!missing && !state.rentalExtrasAsked) {
+        state.rentalExtrasAsked = true;
+        state.step = 'rental_extras';
+        reply = `${asksModelGuarantee
+          ? (he ? 'דגם מסוים אינו מובטח אלא אם SmartCar מאשרת אותו במפורש. ' : 'A particular model is not guaranteed unless SmartCar explicitly confirms it. ')
+          : ''}${rentalExtrasQuestion(state)}`;
+      } else if (!missing && defersHandoff) {
+        state.step = 'rental_extras';
+        reply = he ? 'בסדר, לא העברתי את הפנייה. הפרטים שמורים כאן; כשתרצו להעביר אותם לנציג, כתבו לי.' : 'Okay, I have not passed the enquiry on. The details are saved here; tell me when you want me to pass them to a representative.';
+      } else if (!missing && answeringExtras) {
+        state.step = 'rental_extras';
+        reply = /[?؟]/u.test(input) && /כיסא(?:ות)? בטיחות|child seats?|car seats?/iu.test(input) && Boolean(state.booking.childSeats)
+          ? (he ? 'רשמתי את כיסא הבטיחות כבקשה. הזמינות וההתאמה לרכב המסוים יאושרו לפני ההשכרה.' : 'I noted the child seat as a request. Availability and fit for the specific car will be confirmed before the rental.')
+          : /[?؟]/u.test(input)
+          ? getSmartCarServiceAnswer(/ביטוח|כיסוי|השתתפות עצמית|insurance|basic cover|excess/iu.test(input) ? 'insurance' : input, state.locale)?.reply ?? (he ? 'הנציג יבדוק את התוספת והתנאים לפני אישור הרכב.' : 'The representative will confirm the extra and its terms before the car is approved.')
+          : (he ? 'רשמתי את העדכון. כשתרצו להעביר את הפנייה לנציג, כתבו לי.' : 'I have noted the update. Tell me when you want me to pass this to a representative.');
       } else if (asksModelGuarantee) {
         reply = `${he ? 'סוג הרכב או הדגם המועדף נרשמים כבקשה. דגם מסוים אינו מובטח אלא אם SmartCar מאשרת אותו במפורש; את הרכב, הזמינות והתנאים נוודא לפני אישור ההשכרה.' : 'The vehicle group or preferred model is recorded as a request. An exact model is not guaranteed unless SmartCar explicitly confirms it; the car, availability and terms will be checked before rental confirmation.'} ${missing ? question(missing, state.locale) : summary(state)}`;
       } else if (openVehicleChoice) {
@@ -3153,7 +3245,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   // a human voice, as an answer to what the customer actually wrote. The facts stay the application's — the
   // rewording is used only if it keeps every number/phone, adds none, and keeps or omits a question as the
   // original did. Safety wording, summaries, consent steps, links and private turns are never reworded.
-  if (source !== 'gemini' && !privateTurn && !PRIVATE_PAYMENT_DETAIL.test(input) && !/\d[\d\s()-]{6,}\d|@/u.test(input) && state.handoffKind !== 'safety' && reply.length >= 45 && reply.length <= 600
+  if (source !== 'gemini' && !privateTurn && !PRIVATE_PAYMENT_DETAIL.test(input) && !/\d[\d\s()-]{6,}\d|@/u.test(input) && state.handoffKind !== 'safety' && !(state.handedOff && state.completedRental && state.handoffKind === 'human') && reply.length >= 45 && reply.length <= 600
     && !/https?:\/\//u.test(reply) && !(state.phase === 'booking' && state.step === 'rental_confirm') && !state.completedRequestId) {
     try {
       const reworder = store.rewordTurn ?? (store.readTurn ? undefined : readBotTurn);
@@ -3184,8 +3276,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const commitmentOk = !appointmentPromise.test(text) || appointmentPromise.test(reply);
       const newDriverMeaningOk = state.newDriverStatus !== 'yes' || !/new drivers|נהגים חדשים/u.test(reply)
         || (state.locale === 'he'
-          ? /(?:אין|לא (?:קיימים|זמינים|נוכל (?:להציע|לספק)))[^.!?؟\n]{0,90}(?:רכב|רכבים|מכוניות)[^.!?؟\n]{0,90}(?:נהג(?:ים|ות)? חדש|חדש(?:ים|ות)?)/u.test(text) && /תאריכ|מועדי/u.test(text)
-          : /(?:no|not|unavailable)[^.!?\n]{0,90}(?:car|vehicle)[^.!?\n]{0,90}new driver/i.test(text) && /date/i.test(text));
+          ? /(?:אין|לא נוכל|אינם זמינים|אינן זמינות)/u.test(text)
+            && /רכב|מכוני/u.test(text) && /נהג(?:ים|ות)? חדש|חדש(?:ים|ות)?/u.test(text)
+            && /תאריכ|מועדי/u.test(text)
+            && !/(?:יש|קיים|זמין)(?:\s+לנו)?[^.!?؟\n]{0,45}(?:רכב|מכוני)[^.!?؟\n]{0,45}(?:נהג(?:ים|ות)? חדש|חדש(?:ים|ות)?)/u.test(text)
+          : /(?:no|not|unavailable|cannot offer)/i.test(text)
+            && /car|vehicle/i.test(text) && /new driver/i.test(text) && /date/i.test(text)
+            && !/(?:have|available|can offer)[^.!?\n]{0,50}(?:car|vehicle)[^.!?\n]{0,50}new driver/i.test(text));
       if (text && text !== reply && keepsNumbers && sameQuestionShape && languageOk && text.length >= reply.length * 0.5 && text.length <= Math.min(650, reply.length * 1.7 + 40)
         && commitmentOk && newDriverMeaningOk && !/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/u.test(text) && (reply.includes('₪') || !/₪|ש״ח|NIS/u.test(text))) {
         reply = text; model = reworded!.model; draftNotes.push('reworded');
@@ -3290,6 +3387,12 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   }
   // One mention of calling the office is enough.
   if (reply.includes(OFFICE_PHONE)) reply = reply.replace(/\s*(?:אפשר גם להתקשר אלינו(?: למשרד)?(?: ישירות)?(?: בכל עת)?|You can also call (?:us|our office)(?: directly)?(?: at any time)?)\.(?=\s)/giu, '');
+  if (state.phase === 'booking' && state.step === 'rental_extras' && state.rentalExtrasAsked && !state.rentalExtrasAnswered
+    && !state.history.some(entry => entry.from === 'bot' && /תרצו להוסיף משהו|like to add anything/iu.test(entry.text))
+    && !/תרצו להוסיף משהו|like to add anything/iu.test(reply) && !/[?؟]/u.test(reply)) {
+    reply = `${reply.trim()} ${rentalExtrasQuestion(state)}`;
+  }
+  if (state.handedOff && state.completedRental && state.booking.customerName && reply.includes(state.booking.customerName)) privateTurn = true;
   pushHistory(state, input, reply, privateTurn);
   if (escalate && !store.isSimulation) await store.beforeEscalationSave?.(phone);
   await store.saveState(phone, state);

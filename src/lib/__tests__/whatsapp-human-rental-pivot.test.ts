@@ -41,20 +41,18 @@ describe('human sale-to-rental pivot', () => {
     expect(c.create).not.toHaveBeenCalled();
     const contacts = await c.send('אני בן 35. השם הוא רוני בדיקה, המייל שלי roni@example.invalid.');
     expect(contacts.state.booking).toMatchObject({ driverAgeRange: '24-plus', customerName: 'רוני בדיקה', customerEmail: 'roni@example.invalid' });
-    expect(contacts.state.step).toBe('rental_confirm');
+    expect(contacts.state.step).toBe('rental_extras');
     expect(JSON.stringify(c.readTurn.mock.calls)).not.toMatch(/רוני בדיקה|roni@example.invalid/);
-    const confirmed = await c.send('אני מאשר');
-    expect(confirmed.state.completedRequestId).toBe('SIM');
-    expect(c.create).toHaveBeenCalledTimes(1);
+    const confirmed = await c.send('לא, בלי תוספות');
+    expect(confirmed.state.handedOff).toBe(true);
+    expect(confirmed.reply).toContain('רוני בדיקה');
+    expect(confirmed.reply).toContain('07/11/2026');
+    expect(confirmed.reply).toContain('16/12/2026');
+    expect(c.create).not.toHaveBeenCalled();
     const receipt = await c.send('תזכיר לי בבקשה את כל הפרטים המעודכנים, והאם הרכב כבר מובטח לי?');
-    expect(receipt.reply).toContain('07/11/2026');
-    expect(receipt.reply).toContain('16/12/2026');
-    expect(receipt.reply).toContain('הרצליה');
-    expect(receipt.reply).toMatch(/לא אושר רכב/);
     expect(receipt.reply).not.toMatch(/לאילו תאריכים|באיזה תאריך/);
-    expect(receipt.state.phase).toBe('explore');
-    expect((await c.send('אני מאשר')).state.completedRequestId).toBe('SIM');
-    expect(c.create).toHaveBeenCalledTimes(1);
+    expect(receipt.escalate).toBe(false);
+    expect(c.create).not.toHaveBeenCalled();
   });
   it.each([
     ['he', 'אפשר סיכום של הבקשה?', /לא אושר רכב/],

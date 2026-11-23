@@ -19,7 +19,7 @@ describe('explicit relative pickup plus chosen rental duration', () => {
       'מחר כמו שאמרתי 🙂 בוא נלך על קטן ליומיים, מהרצליה ולהחזיר שם. רגע אשתי בת 23 ואני 31, זה משנה את מה שאמרת?',
     ]) await c.send(input);
     const result = await c.send('כן יאללה. קוראים לי איתי בדיקה. רק שלא תסגור לי משהו יקר בלי להגיד לי, אני רוצה קודם לדעת מה ההצעה');
-    expect(result.state.step).toBe('rental_confirm');
+    expect(result.state.step).toBe('rental_extras');
     expect(result.state.booking).toMatchObject({ pickupDate: '2026-11-08', returnDate: '2026-11-10', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב קומפקטי', driverAgeRange: '24-plus', customerName: 'איתי בדיקה' });
     expect(c.create).not.toHaveBeenCalled();
   });

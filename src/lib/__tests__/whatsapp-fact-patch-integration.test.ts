@@ -168,7 +168,7 @@ describe('evidenced understanding reaches canonical rental memory', () => {
     const c = chat({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { ...draft }, history: [] }, () => base('אפשר להמשיך לברר כאן.'));
     const supplied = await c.send('תתקדם עם מה שיש, קוראים לי איתי בדיקה ואין לי מייל לתת');
     expect(supplied.state.booking.customerName).toBe('איתי בדיקה');
-    expect(supplied.state.step).toBe('rental_confirm');
+    expect(supplied.state.step).toBe('rental_extras');
     expect(supplied.reply).not.toContain('על איזה שם');
     expect(supplied.state.history.at(-2)?.private).toBe(true);
     expect(c.create).not.toHaveBeenCalled();
@@ -226,7 +226,7 @@ describe('evidenced understanding reaches canonical rental memory', () => {
     const c = chat({ version: 2, phase: 'booking', step: 'rental_name', locale: 'he', booking: { ...draft }, history: [] }, () => base('נמשיך עם הפרטים.'));
     const result = await c.send('איתי בדיקה, כתבתי את זה קודם. בלי מייל בבקשה. אפשר כבר לראות את כל הפרטים?');
     expect(result.state.booking.customerName).toBe('איתי בדיקה');
-    expect(result.state.step).toBe('rental_confirm');
+    expect(result.state.step).toBe('rental_extras');
     expect(c.readTurn).not.toHaveBeenCalled();
     expect(c.create).not.toHaveBeenCalled();
   });
@@ -279,7 +279,7 @@ describe('evidenced understanding reaches canonical rental memory', () => {
       'מחר כמו שאמרתי 🙂 בוא נלך על קטן ליומיים, מהרצליה ולהחזיר שם. רגע אשתי בת 23 ואני 31, זה משנה את מה שאמרת?',
     ]) await c.send(input);
     const result = await c.send('כן יאללה. קוראים לי איתי בדיקה. רק שלא תסגור לי משהו יקר בלי להגיד לי, אני רוצה קודם לדעת מה ההצעה');
-    expect(result.state.step).toBe('rental_confirm');
+    expect(result.state.step).toBe('rental_extras');
     expect(result.state.booking).toMatchObject({ pickupDate: '2026-11-09', returnDate: '2026-11-11', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב קומפקטי', driverAgeRange: '24-plus', customerName: 'איתי בדיקה' });
     expect(c.create).not.toHaveBeenCalled();
     expect(JSON.stringify(c.readTurn.mock.calls)).not.toContain('איתי בדיקה');

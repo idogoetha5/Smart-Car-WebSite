@@ -17,8 +17,9 @@ describe('explicit self, partner and singular child count', () => {
     const started = await chat.send(opening);
     expect(started.state.booking).toMatchObject({ passengers: 3, luggage: 1, pickupDate: '2026-12-09', returnDate: '2026-12-12', driverAgeRange: '24-plus' });
     const completed = await chat.send(name);
-    expect(completed.state.step).toBe('rental_confirm');
-    expect(completed.reply).toContain(summaryCount);
+    expect(completed.state.step).toBe('rental_extras');
+    const summary = await chat.send(/[א-ת]/u.test(opening) ? 'לא, בלי תוספות' : 'No extras');
+    expect(summary.reply).toContain(summaryCount);
     expect(completed.state.booking.pickupLocation).toBe(started.state.booking.pickupLocation);
     expect(completed.state.booking.returnLocation).toBe(started.state.booking.returnLocation);
     expect(completed.state.booking.customerName).toBeTruthy();

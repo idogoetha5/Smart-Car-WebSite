@@ -79,8 +79,8 @@ describe('natural acceptance with contact details after a rental invitation', ()
   it('still requires the separate final consent phrase before sending', async () => {
     const c = chat('en', 'Shall we start preparing a rental request?', { pickupDate: '2026-12-10', returnDate: '2026-12-12', pickupLocation: 'Herzliya', returnLocation: 'Herzliya', vehicleNeed: 'compact car', driverAgeRange: '24-plus' });
     const summary = await c.send('Yeah, my name is Alex Demo. Show me the quote first.');
-    expect(summary.state.step).toBe('rental_confirm');
-    expect(summary.reply).toContain('https://www.smartcar.co.il/en/privacy');
+    expect(summary.state.step).toBe('rental_extras');
+    expect(summary.reply).toMatch(/add anything/i);
     await c.send('Yeah, go ahead with the quote.');
     expect(c.create).not.toHaveBeenCalled();
   });
