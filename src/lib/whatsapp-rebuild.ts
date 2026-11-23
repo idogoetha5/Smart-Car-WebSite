@@ -172,6 +172,8 @@ function conversationalKnown(state: RebuildState): GeminiBotContext['known'] {
     commercialVehiclePreference: state.commercial?.vehiclePreference === null ? 'undecided' : state.commercial?.vehiclePreference,
     commercialUse: state.commercial?.usage?.join(', '),
     commercialPassengers: state.commercial?.passengers, commercialLuggage: state.commercial?.luggage,
+    commercialTravelingWithChild: state.commercial?.travelingWithChild ? 'yes' : undefined,
+    commercialStroller: state.commercial?.stroller ? 'yes' : undefined,
     commercialComparison: state.commercial?.comparingLeasingAndRental ? 'leasing versus rental; undecided' : undefined,
     commercialRentalComparisonMonths: state.commercial?.rentalComparisonMonths,
     commercialEarlyExitConcern: state.commercial?.earlyExitConcern ? 'yes' : undefined,

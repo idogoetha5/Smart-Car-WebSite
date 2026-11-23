@@ -14,6 +14,8 @@ export type CommercialMemory = {
   usage?: Array<'city' | 'family' | 'business' | 'long_distance' | 'commuting'>;
   passengers?: number;
   luggage?: number;
+  travelingWithChild?: boolean;
+  stroller?: boolean;
   lowMileagePreferred?: boolean;
   /** The customer is comparing two services, rather than selecting leasing. */
   comparingLeasingAndRental?: boolean;
@@ -175,7 +177,7 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
       ?? text.match(/(?:^|[.;]\s*)(?:a )?(compact car|small car|family car|SUV|seven[- ]seat(?:er)?)\s+for\s+(?:business|family|city|commuting)\b/iu);
     const leasingPrefix = leasingChoice ? text.slice(0, leasingChoice.index!).split(/[.!?;\n]/u).at(-1) ?? '' : '';
     const positiveLeasingChoice = /\b(?:not|never|don['’]?t|do not)\b[^.!?;\n]{0,40}$/iu.test(leasingPrefix) ? null : leasingChoice;
-    const choice = text.match(/(?:מעדיף|בחרתי|החלטתי על|נלך על(?: כיוון של)?|רוצה|מחפש|לקנות|חשוב(?:ה)? ל(?:י|נו)|prefer|choose|chosen|decided on|go with|want|looking for|buy|purchase|keep|probably|important to (?:me|us) to have)\s+(?:a |the |את ה|רכב )?(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות|compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)/iu)
+    const choice = text.match(/(?:מעדיף|בחרתי|החלטתי על|נלך על(?: כיוון של)?|רוצה|צריך|צריכה|צריכים|מחפש|לקנות|חשוב(?:ה)? ל(?:י|נו)|prefer|choose|chosen|decided on|go with|want|looking for|buy|purchase|keep|probably|important to (?:me|us) to have)\s+(?:a |the |את ה|רכב )?(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות|compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)/iu)
       ?? positiveLeasingChoice
       ?? text.match(/(compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)\s+is important to (?:me|us)/iu)
       ?? text.match(/(?:^|[,;.]\s*|ל)רכב\s+(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות)/iu)
@@ -190,6 +192,11 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   const usage = new Set(next.usage ?? []);
   if (/בעיר|עירוני|\bcity\b|\burban\b/i.test(text)) usage.add('city');
   if (/למשפחה|שימוש משפחתי|בעיקר\s+משפחה|נסיעות משפחתיות|family (?:use|trips)|with (?:my |our )?(?:kids|children)/i.test(text)) usage.add('family');
+  if (/(?:אני|אנחנו|נוסעים|נוסעות|צריך(?:ה|ים)?)\s+(?:עם\s+)?(?:ילד|ילדה|ילדים|תינוק|תינוקת)|\b(?:with|travelling with|traveling with) (?:my |our |a )?(?:child|kid|baby|toddler)\b/iu.test(text)) {
+    next.travelingWithChild = true;
+    usage.add('family');
+  }
+  if (/(?:עם\s+)?(?:עגלה|stroller|pushchair)/iu.test(text)) next.stroller = true;
   if (/ל[עא]סק|עסקי|business (?:use|leasing)|for work/i.test(text)) usage.add('business');
   if (/נסיעות ארוכות|long.distance|long (?:trips|journeys)/i.test(text)) usage.add('long_distance');
   for (const mention of text.matchAll(/ל?נסיע(?:ה|ות) לעבודה|להגיע לעבודה|\bcommut(?:e|ing)\b|(?:travel|drive|driving) to work/giu)) {
@@ -231,6 +238,8 @@ export function renderCommercialMemory(memory: CommercialMemory | undefined, loc
   if (memory.vehicleModel) parts.push(`${he ? 'דגם מבוקש' : 'Requested model'}: ${memory.vehicleModel}`);
   if (memory.passengers !== undefined) parts.push(`${he ? 'נוסעים' : 'Passengers'}: ${memory.passengers}`);
   if (memory.luggage !== undefined) parts.push(`${he ? 'מזוודות' : 'Bags'}: ${memory.luggage}`);
+  if (memory.travelingWithChild) parts.push(he ? 'נוסעים עם ילד' : 'Travelling with a child');
+  if (memory.stroller) parts.push(he ? 'יש עגלה' : 'Stroller');
   if (memory.lowMileagePreferred) parts.push(he ? 'העדפה לקילומטראז׳ נמוך' : 'low mileage preferred');
   if (memory.usage?.length) {
     const usageNames = he ? { city: 'עירוני', family: 'משפחתי', business: 'עסקי', long_distance: 'נסיעות ארוכות', commuting: 'נסיעות לעבודה' } : { city: 'city', family: 'family', business: 'business', long_distance: 'long-distance', commuting: 'commuting' };

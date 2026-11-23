@@ -2,6 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { updateCommercialMemory, renderCommercialMemory } from '@/lib/whatsapp-commercial-memory';
 
 describe('durable explicit commercial facts', () => {
+  it('retains family car, child and stroller needs through an undecided route comparison', () => {
+    let memory = updateCommercialMemory(undefined, 'אני צריכה רכב משפחתי אבל מתלבטת בין ליסינג להשכרה לחמישה חודשים.');
+    memory = updateCommercialMemory(memory, 'אני עם ילד קטן ועגלה. אם אחזיר אחרי שלושה חודשים, מה קורה?');
+    expect(memory).toMatchObject({ comparingLeasingAndRental: true, vehiclePreference: 'family', travelingWithChild: true, stroller: true });
+    expect(renderCommercialMemory(memory, 'he')).toMatch(/משפחתי.*נוסעים עם ילד.*יש עגלה/);
+  });
   it('keeps a six-month rental comparison and early-exit concern without selecting leasing', () => {
     let memory = updateCommercialMemory(undefined, 'אני מתלבט בין ליסינג לבין השכרה לחצי שנה, ולא רוצה התחייבות ארוכה.');
     memory = updateCommercialMemory(memory, 'אם אבחר השכרה לחצי שנה ואחזיר אחרי ארבעה חודשים, יש קנס?');
