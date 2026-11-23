@@ -1023,6 +1023,8 @@ function explicitVehicleNeed(input: string, locale: Locale): string | null {
 
 function customerVehicleChoice(input: string, state: RebuildState): string | null {
   if (/(?:can|could) you (?:note|record|put down|mark).{0,45}(?:as (?:our|my) preference|for (?:our|my) request)/iu.test(input)) return explicitVehicleNeed(input, state.locale);
+  if (/(?:family car|compact car|small car|suv|seven[- ]seat(?:er)?|רכב משפחתי|רכב קומפקטי|רכב פנאי|שבעה מקומות).{0,25}(?:sounds good|works for (?:us|me)|נשמע טוב|מתאים לנו)|(?:please )?note (?:that|it) as (?:our|my) preference/iu.test(input)
+    && !/\b(?:if|maybe|perhaps|might)\b|(?:^|\s)(?:אם|אולי)(?:\s|$)/iu.test(input)) return explicitVehicleNeed(input, state.locale);
   if (/^(?:ו?מה אם|האם|אולי|למה|מה לגבי|what if|would|should|could)\s/iu.test(input)) return null;
   // A bare category ("compact", "קטן", "SUV") during a rental enquiry is the choice.
   if (!state.booking.vehicleNeed && input.trim().split(/\s+/).length <= 3 && !/[?؟]/u.test(input)) { const bare = explicitVehicleNeed(input.trim(), state.locale); if (bare && /^\s*(?:a |the |רכב )?(?:compact|small|economy|cheapest|family|suv|jeep|sedan|seven[- ]?seat(?:er)?|7[- ]?seat(?:er)?|קטן|משפחתי|משפחתית|קומפקטי|קומפקטית|פנאי|ג['׳]?יפ|סדאן|7 מקומות|שבעה מקומות)(?: one| car)?[.!]?\s*$/iu.test(input)) return bare; }

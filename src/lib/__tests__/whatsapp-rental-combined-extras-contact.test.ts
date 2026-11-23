@@ -85,7 +85,7 @@ describe('rental additions and contact in one reply', () => {
       createRentalRequest: async () => null,
       readTurn: async () => null,
     };
-    const result = await getRebuiltBotReply('fictional-tourist', 'Yes. Could you note a family car as our preference? We would pick up in Herzliya on December 8 and return there on December 15. We will bring two medium suitcases and the stroller.', store);
+    const result = await getRebuiltBotReply('fictional-tourist', 'A family car sounds good, please note that as our preference. We would pick up in Herzliya on December 8 and return there on December 15. We will bring two medium suitcases and the stroller.', store);
     expect(result.state.booking).toMatchObject({
       vehicleNeed: 'family car', pickupDate: '2026-12-08', returnDate: '2026-12-15',
       pickupLocation: 'Herzliya', returnLocation: 'Herzliya', luggage: 2,
