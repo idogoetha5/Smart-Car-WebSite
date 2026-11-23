@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## Adaptive simulator pass — 23 November 2026 (production `4eb771e`)
+
+One fresh four-turn English tourist rental conversation passed manual review. Gemini advised a family car for three travellers and three bags, then the application retained the dates, Ben Gurion pickup, Herzliya return, age, name, own booster and stroller/bag fit check. The bot asked for additions once, summarized the complete enquiry, returned `escalated:true`, `handedOff:true`, and created no formal booking. Full transcript and review: `evidence/adaptive-english-tourist-rental-final-retest-20261123.json`. This is one production-simulator conversation; Daniel's alert receipt and real customer WhatsApp delivery were not verified. It does not establish overall readiness.
+
 ## Adaptive failure — 23 November 2026 (production `7e614f3`)
 
 A fresh tourist rental replay retained the family, bags and stroller-fit request through the first two turns. The customer then answered the name prompt with “Please use Emma Walker. We have our own booster seat ...” and the bot asked for her name again, staying at `rental_name`. Full transcript: `evidence/adaptive-english-tourist-rental-fit-retest-20261123.json`. A focused private-name and own-seat regression passes locally; full gates, production deployment and live replay remain required. This conversation failed.
