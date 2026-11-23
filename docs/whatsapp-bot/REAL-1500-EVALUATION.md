@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## Adaptive simulator pass — 23 November 2026 (production `4e0523a`)
+
+One fresh four-turn English tourist rental conversation passed manual review after the category-choice fix. The bot retained family group, dates, pickup/return branches, age, name, three travellers, three bags, own booster and the stroller/bag fit check; asked additions once and returned a complete summary with `escalated:true` and no formal booking. Full transcript/review: `evidence/adaptive-english-tourist-rental-choice-retest-20261123.json`. This verifies one simulator flow. Daniel alert receipt and real WhatsApp customer delivery remain unverified, so overall readiness is unproven.
+
 ## Adaptive failure — 23 November 2026 (production `0f996f2`)
 
 A fresh English tourist rental on the privacy-fix release gave dates, branches, age and the explicit choice “a family car would be our choice.” Gemini's draft recognized the request, but omitted a selected category fact patch. The application therefore left `vehicleNeed` unset and stayed in `explore`; the customer-facing reply prematurely asked about additions before a name, so the conversation stopped as failed after two turns. Full transcript: `evidence/adaptive-english-tourist-rental-privacy-retest-20261123.json`. Local selected-choice and date-invitation repairs plus a regression pass; full gates, deployment and fresh replay are required. This is not a pass.
