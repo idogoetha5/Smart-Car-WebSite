@@ -930,6 +930,11 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
     const adults = statedCount(adultsKids[1]); const kids = statedCount(adultsKids[2]);
     if (adults && kids) draft.passengers = adults + kids;
   }
+  const partnerKids = input.match(new RegExp(`\\bI(?: am|['’]m)?[^.!?]{0,60}\\bwith my (?:wife|husband|partner|spouse) and (?:our|my) ${count} (?:kids?|children)\\b`, 'iu'));
+  if (partnerKids && !isHypotheticalFactEvidence(input, partnerKids[0])) {
+    const children = statedCount(partnerKids[1]);
+    if (children !== null && children + 2 <= 20) draft.passengers = children + 2;
+  }
   // "זוג עם 2 ילדים" / "couple with two kids": two adults plus the stated children.
   const family = input.match(new RegExp(`(?:זוג|שני הורים|אני ו(?:אשתי|בעלי|בן הזוג שלי|בת הזוג שלי)|(?:a |we(?:'re| are) a )?couple|two adults|me and my (?:wife|husband|partner))\\s+(?:עם|ו[־-]?|with|and|\\+)\\s*${count}\\s+(?:ילדים|ילדות|ילד|ילדה|kids|children|child)`, 'iu'));
   if (family && !passengers && !/(?:^|\s)אם\s|מה אם|\bif\b|what if/iu.test(input)) {
@@ -963,6 +968,10 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   const singularLuggage = input.match(/מזוודה(?![\p{L}])|תיק(?: נסיעה)? אחד(?![\p{L}])/iu);
   if (draft.luggage === undefined && singularLuggage && !negatedLuggageMention(input, singularLuggage.index!)) draft.luggage = 1;
   if (/תינוק|baby|infant/i.test(input)) draft.childSeats ??= 1;
+  if (/\bbooster(?: seat)?\b|בוסטר/iu.test(input) && /(?:please (?:include|note) (?:that request|it)|נא (?:לרשום|להוסיף) (?:את זה|אותו))/iu.test(input)) {
+    draft.childSeats = 1;
+    draft.childSeatType = 'booster';
+  }
   if (/(?:can (?:you|we|i) (?:provide|add|include|arrange|request|get)|do you (?:provide|have|offer)|אפשר (?:לקבל|להוסיף)|תוכלו (?:לספק|להוסיף)|יש (?:לכם|אצלכם)?).{0,18}(?:child seat|car seat|booster|כיסא בטיחות|כיסא בוסטר|בוסטר|כיסא לילד|כיסא לתינוק)/i.test(input)) draft.childSeats ??= 1;
   for (const clause of input.split(/[.!?;,]|\bbut\b|\bactually\b|אבל|בעצם/iu)) {
     const bringsOwnSeat = /(?:bring(?:ing)?|brought|taking)\s+(?:my|our|their)\s+own\s+(?:child|car)\s+seats?|(?:נביא|אביא|מביא(?:ים|ות|ה)?).{0,20}כיסא(?:ות)?(?: בטיחות)?.{0,15}(?:משלנו|משלי)/iu.test(clause)
@@ -1007,6 +1016,7 @@ function explicitVehicleNeed(input: string, locale: Locale): string | null {
 }
 
 function customerVehicleChoice(input: string, state: RebuildState): string | null {
+  if (/(?:can|could) you (?:note|record|put down|mark).{0,45}(?:as (?:our|my) preference|for (?:our|my) request)/iu.test(input)) return explicitVehicleNeed(input, state.locale);
   if (/^(?:ו?מה אם|האם|אולי|למה|מה לגבי|what if|would|should|could)\s/iu.test(input)) return null;
   // A bare category ("compact", "קטן", "SUV") during a rental enquiry is the choice.
   if (!state.booking.vehicleNeed && input.trim().split(/\s+/).length <= 3 && !/[?؟]/u.test(input)) { const bare = explicitVehicleNeed(input.trim(), state.locale); if (bare && /^\s*(?:a |the |רכב )?(?:compact|small|economy|cheapest|family|suv|jeep|sedan|seven[- ]?seat(?:er)?|7[- ]?seat(?:er)?|קטן|משפחתי|משפחתית|קומפקטי|קומפקטית|פנאי|ג['׳]?יפ|סדאן|7 מקומות|שבעה מקומות)(?: one| car)?[.!]?\s*$/iu.test(input)) return bare; }
@@ -1617,7 +1627,7 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
     if (state.booking[name] !== undefined) continue;
     const field = fields[name];
     const count = Number(field?.value);
-    const evidenceMatches = name === 'passengers' ? /נוסע|אנשים|מבוגרים|אנחנו|נהיה|passenger|people|adults|we are/i.test(field?.evidence ?? '')
+    const evidenceMatches = name === 'passengers' ? /נוסע|אנשים|מבוגרים|אנחנו|נהיה|ילדים|ילד|passenger|people|adults|children|child|kids?|we are/i.test(field?.evidence ?? '')
       : name === 'luggage' ? /מזווד|תיק|bags?|suitcases?|luggage/i.test(field?.evidence ?? '')
       : /כיסא|מושב בטיחות|child seat|car seat|booster/i.test(field?.evidence ?? '');
     const statedValues = field?.evidence.match(/\d{1,2}|אחד|אחת|שניים|שתיים|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש|שבעה|שבע|שמונה|one|two|three|four|five|six|seven|eight/gi) ?? [];
@@ -2525,7 +2535,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       && (reading?.route === 'book' || state.history.some(entry => entry.from === 'customer' && explicitBooking(entry.text)));
     const modelReadyRental = !state.interest && reading?.route === 'book'
       && Boolean(state.booking.pickupDate && state.booking.returnDate && state.booking.pickupLocation && state.booking.returnLocation && state.booking.vehicleNeed);
-    const wantsBooking = !declines && !asksHuman && !modelHumanConsent && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || !serviceInterpretation && (acceptsRentalOffer || wantsToContinueRental || answeringRentalDates || modelReadyRental || state.phase === 'booking'));
+    const passesRentalDetails = !state.interest && /(?:please )?pass (?:these|the|my) details to (?:your|the|a) (?:team|representative|office)|(?:תעביר|תעבירו|להעביר) (?:את )?(?:הפרטים|הפנייה) (?:לצוות|לנציג|למשרד)/iu.test(input)
+      && !nextMissing(state.booking);
+    const wantsBooking = !declines && !asksHuman && !modelHumanConsent && ((explicitBooking(input) && (!state.interest || clearlyRental)) || passesRentalDetails || modelSupportedProceed || !serviceInterpretation && (acceptsRentalOffer || wantsToContinueRental || answeringRentalDates || modelReadyRental || state.phase === 'booking'));
     const rentalPivot = /מעדיף (?:את ה)?השכרה|מעדיף לשכור|עדיף לי לשכור|אעדיף לשכור|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|prefer to rent|back to renting/i.test(input);
     const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|(?:רכב|הרכב).{0,35}מלוכלך|לא קיבלתי|(?:מזגן|מיזוג).{0,25}(?:לא עובד|מקולקל)|(?:air conditioning|car ac).{0,25}(?:not working|broken)|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input)
       // "What happens if the car is dirty?" is a question about policy, not a reported problem.
@@ -2634,10 +2646,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         && /(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|כביש\s*6|כיסא(?:ות)? בטיחות|additional driver|highway\s*6|child seat)/iu.test(input);
       const explicitlyPasses = /(?:תעביר|תעבירו|להעביר).{0,24}(?:לנציג|לנציגת|למשרד)|(?:pass|send).{0,24}(?:representative|office)/iu.test(input);
       const answersExtras = /^(?:לא(?:\s*,?\s*(?:תודה|זה הכל|אין צורך|בלי תוספות|לא צריך עוד))?|אין(?:\s+צורך)?|בלי תוספות|זה הכל|לא צריך עוד|(?:אני\s+)?מאשר(?:ת)?|(?:i\s+)?confirm|no(?:\s*,?\s*(?:thanks|(?:other )?extras?))?|none|nothing else|that's all|that is all)[.!\s]*$/iu.test(input.trim())
-        || /\b(?:nothing else|no (?:other|more) extras|that'?s all|that is all)\b/iu.test(input) && !/[?؟]/u.test(input)
+        || /\b(?:nothing else|no (?:other|more) (?:extras|additions)|that'?s all|that is all)\b/iu.test(input) && !/[?؟]/u.test(input)
         || proactiveExtra && !/[?؟]/u.test(input);
       const wantsToNameExtra = /^(?:כן|yes|sure)[.!\s]*$/iu.test(input.trim());
-      const priorExtrasPrompt = /(?:להוסיף משהו נוסף|להוסיף משהו|להוסיף עוד|משהו נוסף|anything else|add anything|any additions)/iu.test(lastBot);
+      const priorExtrasPrompt = /(?:להוסיף משהו נוסף|להוסיף משהו|להוסיף עוד|משהו נוסף|anything else|add anything|any (?:other )?additions)/iu.test(lastBot);
       if (priorExtrasPrompt && answersExtras && !defersHandoff) state.rentalExtrasAnswered = true;
       if (state.booking.driverAgeRange === '21-23') {
         if (/(?:לא (?:נהג|נהגת) חדש(?:ה)?|not a new driver|experienced driver)/iu.test(input)
