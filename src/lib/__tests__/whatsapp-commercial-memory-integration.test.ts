@@ -12,6 +12,14 @@ function conversation(initial: RebuildState | null = null) {
 }
 
 describe('commercial memory after the rolling conversation window', () => {
+  it('answers a question before representative handoff without treating "before representative" as consent', async () => {
+    const send = conversation({ version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, interest: 'leasing', history: [],
+      commercial: { comparingLeasingAndRental: true, rentalComparisonMonths: 6, annualMileageKm: 18000, earlyExitConcern: true, vehiclePreference: 'family' } });
+    const answered = await send('לפני נציג אני רוצה להבין: אם אשכור לחצי שנה ואחזיר אחרי ארבעה חודשים, אתה יכול להבטיח שלא יהיה חיוב על היתר? וגם איך מתחשבים ב־18 אלף ק״מ בשנה?');
+    expect(answered.escalate).toBe(false);
+    expect(answered.state.handedOff).not.toBe(true);
+    expect(answered.reply).not.toMatch(/סיכום הפנייה לנציג|נציג SmartCar יחזור אליכם/);
+  });
   it('summarizes both undecided routes when the customer asks directly for a representative', async () => {
     const send = conversation();
     await send('אני עצמאי. לשנה הקרובה אצטרך משפחתית אבל אולי רק לחצי שנה. מתלבט בין ליסינג להשכרה, נוסע 18 אלף ק״מ בשנה ולא רוצה התחייבות ארוכה.');

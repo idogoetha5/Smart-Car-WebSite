@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## Adaptive failure — 23 November 2026 (production `15f450a`)
+
+The real-Gemini customer asked an early-return and mileage question “before a representative”. The bot immediately handed off and skipped the question because a broad representative-request phrase matched “representative ... I want”. Full transcript: `evidence/adaptive-commercial-premature-handoff-failure-20261123.json`. A scoped correction and regression are local; production replay is required. This is not a successful full conversation.
+
 ## Adaptive failure — 23 November 2026 (production `d07ee97`)
 
 A fresh three-turn real-Gemini replay answered the exit question cautiously, then failed at direct representative handoff: the reply mentioned only leasing even though the customer remained undecided between leasing and six-month rental. The saved state also converted a tentative one-year planning horizon to a chosen 12-month term. Full transcript: `evidence/adaptive-commercial-handoff-bypass-failure-20261123.json`. A scoped handoff and memory fix passes focused regression locally; live replay remains necessary. Do not count the conversation as a pass.
