@@ -2,6 +2,27 @@ import { describe, expect, it } from 'vitest';
 import { getRebuiltBotReply, type RebuildState, type RebuildStore } from '@/lib/whatsapp-rebuild';
 
 describe('rental additions and contact in one reply', () => {
+  it('keeps a tourist family, bags and stroller-fit request in the representative summary', async () => {
+    let state: RebuildState | null = null;
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); }, activeBooking: async () => null,
+      createRentalRequest: async () => { throw new Error('handoff must not create a booking'); }, readTurn: async () => null };
+    await getRebuiltBotReply('fictional-tourist-family', 'Hello, I will be visiting with my partner and our six-year-old daughter. We have a stroller and three big bags. We arrive at Ben Gurion Airport in December. What kind of rental car would you suggest?', store);
+    expect(state!.booking.passengers).toBe(3);
+    expect(state!.booking.luggage).toBe(3);
+    expect(state!.booking.stroller).toBe(true);
+    state = { ...state!, phase: 'booking', step: 'rental_name', booking: { ...state!.booking,
+      pickupDate: '2026-12-08', returnDate: '2026-12-15', pickupLocation: 'Ben Gurion Airport', returnLocation: 'Herzliya',
+      vehicleNeed: 'family car', driverAgeRange: '24-plus' }, history: [{ from: 'bot', text: 'What name should I put on the request?', private: false }] };
+    await getRebuiltBotReply('fictional-tourist-family', 'Use the name Emma Walker. We are bringing our own booster seat. Please check that the stroller and three bags can fit.', store);
+    expect(state!.booking.fitCheckRequested).toBe(true);
+    const result = await getRebuiltBotReply('fictional-tourist-family', 'No other extras, thanks. Please ask the representative to check whether the stroller and bags fit before confirming any specific car.', store);
+    expect(result.reply).toMatch(/Passengers: 3/);
+    expect(result.reply).toMatch(/Bags: 3/);
+    expect(result.reply).toMatch(/stroller and bags/);
+    expect(result.escalate).toBe(true);
+    expect(result.state.completedRequestId).toBeUndefined();
+  });
   it('advances after a tourist says “Use the name” and brings their own booster', async () => {
     let state: RebuildState | null = {
       version: 2, phase: 'booking', step: 'rental_name', locale: 'en', booking: {

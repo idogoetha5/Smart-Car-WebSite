@@ -1,5 +1,9 @@
 # Real Gemini conversation evaluation
 
+## Adaptive failure — 23 November 2026 (production `d8d0647`)
+
+The fresh four-turn tourist replay progressed through name, additions and `escalated:true`, but the representative summary dropped the three travellers, three bags, stroller and explicit request to check fit before confirming a specific car. Full transcript: `evidence/adaptive-english-tourist-rental-retest-20261123.json`. The missing facts arose from natural “my partner and our six-year-old daughter” / “three big bags” phrasing and capacity-question exclusion. A scoped extraction and handoff-summary regression pass locally; production replay is required. This is not a successful full conversation, and simulator escalation does not prove Daniel received an alert.
+
 ## Adaptive failure — 23 November 2026 (production `07a863b`)
 
 An English-speaking tourist gave airport pickup, Herzliya return, dates, age and family-car choice. When she answered the name question with “Use the name Emma Walker. We are bringing our own booster seat. You can reply to me on this WhatsApp number,” the bot asked for her name again and remained at `rental_name`. Full real-Gemini transcript: `evidence/adaptive-english-tourist-rental-20261123.json`. Local parsing now captures the named customer and recognizes the customer's own booster; exact regression passes. Full gates and a fresh production replay remain required. This conversation failed.

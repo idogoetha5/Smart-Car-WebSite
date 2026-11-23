@@ -12,7 +12,7 @@ import { isHypotheticalFactEvidence, isRentalCapacityQuestionEvidence, validateF
 type Locale = 'he' | 'en';
 type Phase = 'explore' | 'booking' | 'service';
 type BookingKey = 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'driverAgeRange' | 'customerName' | 'customerEmail';
-type BookingDraft = Partial<Record<BookingKey, string>> & { passengers?: number; luggage?: number; luggageSize?: 'large'; childSeats?: number; childSeatType?: 'booster'; additionalDriver?: boolean; tollPackage?: boolean; tollPackageUndecided?: boolean; datePreference?: string };
+type BookingDraft = Partial<Record<BookingKey, string>> & { passengers?: number; luggage?: number; luggageSize?: 'large'; stroller?: boolean; fitCheckRequested?: boolean; childSeats?: number; childSeatType?: 'booster'; additionalDriver?: boolean; tollPackage?: boolean; tollPackageUndecided?: boolean; datePreference?: string };
 type HistoryEntry = { from: 'customer' | 'bot'; text: string; private?: boolean };
 
 export type RebuildState = {
@@ -36,7 +36,7 @@ export type RebuildState = {
   handoffAt?: string;
   handoffKind?: 'safety' | 'booking_change' | 'service_issue' | 'commercial' | 'human';
   completedRequestId?: string;
-  completedRental?: Pick<BookingDraft, 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'passengers' | 'luggage' | 'childSeats' | 'childSeatType' | 'additionalDriver' | 'tollPackage' | 'tollPackageUndecided'>;
+  completedRental?: Pick<BookingDraft, 'pickupDate' | 'returnDate' | 'pickupLocation' | 'returnLocation' | 'vehicleNeed' | 'passengers' | 'luggage' | 'stroller' | 'fitCheckRequested' | 'childSeats' | 'childSeatType' | 'additionalDriver' | 'tollPackage' | 'tollPackageUndecided'>;
   durationClarification?: boolean;
   humanHandoffDeferred?: boolean;
   newDriverStatus?: 'yes' | 'no';
@@ -144,14 +144,17 @@ function rentalHandoffSummary(state: RebuildState): string {
   const needs = state.locale === 'he'
     ? [b.passengers !== undefined && `נוסעים: ${b.passengers}`, b.luggage !== undefined && `מזוודות: ${b.luggage}`].filter(Boolean).join('; ')
     : [b.passengers !== undefined && `Passengers: ${b.passengers}`, b.luggage !== undefined && `Bags: ${b.luggage}`].filter(Boolean).join('; ');
+  const fitCheck = b.fitCheckRequested
+    ? state.locale === 'he' ? ` ביקשתם שנבדוק התאמה של ${b.stroller ? 'העגלה והמטען' : 'המטען'} לרכב המסוים לפני אישורו.` : ` You asked us to check that ${b.stroller ? 'the stroller and bags' : 'the bags'} fit the specific car before confirmation.`
+    : b.stroller ? state.locale === 'he' ? ' ציינתם גם עגלה.' : ' You also mentioned a stroller.' : '';
   const shabbat = isShabbat(b.pickupDate) || isShabbat(b.returnDate);
   const airport = /נתב.?ג|Ben Gurion|airport/iu.test(`${b.pickupLocation ?? ''} ${b.returnLocation ?? ''}`);
   const notes = state.locale === 'he'
     ? `${shabbat ? ' איסוף או החזרה בשבת מתואמים מראש ועשויים להיות כרוכים בתוספת תשלום.' : ''}${airport ? ' על איסוף או החזרה בנתב״ג יש תוספת.' : ''}`
     : `${shabbat ? ' A Saturday pickup or return is arranged in advance and may carry an extra charge.' : ''}${airport ? ' Pickup or return at Ben Gurion Airport carries a surcharge.' : ''}`;
   return state.locale === 'he'
-    ? `סיכום הפנייה: ${b.vehicleNeed}; איסוף ב${b.pickupLocation} ב־${date(b.pickupDate)}, החזרה ב${b.returnLocation} ב־${date(b.returnDate)}; גיל הנהג ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}; על שם ${b.customerName}.${needs ? ` ${needs}.` : ''}${extras ? ` תוספות שביקשתם: ${extras}.` : ''}${undecidedToll}${notes} העברתי לנציג SmartCar לבדיקה. הרכב, התוספות והמחיר עדיין לא אושרו.`
-    : `Your enquiry: ${b.vehicleNeed}; pickup in ${b.pickupLocation} on ${date(b.pickupDate)}, return in ${b.returnLocation} on ${date(b.returnDate)}; driver age ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}; name ${b.customerName}.${needs ? ` ${needs}.` : ''}${extras ? ` Requested extras: ${extras}.` : ''}${undecidedToll}${notes} I have passed this to a SmartCar representative for review. The car, extras and price are not confirmed yet.`;
+    ? `סיכום הפנייה: ${b.vehicleNeed}; איסוף ב${b.pickupLocation} ב־${date(b.pickupDate)}, החזרה ב${b.returnLocation} ב־${date(b.returnDate)}; גיל הנהג ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}; על שם ${b.customerName}.${needs ? ` ${needs}.` : ''}${extras ? ` תוספות שביקשתם: ${extras}.` : ''}${fitCheck}${undecidedToll}${notes} העברתי לנציג SmartCar לבדיקה. הרכב, התוספות והמחיר עדיין לא אושרו.`
+    : `Your enquiry: ${b.vehicleNeed}; pickup in ${b.pickupLocation} on ${date(b.pickupDate)}, return in ${b.returnLocation} on ${date(b.returnDate)}; driver age ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}; name ${b.customerName}.${needs ? ` ${needs}.` : ''}${extras ? ` Requested extras: ${extras}.` : ''}${fitCheck}${undecidedToll}${notes} I have passed this to a SmartCar representative for review. The car, extras and price are not confirmed yet.`;
 }
 
 function conversationalKnown(state: RebuildState): GeminiBotContext['known'] {
@@ -935,7 +938,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   const count = '(\\d{1,2}|אחד|אחת|שניים|שתיים|שתי|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש|שבעה|שבע|שמונה|one|two|three|four|five|six|seven|eight)';
   const passengers = [...input.matchAll(new RegExp(`(?:אנחנו|נהיה|we are|we['’]re|there are|there will be)\\s+${count}(?=\\s|$)|${count}\\s+(?:נוסעים|אנשים|מבוגרים|חברים|חברות|passengers|people|adults|friends|of us)`, 'giu'))]
     .filter(match => !negatedLuggageMention(input, match.index) && !isHypotheticalFactEvidence(input, match[0]) && !isRentalCapacityQuestionEvidence(input, match[0])).at(-1);
-  const luggage = [...input.matchAll(new RegExp(`${count}\\s+(?:(?:small|medium|large|קטנות|בינוניות|גדולות)\\s+)?(?:מזוודות|מזוודה|תיקים|תיקי נסיעה|bags?|suitcases?)(?![\\p{L}])`, 'giu'))]
+  const luggage = [...input.matchAll(new RegExp(`${count}\\s+(?:(?:small|medium|large|big|קטנות|בינוניות|גדולות)\\s+)?(?:מזוודות|מזוודה|תיקים|תיקי נסיעה|bags?|suitcases?)(?![\\p{L}])`, 'giu'))]
     .find(match => !negatedLuggageMention(input, match.index) && !isHypotheticalFactEvidence(input, match[0]) && !isRentalCapacityQuestionEvidence(input, match[0]));
   const passengerCount = statedCount(passengers?.[1] ?? passengers?.[2] ?? '');
   // "2 adults 2 kids" / "3 מבוגרים ושני ילדים": everyone counts.
@@ -963,6 +966,10 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   const luggageCount = statedCount(luggage?.[1] ?? '');
   if (passengerCount !== null && !(adultsKids && draft.passengers && draft.passengers > passengerCount)) draft.passengers = passengerCount;
   if (luggageCount !== null) draft.luggage = luggageCount;
+  if (/\b(?:stroller|pushchair|pram)\b|עגלה/iu.test(input) && !isHypotheticalFactEvidence(input, input)) draft.stroller = true;
+  if (/(?:fit|fits|fitting|space for|accommodate|ייכנס|ייכנסו|מתאים|יתאים|מקום ל)/iu.test(input)
+    && /(?:stroller|pushchair|pram|bags?|suitcases?|luggage|עגלה|מזווד|מטען)/iu.test(input)
+    && !isHypotheticalFactEvidence(input, input)) draft.fitCheckRequested = true;
   if (/מזווד.{0,18}גדול|large (?:bags?|suitcases?|luggage)(?![\p{L}])/iu.test(input) && (luggageCount !== null || !luggage && /מזווד.{0,18}גדול/u.test(input))) draft.luggageSize = 'large';
   if (!family && /אנחנו זוג|זוג עם|שני אנשים|שני נוסעים|we are a couple|two of us/i.test(input)) draft.passengers = 2;
   // Count the child as a passenger when the customer explicitly describes a
@@ -979,6 +986,8 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
     if (adults !== null && children !== null && adults + children <= 20) draft.passengers = adults + children;
   }
   if (/my (?:wife|husband|partner|spouse) and I.{0,90}with our \d{1,2}[- ]year[- ]old/i.test(input)) draft.passengers = 3;
+  if (/\b(?:my partner and (?:our|my)|(?:my|our) (?:partner|wife|husband|spouse) and (?:our|my))\s+(?:\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)[- ]year[- ]old\s+(?:son|daughter|child|kid)\b/iu.test(input)
+    && !isHypotheticalFactEvidence(input, input)) draft.passengers = 3;
   const singularLuggage = input.match(/מזוודה(?![\p{L}])|תיק(?: נסיעה)? אחד(?![\p{L}])/iu);
   if (draft.luggage === undefined && singularLuggage && !negatedLuggageMention(input, singularLuggage.index!)) draft.luggage = 1;
   if (/תינוק|baby|infant/i.test(input)) draft.childSeats ??= 1;
@@ -2312,8 +2321,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     } else {
     const id = await store.createRentalRequest(phone, state);
     if (id) {
-      const { pickupDate, returnDate, pickupLocation, returnLocation, vehicleNeed, passengers, luggage, childSeats } = state.booking;
-      state.completedRental = { pickupDate, returnDate, pickupLocation, returnLocation, vehicleNeed, passengers, luggage, childSeats };
+          const { pickupDate, returnDate, pickupLocation, returnLocation, vehicleNeed, passengers, luggage, stroller, fitCheckRequested, childSeats } = state.booking;
+          state.completedRental = { pickupDate, returnDate, pickupLocation, returnLocation, vehicleNeed, passengers, luggage, stroller, fitCheckRequested, childSeats };
       state.completedRequestId = id; state.phase = 'explore'; state.step = 'menu'; state.booking = {}; escalate = true;
       delete state.requestKey;
       reply = store.isSimulation ? (he ? 'בסימולציה הבקשה נקלטה לצורכי בדיקה בלבד; לא נוצרה הזמנה אמיתית.' : 'The request was recorded in this simulation only; no real booking was created.') : (he ? `בקשת ההשכרה נשלחה לבדיקה, מספר ${id}. היא עדיין אינה הזמנה מאושרת.` : `Your rental request was sent for review, reference ${id}. It is not a confirmed booking yet.`);
