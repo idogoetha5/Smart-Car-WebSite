@@ -24,10 +24,13 @@ function conversation(initial: RebuildState, reading: BotReading | null = null) 
 }
 
 describe('live name-prompt rental dead end', () => {
-  it('starts rental intake when a customer accepts a dates-and-pickup invitation with full details and a side question', async () => {
+  it.each([
+    'תרצו שנתקדם בבדיקת תאריכים ומיקום איסוף לרכב?',
+    'באיזה תאריכים מדויקים תרצו שנבדוק את האפשרות?',
+  ])('starts rental intake after the invitation %s', async invitation => {
     const initial = draft([
       { from: 'customer', text: 'שלום, אנחנו זוג מתכננים סופ״ש בדצמבר ורוצים לשכור רכב. אני בן 23 ויש לי רישיון שלוש שנים.' },
-      { from: 'bot', text: 'תרצו שנתקדם בבדיקת תאריכים ומיקום איסוף לרכב?' },
+      { from: 'bot', text: invitation },
     ]);
     initial.booking = { passengers: 2, luggage: 2, driverAgeRange: '21-23', vehicleNeed: 'רכב קומפקטי' };
     const { send, createRentalRequest } = conversation(initial, {

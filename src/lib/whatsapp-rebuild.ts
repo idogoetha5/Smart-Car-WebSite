@@ -2478,7 +2478,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const wantsToContinueRental = !state.interest && (/^(?:אני רוצה להתקדם|רוצה להתקדם|בוא(?:ו)? נתקדם|I want to proceed|let'?s continue)[.!\s]*$/i.test(input)
       || /\b(?:let'?s|let us) continue\b|(?:^|[.!?]\s*|\s)(?:תתקדם|תתקדמו|תמשיכו)\s+עם (?:מה שיש|הפרטים|זה)/i.test(input))
       && Boolean(state.booking.pickupDate || state.booking.vehicleNeed || state.booking.passengers || offersRentalRequest(lastBot));
-    const wantsBooking = !declines && !asksHuman && !modelHumanConsent && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || !serviceInterpretation && (acceptsRentalOffer || wantsToContinueRental || state.phase === 'booking'));
+    const answeringRentalDates = !state.interest && asksRentalDates(lastBot)
+      && Boolean(state.booking.pickupDate && state.booking.returnDate)
+      && (reading?.route === 'book' || state.history.some(entry => entry.from === 'customer' && explicitBooking(entry.text)));
+    const wantsBooking = !declines && !asksHuman && !modelHumanConsent && ((explicitBooking(input) && (!state.interest || clearlyRental)) || modelSupportedProceed || !serviceInterpretation && (acceptsRentalOffer || wantsToContinueRental || answeringRentalDates || state.phase === 'booking'));
     const rentalPivot = /מעדיף (?:את ה)?השכרה|מעדיף לשכור|עדיף לי לשכור|אעדיף לשכור|חוזר להשכרה|רוצה לשכור במקום|prefer (?:a )?rental|prefer to rent|back to renting/i.test(input);
     const specificProblem = /חויבתי|חיוב כפול|חיוב שגוי|שילמתי פעמיים|תקלה בהזמנה|(?:רכב|הרכב).{0,35}מלוכלך|לא קיבלתי|(?:מזגן|מיזוג).{0,25}(?:לא עובד|מקולקל)|(?:air conditioning|car ac).{0,25}(?:not working|broken)|double charg|charged twice|wrong charge|billing issue|dirty car|booking problem/i.test(input)
       // "What happens if the car is dirty?" is a question about policy, not a reported problem.

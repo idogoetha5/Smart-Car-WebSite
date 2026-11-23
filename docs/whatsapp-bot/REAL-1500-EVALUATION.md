@@ -246,3 +246,11 @@ provided the route, then received an extras question before name intake.
 Transcript: `evidence/adaptive-rental-progress-failure-20261123.json`.
 It is not counted as a successful rental conversation. A regression was added
 and the changed source still requires deployment and a fresh live replay.
+
+The immediate replay on `a55f0b4` also failed, this time after the bot
+asked only for exact dates. Despite receiving both dates, locations and a
+compact choice, it remained in exploration and asked about extras before
+name intake. Transcript:
+`evidence/adaptive-rental-date-invitation-failure-20261123.json`.
+This is another failed conversation. A separate regression covers the
+observed invitation wording; it is not a live success.
