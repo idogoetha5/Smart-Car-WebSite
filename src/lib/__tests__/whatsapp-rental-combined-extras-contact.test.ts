@@ -163,4 +163,29 @@ describe('rental additions and contact in one reply', () => {
     expect(result.reply).toMatch(/להוסיף משהו/u);
     expect(result.reply).not.toMatch(/כיסא בטיחות/u);
   });
+  it('keeps the name before a WhatsApp callback clause in the same message', async () => {
+    let state: RebuildState | null = {
+      version: 2, phase: 'booking', step: 'rental_age', locale: 'he',
+      booking: {
+        pickupDate: '2026-12-05', returnDate: '2026-12-09',
+        pickupLocation: 'הרצליה', returnLocation: 'הרצליה',
+        vehicleNeed: 'רכב משפחתי', passengers: 3, luggage: 2,
+      },
+      history: [{ from: 'bot', text: 'בן כמה הנהג?' }],
+    };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => { throw new Error('contact preference must not create an order'); },
+      readTurn: async () => null,
+    };
+    const result = await getRebuiltBotReply('fictional-hebrew', 'אני בן 35 ואני הנהג היחיד. כיסא לילד נביא מהבית, לא צריך כיסא בטיחות מכם. תרשמו על שם עומר ברק ותחזרו אליי בווטסאפ הזה.', store);
+    expect(result.state.booking).toMatchObject({ driverAgeRange: '24-plus', childSeats: 0, customerName: 'עומר ברק' });
+    expect(result.state.step).toBe('rental_extras');
+    expect(result.state.handedOff).not.toBe(true);
+    expect(result.reply).toMatch(/להוסיף משהו/u);
+    expect(result.reply).not.toMatch(/כיסא בטיחות/u);
+  });
 });

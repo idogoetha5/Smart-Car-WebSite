@@ -1738,7 +1738,7 @@ function applySelectedFacts(input: string, state: RebuildState, reading: BotRead
 
 function privateDetail(input: string, state: RebuildState, explicitStart = false): boolean {
   const labelledName = input.match(/(?:קוראים לי|שמי|השם שלי|השם הוא|my name is)\s+([\p{L}' -]{3,60})/iu)?.[1]
-    ?? input.match(/(?:ת?רשו?[םמ](?:ו)?|תרשמו|לרשום|תשים|תכתוב|תכתבו)\s+(?:את (?:זה|הבקשה)\s+)?על\s+(?:שם\s+)?([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})(?=\s*(?:[,.!]|$|\s+(?:בן|בת)\b))/u)?.[1]
+    ?? input.match(/(?:ת?רשו?[םמ](?:ו)?|תרשמו|לרשום|תשים|תכתוב|תכתבו)\s+(?:את (?:זה|הבקשה)\s+)?על\s+(?:שם\s+)?([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})(?=\s*(?:[,.!]|$|\s+(?:בן|בת|ו?תחזרו|ו?תשלחו)(?=\s|$|[,.!])))/u)?.[1]
     ?? input.match(/\b(?:put it|book it|register it)\s+under\s+(?:the name\s+)?([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})(?=\s*(?:[,.!]|$))/iu)?.[1]
     ?? input.match(/(?:על\s+שם|\bunder (?:the name )?)\s*([\p{L}'-]{2,20}\s+[\p{L}'-]{2,20})(?=\s*(?:[,.!]|$|\s+(?:בן|בת|אני|aged?|I['’]?m)\b))/iu)?.[1];
   // A voluntary labelled name during an established rental enquiry is useful
