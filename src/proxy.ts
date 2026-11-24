@@ -88,6 +88,9 @@ export async function proxy(request: NextRequest) {
 
   // Keep each declaration share URL independent of locale detection.
   if (pathname === '/declaration' || pathname === '/declaration/en') return NextResponse.next();
+  if (/^\/forms\/declaration(?:-en)?\.html$|^\/forms\/declaration\.(?:css|js)$|^\/forms\/declaration-share(?:-en)?-v1\.jpg$/.test(pathname)) {
+    return NextResponse.next();
+  }
 
   // Branch managers' short link (shared on WhatsApp): one hop straight to
   // the manager login — before next-intl, which would otherwise send it to
