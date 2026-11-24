@@ -252,6 +252,7 @@ async function loadVerification() {
     widget = window.turnstile.render(verification, {
       sitekey: config.siteKey,
       language: tr('he', 'en'),
+      size: verification.clientWidth < 300 ? 'compact' : 'flexible',
       callback: (token) => { verificationToken = token; error.hidden = true; },
       'expired-callback': () => { verificationToken = undefined; },
       'error-callback': () => { verificationToken = undefined; return true; },
