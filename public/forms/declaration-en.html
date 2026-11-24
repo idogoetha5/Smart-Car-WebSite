@@ -90,18 +90,19 @@
               <legend><span data-he="תקופת ההשכרה">Rental period</span></legend>
               <div class="fields">
               <label><span data-he="בתקופה המתחילה ביום">Rental start date</span><input name="start" type="date" required></label>
-              <label><span data-he="ומסתיימת ביום">Rental end date</span><input name="end" type="date" required></label>
+              <label><span data-he="ומסתיימת ביום (לא חובה)">Rental end date (optional)</span><input name="end" type="date"></label>
             </div>
             </fieldset>
-            <details class="company" id="company">
-              <summary><span data-he="פרטי החברה או הגוף המפורטים בסעיף 2, אם רלוונטי">Company or other entity details, if applicable</span></summary>
+            <fieldset class="form-group company" id="company">
+              <legend><span data-he="פרטי חברה או גוף נוסף בסעיף 2 (לא חובה)">Company or other entity in section 2 (optional)</span></legend>
+              <p class="company-note"><span data-he="מלאו רק את הפרטים הרלוונטיים. כל שדה אינו חובה; הפרטים יופיעו בסעיף 2 במסמך החתום.">Fill only the details that apply. Each field is optional; these details appear in section 2 of the signed document.</span></p>
               <div class="fields">
                 <label><span data-he="חב׳">Company</span><input name="companyName" maxlength="100"></label>
                 <label><span data-he="ח.פ.">Company registration number</span><input name="companyNumber" dir="ltr" inputmode="numeric" pattern="[0-9]{9}" maxlength="9"></label>
                 <label><span data-he="כתובת">Address</span><input name="companyAddress" maxlength="150"></label>
                 <label><span data-he="טל׳">Phone number</span><input name="companyPhone" dir="ltr" type="tel" maxlength="25"></label>
               </div>
-            </details>
+            </fieldset>
             <div class="fields following">
               <label class="wide"><span data-he="שם האדם שלו הושכר הרכב">Person to whom the vehicle was rented</span><input name="renter" maxlength="100" required></label>
               <label><span data-he="תאריך ביצוע העסקה ו/או החתימה">Date of transaction and/or signature</span><input name="signedDate" type="date" required></label>

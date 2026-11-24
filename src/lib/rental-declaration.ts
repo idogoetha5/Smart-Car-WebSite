@@ -14,7 +14,7 @@ export const declarationSubmission = z.object({
     street: text(150),
     city: text(80),
     start: z.iso.date(),
-    end: z.iso.date(),
+    end: z.iso.date().or(z.literal('')),
     cardHolder: text(100),
     cardNumber: z.string().max(24).regex(/^[0-9 ]+$/).transform(digitsOnly).refine(luhnValid),
     cardExpiry: z.string().trim().regex(/^(0[1-9]|1[0-2])\/(?:\d{2}|20\d{2})$/).refine((value) => {
@@ -34,10 +34,7 @@ export const declarationSubmission = z.object({
   ]),
 }).superRefine((data, ctx) => {
   const { fields, signature } = data;
-  if (fields.start > fields.end) ctx.addIssue({ code: 'custom', path: ['fields', 'end'], message: 'Invalid rental period' });
-  if (!fields.companyName && (fields.companyNumber || fields.companyAddress || fields.companyPhone)) {
-    ctx.addIssue({ code: 'custom', path: ['fields', 'companyName'], message: 'Company name is required' });
-  }
+  if (fields.end && fields.start > fields.end) ctx.addIssue({ code: 'custom', path: ['fields', 'end'], message: 'Invalid rental period' });
   if (signature.type === 'typed' && signature.name !== fields.name) {
     ctx.addIssue({ code: 'custom', path: ['signature', 'name'], message: 'Signature must match the signer name' });
   }

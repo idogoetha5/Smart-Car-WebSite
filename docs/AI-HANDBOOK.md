@@ -1094,6 +1094,8 @@ Texts in `src/lib/push-messages.ts` (human, polite, short Hebrew; each task type
 
 Change log: 2026-11-24 — preserved the original declaration, added server submission and signature storage, restricted card access, office email and distinct bilingual share previews.
 
+2026-11-24 — The original paper declaration remains the wording source for the signed PDF. The first form step now shows the section 2 company/entity fields without a collapsed panel; each is optional independently. The rental end date is optional in both languages and in server validation, while a supplied end date must still be on or after the start date. A filled company field is copied into section 2 of the signed PDF.
+
 ## 2. Accounts and sessions — read before touching auth
 
 - Table `drivers`: `id, name, pin_hash, active, role ('driver' | 'manager')`. **One person can have two rows**: Ido has a manager row **and** a driver row named "עידו". Tasks are assigned to the **driver** row. Do not delete the manager row "עידו" without his approval.

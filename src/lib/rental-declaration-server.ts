@@ -40,15 +40,18 @@ export async function declarationDocumentHtml(value: DeclarationSubmission): Pro
   const signature = value.signature.type === 'drawn'
     ? '<img class="signature" alt="" src="' + value.signature.png + '">'
     : '<bdi>' + escapeHtml(value.signature.name) + '</bdi>';
-  const populatedTerms = terms.replace(/<span data-(?:en|he)="[^"]*">([^<]*)<\/span>/g, (_match, copy: string) =>
-    copy.replace(/\{(\w+)\}/g, (_placeholder, key: string) => {
+  const populatedTerms = terms.replace(/<span data-(?:en|he)="[^"]*">([^<]*)<\/span>/g, (_match, copy: string) => {
+    const sentence = value.fields.end ? copy : copy
+      .replace(' ומסתיימת ביום {end}', '')
+      .replace(' to {end}', '');
+    return sentence.replace(/\{(\w+)\}/g, (_placeholder, key: string) => {
       if (key === 'signature') return signature;
       if (!Object.prototype.hasOwnProperty.call(value.fields, key)) return '_____';
       const raw = value.fields[key as keyof typeof value.fields];
       const field = key === 'cardNumber' ? maskCard(raw.replace(/\D/g, '').slice(-4)) : raw;
       return '<bdi>' + (field ? escapeHtml(field) : '_____') + '</bdi>';
-    })
-  );
+    });
+  });
   return `<!doctype html><html lang="${value.locale}" dir="${en ? 'ltr' : 'rtl'}"><meta charset="utf-8">
     <style>
     @font-face{font-family:Heebo;src:url(data:font/ttf;base64,${heebo400})} @font-face{font-family:Heebo;src:url(data:font/ttf;base64,${heebo700});font-weight:bold}

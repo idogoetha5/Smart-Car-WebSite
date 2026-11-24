@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { declarationSubmission } from '@/lib/rental-declaration';
 import { declarationDocumentHtml } from '@/lib/rental-declaration-server';
 
@@ -39,5 +41,39 @@ describe('signed rental declaration', () => {
     expect(declarationSubmission.safeParse({ ...fixture, signature: { type: 'typed', name: 'Other' } }).success).toBe(false);
     expect(declarationSubmission.safeParse({ ...fixture, fields: { ...fixture.fields, cardNumber: '4111111111111112' } }).success).toBe(false);
     expect(declarationSubmission.safeParse({ ...fixture, fields: { ...fixture.fields, end: '2029-12-31' } }).success).toBe(false);
+  });
+
+  it('accepts an unspecified rental end date and independently optional company details', async () => {
+    const submission = declarationSubmission.parse({
+      ...fixture,
+      fields: {
+        ...fixture.fields,
+        end: '',
+        companyName: 'חברת דוגמה בע״מ',
+        companyNumber: '',
+        companyAddress: 'רחוב חברה 1',
+        companyPhone: '',
+      },
+    });
+    const html = await declarationDocumentHtml(submission);
+    expect(html).toContain('חברת דוגמה בע״מ');
+    expect(html).toContain('רחוב חברה 1');
+    expect(html).not.toContain('ומסתיימת ביום <bdi>_____</bdi>');
+    expect(html).not.toContain('to <bdi>_____</bdi>');
+    expect(html).not.toContain('Company name is required');
+    expect(declarationSubmission.safeParse({
+      ...fixture,
+      fields: { ...fixture.fields, end: '', companyName: '', companyAddress: 'רחוב חברה 1' },
+    }).success).toBe(true);
+  });
+
+  it.each(['declaration.html', 'declaration-en.html'])('shows optional company details on the first step in %s', async (filename) => {
+    const page = await readFile(join(process.cwd(), 'public/forms', filename), 'utf8');
+    expect(page).toMatch(/<input name="end" type="date">/);
+    expect(page).toMatch(/<fieldset class="form-group company" id="company">/);
+    expect(page).not.toMatch(/<details class="company"/);
+    for (const field of ['companyName', 'companyNumber', 'companyAddress', 'companyPhone']) {
+      expect(page).toContain(`name="${field}"`);
+    }
   });
 });

@@ -77,9 +77,8 @@ input:not([type=checkbox]) { display: block; width: 100%; min-width: 0; height: 
 input[type=date] { min-inline-size: 0; appearance: none; text-align: right; }
 input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--teal); flex: none; margin: 0; }
 .wide { grid-column: 1 / -1; }
-.company { margin-top: 1.3rem; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.company summary { min-height: 49px; padding: .7rem 0; font-weight: bold; cursor: pointer; color: var(--teal); }
-.company .fields { padding-bottom: 1.15rem; }
+.company { margin-top: 1.3rem; }
+.company-note { margin: 0 0 1rem; color: var(--muted); font-size: .9rem; }
 .primary { margin-top: 1.5rem; min-height: 54px; padding: .7rem 1.5rem; border: 0; border-radius: 10px; color: #271508; background: var(--orange); font-weight: bold; }
 .primary:hover { background: #ff9a60; }
 .secondary { min-height: 44px; border: 0; background: transparent; color: var(--teal); padding: .4rem 0; font-weight: bold; text-decoration: underline; text-underline-offset: 3px; }

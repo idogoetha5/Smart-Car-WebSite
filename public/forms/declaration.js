@@ -4,7 +4,6 @@ const form = document.querySelector('#declaration-form');
 const details = document.querySelector('#details');
 const review = document.querySelector('#review');
 const result = document.querySelector('#result');
-const company = document.querySelector('#company');
 const fields = form.elements;
 const detailInputs = [...details.querySelectorAll('input')];
 const reviewData = document.querySelector('#review-data');
@@ -76,8 +75,11 @@ function visibleValue(name) {
 function populateTerms(target, signature) {
   for (const item of target.querySelectorAll('[data-en], [data-he]')) {
     if (!item.textContent.includes('{')) continue;
+    const copy = fields.end.value ? item.textContent : item.textContent
+      .replace(' ומסתיימת ביום {end}', '')
+      .replace(' to {end}', '');
     const output = document.createDocumentFragment();
-    for (const part of item.textContent.split(/(\{\w+\})/g)) {
+    for (const part of copy.split(/(\{\w+\})/g)) {
       const field = part.startsWith('{') ? part.slice(1, -1) : '';
       if (field === 'signature') output.append(signature?.cloneNode(true) ?? '_____');
       else if (field && Object.prototype.hasOwnProperty.call(labels, field)) {
@@ -136,16 +138,12 @@ function checkDetails() {
   for (const input of detailInputs) {
     if (input.type !== 'date') input.value = input.value.trim();
   }
-  fields.end.setCustomValidity(fields.start.value > fields.end.value
+  fields.end.setCustomValidity(fields.end.value && fields.start.value > fields.end.value
     ? tr('תאריך הסיום צריך להיות אחרי תאריך ההתחלה או באותו יום.', 'The end date must be on or after the start date.') : '');
   const cardValid = /^[0-9 ]+$/.test(fields.cardNumber.value) && /^\d{8,19}$/.test(fields.cardNumber.value.replace(/ /g, ''));
   fields.cardNumber.setCustomValidity(cardValid ? '' : tr('יש לבדוק את מספר הכרטיס.', 'Check the card number.'));
   const expiryValid = /^(0[1-9]|1[0-2])\/\d{2}$/.test(fields.cardExpiry.value);
   fields.cardExpiry.setCustomValidity(expiryValid ? '' : tr('יש להזין תוקף בפורמט חודש/שנה.', 'Enter the expiry date as MM/YY.'));
-  const extraFields = ['companyName', 'companyNumber', 'companyAddress', 'companyPhone'];
-  const anyCompanyField = extraFields.some((name) => fields.namedItem(name).value);
-  fields.companyName.required = anyCompanyField;
-  if (!form.checkValidity() && anyCompanyField) company.open = true;
   return form.reportValidity();
 }
 
@@ -357,9 +355,7 @@ form.addEventListener('input', (event) => {
     fields.cardExpiry.value = year ? digits.slice(0, 2) + '/' + year : digits.slice(0, 2);
     fields.cardExpiry.setCustomValidity('');
   }
-  if (company.contains(event.target)) fields.companyName.required = false;
 });
-company.addEventListener('invalid', () => { company.open = true; }, true);
 typedMode.addEventListener('change', updateSignatureMode);
 document.querySelector('#clear').addEventListener('click', clearSignature);
 for (const id of ['edit', 'correct']) {
