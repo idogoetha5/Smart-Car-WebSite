@@ -21,6 +21,19 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
+  it('keeps a contact question open so the next rental request receives a reply', async () => {
+    const chat = memory(message => message === 'יוצרים קשר?'
+      ? { ...base, route: 'human', reply: 'בטח, אנחנו כאן. במה אפשר לעזור?', needsRepresentative: true, groundedContext: true }
+      : { ...base, route: 'book', reply: 'בשמחה, נבדוק רכב מתאים. לאיזה תאריך תחזירו אותו?', needsRepresentative: false, groundedContext: true });
+    const contact = await chat.send('יוצרים קשר?');
+    expect(contact.escalate).toBe(false);
+    expect(contact.state.handedOff).not.toBe(true);
+    expect(contact.reply).not.toMatch(/העברתי|נציג/);
+    const rental = await chat.send('לא דחוף, אבל אני רוצה לסגור רכב ל 23.12 מנתבג');
+    expect(rental.reply).toMatch(/רכב|תאריך/);
+    expect(rental.escalate).toBe(false);
+    expect(rental.state.handedOff).not.toBe(true);
+  });
   it('answers a parking question at the branch and hands a return arrival to a representative', async () => {
     const chat = memory(() => ({ ...base, route: 'social', reply: 'איך אפשר לעזור לך היום?', groundedContext: true }));
     await chat.send('אני פה');

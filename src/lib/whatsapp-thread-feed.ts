@@ -4,6 +4,7 @@ export interface ThreadMessage {
   body: string;
   created_at: string;
   escalated_at: string | null;
+  wa_message_id?: string | null;
 }
 export type ThreadPage = { data: ThreadMessage[]; pagination: { hasMore: boolean; before: number | null; after: number | null } };
 export type ThreadSnapshot = { messages: ThreadMessage[]; hasOlder: boolean };

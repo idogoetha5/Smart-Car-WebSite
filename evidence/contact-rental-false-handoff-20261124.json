@@ -1,0 +1,87 @@
+{
+  "kind": "live-production-simulator-failure",
+  "review": "First contact question incorrectly escalates; subsequent rental request stays in handoff instead of opening intake.",
+  "release": "0c7240d",
+  "sessionId": "contact-rental-incident-1795510651753",
+  "turns": [
+    {
+      "message": "יוצרים קשר?",
+      "status": 200,
+      "reply": "בטח, אנחנו כאן. מה תרצו לדעת? העברתי את זה עכשיו לנציג SmartCar. אם זה דחוף, התקשרו ל־09-9509757.",
+      "escalated": true,
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read human/none patches=[] fields={}",
+        "handoff_model_judgement"
+      ],
+      "state": {
+        "version": 2,
+        "phase": "service",
+        "step": "menu",
+        "locale": "he",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "יוצרים קשר?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בטח, אנחנו כאן. מה תרצו לדעת? העברתי את זה עכשיו לנציג SmartCar. אם זה דחוף, התקשרו ל־09-9509757.",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "handedOff": true,
+        "handoffAt": "2026-11-24T08:57:35.034Z",
+        "handoffKind": "service_issue"
+      }
+    },
+    {
+      "message": "לא דחוף, אבל אני רוצה לסגור רכב ל 23.12 מנתבג",
+      "status": 200,
+      "reply": "בשמחה, אפשר לאסוף את הרכב בנתב\"ג ב־23.12. איזה סוג רכב תרצו לשכור? הפנייה שלכם כבר אצל נציג SmartCar.",
+      "escalated": false,
+      "source": "local",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "reword_rejected: בשמחה! איזה סוג רכב תרצו לשכור מנתב״ג?"
+      ],
+      "state": {
+        "version": 2,
+        "phase": "service",
+        "step": "menu",
+        "locale": "he",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "יוצרים קשר?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בטח, אנחנו כאן. מה תרצו לדעת? העברתי את זה עכשיו לנציג SmartCar. אם זה דחוף, התקשרו ל־09-9509757.",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "לא דחוף, אבל אני רוצה לסגור רכב ל 23.12 מנתבג",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה, אפשר לאסוף את הרכב בנתב\"ג ב־23.12. איזה סוג רכב תרצו לשכור? הפנייה שלכם כבר אצל נציג SmartCar.",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "handedOff": true,
+        "handoffAt": "2026-11-24T08:57:35.034Z",
+        "handoffKind": "service_issue"
+      }
+    }
+  ]
+}

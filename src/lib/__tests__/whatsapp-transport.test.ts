@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { sendWhatsAppMessage } from '@/lib/whatsapp';
+import { getWhatsAppDeliveryStatus, sendWhatsAppMessage } from '@/lib/whatsapp';
 
 afterEach(() => {
   delete process.env.WHATSAPP_TRANSPORT;
@@ -75,7 +75,7 @@ describe('YCloud WhatsApp transport', () => {
 
     const result = await sendWhatsAppMessage('+972 50 123 4567', 'שלום מ־SmartCar');
 
-    expect(result).toEqual({ ok: true, waMessageId: 'wamid.ycloud-outbound-1', status: 200, outcome: 'accepted' });
+    expect(result).toEqual({ ok: true, waMessageId: 'ycloud-message-id', status: 200, outcome: 'accepted' });
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.ycloud.com/v2/whatsapp/messages/sendDirectly',
       expect.objectContaining({
@@ -89,6 +89,16 @@ describe('YCloud WhatsApp transport', () => {
         }),
       })
     );
+  });
+
+  it('reads final device delivery from YCloud instead of equating acceptance with delivery', async () => {
+    configure();
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: 'ycloud-message-id', status: 'failed', errorCode: '131026' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await getWhatsAppDeliveryStatus('ycloud-message-id')).toEqual({ status: 'failed', errorCode: '131026' });
+    expect(fetchMock).toHaveBeenCalledWith('https://api.ycloud.com/v2/whatsapp/messages/ycloud-message-id', expect.objectContaining({ headers: { 'X-API-Key': 'local-test-key' } }));
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ id: 'ycloud-message-id', status: 'delivered' }), { status: 200 }));
+    expect(await getWhatsAppDeliveryStatus('ycloud-message-id')).toEqual({ status: 'delivered' });
   });
 
   it('sends selectable topics only for a greeting', async () => {

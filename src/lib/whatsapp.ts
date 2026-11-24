@@ -85,7 +85,9 @@ async function sendYCloud(recipient: string, body: string): Promise<SendWhatsApp
     }),
   }, data => {
     const value = data as { id?: unknown; wamid?: unknown } | null;
-    const id = value?.wamid ?? value?.id;
+    // Keep YCloud's own ID: GET /v2/whatsapp/messages/{id} uses it to
+    // reconcile the later device-delivery receipt. The wamid is different.
+    const id = value?.id ?? value?.wamid;
     return typeof id === 'string' && id.length > 0 ? id : null;
   });
 }
@@ -124,5 +126,27 @@ export async function sendWhatsAppMessage(to: string, body: string): Promise<Sen
   } catch {
     console.error('[whatsapp][ALERT] transport configuration unavailable; message not sent');
     return { ok: false, waMessageId: null, status: null, outcome: 'not_sent' };
+  }
+}
+
+export type WhatsAppDeliveryStatus = 'accepted' | 'sent' | 'delivered' | 'read' | 'failed' | 'unknown';
+
+/** Read-only reconciliation. A successful direct-send response is not proof of delivery. */
+export async function getWhatsAppDeliveryStatus(messageId: string): Promise<{ status: WhatsAppDeliveryStatus; errorCode?: string }> {
+  if (process.env.WHATSAPP_TRANSPORT !== 'ycloud' || !/^[A-Za-z0-9._-]{1,128}$/.test(messageId)) return { status: 'unknown' };
+  const apiKey = process.env.WHATSAPP_YCLOUD_API_KEY;
+  if (!apiKey) return { status: 'unknown' };
+  try {
+    const response = await fetch(`https://api.ycloud.com/v2/whatsapp/messages/${encodeURIComponent(messageId)}`, {
+      headers: { 'X-API-Key': apiKey }, signal: AbortSignal.timeout(SEND_DEADLINE_MS),
+    });
+    if (!response.ok) return { status: 'unknown' };
+    const data = await response.json() as { status?: unknown; errorCode?: unknown };
+    const status = data.status;
+    if (status !== 'accepted' && status !== 'sent' && status !== 'delivered' && status !== 'read' && status !== 'failed') return { status: 'unknown' };
+    const errorCode = typeof data.errorCode === 'string' && /^[A-Za-z0-9_-]{1,32}$/.test(data.errorCode) ? data.errorCode : undefined;
+    return { status, ...(status === 'failed' && errorCode ? { errorCode } : {}) };
+  } catch {
+    return { status: 'unknown' };
   }
 }

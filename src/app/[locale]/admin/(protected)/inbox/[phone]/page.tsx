@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { fetcher } from '@/lib/swr';
 import { WhatsAppThreadFeed, type ThreadMessage as Message, type ThreadPage } from '@/lib/whatsapp-thread-feed';
@@ -45,6 +45,8 @@ export default function AdminInboxThreadPage() {
   const [sending, setSending] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [deliveryId, setDeliveryId] = useState<string | null>(null);
+  const [deliveryStatus, setDeliveryStatus] = useState<Record<string, string>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const nearBottom = useRef(true);
   const prepend = useRef<{ top: number; height: number } | null>(null);
@@ -56,6 +58,28 @@ export default function AdminInboxThreadPage() {
       prepend.current = null;
     } else if (nearBottom.current && scroll) scroll.scrollTop = scroll.scrollHeight;
   }, [messages.length]);
+
+  const checkDelivery = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/whatsapp/conversations/${encodeURIComponent(phone)}?delivery=${encodeURIComponent(id)}`, { signal: AbortSignal.timeout(10000) });
+      if (!response.ok) throw new Error('status unavailable');
+      const json = await response.json() as { data?: { status?: string; errorCode?: string } };
+      const status = json.data?.status ?? 'unknown';
+      setDeliveryStatus(previous => ({ ...previous, [id]: status }));
+      if (status === 'failed') setActionError(`ההודעה לא נמסרה ללקוח${json.data?.errorCode ? ` (קוד ${json.data.errorCode})` : ''}. יש להשיב דרך WhatsApp Business או להתקשר; אין לשלוח שוב אוטומטית.`);
+    } catch {
+      setDeliveryStatus(previous => ({ ...previous, [id]: 'unknown' }));
+    }
+  };
+
+  useEffect(() => {
+    if (!deliveryId) return;
+    // The API first confirms acceptance. Device delivery is asynchronous.
+    const timers = [1000, 5000, 15000].map(delay => window.setTimeout(() => void checkDelivery(deliveryId), delay));
+    return () => timers.forEach(window.clearTimeout);
+    // The ID changes only after a new representative send.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deliveryId, phone]);
 
   const loadOlder = async () => {
     if (loadingOlder) return;
@@ -81,13 +105,18 @@ export default function AdminInboxThreadPage() {
         signal: AbortSignal.timeout(15000),
       });
       if (!res.ok) {
-        setActionError('השליחה לא אושרה. הטיוטה נשמרה; יש לבדוק את השיחה לפני ניסיון נוסף.');
+        const failure = await res.json().catch(() => null) as { error?: string } | null;
+        setActionError(failure?.error ?? 'השליחה לא אושרה. הטיוטה נשמרה; יש לבדוק את השיחה לפני ניסיון נוסף.');
       } else {
         const sent = await res.json().catch(() => null);
         setDraft('');
+        if (typeof sent?.data?.messageId === 'string') {
+          setDeliveryStatus(previous => ({ ...previous, [sent.data.messageId]: 'accepted' }));
+          setDeliveryId(sent.data.messageId);
+        }
         nearBottom.current = true;
         if (sent?.data?.historySynced === false) setActionError('השליחה אושרה, אך ההודעה עדיין לא מוצגת בשיחה. אין לשלוח שוב.');
-        await mutate().catch(() => setActionError('ההודעה נשלחה, אך לא הצלחנו לעדכן את ההיסטוריה כרגע. אין צורך לשלוח שוב.'));
+        await mutate().catch(() => setActionError('הספק קיבל את ההודעה, אך לא הצלחנו לעדכן את ההיסטוריה. בדקו מסירה לפני ניסיון נוסף.'));
       }
     } catch {
       setActionError('לא התקבל אישור מסירה. הטיוטה נשמרה; יש לבדוק אם ההודעה נשלחה לפני ניסיון נוסף.');
@@ -121,6 +150,13 @@ export default function AdminInboxThreadPage() {
           <div key={m.id} className={`max-w-[85%] rounded-2xl px-4 py-2 flex flex-col ${BUBBLE_STYLE[m.source]}`}>
             <span className="text-[11px] text-gray-400 mb-0.5">{SOURCE_LABEL[m.source]}</span>
             <p className="whitespace-pre-wrap break-words">{m.body}</p>
+            {m.source === 'human_reply' && m.wa_message_id && (
+              <button type="button" onClick={() => void checkDelivery(m.wa_message_id!)} className="mt-1 min-h-11 self-start text-xs underline text-[#2D5F5F]">
+                {deliveryStatus[m.wa_message_id] === 'delivered' || deliveryStatus[m.wa_message_id] === 'read' ? 'נמסר ללקוח ✓' :
+                  deliveryStatus[m.wa_message_id] === 'failed' ? 'המסירה נכשלה — בדוק שוב' :
+                  deliveryStatus[m.wa_message_id] === 'accepted' || deliveryStatus[m.wa_message_id] === 'sent' ? 'ממתין לאישור מסירה — בדוק שוב' : 'בדוק מסירה ללקוח'}
+              </button>
+            )}
             <span className="text-[11px] text-gray-400 mt-1 self-end">{formatTime(m.created_at)}</span>
           </div>
         ))}

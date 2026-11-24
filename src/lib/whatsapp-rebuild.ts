@@ -68,6 +68,7 @@ const FINAL_CONSENT = /^(?:(?:אוקיי?|אוקי|טוב|סבבה|יאללה|כ
 const PRIVATE_PAYMENT_DETAIL = /מספר (?:כרטיס|אשראי)|קוד אבטחה|\b(?:full card|(?:credit )?card number|security code|CVV|CVC)\b/i;
 const PRICE_OR_AVAILABILITY = /מחיר|(?<![לב])עלות|כמה.{0,12}(?:עול|יעל)|(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:prices?|cost|rate|available|availability)\b/iu;
 const AVAILABILITY_ONLY = /(?<![\p{L}])(?:זמין|זמינות|פנוי|פנויה)|\b(?:available|availability|in stock)\b/iu;
+const CONTACT_AVAILABILITY_QUESTION = /^(?:יוצרים קשר|אפשר ליצור (?:איתכם )?קשר|איך (?:אפשר )?ליצור איתכם קשר|איך (?:אפשר )?לדבר איתכם|can i contact you|how (?:can|do) i (?:contact|reach) you)\s*[?.!؟]?$/iu;
 const MONTHS: Record<string, number> = { ינואר: 1, פברואר: 2, מרץ: 3, אפריל: 4, מאי: 5, יוני: 6, יולי: 7, אוגוסט: 8, ספטמבר: 9, אוקטובר: 10, נובמבר: 11, דצמבר: 12, january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12 };
 const EXPLICIT_RANGE = new RegExp(`(\\d{1,2})\\s*(?:עד|[-–]|to|until)\\s*(\\d{1,2})\\s+(?:ב)?(${Object.keys(MONTHS).join('|')})(?:\\s+(20\\d{2}))?`, 'iu');
 
@@ -2489,7 +2490,18 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         },
       };
       reading = await (store.readTurn ?? readBotTurn)(redactServiceReference(input, state.serviceReference), modelContext);
-      if (reading) { modelNeedsRepresentative = reading.needsRepresentative === true; modelRoute = reading.route; model = reading.model; if (store.isSimulation) draftNotes.push(`read ${reading.route}/${reading.direction} patches=${JSON.stringify(reading.factPatches ?? []).slice(0, 400)} fields=${JSON.stringify(reading.fields ?? {}).slice(0, 200)}`); applyFields(input, state, reading); }
+      if (reading) {
+        // A question about how to reach us is not permission to transfer the
+        // conversation. Gemini sometimes labels "יוצרים קשר?" as human and
+        // asks for a representative even though the customer has no case yet.
+        const contactAvailabilityQuestion = CONTACT_AVAILABILITY_QUESTION.test(input.trim());
+        if (contactAvailabilityQuestion) reading = { ...reading, needsRepresentative: false };
+        modelNeedsRepresentative = reading.needsRepresentative === true;
+        modelRoute = reading.route;
+        model = reading.model;
+        if (store.isSimulation) draftNotes.push(`read ${reading.route}/${reading.direction} patches=${JSON.stringify(reading.factPatches ?? []).slice(0, 400)} fields=${JSON.stringify(reading.fields ?? {}).slice(0, 200)}`);
+        applyFields(input, state, reading);
+      }
       // A length said earlier ("לחודש", "for 5 days") gives the return as soon as the start is known, before the reply asks for it.
       if (state.booking.pickupDate && !state.booking.returnDate && !state.interest && state.phase !== 'service') {
         const days = [...state.history.filter(entry => entry.from === 'customer').map(entry => entry.text), input].map(text => statedDurationDays(text.replace(/\b(?:in|ב)\s*(?:january|february|march|april|may|june|july|august|september|october|november|december|ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\b/giu, ''))).filter((value): value is number => Boolean(value)).at(-1);
@@ -3386,7 +3398,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   // has goes to a representative immediately, with the office number in case it is urgent). The model decides;
   // the application performs the handoff the model cannot perform itself.
   const modelAsksForPerson = modelNeedsRepresentative && !/מה (?:קורה|עושים) אם|what (?:happens )?if|(?:^|\s)אם\s|\bif\b/iu.test(input);
-  if (source === 'gemini' && !escalate && !state.handedOff && !state.completedRequestId && (modelAsksForPerson
+  if (source === 'gemini' && !escalate && !state.handedOff && !state.completedRequestId
+    && !CONTACT_AVAILABILITY_QUESTION.test(input.trim()) && (modelAsksForPerson
     || !state.interest && (state.phase === 'service' || modelRoute === 'service' || modelRoute === 'human')
     && /נציג(?:\s+(?:של\s+)?SmartCar)?\s+(?:יחזור|יצור|ייצור|יטפל|יבדוק|יעבור על|יעדכן)|(?:representative|someone from (?:our|the) team|our team)\s+will\s+(?:get back|be in touch|contact|call|handle|look into|review|check|update)/iu.test(reply))) {
     state.phase = 'service'; state.handedOff = true; state.handoffAt = new Date().toISOString();

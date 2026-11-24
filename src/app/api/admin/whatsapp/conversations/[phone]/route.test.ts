@@ -1,18 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-const mocks = vi.hoisted(() => ({ authenticated: true, failed: false, rows: [] as { id: number; body: string; source: string; created_at: string; escalated_at: null }[], queried: vi.fn(), send: vi.fn(), log: vi.fn(), incident: vi.fn() }));
-vi.mock('@/lib/whatsapp', () => ({ sendWhatsAppMessage: mocks.send }));
+const mocks = vi.hoisted(() => ({ authenticated: true, failed: false, rows: [] as { id: number; body: string; source: string; created_at: string; escalated_at: null; wa_message_id?: string }[], queried: vi.fn(), send: vi.fn(), delivery: vi.fn(), log: vi.fn(), incident: vi.fn() }));
+vi.mock('@/lib/whatsapp', () => ({ sendWhatsAppMessage: mocks.send, getWhatsAppDeliveryStatus: mocks.delivery }));
 vi.mock('@/lib/whatsapp-conversations', () => ({ logWhatsAppMessage: mocks.log }));
 vi.mock('@/lib/whatsapp-incidents', () => ({ reportBotIncident: mocks.incident }));
 vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => ({ value: 'fictional' }) }) }));
 vi.mock('@/lib/admin-auth', () => ({ verifyAdminToken: async () => mocks.authenticated, verifyInboxToken: async () => false }));
 vi.mock('@/lib/supabase/server', () => ({ createAdminClient: () => ({ from: () => {
   mocks.queried(); let before = Infinity; let after = 0; let ascending = false;
+  const filters: Record<string, string> = {};
   const chain = {
-    select: () => chain, eq: () => chain,
+    select: () => chain, eq: (field: string, value: string) => { filters[field] = value; return chain; },
+    maybeSingle: async () => ({ data: mocks.rows.find(row => row.source === filters.source && (filters.wa_message_id === undefined || row.wa_message_id === filters.wa_message_id)) ?? null, error: null }),
     lt: (_field: string, value: string) => { before = Number(value); return chain; },
     gt: (_field: string, value: string) => { after = Number(value); return chain; },
     order: (_field: string, options: { ascending: boolean }) => { ascending = options.ascending; return chain; },
-    limit: async (limit: number) => ({ data: mocks.rows.filter(row => row.id > after && row.id < before).sort((a, b) => ascending ? a.id - b.id : b.id - a.id).slice(0, limit), error: mocks.failed ? { message: 'unavailable' } : null }),
+    limit: (limit: number) => Object.assign(Promise.resolve({ data: mocks.rows.filter(row => row.id > after && row.id < before).sort((a, b) => ascending ? a.id - b.id : b.id - a.id).slice(0, limit), error: mocks.failed ? { message: 'unavailable' } : null }), {
+      maybeSingle: async () => ({ data: mocks.rows.find(row => row.source === filters.source && (filters.wa_message_id === undefined || row.wa_message_id === filters.wa_message_id)) ?? null, error: null }),
+    }),
   }; return chain;
 } }) }));
 import { GET, POST } from './route';
@@ -22,6 +26,7 @@ beforeEach(() => {
   mocks.send.mockReset().mockResolvedValue({ ok: true, waMessageId: 'fictional-provider-id', status: 200, outcome: 'accepted' });
   mocks.log.mockReset().mockResolvedValue(true);
   mocks.incident.mockReset().mockResolvedValue(true);
+  mocks.delivery.mockReset().mockResolvedValue({ status: 'delivered' });
   mocks.rows = Array.from({ length: 1020 }, (_, i) => ({ id: i + 1, body: `fictional ${i + 1}`, source: 'customer_inbound', created_at: '2030-01-01T00:00:00Z', escalated_at: null }));
 });
 
@@ -45,16 +50,29 @@ describe('human reply delivery acknowledgement', () => {
     expect(mocks.log).not.toHaveBeenCalled();
     expect(mocks.incident).toHaveBeenCalledWith('delivery_failed');
   });
+  it('refuses a free-form reply after the customer service window expires', async () => {
+    mocks.rows = [{ id: 1, body: 'old fictional message', source: 'customer_inbound', created_at: '2020-01-01T00:00:00Z', escalated_at: null }];
+    const response = await send();
+    expect(response.status).toBe(409);
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
   it('keeps a positively accepted send acknowledged even if history persistence fails', async () => {
     mocks.log.mockRejectedValue(new Error('simulated database outage'));
     mocks.incident.mockRejectedValue(new Error('simulated notification outage'));
     const response = await send();
     expect(response.status).toBe(200);
-    expect((await response.json()).data).toEqual({ ok: true, historySynced: false });
+    expect((await response.json()).data).toEqual({ ok: true, historySynced: false, messageId: 'fictional-provider-id' });
     expect(mocks.send).toHaveBeenCalledTimes(1);
   });
 });
 describe('authenticated thread cursor API', () => {
+  it('checks delivery only for a representative message in this thread', async () => {
+    mocks.rows.push({ id: 1021, body: 'fictional reply', source: 'human_reply', created_at: '2030-01-01T00:00:00Z', escalated_at: null, wa_message_id: 'provider-id' });
+    const result = await call('?delivery=provider-id');
+    expect((await result.json()).data).toEqual({ status: 'delivered' });
+    expect(mocks.delivery).toHaveBeenCalledWith('provider-id');
+    expect((await call('?delivery=other-id')).status).toBe(404);
+  });
   it('returns newest 100, ascending for display, with no-store headers', async () => {
     const response = await call(); const json = await response.json();
     expect(json.data[0].id).toBe(921); expect(json.data.at(-1).id).toBe(1020);

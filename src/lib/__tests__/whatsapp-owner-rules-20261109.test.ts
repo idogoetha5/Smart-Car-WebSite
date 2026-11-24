@@ -687,18 +687,26 @@ describe('extension check requested without an explicit offer', () => {
 // an invoice promise, and "great, book it. mark stein, 45, …" did not start intake.
 describe('english business trip to Jerusalem', () => {
   it('stores the route, does not promise an invoice and starts intake', async () => {
-    const c = chat(null, 'Yes, we can issue an invoice for your company. Anything else?', 'en');
-    const first = await c.send('hi need a car in jerusalem for a work trip, mon nov 23 morning to wed nov 25, same place');
-    expect(first.state.booking).toMatchObject({ pickupLocation: 'Jerusalem', returnLocation: 'Jerusalem', pickupDate: '2026-11-23', returnDate: '2026-11-25' });
-    const invoice = await c.send('nothing fancy. can i get an invoice for my company?');
-    expect(invoice.reply).not.toMatch(/we can issue an invoice/i);
-    expect(invoice.reply).toMatch(/representative/i);
-    expect(invoice.state.booking.vehicleNeed).toBe('compact car');
-    const go = await c.send('great, book it. mark stein, 45, mark.stein@example.com');
-    expect(go.state.phase).toBe('booking');
-    expect(go.state.booking.customerName).toBe('mark stein');
-    expect(go.state.booking.driverAgeRange).toBe('24-plus');
-    expect(go.state.booking.customerEmail).toBe('mark.stein@example.com');
+    // The fixture's Monday 23 November is in 2026; keep it ahead of "today"
+    // so the rolling-year date parser does not move it to 2027.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-09T12:00:00Z'));
+    try {
+      const c = chat(null, 'Yes, we can issue an invoice for your company. Anything else?', 'en');
+      const first = await c.send('hi need a car in jerusalem for a work trip, mon nov 23 morning to wed nov 25, same place');
+      expect(first.state.booking).toMatchObject({ pickupLocation: 'Jerusalem', returnLocation: 'Jerusalem', pickupDate: '2026-11-23', returnDate: '2026-11-25' });
+      const invoice = await c.send('nothing fancy. can i get an invoice for my company?');
+      expect(invoice.reply).not.toMatch(/we can issue an invoice/i);
+      expect(invoice.reply).toMatch(/representative/i);
+      expect(invoice.state.booking.vehicleNeed).toBe('compact car');
+      const go = await c.send('great, book it. mark stein, 45, mark.stein@example.com');
+      expect(go.state.phase).toBe('booking');
+      expect(go.state.booking.customerName).toBe('mark stein');
+      expect(go.state.booking.driverAgeRange).toBe('24-plus');
+      expect(go.state.booking.customerEmail).toBe('mark.stein@example.com');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
