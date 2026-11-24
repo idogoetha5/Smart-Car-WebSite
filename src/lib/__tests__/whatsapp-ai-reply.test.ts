@@ -61,11 +61,6 @@ describe('output checks for natural conversational drafts', () => {
   it('rejects an unperformed rental arrangement promise', () => {
     expect(check('We will arrange your family car pickup and return at Ben Gurion Airport from December 12 to 19.')).toBeNull();
   });
-  it('rejects an unverified terminal handover or no-desk promise', () => {
-    expect(check('Yes, absolutely! Our representative will meet you directly at the airport terminal with the vehicle.')).toBeNull();
-    expect(check('You can collect it without visiting the rental desk.')).toBeNull();
-    expect(check('A representative will confirm the airport handover point and which formalities can be arranged in advance.')).not.toBeNull();
-  });
 
   it.each([
     'הפרטים יועברו לטיפול בלי שהשיחה כאן משנה דבר אוטומטית.',

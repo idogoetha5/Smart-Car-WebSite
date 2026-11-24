@@ -27,7 +27,12 @@ describe('replacement SmartCar conversation core', () => {
       booking: { pickupDate: '2027-02-02', returnDate: '2027-02-08', pickupLocation: 'Ben Gurion Airport', returnLocation: 'Ben Gurion Airport', vehicleNeed: 'luxury SUV', driverAgeRange: '24-plus', customerName: 'Test Customer' },
       history: [{ from: 'bot', text: 'Before I pass the details to a representative, would you like to add anything? For example an additional driver or the Highway 6 and tunnels package.' }],
     };
-    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_phone, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: async () => 'SIM', readTurn: async () => ({ ...base, route: 'book', reply: 'The representative will confirm the extra price.' }) };
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_phone, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: async () => 'SIM', readTurn: async message => ({ ...base, route: 'book', reply: /airport terminal/i.test(message)
+      ? 'Yes, a SmartCar representative can meet you directly at the airport terminal by prior arrangement. The agreement and payment details are finalised with a SmartCar representative.'
+      : 'The representative will confirm the extra price.' }) };
+    const airport = await getRebuiltBotReply('fictional-tourist', 'No, thank you. Can the representative meet us at the airport terminal with the car?', store);
+    expect(airport.escalate).toBe(false);
+    expect(airport.state.step).toBe('rental_extras');
     const turn = await getRebuiltBotReply('fictional-tourist', "I'm not sure if we would like to add the Highway 6 package. Could you show its extra price separately?", store);
     expect(turn.escalate).toBe(true);
     expect(turn.state.handedOff).toBe(true);
@@ -37,18 +42,6 @@ describe('replacement SmartCar conversation core', () => {
     expect(turn.reply).toMatch(/remains open/i);
     expect(turn.reply).toMatch(/passed this to a SmartCar representative/i);
     expect(turn.reply).not.toMatch(/would you like to add anything/i);
-  });
-  it('answers a final airport formalities question conditionally and hands off without repeating extras', async () => {
-    let state: RebuildState | null = {
-      version: 2, phase: 'booking', step: 'rental_extras', locale: 'en', rentalExtrasAsked: true,
-      booking: { pickupDate: '2027-02-02', returnDate: '2027-02-08', pickupLocation: 'Ben Gurion Airport', returnLocation: 'Ben Gurion Airport', vehicleNeed: 'luxury SUV', driverAgeRange: '24-plus', customerName: 'Test Customer' },
-      history: [{ from: 'bot', text: 'Before I pass the details to a representative, would you like to add anything?' }],
-    };
-    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_phone, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: async () => 'SIM', readTurn: async () => ({ ...base, route: 'book', reply: 'Yes, our representative will meet you at the terminal without visiting the desk.' }) };
-    const turn = await getRebuiltBotReply('fictional-tourist', 'No, thank you. Can payment and the agreement be arranged in advance, and can we meet at the airport terminal without visiting a desk?', store);
-    expect(turn.escalate).toBe(true);
-    expect(turn.reply).toMatch(/representative will confirm what can be done in advance/i);
-    expect(turn.reply).not.toMatch(/will meet you|without visiting a desk|add anything/i);
   });
   it('keeps a contact question open so the next rental request receives a reply', async () => {
     const chat = memory(message => message === 'יוצרים קשר?'

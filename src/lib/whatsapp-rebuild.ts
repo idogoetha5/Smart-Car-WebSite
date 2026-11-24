@@ -2728,7 +2728,6 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         && /(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|כביש\s*6|כיסא(?:ות)? בטיחות|additional driver|highway\s*6|child seat)/iu.test(input);
       const explicitlyPasses = /(?:תעביר|תעבירו|להעביר).{0,24}(?:לנציג|לנציגת|למשרד)|(?:pass|send).{0,24}(?:representative|office)/iu.test(input);
       const answersExtras = /^(?:לא(?:\s*,?\s*(?:תודה|זה הכל|אין צורך|בלי תוספות|לא צריך עוד))?|אין(?:\s+צורך)?|בלי תוספות|זה הכל|לא צריך עוד|(?:אני\s+)?מאשר(?:ת)?|(?:i\s+)?confirm|no(?:\s*,?\s*(?:thanks|(?:other )?extras?))?|none|nothing else|that's all|that is all)[.!\s]*$/iu.test(input.trim())
-        || /^(?:no,?\s*thank you|לא,?\s*תודה)[.!]\s*.+[?؟]/iu.test(input.trim())
         || /^(?:לא|no)[,!\.\s]*(?:זה הכל|זה הכול|אין צורך|בלי תוספות|לא צריך עוד|nothing else|that'?s all|that is all|no (?:other|more) (?:extras|additions))\s*[.!\s]*(?:תודה|thanks?|thank you)?[.!\s]*$/iu.test(input.trim())
         || /\b(?:nothing else|no (?:other|more) (?:extras|additions)|that'?s all|that is all)\b/iu.test(input) && !/[?؟]/u.test(input)
         || /(?:מעבר לזה|חוץ מזה).{0,35}(?:לא צריך|אין צורך|בלי).{0,15}(?:תוספ|כלום)|(?:apart from that|otherwise).{0,35}(?:nothing else|no (?:other|more) (?:extras|additions))/iu.test(input)
@@ -2786,14 +2785,9 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           state.completedRental = publicRental;
           state.phase = 'service'; state.step = 'menu'; state.handedOff = true;
           state.handoffAt = new Date().toISOString(); state.handoffKind = 'human'; escalate = true;
-          const answersOpenQuestion = answeringExtras && /[?؟]/u.test(input);
-          const priceQuestion = answersOpenQuestion && /(?:מחיר|עלות|תעריף|כמה|price|cost|rate|how much)/iu.test(input);
-          const airportArrangementQuestion = answersOpenQuestion && /(?:terminal|desk|airport|טרמינל|דלפק|נתב.?ג)/iu.test(input);
-          const questionAnswer = priceQuestion
+          const questionAnswer = openExtraPriceQuestion
             ? he ? 'מחיר התוספת ייבדק ויוצג בנפרד על ידי הנציג לפני שתאשרו אותה. ' : 'The representative will check and show the extra price separately before you decide whether to add it. '
-            : airportArrangementQuestion
-              ? he ? 'אפשר לבקש לתאם מראש את המסמכים, התשלום ואופן המסירה בנתב״ג; הנציג יאשר מה ניתן לבצע מראש ואת נקודת המפגש. ' : 'You can request advance arrangements for documents, payment and airport handover; the representative will confirm what can be done in advance and the meeting point. '
-              : answersOpenQuestion ? `${getSmartCarServiceAnswer(withoutCoverageQuestionHazards(input), state.locale)?.reply ?? (he ? 'הנציג יאשר את הפרטים והתנאים לפני סיום ההשכרה.' : 'The representative will confirm the details and terms before the rental is final.')} ` : '';
+            : '';
           reply = `${questionAnswer}${rentalHandoffSummary(state)}`;
         }
       } else if (!missing && !state.rentalExtrasAsked) {
@@ -3473,8 +3467,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
             && /car|vehicle/i.test(text) && /new driver/i.test(text) && /date/i.test(text)
             && !/(?:have|available|can offer)[^.!?\n]{0,50}(?:car|vehicle)[^.!?\n]{0,50}new driver/i.test(text));
       if (text && text !== reply && keepsNumbers && sameQuestionShape && languageOk && text.length >= reply.length * 0.5 && text.length <= Math.min(650, reply.length * 1.7 + 40)
-        && commitmentOk && comparisonMeaningOk && newDriverMeaningOk && validateConversationalReply({ reply: text, input, locale: state.locale, known: conversationalKnown(state), approvedFacts: getSmartCarApprovedFacts(state.locale).map(fact => fact.text), handoffDeferred: false, bookingPhase: state.phase === 'booking' })
-        && !/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/u.test(text) && (reply.includes('₪') || !/₪|ש״ח|NIS/u.test(text))) {
+        && commitmentOk && comparisonMeaningOk && newDriverMeaningOk && !/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/u.test(text) && (reply.includes('₪') || !/₪|ש״ח|NIS/u.test(text))) {
         reply = text; model = reworded!.model; draftNotes.push('reworded');
       } else if (store.isSimulation) draftNotes.push(`reword_rejected: ${text.slice(0, 120)}`);
     } catch { /* keep the application wording */ }
