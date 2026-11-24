@@ -24,7 +24,10 @@ const translatedNodes = [...document.querySelectorAll('[data-en], [data-en-aria]
   heTitle: node.dataset.heTitle ?? node.getAttribute('title'),
   enTitle: node.dataset.enTitle ?? node.getAttribute('title'),
 }));
-const preview = location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+const preview = !['www.smartcar.co.il', 'smartcar.co.il'].includes(location.hostname);
+const submitButton = document.querySelector('#submit-declaration');
+const verification = document.querySelector('#verification');
+const deliveryStatus = document.querySelector('#delivery-status');
 
 const labels = {
   name: ['שם מלא', 'Full name'],
@@ -33,7 +36,10 @@ const labels = {
   city: ['עיר', 'City'],
   start: ['תחילת ההשכרה', 'Rental start date'],
   end: ['סיום ההשכרה', 'Rental end date'],
-  paymentRef: ['אסמכתת תשלום', 'Payment reference'],
+  cardHolder: ['המחזיק הרשום בכרטיס אשראי', 'Registered cardholder'],
+  cardNumber: ['מספר כרטיס אשראי', 'Card number'],
+  cardExpiry: ['תוקף', 'Card expiry'],
+  signedDate: ['תאריך ביצוע העסקה ו/או החתימה', 'Date of transaction and/or signature'],
   renter: ['השוכר לפי החוזה', 'Renter named in the agreement'],
   companyName: ['שם החברה או הגוף', 'Company or entity name'],
   companyNumber: ['מספר ח.פ.', 'Company registration number'],
@@ -45,6 +51,12 @@ let step = 0;
 let activePointer = null;
 let hasInk = false;
 let english = document.documentElement.lang === 'en';
+let submissionId;
+let portalLoad;
+let widget;
+let verificationToken;
+let officeNotified;
+let submitting = false;
 
 function tr(he, en) {
   return english ? en : he;
@@ -53,6 +65,30 @@ function tr(he, en) {
 function displayDate(value) {
   if (english) return new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(value));
   return value.split('-').reverse().join('.');
+}
+
+function visibleValue(name) {
+  const value = fields.namedItem(name).value;
+  if (name === 'cardNumber') return value ? '•••• ' + value.replace(/\D/g, '').slice(-4) : '';
+  return value && ['start', 'end', 'signedDate'].includes(name) ? displayDate(value) : value;
+}
+
+function populateTerms(target, signature) {
+  for (const item of target.querySelectorAll('[data-en], [data-he]')) {
+    if (!item.textContent.includes('{')) continue;
+    const output = document.createDocumentFragment();
+    for (const part of item.textContent.split(/(\{\w+\})/g)) {
+      const field = part.startsWith('{') ? part.slice(1, -1) : '';
+      if (field === 'signature') output.append(signature?.cloneNode(true) ?? '_____');
+      else if (field && Object.prototype.hasOwnProperty.call(labels, field)) {
+        const value = document.createElement('bdi');
+        value.className = 'printed-field';
+        value.textContent = visibleValue(field) || '_____';
+        output.append(value);
+      } else output.append(part);
+    }
+    item.replaceChildren(output);
+  }
 }
 
 function renderDetails() {
@@ -64,12 +100,17 @@ function renderDetails() {
     const key = document.createElement('dt');
     const entry = document.createElement('dd');
     key.textContent = tr(...label);
-    entry.textContent = name === 'start' || name === 'end' ? displayDate(value) : value;
+    entry.textContent = visibleValue(name);
     entry.dir = 'auto';
     row.append(key, entry);
     list.append(row);
   }
   reviewData.replaceChildren(list);
+  const terms = document.querySelector('.terms');
+  for (const { node, he, en } of translatedNodes) {
+    if (terms.contains(node)) node.textContent = tr(he, en);
+  }
+  populateTerms(terms);
 }
 
 function showStep(nextStep) {
@@ -86,7 +127,9 @@ function showStep(nextStep) {
     if (index === step) item.setAttribute('aria-current', 'step');
     else item.removeAttribute('aria-current');
   });
-  document.querySelector(['#details-title', '#review-title', '#result-title'][step]).focus();
+  const heading = document.querySelector(['#details-title', '#review-title', '#result-title'][step]);
+  heading.focus({ preventScroll: true });
+  heading.scrollIntoView({ block: 'start' });
 }
 
 function checkDetails() {
@@ -95,11 +138,10 @@ function checkDetails() {
   }
   fields.end.setCustomValidity(fields.start.value > fields.end.value
     ? tr('תאריך הסיום צריך להיות אחרי תאריך ההתחלה או באותו יום.', 'The end date must be on or after the start date.') : '');
-  const ref = fields.paymentRef.value.normalize('NFKC');
-  const digitRuns = ref.match(/\d[\d\s\-‐‑–—]{11,}\d/g) ?? [];
-  const looksLikeCard = digitRuns.some((part) => part.replace(/\D/g, '').length >= 13);
-  fields.paymentRef.setCustomValidity(looksLikeCard
-    ? tr('יש להזין אסמכתה בלבד. נראה שהוזן מספר כרטיס.', 'Enter the payment reference only. This looks like a card number.') : '');
+  const cardValid = /^[0-9 ]+$/.test(fields.cardNumber.value) && /^\d{8,19}$/.test(fields.cardNumber.value.replace(/ /g, ''));
+  fields.cardNumber.setCustomValidity(cardValid ? '' : tr('יש לבדוק את מספר הכרטיס.', 'Check the card number.'));
+  const expiryValid = /^(0[1-9]|1[0-2])\/\d{2}$/.test(fields.cardExpiry.value);
+  fields.cardExpiry.setCustomValidity(expiryValid ? '' : tr('יש להזין תוקף בפורמט חודש/שנה.', 'Enter the expiry date as MM/YY.'));
   const extraFields = ['companyName', 'companyNumber', 'companyAddress', 'companyPhone'];
   const anyCompanyField = extraFields.some((name) => fields.namedItem(name).value);
   fields.companyName.required = anyCompanyField;
@@ -163,38 +205,82 @@ function createDocument(typedName) {
   const logo = document.querySelector('.identity img').cloneNode(true);
   const title = document.createElement('h1');
   title.textContent = preview
-    ? tr('הצהרה והתחייבות · דוגמה', 'Declaration and undertaking · Demo')
-    : tr('הצהרה והתחייבות', 'Declaration and undertaking');
-  const data = reviewData.cloneNode(true);
-  data.removeAttribute('id');
-  const terms = document.querySelector('.terms').cloneNode(true);
-  const signature = document.createElement('section');
-  signature.className = 'document-signature';
-  const stamp = document.createElement('p');
-  const date = new Intl.DateTimeFormat(tr('he-IL', 'en-GB'), { dateStyle: 'medium', timeZone: 'Asia/Jerusalem' });
-  stamp.textContent = tr('תאריך החתימה לפי שעון ישראל: ', 'Date signed (Israel time): ') + date.format(new Date());
-  const confirmation = document.createElement('p');
-  confirmation.textContent = document.querySelector('.confirm span').textContent;
-  signature.append(stamp, confirmation);
+    ? tr('הצהרה והתחיבות · דוגמה', 'Declaration and undertaking · Demo')
+    : tr('הצהרה והתחיבות', 'Declaration and undertaking');
+  const sourceTerms = document.querySelector('.terms');
+  const terms = sourceTerms.cloneNode(true);
+  const translatedTerms = [...terms.querySelectorAll('[data-en], [data-he]')];
+  translatedNodes.filter(({ node }) => sourceTerms.contains(node)).forEach(({ he, en }, index) => {
+    translatedTerms[index].textContent = tr(he, en);
+  });
   if (typedMode.checked) {
-    const name = document.createElement('p');
-    name.textContent = tr('חתימה בהקלדה: ', 'Typed signature: ') + typedName;
-    signature.append(name);
+    const name = document.createElement('bdi');
+    name.textContent = typedName;
+    populateTerms(terms, name);
   } else {
     const picture = document.createElement('img');
     picture.src = canvas.toDataURL('image/png');
     picture.alt = tr('חתימת החותם', 'Signer’s signature');
-    signature.append(picture);
+    populateTerms(terms, picture);
   }
-  signedDocument.replaceChildren(logo, title, data, terms, signature);
+  signedDocument.dir = document.documentElement.dir;
+  signedDocument.lang = document.documentElement.lang;
+  signedDocument.replaceChildren(logo, title, terms);
 }
 
-form.addEventListener('submit', (event) => {
+function showError(he, en) {
+  error.textContent = tr(he, en);
+  error.hidden = false;
+}
+
+async function loadVerification() {
+  if (preview || widget !== undefined || portalLoad) return;
+  verification.hidden = false;
+  portalLoad = (async () => {
+    const response = await fetch('/api/declaration', { cache: 'no-store' });
+    const config = await response.json();
+    if (!response.ok || !config.siteKey) throw new Error('Missing verification setup');
+    if (!window.turnstile) {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        script.addEventListener('load', resolve, { once: true });
+        script.addEventListener('error', () => { script.remove(); reject(); }, { once: true });
+        document.head.append(script);
+      });
+    }
+    widget = window.turnstile.render(verification, {
+      sitekey: config.siteKey,
+      language: tr('he', 'en'),
+      callback: (token) => { verificationToken = token; error.hidden = true; },
+      'expired-callback': () => { verificationToken = undefined; },
+      'error-callback': () => { verificationToken = undefined; return true; },
+    });
+  })();
+  try {
+    await portalLoad;
+  } catch {
+    showError('אימות השליחה לא נטען. אפשר לנסות לשלוח שוב.', 'Verification could not load. Try submitting again.');
+  } finally {
+    portalLoad = undefined;
+  }
+}
+
+function showDelivery() {
+  deliveryStatus.textContent = preview
+    ? tr('זו תצוגת ניסיון. העותק לא נשלח.', 'This is a demo. Your copy was not sent.')
+    : officeNotified
+      ? tr('הטופס נשמר והועבר לשליחה למשרד.', 'The form was saved and sent to the office email service.')
+      : tr('הטופס נשמר במערכת של סמארט קאר.', 'The form was saved in SmartCar’s system.');
+}
+
+form.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (step === 0) {
     if (!checkDetails()) return;
     renderDetails();
     showStep(1);
+    void loadVerification();
     return;
   }
   const typedName = fields.typedSignature.value.trim();
@@ -206,13 +292,70 @@ form.addEventListener('submit', (event) => {
     error.hidden = false;
     return;
   }
+  if (submitting) return;
+  if (!preview) {
+    if (!verificationToken) {
+      showError('יש להשלים את האימות לפני השליחה.', 'Complete the verification before submitting.');
+      void loadVerification();
+      return;
+    }
+    submitting = true;
+    submitButton.disabled = true;
+    review.inert = true;
+    submitButton.setAttribute('aria-busy', 'true');
+    languageButton.disabled = true;
+    document.querySelector('#edit').disabled = true;
+    try {
+      submissionId ??= crypto.randomUUID();
+      const response = await fetch('/api/declaration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: submissionId, locale: tr('he', 'en'), confirmed: fields.confirmed.checked, token: verificationToken,
+          fields: Object.fromEntries(detailInputs.map((input) => [input.name, input.value])),
+          signature: typedMode.checked ? { type: 'typed', name: typedName } : { type: 'drawn', png: canvas.toDataURL('image/png') },
+        }),
+      });
+      const receipt = await response.json();
+      if (!response.ok) {
+        if (receipt.error === 'invalid') {
+          showError('יש לבדוק את פרטי הטופס, לרבות מספר הכרטיס והתוקף.', 'Check the form details, including the card number and expiry.');
+        } else showError('לא הצלחנו להשלים את השליחה. אפשר לנסות שוב.', 'The form could not be submitted. Please try again.');
+        return;
+      }
+      officeNotified = receipt.officeNotified;
+    } catch {
+      showError('לא הצלחנו להשלים את השליחה. אפשר לנסות שוב.', 'The form could not be submitted. Please try again.');
+      return;
+    } finally {
+      submitting = false;
+      verificationToken = undefined;
+      if (widget !== undefined) window.turnstile.reset(widget);
+      submitButton.disabled = false;
+      review.inert = false;
+      submitButton.removeAttribute('aria-busy');
+      languageButton.disabled = false;
+      document.querySelector('#edit').disabled = false;
+    }
+  }
   createDocument(typedName);
+  fields.cardNumber.value = '';
+  showDelivery();
   showStep(2);
 });
 
 form.addEventListener('input', (event) => {
   if (event.target === fields.start || event.target === fields.end) fields.end.setCustomValidity('');
-  if (event.target === fields.paymentRef) fields.paymentRef.setCustomValidity('');
+  if (event.target === fields.cardNumber) {
+    fields.cardNumber.value = fields.cardNumber.value.replace(/\D/g, '').slice(0, 19).replace(/(\d{4})(?=\d)/g, '$1 ');
+    fields.cardNumber.setCustomValidity('');
+  }
+  if (event.target === fields.cardExpiry) {
+    const digits = fields.cardExpiry.value.replace(/\D/g, '');
+    const year = digits.length === 6 ? digits.slice(4) : digits.slice(2, 4);
+    fields.cardExpiry.value = year ? digits.slice(0, 2) + '/' + year : digits.slice(0, 2);
+    fields.cardExpiry.setCustomValidity('');
+  }
   if (company.contains(event.target)) fields.companyName.required = false;
 });
 company.addEventListener('invalid', () => { company.open = true; }, true);
@@ -221,6 +364,7 @@ document.querySelector('#clear').addEventListener('click', clearSignature);
 for (const id of ['edit', 'correct']) {
   document.querySelector('#' + id).addEventListener('click', () => {
     clearSignature();
+    submissionId = undefined;
     showStep(0);
   });
 }
@@ -229,7 +373,7 @@ languageButton.addEventListener('click', () => {
   english = !english;
   document.documentElement.lang = tr('he', 'en');
   document.documentElement.dir = tr('rtl', 'ltr');
-  document.title = tr('הצהרה והתחייבות | SmartCar', 'Declaration and undertaking | SmartCar');
+  document.title = tr('הצהרה והתחיבות | SmartCar', 'Declaration and undertaking | SmartCar');
   languageButton.textContent = tr('English', 'עברית');
   languageButton.lang = tr('en', 'he');
   languageButton.setAttribute('aria-label', tr('Switch to English', 'מעבר לעברית'));
@@ -240,8 +384,11 @@ languageButton.addEventListener('click', () => {
   }
   document.querySelector('footer a').href = 'https://www.smartcar.co.il/' + tr('he', 'en') + '/contact';
   fields.end.setCustomValidity('');
-  fields.paymentRef.setCustomValidity('');
+  fields.cardNumber.setCustomValidity('');
+  fields.cardExpiry.setCustomValidity('');
   if (step === 0) return;
+  if (step === 2) { showDelivery(); return; }
+  submissionId = undefined;
   clearSignature();
   renderDetails();
   showStep(1);

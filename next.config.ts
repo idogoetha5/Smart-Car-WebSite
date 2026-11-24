@@ -83,6 +83,7 @@ const nextConfig: NextConfig = {
     '/api/whatsapp/simulator/route': ['./node_modules/@sparticuz/chromium/bin/**'],
     // Signed inspection PDF is rendered inside the customer-signing POST.
     '/api/inspections/sign/route': ['./node_modules/@sparticuz/chromium/bin/**'],
+    '/api/declaration': ['./node_modules/@sparticuz/chromium/bin/**', './public/forms/declaration*.html'],
   },
   images: {
     remotePatterns: [

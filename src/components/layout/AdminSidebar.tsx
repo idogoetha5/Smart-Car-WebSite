@@ -109,6 +109,7 @@ export default function AdminSidebar() {
     { href: `/${locale}/admin/inbox`, label: isHe ? 'וואטסאפ' : 'WhatsApp inbox', icon: MessagesSquare },
     { href: `/${locale}/admin/leads`, label: isHe ? 'פניות ולידים' : 'Leads & enquiries', icon: Table2 },
     { href: `/${locale}/admin/customer-details`, label: isHe ? 'טפסי לקוחות' : 'Customer forms', icon: ClipboardList },
+    { href: `/${locale}/admin/declarations`, label: isHe ? 'הצהרות חתומות' : 'Signed declarations', icon: FileText },
     { href: `/${locale}/admin/drivers`, label: isHe ? 'נהגים' : 'Drivers', icon: Users },
     { href: `/${locale}/admin/reviews`, label: isHe ? 'ביקורות' : 'Reviews', icon: Star },
     { href: `/${locale}/admin/quote-history`, label: isHe ? 'היסטוריית הצעות מחיר' : 'Quote history', icon: History },

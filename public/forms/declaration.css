@@ -143,3 +143,23 @@ footer { color: var(--muted); font-size: .93rem; }
   .document-signature { break-inside: avoid; border-top: 1px solid #aaa; padding-top: .45rem; }
   .document-signature img { width: 190px; height: auto; }
 }
+
+.following { margin-top: 1rem; }
+.printed-field { font-weight: bold; color: #153e40; overflow-wrap: anywhere; }
+.terms .last-signer { margin-block: 1.15rem .2rem; }
+#verification:not([hidden]) { margin-block-start: .85rem; max-width: 100%; }
+@media print {
+  .terms .last-signer { break-inside: avoid; }
+  .terms img { display: inline-block; width: 145px; height: auto; vertical-align: middle; margin: 0; }
+}
+
+.form-group { margin: 0 0 1rem; padding: .75rem .85rem .9rem; border: 1px solid var(--line); border-radius: 12px; min-inline-size: 0; }
+.form-group > legend { padding-inline: .45rem; color: var(--teal); font-weight: bold; }
+@media (max-width: 470px) {
+  .form-group { padding-inline: 0; border-inline: 0; border-block-end: 0; border-radius: 0; margin-bottom: .7rem; }
+  .form-group > legend { padding-inline-start: 0; }
+  #verification { overflow: auto; }
+}
+
+.panel-header h2 { scroll-margin-block-start: 1rem; }
+#submit-declaration[aria-busy=true] { opacity: .65; cursor: wait; }

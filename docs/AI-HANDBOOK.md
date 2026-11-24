@@ -1090,10 +1090,9 @@ Texts in `src/lib/push-messages.ts` (human, polite, short Hebrew; each task type
 
 ## Digital rental declaration
 
-2026-11-24 — Prepared a bilingual Hebrew and English declaration and undertaking at "/declaration" and "/declaration/en" with static WhatsApp Open Graph tags and artwork. Entered data and the signature stay in the browser. The signer can print or save a PDF and return it to the SmartCar contact. The form uses a payment reference from the payment system in place of card data. Confirm the payment-reference wording and signed-copy workflow before customer use.
+2026-11-24 — The Hebrew and English declarations live at `/declaration` and `/declaration/en`. Their entry and signing flow reproduces the original wording and fields, reusing same-person data where the original repeats an identity. After verification, the server creates an immutable PDF with the card number masked, stores it with the entered details, and emails the PDF to the office. The full number is encrypted using the existing card key. It can be revealed only in the protected admin declarations section; each reveal is logged. The workflow does not ask for CVV. Emails contain only a masked card number. The admin list can retry office email when the provider did not accept a message.
 
-Change log: 2026-11-24 — added the declaration form and both language-specific share cards; production publication pending.
-
+Change log: 2026-11-24 — preserved the original declaration, added server submission and signature storage, restricted card access, office email and distinct bilingual share previews.
 
 ## 2. Accounts and sessions — read before touching auth
 
