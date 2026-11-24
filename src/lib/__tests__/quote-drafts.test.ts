@@ -54,6 +54,9 @@ const leasing: QuoteData = {
 };
 
 describe("office draft persistence contract", () => {
+  it('does not offer the retired highway package in new rental quotes', () => {
+    expect(RENTAL_EXTRA_PRESETS.map(extra => extra.id)).not.toContain('highway6');
+  });
   it("restores a partial rental without altering quote number, validity, addresses or extras", () => {
     expect(
       decodeQuoteDraft(

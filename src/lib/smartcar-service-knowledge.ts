@@ -86,8 +86,8 @@ export const ANSWERS: Record<ServiceKnowledgeTopic, LocalisedAnswer> = {
   },
   toll_roads: {
     topic: 'toll_roads', href: '/terms', linkLabelHe: 'לתנאי ההשכרה', linkLabelEn: 'Rental terms',
-    he: 'אפשר לנסוע בכביש 6 ובנתיב המהיר. האגרות על חשבון השוכר, גם אם החיוב מגיע אחרי החזרת הרכב. אפשר להוסיף להזמנה את חבילת כביש 6 ומנהרות; נציג SmartCar יסגור מולכם את הפרטים. לשאלה דחופה התקשרו למשרד.',
-    en: 'You can drive on Highway 6 and the Fast Lane. Tolls are paid by the renter, even if the charge arrives after the car is returned. You can add the Highway 6 and tunnels package to the booking; a SmartCar representative will finalise the details. For anything urgent, call our office.',
+    he: 'אפשר לנסוע בכביש 6 ובנתיב המהיר. האגרות על חשבון השוכר, גם אם החיוב מגיע אחרי החזרת הרכב. אין חבילת כבישי אגרה להוספה להזמנה. לשאלה דחופה התקשרו למשרד.',
+    en: 'You can drive on Highway 6 and the Fast Lane. Tolls are paid by the renter, even if the charge arrives after the car is returned. There is no toll-road package to add to the booking. For anything urgent, call our office.',
   },
   availability: {
     topic: 'availability', href: '/terms', linkLabelHe: 'לתנאי הזמינות', linkLabelEn: 'Availability terms',

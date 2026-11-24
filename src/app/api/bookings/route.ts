@@ -20,7 +20,6 @@ import { isoToday } from '@/lib/rental-quote';
 
 const EXTRAS_PRICE: Record<string, number> = {
   insurance: 45,
-  highway6: 35,
   baby_seat: 20,
   driver: 25,
 };
@@ -28,14 +27,12 @@ const EXTRAS_PRICE: Record<string, number> = {
 /** Labels for the add-ons listed in the customer emails. */
 const EXTRAS_LABELS_HE: Record<string, string> = {
   insurance: 'הפחתה או ביטול השתתפות בנזק',
-  highway6:  'חבילת כביש 6 ומנהרות',
   baby_seat: 'כיסא בטיחות לילד',
   driver:    'נהג נוסף',
 };
 
 const EXTRAS_LABELS_EN: Record<string, string> = {
   insurance: 'Damage-excess reduction or waiver',
-  highway6:  'Highway 6 and tunnels package',
   baby_seat: 'Child safety seat',
   driver:    'Additional driver',
 };

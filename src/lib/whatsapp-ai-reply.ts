@@ -80,6 +80,10 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   const reject = (reason: string): null => { args.onReject?.(reason); return null; };
   const reply = args.reply?.trim();
   if (!reply) return reject('empty');
+  for (const sentence of reply.split(/[.!?؟\n]/u)) {
+    if (/(?:חבילת (?:כביש\s*6|כבישי אגרה|מנהרות)|(?:highway\s*6(?: and tunnels)?|toll[- ]road) package)/iu.test(sentence)
+      && !/(?:אין|לא קיימ|לא מציע|אינה מוצעת|אינו מוצע|\b(?:no|not|don['’]?t|doesn['’]?t|unavailable)\b)/iu.test(sentence)) return reject('retired_toll_package');
+  }
   if (asksRentalAgeTerms(input) && !/\bage\b|\b21\b|young[- ]driver|licen[cs]e|גיל|רישיון|נהג צעיר/i.test(reply)) return reject('unanswered_age_terms');
   if (asksRentalAgeTerms(input) && /deposit|פיקדון/i.test(input) && !/deposit|card hold|פיקדון/i.test(reply)) return reject('unanswered_deposit');
   if (reply.length > 650) return reject('too_long');

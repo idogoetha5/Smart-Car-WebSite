@@ -62,6 +62,11 @@ describe('bookingRequestSchema', () => {
       expect(result.success).toBe(false);
     });
 
+    it('rejects the retired highway package for new bookings', () => {
+      expect(BOOKING_EXTRAS).not.toContain('highway6');
+      expect(bookingRequestSchema.safeParse(validPayload({ extras: ['highway6'] })).success).toBe(false);
+    });
+
     it('keeps every add-on the pricing table knows', () => {
       const result = bookingRequestSchema.safeParse(
         validPayload({ extras: [...BOOKING_EXTRAS] }),

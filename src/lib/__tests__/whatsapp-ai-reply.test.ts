@@ -5,6 +5,12 @@ const base: ConversationalReplyInput = { reply: '', input: '', locale: 'en', kno
 const check = (reply: string, rest: Partial<ConversationalReplyInput> = {}) => validateConversationalReply({ ...base, ...rest, reply });
 
 describe('output checks for natural conversational drafts', () => {
+  it('rejects an offer of the retired toll package while allowing a toll-liability answer', () => {
+    expect(check('You can add the Highway 6 and tunnels package.')).toBeNull();
+    expect(check('Would you like the toll-road package?')).toBeNull();
+    expect(check('אפשר להוסיף חבילת כביש 6 ומנהרות.', { locale: 'he' })).toBeNull();
+    expect(check('There is no toll-road package. Tolls are paid by the renter.')).not.toBeNull();
+  });
   it('rejects the observed false monthly conversion even when the number appears in policy context', () => {
     const onReject = vi.fn();
     const reply = '18 אלף ק״מ בשנה שקולים לכ־2,500 ק״מ לכל 30 יום.';

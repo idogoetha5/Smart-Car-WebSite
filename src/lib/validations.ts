@@ -65,7 +65,7 @@ export const bookingSchema = z
   .refine(dropoffAfterPickup, dropoffAfterPickupError);
 
 /** Add-ons the server knows how to price. Anything else is not an add-on. */
-export const BOOKING_EXTRAS = ['insurance', 'highway6', 'baby_seat', 'driver'] as const;
+export const BOOKING_EXTRAS = ['insurance', 'baby_seat', 'driver'] as const;
 
 /**
  * What `POST /api/bookings` accepts — every key, not just the form's.

@@ -256,7 +256,7 @@ describe('rental additions and contact in one reply', () => {
     expect(result.reply).not.toMatch(/כיסא בטיחות/u);
   });
 
-  it('summarizes and hands off a rental when the last extra stays undecided', async () => {
+  it('summarizes without the retired toll package when a customer asks about it', async () => {
     let state: RebuildState | null = {
       version: 2, phase: 'booking', step: 'rental_extras', locale: 'he', rentalExtrasAsked: true,
       booking: {
@@ -265,7 +265,7 @@ describe('rental additions and contact in one reply', () => {
         vehicleNeed: 'רכב משפחתי', passengers: 3, luggage: 2,
         driverAgeRange: '24-plus', customerName: 'עומר ברק', childSeats: 0,
       },
-      history: [{ from: 'bot', text: 'לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו? למשל נהג נוסף, חבילת כביש 6 ומנהרות. אם לא, אפשר פשוט לכתוב "לא".' }],
+      history: [{ from: 'bot', text: 'לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו? למשל נהג נוסף. אם לא, אפשר פשוט לכתוב "לא".' }],
     };
     const store: RebuildStore = {
       isSimulation: true,
@@ -275,14 +275,14 @@ describe('rental additions and contact in one reply', () => {
       createRentalRequest: async () => { throw new Error('handoff must not create an order'); },
       readTurn: async () => null,
     };
-    const result = await getRebuiltBotReply('fictional-hebrew', 'כביש 6 אולי, אבל עוד לא החלטתי. אפשר להשאיר את זה פתוח לנציג? מעבר לזה לא צריך שום תוספת.', store);
+    const result = await getRebuiltBotReply('fictional-hebrew', 'אפשר להוסיף חבילת כביש 6? מעבר לזה לא צריך שום תוספת.', store);
     expect(result.state.handedOff).toBe(true);
     expect(result.state.handoffKind).toBe('human');
-    expect(result.state.booking.tollPackageUndecided).toBe(true);
-    expect(result.state.booking.tollPackage).not.toBe(true);
-    expect(result.state.completedRental?.tollPackageUndecided).toBe(true);
+    expect(result.state.booking.tollPackageUndecided).toBeUndefined();
+    expect(result.state.booking.tollPackage).toBeUndefined();
+    expect(result.state.completedRental?.tollPackageUndecided).toBeUndefined();
     expect(result.reply).toMatch(/סיכום הפנייה/u);
-    expect(result.reply).toMatch(/כביש 6 נשאר להחלטה מול הנציג/u);
+    expect(result.reply).toMatch(/אין לנו חבילת כבישי אגרה/u);
     expect(result.reply).toMatch(/עומר ברק/u);
   });
 

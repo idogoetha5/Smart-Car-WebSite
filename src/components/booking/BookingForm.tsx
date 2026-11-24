@@ -50,20 +50,6 @@ const EXTRAS = [
     popular: true,
   },
   {
-    id: 'highway6',
-    name: 'חבילת כביש 6 ומנהרות',
-    nameEn: 'Highway 6 and tunnels package',
-    // Interim wording only. "נסיעות ללא הגבלה" must not be used until an
-    // operational document confirms exactly which roads, tunnels, lanes,
-    // tolls and handling fees the package covers.
-    description: 'שירות לטיפול בחיובי כביש 6 ומנהרות, בהתאם לתנאי החבילה.',
-    descriptionEn: 'A service for handling Highway 6 and tunnel charges, subject to the package terms.',
-    price: 35,
-    priceLabel: '₪35/יום',
-    icon: '🛣️',
-    popular: true,
-  },
-  {
     id: 'baby_seat',
     name: 'כיסא בטיחות לילד',
     nameEn: 'Child safety seat',
