@@ -1,0 +1,143 @@
+{
+  "kind": "live-production-simulator-retest",
+  "release": "a397997",
+  "sessionId": "contact-rental-fixed-1795511068130",
+  "turns": [
+    {
+      "message": "יוצרים קשר?",
+      "status": 200,
+      "reply": "בשמחה! אפשר לעזור בהשכרת רכב, ליסינג או מכירה?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "יוצרים קשר?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה! אפשר לעזור בהשכרת רכב, ליסינג או מכירה?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read social/none patches=[] fields={}"
+      ]
+    },
+    {
+      "message": "לא דחוף, אבל אני רוצה לסגור רכב ל 23.12 מנתבג",
+      "status": 200,
+      "reply": "נתאם את האיסוף מנתבג לתאריך 23.12. רק לידיעתכם, על איסוף או החזרה בנתב״ג יש תוספת, והסכום נסגר מול נציג SmartCar. איזה סוג רכב תרצו לשכור?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-23",
+          "pickupLocation": "נתב״ג"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "יוצרים קשר?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה! אפשר לעזור בהשכרת רכב, ליסינג או מכירה?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "לא דחוף, אבל אני רוצה לסגור רכב ל 23.12 מנתבג",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "נתאם את האיסוף מנתבג לתאריך 23.12. רק לידיעתכם, על איסוף או החזרה בנתב״ג יש תוספת, והסכום נסגר מול נציג SmartCar. איזה סוג רכב תרצו לשכור?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read book/none patches=[{\"field\":\"rentalPickupBranch\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"מנתבג\",\"value\":\"airport\"}] fields={\"pickupDate\":{\"value\":\"2026-12-23\",\"evidence\":\"23.12\"},\"pickupLocation\":{\"value\":\"נתבג\",\"evidence\":\"מנתבג\"}}"
+      ]
+    },
+    {
+      "message": "אני צריך רכב משפחתי ל־4 אנשים, אחזיר אותו ב־27.12",
+      "status": 200,
+      "reply": "להחזיר גם בנתב״ג?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_locations",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-23",
+          "pickupLocation": "נתב״ג",
+          "passengers": 4,
+          "returnDate": "2026-12-27",
+          "vehicleNeed": "רכב משפחתי"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "יוצרים קשר?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה! אפשר לעזור בהשכרת רכב, ליסינג או מכירה?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "לא דחוף, אבל אני רוצה לסגור רכב ל 23.12 מנתבג",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "נתאם את האיסוף מנתבג לתאריך 23.12. רק לידיעתכם, על איסוף או החזרה בנתב״ג יש תוספת, והסכום נסגר מול נציג SmartCar. איזה סוג רכב תרצו לשכור?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "אני צריך רכב משפחתי ל־4 אנשים, אחזיר אותו ב־27.12",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "להחזיר גם בנתב״ג?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "4ed08c3a-47e6-4b7b-aef9-5ba997597683"
+      },
+      "source": "local",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read book/family patches=[{\"field\":\"rentalVehicleCategory\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"רכב משפחתי\",\"value\":\"family\"}] fields={\"returnDate\":{\"value\":\"2026-12-27\",\"evidence\":\"ב־27.12\"},\"vehicleNeed\":{\"value\":\"רכב משפחתי\",\"evidence\":\"רכב משפחתי\"},\"passengers\":{\"value\":\"4\",\"evidence\":\"ל־4 אנשים\"}}"
+      ]
+    }
+  ]
+}
