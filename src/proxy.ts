@@ -86,6 +86,9 @@ const OLD_PATH_REDIRECTS: Record<string, string> = {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Keep each declaration share URL independent of locale detection.
+  if (pathname === '/declaration' || pathname === '/declaration/en') return NextResponse.next();
+
   // Branch managers' short link (shared on WhatsApp): one hop straight to
   // the manager login — before next-intl, which would otherwise send it to
   // /he/manager first — so link previews resolve.

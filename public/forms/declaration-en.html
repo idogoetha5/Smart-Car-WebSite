@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex, follow">
+  <meta name="theme-color" content="#092b2d">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'none'; base-uri 'none'">
+  <title>Declaration and undertaking | SmartCar</title>
+  <meta name="description" content="SmartCar rental declaration and undertaking. Enter your details, review the declaration and sign on your phone.">
+  <link rel="canonical" href="https://www.smartcar.co.il/declaration/en">
+  <link rel="alternate" hreflang="he" href="https://www.smartcar.co.il/declaration">
+  <link rel="alternate" hreflang="en" href="https://www.smartcar.co.il/declaration/en">
+  <meta property="og:locale:alternate" content="he_IL">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_GB">
+  <meta property="og:site_name" content="SmartCar">
+  <meta property="og:title" content="SmartCar | Declaration and Undertaking">
+  <meta property="og:description" content="Enter the rental details, review the declaration and sign directly on your phone.">
+  <meta property="og:url" content="https://www.smartcar.co.il/declaration/en">
+  <meta property="og:image" content="https://www.smartcar.co.il/forms/declaration-share-en-v1.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="SmartCar rental declaration and undertaking">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="/forms/declaration.css">
+  <script src="/forms/declaration.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="site-header">
+      <a class="identity" href="https://www.smartcar.co.il/" aria-label="SmartCar home" data-he-aria="SmartCar – לאתר החברה">
+        <img src="/images/logo.png" width="94" height="42" alt="SmartCar">
+      </a>
+      <div class="header-actions">
+        <button class="language" id="language" type="button" lang="he" aria-label="מעבר לעברית" disabled>עברית</button>
+        <a class="support" href="tel:+97299509757"><span class="support-label"><span data-he="עזרה במילוי">Need help?</span></span> <span class="support-number" dir="ltr">09-9509757</span></a>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="eyebrow"><i aria-hidden="true"></i><span data-he="מסמכי השכרת רכב">Rental documents</span></p>
+          <h1 id="page-title"><span data-he="הצהרה והתחייבות">Declaration &amp; undertaking</span><i aria-hidden="true">.</i></h1>
+          <p><span data-he="ממלאים את פרטי ההשכרה, קוראים את ההצהרה וחותמים ישירות מהטלפון.">Enter the rental details, review the declaration and sign on your phone.</span></p>
+        </div>
+        <img class="hero-car" src="/images/hero-car.webp" alt="" width="650" height="444">
+      </section>
+
+      <noscript><p class="preview-note">כדי למלא ולחתום יש לפתוח את הקובץ בדפדפן ולהפעיל JavaScript. <span lang="en" dir="ltr">To fill in and sign, open this file in a browser with JavaScript enabled.</span></p></noscript>
+
+      <div class="workspace" id="document">
+        <aside class="sidebar">
+          <nav aria-label="Form steps" data-he-aria="שלבי מילוי">
+            <ol class="steps">
+              <li data-step="0" aria-current="step"><span>1</span><div><strong><span data-he="מילוי פרטים">Enter details</span></strong><small><span data-he="החותם ותקופת ההשכרה">Signer and rental period</span></small></div></li>
+              <li data-step="1"><span>2</span><div><strong><span data-he="עיון וחתימה">Review and sign</span></strong><small><span data-he="אישור ושמירת העתק">Confirm and save a copy</span></small></div></li>
+            </ol>
+          </nav>
+          <p class="privacy-note"><span data-he="הפרטים שממלאים נשארים בדפדפן עד לשמירת העותק במכשיר.">Your details stay in this browser until you save a copy on your device.</span></p>
+        </aside>
+
+        <form id="declaration-form" class="panel" autocomplete="off" method="post" action="#document">
+          <section id="details" aria-labelledby="details-title">
+            <header class="panel-header">
+              <aside class="preview-note" role="note" hidden><span data-he="תצוגת ניסיון. יש להשתמש בפרטים פיקטיביים בלבד.">Demo. Use fictional details only.</span></aside>
+              <h2 id="details-title" tabindex="-1"><span data-he="פרטי ההשכרה והחותם">Rental and signer details</span></h2>
+              <p><span data-he="יש למלא את פרטי האדם שחותם על ההתחייבות.">Enter the details of the person signing the undertaking.</span></p>
+            </header>
+            <div class="fields">
+              <label><span data-he="שם מלא">Full name</span><input name="name" required maxlength="100"></label>
+              <label><span data-he="מספר תעודת זהות">Israeli ID number</span><input name="idNumber" dir="ltr" inputmode="numeric" pattern="[0-9]{9}" maxlength="9" title="9 digits, including leading zeros" data-he-title="9 ספרות כולל אפסים מובילים" required aria-describedby="id-help"><small id="id-help"><span data-he="9 ספרות, כולל אפסים מובילים">9 digits, including leading zeros</span></small></label>
+              <label><span data-he="רחוב ומספר בית">Street and house number</span><input name="street" maxlength="150" required></label>
+              <label><span data-he="עיר">City</span><input name="city" maxlength="80" required></label>
+              <label><span data-he="תחילת תקופת ההשכרה">Rental start date</span><input name="start" type="date" required></label>
+              <label><span data-he="סיום תקופת ההשכרה">Rental end date</span><input name="end" type="date" required></label>
+              <label class="wide"><span data-he="אסמכתת תשלום ממערכת הסליקה">Payment reference</span><input name="paymentRef" maxlength="80" required aria-describedby="payment-help"><small id="payment-help"><span data-he="יש להזין אסמכתה שקיבלתם מסמארט קאר בלבד. אין להזין מספר כרטיס, תוקף או קוד אבטחה.">Use the reference provided by SmartCar. Do not enter your card number, expiry date or security code.</span></small></label>
+              <label class="wide"><span data-he="למי הושכר הרכב לפי החוזה">Renter named in the rental agreement</span><input name="renter" maxlength="100" required></label>
+            </div>
+            <details class="company" id="company">
+              <summary><span data-he="פרטי חברה או גוף נוסף, אם רלוונטי">Company or other entity details, if applicable</span></summary>
+              <div class="fields">
+                <label><span data-he="שם החברה או הגוף">Company or entity name</span><input name="companyName" maxlength="100"></label>
+                <label><span data-he="מספר ח.פ.">Company registration number</span><input name="companyNumber" dir="ltr" inputmode="numeric" pattern="[0-9]{9}" maxlength="9"></label>
+                <label><span data-he="כתובת">Address</span><input name="companyAddress" maxlength="150"></label>
+                <label><span data-he="טלפון">Phone number</span><input name="companyPhone" dir="ltr" type="tel" maxlength="25"></label>
+              </div>
+            </details>
+            <button class="primary" id="continue" type="submit" disabled><span data-he="להמשך לעיון וחתימה">Continue to review and sign</span></button>
+            <p class="privacy-note mobile-privacy"><span data-he="הפרטים שממלאים נשארים בדפדפן עד לשמירת העותק במכשיר.">Your details stay in this browser until you save a copy on your device.</span></p>
+          </section>
+
+          <section id="review" aria-labelledby="review-title" hidden>
+            <header class="panel-header">
+              <h2 id="review-title" tabindex="-1"><span data-he="עיון וחתימה">Review and sign</span></h2>
+              <p><span data-he="יש לעבור על הפרטים ועל סעיפי ההצהרה לפני החתימה.">Please review your details and the declaration before signing.</span></p>
+            </header>
+            <dl class="review-data" id="review-data"></dl>
+            <button type="button" class="secondary" id="edit"><span data-he="עריכת הפרטים">Edit details</span></button>
+            <article class="terms">
+              <h3><span data-he="הצהרה והתחייבות">Declaration and undertaking</span></h3>
+              <p><strong><span data-he="לכבוד סמארט קאר 2008 בע״מ">To Smart Car 2008 Ltd.</span></strong></p>
+              <ol>
+                <li><span data-he="אני הח״מ, שפרטיי מצוינים בטופס זה, מאשר את כל הסכומים אשר תחייבוני בגין השכרת כל כלי הרכב אשר אני ו/או מי מטעמי אשכור ו/או שכרתי מכם, בתקופה המצוינת בטופס זה כמופיע במסמכי השכרה, וזאת בהתאם למחירים המופיעים על גבי חוזה ההשכרה ו/או חשבונית ההשכרה ו/או על פי כרטיס הנהלת החשבונות שלכם ובהתאם לכל תנאי השכירות המפורטים משני צידי החוזה ו/או על פי חשבונית ההשכרה, לרבות תשלומים בגין שירותים נלווים ולרבות תשלומים בגין נזקים לכלי הרכב.">I, the undersigned, whose details appear in this form, authorize all charges for the rental of any vehicles that I or anyone acting on my behalf rent or have rented from you during the period specified in this form and shown in the rental documents. These charges are subject to the prices set out in the rental agreement and/or rental invoice and/or your accounting records, and to all rental terms printed on both sides of the agreement and/or appearing on the rental invoice, including charges for additional services and damage to the vehicles.</span></li>
+                <li><span data-he="התחייבות זו תקפה לכל חוזי ההשכרה הממשיכים לחוזה הנ״ל וכוללת גם רכבים חילופיים במידה ויהיו כאלה.">This undertaking applies to all rental agreements that continue the above agreement, including any replacement vehicles.</span>
+                  <p><span data-he="התחייבות זו תקפה גם לכל ההשכרות שיבוצעו על ידי האנשים / גופים שפרטיהם צוינו בטופס, ככל שצוינו. לפיכך הריני ערב לכל חובות הגופים האמורים כלפיכם בין אם לפי חוק הערבות ובין אם לפי דיני השטרות וזאת לכל חוב חוזי ו/או שטרי לפי העניין.">This undertaking also applies to all rentals made by the persons or entities identified in this form, if any. I therefore guarantee all debts those entities owe you, whether under the Guarantee Law or the law of negotiable instruments, for any contractual debt and/or debt under such an instrument, as applicable.</span></p>
+                </li>
+                <li><span data-he="הריני מאשר לכם בהתחייבותי זו לחייב את חשבוני בכל הסכומים הנ״ל באמצעות אמצעי התשלום המשויך לאסמכתה המצוינת בטופס זה ו/או באמצעות כל אמצעי תשלום אחר שנמסר ו/או שיימסר לכם על ידי.">Under this undertaking I authorize you to charge my account for all the above amounts using the payment method associated with the reference stated in this form and/or any other payment method I have provided or will provide to you.</span></li>
+                <li><span data-he="ידוע לי, כי על סמך אישורי הנ״ל והתחייבותי, הסכמתם להשכיר את הרכב לשוכר המצוין בטופס, וכי התחייבותי זו באה להבטיח את זכויותיכם ולפיכך היא בלתי חוזרת.">I understand that, in reliance on my authorization and undertaking, you have agreed to rent the vehicle to the renter identified in this form. This undertaking secures your rights and is therefore irrevocable.</span></li>
+                <li><span data-he="הנני מוותר בזה בחתימתי מטה ויתור גמור ומוחלט על כל זכות הנתונה לערב יחיד ו/או ערב מוגבל על פי חוק הערבות ו/או התיקונים אשר התקבלו ו/או יתקבלו לחוק כאמור.">By signing below, I fully and unconditionally waive any right granted to an individual guarantor and/or a limited guarantor under the Guarantee Law and/or any amendments already enacted or enacted in the future.</span></li>
+              </ol>
+            </article>
+            <fieldset class="signature-box">
+              <legend><span data-he="חתימת החותם">Signature</span></legend>
+              <label class="signature-mode"><input type="checkbox" id="typed-mode"> <span data-he="חתימה באמצעות הקלדת שמי">Sign by typing my name</span></label>
+              <div id="draw-signature">
+                <p id="signature-help"><span data-he="יש לחתום עם האצבע או העכבר בתוך המסגרת.">Sign inside the box using your finger or mouse.</span></p>
+                <canvas id="signature" width="720" height="220" role="img" aria-label="Signature pad" data-he-aria="משטח חתימה" aria-describedby="signature-help"></canvas>
+                <button type="button" class="secondary" id="clear"><span data-he="ניקוי חתימה">Clear signature</span></button>
+              </div>
+              <label id="type-signature" hidden><span data-he="שם מלא לחתימה">Full name for signature</span><input name="typedSignature" maxlength="100" disabled></label>
+            </fieldset>
+            <label class="confirm"><input type="checkbox" name="confirmed" disabled required><span><span data-he="קראתי את סעיפי ההצהרה וההתחייבות ואני מאשר אותם בחתימתי.">I have read the declaration and undertaking and accept its terms by signing.</span></span></label>
+            <p id="error" class="error" role="alert" hidden></p>
+            <button class="primary" type="submit"><span data-he="הכנת העתק חתום">Prepare signed copy</span></button>
+          </section>
+        </form>
+        <section class="panel result" id="result" hidden aria-labelledby="result-title">
+          <header class="panel-header">
+            <h2 id="result-title" tabindex="-1"><span data-he="העותק החתום מוכן">Your signed copy is ready</span></h2>
+            <p><span data-he="אפשר לשמור את ההצהרה כ־PDF בחלון ההדפסה ולשלוח אותה בחזרה לאיש הקשר בסמארט קאר.">Save the signed declaration as a PDF from the print dialog, then send it to your SmartCar contact.</span></p>
+          </header>
+          <button type="button" class="primary" id="print"><span data-he="שמירה כ־PDF / הדפסה">Save as PDF / Print</span></button>
+          <button type="button" class="secondary" id="correct"><span data-he="חזרה לעריכה וחתימה מחדש">Edit details and sign again</span></button>
+        </section>
+      </div>
+    </main>
+    <footer><span><span data-he="סמארט קאר 2008 בע״מ">Smart Car 2008 Ltd.</span></span><a href="https://www.smartcar.co.il/en/contact"><span data-he="יצירת קשר">Contact us</span></a></footer>
+  </div>
+  <article id="signed-document" class="print-document" aria-label="Signed copy" data-he-aria="העתק חתום"></article>
+</body>
+</html>

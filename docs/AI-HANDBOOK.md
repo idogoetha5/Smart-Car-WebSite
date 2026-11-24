@@ -1088,6 +1088,13 @@ Texts in `src/lib/push-messages.ts` (human, polite, short Hebrew; each task type
 
 ---
 
+## Digital rental declaration
+
+2026-11-24 — Prepared a bilingual Hebrew and English declaration and undertaking at "/declaration" and "/declaration/en" with static WhatsApp Open Graph tags and artwork. Entered data and the signature stay in the browser. The signer can print or save a PDF and return it to the SmartCar contact. The form uses a payment reference from the payment system in place of card data. Confirm the payment-reference wording and signed-copy workflow before customer use.
+
+Change log: 2026-11-24 — added the declaration form and both language-specific share cards; production publication pending.
+
+
 ## 2. Accounts and sessions — read before touching auth
 
 - Table `drivers`: `id, name, pin_hash, active, role ('driver' | 'manager')`. **One person can have two rows**: Ido has a manager row **and** a driver row named "עידו". Tasks are assigned to the **driver** row. Do not delete the manager row "עידו" without his approval.

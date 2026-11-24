@@ -107,6 +107,16 @@ const nextConfig: NextConfig = {
       { source: '/:locale/booking-confirmation/:path*', headers: noIndexHeaders },
       { source: '/:locale/condition-report/:path*', headers: noIndexHeaders },
       { source: '/:locale/admin/:path*', headers: noIndexHeaders },
+      { source: '/declaration', headers: noIndexHeaders },
+      { source: '/declaration/en', headers: noIndexHeaders },
+      { source: '/forms/declaration.html', headers: noIndexHeaders },
+      { source: '/forms/declaration-en.html', headers: noIndexHeaders },
+    ];
+  },
+  async rewrites() {
+    return [
+      { source: '/declaration', destination: '/forms/declaration.html' },
+      { source: '/declaration/en', destination: '/forms/declaration-en.html' },
     ];
   },
   async redirects() {
