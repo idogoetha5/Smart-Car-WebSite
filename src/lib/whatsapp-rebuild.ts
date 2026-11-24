@@ -128,8 +128,8 @@ function question(key: BookingKey, locale: Locale): string {
 function rentalExtrasQuestion(state: RebuildState): string {
   const child = Boolean(state.booking.childSeats) || state.history.some(item => item.from === 'customer' && /ילד|תינוק|child|baby|infant/iu.test(item.text));
   const examples = state.locale === 'he'
-    ? [child && state.booking.childSeats === undefined && 'כיסא בטיחות', !state.booking.additionalDriver && 'נהג נוסף', !state.booking.tollPackage && 'חבילת כביש 6 ומנהרות'].filter(Boolean).join(', ')
-    : [child && state.booking.childSeats === undefined && 'a child seat', !state.booking.additionalDriver && 'an additional driver', !state.booking.tollPackage && 'the Highway 6 and tunnels package'].filter(Boolean).join(', ');
+    ? [child && state.booking.childSeats === undefined && 'כיסא בטיחות', !state.booking.additionalDriver && 'נהג נוסף'].filter(Boolean).join(', ')
+    : [child && state.booking.childSeats === undefined && 'a child seat', !state.booking.additionalDriver && 'an additional driver'].filter(Boolean).join(', ');
   return state.locale === 'he'
     ? `לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו?${examples ? ` למשל ${examples}.` : ''} אם לא, אפשר פשוט לכתוב "לא".`
     : `Before I pass the details to a representative, would you like to add anything?${examples ? ` For example ${examples}.` : ''} If not, just say "No".`;
@@ -139,9 +139,8 @@ function rentalHandoffSummary(state: RebuildState): string {
   const b = state.booking;
   const date = (value?: string) => value ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : '';
   const extras = state.locale === 'he'
-    ? [b.childSeats && (b.childSeatType === 'booster' ? `${b.childSeats} ${b.childSeats === 1 ? 'בוסטר' : 'בוסטרים'}` : b.childSeats === 1 ? 'כיסא בטיחות אחד' : `${b.childSeats} כיסאות בטיחות`), b.additionalDriver && 'נהג נוסף', b.tollPackage && 'חבילת כביש 6 ומנהרות'].filter(Boolean).join(', ')
-    : [b.childSeats && (b.childSeatType === 'booster' ? `${b.childSeats} booster ${b.childSeats === 1 ? 'seat' : 'seats'}` : `${b.childSeats} child ${b.childSeats === 1 ? 'seat' : 'seats'}`), b.additionalDriver && 'an additional driver', b.tollPackage && 'the Highway 6 and tunnels package'].filter(Boolean).join(', ');
-  const undecidedToll = b.tollPackageUndecided ? state.locale === 'he' ? ' כביש 6 נשאר להחלטה מול הנציג.' : ' The Highway 6 package remains open for discussion with the representative.' : '';
+    ? [b.childSeats && (b.childSeatType === 'booster' ? `${b.childSeats} ${b.childSeats === 1 ? 'בוסטר' : 'בוסטרים'}` : b.childSeats === 1 ? 'כיסא בטיחות אחד' : `${b.childSeats} כיסאות בטיחות`), b.additionalDriver && 'נהג נוסף'].filter(Boolean).join(', ')
+    : [b.childSeats && (b.childSeatType === 'booster' ? `${b.childSeats} booster ${b.childSeats === 1 ? 'seat' : 'seats'}` : `${b.childSeats} child ${b.childSeats === 1 ? 'seat' : 'seats'}`), b.additionalDriver && 'an additional driver'].filter(Boolean).join(', ');
   const needs = state.locale === 'he'
     ? [b.passengers !== undefined && `נוסעים: ${b.passengers}`, b.luggage !== undefined && `מזוודות: ${b.luggage}`].filter(Boolean).join('; ')
     : [b.passengers !== undefined && `Passengers: ${b.passengers}`, b.luggage !== undefined && `Bags: ${b.luggage}`].filter(Boolean).join('; ');
@@ -154,8 +153,8 @@ function rentalHandoffSummary(state: RebuildState): string {
     ? `${shabbat ? ' איסוף או החזרה בשבת מתואמים מראש ועשויים להיות כרוכים בתוספת תשלום.' : ''}${airport ? ' על איסוף או החזרה בנתב״ג יש תוספת.' : ''}`
     : `${shabbat ? ' A Saturday pickup or return is arranged in advance and may carry an extra charge.' : ''}${airport ? ' Pickup or return at Ben Gurion Airport carries a surcharge.' : ''}`;
   return state.locale === 'he'
-    ? `סיכום הפנייה: ${b.vehicleNeed}; איסוף ב${b.pickupLocation} ב־${date(b.pickupDate)}, החזרה ב${b.returnLocation} ב־${date(b.returnDate)}; גיל הנהג ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}; על שם ${b.customerName}.${needs ? ` ${needs}.` : ''}${extras ? ` תוספות שביקשתם: ${extras}.` : ''}${fitCheck}${undecidedToll}${notes} העברתי לנציג SmartCar לבדיקה. הרכב, התוספות והמחיר עדיין לא אושרו.`
-    : `Your enquiry: ${b.vehicleNeed}; pickup in ${b.pickupLocation} on ${date(b.pickupDate)}, return in ${b.returnLocation} on ${date(b.returnDate)}; driver age ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}; name ${b.customerName}.${needs ? ` ${needs}.` : ''}${extras ? ` Requested extras: ${extras}.` : ''}${fitCheck}${undecidedToll}${notes} I have passed this to a SmartCar representative for review. The car, extras and price are not confirmed yet.`;
+    ? `סיכום הפנייה: ${b.vehicleNeed}; איסוף ב${b.pickupLocation} ב־${date(b.pickupDate)}, החזרה ב${b.returnLocation} ב־${date(b.returnDate)}; גיל הנהג ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}; על שם ${b.customerName}.${needs ? ` ${needs}.` : ''}${extras ? ` תוספות שביקשתם: ${extras}.` : ''}${fitCheck}${notes} העברתי לנציג SmartCar לבדיקה. הרכב, התוספות והמחיר עדיין לא אושרו.`
+    : `Your enquiry: ${b.vehicleNeed}; pickup in ${b.pickupLocation} on ${date(b.pickupDate)}, return in ${b.returnLocation} on ${date(b.returnDate)}; driver age ${b.driverAgeRange === '24-plus' ? '24+' : '21–23'}; name ${b.customerName}.${needs ? ` ${needs}.` : ''}${extras ? ` Requested extras: ${extras}.` : ''}${fitCheck}${notes} I have passed this to a SmartCar representative for review. The car, extras and price are not confirmed yet.`;
 }
 
 function conversationalKnown(state: RebuildState): GeminiBotContext['known'] {
@@ -927,15 +926,6 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
     && /(?:תוסיפו|להוסיף|לצרף|תצרפו|צרפו|לרשום|תרשמו|רשמו|אפשר\s+(?:להוסיף|לצרף|לרשום)|אשמח|מבקש|אבקש|רוצה|please add|add an?|i(?:'d| would) like)/iu.test(input)
     && (!/[?؟]/u.test(input) || /(?:אשמח|מבקש|אבקש|רוצה|please add|i(?:'d| would) like)/iu.test(input))
     && !/(?:לא|בלי|אין צורך|don't|do not|no|without)\s+(?:צריך|רוצה|need|want)?\s*(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|additional driver|extra driver|second driver)/iu.test(input)) draft.additionalDriver = true;
-  if (/(?:כביש\s*6|highway\s*6)/iu.test(input) && /(?:אולי|לא החלטתי|לא החלטנו|פתוח|להשאיר.{0,15}פתוח|maybe|not (?:sure|decided)|undecided|leave (?:it )?open)/iu.test(input)) {
-    draft.tollPackageUndecided = true;
-    delete draft.tollPackage;
-  } else if (/(?:כביש\s*6(?: ומנהרות)?|highway\s*6(?: and tunnels)?)/iu.test(input)
-    && /(?:תוסיפו|להוסיף|אשמח|מבקש|אבקש|רוצה|חבילה|package|please add|add an?|i(?:'d| would) like)/iu.test(input)
-    && !/(?:לא|בלי|אין צורך|don't|do not|no|without).{0,25}(?:כביש\s*6|highway\s*6)/iu.test(input)) {
-    draft.tollPackage = true;
-    delete draft.tollPackageUndecided;
-  }
   const count = '(\\d{1,2}|אחד|אחת|שניים|שתיים|שתי|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש|שבעה|שבע|שמונה|one|two|three|four|five|six|seven|eight)';
   const passengers = [...input.matchAll(new RegExp(`(?:אנחנו|נהיה|we are|we['’]re|there are|there will be)\\s+${count}(?=\\s|$)|${count}\\s+(?:נוסעים|אנשים|מבוגרים|חברים|חברות|passengers|people|adults|friends|of us)`, 'giu'))]
     .filter(match => !negatedLuggageMention(input, match.index) && !isHypotheticalFactEvidence(input, match[0]) && !isRentalCapacityQuestionEvidence(input, match[0])).at(-1);
@@ -2386,10 +2376,11 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     const pendingFieldAtTurnStart = nextMissing(state.booking);
     const wasBooking = state.phase === 'booking';
     const previousVehicleNeed = state.booking.vehicleNeed;
+    delete state.booking.tollPackage;
+    delete state.booking.tollPackageUndecided;
     applyExplicitNeeds(input, state.booking);
     if (state.step === 'rental_extras' && /מה תרצו להוסיף|what would you like to add/iu.test(lastBot) && !/[?؟]/u.test(input)) {
       if (/^(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|additional driver|extra driver)[.!\s]*$/iu.test(input.trim())) state.booking.additionalDriver = true;
-      if (/^(?:חבילת )?כביש\s*6(?: ומנהרות)?[.!\s]*$/iu.test(input.trim()) || /^(?:the )?highway\s*6(?: and tunnels)?(?: package)?[.!\s]*$/iu.test(input.trim())) state.booking.tollPackage = true;
     }
     // "Each of us with a suitcase" means one bag per known traveller, not one bag.
     if (state.booking.passengers && /(?:כל אחד|כל אחת|כל אחד מאיתנו)\s+(?:עם|לוקח(?:ת)?|מביא(?:ה)?|יהיה עם)\s+(?:מזוודה|תיק)|\b(?:each (?:of us )?(?:with|has|brings|bringing|will have)|one each)\s+(?:a |one )?(?:(?:small|medium|large|big) )?(?:suitcase|bag)\b|\b(?:a )?(?:suitcase|bag) each\b/iu.test(input)
@@ -2724,8 +2715,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       const answeringLegacyConfirm = state.step === 'rental_confirm' && !state.rentalExtrasAsked;
       const defersHandoff = /(?:אל תשלח|אל תעביר|לא עכשיו|לא מאשר|not confirm|do not send|don't send|do not pass|don't pass|עוד לא.{0,18}(?:תעביר|תשלח)|not yet.{0,18}(?:pass|send))/iu.test(input)
         || /^(?:עוד לא|not yet)[.!?\s]*$/iu.test(input.trim());
-      const proactiveExtra = Boolean(state.booking.additionalDriver || state.booking.tollPackage || state.booking.childSeats)
-        && /(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|כביש\s*6|כיסא(?:ות)? בטיחות|additional driver|highway\s*6|child seat)/iu.test(input);
+      const proactiveExtra = Boolean(state.booking.additionalDriver || state.booking.childSeats)
+        && /(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|כיסא(?:ות)? בטיחות|additional driver|child seat)/iu.test(input);
       const explicitlyPasses = /(?:תעביר|תעבירו|להעביר).{0,24}(?:לנציג|לנציגת|למשרד)|(?:pass|send).{0,24}(?:representative|office)/iu.test(input);
       const answersExtras = /^(?:לא(?:\s*,?\s*(?:תודה|זה הכל|אין צורך|בלי תוספות|לא צריך עוד))?|אין(?:\s+צורך)?|בלי תוספות|זה הכל|לא צריך עוד|(?:אני\s+)?מאשר(?:ת)?|(?:i\s+)?confirm|no(?:\s*,?\s*(?:thanks|(?:other )?extras?))?|none|nothing else|that's all|that is all)[.!\s]*$/iu.test(input.trim())
         || /^(?:לא|no)[,!\.\s]*(?:זה הכל|זה הכול|אין צורך|בלי תוספות|לא צריך עוד|nothing else|that'?s all|that is all|no (?:other|more) (?:extras|additions))\s*[.!\s]*(?:תודה|thanks?|thank you)?[.!\s]*$/iu.test(input.trim())
@@ -2733,8 +2724,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
         || /(?:מעבר לזה|חוץ מזה).{0,35}(?:לא צריך|אין צורך|בלי).{0,15}(?:תוספ|כלום)|(?:apart from that|otherwise).{0,35}(?:nothing else|no (?:other|more) (?:extras|additions))/iu.test(input)
         || proactiveExtra && !/[?؟]/u.test(input);
       const wantsToNameExtra = /^(?:כן|yes|sure)[.!\s]*$/iu.test(input.trim());
-      const openExtraPriceQuestion = answeringExtras && /[?؟]/u.test(input) && /(?:כביש\s*6|highway\s*6|מנהרות|tunnels?|תוספ|extras?)/iu.test(input)
-        && /(?:מחיר|עלות|תעריף|כמה|price|cost|rate|how much)/iu.test(input);
+      const retiredTollPackageQuestion = answeringExtras && /(?:כביש\s*6|highway\s*6|toll[- ]roads?)/iu.test(input)
+        && /(?:חביל|package|תוספ|extra|להוסיף|add)/iu.test(input);
       const priorExtrasPrompt = /(?:להוסיף משהו נוסף|להוסיף משהו|להוסיף עוד|משהו נוסף|anything else|add anything|any (?:other )?additions)/iu.test(lastBot);
       if (priorExtrasPrompt && answersExtras && !defersHandoff) state.rentalExtrasAnswered = true;
       if (state.booking.driverAgeRange === '21-23') {
@@ -2776,7 +2767,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
             ? `${he ? 'כיסא הבטיחות הוא בקשה בלבד, לא הבטחה. נבדוק זמינות, תנאים והתאמה לרכב המסוים לפני אישור ההשכרה.' : 'The child seat is a request only, not a guarantee. Availability, terms and fit for the specific car must be checked before rental confirmation.'}\n\n${summary(state)}`
             : policy?.topic === 'insurance' && /[?؟]/u.test(input)
               ? `${policy.reply}\n\n${summary(state)}` : summary(state);
-      } else if (!missing && !defersHandoff && (state.rentalExtrasAnswered || answeringExtras && (answersExtras || explicitlyPasses || wantsToNameExtra || openExtraPriceQuestion) || proactiveExtra && explicitlyPasses)) {
+      } else if (!missing && !defersHandoff && (state.rentalExtrasAnswered || answeringExtras && (answersExtras || explicitlyPasses || wantsToNameExtra || retiredTollPackageQuestion) || proactiveExtra && explicitlyPasses)) {
         if (answeringExtras && wantsToNameExtra) {
           state.step = 'rental_extras';
           reply = he ? 'בשמחה, מה תרצו להוסיף?' : 'Sure, what would you like to add?';
@@ -2785,8 +2776,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           state.completedRental = publicRental;
           state.phase = 'service'; state.step = 'menu'; state.handedOff = true;
           state.handoffAt = new Date().toISOString(); state.handoffKind = 'human'; escalate = true;
-          const questionAnswer = openExtraPriceQuestion
-            ? he ? 'מחיר התוספת ייבדק ויוצג בנפרד על ידי הנציג לפני שתאשרו אותה. ' : 'The representative will check and show the extra price separately before you decide whether to add it. '
+          const questionAnswer = retiredTollPackageQuestion
+            ? he ? 'אין לנו חבילת כבישי אגרה להוספה. אפשר לנסוע בכביש 6, והאגרות על חשבון השוכר. ' : 'We do not offer a toll-road package to add. You can drive on Highway 6, and the tolls are paid by the renter. '
             : '';
           reply = `${questionAnswer}${rentalHandoffSummary(state)}`;
         }
@@ -3453,6 +3444,8 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       // scheduled viewing or promise an appointment the source did not make.
       const appointmentPromise = /(?:יתאם|נקבע|קבענו|סגרנו|תואמה|תיאמנו)[^.!?\n]{0,45}(?:פגישה|צפייה|נסיעת מבחן)|(?:appointment|viewing|test drive)[^.!?\n]{0,45}(?:scheduled|booked|arranged)|(?:will|we'll)\s+(?:schedule|book|arrange)[^.!?\n]{0,45}(?:appointment|viewing|test drive)/iu;
       const commitmentOk = !appointmentPromise.test(text) || appointmentPromise.test(reply);
+      const tollPackageMention = /חבילת (?:כביש\s*6|כבישי אגרה|מנהרות)|(?:highway\s*6(?: and tunnels)?|toll[- ]road) package/iu;
+      const tollPackageOk = !tollPackageMention.test(text) || tollPackageMention.test(reply);
       const comparisonMeaningOk = !state.commercial?.comparingLeasingAndRental || !/ליסינג|leasing/i.test(reply) || !/השכרה|rental/i.test(reply)
         || (/ליסינג|leasing/i.test(text) && /השכרה|rental/i.test(text)
           && /מתלבט|משוו|השווא|אפשרויות|טרם.{0,20}בחר|לא.{0,20}בחר|undecided|compar|consider|options|not chosen/i.test(text)
@@ -3467,7 +3460,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
             && /car|vehicle/i.test(text) && /new driver/i.test(text) && /date/i.test(text)
             && !/(?:have|available|can offer)[^.!?\n]{0,50}(?:car|vehicle)[^.!?\n]{0,50}new driver/i.test(text));
       if (text && text !== reply && keepsNumbers && sameQuestionShape && languageOk && text.length >= reply.length * 0.5 && text.length <= Math.min(650, reply.length * 1.7 + 40)
-        && commitmentOk && comparisonMeaningOk && newDriverMeaningOk && !/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/u.test(text) && (reply.includes('₪') || !/₪|ש״ח|NIS/u.test(text))) {
+        && commitmentOk && tollPackageOk && comparisonMeaningOk && newDriverMeaningOk && !/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/u.test(text) && (reply.includes('₪') || !/₪|ש״ח|NIS/u.test(text))) {
         reply = text; model = reworded!.model; draftNotes.push('reworded');
       } else if (store.isSimulation) draftNotes.push(`reword_rejected: ${text.slice(0, 120)}`);
     } catch { /* keep the application wording */ }

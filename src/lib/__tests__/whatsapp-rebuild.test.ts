@@ -21,11 +21,11 @@ function memory(reading: (message: string) => BotReading | null = () => base) {
 }
 
 describe('replacement SmartCar conversation core', () => {
-  it('answers an undecided Highway 6 price question, then hands the complete rental enquiry to a representative', async () => {
+  it('does not sell the retired Highway 6 package and hands off the complete rental enquiry', async () => {
     let state: RebuildState | null = {
       version: 2, phase: 'booking', step: 'rental_extras', locale: 'en', rentalExtrasAsked: true,
       booking: { pickupDate: '2027-02-02', returnDate: '2027-02-08', pickupLocation: 'Ben Gurion Airport', returnLocation: 'Ben Gurion Airport', vehicleNeed: 'luxury SUV', driverAgeRange: '24-plus', customerName: 'Test Customer' },
-      history: [{ from: 'bot', text: 'Before I pass the details to a representative, would you like to add anything? For example an additional driver or the Highway 6 and tunnels package.' }],
+      history: [{ from: 'bot', text: 'Before I pass the details to a representative, would you like to add anything? For example an additional driver.' }],
     };
     const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_phone, next) => { state = structuredClone(next); }, activeBooking: async () => null, createRentalRequest: async () => 'SIM', readTurn: async message => ({ ...base, route: 'book', reply: /airport terminal/i.test(message)
       ? 'Yes, a SmartCar representative can meet you directly at the airport terminal by prior arrangement. The agreement and payment details are finalised with a SmartCar representative.'
@@ -36,12 +36,12 @@ describe('replacement SmartCar conversation core', () => {
     const turn = await getRebuiltBotReply('fictional-tourist', "I'm not sure if we would like to add the Highway 6 package. Could you show its extra price separately?", store);
     expect(turn.escalate).toBe(true);
     expect(turn.state.handedOff).toBe(true);
-    expect(turn.state.booking.tollPackageUndecided).toBe(true);
+    expect(turn.state.booking.tollPackageUndecided).toBeUndefined();
     expect(turn.state.booking.tollPackage).toBeUndefined();
-    expect(turn.reply).toMatch(/extra price separately/i);
-    expect(turn.reply).toMatch(/remains open/i);
+    expect(turn.reply).toMatch(/do not offer a toll-road package/i);
+    expect(turn.reply).toMatch(/tolls are paid by the renter/i);
     expect(turn.reply).toMatch(/passed this to a SmartCar representative/i);
-    expect(turn.reply).not.toMatch(/would you like to add anything/i);
+    expect(turn.reply).not.toMatch(/would you like to add anything|remains open/i);
   });
   it('keeps a contact question open so the next rental request receives a reply', async () => {
     const chat = memory(message => message === 'יוצרים קשר?'

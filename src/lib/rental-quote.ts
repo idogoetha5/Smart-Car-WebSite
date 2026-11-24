@@ -82,15 +82,6 @@ export const RENTAL_EXTRA_PRESETS: RentalQuoteExtra[] = [
     selected: false,
   },
   {
-    id: 'highway6',
-    labelHe: 'חבילת כביש 6 ומנהרות',
-    labelEn: 'Highway 6 and tunnels package',
-    price: 35,
-    billing: 'day',
-    quantity: 1,
-    selected: false,
-  },
-  {
     id: 'baby_seat',
     labelHe: 'כיסא בטיחות לילד',
     labelEn: 'Child safety seat',
