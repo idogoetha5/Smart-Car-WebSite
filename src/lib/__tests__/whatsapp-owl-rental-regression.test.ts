@@ -15,6 +15,24 @@ function chat(initial: RebuildState) {
 }
 
 describe('luxury rental intake observed in the live inbox', () => {
+  it('stores a model-grounded same-day return and answers which details are missing', async () => {
+    let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-12-11', pickupLocation: 'הוד השרון', returnLocation: 'הוד השרון', vehicleNeed: 'רכב מנהלים יוקרתי (העדפה לבדיקה)' }, history: [{ from: 'bot', text: 'באיזה תאריך תחזירו את הרכב?' }] };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => { throw new Error('No formal booking'); },
+      readTurn: async () => ({ route: 'book', direction: 'none', fields: { returnDate: { value: '2026-12-11', evidence: 'באותו יום' } }, factPatches: [], reply: 'תרצו להוסיף כיסא בטיחות?', source: 'gemini', model: 'test', groundedContext: true }),
+    };
+    const result = await getRebuiltBotReply('fictional-same-day-return', 'החזרה בשישי בערב, באותו יום. נלך על שני נוסעים בלי ציוד; מה עוד חסר לכם לבקשה?', store);
+    expect(result.state.booking.returnDate).toBe('2026-12-11');
+    expect(result.state.booking.passengers).toBe(2);
+    expect(result.reply).toMatch(/קבוצת הגיל של הנהג/);
+    expect(result.reply).toMatch(/השם לרישום הפנייה/);
+    expect(result.reply).not.toMatch(/תרצו להוסיף כיסא בטיחות|נתקדם לבקשה/);
+  });
+
   it('keeps the executive-car preference instead of replacing it with a passenger count', async () => {
     const send = chat({ version: 2, phase: 'booking', step: 'rental_vehicle', locale: 'he', booking: { pickupDate: '2026-12-11', returnDate: '2026-12-11', pickupLocation: 'הוד השרון', returnLocation: 'הוד השרון' }, history: [{ from: 'bot', text: 'איזה סוג רכב תרצו, או כמה נוסעים וציוד יהיו?' }] });
     const result = await send('רכב מנהלים יוקרתי כדוגמת מרצדס. 2 נוסעים ללא ציוד');

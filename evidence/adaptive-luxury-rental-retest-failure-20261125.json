@@ -1,0 +1,161 @@
+{
+  "kind": "live-production-simulator-adaptive-failure",
+  "observedAt": "2026-11-25T14:34:32.902864+00:00",
+  "release": "6a9b40e",
+  "deploymentId": "dpl_3mViLNXgYNUAWQi6sMW5ojULxx6x",
+  "sessionId": "luxuryretest20261125b",
+  "turns": [
+    {
+      "message": "היי, אני רוצה רכב מנהלים יוקרתי בסגנון מרצדס ליום שישי 11.12. איסוף והחזרה בהוד השרון. אולי אקדים לחמישי אחה״צ, עוד לא החלטתי. אילו אפשרויות יש?",
+      "status": 200,
+      "reply": "בשמחה, נשמח לבדוק את האפשרות לרכב מנהלים יוקרתי בהוד השרון ל־11 בדצמבר, עם אפשרות לפתוח גם את חמישי אחה\"צ לבדיקה. תרצה שאבדוק את הזמינות והפרטים מול נציג?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-11",
+          "pickupLocation": "הוד השרון",
+          "returnLocation": "הוד השרון",
+          "vehicleNeed": "רכב מנהלים יוקרתי (העדפה לבדיקה)"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "היי, אני רוצה רכב מנהלים יוקרתי בסגנון מרצדס ליום שישי 11.12. איסוף והחזרה בהוד השרון. אולי אקדים לחמישי אחה״צ, עוד לא החלטתי. אילו אפשרויות יש?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה, נשמח לבדוק את האפשרות לרכב מנהלים יוקרתי בהוד השרון ל־11 בדצמבר, עם אפשרות לפתוח גם את חמישי אחה\"צ לבדיקה. תרצה שאבדוק את הזמינות והפרטים מול נציג?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/none patches=[] fields={\"pickupDate\":{\"value\":\"2026-12-11\",\"evidence\":\"ליום שישי 11.12\"},\"pickupLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"הוד השרון\"},\"returnLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"והחזרה בהוד השרון\"},\"v",
+        "foreign_script: אפשר לבדוק את האפשרות לרכב יוקרתי כמו מרצדס ליום שישי, ונקח בחשבון ששקלת להקديמו ליום חמישי אחר הצהריים. הדגמים המדויקים והזמינות ייבחנו יחד עם נציג SmartCar, ש"
+      ]
+    },
+    {
+      "message": "לא להעביר לנציג עדיין. אני שואלת אם יש באמת דגם יוקרתי או רק משפחתי. ואם אקדים לחמישי, זה משנה את ההשכרה?",
+      "status": 200,
+      "reply": "לגבי דגמי היוקרה, נבדוק את האפשרויות והזמינות המדויקת מול נציג SmartCar. הקדמת האיסוף ליום חמישי תשנה את תאריך ההתחלה ותבדק מול המלאי והתאריכים המבוקשים. באיזה תאריך תחזירו את הרכב?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-11",
+          "pickupLocation": "הוד השרון",
+          "returnLocation": "הוד השרון",
+          "vehicleNeed": "רכב מנהלים יוקרתי (העדפה לבדיקה)"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "היי, אני רוצה רכב מנהלים יוקרתי בסגנון מרצדס ליום שישי 11.12. איסוף והחזרה בהוד השרון. אולי אקדים לחמישי אחה״צ, עוד לא החלטתי. אילו אפשרויות יש?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה, נשמח לבדוק את האפשרות לרכב מנהלים יוקרתי בהוד השרון ל־11 בדצמבר, עם אפשרות לפתוח גם את חמישי אחה\"צ לבדיקה. תרצה שאבדוק את הזמינות והפרטים מול נציג?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "לא להעביר לנציג עדיין. אני שואלת אם יש באמת דגם יוקרתי או רק משפחתי. ואם אקדים לחמישי, זה משנה את ההשכרה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "לגבי דגמי היוקרה, נבדוק את האפשרויות והזמינות המדויקת מול נציג SmartCar. הקדמת האיסוף ליום חמישי תשנה את תאריך ההתחלה ותבדק מול המלאי והתאריכים המבוקשים. באיזה תאריך תחזירו את הרכב?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/none patches=[] fields={}",
+        "action_claim: בצי של SmartCar אין רכבים מסחריים, אבל לגבי רכב יוקרה ספציפי או הקדמה ליום חמישי — נציג SmartCar יבדוק איתך את הזמינות והאפשרויות המדויקות."
+      ]
+    },
+    {
+      "message": "החזרה בשישי בערב, באותו יום. נלך על שני נוסעים בלי ציוד; מה עוד חסר לכם לבקשה?",
+      "status": 200,
+      "reply": "הבנתי: איסוף בהוד השרון והחזרה בהוד השרון. תרצו שנתקדם לבקשה עם הפרטים שמסרתם?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-11",
+          "pickupLocation": "הוד השרון",
+          "returnLocation": "הוד השרון",
+          "vehicleNeed": "רכב מנהלים יוקרתי (העדפה לבדיקה)",
+          "passengers": 2
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "היי, אני רוצה רכב מנהלים יוקרתי בסגנון מרצדס ליום שישי 11.12. איסוף והחזרה בהוד השרון. אולי אקדים לחמישי אחה״צ, עוד לא החלטתי. אילו אפשרויות יש?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה, נשמח לבדוק את האפשרות לרכב מנהלים יוקרתי בהוד השרון ל־11 בדצמבר, עם אפשרות לפתוח גם את חמישי אחה\"צ לבדיקה. תרצה שאבדוק את הזמינות והפרטים מול נציג?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "לא להעביר לנציג עדיין. אני שואלת אם יש באמת דגם יוקרתי או רק משפחתי. ואם אקדים לחמישי, זה משנה את ההשכרה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "לגבי דגמי היוקרה, נבדוק את האפשרויות והזמינות המדויקת מול נציג SmartCar. הקדמת האיסוף ליום חמישי תשנה את תאריך ההתחלה ותבדק מול המלאי והתאריכים המבוקשים. באיזה תאריך תחזירו את הרכב?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "החזרה בשישי בערב, באותו יום. נלך על שני נוסעים בלי ציוד; מה עוד חסר לכם לבקשה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "הבנתי: איסוף בהוד השרון והחזרה בהוד השרון. תרצו שנתקדם לבקשה עם הפרטים שמסרתם?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "local",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read book/suv patches=[] fields={\"pickupDate\":{\"value\":\"2026-12-11\",\"evidence\":\"החזרה בשישי בערב\"},\"returnDate\":{\"value\":\"2026-12-11\",\"evidence\":\"באותו יום\"}}",
+        "irrelevant_offer: מעולה, להשלמת הבקשה חסרים לנו רק גיל הנהג והשם המלא. תרצה שאוסיף נהג נוסף או כיסא בטיחות?",
+        "irrelevant_offer: להשלמת פרטי הבקשה, נשאר לנו לוודא רק את גיל הנהג (21–23 או 24 ומעלה) ואת שמך המלא. האם תרצה להוסיף נהג נוסף או כיסא בטיחות?",
+        "reword_rejected: להשלמת הבקשה נשאר לנו רק לדעת באיזו קבוצת גיל הנהג (21–23 או 24 ומעלה) ומה שמו המלא."
+      ]
+    }
+  ],
+  "manualReview": {
+    "status": "failed",
+    "firstFailureTurn": 3,
+    "reason": "The customer gave same-day return in context. Gemini proposed the return date, but canonical state omitted it; fallback ignored the question about missing details and repeated a generic invitation."
+  }
+}

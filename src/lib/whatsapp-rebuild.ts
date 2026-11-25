@@ -1484,6 +1484,13 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
   if (explicitDateRange(input) && state.booking.pickupDate && state.booking.returnDate) return he
     ? `מעולה, רשמתי את התאריכים. ${state.booking.pickupLocation ? question('returnLocation', 'he') : question('pickupLocation', 'he')}`
     : `Great, I have the dates. ${state.booking.pickupLocation ? question('returnLocation', 'en') : question('pickupLocation', 'en')}`;
+  if (/מה עוד (?:חסר|צריך)|אילו פרטים (?:חסרים|צריך)|what (?:else|details) (?:do you need|is missing)/iu.test(input)
+    && (state.booking.pickupDate || state.booking.pickupLocation || state.booking.vehicleNeed)) {
+    const missing = ORDER.filter(key => !state.booking[key]);
+    const labels: Record<BookingKey, string> = { pickupDate: 'תאריך איסוף', returnDate: 'תאריך החזרה', pickupLocation: 'מקום איסוף', returnLocation: 'מקום החזרה', vehicleNeed: 'סוג רכב', driverAgeRange: 'קבוצת גיל הנהג', customerName: 'שם', customerEmail: 'מייל' };
+    return missing.length ? (he ? `לבקשה חסרים ${missing.map(key => labels[key]).join(' ו־')}. ${question(missing[0], 'he')}` : `For the request I still need ${missing.join(', ')}. ${question(missing[0], 'en')}`)
+      : (he ? 'כל הפרטים הבסיסיים כבר כאן. לפני שאעביר לנציג, תרצו להוסיף משהו?' : 'I have the basic details. Would you like to add anything before I pass them to a representative?');
+  }
   if (state.booking.pickupLocation && state.booking.returnLocation && /איסוף|לאסוף|החזרה|להחזיר|pick.?up|drop.?off|return/i.test(input)) {
     const next = state.booking.passengers === 1
       ? (he ? 'כמה ציוד תביא לנסיעה?' : 'How much luggage will you bring?')
@@ -1585,6 +1592,16 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
     if (!field || !input.toLocaleLowerCase().includes(field.evidence.toLocaleLowerCase())) continue;
     if (source === 'pickupDate' || source === 'returnDate') {
       if (ageOnly) continue;
+      // Same-day return is grounded in the saved pickup date, but only when
+      // the customer states an actual return and Gemini proposes that date.
+      if (source === 'returnDate' && state.booking.pickupDate
+        && /באותו יום|\bsame day\b/iu.test(field.evidence)
+        && /החזרה|להחזיר|נחזיר|אחזיר|\breturn\b|drop.?off/iu.test(input)
+        && field.value === state.booking.pickupDate
+        && !isHypotheticalFactEvidence(input, field.evidence)) {
+        state.booking.returnDate = field.value;
+        continue;
+      }
       // A weekend somewhere in a named month has several possible dates.
       // Do not turn the model's chosen weekend into a customer-supplied date.
       if (/(?:סופ.?ש|סוף ה?שבוע|weekend)/iu.test(field.evidence)
@@ -2861,10 +2878,10 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           reply = he
             ? 'הכיסוי הבסיסי כולל ביטוח חובה וכיסוי לנזקי תאונה, אש וגניבה, בכפוף להשתתפות עצמית. בהצעה יופיעו סכום ההשתתפות והאפשרויות להפחתתה.'
             : 'The basic cover includes compulsory liability and accident, fire and theft cover, subject to an excess. Your quote will show that excess and any available reduction options.';
-        } else if (/מה עוד צריך|איזה פרטים חסרים|what else do you need|what details are missing/i.test(input)) {
-          const labels: Record<BookingKey, string> = { pickupDate: 'תאריך איסוף', returnDate: 'תאריך החזרה', pickupLocation: 'מקום איסוף', returnLocation: 'מקום החזרה', vehicleNeed: 'צרכי הרכב', driverAgeRange: 'קבוצת גיל הנהג', customerName: 'שם', customerEmail: 'מייל' };
+        } else if (/מה עוד (?:צריך|חסר)|איזה פרטים חסרים|what else do you need|what details are missing/i.test(input)) {
+          const labels: Record<BookingKey, string> = { pickupDate: 'תאריך האיסוף', returnDate: 'תאריך ההחזרה', pickupLocation: 'מקום האיסוף', returnLocation: 'מקום ההחזרה', vehicleNeed: 'צרכי הרכב', driverAgeRange: 'קבוצת הגיל של הנהג', customerName: 'השם לרישום הפנייה', customerEmail: 'כתובת המייל' };
           const remaining = ORDER.filter(key => !state.booking[key]);
-          reply = he ? `נשארו רק ${remaining.map(key => labels[key]).join(' ו־')}. ${question(missing, state.locale)}` : `I still need ${remaining.join(', ')}. ${question(missing, state.locale)}`;
+          reply = he ? `נשארו רק ${new Intl.ListFormat('he', { type: 'conjunction' }).format(remaining.map(key => labels[key]))}. ${question(missing, state.locale)}` : `I still need ${remaining.join(', ')}. ${question(missing, state.locale)}`;
         } else if (/אפשר לקבל הצעה(?: מסודרת)?|רוצה הצעה(?: מסודרת)?|can (?:I|we) get (?:a )?(?:quote|offer)/i.test(input)) {
           reply = he
             ? `בשמחה, נכין בקשה להצעה מסודרת לפי הרכב שביקשתם. כדי לבדוק מחיר וזמינות, ${!state.booking.pickupDate || !state.booking.returnDate ? 'מה תאריכי האיסוף וההחזרה הרצויים?' : !state.booking.pickupLocation || !state.booking.returnLocation ? 'מאיפה תרצו לאסוף ולהחזיר את הרכב?' : 'נמשיך עם הפרטים החסרים לבקשה.'}`
