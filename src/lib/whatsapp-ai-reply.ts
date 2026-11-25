@@ -81,6 +81,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   const reply = args.reply?.trim();
   if (!reply) return reject('empty');
   for (const sentence of reply.split(/[.!?؟\n]/u)) {
+    if (/(?:\b(?:suv|car|vehicle|model)\b|רכב|דגם)[^.!?؟\n]{0,75}(?:great|perfect|ideal|excellent|מתאים|מושלם)[^.!?؟\n]{0,55}(?:\b(?:term|lease|leasing|months?)\b|ליסינג|חודשי?ם)|(?:\b(?:term|lease|leasing|months?)\b|ליסינג|חודשי?ם)[^.!?؟\n]{0,55}(?:great|perfect|ideal|excellent|מתאים|מושלם)[^.!?؟\n]{0,55}(?:\b(?:suv|car|vehicle|model)\b|רכב|דגם)/iu.test(sentence)
+      && !/\b(?:if|may|might|could|subject to|depending|needs? (?:to be )?check)\b|(?:אם|עשוי|יכול|בכפוף|תלוי|לבדוק)/iu.test(sentence)) return reject('leasing_term_fit');
     if (/(?:\b(?:leasing|a lease|lease)\b|ליסינג)[^.!?؟\n]{0,110}(?:(?:bundles?|includes?|covers?)\s+(?:insurance|maintenance|servicing)|(?:predictable|fixed)\s+(?:monthly\s+)?(?:payments?|budget(?:ing)?|costs?)|(?:newer|new)\s+car\s+every\s+few\s+years|(?:כולל|מכסה)\s+(?:ביטוח|טיפולים|תחזוקה)|(?:תשלום|תקציב|עלות)\s+חודש(?:י|ית)\s+(?:קבוע|צפוי))/iu.test(sentence)
       && !/\b(?:only if|if (?:stated|included|specified)|may|might|can|depends? on|subject to)\b|(?:רק אם|אם נכתב|אם מצוין|עשוי|יכול|תלוי|בכפוף)/iu.test(sentence)) return reject('leasing_terms_assurance');
   }

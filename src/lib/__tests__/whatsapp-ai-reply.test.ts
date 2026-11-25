@@ -111,6 +111,13 @@ describe('output checks for natural conversational drafts', () => {
     expect(check('Leasing often gives you fixed budgeting and a newer car every few years, while buying leaves you with an asset.', { input })).toBeNull();
     expect(check('Compare the total cost, mileage limit and exit terms. Leasing may include maintenance only if the specific offer says so; buying leaves you owning the car.', { input })).not.toBeNull();
   });
+  it('does not claim a preferred vehicle is available on a specific lease term', () => {
+    const input = 'A small SUV would work. I need a twelve-month lease.';
+    const onReject = vi.fn();
+    expect(check('A small SUV is a great fit for a twelve-month term. Check the early-exit terms.', { input, onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledExactlyOnceWith('leasing_term_fit');
+    expect(check('A small SUV is your preferred group; whether it is offered for a twelve-month term needs to be checked.', { input })).not.toBeNull();
+  });
   it('rejects an unperformed rental arrangement promise', () => {
     expect(check('We will arrange your family car pickup and return at Ben Gurion Airport from December 12 to 19.')).toBeNull();
   });

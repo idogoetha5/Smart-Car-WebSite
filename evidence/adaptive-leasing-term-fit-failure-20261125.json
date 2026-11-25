@@ -1,0 +1,92 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_H8gkoregfAdTENhxeW2Rx2XGh8L9",
+  "release": "4a2a3ae",
+  "observedAt": "2026-11-25T17:17:05.238556+00:00",
+  "sessionId": "adaptive-leasing-en-20261125-c",
+  "manualReview": "Stopped after turn 2: comparison answer avoided unverified bundled-maintenance/fixed-budget claims, but follow-up called a small SUV a great fit for a twelve-month leasing term. No specific SmartCar offer or vehicle availability/term match is verified. Early-exit and excess-mileage guidance itself was useful and conditional.",
+  "turns": [
+    {
+      "message": "Hi, I run a small business and need a car for about a year, roughly 20,000 km. I am torn between leasing and buying. How should I think about it?",
+      "reply": "When comparing leasing and buying for about a year, it helps to look at ownership, total cost, mileage limits, and upfront or final payments. Leasing offers predictable driving for the term, while buying gives you full ownership from day one. What kind of vehicle preference do you have in mind?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "en",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "Hi, I run a small business and need a car for about a year, roughly 20,000 km. I am torn between leasing and buying. How should I think about it?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "When comparing leasing and buying for about a year, it helps to look at ownership, total cost, mileage limits, and upfront or final payments. Leasing offers predictable driving for the term, while buying gives you full ownership from day one. What kind of vehicle preference do you have in mind?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "interest": "leasing",
+        "commercial": {
+          "annualMileageKm": 20000
+        }
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read leasing/none patches=[] fields={}"
+      ]
+    },
+    {
+      "message": "A small SUV would work. Twelve months is important; I do not want a three-year commitment. What should I check about early exit and going over 20,000 km?",
+      "reply": "A small SUV is a great fit for a twelve-month term. For early exit, check the specific exit terms and fees, and for mileage over 20,000 km, ask about excess kilometre charges in the agreement. Would you like a SmartCar representative to prepare a tailored leasing offer for you?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "en",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "Hi, I run a small business and need a car for about a year, roughly 20,000 km. I am torn between leasing and buying. How should I think about it?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "When comparing leasing and buying for about a year, it helps to look at ownership, total cost, mileage limits, and upfront or final payments. Leasing offers predictable driving for the term, while buying gives you full ownership from day one. What kind of vehicle preference do you have in mind?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "A small SUV would work. Twelve months is important; I do not want a three-year commitment. What should I check about early exit and going over 20,000 km?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "A small SUV is a great fit for a twelve-month term. For early exit, check the specific exit terms and fees, and for mileage over 20,000 km, ask about excess kilometre charges in the agreement. Would you like a SmartCar representative to prepare a tailored leasing offer for you?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "interest": "leasing",
+        "commercial": {
+          "annualMileageKm": 20000,
+          "earlyExitConcern": true,
+          "termMonths": 12
+        }
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read leasing/suv patches=[{\"field\":\"commercialTermMonths\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"Twelve months is important\",\"value\":12}] fields={}"
+      ]
+    }
+  ]
+}
