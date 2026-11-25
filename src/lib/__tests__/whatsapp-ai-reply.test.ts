@@ -5,6 +5,13 @@ const base: ConversationalReplyInput = { reply: '', input: '', locale: 'en', kno
 const check = (reply: string, rest: Partial<ConversationalReplyInput> = {}) => validateConversationalReply({ ...base, ...rest, reply });
 
 describe('output checks for natural conversational drafts', () => {
+  it('accepts a Friday date phrased with ליום while still rejecting a daily rate', () => {
+    const reply = 'אפשר לבדוק את ההעדפה לרכב מנהלים יוקרתי ליום שישי 11.12, עם איסוף והחזרה בהוד השרון. דגם וזמינות נבדוק לפני אישור.';
+    const onReject = vi.fn();
+    expect(check(reply, { locale: 'he', input: 'צריכה רכב ליום שישי 11.12. אילו אפשרויות יש?', onReject })).toBe(reply);
+    expect(onReject).not.toHaveBeenCalled();
+    expect(check('המחיר הוא 250 ליום.', { locale: 'he' })).toBeNull();
+  });
   it('rejects an offer of the retired toll package while allowing a toll-liability answer', () => {
     expect(check('You can add the Highway 6 and tunnels package.')).toBeNull();
     expect(check('Would you like the toll-road package?')).toBeNull();

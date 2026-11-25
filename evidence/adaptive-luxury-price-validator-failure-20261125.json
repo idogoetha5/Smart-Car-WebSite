@@ -1,0 +1,49 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_JBrmxXLBkNNfUC8ymLqPV5R2D5A8",
+  "release": "80cd97e",
+  "observedAt": "2026-11-25T14:57:24.919929+00:00",
+  "sessionId": "adaptive-luxury-sixth-20261125-a",
+  "manualReview": "Failed: validator misread ליום שישי 11.12 as a daily price, rejected both Gemini replies, then used local fallback. Stopped conversation.",
+  "turns": [
+    {
+      "message": "שלום, צריכה רכב מנהלים יוקרתי בסגנון מרצדס ליום שישי 11.12. אאסוף ואחזיר בהוד השרון, ואולי אקדים לחמישי אם זה יעזור. אילו אפשרויות יש?",
+      "reply": "רשמתי את ההעדפה לרכב מנהלים יוקרתי. דגם מסוים וזמינות אפשר לברר מול נציג אם תרצו להתקדם, בלי להניח שמרצדס מסוימת פנויה. ההקדמה לחמישי נשארת אפשרות פתוחה; כרגע רשום שישי. האם תחזירו גם ביום שישי?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-11",
+          "pickupLocation": "הוד השרון",
+          "returnLocation": "הוד השרון",
+          "vehicleNeed": "רכב מנהלים יוקרתי (העדפה לבדיקה)"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, צריכה רכב מנהלים יוקרתי בסגנון מרצדס ליום שישי 11.12. אאסוף ואחזיר בהוד השרון, ואולי אקדים לחמישי אם זה יעזור. אילו אפשרויות יש?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רשמתי את ההעדפה לרכב מנהלים יוקרתי. דגם מסוים וזמינות אפשר לברר מול נציג אם תרצו להתקדם, בלי להניח שמרצדס מסוימת פנויה. ההקדמה לחמישי נשארת אפשרות פתוחה; כרגע רשום שישי. האם תחזירו גם ביום שישי?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "local",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/none patches=[] fields={\"pickupDate\":{\"value\":\"2026-12-11\",\"evidence\":\"ליום שישי 11.12\"},\"pickupLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"בהוד השרון\"},\"returnLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"אאסוף ואחזיר בהוד השר",
+        "price_talk: אפשר לתאם איסוף והחזרה בהוד השרון ליום שישי 11.12, ואם תרצו אפשר לבדוק גם את יום חמישי. לגבי רכב מנהלים יוקרתי כמו מרצדס, נציג SmartCar יוכל לבדוק אילו דגמים ספ",
+        "price_talk: אפשר לבדוק את האפשרות להקדים ליום חמישי או לבחור במועד המבוקש ביום שישי ה־11.12, עם איסוף והחזרה בהוד השרון. נציג SmartCar יוכל לסייע בבדיקת הדגמים והזמינות המד",
+        "reword_rejected: רשמתי את ההעדפה לרכב מנהלים יוקרתי. דגם מסוים וזמינות אפשר לברר מול נציג אם תרצו להתקדם, בלי להניח שמרצדס מסוימת פנויה. "
+      ]
+    }
+  ]
+}
