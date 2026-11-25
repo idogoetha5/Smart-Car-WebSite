@@ -1,0 +1,46 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_6S5kPsU2L5CzE5DXPdE8QLGN8qnY",
+  "release": "923dd3e",
+  "observedAt": "2026-11-25T16:27:50.197541+00:00",
+  "sessionId": "adaptive-luxury-fourteenth-20261125-a",
+  "manualReview": "Failed on first turn: different verb form “לאסוף ולהחזיר ... ב־11 בדצמבר” still claimed the unstated return date. Stopped conversation.",
+  "turns": [
+    {
+      "message": "שלום, צריכה רכב מנהלים יוקרתי בסגנון מרצדס ליום שישי 11.12. אאסוף ואחזיר בהוד השרון, ואולי אקדים לחמישי אם זה יעזור. אילו אפשרויות יש?",
+      "reply": "רכבי מנהלים ויוקרה כמו מרצדס הם אפשרות מצוינת לנוחות ולנסיעה מרשימה. אפשר לאסוף ולהחזיר בהוד השרון ב־11 בדצמבר, ואם תרצו לבדוק אפשרות להקדים ליום חמישי, נציג SmartCar יוכל לבדוק זאת עבורכם יחד עם הדגמים הזמינים והזמינות המדויקת. באיזה תאריך תחזירו את הרכב?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-11",
+          "pickupLocation": "הוד השרון",
+          "returnLocation": "הוד השרון",
+          "vehicleNeed": "רכב מנהלים יוקרתי (העדפה לבדיקה)"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, צריכה רכב מנהלים יוקרתי בסגנון מרצדס ליום שישי 11.12. אאסוף ואחזיר בהוד השרון, ואולי אקדים לחמישי אם זה יעזור. אילו אפשרויות יש?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכבי מנהלים ויוקרה כמו מרצדס הם אפשרות מצוינת לנוחות ולנסיעה מרשימה. אפשר לאסוף ולהחזיר בהוד השרון ב־11 בדצמבר, ואם תרצו לבדוק אפשרות להקדים ליום חמישי, נציג SmartCar יוכל לבדוק זאת עבורכם יחד עם הדגמים הזמינים והזמינות המדויקת. באיזה תאריך תחזירו את הרכב?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/none patches=[] fields={\"pickupDate\":{\"value\":\"2026-12-11\",\"evidence\":\"ליום שישי 11.12\"},\"pickupLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"בהוד השרון\"},\"returnLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"ואחזיר בהוד השרון\"},\""
+      ]
+    }
+  ]
+}

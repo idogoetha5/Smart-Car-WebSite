@@ -15,6 +15,21 @@ function chat(initial: RebuildState) {
 }
 
 describe('luxury rental intake observed in the live inbox', () => {
+  it('rejects a return-date claim phrased as לאסוף ולהחזיר', async () => {
+    let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => { throw new Error('No formal booking'); },
+      readTurn: async () => ({ route: 'explore', direction: 'none', fields: {}, factPatches: [], reply: 'אפשר לאסוף ולהחזיר בהוד השרון ב־11 בדצמבר. באיזה תאריך תחזירו את הרכב?', source: 'gemini', model: 'test', groundedContext: true }),
+    };
+    const result = await getRebuiltBotReply('fictional-return-date-verb', 'צריכה רכב מנהלים יוקרתי ליום שישי 11.12. אאסוף ואחזיר בהוד השרון. אילו אפשרויות יש?', store);
+    expect(result.state.booking.returnDate).toBeUndefined();
+    expect(result.reply).not.toMatch(/לאסוף ולהחזיר[^.!?]*11 בדצמבר/);
+  });
+
   it('does not tell a customer that pickup and return share an unstated date', async () => {
     let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] };
     const store: RebuildStore = {
