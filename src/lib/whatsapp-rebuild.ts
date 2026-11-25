@@ -674,6 +674,15 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
   const enReturn = input.match(/(?:return|drop.?off)\s+(?:(?:the car|it)\s+)?(?:(?:will be|will remain|stays?|remains?)\s+)?(?:at|in|to)\s+([\p{L}][\p{L}\s'׳״-]{1,70}?)(?=\s+(?:on\s+\d{1,2}|tomorrow|today|day after tomorrow|for\s+(?:one|two|three|four|five)\s+days?)|[,.!?]|$)/iu)?.[1];
   const returnLocation = (heReturn ?? enReturn)?.split(/\s+(?:במקום|instead of)\s+/i)[0].trim().replace(/(?:\s+(?:בסוף|לבסוף|כרגיל|בבקשה|גם|אחר כך|please|too|as well|also|then))+$/iu, '');
   if (returnLocation && !temporalLocation(returnLocation)) draft.returnLocation = returnLocation;
+  if (!draft.pickupLocation && draft.returnLocation
+    && /(?:אאסוף|נאסוף|לאסוף|איסוף)\s+ו(?:אחזיר|נחזיר|להחזיר|החזרה)\s+ב/iu.test(input)
+    && input.includes(draft.returnLocation)
+    && !isHypotheticalFactEvidence(input, draft.returnLocation)) draft.pickupLocation = draft.returnLocation;
+  const statedPickupDay = input.match(/(?:ליום|ביום)\s+(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)\s+(\d{1,2}[./]\d{1,2}(?:[./]20\d{2})?)/u);
+  if (!draft.pickupDate && statedPickupDay && !isHypotheticalFactEvidence(input, statedPickupDay[0])) {
+    const date = singleDateAnswer(statedPickupDay[1]);
+    if (date) draft.pickupDate = date;
+  }
   // "need a car in jerusalem" / "rental from herzliya": the named branch is the pickup.
   if (!draft.pickupLocation) {
     const enBranch = input.match(/\b(?:need|want|looking for|rent)\b[^.!?]{0,40}\b(?:car|rental|vehicle|suv|van)\b\s+(?:in|at|from)\s+(tel aviv|herzliya|jerusalem)\b/iu)?.[1];
@@ -1038,7 +1047,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
 }
 
 function explicitVehicleNeed(input: string, locale: Locale): string | null {
-  if (/(?:רכב\s+)?(?:מנהלים\s+)?יוקרת(?:י|ית)|\bluxury\s+(?:car|vehicle|sedan)\b/iu.test(input)
+  if (/(?:רכב\s+)?(?:מנהלים\s+)?יוקרת(?:י|ית)|רכב\s+מנהלים\s+מפנק|\bluxury\s+(?:car|vehicle|sedan)\b/iu.test(input)
     && !/(?:לא|בלי|not|without)\s+(?:רכב\s+)?(?:מנהלים\s+)?יוקרת|\b(?:not|without)\s+(?:a\s+)?luxury/iu.test(input)) {
     return locale === 'he' ? 'רכב מנהלים יוקרתי (העדפה לבדיקה)' : 'luxury executive car (preference to check)';
   }
@@ -1056,7 +1065,7 @@ function explicitVehicleNeed(input: string, locale: Locale): string | null {
 }
 
 function customerVehicleChoice(input: string, state: RebuildState): string | null {
-  if (/(?:מחפש(?:ת)?|רוצה|צריך|צריכה|מעדיף(?:ה)?|אשמח|looking for|want|need|prefer|would like).{0,55}(?:רכב\s+)?(?:מנהלים\s+)?יוקרת(?:י|ית)|(?:מחפש(?:ת)?|רוצה|צריך|צריכה|looking for|want|need).{0,55}\bluxury\s+(?:car|vehicle|sedan)\b/iu.test(input)
+  if (/(?:מחפש(?:ת)?|רוצה|צריך|צריכה|מעדיף(?:ה)?|אשמח|looking for|want|need|prefer|would like).{0,55}(?:(?:רכב\s+)?(?:מנהלים\s+)?יוקרת(?:י|ית)|רכב\s+מנהלים\s+מפנק)|(?:מחפש(?:ת)?|רוצה|צריך|צריכה|looking for|want|need).{0,55}\bluxury\s+(?:car|vehicle|sedan)\b/iu.test(input)
     && !/(?:לא|בלי|not|without)\s+(?:רכב\s+)?(?:מנהלים\s+)?יוקרת|\b(?:not|without)\s+(?:a\s+)?luxury/iu.test(input)) return explicitVehicleNeed(input, state.locale);
   if (/(?:can|could) you (?:note|record|put down|mark).{0,45}(?:as (?:our|my) preference|for (?:our|my) request)/iu.test(input)) return explicitVehicleNeed(input, state.locale);
   if (/(?:family car|compact car|small car|suv|seven[- ]seat(?:er)?|רכב משפחתי|רכב קומפקטי|רכב פנאי|שבעה מקומות).{0,25}(?:sounds good|works for (?:us|me)|נשמע טוב|מתאים לנו)|(?:please )?note (?:that|it) as (?:our|my) preference/iu.test(input)
