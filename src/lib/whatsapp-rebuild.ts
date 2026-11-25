@@ -3550,7 +3550,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       if (text && text !== reply && keepsNumbers && sameQuestionShape && languageOk && text.length >= reply.length * 0.5 && text.length <= Math.min(650, reply.length * 1.7 + 40)
         && commitmentOk && tollPackageOk && comparisonMeaningOk && newDriverMeaningOk && !/[\u0E00-\u0E7F\u0400-\u04FF\u0600-\u06FF\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/u.test(text) && (reply.includes('₪') || !/₪|ש״ח|NIS/u.test(text))) {
         reply = text; model = reworded!.model; draftNotes.push('reworded');
-      } else if (store.isSimulation) draftNotes.push(`reword_rejected: ${text.slice(0, 120)}`);
+      } else if (store.isSimulation) draftNotes.push(`reword_rejected checks=${JSON.stringify({ keepsNumbers, sameQuestionShape, languageOk, commitmentOk, tollPackageOk, comparisonMeaningOk, newDriverMeaningOk, length: text.length })}: ${text.slice(0, 120)}`);
     } catch { /* keep the application wording */ }
   }
   // A representative does not repeat the same question after every answer. If the reply ends with a

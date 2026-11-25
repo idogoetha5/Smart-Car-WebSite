@@ -1,0 +1,43 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_G5sN9TWcVLamVmBQ2MAiisaX5Nns",
+  "release": "7cb015c",
+  "observedAt": "2026-11-25T16:32:02.479030+00:00",
+  "sessionId": "adaptive-family-20261125-a",
+  "manualReview": "Failed on first turn: Gemini assured a family car would provide comfortable space for passengers and stroller without model-specific fit verification. Stopped conversation.",
+  "turns": [
+    {
+      "message": "שלום, אנחנו זוג עם ילדה בת ארבע וטיולון. איזה סוג רכב כדאי לקחת לסוף שבוע בארץ?",
+      "reply": "שלום! לזוג עם ילדה וטיולון לסוף שבוע, רכב משפחתי יתאים בדרך כלל ויעניק לכם מקום נוח לנוסעים ולציוד. האם תרצו שנבדוק תאריכים ומיקום איסוף שמתאימים לכם?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "passengers": 3
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, אנחנו זוג עם ילדה בת ארבע וטיולון. איזה סוג רכב כדאי לקחת לסוף שבוע בארץ?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "שלום! לזוג עם ילדה וטיולון לסוף שבוע, רכב משפחתי יתאים בדרך כלל ויעניק לכם מקום נוח לנוסעים ולציוד. האם תרצו שנבדוק תאריכים ומיקום איסוף שמתאימים לכם?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/none patches=[] fields={\"passengers\":{\"value\":\"3\",\"evidence\":\"זוג עם ילדה בת ארבע\"}}"
+      ]
+    }
+  ]
+}
