@@ -665,8 +665,8 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
   }
   const sameCity = input.trim().match(/^([\p{L}\s'׳״-]{2,50})\s+גם\s+(?:להחזיר\s+(?:גם\s+)?לאסוף|לאסוף\s+(?:(?:וגם|גם)\s+)?להחזיר)$/u)?.[1]?.trim();
   if (sameCity && !temporalLocation(sameCity)) { draft.pickupLocation = sameCity; draft.returnLocation = sameCity; return; }
-  const stop = '(?=\\s+(?:ו?החזרה|ו?להחזיר|ו?נחזיר|ו?אחזיר|נשאר(?:ת)?|מחרתיים|מחר|היום|ליומיים|ליום|tomorrow|today|day after tomorrow|for\\s+(?:one|two|three|four|five)\\s+days?|unchanged|remains?|stays?|(?:and\\s+)?return|(?:and\\s+)?drop.?off|ב[-־]?\\s*\\d)|[,.!?]|$)';
-  const hePickup = input.match(new RegExp(`(?:איסוף|לאסוף|נאסוף|אאסוף|תאספו)\\s+(?!מחר(?:תיים)?(?:\\s|$))[במ]([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
+  const stop = '(?=\\s+(?:ו?החזרה|ו?להחזיר|ו?נחזיר|ו?אחזיר|נשאר(?:ת)?|מחרתיים|מחר|היום|ליומיים|ליום|ב(?:יום\\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|tomorrow|today|day after tomorrow|for\\s+(?:one|two|three|four|five)\\s+days?|unchanged|remains?|stays?|(?:and\\s+)?return|(?:and\\s+)?drop.?off|ב[-־]?\\s*\\d)|[,.!?]|$)';
+  const hePickup = input.match(new RegExp(`(?:איסוף|לאסוף|נאסוף|אאסוף|תאספו|ניקח)\\s+(?!מחר(?:תיים)?(?:\\s|$))[במ]([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${stop}`, 'iu'))?.[1];
   const enPickupStop = stop.replace('(?=', '(?=\\s+on\\s+\\d{1,2}|');
   const enPickup = input.match(new RegExp(`pick.?up\\s+(?:at|from|in)\\s+([\\p{L}][\\p{L}\\s'׳״-]{1,70}?)${enPickupStop}`, 'iu'))?.[1];
   const enFromPickup = /rent|rental|pick.?up|\b(?:need|want|looking for)\b.*\b(?:suv|car|vehicle|van|sedan|minivan)\b/i.test(input)
@@ -753,7 +753,7 @@ function applyExplicitLocations(input: string, draft: BookingDraft): void {
     const keys = [...new Set(found.map(place => /air|ben gurion|tlv|natbag|נתב|שדה/iu.test(place) ? 'airport' : /herz|הרצ/iu.test(place) ? 'herzliya' : /tel aviv|תל אביב/iu.test(place) ? 'telaviv' : 'jerusalem'))];
     if (keys.length === 1) draft.pickupLocation = (he ? { airport: 'נתב״ג', herzliya: 'הרצליה', telaviv: 'תל אביב', jerusalem: 'ירושלים' } : { airport: 'Ben Gurion Airport', herzliya: 'Herzliya', telaviv: 'Tel Aviv', jerusalem: 'Jerusalem' })[keys[0] as 'airport'];
   }
-  if (draft.pickupLocation && (/אותו מקום|שם גם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input))) draft.returnLocation = draft.pickupLocation;
+  if (draft.pickupLocation && (/אותו מקום|שם גם|(?:נחזיר|אחזיר|להחזיר|מחזירים?)\s+לשם|same place|same location|return there|drop.?off there/i.test(input) || explicitSameReturn(input))) draft.returnLocation = draft.pickupLocation;
 }
 
 function explicitBooking(input: string): boolean {

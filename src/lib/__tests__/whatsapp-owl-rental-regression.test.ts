@@ -15,6 +15,21 @@ function chat(initial: RebuildState) {
 }
 
 describe('luxury rental intake observed in the live inbox', () => {
+  it('resolves נחזיר לשם to the saved pickup place', async () => {
+    let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { passengers: 3 }, history: [{ from: 'bot', text: 'באילו תאריכים תרצו לצאת לסוף השבוע?' }] };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => { throw new Error('No formal booking'); },
+      readTurn: async () => ({ route: 'book', direction: 'family', fields: { pickupDate: { value: '2026-12-04', evidence: 'בשישי 4.12' }, returnDate: { value: '2026-12-06', evidence: 'בראשון 6.12' } }, factPatches: [], reply: 'אפשר לרשום כיסא בטיחות.', source: 'gemini', model: 'test', groundedContext: true }),
+    };
+    const result = await getRebuiltBotReply('fictional-return-there', 'נלך על משפחתית. ניקח מהרצליה בשישי 4.12 ונחזיר לשם בראשון 6.12. אפשר לבקש כיסא בטיחות לילדה?', store);
+    expect(result.state.booking).toMatchObject({ pickupLocation: 'הרצליה', returnLocation: 'הרצליה', pickupDate: '2026-12-04', returnDate: '2026-12-06', vehicleNeed: 'רכב משפחתי', childSeats: 1 });
+    expect(result.reply).not.toMatch(/להחזיר גם בהרצליה/);
+  });
+
   it('does not answer a missing-details question with unrelated age policy on a name turn', async () => {
     const send = chat({ version: 2, phase: 'booking', step: 'rental_age', locale: 'he', booking: { pickupDate: '2026-12-04', returnDate: '2026-12-06', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב משפחתי', passengers: 3, childSeats: 1 }, history: [{ from: 'bot', text: 'בן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה.' }] });
     const result = await send('הנהג בן 38. על שם דנה בדיקה, ואנחנו מביאים גם טיולון ושתי מזוודות. מה עוד חסר לכם?');

@@ -1,0 +1,93 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_HX8gsBvpQ6MFAwEKFEFSmQpyhe8S",
+  "release": "9910c27",
+  "observedAt": "2026-11-25T16:41:11.821606+00:00",
+  "sessionId": "adaptive-family-third-20261125-a",
+  "manualReview": "Failed on turn 2: explicit “ונחזיר לשם” did not fill returnLocation, so bot repeated the return-place question. Stopped conversation.",
+  "turns": [
+    {
+      "message": "שלום, אנחנו זוג עם ילדה בת ארבע וטיולון. איזה סוג רכב כדאי לקחת לסוף שבוע בארץ?",
+      "reply": "לזוג עם ילדה וטיולון לסוף שבוע, קטגוריית משפחתית מציעה בדרך כלל נוחות ומקום טוב לציוד, וכדאי לוודא מול נציג את ההתאמה המדויקת לדגם. באיזה תאריכים תרצו לצאת לסוף השבוע?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "passengers": 3
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, אנחנו זוג עם ילדה בת ארבע וטיולון. איזה סוג רכב כדאי לקחת לסוף שבוע בארץ?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "לזוג עם ילדה וטיולון לסוף שבוע, קטגוריית משפחתית מציעה בדרך כלל נוחות ומקום טוב לציוד, וכדאי לוודא מול נציג את ההתאמה המדויקת לדגם. באיזה תאריכים תרצו לצאת לסוף השבוע?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/family patches=[] fields={\"vehicleNeed\":{\"value\":\"family\",\"evidence\":\"איזה סוג רכב כדאי לקחת\"},\"passengers\":{\"value\":\"3\",\"evidence\":\"אנחנו זוג עם ילדה בת ארבע\"}}",
+        "fit_assurance: לזוג עם ילדה וטיולון לסוף שבוע, רכב משפחתי יהיה נוח מאוד ויתן לכם מספיק מקום למזוודות ולעגלה. נשמח לעזור לכם לבחור תאריכים ומקום איסוף כשבדרך תרצו."
+      ]
+    },
+    {
+      "message": "נלך על משפחתית. ניקח מהרצליה בשישי 4.12 ונחזיר לשם בראשון 6.12. אפשר לבקש כיסא בטיחות לילדה?",
+      "reply": "בשמחה, אפשר לרשום כיסא בטיחות. להחזיר גם בהרצליה?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_locations",
+        "locale": "he",
+        "booking": {
+          "passengers": 3,
+          "childSeats": 1,
+          "pickupDate": "2026-12-04",
+          "returnDate": "2026-12-06",
+          "vehicleNeed": "רכב משפחתי",
+          "pickupLocation": "הרצליה"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, אנחנו זוג עם ילדה בת ארבע וטיולון. איזה סוג רכב כדאי לקחת לסוף שבוע בארץ?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "לזוג עם ילדה וטיולון לסוף שבוע, קטגוריית משפחתית מציעה בדרך כלל נוחות ומקום טוב לציוד, וכדאי לוודא מול נציג את ההתאמה המדויקת לדגם. באיזה תאריכים תרצו לצאת לסוף השבוע?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "נלך על משפחתית. ניקח מהרצליה בשישי 4.12 ונחזיר לשם בראשון 6.12. אפשר לבקש כיסא בטיחות לילדה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה, אפשר לרשום כיסא בטיחות. להחזיר גם בהרצליה?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "aab11b9b-a63f-4d54-ba2c-ad7fd73aef2e"
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read book/family patches=[{\"field\":\"rentalVehicleCategory\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"נלך על משפחתית\",\"value\":\"family\"},{\"field\":\"rentalPickupBranch\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"ניקח מהרצליה\",\"value\":\"herzliya\"}] fields={\"pickupDate\":{\"value\":\"2026-12-04\",\"evidence\":\"בשישי 4.12\"},\"returnDate\":{\"value\":\"2026-12-06\",\"evidence\":\"בראשון 6.12\"},\"vehicleNeed\":{\"value\":\"משפחתית\",\"evidence\":\"משפחתית\"}}"
+      ]
+    }
+  ]
+}
