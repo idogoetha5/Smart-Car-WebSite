@@ -15,6 +15,21 @@ function chat(initial: RebuildState) {
 }
 
 describe('luxury rental intake observed in the live inbox', () => {
+  it('does not replace a luxury-options answer with a premature booking arrangement', async () => {
+    let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => { throw new Error('No formal booking'); },
+      readTurn: async () => ({ route: 'explore', direction: 'none', fields: { pickupDate: { value: '2026-12-11', evidence: 'ליום שישי 11.12' } }, factPatches: [], reply: 'נשמח לבדוק אפשרות לרכב מנהלים יוקרתי ליום שישי 11.12. תרצו שנתאם את ההזמנה לתאריכים האלו?', source: 'gemini', model: 'test', groundedContext: true }),
+    };
+    const result = await getRebuiltBotReply('fictional-options-action', 'צריכה רכב מנהלים יוקרתי בסגנון מרצדס ליום שישי 11.12. אילו אפשרויות יש?', store);
+    expect(result.reply).toMatch(/דגם|קטגור|סוג רכב/);
+    expect(result.reply).not.toMatch(/נתאם את ההזמנה/);
+  });
+
   it('does not replace a saved return place with a same-day time or ask for extras before a name', async () => {
     let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-12-11', pickupLocation: 'הוד השרון', returnLocation: 'הוד השרון', vehicleNeed: 'רכב מנהלים יוקרתי (העדפה לבדיקה)' }, history: [{ from: 'bot', text: 'האם תרצו שנתקדם בבדיקת הזמינות לתאריכים האלו?' }] };
     const store: RebuildStore = {

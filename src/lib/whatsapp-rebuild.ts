@@ -192,6 +192,16 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
   // The provider boundary attaches this flag only after approved facts were
   // actually supplied. It is context provenance, not a promise of correctness.
   if (!reading?.groundedContext) return null;
+  if (/נתאם\s+(?:את\s+)?ההזמנה|לתאם\s+(?:את\s+)?ההזמנה|arrange\s+(?:the\s+)?booking/iu.test(reading.reply) && !state.completedRequestId) {
+    onReject('premature_booking');
+    return null;
+  }
+  if (/אילו אפשרויות|איזה(?:\s+דגמים|\s+רכבים|\s+אפשרויות)|which (?:models|cars|options)|what (?:models|cars|options)/iu.test(input)
+    && /מנהלים|יוקרה|מרצדס|executive|luxury|mercedes/iu.test(input)
+    && !/דגמ|קטגור|סוג(?:י)?\s+רכב|models?|categor|vehicle (?:type|group)/iu.test(reading.reply)) {
+    onReject('missed_options_question');
+    return null;
+  }
   // The model must not swap the relative the customer named (observed: "אמא
   // שלי" answered as "אשתך"). Only a relation the customer used may appear.
   const customerText = [input, ...state.history.filter(entry => entry.from === 'customer').map(entry => entry.text)].join('\n');
