@@ -1,0 +1,51 @@
+{
+  "kind": "live-production-simulator-adaptive-failure",
+  "observedAt": "2026-11-25T14:47:55.324942+00:00",
+  "release": "d50d7d1",
+  "deploymentId": "dpl_7SGgg9QqcbqLeXFEb5ML1k1HeCkr",
+  "sessionId": "executivecheck20261125e",
+  "turns": [
+    {
+      "message": "היי, צריכה רכב מנהלים יוקרתי בסגנון מרצדס ליום שישי 11.12. אאסוף ואחזיר בהוד השרון, ואולי אתחיל בחמישי אחר הצהריים אבל עוד לא החלטתי. אילו אפשרויות יש?",
+      "status": 200,
+      "reply": "בטח, נשמח לבדוק אפשרות לרכב מנהלים יוקרתי. אפשר לתאם איסוף והחזרה בהוד השרון בתיאום מראש. האם תרצו להתחיל כבר ביום חמישי אחר הצהריים?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-11",
+          "returnDate": "2026-12-11",
+          "vehicleNeed": "רכב מנהלים יוקרתי (העדפה לבדיקה)",
+          "returnLocation": "הוד השרון"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "היי, צריכה רכב מנהלים יוקרתי בסגנון מרצדס ליום שישי 11.12. אאסוף ואחזיר בהוד השרון, ואולי אתחיל בחמישי אחר הצהריים אבל עוד לא החלטתי. אילו אפשרויות יש?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בטח, נשמח לבדוק אפשרות לרכב מנהלים יוקרתי. אפשר לתאם איסוף והחזרה בהוד השרון בתיאום מראש. האם תרצו להתחיל כבר ביום חמישי אחר הצהריים?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/none patches=[] fields={\"pickupDate\":{\"value\":\"2026-12-11\",\"evidence\":\"ליום שישי 11.12\"},\"returnDate\":{\"value\":\"2026-12-11\",\"evidence\":\"ליום שישי 11.12\"},\"vehicleNeed\":{\"value\":\"רכב מנהלים יוקרתי בסגנון מרצדס\",\"evidence\":\"ר"
+      ]
+    }
+  ],
+  "manualReview": {
+    "status": "failed",
+    "firstFailureTurn": 1,
+    "reason": "Canonical state inferred return date from a pickup-only date and missed explicitly linked self-pickup at the same place as return."
+  }
+}

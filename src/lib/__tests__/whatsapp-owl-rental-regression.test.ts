@@ -15,6 +15,21 @@ function chat(initial: RebuildState) {
 }
 
 describe('luxury rental intake observed in the live inbox', () => {
+  it('does not turn a pickup-only Friday into a return date and keeps linked self-pickup', async () => {
+    let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => { throw new Error('No formal booking'); },
+      readTurn: async () => ({ route: 'explore', direction: 'none', fields: { pickupDate: { value: '2026-12-11', evidence: 'ליום שישי 11.12' }, returnDate: { value: '2026-12-11', evidence: 'ליום שישי 11.12' }, returnLocation: { value: 'הוד השרון', evidence: 'ואחזיר בהוד השרון' } }, factPatches: [], reply: 'אפשר לברר דגמים מדויקים אם תרצו.', source: 'gemini', model: 'test', groundedContext: true }),
+    };
+    const result = await getRebuiltBotReply('fictional-linked-route', 'צריכה רכב מנהלים יוקרתי ליום שישי 11.12. אאסוף ואחזיר בהוד השרון. אילו אפשרויות יש?', store);
+    expect(result.state.booking).toMatchObject({ pickupDate: '2026-12-11', pickupLocation: 'הוד השרון', returnLocation: 'הוד השרון' });
+    expect(result.state.booking.returnDate).toBeUndefined();
+  });
+
   it('keeps self-pickup and rejects an invented home-delivery offer', async () => {
     let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] };
     const store: RebuildStore = {

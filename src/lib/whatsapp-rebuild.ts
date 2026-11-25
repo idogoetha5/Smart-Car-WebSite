@@ -1605,6 +1605,11 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
     if (!field || !input.toLocaleLowerCase().includes(field.evidence.toLocaleLowerCase())) continue;
     if (source === 'pickupDate' || source === 'returnDate') {
       if (ageOnly) continue;
+      // A pickup-only date is not evidence that the car comes back that day.
+      // The customer must tie the date to the return or state a one-day trip.
+      if (source === 'returnDate' && state.booking.pickupDate && field.value === state.booking.pickupDate
+        && !/באותו יום|ליום אחד|יום אחד בלבד|\bsame day\b|\bfor one day\b|\bone-day\b/iu.test(input)
+        && !/החזר|נחזיר|אחזיר|\breturn\b|drop.?off/iu.test(field.evidence)) continue;
       // Same-day return is grounded in the saved pickup date, but only when
       // the customer states an actual return and Gemini proposes that date.
       if (source === 'returnDate' && state.booking.pickupDate
@@ -1677,6 +1682,12 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
       ? customerVehicleChoice(input, state)!
       : field.value;
   }
+  // One stated place can serve both roles when the customer explicitly links
+  // self-pickup and return to it; an unlabelled city never supplies both.
+  if (!state.booking.pickupLocation && state.booking.returnLocation
+    && /(?:אאסוף|נאסוף|לאסוף|איסוף)\s+ו(?:אחזיר|נחזיר|להחזיר|החזרה)\s+ב/iu.test(input)
+    && input.includes(state.booking.returnLocation)
+    && !isHypotheticalFactEvidence(input, state.booking.returnLocation)) state.booking.pickupLocation = state.booking.returnLocation;
   for (const name of ['passengers', 'luggage', 'childSeats'] as const) {
     if (state.booking[name] !== undefined) continue;
     const field = fields[name];
