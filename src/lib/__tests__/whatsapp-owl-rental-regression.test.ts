@@ -54,7 +54,7 @@ describe('luxury rental intake observed in the live inbox', () => {
       saveState: async (_phone, next) => { state = structuredClone(next); },
       activeBooking: async () => null,
       createRentalRequest: async () => { throw new Error('No formal booking'); },
-      readTurn: async () => ({ route: 'explore', direction: 'none', fields: { pickupLocation: { value: 'הוד השרון', evidence: 'אאסוף ואחזיר בהוד השרון' }, returnLocation: { value: 'הוד השרון', evidence: 'אאסוף ואחזיר בהוד השרון' } }, factPatches: [], reply: 'אפשר לתאם מסירה ואיסוף עד הבית בהוד השרון. מה עוד?', source: 'gemini', model: 'test', groundedContext: true }),
+      readTurn: async () => ({ route: 'explore', direction: 'none', fields: { pickupLocation: { value: 'הוד השרון', evidence: 'אאסוף ואחזיר בהוד השרון' }, returnLocation: { value: 'הוד השרון', evidence: 'אאסוף ואחזיר בהוד השרון' } }, factPatches: [], reply: 'אפשר לתאם איסוף והחזרה בהוד השרון, ואנחנו מספקים שירות רכב עד הבית לכל מקום שתרצו בתיאום מראש. לגבי רכב מנהלים יוקרתי, נציג יוכל לבדוק דגמים.', source: 'gemini', model: 'test', groundedContext: true }),
     };
     const result = await getRebuiltBotReply('fictional-self-pickup', 'צריכה רכב מנהלים יוקרתי בסגנון מרצדס. אאסוף ואחזיר בהוד השרון. אילו אפשרויות יש?', store);
     expect(result.state.booking).toMatchObject({ pickupLocation: 'הוד השרון', returnLocation: 'הוד השרון', vehicleNeed: 'רכב מנהלים יוקרתי (העדפה לבדיקה)' });

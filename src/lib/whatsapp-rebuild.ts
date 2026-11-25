@@ -195,7 +195,7 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
   // The model must not swap the relative the customer named (observed: "אמא
   // שלי" answered as "אשתך"). Only a relation the customer used may appear.
   const customerText = [input, ...state.history.filter(entry => entry.from === 'customer').map(entry => entry.text)].join('\n');
-  if (/מסירה.{0,28}עד הבית|איסוף.{0,28}מהבית|להביא.{0,20}(?:אליכם|הביתה)|home delivery|deliver(?:ed|y)? (?:the car )?(?:to )?(?:your |my )?(?:home|hotel)|collect(?:ion)? (?:from )?(?:your |my )?home/iu.test(reading.reply)
+  if (/עד הבית|מסירה.{0,28}עד הבית|איסוף.{0,28}מהבית|להביא.{0,20}(?:אליכם|הביתה)|home delivery|deliver(?:ed|y)? (?:the car )?(?:to )?(?:your |my )?(?:home|hotel)|collect(?:ion)? (?:from )?(?:your |my )?home/iu.test(reading.reply)
     && !/עד הבית|מהבית|הביתה|לבית|למלון|home delivery|deliver.{0,25}(?:home|hotel)|collect.{0,20}home/iu.test(customerText)
     && !/עד הבית|Home delivery/iu.test(state.booking.pickupLocation ?? '')) {
     onReject('unrequested_delivery');
