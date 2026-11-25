@@ -1484,6 +1484,13 @@ function advice(input: string, state: RebuildState, reading: BotReading | null):
   if (explicitDateRange(input) && state.booking.pickupDate && state.booking.returnDate) return he
     ? `מעולה, רשמתי את התאריכים. ${state.booking.pickupLocation ? question('returnLocation', 'he') : question('pickupLocation', 'he')}`
     : `Great, I have the dates. ${state.booking.pickupLocation ? question('returnLocation', 'en') : question('pickupLocation', 'en')}`;
+  if (state.booking.vehicleNeed && /יוקרתי|luxury/iu.test(state.booking.vehicleNeed)
+    && /אילו אפשרויות|איזה אפשרויות|מה האפשרויות|איזה דגמים|what options|which options|which models/iu.test(input)) {
+    const earlierPickup = /אולי.{0,30}חמישי|חמישי.{0,30}(?:אולי|מתלבט)|(?:maybe|perhaps).{0,30}(?:thursday|a day earlier)/iu.test(input);
+    return he
+      ? `רשמתי את ההעדפה ל${state.booking.vehicleNeed.replace(/ \(העדפה לבדיקה\)$/u, '')}. דגם מסוים וזמינות אפשר לברר מול נציג אם תרצו להתקדם, בלי להניח שמרצדס מסוימת פנויה.${earlierPickup ? ' ההקדמה לחמישי נשארת אפשרות פתוחה; כרגע רשום שישי.' : ''}${state.booking.returnDate ? '' : ' האם תחזירו גם ביום שישי?'}`
+      : `I have noted your preference for a ${state.booking.vehicleNeed.replace(/ \(preference to check\)$/u, '')}. A representative can check specific models and availability if you want to proceed; I cannot assume a particular model is available.${earlierPickup ? ' The earlier pickup remains an open option; Friday is still the noted date.' : ''}${state.booking.returnDate ? '' : ' Would you return it on Friday too?'}`;
+  }
   if (/מה עוד (?:חסר|צריך)|אילו פרטים (?:חסרים|צריך)|what (?:else|details) (?:do you need|is missing)/iu.test(input)
     && (state.booking.pickupDate || state.booking.pickupLocation || state.booking.vehicleNeed)) {
     const missing = ORDER.filter(key => !state.booking[key]);
