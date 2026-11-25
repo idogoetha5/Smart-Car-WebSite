@@ -1,0 +1,102 @@
+{
+  "kind": "live-production-simulator-adaptive-failure",
+  "observedAt": "2026-11-25T14:51:46.495490+00:00",
+  "release": "6c37889",
+  "deploymentId": "dpl_Dkvp3dZp9XH2Rdg6zJc2zUfBqTGS",
+  "sessionId": "executiverental20261125f",
+  "turns": [
+    {
+      "message": "שלום, אני צריכה רכב מנהלים יוקרתי בסגנון מרצדס ליום שישי 11.12. אאסוף ואחזיר בהוד השרון. אולי אקדים לחמישי אחר הצהריים, עוד לא החלטתי. אילו אפשרויות יש?",
+      "status": 200,
+      "reply": "בשמחה, אפשר לתאם איסוף והחזרה בהוד השרון בתיאום מראש. נשמח לבדוק עבורכם אפשרויות לרכב מנהלים יוקרתי, וכמובן שאפשר גם לשקול איסוף מוקדם יותר ביום חמישי אם תרצו. המחיר הסופי ייקבע מול נציג SmartCar. האם תרצו שנתקדם בבדיקת הזמינות לתאריכים האלו?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-11",
+          "pickupLocation": "הוד השרון",
+          "returnLocation": "הוד השרון",
+          "vehicleNeed": "רכב מנהלים יוקרתי (העדפה לבדיקה)"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, אני צריכה רכב מנהלים יוקרתי בסגנון מרצדס ליום שישי 11.12. אאסוף ואחזיר בהוד השרון. אולי אקדים לחמישי אחר הצהריים, עוד לא החלטתי. אילו אפשרויות יש?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה, אפשר לתאם איסוף והחזרה בהוד השרון בתיאום מראש. נשמח לבדוק עבורכם אפשרויות לרכב מנהלים יוקרתי, וכמובן שאפשר גם לשקול איסוף מוקדם יותר ביום חמישי אם תרצו. המחיר הסופי ייקבע מול נציג SmartCar. האם תרצו שנתקדם בבדיקת הזמינות לתאריכים האלו?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/suv patches=[] fields={\"pickupDate\":{\"value\":\"2026-12-11\",\"evidence\":\"ליום שישי 11.12\"},\"pickupLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"אאסוף ואחזיר בהוד השרון\"},\"returnLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"אאסוף וא"
+      ]
+    },
+    {
+      "message": "כן, בואו נתקדם עם שישי בלבד. אחזיר באותו יום בערב. נהיה שני נוסעים בלי ציוד, הנהג בן 50. מה עוד צריך בשביל הבקשה?",
+      "status": 200,
+      "reply": "בסדר גמור, נתקדם עם איסוף והחזרה בהוד השרון ביום שישי ה־11.12. עבור שני נוסעים ונהג בן 50, נשאר רק לברר אם תרצו תוספות כמו נהג נוסף או כיסא בטיחות לפני שנסיים את הפרטים.\n\nעל איזה שם לרשום את הבקשה?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_name",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-11",
+          "pickupLocation": "הוד השרון",
+          "returnLocation": "אותו יום בערב",
+          "vehicleNeed": "רכב מנהלים יוקרתי (העדפה לבדיקה)",
+          "passengers": 2,
+          "returnDate": "2026-12-11",
+          "driverAgeRange": "24-plus"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, אני צריכה רכב מנהלים יוקרתי בסגנון מרצדס ליום שישי 11.12. אאסוף ואחזיר בהוד השרון. אולי אקדים לחמישי אחר הצהריים, עוד לא החלטתי. אילו אפשרויות יש?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה, אפשר לתאם איסוף והחזרה בהוד השרון בתיאום מראש. נשמח לבדוק עבורכם אפשרויות לרכב מנהלים יוקרתי, וכמובן שאפשר גם לשקול איסוף מוקדם יותר ביום חמישי אם תרצו. המחיר הסופי ייקבע מול נציג SmartCar. האם תרצו שנתקדם בבדיקת הזמינות לתאריכים האלו?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "כן, בואו נתקדם עם שישי בלבד. אחזיר באותו יום בערב. נהיה שני נוסעים בלי ציוד, הנהג בן 50. מה עוד צריך בשביל הבקשה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בסדר גמור, נתקדם עם איסוף והחזרה בהוד השרון ביום שישי ה־11.12. עבור שני נוסעים ונהג בן 50, נשאר רק לברר אם תרצו תוספות כמו נהג נוסף או כיסא בטיחות לפני שנסיים את הפרטים.\n\nעל איזה שם לרשום את הבקשה?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "5ada0571-feb5-4ab5-bcdc-69d79147ead5"
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read book/none patches=[] fields={\"pickupDate\":{\"value\":\"2026-12-11\",\"evidence\":\"שישי בלבד\"},\"returnDate\":{\"value\":\"2026-12-11\",\"evidence\":\"אחזיר באותו יום בערב\"},\"returnLocation\":{\"value\":\"אותו יום בערב\",\"evidence\":\"אחזיר באותו יום "
+      ]
+    }
+  ],
+  "manualReview": {
+    "status": "failed",
+    "firstFailureTurn": 2,
+    "reason": "Gemini supplied returnLocation from a temporal phrase and the application overwrote the saved city. The reply mentioned extras as the only remaining item before collecting the name."
+  }
+}

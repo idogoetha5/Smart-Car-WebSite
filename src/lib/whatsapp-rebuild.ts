@@ -209,6 +209,12 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
     onReject('young_driver_status_unknown');
     return null;
   }
+  if (state.phase === 'booking' && nextMissing(state.booking)
+    && !/תוספ|משהו נוסף|anything else|extras?|additions?/iu.test(input)
+    && /(?:נשאר(?:ו)?\s+(?:רק\s+)?(?:לברר|לבדוק|לשאול)|לפני\s+שנסיים|before\s+we\s+finish)[^.!?\n]{0,100}(?:תוספ|כיסא בטיחות|נהג נוסף|extras?|anything else|child seat|additional driver)/iu.test(reading.reply)) {
+    onReject('premature_extras');
+    return null;
+  }
   const relationMismatch = [
     [/אשתך|אשתכם|your wife/iu, /אשתי|אישתי|אשתו|my wife|wife/iu],
     [/בעלך|בעלכם|your husband/iu, /בעלי|בעלה|my husband|husband/iu],
@@ -615,7 +621,7 @@ function applyPromptedDate(input: string, state: RebuildState, lastBot: string):
 }
 
 function temporalLocation(value: string): boolean {
-  return /^(?:ב[-־]?\s*)?(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת|היום|מחר(?:תיים)?|מוצ["״']?ש|מוצאי שבת|הבוקר|הערב|בערב|בבוקר|בצהריים|הלילה)(?:\s|$)|^(?:on\s+)?(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow)(?:\s|$)|^\d{1,4}[-/.]\d/i.test(value.trim());
+  return /^(?:ב[-־]?\s*)?(?:(?:ב)?אותו\s+יום|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|היום|מחר(?:תיים)?|מוצ["״']?ש|מוצאי שבת|הבוקר|הערב|בערב|בבוקר|בצהריים|הלילה)(?:\s|$)|^(?:on\s+)?(?:the\s+)?(?:same\s+day|monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow)(?:\s|$)|^\d{1,4}[-/.]\d/i.test(value.trim());
 }
 
 /** Everyday branch abbreviations: ת"א / ת״א / תא → תל אביב, י-ם → ירושלים, נתבג → נתב״ג, TLV → Tel Aviv (airport if "TLV airport"). */

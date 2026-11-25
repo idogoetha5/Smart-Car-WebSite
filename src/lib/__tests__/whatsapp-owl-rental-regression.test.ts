@@ -15,6 +15,22 @@ function chat(initial: RebuildState) {
 }
 
 describe('luxury rental intake observed in the live inbox', () => {
+  it('does not replace a saved return place with a same-day time or ask for extras before a name', async () => {
+    let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-12-11', pickupLocation: 'הוד השרון', returnLocation: 'הוד השרון', vehicleNeed: 'רכב מנהלים יוקרתי (העדפה לבדיקה)' }, history: [{ from: 'bot', text: 'האם תרצו שנתקדם בבדיקת הזמינות לתאריכים האלו?' }] };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => { throw new Error('No formal booking'); },
+      readTurn: async () => ({ route: 'book', direction: 'none', fields: { returnDate: { value: '2026-12-11', evidence: 'אחזיר באותו יום בערב' }, returnLocation: { value: 'אותו יום בערב', evidence: 'אחזיר באותו יום בערב' } }, factPatches: [], reply: 'עבור שני נוסעים ונהג בן 50, נשאר רק לברר אם תרצו תוספות כמו נהג נוסף או כיסא בטיחות לפני שנסיים את הפרטים.', source: 'gemini', model: 'test', groundedContext: true }),
+    };
+    const result = await getRebuiltBotReply('fictional-temporal-return', 'כן, בואו נתקדם עם שישי בלבד. אחזיר באותו יום בערב. נהיה שני נוסעים בלי ציוד, הנהג בן 50. מה עוד צריך בשביל הבקשה?', store);
+    expect(result.state.booking).toMatchObject({ returnDate: '2026-12-11', returnLocation: 'הוד השרון', passengers: 2, driverAgeRange: '24-plus' });
+    expect(result.reply).toMatch(/שם/);
+    expect(result.reply).not.toMatch(/תוספות|כיסא בטיחות|נהג נוסף/);
+  });
+
   it('does not turn a pickup-only Friday into a return date and keeps linked self-pickup', async () => {
     let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] };
     const store: RebuildStore = {
