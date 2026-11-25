@@ -5,6 +5,12 @@ const base: ConversationalReplyInput = { reply: '', input: '', locale: 'en', kno
 const check = (reply: string, rest: Partial<ConversationalReplyInput> = {}) => validateConversationalReply({ ...base, ...rest, reply });
 
 describe('output checks for natural conversational drafts', () => {
+  it('rejects a promise to confirm the requested model before a real handoff', () => {
+    const onReject = vi.fn();
+    expect(check('אפשר לבדוק רכב מנהלים כמו מרצדס, ונדאג לאשר את הדגם והזמינות מול נציג SmartCar.', { locale: 'he', onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledExactlyOnceWith('action_claim');
+    expect(check('דגם מדויק וזמינות דורשים אישור מול נציג SmartCar.', { locale: 'he' })).not.toBeNull();
+  });
   it('asks for the return date specifically when pickup Friday is already saved', () => {
     const onReject = vi.fn();
     expect(check('באילו תאריכים תרצו את הרכב?', { locale: 'he', known: { pickupDate: '2026-12-11' }, onReject })).toBeNull();
