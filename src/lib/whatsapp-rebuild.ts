@@ -195,6 +195,12 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
   // The model must not swap the relative the customer named (observed: "אמא
   // שלי" answered as "אשתך"). Only a relation the customer used may appear.
   const customerText = [input, ...state.history.filter(entry => entry.from === 'customer').map(entry => entry.text)].join('\n');
+  if (/מסירה.{0,28}עד הבית|איסוף.{0,28}מהבית|להביא.{0,20}(?:אליכם|הביתה)|home delivery|deliver(?:ed|y)? (?:the car )?(?:to )?(?:your |my )?(?:home|hotel)|collect(?:ion)? (?:from )?(?:your |my )?home/iu.test(reading.reply)
+    && !/עד הבית|מהבית|הביתה|לבית|למלון|home delivery|deliver.{0,25}(?:home|hotel)|collect.{0,20}home/iu.test(customerText)
+    && !/עד הבית|Home delivery/iu.test(state.booking.pickupLocation ?? '')) {
+    onReject('unrequested_delivery');
+    return null;
+  }
   // The general age policy does not establish availability for this young
   // driver's enquiry until the new-driver question has been answered.
   if (state.phase === 'booking' && state.booking.pickupDate && state.booking.returnDate
@@ -1034,7 +1040,7 @@ function explicitVehicleNeed(input: string, locale: Locale): string | null {
 }
 
 function customerVehicleChoice(input: string, state: RebuildState): string | null {
-  if (/(?:מחפש(?:ת)?|רוצה|צריך(?:ה)?|מעדיף(?:ה)?|אשמח|looking for|want|need|prefer|would like).{0,55}(?:רכב\s+)?(?:מנהלים\s+)?יוקרת(?:י|ית)|(?:מחפש(?:ת)?|רוצה|צריך(?:ה)?|looking for|want|need).{0,55}\bluxury\s+(?:car|vehicle|sedan)\b/iu.test(input)
+  if (/(?:מחפש(?:ת)?|רוצה|צריך|צריכה|מעדיף(?:ה)?|אשמח|looking for|want|need|prefer|would like).{0,55}(?:רכב\s+)?(?:מנהלים\s+)?יוקרת(?:י|ית)|(?:מחפש(?:ת)?|רוצה|צריך|צריכה|looking for|want|need).{0,55}\bluxury\s+(?:car|vehicle|sedan)\b/iu.test(input)
     && !/(?:לא|בלי|not|without)\s+(?:רכב\s+)?(?:מנהלים\s+)?יוקרת|\b(?:not|without)\s+(?:a\s+)?luxury/iu.test(input)) return explicitVehicleNeed(input, state.locale);
   if (/(?:can|could) you (?:note|record|put down|mark).{0,45}(?:as (?:our|my) preference|for (?:our|my) request)/iu.test(input)) return explicitVehicleNeed(input, state.locale);
   if (/(?:family car|compact car|small car|suv|seven[- ]seat(?:er)?|רכב משפחתי|רכב קומפקטי|רכב פנאי|שבעה מקומות).{0,25}(?:sounds good|works for (?:us|me)|נשמע טוב|מתאים לנו)|(?:please )?note (?:that|it) as (?:our|my) preference/iu.test(input)
@@ -1632,7 +1638,7 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
       const fromLocation = input.toLocaleLowerCase().includes(`from ${field.value.toLocaleLowerCase()}`)
         || input.toLocaleLowerCase().includes(`from the ${field.value.toLocaleLowerCase()}`)
         || /^[\p{Script=Hebrew}]/u.test(field.value) && input.includes(`מ${field.value}`);
-      const explicitRole = source === 'pickupLocation' ? /איסוף|לאסוף|pick(?:\s+(?:it|the car))?[\s-]*up/i.test(input) || fromLocation
+      const explicitRole = source === 'pickupLocation' ? /איסוף|לאסוף|אאסוף|נאסוף|pick(?:\s+(?:it|the car))?[\s-]*up/i.test(input) || fromLocation
         : /להחזיר|נחזיר|אחזיר|מחזיר|החזרה|return|drop.?off/i.test(input) || samePlace && Boolean(state.booking.pickupLocation);
       const promptedRole = state.phase === 'booking' && state.step === 'rental_locations' && pending === source && plainLocation && !samePlace;
       // Trust the model's reading of the pickup when it points at a SmartCar branch or the airport with verbatim

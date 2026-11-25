@@ -1,0 +1,49 @@
+{
+  "kind": "live-production-simulator-adaptive-failure",
+  "observedAt": "2026-11-25T14:43:44.700685+00:00",
+  "release": "68160a7",
+  "deploymentId": "dpl_DYzoweZAmoLZwavf5wpRfmKMJCmz",
+  "sessionId": "luxuryadaptive20261125d",
+  "turns": [
+    {
+      "message": "שלום, צריכה רכב מנהלים יוקרתי בסגנון מרצדס ליום שישי 11.12. אאסוף ואחזיר בהוד השרון, אולי אתחיל כבר בחמישי אחר הצהריים אבל עוד לא סגרתי. אילו אפשרויות יש?",
+      "status": 200,
+      "reply": "בשמחה! אפשר לתאם מסירה ואיסוף עד הבית בהוד השרון. לגבי דגם יוקרתי כמו מרצדס, אפשר לבדוק אפשרויות ספציפיות וזמינות מול נציג SmartCar. האם תרצו להתחיל כבר ביום חמישי אחר הצהריים?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-11",
+          "returnLocation": "הוד השרון"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, צריכה רכב מנהלים יוקרתי בסגנון מרצדס ליום שישי 11.12. אאסוף ואחזיר בהוד השרון, אולי אתחיל כבר בחמישי אחר הצהריים אבל עוד לא סגרתי. אילו אפשרויות יש?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה! אפשר לתאם מסירה ואיסוף עד הבית בהוד השרון. לגבי דגם יוקרתי כמו מרצדס, אפשר לבדוק אפשרויות ספציפיות וזמינות מול נציג SmartCar. האם תרצו להתחיל כבר ביום חמישי אחר הצהריים?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/none patches=[] fields={\"pickupDate\":{\"value\":\"2026-12-11\",\"evidence\":\"ליום שישי 11.12\"},\"pickupLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"אאסוף ואחזיר בהוד השרון\"},\"returnLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"אאסוף וא"
+      ]
+    }
+  ],
+  "manualReview": {
+    "status": "failed",
+    "firstFailureTurn": 1,
+    "reason": "Gemini offered unsolicited home delivery. Canonical state missed explicitly stated self-pickup and luxury preference."
+  }
+}

@@ -12,6 +12,10 @@ Change log: 2026-11-25 — corrected model-to-state same-day return handling and
 
 Change log: 2026-11-25 — corrected action-claim guidance and question-specific fallback after the second live replay failed.
 
+2026-11-25 third replay — Ready deployment `dpl_DYzoweZAmoLZwavf5wpRfmKMJCmz` was tested with a fresh Hebrew executive-car enquiry. Gemini answered but invented home delivery after the customer explicitly said she would collect and return the car; the application also dropped self-pickup and her vehicle preference from canonical state. Full one-turn failure: `evidence/adaptive-luxury-self-pickup-failure-20261125.json`. Local changes now accept “צריכה רכב ... יוקרתי”, recognize “אאסוף” as explicit pickup, reject unrequested home-delivery wording and request a corrected model answer. A targeted regression passes; full gates, publication and fresh adaptive replay remain pending.
+
+Change log: 2026-11-25 — repaired self-pickup and vehicle capture and added an unrequested-delivery guard after the third live replay failed.
+
 2026-11-24 — A real customer asked “יוצרים קשר?” and the live Gemini simulator reproduced an incorrect immediate representative handoff (`read human/none`, `handoff_model_judgement`, `escalated:true`). The 24-hour takeover rule then suppressed the customer's later rental request. Contact-method questions now cannot trigger model-only handoff; a two-turn regression covers the exact contact-to-rental sequence. Admin replies previously displayed a YCloud HTTP acceptance as if it were delivery. The admin now keeps the YCloud message ID, offers a read-only delivery check against YCloud's message status, checks automatically after sending, and refuses free-form sends outside the 24-hour customer window. Delivery remains unproved until a real recipient-device receipt is observed. Historical messages already suppressed by the old handoff are not replayed automatically.
 
 Change log: 2026-11-24 — corrected contact-question handoff and added representative-message delivery verification and service-window guard; full gates and production acceptance pending.
