@@ -1001,7 +1001,7 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
   if (!family && /אנחנו זוג|זוג עם|שני אנשים|שני נוסעים|we are a couple|two of us/i.test(input)) draft.passengers = 2;
   // Count the child as a passenger when the customer explicitly describes a
   // couple travelling with one. A five-year-old is not luggage or a seat count.
-  const coupleWithChild = /(?<![\p{L}])(?:זוג|שני (?:מבוגרים|אנשים)).{0,45}(?:עם|ו[- ]?).{0,20}(?:תינוק|ילד(?:ה)?(?: אחד(?:ת)?)?)(?![\p{L}])|(?:my (?:wife|husband|partner|spouse) and I|myself and my (?:wife|husband|partner|spouse)|two adults?).{0,90}(?:(?:with|and) (?:our|a|one) (?:\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)[- ]year[- ]old|with (?:our|a|one) (?:child|kid|baby|infant|son|daughter)|and (?:one|a) (?:child|kid|baby|infant))/iu.test(input);
+  const coupleWithChild = /(?<![\p{L}])(?:זוג|שני (?:מבוגרים|אנשים)).{0,45}(?:עם|ו[- ]?).{0,20}(?:תינוק|ילד(?:ה)?(?: אחד(?:ת)?)?|(?:בן|בת)\s+(?:\d{1,2}|אחת|אחד|שנתיים|שלוש|ארבע|חמש|שש|שבע|שמונה|תשע|עשר))(?![\p{L}])|(?:my (?:wife|husband|partner|spouse) and I|myself and my (?:wife|husband|partner|spouse)|two adults?).{0,90}(?:(?:with|and) (?:our|a|one) (?:\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)[- ]year[- ]old|with (?:our|a|one) (?:child|kid|baby|infant|son|daughter)|and (?:one|a) (?:child|kid|baby|infant))/iu.test(input);
   if (coupleWithChild) draft.passengers = 3;
   if (passengerCount === null && explicitPartnerAndChildGroup(input)) draft.passengers = 3;
   if (/זוג עם (?:שני|שתי) ילדים|זוג ושני ילדים|(?:we are a )?couple with two children/i.test(input)) draft.passengers = 4;

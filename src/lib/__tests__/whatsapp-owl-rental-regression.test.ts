@@ -15,6 +15,20 @@ function chat(initial: RebuildState) {
 }
 
 describe('luxury rental intake observed in the live inbox', () => {
+  it('counts a daughter stated by age as a passenger alongside the couple', async () => {
+    let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => { throw new Error('No formal booking'); },
+      readTurn: async () => ({ route: 'explore', direction: 'family', fields: { passengers: { value: '3', evidence: 'אנחנו זוג עם בת ארבע' } }, factPatches: [], reply: 'רכב משפחתי הוא כיוון טוב; ההתאמה לטיולון תלויה בדגם המסוים. לאילו תאריכים?', source: 'gemini', model: 'test', groundedContext: true }),
+    };
+    const result = await getRebuiltBotReply('fictional-family-daughter', 'אנחנו זוג עם בת ארבע, טיולון ושתי מזוודות. איזו קטגוריה הייתם מציעים לסוף שבוע?', store);
+    expect(result.state.booking.passengers).toBe(3);
+    expect(result.state.booking.luggage).toBe(2);
+  });
   it('resolves נחזיר לשם to the saved pickup place', async () => {
     let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { passengers: 3 }, history: [{ from: 'bot', text: 'באילו תאריכים תרצו לצאת לסוף השבוע?' }] };
     const store: RebuildStore = {

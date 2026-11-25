@@ -1,0 +1,44 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_6HVc2Au9n6K6Hw1zW9jDEk1GiS5W",
+  "release": "4de20f9",
+  "observedAt": "2026-11-25T16:59:56.446117+00:00",
+  "sessionId": "adaptive-family-sixth-20261125-a",
+  "manualReview": "Stopped on turn 1: the customer said a couple with a four-year-old daughter, but saved passenger count was 2 while Gemini extracted 3. The bot must not pass an incorrect party size to staff.",
+  "turns": [
+    {
+      "message": "אנחנו זוג עם בת ארבע, טיולון ושתי מזוודות. איזו קטגוריה הייתם מציעים לסוף שבוע?",
+      "reply": "רכב משפחתי הוא כיוון טוב לנוחות שלכם ושל הטיולון והמזוודות; את ההתאמה המדויקת לציוד ולדגם נבדוק בהמשך. באיזה תאריכים תרצו את הרכב?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "luggage": 2,
+          "passengers": 2
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "אנחנו זוג עם בת ארבע, טיולון ושתי מזוודות. איזו קטגוריה הייתם מציעים לסוף שבוע?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכב משפחתי הוא כיוון טוב לנוחות שלכם ושל הטיולון והמזוודות; את ההתאמה המדויקת לציוד ולדגם נבדוק בהמשך. באיזה תאריכים תרצו את הרכב?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/family patches=[] fields={\"passengers\":{\"value\":\"3\",\"evidence\":\"אנחנו זוג עם בת ארבע\"}}"
+      ]
+    }
+  ]
+}
