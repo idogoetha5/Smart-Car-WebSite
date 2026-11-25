@@ -1,0 +1,338 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_3Fh5nGB2hxKqvpoAXBM3w9Yifq1Y",
+  "release": "40b26de",
+  "observedAt": "2026-11-25T17:04:13.525485+00:00",
+  "sessionId": "adaptive-family-seventh-20261125-a",
+  "manualReview": "Passed the isolated five-turn Hebrew family rental rehearsal: Gemini gave qualified advice, all supplied rental facts were retained including three passengers, the private name plus child-seat question received a direct conditional answer, extras were asked once, and the final response summarized and marked a simulated representative handoff. The simulator does not send an actual WhatsApp or email and does not verify real delivery.",
+  "turns": [
+    {
+      "message": "אנחנו זוג עם בת ארבע, טיולון ושתי מזוודות. איזו קטגוריה הייתם מציעים לסוף שבוע?",
+      "reply": "רכב משפחתי הוא כיוון טוב לסוף השבוע שלכם עם הילדה והציוד; את ההתאמה המדויקת לטיולון ולמזוודות נבדוק לפי הדגם המסוים. האם תרצו לבדוק תאריכים לסוף השבוע הקרוב?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "luggage": 2,
+          "passengers": 3
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "אנחנו זוג עם בת ארבע, טיולון ושתי מזוודות. איזו קטגוריה הייתם מציעים לסוף שבוע?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכב משפחתי הוא כיוון טוב לסוף השבוע שלכם עם הילדה והציוד; את ההתאמה המדויקת לטיולון ולמזוודות נבדוק לפי הדגם המסוים. האם תרצו לבדוק תאריכים לסוף השבוע הקרוב?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/family patches=[] fields={\"passengers\":{\"value\":\"3\",\"evidence\":\"זוג עם בת ארבע\"},\"luggage\":{\"value\":\"שתי מזוודות\",\"evidence\":\"ושתי מזוודות\"}}"
+      ]
+    },
+    {
+      "message": "כן, נלך על משפחתית. ניקח מהרצליה בשישי 4.12 ונחזיר לשם בראשון 6.12. נצטרך גם כיסא בטיחות לילדה.",
+      "reply": "בן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה.",
+      "escalated": false,
+      "quickReplies": [
+        {
+          "label": "21–23",
+          "message": "21–23"
+        },
+        {
+          "label": "24+",
+          "message": "24+"
+        }
+      ],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_age",
+        "locale": "he",
+        "booking": {
+          "luggage": 2,
+          "passengers": 3,
+          "childSeats": 1,
+          "pickupDate": "2026-12-04",
+          "returnDate": "2026-12-06",
+          "returnLocation": "הרצליה",
+          "vehicleNeed": "רכב משפחתי",
+          "pickupLocation": "הרצליה"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "אנחנו זוג עם בת ארבע, טיולון ושתי מזוודות. איזו קטגוריה הייתם מציעים לסוף שבוע?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכב משפחתי הוא כיוון טוב לסוף השבוע שלכם עם הילדה והציוד; את ההתאמה המדויקת לטיולון ולמזוודות נבדוק לפי הדגם המסוים. האם תרצו לבדוק תאריכים לסוף השבוע הקרוב?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "כן, נלך על משפחתית. ניקח מהרצליה בשישי 4.12 ונחזיר לשם בראשון 6.12. נצטרך גם כיסא בטיחות לילדה.",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה.",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "3d7b1b53-620b-4f6e-a468-4282d908d136"
+      },
+      "source": "local",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read book/family patches=[{\"field\":\"rentalVehicleCategory\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"נלך על משפחתית\",\"value\":\"family\"},{\"field\":\"rentalPickupBranch\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"ניקח מהרצליה\",\"value\":\"herzliya\"}] fields={\"pickupDate\":{\"value\":\"2026-12-04\",\"evidence\":\"בשישי 4.12\"},\"returnDate\":{\"value\":\"2026-12-06\",\"evidence\":\"בראשון 6.12\"},\"returnLocation\":{\"value\":\"הרצליה\",\"evidence\":\"ונחזיר לשם\"},\"vehicleNeed\":{\"va",
+        "reword_rejected checks={\"keepsNumbers\":true,\"sameQuestionShape\":true,\"languageOk\":true,\"commitmentOk\":true,\"tollPackageOk\":true,\"comparisonMeaningOk\":true,\"newDriverMeaningOk\":true,\"length\":54}: בן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה."
+      ]
+    },
+    {
+      "message": "הנהג בן 35. מה עוד צריך מכם כדי להעביר את הפנייה?",
+      "reply": "תודה רבה! נשארו רק השם לרישום הפנייה והשאלה אם תרצו תוספות כמו נהג נוסף. על איזה שם לרשום את הבקשה?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_name",
+        "locale": "he",
+        "booking": {
+          "luggage": 2,
+          "passengers": 3,
+          "childSeats": 1,
+          "pickupDate": "2026-12-04",
+          "returnDate": "2026-12-06",
+          "returnLocation": "הרצליה",
+          "vehicleNeed": "רכב משפחתי",
+          "pickupLocation": "הרצליה",
+          "driverAgeRange": "24-plus"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "אנחנו זוג עם בת ארבע, טיולון ושתי מזוודות. איזו קטגוריה הייתם מציעים לסוף שבוע?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכב משפחתי הוא כיוון טוב לסוף השבוע שלכם עם הילדה והציוד; את ההתאמה המדויקת לטיולון ולמזוודות נבדוק לפי הדגם המסוים. האם תרצו לבדוק תאריכים לסוף השבוע הקרוב?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "כן, נלך על משפחתית. ניקח מהרצליה בשישי 4.12 ונחזיר לשם בראשון 6.12. נצטרך גם כיסא בטיחות לילדה.",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה.",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "הנהג בן 35. מה עוד צריך מכם כדי להעביר את הפנייה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "תודה רבה! נשארו רק השם לרישום הפנייה והשאלה אם תרצו תוספות כמו נהג נוסף. על איזה שם לרשום את הבקשה?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "3d7b1b53-620b-4f6e-a468-4282d908d136"
+      },
+      "source": "local",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "no_reading",
+        "reworded"
+      ]
+    },
+    {
+      "message": "נועם בדיקה. וכיסא הבטיחות כלול או צריך להוסיף?",
+      "reply": "כיסא הבטיחות נרשם כבקשה. האם הוא כלול ומה התנאים שלו ייקבעו בהצעה; כרגע אי אפשר לאשר זאת. לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו? למשל נהג נוסף. אם לא, אפשר פשוט לכתוב \"לא\".",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_extras",
+        "locale": "he",
+        "booking": {
+          "luggage": 2,
+          "passengers": 3,
+          "childSeats": 1,
+          "pickupDate": "2026-12-04",
+          "returnDate": "2026-12-06",
+          "returnLocation": "הרצליה",
+          "vehicleNeed": "רכב משפחתי",
+          "pickupLocation": "הרצליה",
+          "driverAgeRange": "24-plus",
+          "customerName": "נועם בדיקה"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "אנחנו זוג עם בת ארבע, טיולון ושתי מזוודות. איזו קטגוריה הייתם מציעים לסוף שבוע?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכב משפחתי הוא כיוון טוב לסוף השבוע שלכם עם הילדה והציוד; את ההתאמה המדויקת לטיולון ולמזוודות נבדוק לפי הדגם המסוים. האם תרצו לבדוק תאריכים לסוף השבוע הקרוב?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "כן, נלך על משפחתית. ניקח מהרצליה בשישי 4.12 ונחזיר לשם בראשון 6.12. נצטרך גם כיסא בטיחות לילדה.",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה.",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "הנהג בן 35. מה עוד צריך מכם כדי להעביר את הפנייה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "תודה רבה! נשארו רק השם לרישום הפנייה והשאלה אם תרצו תוספות כמו נהג נוסף. על איזה שם לרשום את הבקשה?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "נועם בדיקה. וכיסא הבטיחות כלול או צריך להוסיף?",
+            "private": true
+          },
+          {
+            "from": "bot",
+            "text": "כיסא הבטיחות נרשם כבקשה. האם הוא כלול ומה התנאים שלו ייקבעו בהצעה; כרגע אי אפשר לאשר זאת. לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו? למשל נהג נוסף. אם לא, אפשר פשוט לכתוב \"לא\".",
+            "private": true
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "3d7b1b53-620b-4f6e-a468-4282d908d136",
+        "rentalExtrasAsked": true
+      },
+      "source": "local",
+      "notes": []
+    },
+    {
+      "message": "לא, זה הכל. תודה.",
+      "reply": "סיכום הפנייה: רכב משפחתי; איסוף בהרצליה ב־04/12/2026, החזרה בהרצליה ב־06/12/2026; גיל הנהג 24+; על שם נועם בדיקה. נוסעים: 3; מזוודות: 2. תוספות שביקשתם: כיסא בטיחות אחד. העברתי לנציג SmartCar לבדיקה. הרכב, התוספות והמחיר עדיין לא אושרו.",
+      "escalated": true,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "service",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "luggage": 2,
+          "passengers": 3,
+          "childSeats": 1,
+          "pickupDate": "2026-12-04",
+          "returnDate": "2026-12-06",
+          "returnLocation": "הרצליה",
+          "vehicleNeed": "רכב משפחתי",
+          "pickupLocation": "הרצליה",
+          "driverAgeRange": "24-plus",
+          "customerName": "נועם בדיקה"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "אנחנו זוג עם בת ארבע, טיולון ושתי מזוודות. איזו קטגוריה הייתם מציעים לסוף שבוע?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכב משפחתי הוא כיוון טוב לסוף השבוע שלכם עם הילדה והציוד; את ההתאמה המדויקת לטיולון ולמזוודות נבדוק לפי הדגם המסוים. האם תרצו לבדוק תאריכים לסוף השבוע הקרוב?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "כן, נלך על משפחתית. ניקח מהרצליה בשישי 4.12 ונחזיר לשם בראשון 6.12. נצטרך גם כיסא בטיחות לילדה.",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה.",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "הנהג בן 35. מה עוד צריך מכם כדי להעביר את הפנייה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "תודה רבה! נשארו רק השם לרישום הפנייה והשאלה אם תרצו תוספות כמו נהג נוסף. על איזה שם לרשום את הבקשה?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "נועם בדיקה. וכיסא הבטיחות כלול או צריך להוסיף?",
+            "private": true
+          },
+          {
+            "from": "bot",
+            "text": "כיסא הבטיחות נרשם כבקשה. האם הוא כלול ומה התנאים שלו ייקבעו בהצעה; כרגע אי אפשר לאשר זאת. לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו? למשל נהג נוסף. אם לא, אפשר פשוט לכתוב \"לא\".",
+            "private": true
+          },
+          {
+            "from": "customer",
+            "text": "לא, זה הכל. תודה.",
+            "private": true
+          },
+          {
+            "from": "bot",
+            "text": "סיכום הפנייה: רכב משפחתי; איסוף בהרצליה ב־04/12/2026, החזרה בהרצליה ב־06/12/2026; גיל הנהג 24+; על שם נועם בדיקה. נוסעים: 3; מזוודות: 2. תוספות שביקשתם: כיסא בטיחות אחד. העברתי לנציג SmartCar לבדיקה. הרכב, התוספות והמחיר עדיין לא אושרו.",
+            "private": true
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "3d7b1b53-620b-4f6e-a468-4282d908d136",
+        "rentalExtrasAsked": true,
+        "rentalExtrasAnswered": true,
+        "completedRental": {
+          "luggage": 2,
+          "passengers": 3,
+          "childSeats": 1,
+          "pickupDate": "2026-12-04",
+          "returnDate": "2026-12-06",
+          "returnLocation": "הרצליה",
+          "vehicleNeed": "רכב משפחתי",
+          "pickupLocation": "הרצליה",
+          "driverAgeRange": "24-plus"
+        },
+        "handedOff": true,
+        "handoffAt": "2026-11-25T17:03:55.924Z",
+        "handoffKind": "human"
+      },
+      "source": "local",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read book/family patches=[] fields={}"
+      ]
+    }
+  ]
+}

@@ -80,6 +80,8 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   const reject = (reason: string): null => { args.onReject?.(reason); return null; };
   const reply = args.reply?.trim();
   if (!reply) return reject('empty');
+  if (/(?:חנ(?:יה|יות|יית|ים)|להחנות|מחנים|park(?:ing)?|לעצור ליד הכניסה)/iu.test(input)
+    && /(?:פשוט\s+(?:עצרו|תעצרו|תחנ(?:ו|י))|תוכלו?\s+להחנות\s+(?:את\s+)?(?:הרכב\s+)?(?:ב|ליד)\s*(?:הסניף|הכניסה)|נציג[^.!?؟\n]{0,60}(?:ידאג|יכוון|יקבל את פניכם)|(?:just|simply)\s+(?:stop|park)\s+(?:at|by|near)\s+(?:the\s+)?(?:branch|entrance)|(?:staff|representative)\s+will\s+(?:guide|direct|meet)\b)/iu.test(reply)) return reject('unverified_parking');
   // A live correction once produced this broken Hebrew fragment. It must not
   // reach a customer even though the sentence is otherwise grounded.
   if (/(?:מעניק|מספק|נותן|ייתן|יתן)\s+נוח(?![א-ת])/u.test(reply)) return reject('awkward_hebrew');

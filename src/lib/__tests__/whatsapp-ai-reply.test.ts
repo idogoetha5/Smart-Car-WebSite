@@ -96,6 +96,13 @@ describe('output checks for natural conversational drafts', () => {
     expect(onReject).toHaveBeenCalledExactlyOnceWith('awkward_hebrew');
     expect(check('רכב משפחתי הוא כיוון טוב; את ההתאמה לטיולון ולציוד כדאי לבדוק לפי הדגם המסוים.', { locale: 'he', input })).not.toBeNull();
   });
+  it('does not invent a return parking place or staff guide from a branch address', () => {
+    const input = 'יש שם מקום מסומן של SmartCar או פשוט לעצור ליד הכניסה?';
+    const onReject = vi.fn();
+    expect(check('פשוט עצרו בסניף ונציג שלנו כבר ידאג להכוונת הרכב ולתהליך ההחזרה.', { locale: 'he', input, onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledExactlyOnceWith('unverified_parking');
+    expect(check('אין לי כאן פרטים מאומתים על מקום חניה מסומן או היכן לעצור. כדאי לקבל הכוונה מהמשרד לפני ההגעה כדי לא לחסום את הכניסה.', { locale: 'he', input })).not.toBeNull();
+  });
   it('rejects an unperformed rental arrangement promise', () => {
     expect(check('We will arrange your family car pickup and return at Ben Gurion Airport from December 12 to 19.')).toBeNull();
   });
