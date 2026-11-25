@@ -1,0 +1,165 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_AsggyCVBoRashjwkNrnTbNXwk2BC",
+  "release": "a6e0143",
+  "observedAt": "2026-11-25T16:37:09.463614+00:00",
+  "sessionId": "adaptive-family-second-20261125-a",
+  "manualReview": "Failed on turn 3: private-name turn correctly saved the family details but prepended an irrelevant driver-licence policy answer to a missing-details question. Stopped before extras answer/handoff.",
+  "turns": [
+    {
+      "message": "שלום, אנחנו זוג עם ילדה בת ארבע וטיולון. איזה סוג רכב כדאי לקחת לסוף שבוע בארץ?",
+      "reply": "שלום! לטיול משפחתי סביב שלושה נוסעים לסופ\"ש, קטגוריית רכב משפחתי מציעה בדרך כלל יותר מקום ונוחות לנוסעים ולציוד מאשר קומפקטי קטן. התאמה מדויקת לטיולון ולציוד תלויה בדגם המסוים ובמידותיו, ונציג SmartCar ישמח לעזור לכם לוודא שהדגם מתאים לכם. מתי תרצו את הרכב ומאיפה תרצו לאסוף אותו?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "passengers": 3
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, אנחנו זוג עם ילדה בת ארבע וטיולון. איזה סוג רכב כדאי לקחת לסוף שבוע בארץ?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "שלום! לטיול משפחתי סביב שלושה נוסעים לסופ\"ש, קטגוריית רכב משפחתי מציעה בדרך כלל יותר מקום ונוחות לנוסעים ולציוד מאשר קומפקטי קטן. התאמה מדויקת לטיולון ולציוד תלויה בדגם המסוים ובמידותיו, ונציג SmartCar ישמח לעזור לכם לוודא שהדגם מתאים לכם. מתי תרצו את הרכב ומאיפה תרצו לאסוף אותו?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/family patches=[] fields={\"passengers\":{\"value\":\"3\",\"evidence\":\"זוג עם ילדה בת ארבע\"}}",
+        "fit_assurance: לזוג עם ילדה וטיולון, רכב משפחתי יתאים בדרך כלל ויעניק לכם יותר מקום לנוסעים ולציוד מאשר רכב קומפקטי קטן. האם תרצו לבדוק את התאריכים לסוף השבוע הקרוב?"
+      ]
+    },
+    {
+      "message": "נשמע טוב, נלך על משפחתית. מ־4.12 עד 6.12, איסוף והחזרה מהרצליה. אפשר לבקש גם כיסא בטיחות לילדה?",
+      "reply": "בטח, רשמתי כיסא בטיחות עבור הילדה.\n\nבן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה.",
+      "escalated": false,
+      "quickReplies": [
+        {
+          "label": "21–23",
+          "message": "21–23"
+        },
+        {
+          "label": "24+",
+          "message": "24+"
+        }
+      ],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_age",
+        "locale": "he",
+        "booking": {
+          "passengers": 3,
+          "childSeats": 1,
+          "pickupDate": "2026-12-04",
+          "returnDate": "2026-12-06",
+          "vehicleNeed": "רכב משפחתי",
+          "returnLocation": "הרצליה",
+          "pickupLocation": "הרצליה"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, אנחנו זוג עם ילדה בת ארבע וטיולון. איזה סוג רכב כדאי לקחת לסוף שבוע בארץ?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "שלום! לטיול משפחתי סביב שלושה נוסעים לסופ\"ש, קטגוריית רכב משפחתי מציעה בדרך כלל יותר מקום ונוחות לנוסעים ולציוד מאשר קומפקטי קטן. התאמה מדויקת לטיולון ולציוד תלויה בדגם המסוים ובמידותיו, ונציג SmartCar ישמח לעזור לכם לוודא שהדגם מתאים לכם. מתי תרצו את הרכב ומאיפה תרצו לאסוף אותו?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "נשמע טוב, נלך על משפחתית. מ־4.12 עד 6.12, איסוף והחזרה מהרצליה. אפשר לבקש גם כיסא בטיחות לילדה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בטח, רשמתי כיסא בטיחות עבור הילדה.\n\nבן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה.",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "27a84870-9ee6-4468-9cf6-71a80b7e53d1"
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read book/family patches=[{\"field\":\"rentalVehicleCategory\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"נלך על משפחתית\",\"value\":\"family\"},{\"field\":\"rentalPickupBranch\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"איסוף והחזרה מהרצליה\",\"value\":\"herzliya\"},{\"field\":\"rentalReturnBranch\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"איסוף והחזרה מהרצליה\",\"value\":\"herzliya\"}] fields={\"pickupDate\":{\"value\":\"2026-12-04\",\"evidence\":\"מ־4.12\"},\"returnDate\":{\"value\":\"2026-12-06\",\"evidence\":\"עד 6.12\"},\"vehicleNeed\":{\"value\":\"משפחתית\",\"evidence\":\"נלך על משפחתית\"}}",
+        "action_claim: בשמחה, רשמתי את הבקשה לרכב משפחתי בהרצליה מ־4 בדצמבר עד 6 בדצמבר, כולל כיסא בטיחות לילדה. באיזה גיל הנהג שיינהג ברכב?"
+      ]
+    },
+    {
+      "message": "הנהג בן 38. על שם דנה בדיקה, ואנחנו מביאים גם טיולון ושתי מזוודות. מה עוד חסר לכם?",
+      "reply": "אפשר לשכור מגיל 21, גם לפני שנתיים ותק רישיון. הרישיון חייב להיות בתוקף, והזכאות בפועל תלויה בכיסוי הביטוחי ובקבוצת הרכב — התנאים יאושרו לפני ההזמנה. לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו? למשל נהג נוסף. אם לא, אפשר פשוט לכתוב \"לא\".",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_extras",
+        "locale": "he",
+        "booking": {
+          "passengers": 3,
+          "childSeats": 1,
+          "pickupDate": "2026-12-04",
+          "returnDate": "2026-12-06",
+          "vehicleNeed": "רכב משפחתי",
+          "returnLocation": "הרצליה",
+          "pickupLocation": "הרצליה",
+          "luggage": 2,
+          "customerName": "דנה בדיקה",
+          "driverAgeRange": "24-plus"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, אנחנו זוג עם ילדה בת ארבע וטיולון. איזה סוג רכב כדאי לקחת לסוף שבוע בארץ?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "שלום! לטיול משפחתי סביב שלושה נוסעים לסופ\"ש, קטגוריית רכב משפחתי מציעה בדרך כלל יותר מקום ונוחות לנוסעים ולציוד מאשר קומפקטי קטן. התאמה מדויקת לטיולון ולציוד תלויה בדגם המסוים ובמידותיו, ונציג SmartCar ישמח לעזור לכם לוודא שהדגם מתאים לכם. מתי תרצו את הרכב ומאיפה תרצו לאסוף אותו?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "נשמע טוב, נלך על משפחתית. מ־4.12 עד 6.12, איסוף והחזרה מהרצליה. אפשר לבקש גם כיסא בטיחות לילדה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בטח, רשמתי כיסא בטיחות עבור הילדה.\n\nבן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה.",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "הנהג בן 38. על שם דנה בדיקה, ואנחנו מביאים גם טיולון ושתי מזוודות. מה עוד חסר לכם?",
+            "private": true
+          },
+          {
+            "from": "bot",
+            "text": "אפשר לשכור מגיל 21, גם לפני שנתיים ותק רישיון. הרישיון חייב להיות בתוקף, והזכאות בפועל תלויה בכיסוי הביטוחי ובקבוצת הרכב — התנאים יאושרו לפני ההזמנה. לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו? למשל נהג נוסף. אם לא, אפשר פשוט לכתוב \"לא\".",
+            "private": true
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "27a84870-9ee6-4468-9cf6-71a80b7e53d1",
+        "rentalExtrasAsked": true
+      },
+      "source": "local",
+      "notes": []
+    }
+  ]
+}

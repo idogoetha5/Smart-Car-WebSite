@@ -3467,11 +3467,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   if (source === 'local' && !escalate && !multiAnswered && state.phase !== 'service' && /[?؟]/u.test(input) && !state.completedRequestId) {
     const sideFact = getSmartCarServiceAnswer(input, state.locale);
     const contactTurn = privateTurn || /(?<![\d-])(?:\+972|0[2-9])[\d\s()-]{7,}|[^\s@]+@[^\s@]+\.[^\s@]+/u.test(input);
+    const asksAgePolicy = /(?:בן|בת|גיל|רישיון|licen[cs]e|age)[^.!?\n]{0,60}(?:מותר|אפשר|בעיה|תנאי|צריך|מספיק|can|allowed|eligible|minimum)|(?:מותר|אפשר|בעיה|תנאי|צריך|מספיק|can|allowed|eligible|minimum)[^.!?\n]{0,60}(?:בן|בת|גיל|רישיון|licen[cs]e|age)/iu.test(input);
     // Policy facts a customer asked about directly; location/branch facts carry
     // their own date/route prompts and stay with their dedicated branches.
     // Rental policy facts are not leasing/sale terms.
     const side = sideFact && !state.interest && !(sideFact.topic === 'airport_fee' && airportFeeAsked)
       && !(sideFact.topic === 'age_licence' && state.step === 'rental_new_driver')
+      && !(sideFact.topic === 'age_licence' && !asksAgePolicy)
       && (contactTurn || ['driver_documents', 'insurance', 'deposit', 'age_licence', 'fuel', 'mileage'].includes(sideFact.topic)) ? sideFact.reply : undefined;
     if (side && !reply.includes(side.slice(0, 40))) reply = `${side} ${reply}`;
   }

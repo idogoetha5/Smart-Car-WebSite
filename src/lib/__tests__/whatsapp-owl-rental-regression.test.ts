@@ -15,6 +15,14 @@ function chat(initial: RebuildState) {
 }
 
 describe('luxury rental intake observed in the live inbox', () => {
+  it('does not answer a missing-details question with unrelated age policy on a name turn', async () => {
+    const send = chat({ version: 2, phase: 'booking', step: 'rental_age', locale: 'he', booking: { pickupDate: '2026-12-04', returnDate: '2026-12-06', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב משפחתי', passengers: 3, childSeats: 1 }, history: [{ from: 'bot', text: 'בן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה.' }] });
+    const result = await send('הנהג בן 38. על שם דנה בדיקה, ואנחנו מביאים גם טיולון ושתי מזוודות. מה עוד חסר לכם?');
+    expect(result.state.booking).toMatchObject({ driverAgeRange: '24-plus', customerName: 'דנה בדיקה', luggage: 2 });
+    expect(result.reply).toMatch(/להוסיף משהו/);
+    expect(result.reply).not.toMatch(/אפשר לשכור מגיל 21|ותק רישיון/);
+  });
+
   it('rejects a return-date claim phrased as לאסוף ולהחזיר', async () => {
     let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] };
     const store: RebuildStore = {
