@@ -192,6 +192,11 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
   // The provider boundary attaches this flag only after approved facts were
   // actually supplied. It is context provenance, not a promise of correctness.
   if (!reading?.groundedContext) return null;
+  if (state.booking.pickupDate && !state.booking.returnDate
+    && /(?:איסוף[^.!?\n]{0,30}החזרה|pick.?up[^.!?\n]{0,30}return)[^.!?\n]{0,70}(?:\d{1,2}\s+(?:ב)?(?:ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)|\d{1,2}[./]\d{1,2}|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|december|november|january)\b)/iu.test(reading.reply)) {
+    onReject('return_date_claim');
+    return null;
+  }
   if (/נתאם\s+(?:את\s+)?ההזמנה|לתאם\s+(?:את\s+)?ההזמנה|arrange\s+(?:the\s+)?booking/iu.test(reading.reply) && !state.completedRequestId) {
     onReject('premature_booking');
     return null;

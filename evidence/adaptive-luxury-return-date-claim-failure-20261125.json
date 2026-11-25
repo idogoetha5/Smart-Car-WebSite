@@ -1,0 +1,46 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_EgrNJQsHbPgxTenATJ38X7iHJD45",
+  "release": "ddb4d4d",
+  "observedAt": "2026-11-25T16:20:52.757730+00:00",
+  "sessionId": "adaptive-luxury-twelfth-20261125-a",
+  "manualReview": "Failed on first turn: Gemini tied return to pickup date in customer-facing wording despite returnDate missing, then asked for return date. State itself was correct. Stopped conversation.",
+  "turns": [
+    {
+      "message": "היי, אני מחפשת רכב מנהלים מפנק, אולי משהו בסגנון מרצדס, ליום שישי 11.12. אאסוף ואחזיר בהוד השרון. יש סוגים שמתאימים לזה?",
+      "reply": "אפשר לבדוק אופציות של רכבי מנהלים ויוקרה; דגמים ספציפיים כמו מרצדס וזמינות מומלץ לאמת מול נציג SmartCar. האיסוף וההחזרה בהוד השרון ב־11 בדצמבר שמורים לבדיקה. באיזה תאריך תחזירו את הרכב?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-11",
+          "pickupLocation": "הוד השרון",
+          "returnLocation": "הוד השרון",
+          "vehicleNeed": "רכב מנהלים יוקרתי (העדפה לבדיקה)"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "היי, אני מחפשת רכב מנהלים מפנק, אולי משהו בסגנון מרצדס, ליום שישי 11.12. אאסוף ואחזיר בהוד השרון. יש סוגים שמתאימים לזה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "אפשר לבדוק אופציות של רכבי מנהלים ויוקרה; דגמים ספציפיים כמו מרצדס וזמינות מומלץ לאמת מול נציג SmartCar. האיסוף וההחזרה בהוד השרון ב־11 בדצמבר שמורים לבדיקה. באיזה תאריך תחזירו את הרכב?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/suv patches=[] fields={\"pickupDate\":{\"value\":\"2026-12-11\",\"evidence\":\"12\"},\"pickupLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"הוד השרון\"},\"returnLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"הוד השרון\"},\"vehicleNeed\":{\"value\":"
+      ]
+    }
+  ]
+}

@@ -15,6 +15,21 @@ function chat(initial: RebuildState) {
 }
 
 describe('luxury rental intake observed in the live inbox', () => {
+  it('does not tell a customer that pickup and return share an unstated date', async () => {
+    let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => { throw new Error('No formal booking'); },
+      readTurn: async () => ({ route: 'explore', direction: 'none', fields: {}, factPatches: [], reply: 'האיסוף וההחזרה בהוד השרון ב־11 בדצמבר שמורים לבדיקה. באיזה תאריך תחזירו את הרכב?', source: 'gemini', model: 'test', groundedContext: true }),
+    };
+    const result = await getRebuiltBotReply('fictional-return-date-claim', 'מחפשת רכב מנהלים יוקרתי ליום שישי 11.12. אאסוף ואחזיר בהוד השרון. אילו אפשרויות יש?', store);
+    expect(result.state.booking.returnDate).toBeUndefined();
+    expect(result.reply).not.toMatch(/האיסוף וההחזרה[^.!?]*11 בדצמבר/);
+  });
+
   it('treats same-evening return as a date, never as a return place', async () => {
     let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-12-11', pickupLocation: 'הוד השרון', returnLocation: 'הוד השרון', vehicleNeed: 'רכב מנהלים יוקרתי (העדפה לבדיקה)' }, history: [{ from: 'bot', text: 'האם תרצו שנמשיך בבירור לקראת ההזמנה?' }] };
     const store: RebuildStore = {
