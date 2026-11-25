@@ -2690,6 +2690,15 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     if (statedVehicle && (wantsBooking || state.phase === 'booking' || !commercialVehicle && !state.interest)
       && (!state.booking.vehicleNeed || /^רכב (?:לנוסע אחד|ל־\d+ נוסעים)|^car for \d+ passengers?/i.test(state.booking.vehicleNeed)
         || /בעצם|מעדיף|במקום|החלטתי על|החלטנו על|בוחר|בוחרת|actually|instead|prefer/i.test(input))) state.booking.vehicleNeed = statedVehicle;
+    // Keep a newly stated comfort requirement even on a private name turn,
+    // when Gemini is deliberately not called and the chosen group is already saved.
+    if (state.booking.vehicleNeed && !/מרווח|spacious|roomy/iu.test(state.booking.vehicleNeed)
+      && /(?:חשוב\s+(?:לי|לנו)|עדיפות|מעדיפ(?:ה|ים)?|צריך(?:ה|ים)?|important|prefer|need)[^.!?\n]{0,75}(?:רכב\s+(?:מנהלים\s+)?מרווח|spacious\s+(?:car|vehicle)|roomy\s+(?:car|vehicle))/iu.test(input)
+      && !/(?:לא|בלי|not|without)[^.!?\n]{0,15}(?:מרווח|spacious|roomy)/iu.test(input)) {
+      state.booking.vehicleNeed = state.booking.vehicleNeed.replace(/\s*\(העדפה לבדיקה\)$/u, ' ומרווח (העדפה לבדיקה)')
+        .replace(/\s*\(preference to check\)$/iu, ' and spacious (preference to check)');
+      if (!/מרווח|spacious|roomy/iu.test(state.booking.vehicleNeed)) state.booking.vehicleNeed += he ? ', מרווח' : ', spacious';
+    }
     // "רגע, אפשר במקום זה רכב משפחתי?" switches the chosen category; the model's reading names the new one.
     if (state.booking.vehicleNeed && !statedVehicle && reading?.direction && reading.direction !== 'none' && !state.interest && state.phase !== 'service' && !commercialVehicle
       && /במקום|בעצם|נחליף|להחליף|תחליף|instead|switch|change (?:it |that )?to|rather|actually/iu.test(input) && !/מה (?:ההבדל|יותר)|difference|compare|which is better/iu.test(input)) {

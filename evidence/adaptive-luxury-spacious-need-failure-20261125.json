@@ -1,0 +1,155 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_9Jnx3d9g9c3RiBbEQZSroc8dUKbR",
+  "release": "6569e6f",
+  "observedAt": "2026-11-25T16:13:17.735181+00:00",
+  "sessionId": "adaptive-luxury-tenth-20261125-a",
+  "manualReview": "Failed on turn 3: name and WhatsApp contact-channel instruction were handled, but explicit spacious executive-car preference was not saved. Stopped before extras answer and handoff.",
+  "turns": [
+    {
+      "message": "היי, אני מחפשת רכב מנהלים מפנק, אולי משהו בסגנון מרצדס, ליום שישי 11.12. אאסוף ואחזיר בהוד השרון. יש סוגים שמתאימים לזה?",
+      "reply": "בסגנון יוקרתי ומנהלים אפשר לבדוק אפשרויות כמו מרצדס, ונשמח לסייע בתיאום איסוף והחזרה בהוד השרון לתאריך שבחרת. דגמים ספציפיים וזמינות נבדקים מול נציג SmartCar כדי לוודא התאמה מדויקת. באיזה תאריך תחזירו את הרכב?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-11",
+          "pickupLocation": "הוד השרון",
+          "returnLocation": "הוד השרון",
+          "vehicleNeed": "רכב מנהלים יוקרתי (העדפה לבדיקה)"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "היי, אני מחפשת רכב מנהלים מפנק, אולי משהו בסגנון מרצדס, ליום שישי 11.12. אאסוף ואחזיר בהוד השרון. יש סוגים שמתאימים לזה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בסגנון יוקרתי ומנהלים אפשר לבדוק אפשרויות כמו מרצדס, ונשמח לסייע בתיאום איסוף והחזרה בהוד השרון לתאריך שבחרת. דגמים ספציפיים וזמינות נבדקים מול נציג SmartCar כדי לוודא התאמה מדויקת. באיזה תאריך תחזירו את הרכב?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/suv patches=[] fields={\"pickupDate\":{\"value\":\"2026-12-11\",\"evidence\":\"12\"},\"pickupLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"הוד השרון\"},\"returnLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"הוד השרון\"},\"vehicleNeed\":{\"value\":"
+      ]
+    },
+    {
+      "message": "אחזיר באותו יום בערב. נהיה שני נוסעים בלי ציוד, הנהג בן 50. מה עוד צריך כדי להעביר בקשה?",
+      "reply": "בבקשה, רשמתי את ההחזרה באותו יום בערב ואת מספר הנוסעים.\n\nעל איזה שם לרשום את הבקשה?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_name",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-11",
+          "pickupLocation": "הוד השרון",
+          "returnLocation": "הוד השרון",
+          "vehicleNeed": "רכב מנהלים יוקרתי (העדפה לבדיקה)",
+          "passengers": 2,
+          "returnDate": "2026-12-11",
+          "driverAgeRange": "24-plus"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "היי, אני מחפשת רכב מנהלים מפנק, אולי משהו בסגנון מרצדס, ליום שישי 11.12. אאסוף ואחזיר בהוד השרון. יש סוגים שמתאימים לזה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בסגנון יוקרתי ומנהלים אפשר לבדוק אפשרויות כמו מרצדס, ונשמח לסייע בתיאום איסוף והחזרה בהוד השרון לתאריך שבחרת. דגמים ספציפיים וזמינות נבדקים מול נציג SmartCar כדי לוודא התאמה מדויקת. באיזה תאריך תחזירו את הרכב?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "אחזיר באותו יום בערב. נהיה שני נוסעים בלי ציוד, הנהג בן 50. מה עוד צריך כדי להעביר בקשה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בבקשה, רשמתי את ההחזרה באותו יום בערב ואת מספר הנוסעים.\n\nעל איזה שם לרשום את הבקשה?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "855a6b92-ecad-4bbf-8be8-2410f5341ae1"
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read book/none patches=[] fields={\"returnDate\":{\"value\":\"2026-12-11\",\"evidence\":\"באותו יום בערב\"},\"passengers\":{\"value\":\"2\",\"evidence\":\"נהיה שני נוסעים\"}}"
+      ]
+    },
+    {
+      "message": "על שם יעל בדיקה. תעדכנו אותי בוואטסאפ הזה, וחשוב לי שהבקשה תציין שהעדיפות היא לרכב מנהלים מרווח.",
+      "reply": "לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו? למשל נהג נוסף. אם לא, אפשר פשוט לכתוב \"לא\".",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_extras",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-11",
+          "pickupLocation": "הוד השרון",
+          "returnLocation": "הוד השרון",
+          "vehicleNeed": "רכב מנהלים יוקרתי (העדפה לבדיקה)",
+          "passengers": 2,
+          "returnDate": "2026-12-11",
+          "driverAgeRange": "24-plus",
+          "customerName": "יעל בדיקה"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "היי, אני מחפשת רכב מנהלים מפנק, אולי משהו בסגנון מרצדס, ליום שישי 11.12. אאסוף ואחזיר בהוד השרון. יש סוגים שמתאימים לזה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בסגנון יוקרתי ומנהלים אפשר לבדוק אפשרויות כמו מרצדס, ונשמח לסייע בתיאום איסוף והחזרה בהוד השרון לתאריך שבחרת. דגמים ספציפיים וזמינות נבדקים מול נציג SmartCar כדי לוודא התאמה מדויקת. באיזה תאריך תחזירו את הרכב?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "אחזיר באותו יום בערב. נהיה שני נוסעים בלי ציוד, הנהג בן 50. מה עוד צריך כדי להעביר בקשה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בבקשה, רשמתי את ההחזרה באותו יום בערב ואת מספר הנוסעים.\n\nעל איזה שם לרשום את הבקשה?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "על שם יעל בדיקה. תעדכנו אותי בוואטסאפ הזה, וחשוב לי שהבקשה תציין שהעדיפות היא לרכב מנהלים מרווח.",
+            "private": true
+          },
+          {
+            "from": "bot",
+            "text": "לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו? למשל נהג נוסף. אם לא, אפשר פשוט לכתוב \"לא\".",
+            "private": true
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "855a6b92-ecad-4bbf-8be8-2410f5341ae1",
+        "rentalExtrasAsked": true
+      },
+      "source": "local",
+      "notes": []
+    }
+  ]
+}

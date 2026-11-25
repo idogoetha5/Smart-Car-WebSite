@@ -15,6 +15,14 @@ function chat(initial: RebuildState) {
 }
 
 describe('luxury rental intake observed in the live inbox', () => {
+  it('retains a spaciousness need supplied with a private name and WhatsApp instruction', async () => {
+    const send = chat({ version: 2, phase: 'booking', step: 'rental_name', locale: 'he', booking: { pickupDate: '2026-12-11', returnDate: '2026-12-11', pickupLocation: 'הוד השרון', returnLocation: 'הוד השרון', vehicleNeed: 'רכב מנהלים יוקרתי (העדפה לבדיקה)', passengers: 2, driverAgeRange: '24-plus' }, history: [{ from: 'bot', text: 'על איזה שם לרשום את הבקשה?' }] });
+    const result = await send('על שם יעל בדיקה. תעדכנו אותי בוואטסאפ הזה, וחשוב לי שהבקשה תציין שהעדיפות היא לרכב מנהלים מרווח.');
+    expect(result.state.booking).toMatchObject({ customerName: 'יעל בדיקה', vehicleNeed: 'רכב מנהלים יוקרתי ומרווח (העדפה לבדיקה)' });
+    expect(result.state.step).toBe('rental_extras');
+    expect(result.escalate).toBe(false);
+  });
+
   it('keeps definite Friday, linked route and executive preference when the brand is tentative', async () => {
     let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] };
     const store: RebuildStore = {
