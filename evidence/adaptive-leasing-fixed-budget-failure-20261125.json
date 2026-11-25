@@ -1,0 +1,46 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_7s6V8zCwYUQgSaoQXan4TjKMgLNL",
+  "release": "d7d7579",
+  "observedAt": "2026-11-25T17:13:21.210102+00:00",
+  "sessionId": "adaptive-leasing-en-20261125-b",
+  "manualReview": "Stopped on turn 1: Gemini no longer claimed bundled maintenance but still described leasing as offering fixed budgeting and a newer car every few years. Neither is verified for the customer or a SmartCar offer. Its first draft was rejected for unsupported_number; the accepted correction still made generic unsupported benefit claims.",
+  "turns": [
+    {
+      "message": "Hi, I run a small business and need a car for about a year, roughly 20,000 km. I am torn between leasing and buying. How should I think about it?",
+      "reply": "When comparing leasing to buying for your business, it helps to look at the total cost, upfront and final payments, mileage limits, and what happens at the end of the term. Leasing often gives you fixed budgeting and a newer car every few years, while buying means owning an asset with depreciation to consider. A SmartCar representative can walk you through our leasing options for 20,000 km a year to see what fits best.",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "en",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "Hi, I run a small business and need a car for about a year, roughly 20,000 km. I am torn between leasing and buying. How should I think about it?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "When comparing leasing to buying for your business, it helps to look at the total cost, upfront and final payments, mileage limits, and what happens at the end of the term. Leasing often gives you fixed budgeting and a newer car every few years, while buying means owning an asset with depreciation to consider. A SmartCar representative can walk you through our leasing options for 20,000 km a year to see what fits best.",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "interest": "leasing",
+        "commercial": {
+          "annualMileageKm": 20000
+        }
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read leasing/none patches=[] fields={}",
+        "unsupported_number: When comparing leasing and buying for your business, consider ownership, total cost, mileage limits, upfront and final payments, and exit terms. Insurance and m"
+      ]
+    }
+  ]
+}

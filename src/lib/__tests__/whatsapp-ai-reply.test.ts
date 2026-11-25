@@ -108,6 +108,7 @@ describe('output checks for natural conversational drafts', () => {
     const onReject = vi.fn();
     expect(check('Leasing typically bundles maintenance and gives you predictable monthly payments, while buying leaves you with the asset.', { input, onReject })).toBeNull();
     expect(onReject).toHaveBeenCalledExactlyOnceWith('leasing_terms_assurance');
+    expect(check('Leasing often gives you fixed budgeting and a newer car every few years, while buying leaves you with an asset.', { input })).toBeNull();
     expect(check('Compare the total cost, mileage limit and exit terms. Leasing may include maintenance only if the specific offer says so; buying leaves you owning the car.', { input })).not.toBeNull();
   });
   it('rejects an unperformed rental arrangement promise', () => {

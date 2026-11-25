@@ -81,7 +81,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   const reply = args.reply?.trim();
   if (!reply) return reject('empty');
   for (const sentence of reply.split(/[.!?؟\n]/u)) {
-    if (/(?:\b(?:leasing|a lease|lease)\b|ליסינג)[^.!?؟\n]{0,85}(?:(?:bundles?|includes?|covers?)\s+(?:insurance|maintenance|servicing)|(?:predictable|fixed)\s+monthly\s+payments?|(?:כולל|מכסה)\s+(?:ביטוח|טיפולים|תחזוקה)|תשלום\s+חודשי\s+(?:קבוע|צפוי))/iu.test(sentence)
+    if (/(?:\b(?:leasing|a lease|lease)\b|ליסינג)[^.!?؟\n]{0,110}(?:(?:bundles?|includes?|covers?)\s+(?:insurance|maintenance|servicing)|(?:predictable|fixed)\s+(?:monthly\s+)?(?:payments?|budget(?:ing)?|costs?)|(?:newer|new)\s+car\s+every\s+few\s+years|(?:כולל|מכסה)\s+(?:ביטוח|טיפולים|תחזוקה)|(?:תשלום|תקציב|עלות)\s+חודש(?:י|ית)\s+(?:קבוע|צפוי))/iu.test(sentence)
       && !/\b(?:only if|if (?:stated|included|specified)|may|might|can|depends? on|subject to)\b|(?:רק אם|אם נכתב|אם מצוין|עשוי|יכול|תלוי|בכפוף)/iu.test(sentence)) return reject('leasing_terms_assurance');
   }
   if (/(?:חנ(?:יה|יות|יית|ים)|להחנות|מחנים|park(?:ing)?|לעצור ליד הכניסה)/iu.test(input)
