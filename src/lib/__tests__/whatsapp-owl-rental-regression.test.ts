@@ -38,6 +38,16 @@ describe('luxury rental intake observed in the live inbox', () => {
     expect(result.reply).not.toMatch(/אפשר לשכור מגיל 21|ותק רישיון/);
   });
 
+  it('answers a child-seat terms question attached to a private name before asking once about extras', async () => {
+    const send = chat({ version: 2, phase: 'booking', step: 'rental_name', locale: 'he', booking: { pickupDate: '2026-12-04', returnDate: '2026-12-06', pickupLocation: 'הרצליה', returnLocation: 'הרצליה', vehicleNeed: 'רכב משפחתי', driverAgeRange: '24-plus', childSeats: 1 }, history: [{ from: 'bot', text: 'על איזה שם לרשום את הבקשה?' }] });
+    const result = await send('נועם בדיקה. וכיסא הבטיחות כלול או צריך להוסיף?');
+    expect(result.state.booking.customerName).toBe('נועם בדיקה');
+    expect(result.reply).toMatch(/כיסא הבטיחות.*כלול.*בהצעה/);
+    expect(result.reply).toMatch(/תרצו להוסיף משהו/);
+    expect(result.reply).not.toMatch(/נועם בדיקה|כיסא הבטיחות כלול\./);
+    expect(result.state.rentalExtrasAsked).toBe(true);
+  });
+
   it('rejects a return-date claim phrased as לאסוף ולהחזיר', async () => {
     let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, history: [] };
     const store: RebuildStore = {

@@ -1,0 +1,238 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_6GDLg9sv93GZeucQpYQimTjvRrDt",
+  "release": "b41d224",
+  "observedAt": "2026-11-25T16:56:11.856353+00:00",
+  "sessionId": "adaptive-family-fifth-20261125-a",
+  "manualReview": "Stopped after turn 4: the customer provided a fictional name and asked whether the requested child seat is included or needs adding. The bot skipped that question and asked only the one-time extras question. Earlier model answer and saved rental facts were sound. No representative handoff was tested.",
+  "turns": [
+    {
+      "message": "שלום, אנחנו זוג עם ילדה בת ארבע וטיולון. איזה סוג רכב כדאי לקחת לסוף שבוע בארץ?",
+      "reply": "רכב משפחתי הוא כיוון טוב לזוג עם ילדה וטיולון; את ההתאמה לטיולון ולציוד נבדוק לפי הדגם המסוים. האם תרצו שנבדוק עבורכם את סוף השבוע הקרוב?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "passengers": 3
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, אנחנו זוג עם ילדה בת ארבע וטיולון. איזה סוג רכב כדאי לקחת לסוף שבוע בארץ?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכב משפחתי הוא כיוון טוב לזוג עם ילדה וטיולון; את ההתאמה לטיולון ולציוד נבדוק לפי הדגם המסוים. האם תרצו שנבדוק עבורכם את סוף השבוע הקרוב?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/family patches=[] fields={\"returnLocation\":{\"value\":\"לסופ״ש\",\"evidence\":\"לסוף שבוע\"},\"passengers\":{\"value\":\"3\",\"evidence\":\"זוג עם ילדה בת ארבע\"}}"
+      ]
+    },
+    {
+      "message": "כן. ניקח מהרצליה בשישי 4.12 ונחזיר לשם בראשון 6.12. צריך גם כיסא בטיחות ויש שתי מזוודות.",
+      "reply": "בן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה.",
+      "escalated": false,
+      "quickReplies": [
+        {
+          "label": "21–23",
+          "message": "21–23"
+        },
+        {
+          "label": "24+",
+          "message": "24+"
+        }
+      ],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_age",
+        "locale": "he",
+        "booking": {
+          "passengers": 3,
+          "luggage": 2,
+          "childSeats": 1,
+          "pickupDate": "2026-12-04",
+          "returnDate": "2026-12-06",
+          "pickupLocation": "הרצליה",
+          "returnLocation": "הרצליה",
+          "vehicleNeed": "רכב משפחתי"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, אנחנו זוג עם ילדה בת ארבע וטיולון. איזה סוג רכב כדאי לקחת לסוף שבוע בארץ?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכב משפחתי הוא כיוון טוב לזוג עם ילדה וטיולון; את ההתאמה לטיולון ולציוד נבדוק לפי הדגם המסוים. האם תרצו שנבדוק עבורכם את סוף השבוע הקרוב?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "כן. ניקח מהרצליה בשישי 4.12 ונחזיר לשם בראשון 6.12. צריך גם כיסא בטיחות ויש שתי מזוודות.",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה.",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "0ee6e038-77d3-4ac8-b124-8f5ee625c77b"
+      },
+      "source": "local",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read book/family patches=[{\"field\":\"rentalPickupBranch\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"מהרצליה\",\"value\":\"herzliya\"},{\"field\":\"rentalLuggage\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"שתי מזוודות\",\"value\":2}] fields={\"pickupDate\":{\"value\":\"2026-12-04\",\"evidence\":\"בשישי 4.12\"},\"returnDate\":{\"value\":\"2026-12-06\",\"evidence\":\"בראשון 6.12\"},\"pickupLocation\":{\"value\":\"הרצליה\",\"evidence\":\"מהרצליה\"},\"returnLocation\":{\"va",
+        "reword_rejected checks={\"keepsNumbers\":true,\"sameQuestionShape\":true,\"languageOk\":true,\"commitmentOk\":true,\"tollPackageOk\":true,\"comparisonMeaningOk\":true,\"newDriverMeaningOk\":true,\"length\":54}: בן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה."
+      ]
+    },
+    {
+      "message": "אני בן 35, נוהג כבר 12 שנה. מה עוד חסר לכם?",
+      "reply": "תודה רבה! נשארו רק השם לרישום הפנייה. על איזה שם לרשום את הבקשה?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_name",
+        "locale": "he",
+        "booking": {
+          "passengers": 3,
+          "luggage": 2,
+          "childSeats": 1,
+          "pickupDate": "2026-12-04",
+          "returnDate": "2026-12-06",
+          "pickupLocation": "הרצליה",
+          "returnLocation": "הרצליה",
+          "vehicleNeed": "רכב משפחתי",
+          "driverAgeRange": "24-plus"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, אנחנו זוג עם ילדה בת ארבע וטיולון. איזה סוג רכב כדאי לקחת לסוף שבוע בארץ?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכב משפחתי הוא כיוון טוב לזוג עם ילדה וטיולון; את ההתאמה לטיולון ולציוד נבדוק לפי הדגם המסוים. האם תרצו שנבדוק עבורכם את סוף השבוע הקרוב?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "כן. ניקח מהרצליה בשישי 4.12 ונחזיר לשם בראשון 6.12. צריך גם כיסא בטיחות ויש שתי מזוודות.",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה.",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "אני בן 35, נוהג כבר 12 שנה. מה עוד חסר לכם?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "תודה רבה! נשארו רק השם לרישום הפנייה. על איזה שם לרשום את הבקשה?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "0ee6e038-77d3-4ac8-b124-8f5ee625c77b"
+      },
+      "source": "local",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "no_reading",
+        "reworded"
+      ]
+    },
+    {
+      "message": "נועם בדיקה. וכיסא הבטיחות כלול או צריך להוסיף?",
+      "reply": "לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו? למשל נהג נוסף. אם לא, אפשר פשוט לכתוב \"לא\".",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_extras",
+        "locale": "he",
+        "booking": {
+          "passengers": 3,
+          "luggage": 2,
+          "childSeats": 1,
+          "pickupDate": "2026-12-04",
+          "returnDate": "2026-12-06",
+          "pickupLocation": "הרצליה",
+          "returnLocation": "הרצליה",
+          "vehicleNeed": "רכב משפחתי",
+          "driverAgeRange": "24-plus",
+          "customerName": "נועם בדיקה"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, אנחנו זוג עם ילדה בת ארבע וטיולון. איזה סוג רכב כדאי לקחת לסוף שבוע בארץ?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכב משפחתי הוא כיוון טוב לזוג עם ילדה וטיולון; את ההתאמה לטיולון ולציוד נבדוק לפי הדגם המסוים. האם תרצו שנבדוק עבורכם את סוף השבוע הקרוב?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "כן. ניקח מהרצליה בשישי 4.12 ונחזיר לשם בראשון 6.12. צריך גם כיסא בטיחות ויש שתי מזוודות.",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בן כמה הנהג? מספיקה לנו קבוצת הגיל: 21–23 או 24 ומעלה.",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "אני בן 35, נוהג כבר 12 שנה. מה עוד חסר לכם?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "תודה רבה! נשארו רק השם לרישום הפנייה. על איזה שם לרשום את הבקשה?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "נועם בדיקה. וכיסא הבטיחות כלול או צריך להוסיף?",
+            "private": true
+          },
+          {
+            "from": "bot",
+            "text": "לפני שאעביר את הפרטים לנציג, תרצו להוסיף משהו? למשל נהג נוסף. אם לא, אפשר פשוט לכתוב \"לא\".",
+            "private": true
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "0ee6e038-77d3-4ac8-b124-8f5ee625c77b",
+        "rentalExtrasAsked": true
+      },
+      "source": "local",
+      "notes": []
+    }
+  ]
+}

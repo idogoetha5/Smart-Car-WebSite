@@ -2872,13 +2872,22 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
       } else if (!missing && !state.rentalExtrasAsked) {
         state.rentalExtrasAsked = true;
         state.step = 'rental_extras';
+        // A name may arrive with a separate equipment question. Keep the name
+        // private, but answer that question before the one-time extras prompt.
+        const seatTermsAnswer = /[?؟]/u.test(input)
+          && /כיסא(?:ות)?(?:\s+ה?)?בטיחות|child seats?|car seats?/iu.test(input)
+          && /כלול|כולל|צריך(?:ים)?\s+להוסיף|בתוספת|include|included|need to add|extra|separate/iu.test(input)
+          ? (he
+            ? `${state.booking.childSeats ? 'כיסא הבטיחות נרשם כבקשה.' : 'אפשר לבקש כיסא בטיחות.'} האם הוא כלול ומה התנאים שלו ייקבעו בהצעה; כרגע אי אפשר לאשר זאת.`
+            : `${state.booking.childSeats ? 'The child seat is noted as a request.' : 'You can request a child seat.'} Whether it is included and on what terms will be confirmed in the quote.`)
+          : '';
         const driverAnswer = /[?؟]/u.test(input) && /(?:נהג(?:ת)? נוס(?:ף|פ(?:ת)?)|additional driver|extra driver|second driver)/iu.test(input)
           ? (he ? 'אפשר לבקש להוסיף נהג או נהגת נוספים; נדרש רישיון בתוקף ורישום בחוזה לפני הנהיגה. ' : 'You can request an additional driver; they need a valid licence and must be named in the agreement before driving. ')
           : '';
         const recordedExtra = state.booking.additionalDriver && /נהג(?:ת)? נוס(?:ף|פ(?:ת)?)/iu.test(input)
           ? (he ? 'רשמתי גם נהג או נהגת נוספים כבקשה. ' : 'I have noted the additional driver as a request. ')
           : '';
-        reply = `${recordedExtra}${driverAnswer}${asksModelGuarantee
+        reply = `${recordedExtra}${seatTermsAnswer ? `${seatTermsAnswer} ` : ''}${driverAnswer}${asksModelGuarantee
           ? (he ? 'דגם מסוים אינו מובטח אלא אם SmartCar מאשרת אותו במפורש. ' : 'A particular model is not guaranteed unless SmartCar explicitly confirms it. ')
           : ''}${rentalExtrasQuestion(state)}`;
       } else if (!missing && defersHandoff) {
