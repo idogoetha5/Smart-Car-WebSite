@@ -89,6 +89,13 @@ describe('output checks for natural conversational drafts', () => {
     expect(check('A family car generally offers the comfortable luggage and passenger space you will need for a week.', { input })).toBeNull();
     expect(check('A family car is a good category to compare, with stroller and child-seat fit checked for the specific model.', { input })).not.toBeNull();
   });
+  it('rejects the broken Hebrew observed after a fit correction while accepting natural grounded advice', () => {
+    const input = 'אנחנו זוג עם ילדה וטיולון. איזה סוג רכב כדאי לקחת?';
+    const onReject = vi.fn();
+    expect(check('רכב משפחתי לרוב מעניק נוח ומקום נוח למזוודות ולעגלה, אך כדאי לבדוק את הדגם המסוים.', { locale: 'he', input, onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledExactlyOnceWith('awkward_hebrew');
+    expect(check('רכב משפחתי הוא כיוון טוב; את ההתאמה לטיולון ולציוד כדאי לבדוק לפי הדגם המסוים.', { locale: 'he', input })).not.toBeNull();
+  });
   it('rejects an unperformed rental arrangement promise', () => {
     expect(check('We will arrange your family car pickup and return at Ben Gurion Airport from December 12 to 19.')).toBeNull();
   });

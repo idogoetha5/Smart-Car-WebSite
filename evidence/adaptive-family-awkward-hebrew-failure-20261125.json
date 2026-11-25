@@ -1,0 +1,44 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_5nVqPbet9kHc1G8VsEue59wd4F2n",
+  "release": "12a7abe",
+  "observedAt": "2026-11-25T16:45:46.890054+00:00",
+  "sessionId": "adaptive-family-fourth-20261125-a",
+  "manualReview": "Failed first turn on conversational quality: Gemini correction after fit-assurance rejection produced ungrammatical Hebrew (“מעניק נוח”). Stopped conversation.",
+  "turns": [
+    {
+      "message": "שלום, אנחנו זוג עם ילדה בת ארבע וטיולון. איזה סוג רכב כדאי לקחת לסוף שבוע בארץ?",
+      "reply": "שלום! לזוג עם ילדה וטיולון לסוף שבוע, רכב משפחתי לרוב מעניק נוח ומקום נוח למזוודות ולעגלה, אך כדאי לבדוק את הדגם המסוים בהתאם לציוד שלכם. האם תרצו לבדוק תאריכים לסוף השבוע הקרוב?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "passengers": 3
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, אנחנו זוג עם ילדה בת ארבע וטיולון. איזה סוג רכב כדאי לקחת לסוף שבוע בארץ?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "שלום! לזוג עם ילדה וטיולון לסוף שבוע, רכב משפחתי לרוב מעניק נוח ומקום נוח למזוודות ולעגלה, אך כדאי לבדוק את הדגם המסוים בהתאם לציוד שלכם. האם תרצו לבדוק תאריכים לסוף השבוע הקרוב?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/family patches=[] fields={\"passengers\":{\"value\":\"3\",\"evidence\":\"זוג עם ילדה בת ארבע\"}}",
+        "fit_assurance: לזוג עם ילדה וטיולון לסוף שבוע, רכב משפחתי יתאים בדרך כלל וייתן לכם מקום נוח לנוסעים ולציוד. כדאי שנבדוק את הדגם המדויק ואת ההתאמה לציוד שלכם יחד עם תאריכי האיס"
+      ]
+    }
+  ]
+}

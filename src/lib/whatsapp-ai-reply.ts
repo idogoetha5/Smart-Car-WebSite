@@ -80,6 +80,9 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   const reject = (reason: string): null => { args.onReject?.(reason); return null; };
   const reply = args.reply?.trim();
   if (!reply) return reject('empty');
+  // A live correction once produced this broken Hebrew fragment. It must not
+  // reach a customer even though the sentence is otherwise grounded.
+  if (/(?:מעניק|מספק|נותן|ייתן|יתן)\s+נוח(?![א-ת])/u.test(reply)) return reject('awkward_hebrew');
   for (const sentence of reply.split(/[.!?؟\n]/u)) {
     if (/(?:חבילת (?:כביש\s*6|כבישי אגרה|מנהרות)|(?:highway\s*6(?: and tunnels)?|toll[- ]road) package)/iu.test(sentence)
       && !/(?:אין|לא קיימ|לא מציע|אינה מוצעת|אינו מוצע|\b(?:no|not|don['’]?t|doesn['’]?t|unavailable)\b)/iu.test(sentence)) return reject('retired_toll_package');
