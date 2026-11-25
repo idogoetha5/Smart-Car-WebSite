@@ -1,0 +1,86 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_GR3FRqEr7qNDgXxdbUxJkr6mZJ8Y",
+  "release": "a97f967",
+  "observedAt": "2026-11-25T17:08:50.773993+00:00",
+  "sessionId": "adaptive-service-parking-20261125-b",
+  "manualReview": "Passed two-turn isolated Hebrew service rehearsal: Gemini supplied the verified Herzliya address, explicitly said exact return parking was unverified, supplied the approved office number, and did not invent a bay or tell the customer to block an entrance. No actual branch contact or staff availability was verified.",
+  "turns": [
+    {
+      "message": "אני מחזיר היום רכב ששכרתי אצלכם בהרצליה. איפה מחנים אותו כשמגיעים?",
+      "reply": "כתובת סניף הרצליה היא רמת ים 122, אבל סידור החניה המדויק אינו מאומת כאן; מומלץ ליצור קשר עם המשרד לקבלת הנחיות מדויקות לפני ההגעה. מספר המשרד: 09-9509757.",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "service",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "pickupLocation": "הרצליה"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "אני מחזיר היום רכב ששכרתי אצלכם בהרצליה. איפה מחנים אותו כשמגיעים?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "כתובת סניף הרצליה היא רמת ים 122, אבל סידור החניה המדויק אינו מאומת כאן; מומלץ ליצור קשר עם המשרד לקבלת הנחיות מדויקות לפני ההגעה. מספר המשרד: 09-9509757.",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read service/none patches=[] fields={}"
+      ]
+    },
+    {
+      "message": "אני כבר קרוב לכניסה ואין לי איפה לעמוד בלי לחסום. מה לעשות עכשיו?",
+      "reply": "אני מבין שזה לוחץ כשמגיעים ואין עצירה פנויה. הכי טוב להתקשר מיד למשרד בהרצליה בטלפון 09-9509757 כדי שהצוות יכוון אתכם בדיוק איפה לעצור בלי לחסום.",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "service",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "pickupLocation": "הרצליה"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "אני מחזיר היום רכב ששכרתי אצלכם בהרצליה. איפה מחנים אותו כשמגיעים?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "כתובת סניף הרצליה היא רמת ים 122, אבל סידור החניה המדויק אינו מאומת כאן; מומלץ ליצור קשר עם המשרד לקבלת הנחיות מדויקות לפני ההגעה. מספר המשרד: 09-9509757.",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "אני כבר קרוב לכניסה ואין לי איפה לעמוד בלי לחסום. מה לעשות עכשיו?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "אני מבין שזה לוחץ כשמגיעים ואין עצירה פנויה. הכי טוב להתקשר מיד למשרד בהרצליה בטלפון 09-9509757 כדי שהצוות יכוון אתכם בדיוק איפה לעצור בלי לחסום.",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read service/none patches=[] fields={}"
+      ]
+    }
+  ]
+}

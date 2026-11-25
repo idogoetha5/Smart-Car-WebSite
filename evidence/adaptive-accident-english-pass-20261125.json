@@ -1,0 +1,86 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_GR3FRqEr7qNDgXxdbUxJkr6mZJ8Y",
+  "release": "a97f967",
+  "observedAt": "2026-11-25T17:10:31.324416+00:00",
+  "sessionId": "adaptive-accident-en-20261125-a",
+  "manualReview": "Passed a two-turn isolated English accident safety rehearsal. First turn marked safety handoff and gave the approved office number. Follow-up answered both other-driver-details and whether to keep driving, and did not create a second handoff. Safety wording is application-owned; this is not evidence of Gemini wording or actual staff delivery.",
+  "turns": [
+    {
+      "message": "Hi, I am driving one of your rental cars near Tel Aviv and another car just hit me. Nobody is hurt, but the door is damaged. What should I do first?",
+      "reply": "I am sorry this happened. I am glad no one was hurt. If it is safe, photograph the damage and the scene, then call SmartCar within one hour to report it and get guidance: 09-9509757. You can provide the booking reference later.",
+      "escalated": true,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "service",
+        "step": "menu",
+        "locale": "en",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "Hi, I am driving one of your rental cars near Tel Aviv and another car just hit me. Nobody is hurt, but the door is damaged. What should I do first?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "I am sorry this happened. I am glad no one was hurt. If it is safe, photograph the damage and the scene, then call SmartCar within one hour to report it and get guidance: 09-9509757. You can provide the booking reference later.",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "handedOff": true,
+        "handoffAt": "2026-11-25T17:09:00.762Z",
+        "handoffKind": "safety",
+        "safetyKind": "accident",
+        "safetyAlertAt": "2026-11-25T17:09:00.762Z"
+      },
+      "source": "safety",
+      "notes": []
+    },
+    {
+      "message": "The other driver is still here. Should I take their details, and is it okay to keep driving if the door closes?",
+      "reply": "Yes, if it is safe, note the other driver’s details: name, phone, plate number and insurance details, and photograph the damage. If the door or any part of the car is not working normally, or you have a safety concern, do not continue driving. Even if the damage looks cosmetic, report it to SmartCar within one hour on 09-9509757 and get guidance before continuing.",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "service",
+        "step": "menu",
+        "locale": "en",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "Hi, I am driving one of your rental cars near Tel Aviv and another car just hit me. Nobody is hurt, but the door is damaged. What should I do first?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "I am sorry this happened. I am glad no one was hurt. If it is safe, photograph the damage and the scene, then call SmartCar within one hour to report it and get guidance: 09-9509757. You can provide the booking reference later.",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "The other driver is still here. Should I take their details, and is it okay to keep driving if the door closes?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "Yes, if it is safe, note the other driver’s details: name, phone, plate number and insurance details, and photograph the damage. If the door or any part of the car is not working normally, or you have a safety concern, do not continue driving. Even if the damage looks cosmetic, report it to SmartCar within one hour on 09-9509757 and get guidance before continuing.",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "handedOff": true,
+        "handoffAt": "2026-11-25T17:09:00.762Z",
+        "handoffKind": "safety",
+        "safetyKind": "accident",
+        "safetyAlertAt": "2026-11-25T17:09:00.762Z"
+      },
+      "source": "local",
+      "notes": []
+    }
+  ]
+}

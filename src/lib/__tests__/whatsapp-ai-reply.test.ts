@@ -103,6 +103,13 @@ describe('output checks for natural conversational drafts', () => {
     expect(onReject).toHaveBeenCalledExactlyOnceWith('unverified_parking');
     expect(check('אין לי כאן פרטים מאומתים על מקום חניה מסומן או היכן לעצור. כדאי לקבל הכוונה מהמשרד לפני ההגעה כדי לא לחסום את הכניסה.', { locale: 'he', input })).not.toBeNull();
   });
+  it('qualifies maintenance and payment terms when comparing leasing with buying', () => {
+    const input = 'I am torn between leasing and buying a car for my business.';
+    const onReject = vi.fn();
+    expect(check('Leasing typically bundles maintenance and gives you predictable monthly payments, while buying leaves you with the asset.', { input, onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledExactlyOnceWith('leasing_terms_assurance');
+    expect(check('Compare the total cost, mileage limit and exit terms. Leasing may include maintenance only if the specific offer says so; buying leaves you owning the car.', { input })).not.toBeNull();
+  });
   it('rejects an unperformed rental arrangement promise', () => {
     expect(check('We will arrange your family car pickup and return at Ben Gurion Airport from December 12 to 19.')).toBeNull();
   });

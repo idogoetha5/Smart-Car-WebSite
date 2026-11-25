@@ -80,6 +80,10 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   const reject = (reason: string): null => { args.onReject?.(reason); return null; };
   const reply = args.reply?.trim();
   if (!reply) return reject('empty');
+  for (const sentence of reply.split(/[.!?؟\n]/u)) {
+    if (/(?:\b(?:leasing|a lease|lease)\b|ליסינג)[^.!?؟\n]{0,85}(?:(?:bundles?|includes?|covers?)\s+(?:insurance|maintenance|servicing)|(?:predictable|fixed)\s+monthly\s+payments?|(?:כולל|מכסה)\s+(?:ביטוח|טיפולים|תחזוקה)|תשלום\s+חודשי\s+(?:קבוע|צפוי))/iu.test(sentence)
+      && !/\b(?:only if|if (?:stated|included|specified)|may|might|can|depends? on|subject to)\b|(?:רק אם|אם נכתב|אם מצוין|עשוי|יכול|תלוי|בכפוף)/iu.test(sentence)) return reject('leasing_terms_assurance');
+  }
   if (/(?:חנ(?:יה|יות|יית|ים)|להחנות|מחנים|park(?:ing)?|לעצור ליד הכניסה)/iu.test(input)
     && /(?:פשוט\s+(?:עצרו|תעצרו|תחנ(?:ו|י))|תוכלו?\s+להחנות\s+(?:את\s+)?(?:הרכב\s+)?(?:ב|ליד)\s*(?:הסניף|הכניסה)|נציג[^.!?؟\n]{0,60}(?:ידאג|יכוון|יקבל את פניכם)|(?:just|simply)\s+(?:stop|park)\s+(?:at|by|near)\s+(?:the\s+)?(?:branch|entrance)|(?:staff|representative)\s+will\s+(?:guide|direct|meet)\b)/iu.test(reply)) return reject('unverified_parking');
   // A live correction once produced this broken Hebrew fragment. It must not
