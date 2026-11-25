@@ -631,7 +631,7 @@ function applyPromptedDate(input: string, state: RebuildState, lastBot: string):
 }
 
 function temporalLocation(value: string): boolean {
-  return /^(?:ב[-־]?\s*)?(?:(?:ב)?אותו\s+יום|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|היום|מחר(?:תיים)?|מוצ["״']?ש|מוצאי שבת|הבוקר|הערב|בערב|בבוקר|בצהריים|הלילה)(?:\s|$)|^(?:on\s+)?(?:the\s+)?(?:same\s+day|monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow)(?:\s|$)|^\d{1,4}[-/.]\d/i.test(value.trim());
+  return /^(?:ב[-־]?\s*)?(?:(?:ב)?אותו\s+(?:יום|ערב|בוקר|לילה)|(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|היום|מחר(?:תיים)?|מוצ["״']?ש|מוצאי שבת|הבוקר|הערב|בערב|בבוקר|בצהריים|הלילה)(?:\s|$)|^(?:on\s+)?(?:the\s+)?(?:same\s+(?:day|evening|morning|night)|monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow)(?:\s|$)|^\d{1,4}[-/.]\d/i.test(value.trim());
 }
 
 /** Everyday branch abbreviations: ת"א / ת״א / תא → תל אביב, י-ם → ירושלים, נתבג → נתב״ג, TLV → Tel Aviv (airport if "TLV airport"). */
@@ -1633,12 +1633,12 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
       // A pickup-only date is not evidence that the car comes back that day.
       // The customer must tie the date to the return or state a one-day trip.
       if (source === 'returnDate' && state.booking.pickupDate && field.value === state.booking.pickupDate
-        && !/באותו יום|ליום אחד|יום אחד בלבד|\bsame day\b|\bfor one day\b|\bone-day\b/iu.test(input)
+        && !/באותו יום|באותו ערב|אותו ערב|ליום אחד|יום אחד בלבד|\bsame (?:day|evening)\b|\bfor one day\b|\bone-day\b/iu.test(input)
         && !/החזר|נחזיר|אחזיר|\breturn\b|drop.?off/iu.test(field.evidence)) continue;
       // Same-day return is grounded in the saved pickup date, but only when
       // the customer states an actual return and Gemini proposes that date.
       if (source === 'returnDate' && state.booking.pickupDate
-        && /באותו יום|\bsame day\b/iu.test(field.evidence)
+        && /באותו יום|(?:ב)?אותו ערב|\bsame (?:day|evening)\b/iu.test(field.evidence)
         && /החזרה|להחזיר|נחזיר|אחזיר|\breturn\b|drop.?off/iu.test(input)
         && field.value === state.booking.pickupDate
         && !isHypotheticalFactEvidence(input, field.evidence)) {

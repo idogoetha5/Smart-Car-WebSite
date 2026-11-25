@@ -15,6 +15,22 @@ function chat(initial: RebuildState) {
 }
 
 describe('luxury rental intake observed in the live inbox', () => {
+  it('treats same-evening return as a date, never as a return place', async () => {
+    let state: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: { pickupDate: '2026-12-11', pickupLocation: 'הוד השרון', returnLocation: 'הוד השרון', vehicleNeed: 'רכב מנהלים יוקרתי (העדפה לבדיקה)' }, history: [{ from: 'bot', text: 'האם תרצו שנמשיך בבירור לקראת ההזמנה?' }] };
+    const store: RebuildStore = {
+      isSimulation: true,
+      loadState: async () => state,
+      saveState: async (_phone, next) => { state = structuredClone(next); },
+      activeBooking: async () => null,
+      createRentalRequest: async () => { throw new Error('No formal booking'); },
+      readTurn: async () => ({ route: 'book', direction: 'none', fields: { returnDate: { value: '2026-12-11', evidence: 'אותו ערב' }, returnLocation: { value: 'הוד השרון', evidence: 'אותו ערב' } }, factPatches: [], reply: 'רשמתי את ההחזרה באותו ערב.', source: 'gemini', model: 'test', groundedContext: true }),
+    };
+    const result = await getRebuiltBotReply('fictional-same-evening', 'כן, נתקדם עם יום שישי. אחזיר את הרכב באותו ערב. נהיה שני נוסעים בלי מזוודות והנהג בן 50. מה נשאר בשביל הבקשה?', store);
+    expect(result.state.booking).toMatchObject({ returnDate: '2026-12-11', returnLocation: 'הוד השרון', passengers: 2, driverAgeRange: '24-plus' });
+    expect(result.reply).toMatch(/שם/);
+    expect(result.reply).not.toMatch(/באיזה תאריך תחזירו/);
+  });
+
   it('retains a spaciousness need supplied with a private name and WhatsApp instruction', async () => {
     const send = chat({ version: 2, phase: 'booking', step: 'rental_name', locale: 'he', booking: { pickupDate: '2026-12-11', returnDate: '2026-12-11', pickupLocation: 'הוד השרון', returnLocation: 'הוד השרון', vehicleNeed: 'רכב מנהלים יוקרתי (העדפה לבדיקה)', passengers: 2, driverAgeRange: '24-plus' }, history: [{ from: 'bot', text: 'על איזה שם לרשום את הבקשה?' }] });
     const result = await send('על שם יעל בדיקה. תעדכנו אותי בוואטסאפ הזה, וחשוב לי שהבקשה תציין שהעדיפות היא לרכב מנהלים מרווח.');

@@ -1,0 +1,95 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_CjU8aJ5cy9eTmvKrRMqKDfaq9mXY",
+  "release": "95dc94e",
+  "observedAt": "2026-11-25T16:17:10.894866+00:00",
+  "sessionId": "adaptive-luxury-eleventh-20261125-a",
+  "manualReview": "Failed on turn 2: same-evening phrase was stored as return location and same-day return date was dropped; bot repeated date question. Stopped conversation.",
+  "turns": [
+    {
+      "message": "היי, אני מחפשת רכב מנהלים מפנק, אולי משהו בסגנון מרצדס, ליום שישי 11.12. אאסוף ואחזיר בהוד השרון. יש סוגים שמתאימים לזה?",
+      "reply": "בהחלט אפשר לבדוק אפשרויות לרכב מנהלים יוקרתי, ודגמים ספציפיים כמו מרצדס והזמינות שלהם לתאריכים שבחרת בהוד השרון יצטרכו אישור של נציג SmartCar. האם תרצו שנמשיך בבירור לקראת ההזמנה?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-11",
+          "pickupLocation": "הוד השרון",
+          "returnLocation": "הוד השרון",
+          "vehicleNeed": "רכב מנהלים יוקרתי (העדפה לבדיקה)"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "היי, אני מחפשת רכב מנהלים מפנק, אולי משהו בסגנון מרצדס, ליום שישי 11.12. אאסוף ואחזיר בהוד השרון. יש סוגים שמתאימים לזה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בהחלט אפשר לבדוק אפשרויות לרכב מנהלים יוקרתי, ודגמים ספציפיים כמו מרצדס והזמינות שלהם לתאריכים שבחרת בהוד השרון יצטרכו אישור של נציג SmartCar. האם תרצו שנמשיך בבירור לקראת ההזמנה?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/suv patches=[] fields={\"pickupDate\":{\"value\":\"2026-12-11\",\"evidence\":\"12\"},\"pickupLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"הוד השרון\"},\"returnLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"הוד השרון\"},\"vehicleNeed\":{\"value\":"
+      ]
+    },
+    {
+      "message": "כן, נתקדם עם יום שישי. אחזיר את הרכב באותו ערב. נהיה שני נוסעים בלי מזוודות והנהג בן 50. מה נשאר בשביל הבקשה?",
+      "reply": "בסדר גמור, רשמתי את יום שישי ה־11 בדצמבר עם החזרה באותו ערב, שני נוסעים ונהג בן 50 בהוד השרון.\n\nבאיזה תאריך תחזירו את הרכב?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_dates",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-11",
+          "pickupLocation": "הוד השרון",
+          "returnLocation": "אותו ערב",
+          "vehicleNeed": "רכב מנהלים יוקרתי (העדפה לבדיקה)",
+          "passengers": 2,
+          "driverAgeRange": "24-plus"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "היי, אני מחפשת רכב מנהלים מפנק, אולי משהו בסגנון מרצדס, ליום שישי 11.12. אאסוף ואחזיר בהוד השרון. יש סוגים שמתאימים לזה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בהחלט אפשר לבדוק אפשרויות לרכב מנהלים יוקרתי, ודגמים ספציפיים כמו מרצדס והזמינות שלהם לתאריכים שבחרת בהוד השרון יצטרכו אישור של נציג SmartCar. האם תרצו שנמשיך בבירור לקראת ההזמנה?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "כן, נתקדם עם יום שישי. אחזיר את הרכב באותו ערב. נהיה שני נוסעים בלי מזוודות והנהג בן 50. מה נשאר בשביל הבקשה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בסדר גמור, רשמתי את יום שישי ה־11 בדצמבר עם החזרה באותו ערב, שני נוסעים ונהג בן 50 בהוד השרון.\n\nבאיזה תאריך תחזירו את הרכב?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "d939596e-fd12-4638-8d5e-42d20b468d4b"
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read book/suv patches=[] fields={\"returnDate\":{\"value\":\"2026-12-11\",\"evidence\":\"אותו ערב\"},\"returnLocation\":{\"value\":\"הוד השרון\",\"evidence\":\"אותו ערב\"}}"
+      ]
+    }
+  ]
+}
