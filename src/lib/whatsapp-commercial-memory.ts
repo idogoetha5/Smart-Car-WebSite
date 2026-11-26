@@ -188,6 +188,8 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
     const choice = text.match(/(?:מעדיף|בחרתי|החלטתי על|נלך על(?: כיוון של)?|רוצה|צריך|צריכה|צריכים|מחפש|לקנות|חשוב(?:ה)? ל(?:י|נו)|prefer|choose|chosen|decided on|go with|want|looking for|buy|purchase|keep|probably|important to (?:me|us) to have)\s+(?:a |the |את ה|רכב )?(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות|compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)/iu)
       ?? positiveLeasingChoice
       ?? text.match(/(compact(?: car)?|small(?: automatic| car)?|family(?: car)?|SUV|seven[- ]seat(?:er)?)\s+is important to (?:me|us)/iu)
+      ?? text.match(/(?:^|[.;]\s*)(?:a |the )?(?:small |compact )?(SUV|compact car|small car|family car|seven[- ]seat(?:er)?)\s+is (?:my|our) preference\b/iu)
+      ?? text.match(/(?:^|[.;]\s*)(?:רכב\s+)?(פנאי|קומפקטי|קטן|משפחתי|משפחתית|שבעה מקומות)\s+(?:הוא|זו|זאת)\s+ההעדפה\s+(?:שלי|שלנו)/iu)
       ?? text.match(/(?:^|[,;.]\s*|ל)רכב\s+(?:משומש\s+)?(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות)/iu)
       ?? text.match(/(?:הצעה\s+ל(?:ליסינג|השכרה)\s+ל|(?:כן|בסדר)[,\s]+)(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות)(?=[\s,.;!?]|$)/iu)
       ?? text.match(/(?:^|[,;.:]\s*)(קומפקטי|קטן|משפחתי|משפחתית|פנאי|שבעה מקומות)\s+(?:תהיה|יהיה|תתאים|יתאים|תספיק|יספיק|ל(?:שני|שלושה|ארבעה|ילדים|משפחה))(?![\p{L}])/iu)

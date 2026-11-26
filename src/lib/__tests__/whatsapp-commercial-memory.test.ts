@@ -12,6 +12,11 @@ describe('durable explicit commercial facts', () => {
     expect(next).toMatchObject({ termMonths: 12, annualMileageKm: 20000 });
     expect(updateCommercialMemory({ termMonths: 12 }, 'לא רוצה שלוש שנים.').termMonths).toBe(12);
   });
+  it('retains a vehicle category phrased as the customer’s preference', () => {
+    const memory = updateCommercialMemory({ termMonths: 12, annualMileageKm: 20000 }, 'A small SUV is my preference. I need only twelve months and do not want three years.');
+    expect(memory).toMatchObject({ termMonths: 12, annualMileageKm: 20000, vehiclePreference: 'suv' });
+    expect(updateCommercialMemory(undefined, 'רכב פנאי הוא ההעדפה שלי.').vehiclePreference).toBe('suv');
+  });
   it('remembers a natural family-car selection even without an exact model', () => {
     const memory = updateCommercialMemory(undefined, 'כן, נבדוק. משפחתית תהיה לי נוחה יותר, רוב הזמן בעיר והעגלה חייבת להיכנס.');
     expect(memory.vehiclePreference).toBe('family');
