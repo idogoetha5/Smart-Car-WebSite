@@ -286,12 +286,26 @@ export default function RentalQuotesPage() {
 export function RentalQuoteBuilder({
   adminLocale,
   loginUrl = `/${adminLocale}/admin/login`,
+  confirmationOnly = false,
 }: {
   adminLocale: string;
   loginUrl?: string;
+  confirmationOnly?: boolean;
 }) {
   const isHe = adminLocale === 'he';
-  const t = TEXT[isHe ? 'he' : 'en'];
+  const baseText = TEXT[isHe ? 'he' : 'en'];
+  const t = confirmationOnly ? {
+    ...baseText,
+    pageTitle: isHe ? 'אישור הזמנה סופי' : 'Final booking confirmation',
+    outputLanguage: isHe ? 'שפת האישור' : 'Confirmation language',
+    quoteDetails: isHe ? 'פרטי האישור' : 'Confirmation details',
+    quoteNumber: isHe ? 'מספר אישור' : 'Confirmation number',
+    validUntil: isHe ? 'הקישור למסמך זמין עד' : 'Document link available until',
+    vehicles: isHe ? 'הרכב שהוזמן' : 'Booked vehicle',
+    notes: isHe ? 'הערות לאישור ההזמנה' : 'Booking confirmation notes',
+    preview: isHe ? 'תצוגה מקדימה של אישור ההזמנה' : 'Booking confirmation preview',
+    whatsapp: isHe ? 'שליחת האישור ב־WhatsApp' : 'Send confirmation via WhatsApp',
+  } : baseText;
   const today = useMemo(() => isoToday(), []);
 
   const [quoteNumber, setQuoteNumber] = useState(() => rentalQuoteNumber());
@@ -300,7 +314,7 @@ export function RentalQuoteBuilder({
     isHe ? 'he' : 'en'
   );
   const [documentMode, setDocumentMode] =
-    useState<RentalDocumentMode>('quote');
+    useState<RentalDocumentMode>(confirmationOnly ? 'confirmation' : 'quote');
   // A rental quotation holds for a month, and the customer's document link
   // expires with this date — so it is the default, not a week.
   const [validUntil, setValidUntil] = useState(() => addIsoDays(today, 30));
@@ -425,16 +439,16 @@ export function RentalQuoteBuilder({
 
   const restoreDraft = useCallback((saved: RentalQuoteData) => {
     setQuoteNumber(saved.quoteNumber); setQuoteDate(saved.date); setValidUntil(saved.validUntil);
-    setQuoteLocale(saved.locale); setDocumentMode(saved.documentMode);
+    setQuoteLocale(saved.locale); setDocumentMode(confirmationOnly ? 'confirmation' : saved.documentMode);
     setCustomerName(saved.customerName); setCustomerPhone(saved.customerPhone); setCustomerEmail(saved.customerEmail);
     setPickupDate(saved.pickupDate); setReturnDate(saved.returnDate); setPickupTime(saved.pickupTime); setReturnTime(saved.returnTime);
     setPickupLocation(saved.pickupLocation); setReturnLocation(saved.returnLocation); setVehicles(saved.vehicles); setExtras(saved.extras);
     setDeliveryFee(saved.deliveryFee); setDiscount(saved.discount); setVatMode(saved.vatMode);
     setMileageAllowance(saved.mileageAllowance); setInsuranceCoverage(saved.insuranceCoverage);
     setDeposit(saved.deposit); setDeductible(saved.deductible); setFuelPolicy(saved.fuelPolicy); setNotes(saved.notes);
-  }, []);
+  }, [confirmationOnly]);
   const officeDraft = !loginUrl.startsWith('/driver/');
-  const draft = useQuoteDraft('rental', quoteData, rentalDraftSchema, restoreDraft, officeDraft);
+  const draft = useQuoteDraft(confirmationOnly ? 'rental-confirmation' : 'rental', quoteData, rentalDraftSchema, restoreDraft, officeDraft);
 
   const totals = useMemo(
     () => calculateRentalQuoteTotals(quoteData),
@@ -681,7 +695,26 @@ export function RentalQuoteBuilder({
   };
 
   const changeMobileStep = (step: number) => {
+    if (confirmationOnly && step > mobileStep) {
+      if (!customerName.trim() || !customerPhone.trim() || !pickupDate || !returnDate || returnDate < pickupDate || !pickupLocation.trim() || !returnLocation.trim()) {
+        setError(isHe ? 'יש למלא את שם הלקוח, הטלפון, תאריכי ומקומות האיסוף וההחזרה.' : 'Enter the customer name, phone, pickup and return dates and locations.');
+        setMobileStep(1);
+        return;
+      }
+      if (step > 2 && !vehicles.some(vehicle => vehicle.name.trim())) {
+        setError(isHe ? 'יש לבחור רכב או להזין את שם הרכב.' : 'Choose a vehicle or enter its name.');
+        setMobileStep(2);
+        return;
+      }
+      if (step > 3 && !insuranceCoverage.trim()) {
+        setError(t.insuranceRequired);
+        setMobileStep(3);
+        return;
+      }
+    }
+    setError('');
     setMobileStep(step);
+    if (step === 4 && confirmationOnly) setPreviewOpen(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -697,16 +730,17 @@ export function RentalQuoteBuilder({
 
   return (
     <main
-      className="mx-auto max-w-[1500px] p-3 pb-40 sm:p-5 sm:pb-40 lg:pb-5"
+      className={`mx-auto max-w-[1500px] p-3 pb-40 sm:p-5 sm:pb-40 ${confirmationOnly ? '' : 'lg:pb-5'}`}
       dir={isHe ? 'rtl' : 'ltr'}
     >
       <header className="mb-4 overflow-hidden rounded-3xl bg-[#0D2B2B] px-5 py-5 text-white shadow-[0_16px_36px_rgba(13,43,43,0.16)] lg:flex lg:items-center lg:justify-between">
         <div>
-          <p className="text-xs font-black tracking-wide text-[#B8D8D8]">SmartCar · {isHe ? 'מרכז הצעות' : 'QUOTE DESK'}</p>
+          <p className="text-xs font-black tracking-wide text-[#B8D8D8]">SmartCar · {confirmationOnly ? (isHe ? 'אישורי הזמנה' : 'BOOKING CONFIRMATIONS') : (isHe ? 'מרכז הצעות' : 'QUOTE DESK')}</p>
           <h1 className="mt-1 text-2xl font-black tracking-tight">{t.pageTitle}</h1>
+          {confirmationOnly && <p className="mt-2 text-sm leading-6 text-[#D5E8E8]">{isHe ? 'הפרטים שסוכמו, במסמך אחד. ממלאים, בודקים ושולחים ללקוח.' : 'Everything agreed, in one document. Fill in, review and send.'}</p>}
           <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-[#D5E8E8]"><span className="rounded-full bg-white/10 px-3 py-1.5">#{quoteNumber}</span><span className="rounded-full bg-white/10 px-3 py-1.5">{totals.days} {t.rentalDays}</span><span className="rounded-full bg-[#2D5F5F] px-3 py-1.5">₪{money(totals.total, adminLocale)}</span></div>
         </div>
-        <div className="mt-4 hidden gap-2 lg:flex">
+        <div className={`mt-4 hidden gap-2 ${confirmationOnly ? '' : 'lg:flex'}`}>
           <button
             type="button"
             onClick={handleDownload}
@@ -728,7 +762,7 @@ export function RentalQuoteBuilder({
         </div>
       </header>
 
-      {officeDraft && <QuoteDraftControls onDiscard={draft.discard} storageError={draft.storageError} english={!isHe} />}
+      {officeDraft && <QuoteDraftControls confirmation={confirmationOnly} onDiscard={draft.discard} storageError={draft.storageError} english={!isHe} />}
       {error ? (
         <div
           role="alert"
@@ -738,7 +772,7 @@ export function RentalQuoteBuilder({
         </div>
       ) : null}
 
-      <nav aria-label={isHe ? 'שלבי הכנת ההצעה' : 'Quote steps'} className="mb-4 rounded-3xl border border-[#CFE2D8] bg-white p-2 shadow-sm lg:hidden">
+      <nav aria-label={confirmationOnly ? (isHe ? 'שלבי אישור הזמנה' : 'Booking confirmation steps') : (isHe ? 'שלבי הכנת ההצעה' : 'Quote steps')} className={`mb-4 rounded-3xl border border-[#CFE2D8] bg-white p-2 shadow-sm ${confirmationOnly ? '' : 'lg:hidden'}`}>
         <div className="grid grid-cols-4 gap-1" dir={isHe ? 'rtl' : 'ltr'}>
           {mobileSteps.map((step) => {
             const active = mobileStep === step.number;
@@ -815,10 +849,22 @@ export function RentalQuoteBuilder({
             </dl>
           </section>
 
+          {confirmationOnly && mobileStep === 4 && <section className="rounded-2xl border border-[#CFE2D8] bg-white p-5">
+            <h2 className="text-xl font-black text-[#0D2B2B]">{isHe ? 'האישור מוכן לבדיקה' : 'Review your confirmation'}</h2>
+            <p className="mt-2 text-sm text-slate-600">{isHe ? 'בדקו את הפרטים במסמך לפני השליחה.' : 'Check the document details before sending.'}</p>
+            <dl className="mt-4 space-y-3 text-sm">
+              <div><dt className="text-slate-500">{t.customer}</dt><dd className="font-bold">{customerName || '—'} · <bdi>{customerPhone || '—'}</bdi></dd></div>
+              <div><dt className="text-slate-500">{t.vehicles}</dt><dd className="font-bold">{vehicles.map(vehicle => vehicle.name).filter(Boolean).join(', ') || '—'}</dd></div>
+              <div><dt className="text-slate-500">{t.pickupDate}</dt><dd>{pickupDate} · {pickupTime} · {pickupLocation || '—'}</dd></div>
+              <div><dt className="text-slate-500">{t.returnDate}</dt><dd>{returnDate} · {returnTime} · {returnLocation || '—'}</dd></div>
+            </dl>
+            <p className="mt-5 rounded-xl bg-[#F4F7F7] p-3 text-sm leading-6 text-[#2D5F5F]">{isHe ? 'הכפתור יפתח הודעה מוכנה עם קישור לאישור המעוצב. משלימים את השליחה בתוך WhatsApp.' : 'The button opens a prepared message with a link to the confirmation. Complete the send in WhatsApp.'}</p>
+          </section>}
           {/* Only the sections scroll: the totals strip above stays in view,
               so the price is never hidden while the form is being filled. */}
           <div className="min-w-0 space-y-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pe-1">
-            <div className={mobileStep === 1 ? 'block lg:contents' : 'hidden lg:contents'}>
+            <div className={mobileStep === 1 ? (confirmationOnly ? 'block' : 'block lg:contents') : (confirmationOnly ? 'hidden' : 'hidden lg:contents')}>
+            <OptionalDetails enabled={confirmationOnly} summary={isHe ? 'שפה והגדרות מסמך' : 'Language & document settings'}>
             <Section id="quote-details" title={t.quoteDetails}>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 <div className="hidden sm:block"><Field label={t.quoteNumber} value={quoteNumber} readOnly /></div>
@@ -847,7 +893,7 @@ export function RentalQuoteBuilder({
                 </label>
               </div>
 
-              <label className="mt-3 flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+              {!confirmationOnly && <label className="mt-3 flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
                 <input
                   type="checkbox"
                   checked={documentMode === 'confirmation'}
@@ -866,9 +912,10 @@ export function RentalQuoteBuilder({
                     {t.confirmationHint}
                   </span>
                 </span>
-              </label>
+              </label>}
             </Section>
 
+            </OptionalDetails>
             <Section id="customer" title={t.customer}>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 <Field
@@ -959,11 +1006,12 @@ export function RentalQuoteBuilder({
                   placeholder={t.locationPlaceholder}
                   required
                 />
+                {confirmationOnly && <button type="button" disabled={!pickupLocation.trim()} onClick={() => setReturnLocation(pickupLocation)} className="min-h-11 rounded-xl border border-[#B8D8D8] px-3 text-sm font-bold text-[#2D5F5F] disabled:opacity-40 sm:col-span-2">{isHe ? 'העתקת מקום האיסוף גם להחזרה' : 'Use pickup location for return'}</button>}
               </div>
             </Section>
             </div>
 
-            <section id="rental-vehicles" aria-labelledby="rental-vehicles-heading" className={`${mobileStep === 2 ? 'block' : 'hidden'} scroll-mt-3 lg:block`}>
+            <section id="rental-vehicles" aria-labelledby="rental-vehicles-heading" className={`${mobileStep === 2 ? 'block' : 'hidden'} scroll-mt-3 ${confirmationOnly ? '' : 'lg:block'}`}>
               <div className="mb-2 flex items-center justify-between gap-3">
                 <h2
                   id="rental-vehicles-heading"
@@ -1214,7 +1262,8 @@ export function RentalQuoteBuilder({
               </div>
             </section>
 
-            <div className={mobileStep === 3 ? 'block lg:contents' : 'hidden lg:contents'}>
+            <div className={mobileStep === 3 ? (confirmationOnly ? 'block' : 'block lg:contents') : (confirmationOnly ? 'hidden' : 'hidden lg:contents')}>
+            <OptionalDetails enabled={confirmationOnly} summary={`${isHe ? 'תוספות להזמנה' : 'Booking extras'} · ${extras.filter(extra => extra.selected).length}`}>
             <section aria-labelledby="rental-extras-heading">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <h2
@@ -1333,6 +1382,7 @@ export function RentalQuoteBuilder({
               </div>
             </section>
 
+            </OptionalDetails>
             <Section id="rental-terms" title={t.termsAndPrice}>
               <datalist id="rental-insurance-options">
                 {INSURANCE_SUGGESTIONS[quoteLocale].map((option) => (
@@ -1421,8 +1471,9 @@ export function RentalQuoteBuilder({
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-[#CFE2D8] bg-white/95 px-3 py-3 shadow-[0_-10px_30px_rgba(13,43,43,0.12)] backdrop-blur md:bottom-0 md:start-64 lg:hidden" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+      <div className={`fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-[#CFE2D8] bg-white/95 px-3 py-3 shadow-[0_-10px_30px_rgba(13,43,43,0.12)] backdrop-blur md:bottom-0 md:start-64 ${confirmationOnly ? '' : 'lg:hidden'}`} style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
         <div className="mx-auto flex max-w-xl gap-2">
+          {confirmationOnly && mobileStep > 1 && <button type="button" onClick={() => changeMobileStep(mobileStep - 1)} className="min-h-12 shrink-0 rounded-2xl border border-[#B8D8D8] px-4 text-sm font-bold text-[#2D5F5F]">{isHe ? 'חזרה' : 'Back'}</button>}
           {mobileStep < 4 ? (
             <button type="button" onClick={() => changeMobileStep(mobileStep + 1)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#0D2B2B] text-sm font-black text-white shadow-[0_10px_20px_rgba(13,43,43,0.2)]">
               {isHe ? `המשך: ${mobileSteps[mobileStep].label}` : `Continue: ${mobileSteps[mobileStep].label}`}
@@ -1436,6 +1487,14 @@ export function RentalQuoteBuilder({
       </div>
     </main>
   );
+}
+
+function OptionalDetails({ enabled, summary, children }: { enabled: boolean; summary: string; children: React.ReactNode }) {
+  if (!enabled) return <>{children}</>;
+  return <details className="mb-3 rounded-2xl border border-gray-200 bg-white p-3">
+    <summary className="min-h-11 cursor-pointer py-3 text-sm font-bold text-[#2D5F5F]">{summary}</summary>
+    {children}
+  </details>;
 }
 
 function Section({

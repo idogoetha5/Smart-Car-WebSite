@@ -7,12 +7,15 @@ export default function QuoteDraftControls({
   onDiscard,
   storageError,
   english = false,
+  confirmation = false,
 }: {
   onDiscard: () => void;
   storageError: boolean;
   english?: boolean;
+  confirmation?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const newLabel = confirmation ? (english ? "New confirmation" : "אישור הזמנה חדש") : (english ? "New quotation" : "הצעה חדשה");
   return (
     <>
       <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-[#D5E5DF] bg-[#EDF5F1] p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
@@ -37,13 +40,13 @@ export default function QuoteDraftControls({
           onClick={() => setOpen(true)}
           className="min-h-11 shrink-0 rounded-xl border border-[#B8D8D8] bg-white px-4 font-bold text-[#2D5F5F] shadow-sm transition hover:bg-[#F9FCFA] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2D5F5F]"
         >
-          {english ? "New quotation" : "הצעה חדשה"}
+          {newLabel}
         </button>
       </div>
       <AdminSheet
         open={open}
         onClose={() => setOpen(false)}
-        title={english ? "Start a new quotation?" : "להתחיל הצעה חדשה?"}
+        title={confirmation ? (english ? "Start a new confirmation?" : "להתחיל אישור הזמנה חדש?") : (english ? "Start a new quotation?" : "להתחיל הצעה חדשה?")}
         alert
         footer={
           <div className="flex gap-2">
@@ -62,7 +65,7 @@ export default function QuoteDraftControls({
               }}
               className="min-h-12 flex-1 rounded-xl bg-[#2D5F5F] font-bold text-white"
             >
-              {english ? "New quotation" : "הצעה חדשה"}
+              {newLabel}
             </button>
           </div>
         }
@@ -70,7 +73,9 @@ export default function QuoteDraftControls({
         <p className="text-base leading-7 text-slate-700">
           {english
             ? "The draft on this device will be cleared. Already generated or sent documents will not be deleted."
-            : "הטיוטה שבמכשיר תימחק ותיפתח הצעה חדשה. מסמכים שכבר הופקו או נשלחו לא יימחקו."}
+            : confirmation
+              ? "הטיוטה שבמכשיר תימחק וייפתח אישור הזמנה חדש. מסמכים שכבר הופקו או נשלחו לא יימחקו."
+              : "הטיוטה שבמכשיר תימחק ותיפתח הצעה חדשה. מסמכים שכבר הופקו או נשלחו לא יימחקו."}
         </p>
       </AdminSheet>
     </>

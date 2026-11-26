@@ -23,6 +23,8 @@ describe('dashboard lead destinations', () => {
     expect(html).toContain(locale === 'he' ? 'פניות ולידים בממשק' : 'Leads workspace');
     expect(html).toContain(locale === 'he' ? 'פתיחת גיליון Google Sheets' : 'Open Google Sheets');
     expect(html).toContain(`href="/${locale}/admin/search-performance"`);
+    expect(html).toContain(`href="/${locale}/admin/booking-confirmations"`);
+    expect(html).toContain(`href="/${locale}/admin/rental-quotes"`);
     expect(html).not.toContain(locale === 'he' ? 'פעולות מהירות' : 'Quick actions');
   });
 });

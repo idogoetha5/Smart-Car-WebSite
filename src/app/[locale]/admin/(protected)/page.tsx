@@ -74,9 +74,14 @@ export default async function AdminDashboard({
             <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">{t('title')}</h1>
             <p className="mt-2 text-sm leading-6 text-slate-300">{locale === 'he' ? 'הפעולות החשובות והעדכניות — במקום אחד.' : 'The latest activity and key actions, all in one place.'}</p>
           </div>
+          <div className="flex flex-wrap gap-2">
+          <Link href={`/${locale}/admin/booking-confirmations`} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#E8743B] px-4 text-sm font-black text-white transition-transform active:scale-[0.98]">
+            <Plus className="h-5 w-5" />{locale === 'he' ? 'אישור הזמנה חדש' : 'New booking confirmation'}
+          </Link>
           <Link href={`/${locale}/admin/rental-quotes`} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white px-4 text-sm font-black text-[#0D2B2B] transition-transform active:scale-[0.98]">
             <Plus className="h-5 w-5" />{locale === 'he' ? 'הצעת מחיר חדשה' : 'New rental quote'}
           </Link>
+          </div>
         </div>
       </section>
 

@@ -99,6 +99,7 @@ export default function AdminSidebar() {
   const links = [
     { href: `/${locale}/admin`, label: 'Dashboard', icon: LayoutDashboard },
     { href: `/${locale}/admin/bookings`, label: t('manage_bookings'), icon: CalendarCheck },
+    { href: `/${locale}/admin/booking-confirmations`, label: isHe ? 'אישור הזמנה' : 'Booking confirmation', icon: CalendarCheck },
     { href: `/${locale}/admin/rental-quotes`, label: isHe ? 'הצעת מחיר להשכרה' : 'Rental quotation', icon: MessageCircle },
     { href: `/${locale}/admin/accident-reports`, label: isHe ? 'דוחות תאונה' : 'Accident reports', icon: ShieldAlert },
     { href: `/${locale}/admin/customer-verifications`, label: isHe ? 'רישיון ואשראי' : 'Licence & card', icon: CreditCard },
@@ -117,6 +118,7 @@ export default function AdminSidebar() {
   const mobileMainLinks = links.filter((link) => [
     `/${locale}/admin`,
     `/${locale}/admin/bookings`,
+    `/${locale}/admin/booking-confirmations`,
     `/${locale}/admin/rental-quotes`,
   ].includes(link.href));
 
@@ -203,7 +205,7 @@ export default function AdminSidebar() {
         {mobileMainLinks.map((link) => {
           const Icon = link.href.endsWith('/rental-quotes') ? FileText : link.icon;
           const active = pathname === link.href;
-          const label = link.href.endsWith('/admin') ? (isHe ? 'ראשי' : 'Home') : link.href.endsWith('/bookings') ? (isHe ? 'הזמנות' : 'Bookings') : (isHe ? 'הצעת השכרה' : 'Rental quote');
+          const label = link.href.endsWith('/admin') ? (isHe ? 'ראשי' : 'Home') : link.href.endsWith('/bookings') ? (isHe ? 'הזמנות' : 'Bookings') : link.href.endsWith('/booking-confirmations') ? (isHe ? 'אישור הזמנה' : 'Confirm') : (isHe ? 'הצעת השכרה' : 'Rental quote');
           return (
             <Link key={link.href} href={link.href} aria-current={active ? 'page' : undefined} className={`flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-[#2D5F5F] ${active ? 'text-[#0D2B2B]' : 'text-slate-500'}`}>
               <span className={`flex h-8 w-12 items-center justify-center rounded-xl ${active ? 'bg-[#e8f1f1] text-[#2D5F5F]' : ''}`}><Icon className="h-5 w-5" aria-hidden="true" /></span>
