@@ -3518,20 +3518,37 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     && !/https?:\/\//u.test(reply) && !(state.phase === 'booking' && state.step === 'rental_confirm') && !state.completedRequestId) {
     try {
       const reworder = store.rewordTurn ?? (store.readTurn ? undefined : readBotTurn);
-      const reworded = !reworder ? null : await reworder(redactServiceReference(input, state.serviceReference), {
+      const rewordContext = {
         locale: state.locale, phase: state.phase, today: israelDate(),
         recent: state.history.filter(item => !item.private).slice(-6).map(({ from, text }) => ({ from, text: redactServiceReference(text, state.serviceReference) })),
         known: conversationalKnown(state), approvedFacts: getSmartCarApprovedFacts(state.locale), applicationReply: reply,
         conversation: { interest: state.interest, handoffDeferred: false, hasServiceReference: Boolean(state.serviceReference), step: state.step, completedRequest: false },
-      });
+      } as const;
+      const safeInput = redactServiceReference(input, state.serviceReference);
+      let reworded = !reworder ? null : await reworder(safeInput, rewordContext);
       let text = reworded?.rephrased && !/\[[a-z ]+ removed\]/iu.test(reworded.reply) ? reworded.reply.trim() : '';
       // The office number is the one thing the model tends to drop; the application puts it back.
-      if (text && reply.includes(OFFICE_PHONE) && !text.includes(OFFICE_PHONE)) {
-        text = `${text.replace(/\s*(?:אפשר גם להתקשר(?: אלינו)?(?: ישירות)?|You can also call us(?: directly)?)\.?\s*$/iu, '').trim()} ${he ? `לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `For immediate help call ${OFFICE_PHONE}.`}`;
-      }
+      const restoreOfficePhone = (draft: string) => draft && reply.includes(OFFICE_PHONE) && !draft.includes(OFFICE_PHONE)
+        ? `${draft.replace(/\s*(?:אפשר גם להתקשר(?: אלינו)?(?: ישירות)?|You can also call us(?: directly)?)\.?\s*$/iu, '').trim()} ${he ? `לעזרה מיידית אפשר להתקשר ל־${OFFICE_PHONE}.` : `For immediate help call ${OFFICE_PHONE}.`}`
+        : draft;
+      text = restoreOfficePhone(text);
       const digits = (value: string) => (value.match(/\d[\d\-–.,:/]*\d|\d/gu) ?? []).map(n => n.replace(/[^\d]/g, ''));
       const original = digits(reply);
-      const keepsNumbers = digits(text).every(n => original.includes(n)) && original.every(n => digits(text).includes(n));
+      let keepsNumbers = digits(text).every(n => original.includes(n)) && original.every(n => digits(text).includes(n));
+      // A model sometimes omits a numeric budget from a commercial summary.
+      // Give it one bounded correction attempt, then apply all checks below again.
+      const missingNumbers = original.filter(n => !digits(text).includes(n));
+      if (reworder && reworded?.rephrased && missingNumbers.length && digits(text).every(n => original.includes(n))) {
+        const retry = await reworder(safeInput, { ...rewordContext,
+          replyCorrection: `reword_missing_numbers: retain these exact values from applicationReply in the customer-facing answer: ${missingNumbers.join(', ')}. Preserve all other facts and commitments exactly.`,
+        });
+        const retryText = retry?.rephrased && !/\[[a-z ]+ removed\]/iu.test(retry.reply) ? retry.reply.trim() : '';
+        if (retryText) {
+          reworded = retry;
+          text = restoreOfficePhone(retryText);
+          keepsNumbers = digits(text).every(n => original.includes(n)) && original.every(n => digits(text).includes(n));
+        }
+      }
       // A question in the application wording must survive; one added question is allowed only for a missing booking reference.
       // No new timing promise ("מחר בבוקר", "today", "בהקדם") that the application did not make.
       const timing = /(?<![\p{L}])(?:מחר|היום|הערב|בבוקר|בהקדם|תוך|בעוד|מיד|עוד מעט)(?![\p{L}])|\b(?:tomorrow|today|tonight|this (?:morning|evening|afternoon)|shortly|soon|within|right away|asap)\b/giu;

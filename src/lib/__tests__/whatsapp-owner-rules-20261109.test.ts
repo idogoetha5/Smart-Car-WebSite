@@ -1060,6 +1060,24 @@ describe('running late and human follow-ups', () => {
 // Owner direction 2026-11-13: code decides, the model speaks. Fixed application wording is reworded by the
 // model only when it keeps the facts (numbers, phone, question shape, language).
 describe('rewording of fixed application replies', () => {
+  it('lets Gemini repair a handoff summary that omitted the saved sale budget', async () => {
+    let state: RebuildState | null = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, interest: 'sale', history: [],
+      commercial: { budget: { amount: 60000, currency: 'ILS' }, vehiclePreference: 'compact', usage: ['city', 'business'] } };
+    const rewordTurn = vi.fn(async (_message: string, context: { replyCorrection?: string }) => ({ route: 'human', direction: 'compact', fields: {},
+      reply: context.replyCorrection
+        ? 'בשמחה, העברנו לנציג את הבקשה לרכב קומפקטי לשימוש עירוני ועסקי בתקציב 60000 ILS. נציג יחזור אליכם עם פרטי ההצעה; שום עסקה לא אושרה. לעזרה מיידית אפשר להתקשר ל־09-9509757.'
+        : 'בשמחה, העברנו לנציג את הבקשה לרכב קומפקטי לשימוש עירוני ועסקי. נציג יחזור אליכם עם פרטי ההצעה; שום עסקה לא אושרה. לעזרה מיידית אפשר להתקשר ל־09-9509757.',
+      source: 'gemini', model: 'fixture', groundedContext: true, rephrased: true } as BotReading));
+    const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); },
+      activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn: async () => null, rewordTurn };
+    const result = await getRebuiltBotReply('fictional-sale-budget-handoff', 'כן, תעבירו אותי לנציג לגבי הרכב הקטן.', store);
+    expect(result.escalate).toBe(true);
+    expect(result.reply).toMatch(/בשמחה, העברנו.*60000 ILS/);
+    expect(result.reply).toContain('09-9509757');
+    expect(result.notes).toContain('reworded');
+    expect(rewordTurn).toHaveBeenCalledTimes(2);
+    expect(rewordTurn.mock.calls[1]?.[1].replyCorrection).toContain('60000');
+  });
   it('does not turn a sale enquiry handoff into a promised appointment', async () => {
     let state: RebuildState | null = { version: 2, phase: 'explore', step: 'menu', locale: 'he', booking: {}, interest: 'sale', history: [] };
     const rewrite = 'בשמחה, נציג SmartCar יעביר את הפרטים ויתאם אתכם פגישה בסניף הרצליה כשיהיה נוח. אפשר גם להתקשר למשרד ב־09-9509757.';
