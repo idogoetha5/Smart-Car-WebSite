@@ -43,6 +43,12 @@ function negatedBefore(text: string, index: number) {
   return /(?:\bnot|\binstead of|\brather than|ולא|לא|במקום)\s*$/i.test(text.slice(Math.max(0, index - 25), index));
 }
 
+function declinedTerm(text: string, index: number): boolean {
+  if (negatedBefore(text, index)) return true;
+  const prefix = text.slice(Math.max(0, index - 75), index).split(/[.!?;\n]/u).at(-1) ?? '';
+  return /(?:\b(?:do not|don't|does not|doesn't|not)\s+(?:want|need|choose|plan|intend|commit(?: to)?)|(?:לא|אינני)\s+(?:רוצה|צריך|צריכה|מעוניין|מעוניינת|בוחר|בוחרת|מתחייב|מתחייבת))\s+(?:ל|למשך\s+|for\s+)?\s*(?:a |the )?$/iu.test(prefix);
+}
+
 function termChoicePrefix(text: string, index: number): { chosen: boolean; hypothetical: boolean } {
   const prefix = text.slice(Math.max(0, index - 70), index);
   const verb = '(?:נבחר|בחרתי|בחרנו|החלטתי על|החלטנו על|נלך על|choose|chosen|decided on|make it|go with|settled on)';
@@ -99,14 +105,14 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
 
   const termMatches: Array<{ value: number; index: number; evidence: string }> = [];
   for (const match of text.matchAll(/(?:ל)?(שני|שניים|שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש)\s+חודשים|(?:ל)?חודשיים/gu)) {
-    if (negatedBefore(text, match.index!)) continue;
+    if (declinedTerm(text, match.index!)) continue;
     const namedMonths: Record<string, number> = { שני: 2, שניים: 2, שלושה: 3, שלוש: 3, ארבעה: 4, ארבע: 4, חמישה: 5, חמש: 5, שישה: 6, שש: 6 };
     termMatches.push({ value: match[1] ? namedMonths[match[1]] : 2, index: match.index!, evidence: match[0] });
   }
   const namedYears = text.match(/(?:ל)?(שלוש|ארבע|חמש)\s+שנים/u);
-  if (namedYears && !negatedBefore(text, namedYears.index!)) termMatches.push({ value: ({ שלוש: 3, ארבע: 4, חמש: 5 }[namedYears[1]] ?? 0) * 12, index: namedYears.index!, evidence: namedYears[0] });
+  if (namedYears && !declinedTerm(text, namedYears.index!)) termMatches.push({ value: ({ שלוש: 3, ארבע: 4, חמש: 5 }[namedYears[1]] ?? 0) * 12, index: namedYears.index!, evidence: namedYears[0] });
   for (const match of text.matchAll(/\b(\d{1,3}|one|two|three|four|five)\s*(months?|mos?|years?|yrs?)\b|(\d{1,3})\s*(חודשים|חודש|שנים|שנה)|שנתיים|לשנה/giu)) {
-    if (negatedBefore(text, match.index!) || termChoicePrefix(text, match.index!).hypothetical) continue;
+    if (declinedTerm(text, match.index!) || termChoicePrefix(text, match.index!).hypothetical) continue;
     if (match[0] === 'לשנה' && /(?:קמ|ק[״"]מ|קילומטר(?:ים)?|km)\s*$/i.test(text.slice(Math.max(0, match.index! - 18), match.index!))) continue;
     const wordNumbers: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5 };
     const number = match[1] ? wordNumbers[match[1].toLowerCase()] ?? Number(match[1]) : match[3] ? Number(match[3]) : /שנתיים/.test(match[0]) ? 2 : 1;

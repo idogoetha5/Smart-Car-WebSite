@@ -6,6 +6,12 @@ describe('durable explicit commercial facts', () => {
     const memory = updateCommercialMemory(undefined, 'I need a car for about one year, around 20,000 km. I am comparing leasing and buying.');
     expect(memory).toMatchObject({ termMonths: 12, annualMileageKm: 20000 });
   });
+  it('does not replace a twelve-month need with a term the customer rejected', () => {
+    const first = updateCommercialMemory(undefined, 'I need a car for about one year, around 20,000 km.');
+    const next = updateCommercialMemory(first, 'I really need only twelve months and do not want three years.');
+    expect(next).toMatchObject({ termMonths: 12, annualMileageKm: 20000 });
+    expect(updateCommercialMemory({ termMonths: 12 }, 'לא רוצה שלוש שנים.').termMonths).toBe(12);
+  });
   it('remembers a natural family-car selection even without an exact model', () => {
     const memory = updateCommercialMemory(undefined, 'כן, נבדוק. משפחתית תהיה לי נוחה יותר, רוב הזמן בעיר והעגלה חייבת להיכנס.');
     expect(memory.vehiclePreference).toBe('family');

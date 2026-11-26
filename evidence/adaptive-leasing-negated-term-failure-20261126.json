@@ -1,0 +1,93 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_6yu5LuF1HZ33xbNZwGp4Y5Gi1QzA",
+  "release": "1be1929",
+  "observedAt": "2026-11-26T08:50:05.807946+00:00",
+  "sessionId": "adaptive-leasing-en-20261126-a",
+  "manualReview": "Stopped after turn 2: Gemini gave conditional answers and saved the SUV preference, but the application replaced a selected twelve-month term with 36 months from the explicitly rejected phrase “do not want three years”. The annual mileage of 20,000 km was retained.",
+  "turns": [
+    {
+      "message": "I run a small business and need a car for about one year, around 20,000 km. I cannot decide between leasing and buying. What should I compare?",
+      "reply": "When comparing leasing versus buying, it helps to look at ownership, total cost, mileage limits, upfront and final payments, and exit terms. Insurance and maintenance are included only if stated in the specific offer and contract. For a one-year need, the exact term, vehicle group, and exit conditions should be checked with a SmartCar representative.",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "en",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "I run a small business and need a car for about one year, around 20,000 km. I cannot decide between leasing and buying. What should I compare?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "When comparing leasing versus buying, it helps to look at ownership, total cost, mileage limits, upfront and final payments, and exit terms. Insurance and maintenance are included only if stated in the specific offer and contract. For a one-year need, the exact term, vehicle group, and exit conditions should be checked with a SmartCar representative.",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "interest": "leasing",
+        "commercial": {
+          "termMonths": 12,
+          "annualMileageKm": 20000
+        }
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read leasing/none patches=[{\"field\":\"commercialTermMonths\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"about one year\",\"value\":12}] fields={}"
+      ]
+    },
+    {
+      "message": "A small SUV is my preference. I really need only twelve months and do not want three years. What happens if I need to leave early or drive more than 20,000 km?",
+      "reply": "For a twelve-month need with an SUV, early exit terms and excess kilometre charges depend on the specific offer and agreement, so it is best to check these details with a SmartCar representative. Would you like to set a budget to explore available options?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "en",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "I run a small business and need a car for about one year, around 20,000 km. I cannot decide between leasing and buying. What should I compare?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "When comparing leasing versus buying, it helps to look at ownership, total cost, mileage limits, upfront and final payments, and exit terms. Insurance and maintenance are included only if stated in the specific offer and contract. For a one-year need, the exact term, vehicle group, and exit conditions should be checked with a SmartCar representative.",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "A small SUV is my preference. I really need only twelve months and do not want three years. What happens if I need to leave early or drive more than 20,000 km?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "For a twelve-month need with an SUV, early exit terms and excess kilometre charges depend on the specific offer and agreement, so it is best to check these details with a SmartCar representative. Would you like to set a budget to explore available options?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "interest": "leasing",
+        "commercial": {
+          "termMonths": 36,
+          "annualMileageKm": 20000,
+          "vehiclePreference": "suv"
+        }
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read leasing/suv patches=[{\"field\":\"commercialVehiclePreference\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"A small SUV is my preference\",\"value\":\"suv\"}] fields={}"
+      ]
+    }
+  ]
+}
