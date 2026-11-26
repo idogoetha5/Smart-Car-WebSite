@@ -137,7 +137,9 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   // rental is not a selected leasing term.
   if (next.comparingLeasingAndRental && !explicitChoice) next.termMonths = null;
 
-  const annual = /לשנה|בשנה|שנתי|a year|per year|annually|annual/i.test(text);
+  const annual = /לשנה|בשנה|שנתי|a year|per year|annually|annual/i.test(text)
+    || /(?:one|1)\s+year|שנה\s+אחת/iu.test(text) && /(?:קילומטר|ק[״"]מ|קמ|\bkm\b|kilomet)/iu.test(text)
+      && !/(?:total|overall|in total|בסך הכל|בסך הכול)[^.!?\n]{0,25}(?:קילומטר|ק[״"]מ|קמ|\bkm\b|kilomet)/iu.test(text);
   if (annual || previous?.annualMileageKm !== undefined) {
     const mileage = new RegExp(`${NUMBER}\\s*(אלף|thousand|k\\b)?\\s*(?:קילומטר(?:ים)?|ק[״"]מ|קמ|km|kilometres?|kilometers?)`, 'giu');
     for (const match of text.matchAll(mileage)) {

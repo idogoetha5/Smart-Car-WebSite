@@ -1,0 +1,45 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_DrNcRYVW6P8pBmh97ehp9gPkVZcU",
+  "release": "8a078e7",
+  "observedAt": "2026-11-25T17:21:26.919698+00:00",
+  "sessionId": "adaptive-leasing-en-20261125-d",
+  "manualReview": "Stopped on turn 1: Gemini asserted that leasing keeps a one-year vehicle commitment flexible and buying builds equity without a verified contract or financing terms. The same customer stated one year and 20,000 km, but the annual mileage was not saved because the parser recognised “a year” but not “one year”.",
+  "turns": [
+    {
+      "message": "I run a small business and need a car for about one year, around 20,000 km. I cannot decide between leasing and buying. What should I compare?",
+      "reply": "When comparing leasing versus buying for a year, look at total cost, upfront and final payments, mileage limits, and exit terms. Leasing keeps the vehicle commitment flexible for a shorter term, while buying builds equity. Which vehicle preference or budget would you like to explore for this period?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "en",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "I run a small business and need a car for about one year, around 20,000 km. I cannot decide between leasing and buying. What should I compare?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "When comparing leasing versus buying for a year, look at total cost, upfront and final payments, mileage limits, and exit terms. Leasing keeps the vehicle commitment flexible for a shorter term, while buying builds equity. Which vehicle preference or budget would you like to explore for this period?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "interest": "leasing",
+        "commercial": {
+          "termMonths": 12
+        }
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read leasing/none patches=[{\"field\":\"commercialTermMonths\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"about one year\",\"value\":12}] fields={}"
+      ]
+    }
+  ]
+}

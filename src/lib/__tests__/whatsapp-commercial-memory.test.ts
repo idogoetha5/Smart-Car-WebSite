@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { updateCommercialMemory, renderCommercialMemory } from '@/lib/whatsapp-commercial-memory';
 
 describe('durable explicit commercial facts', () => {
+  it('keeps mileage stated for an explicitly one-year business need', () => {
+    const memory = updateCommercialMemory(undefined, 'I need a car for about one year, around 20,000 km. I am comparing leasing and buying.');
+    expect(memory).toMatchObject({ termMonths: 12, annualMileageKm: 20000 });
+  });
   it('remembers a natural family-car selection even without an exact model', () => {
     const memory = updateCommercialMemory(undefined, 'כן, נבדוק. משפחתית תהיה לי נוחה יותר, רוב הזמן בעיר והעגלה חייבת להיכנס.');
     expect(memory.vehiclePreference).toBe('family');
