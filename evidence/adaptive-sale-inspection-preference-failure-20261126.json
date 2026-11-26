@@ -1,0 +1,103 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_2Aq5VV2kbvJBJYB1FFmYfZ3ru4xc",
+  "release": "389f3df",
+  "observedAt": "2026-11-26T09:05:34.672230+00:00",
+  "sessionId": "adaptive-sale-he-20261126-a",
+  "manualReview": "Stopped after turn 2: the Hebrew sale chat saved the 60,000 ILS budget but lost the customer’s explicit small-car preference (“קטן מתאים לי”). Two Gemini drafts about service history and independent inspection were rejected as inspection_assurance, so a relevant local fallback answered instead. This fails Gemini-led wording acceptance.",
+  "turns": [
+    {
+      "message": "שלום, אני מחפש לקנות רכב יד שנייה לעסק קטן. רוב הנסיעות בעיר, חשוב לי שיהיה חסכוני אבל אני לא מכיר דגמים. מאיפה מתחילים?",
+      "reply": "בשמחה! לרכב יד שנייה שמתאים לעסק קטן ונוסע בעיקר בעיר, רכב קומפקטי או קטן וחסכוני הוא נקודת התחלה מצוינת. נשמח לעזור לך להשוות אפשרויות, לבדוק את התקציב שלך, את מספר הקילומטרים שהרכב צפוי לנסוע ואם יש העדפה לדגם או לסוג הנעה. מהו בערך התקציב שתרצה להקדיש לכך?\n\nאת הרכבים שמוצעים כרגע למכירה אפשר לראות כאן: https://www.smartcar.co.il/he/cars-for-sale",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, אני מחפש לקנות רכב יד שנייה לעסק קטן. רוב הנסיעות בעיר, חשוב לי שיהיה חסכוני אבל אני לא מכיר דגמים. מאיפה מתחילים?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה! לרכב יד שנייה שמתאים לעסק קטן ונוסע בעיקר בעיר, רכב קומפקטי או קטן וחסכוני הוא נקודת התחלה מצוינת. נשמח לעזור לך להשוות אפשרויות, לבדוק את התקציב שלך, את מספר הקילומטרים שהרכב צפוי לנסוע ואם יש העדפה לדגם או לסוג הנעה. מהו בערך התקציב שתרצה להקדיש לכך?\n\nאת הרכבים שמוצעים כרגע למכירה אפשר לראות כאן: https://www.smartcar.co.il/he/cars-for-sale",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "interest": "sale",
+        "commercial": {
+          "usage": [
+            "city",
+            "business"
+          ]
+        }
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read sale/compact patches=[] fields={}"
+      ]
+    },
+    {
+      "message": "סביב 60 אלף שקל. קטן מתאים לי, אבל לפני קנייה חשוב לי לדעת אם יש היסטוריית טיפולים מלאה ובדיקה עצמאית. אתם נותנים את זה לכל רכב?",
+      "reply": "לפני החלטה על רכב מסוים אפשר לבקש את היסטוריית הטיפולים והתאונות ולברר אפשרות לבדיקה עצמאית. צריך לבדוק אילו מסמכים קיימים ומה תנאי הבדיקה עבור אותו רכב; אין כאן אישור למצב הרכב או לתיאום בדיקה.",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, אני מחפש לקנות רכב יד שנייה לעסק קטן. רוב הנסיעות בעיר, חשוב לי שיהיה חסכוני אבל אני לא מכיר דגמים. מאיפה מתחילים?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה! לרכב יד שנייה שמתאים לעסק קטן ונוסע בעיקר בעיר, רכב קומפקטי או קטן וחסכוני הוא נקודת התחלה מצוינת. נשמח לעזור לך להשוות אפשרויות, לבדוק את התקציב שלך, את מספר הקילומטרים שהרכב צפוי לנסוע ואם יש העדפה לדגם או לסוג הנעה. מהו בערך התקציב שתרצה להקדיש לכך?\n\nאת הרכבים שמוצעים כרגע למכירה אפשר לראות כאן: https://www.smartcar.co.il/he/cars-for-sale",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "סביב 60 אלף שקל. קטן מתאים לי, אבל לפני קנייה חשוב לי לדעת אם יש היסטוריית טיפולים מלאה ובדיקה עצמאית. אתם נותנים את זה לכל רכב?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "לפני החלטה על רכב מסוים אפשר לבקש את היסטוריית הטיפולים והתאונות ולברר אפשרות לבדיקה עצמאית. צריך לבדוק אילו מסמכים קיימים ומה תנאי הבדיקה עבור אותו רכב; אין כאן אישור למצב הרכב או לתיאום בדיקה.",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "interest": "sale",
+        "commercial": {
+          "usage": [
+            "city",
+            "business"
+          ],
+          "budget": {
+            "amount": 60000,
+            "currency": "ILS"
+          }
+        }
+      },
+      "source": "local",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read sale/none patches=[{\"field\":\"commercialBudget\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"סביב 60 אלף שקל\",\"value\":{\"amount\":60000,\"currency\":\"ILS\"}}] fields={}",
+        "inspection_assurance: בשמחה! ברכישת רכב אפשר לבקש את היסטוריית הטיפולים והתאונות ולברר בדיקה עצמאית. יש לברר אילו מסמכים זמינים ותנאי תיאום הבדיקה לרכב המסוים; אין הבטחה להיסטוריה מל",
+        "inspection_assurance: תקציב של סביב 60,000 ש\"ח ורכב קטן הם כיוון טוב להתחלה. ברכישת רכב אפשר לבקש את היסטוריית הטיפולים והתאונות ולברר בדיקה עצמאית. יש לברר אילו מסמכים זמינים ותנאי ",
+        "reword_rejected checks={\"keepsNumbers\":false,\"sameQuestionShape\":true,\"languageOk\":true,\"commitmentOk\":true,\"tollPackageOk\":true,\"comparisonMeaningOk\":true,\"newDriverMeaningOk\":true,\"length\":264}: תקציב של כ־60 אלף שקל הוא כיוון טוב, ורכב קטן אכן מתאים לנסיעות עירוניות חסכוניות. ברכישת רכב אפשר לבקש את היסטוריית הטי"
+      ]
+    }
+  ]
+}

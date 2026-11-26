@@ -17,6 +17,11 @@ describe('durable explicit commercial facts', () => {
     expect(memory).toMatchObject({ termMonths: 12, annualMileageKm: 20000, vehiclePreference: 'suv' });
     expect(updateCommercialMemory(undefined, 'רכב פנאי הוא ההעדפה שלי.').vehiclePreference).toBe('suv');
   });
+  it('retains a compact sale preference when the customer says a small car suits them', () => {
+    const memory = updateCommercialMemory({ budget: { amount: 60000, currency: 'ILS' } }, 'קטן מתאים לי, אבל לפני קנייה חשוב לי לדעת אם יש היסטוריית טיפולים מלאה ובדיקה עצמאית.');
+    expect(memory).toMatchObject({ budget: { amount: 60000, currency: 'ILS' }, vehiclePreference: 'compact' });
+    expect(updateCommercialMemory({ vehiclePreference: 'family' }, 'קטן לא מתאים לי.').vehiclePreference).toBe('family');
+  });
   it('remembers a natural family-car selection even without an exact model', () => {
     const memory = updateCommercialMemory(undefined, 'כן, נבדוק. משפחתית תהיה לי נוחה יותר, רוב הזמן בעיר והעגלה חייבת להיכנס.');
     expect(memory.vehiclePreference).toBe('family');
