@@ -1,0 +1,46 @@
+{
+  "kind": "adaptive-production-gemini-conversation",
+  "deploymentId": "dpl_y4V3gXWCpPK6EmheGAmcyNa7dFkS",
+  "release": "bb24b66",
+  "observedAt": "2026-11-26T08:53:43.188728+00:00",
+  "sessionId": "adaptive-leasing-en-20261126-b",
+  "manualReview": "Stopped on turn 1: the 12-month term and 20,000 km annual mileage were saved, but Gemini asked “Which term length are you considering?” despite the known term and said buying builds ownership equity without financing facts.",
+  "turns": [
+    {
+      "message": "I run a small business and need a car for about one year, around 20,000 km. I cannot decide between leasing and buying. What should I compare?",
+      "reply": "When comparing leasing and buying for your business, consider total cost, upfront and final payments, mileage limits, excess kilometre charges, and exit terms. Buying builds ownership equity, whereas leasing provides a vehicle for an agreed term and annual mileage. Insurance and maintenance are included only if stated in the specific offer and contract. Which term length are you considering?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "en",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "I run a small business and need a car for about one year, around 20,000 km. I cannot decide between leasing and buying. What should I compare?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "When comparing leasing and buying for your business, consider total cost, upfront and final payments, mileage limits, excess kilometre charges, and exit terms. Buying builds ownership equity, whereas leasing provides a vehicle for an agreed term and annual mileage. Insurance and maintenance are included only if stated in the specific offer and contract. Which term length are you considering?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "interest": "leasing",
+        "commercial": {
+          "termMonths": 12,
+          "annualMileageKm": 20000
+        }
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read leasing/none patches=[] fields={}"
+      ]
+    }
+  ]
+}

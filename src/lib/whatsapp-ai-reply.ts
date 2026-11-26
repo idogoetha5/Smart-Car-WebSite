@@ -81,7 +81,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   const reply = args.reply?.trim();
   if (!reply) return reject('empty');
   for (const sentence of reply.split(/[.!?؟\n]/u)) {
-    if (/(?:\b(?:leasing|a lease|lease)\b|ליסינג)[^.!?؟\n]{0,105}(?:\b(?:more|very|highly|greater)\s+flexib|\bflexib(?:le|ility)\b|\b(?:easier|better|cheaper|simpler)\b|גמיש|קל יותר|זול יותר)|\bbuying\s+builds?\s+equity\b/iu.test(sentence)
+    if (/(?:\b(?:leasing|a lease|lease)\b|ליסינג)[^.!?؟\n]{0,105}(?:\b(?:more|very|highly|greater)\s+flexib|\bflexib(?:le|ility)\b|\b(?:easier|better|cheaper|simpler)\b|גמיש|קל יותר|זול יותר)|\bbuying\s+builds?\s+(?:ownership\s+)?equity\b/iu.test(sentence)
       && !/\b(?:whether|if|depends?|check|compare|may|might|could)\b|(?:האם|אם|תלוי|לבדוק|להשוות|עשוי|יכול)/iu.test(sentence)) return reject('leasing_comparison_assurance');
     if (/(?:\b(?:suv|car|vehicle|model)\b|רכב|דגם)[^.!?؟\n]{0,75}(?:great|perfect|ideal|excellent|מתאים|מושלם)[^.!?؟\n]{0,55}(?:\b(?:term|lease|leasing|months?)\b|ליסינג|חודשי?ם)|(?:\b(?:term|lease|leasing|months?)\b|ליסינג|חודשי?ם)[^.!?؟\n]{0,55}(?:great|perfect|ideal|excellent|מתאים|מושלם)[^.!?؟\n]{0,55}(?:\b(?:suv|car|vehicle|model)\b|רכב|דגם)/iu.test(sentence)
       && !/\b(?:if|may|might|could|subject to|depending|needs? (?:to be )?check)\b|(?:אם|עשוי|יכול|בכפוף|תלוי|לבדוק)/iu.test(sentence)) return reject('leasing_term_fit');
@@ -289,7 +289,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (knownValue('driverAgeRange') && /what.{0,25}age group|what.{0,25}driver.{0,10}age|how old|קבוצת הגיל|טווח (?:ה)?גיל(?:אים|ים)?|גיל הנהג|בן כמה/i.test(question)) return reject('known_age');
   if (knownValue('customerName', 'customerNameProvided') && /what name|your name|על איזה שם|מה שמך|להוסיף.{0,15}(?:שם|שמך)|(?:לוודא|למסור|לציין|לאשר).{0,20}(?:שמך|שם מלא)|(?:provide|confirm|verify).{0,20}name/i.test(question)) return reject('known_name');
   if (knownValue('vehicleNeed', 'vehiclePreference', 'commercialVehiclePreference') && /what (?:kind|type) of (?:car|vehicle).{0,35}(?:need|want|like)|איזה סוג רכב.{0,30}(?:תרצ|צריך|רוצים)/i.test(question)) return reject('known_vehicle');
-  const asksCommercialTerm = /how long.{0,35}(?:need|lease|term|use)|what.{0,25}(?:term|duration|period)|לכמה זמן|(?:מה|איזו?|כמה).{0,15}(?:תקופ|משך)/i.test(question);
+  const asksCommercialTerm = /how long.{0,35}(?:need|lease|term|use)|(?:what|which).{0,25}(?:term|duration|period)|לכמה זמן|(?:מה|איזו?|כמה).{0,15}(?:תקופ|משך)/i.test(question);
   if (knownValue('commercialTermMonths', 'termMonths') && asksCommercialTerm) return reject('known_term');
   if (known.commercialInterest === 'sale' && asksCommercialTerm) return reject('sale_term');
   if (knownValue('commercialBudget') && /what.{0,35}budget|budget.{0,25}(?:range|prefer|consider)|איזה תקציב|מה.{0,20}(?:התקציב|מסגרת התקציב)|טווח תקציב/i.test(question)) return reject('known_budget');
