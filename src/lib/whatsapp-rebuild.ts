@@ -172,7 +172,9 @@ function conversationalKnown(state: RebuildState): GeminiBotContext['known'] {
     commercialInterest: state.interest,
     commercialBudget: state.commercial?.budget?.amount, commercialCurrency: state.commercial?.budget?.currency,
     commercialTermMonths: state.commercial?.termMonths === null ? 'undecided' : state.commercial?.termMonths,
+    commercialTermOptionsMonths: state.commercial?.termOptionsMonths?.join(', '),
     commercialAnnualMileageKm: state.commercial?.annualMileageKm === null ? 'undecided' : state.commercial?.annualMileageKm,
+    commercialAnnualMileageOptionsKm: state.commercial?.annualMileageOptionsKm?.join(', '),
     commercialVehiclePreference: state.commercial?.vehiclePreference === null ? 'undecided' : state.commercial?.vehiclePreference,
     commercialUse: state.commercial?.usage?.join(', '),
     commercialPassengers: state.commercial?.passengers, commercialLuggage: state.commercial?.luggage,
@@ -1817,12 +1819,16 @@ function applySelectedFacts(input: string, state: RebuildState, reading: BotRead
           else delete memory.budget;
           break;
         case 'commercialTermMonths':
-          if (patch.operation === 'set') memory.termMonths = patch.value;
+          if (patch.operation === 'set') {
+            if (!(memory.termMonths === null && memory.termOptionsMonths?.includes(patch.value))) memory.termMonths = patch.value;
+          }
           else if (patch.operation === 'undecided') memory.termMonths = null;
           else delete memory.termMonths;
           break;
         case 'commercialAnnualMileageKm':
-          if (patch.operation === 'set') memory.annualMileageKm = patch.value;
+          if (patch.operation === 'set') {
+            if (!(memory.annualMileageKm === null && memory.annualMileageOptionsKm?.includes(patch.value))) memory.annualMileageKm = patch.value;
+          }
           else if (patch.operation === 'undecided') memory.annualMileageKm = null;
           else delete memory.annualMileageKm;
           break;
