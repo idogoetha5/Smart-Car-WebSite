@@ -15,6 +15,15 @@ describe('output checks for natural conversational drafts', () => {
     expect(onReject).toHaveBeenCalledWith('stock_assurance');
     expect(check('BMW X1 appears in our catalogue; availability for your dates needs confirmation.', { input: 'Do you have a BMW X1?' })).not.toBeNull();
   });
+  it('rejects a recap that silently drops one requested leasing alternative', () => {
+    const known = { commercialTermOptionsMonths: '36, 48', commercialAnnualMileageOptionsKm: '25000, 30000' };
+    const input = 'אשמח להשוות 36 ו־48 חודשים, ו־25,000 או 30,000 ק״מ בשנה.';
+    const onReject = vi.fn();
+    expect(check('נשווה 36 ו־48 חודשים עם 30,000 ק״מ בשנה.', { locale: 'he', known, input, onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledWith('missing_comparison_option');
+    const complete = 'נשווה 36 ו־48 חודשים, ובכל תקופה 25,000 או 30,000 ק״מ בשנה.';
+    expect(check(complete, { locale: 'he', known, input })).toBe(complete);
+  });
   it('rejects a date and pickup-place request combined into one question', () => {
     const input = 'מחפש לשכור BMW X1 לסוף החודש. יש לכם את הדגם?';
     const onReject = vi.fn();
