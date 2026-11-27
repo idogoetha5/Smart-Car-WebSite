@@ -175,6 +175,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
     if (hasAffirmativeMatch(reply, /(?:תמיד)[^.!?\n]{0,30}(?:אפשרי|אפשר|ניתן)|\balways\b[^.!?\n]{0,25}\b(?:possible|available|provided)\b/gi)) return reject('inspection_assurance');
     if (hasAffirmativeMatch(reply, /(?:נספק|מספקים|לספק|תקבלו?)[^.!?\n]{0,45}היסטורי[^.!?\n]{0,30}מלאה|\b(?:provide|supply|receive)\b[^.!?\n]{0,25}\b(?:full|complete)\b[^.!?\n]{0,20}\bhistory\b/gi)) return reject('history_assurance');
   }
+  if (hasAffirmativeMatch(reply, /(?:תוכלו|אפשר|ניתן)\s+(?:בהחלט\s+)?(?:לבחון[^.!?\n]{0,35}ו)?(?:לתאם|לקבוע|לבצע|לעשות)[^.!?\n]{0,50}(?:נסיע(?:ה|ת)(?:\s+מבחן)?|בדיקה\s+עצמאית)|\b(?:you can|we can|it is possible to)\s+(?:arrange|schedule|take|do)[^.!?\n]{0,45}\b(?:test drive|independent inspection)\b/giu)) return reject('sale_visit_assurance');
   if (hasAffirmativeMatch(reply, /\byou (?:are (?:covered|insured|eligible|qualified)|qualify|can (?:certainly|definitely) rent|can rent for certain)\b|(?:אתה|את|אתם|אתן) (?:מכוסה|מכוסית|מכוסים|זכאי|זכאים)|בוודאות (?:תוכל|תוכלו) לשכור/gi)) return reject('eligibility');
   // Age itself is not approval: eligibility depends on the insurance cover and
   // vehicle group and is confirmed before booking (approved age_licence fact).
@@ -195,7 +196,7 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
   if (/(?:רכב\s+(?:משפחתי|פנאי|קומפקטי)|הרכב)[^.!?\n]{0,80}(?:יעניק|יספק|מספק|נותן|ייתן|יתן|יש\s+בו)[^.!?\n]{0,45}(?:מקום|מרחב)[^.!?\n]{0,55}(?:לנוסעים|לכולם|לציוד|לעגלה|לטיולון|למזוודות)/iu.test(reply)) return reject('fit_assurance');
   if (hasAffirmativeMatch(reply, /\b(?:we have (?:a |the )?(?:car|vehicle) available|(?:a car|the car|vehicle|it) is available (?:now|for|on)|available for (?:your|the) (?:dates|trip))\b|יש לנו רכב (?:פנוי|זמין)|הרכב (?:פנוי|זמין) (?:עכשיו|לתאריכים)/gi)) return reject('stock_assurance');
   if (/\bwould you like (?:us )?to have (?:your|the|a) (?:[\p{L}-]+\s+){0,3}(?:car|vehicle) ready\b|\b(?:can|could) (?:we|you) have (?:your|the|a) (?:[\p{L}-]+\s+){0,3}(?:car|vehicle) ready\b/iu.test(reply)) return reject('stock_assurance');
-  if (hasAffirmativeMatch(reply, /\bwe (?:can|could|will|'ll|are able to)(?: certainly| definitely)? (?:have|make|prepare) (?:your|the|a) (?:[\p{L}-]+\s+){0,3}(?:car|vehicle) ready\b|\b(?:your|the|a) (?:[\p{L}-]+\s+){0,3}(?:car|vehicle) (?:is|will be|can be|is going to be) ready\b|(?:הרכב|רכב) (?:שלכם? )?(?:יהיה|תהיה|יחכה|מוכן|מוכנה) (?:מוכן|מוכנה|לכם|לאיסוף)|(?:נכין|נעמיד) לכם רכב/giu)) return reject('stock_assurance');
+  if (hasAffirmativeMatch(reply, /\bwe (?:can|could|will|'ll|are able to)(?: certainly| definitely)? (?:have|make|prepare) (?:your|the|a) (?:[\p{L}-]+\s+){0,3}(?:car|vehicle|seven[- ]seater|minivan|suv|sedan) ready\b|\b(?:your|the|a) (?:[\p{L}-]+\s+){0,3}(?:car|vehicle|seven[- ]seater|minivan|suv|sedan) (?:is|will be|can be|is going to be) ready\b|(?:הרכב|רכב) (?:שלכם? )?(?:יהיה|תהיה|יחכה|מוכן|מוכנה) (?:מוכן|מוכנה|לכם|לאיסוף)|(?:נכין|נעמיד) לכם רכב/giu)) return reject('stock_assurance');
   if (hasAffirmativeMatch(reply, /\bwe (?:will|'ll) (?:arrange|organise|organize|set up|book|reserve|confirm)\b[^.!?\n]{0,55}\b(?:car|vehicle|pickup|pick-up|return|rental)\b|(?:נתאם|נקבע|נסדר|נארגן|נשריין)\b[^.!?\n]{0,45}(?:רכב|איסוף|החזרה|השכרה)/giu)) return reject('action_claim');
   if (hasAffirmativeMatch(reply, /(?:ו?נדאג|אנחנו\s+נדאג)\s+ל(?:אשר|וודא|וודא\s+את)[^.!?\n]{0,65}(?:דגם|זמינות|רכב|הזמנה|בקשה)|\b(?:we will|we['’]ll) (?:make sure|ensure)\b[^.!?\n]{0,65}\b(?:model|availability|car|vehicle|booking|request)\b/giu)) return reject('action_claim');
   // Only the airport and Shabbat surcharges are published; a one-way / different-branch fee is not.
@@ -273,9 +274,20 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
     if (mentionsDates.test(sentence) && !knownValue('pickupDate') && !knownValue('returnDate')) return reject('unsaved_claim');
   }
   const comparedMileage = /\bcompare|\bversus|\bvs\b|להשוות|השוואה|לעומת|מול/i.test(input) ? annualMileageMentions(input) : [];
+  const normalizedReply = reply.replace(/(?<=\d)[, ](?=\d{3}(?!\d))/g, '');
+  const mentionsOption = (value: number) => new RegExp(`(?<!\\d)${value}(?!\\d)`).test(normalizedReply)
+    || value % 1000 === 0 && new RegExp(`(?<!\\d)${value / 1000}\\s*(?:אלף|thousand|k\\b)`, 'iu').test(reply);
+  for (const key of ['commercialTermOptionsMonths', 'commercialAnnualMileageOptionsKm']) {
+    const options = String(known[key] ?? '').split(',').map(value => Number(value.trim())).filter(Number.isFinite);
+    if (options.length > 1 && options.some(mentionsOption) && !options.every(mentionsOption)) return reject('missing_comparison_option');
+  }
   if (Number.isFinite(savedAnnualMileage) && savedAnnualMileage > 0
     && annualMileageMentions(reply).some(value => value !== savedAnnualMileage && !comparedMileage.includes(value))) return reject('mileage_conflict');
   const question = reply.match(/[^.!?؟]*[?؟]/g)?.at(-1) ?? '';
+  if (!knownValue('pickupDate') && /^approximate:/iu.test(String(known.datePreference ?? ''))
+    && /(?:באילו|לאילו|מהם?)\s+תאריכים|מתי[^?؟]{0,35}(?:להחזיר|החזרה)|תאריך\s+ההחזרה|(?:what|which)\s+dates|when[^?]{0,35}(?:return|drop.?off)|return\s+date/iu.test(question)) return reject('approximate_pickup_date');
+  if (!knownValue('pickupDate') && !knownValue('returnDate') && /לתאריכים\s+שבחר(?:ת|תם|תן)|for (?:the |your )?(?:dates? you chose|chosen dates?)/iu.test(reply)) return reject('unsaved_claim');
+  if (/(?:באיזה|לאיזה|מהו?|מתי)[^?؟]{0,45}(?:תאריך|יום)[^?؟]{0,55}(?:ומאיפה|ואיפה|ומאיזה סניף)|(?:when|what|which)[^?]{0,45}(?:date|day)[^?]{0,55}(?:and where|and which (?:branch|location))/iu.test(question)) return reject('multiple_questions');
   if (/(?:what time|at what hour).{0,65}(?:pick.?up|return|collect|drop.?off)|(?:pick.?up|return|collection) time|באיז(?:ו|ה) שעה.{0,45}(?:איסוף|לאסוף|החזרה|להחזיר)|שעת (?:ה?איסוף|ה?החזרה)/i.test(question)) return reject('unneeded_time');
   if (knownValue('pickupDate') && /what (?:is |would be )?(?:the |your )?pick.?up date|when.{0,30}pick.?up|(?:what|which).{0,25}date.{0,40}(?:pick.?up|collect)|(?:באיזה|לאיזה|איזה).{0,15}תאריך.{0,45}(?:איסוף|לאסוף)|תאריך האיסוף/i.test(question)) return reject('known_pickup_date');
   if (knownValue('returnDate') && /what (?:is |would be )?(?:the |your )?return date|when.{0,30}return|(?:what|which).{0,25}date.{0,40}(?:return|drop.?off)|(?:באיזה|לאיזה|איזה).{0,15}תאריך.{0,45}(?:החזרה|להחזיר|תחזיר)|תאריך ההחזרה/i.test(question)) return reject('known_return_date');

@@ -5,7 +5,11 @@ import { isHypotheticalFactEvidence } from '@/lib/whatsapp-fact-patch';
 export type CommercialMemory = {
   budget?: { amount: number; currency: 'ILS' | 'USD' | 'EUR' | 'unspecified' };
   termMonths?: number | null;
+  /** Alternatives requested for comparison, not a selected term. */
+  termOptionsMonths?: number[];
   annualMileageKm?: number | null;
+  /** Annual mileage alternatives requested for comparison. */
+  annualMileageOptionsKm?: number[];
   vehiclePreference?: 'compact' | 'family' | 'suv' | 'seven_seat' | null;
   /** A named model in the customer's own words ("קורולה היברידית"), for the representative. */
   vehicleModel?: string;
@@ -119,8 +123,12 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
     const months = /year|yr|שנ/i.test(match[2] ?? match[4] ?? match[0]) ? number * 12 : number;
     if (months >= 1 && months <= 120) termMatches.push({ value: months, index: match.index!, evidence: match[0] });
   }
-  const comparesTerms = /(?:\b24\b.{0,25}\b36\b|\b36\b.{0,25}\b24\b)/i.test(text)
-    && (/months|חודשים|term|תקופה/i.test(text) || previous?.termMonths !== undefined) && /\bor\b|\bvs\b|\/|compare|between|unsure|undecided|או|מול|מתלבט/i.test(text);
+  // In "36 and 48 months" the unit usually appears only after the second
+  // number; the first option must not disappear from the durable request.
+  const termPair = text.match(/(?<!\d)(\d{1,3})\s*(?:חודשים|months?)?\s*(?:או|ו[ל־-]*|מול|or|and|vs|\/|versus)\s*(\d{1,3})\s*(?:חודשים|months?)/iu);
+  const termOptions = [...new Set(termPair ? [Number(termPair[1]), Number(termPair[2])] : termMatches.map(match => match.value))];
+  const comparesTerms = termOptions.length > 1
+    && /\bor\b|\band\b|\bvs\b|\/|compare|between|unsure|undecided|או|מול|מתלבט|השוו|השווא|להשוות|הצעות|ו[ל־-]*\d{1,3}/iu.test(text);
   const termUndecided = /(?:term|תקופה|משך).{0,30}(?:undecided|not decided|not sure|לא החלטתי|לא סגור)|(?:לא החלטתי|לא סגור|not decided).{0,25}(?:term|תקופה)/i.test(text)
     || comparesTerms && /unsure|undecided|not sure|haven'?t decided|changed my mind|מתלבט|לא החלטתי|לא בטוח|שיניתי את דעתי/i.test(text);
   // "maybe a tucson for 2 years" is a tentative term worth keeping (a later message can change it);
@@ -133,11 +141,20 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
   const explicitChoice = termMatches.filter(match => termChoicePrefix(text, match.index).chosen && !termChoicePrefix(text, match.index).hypothetical).sort((a, b) => a.index - b.index).at(-1);
   const laterUncertainty = explicitChoice && /(?:unsure|undecided|not sure|מתלבט|לא החלטתי)[^.!?\n]{0,45}(?:24[^.!?\n]{0,30}36|36[^.!?\n]{0,30}24|duration|period|תקופה|משך)/i.test(text.slice(explicitChoice.index));
   // An explicit choice wins over an unrelated “or” in a price question.
-  if (explicitChoice) next.termMonths = laterUncertainty ? null : explicitChoice.value;
-  else if (comparesTerms) {
-    if (previous?.termMonths === undefined || termUndecided) next.termMonths = null;
+  if (explicitChoice) {
+    next.termMonths = laterUncertainty ? null : explicitChoice.value;
+    if (!laterUncertainty) delete next.termOptionsMonths;
   }
-  else if (eligibleTermMatches.length) next.termMonths = eligibleTermMatches.sort((a, b) => a.index - b.index).at(-1)!.value;
+  else if (comparesTerms) {
+    if (previous?.termMonths === undefined || previous?.termMonths === null || termUndecided) {
+      next.termMonths = null;
+      next.termOptionsMonths = termOptions;
+    }
+  }
+  else if (eligibleTermMatches.length) {
+    next.termMonths = eligibleTermMatches.sort((a, b) => a.index - b.index).at(-1)!.value;
+    delete next.termOptionsMonths;
+  }
   else if (termUndecided) next.termMonths = null;
   // A need "for the coming year" while weighing leasing against a six-month
   // rental is not a selected leasing term.
@@ -170,6 +187,15 @@ export function updateCommercialMemory(previous: CommercialMemory | undefined, m
       if (value > 0 && value <= 200000) next.annualMileageKm = value;
     }
   }
+  const mileagePair = text.match(/(?<!\d)(\d{1,3}(?:[, ]\d{3})+|\d{4,6})\s*(?:קילומטר(?:ים)?|ק[״"]מ|קמ|km|kilometres?|kilometers?)?\s*(?:או|ו[־-]?|and|or)\s*(\d{1,3}(?:[, ]\d{3})+|\d{4,6})\s*(?:קילומטר(?:ים)?|ק[״"]מ|קמ|km|kilometres?|kilometers?)\s*(?:לשנה|בשנה|per year|a year|annually)/iu);
+  if (mileagePair) {
+    const options = [...new Set([Number(mileagePair[1].replace(/[, ]/g, '')), Number(mileagePair[2].replace(/[, ]/g, ''))])];
+    if (options.length > 1 && options.every(value => value >= 1000 && value <= 200000)
+      && (previous?.annualMileageKm == null || /לא (?:בוחר|בחרתי|החלטתי)|not (?:chosen|decided)|unsure|undecided/iu.test(text))) {
+      next.annualMileageKm = null;
+      next.annualMileageOptionsKm = options;
+    }
+  } else if (next.annualMileageKm != null && next.annualMileageKm !== previous?.annualMileageKm) delete next.annualMileageOptionsKm;
   if (/(?:לא יודע|לא בטוח|don't know|do not know|not sure).{0,35}(?:קילומ|קמ|ק״מ|mileage|km)/i.test(text)) next.annualMileageKm = null;
 
   // A preferred category (family/compact) can be known while the exact model
@@ -244,7 +270,9 @@ export function renderCommercialMemory(memory: CommercialMemory | undefined, loc
   if (memory.earlyExitConcern) parts.push(he ? 'חשובים תנאי יציאה מוקדמת והימנעות מהתחייבות ארוכה' : 'Early exit and avoiding a long commitment matter');
   if (memory.budget) parts.push(`${he ? 'תקציב' : 'Budget'}: ${memory.budget.amount} ${memory.budget.currency === 'unspecified' ? (he ? '(מטבע לא צוין)' : '(currency not stated)') : memory.budget.currency}`);
   if (memory.termMonths !== undefined) parts.push(`${he ? 'תקופה' : 'Term'}: ${memory.termMonths === null ? (he ? 'טרם הוחלט' : 'undecided') : `${memory.termMonths} ${he ? 'חודשים' : 'months'}`}`);
+  if (memory.termOptionsMonths?.length) parts.push(`${he ? 'תקופות להשוואה' : 'Terms to compare'}: ${memory.termOptionsMonths.join(', ')} ${he ? 'חודשים' : 'months'}`);
   if (memory.annualMileageKm !== undefined) parts.push(`${he ? 'קילומטראז׳ שנתי' : 'Annual mileage'}: ${memory.annualMileageKm === null ? (he ? 'טרם הוחלט' : 'undecided') : `${memory.annualMileageKm} km`}`);
+  if (memory.annualMileageOptionsKm?.length) parts.push(`${he ? 'מכסות שנתיות להשוואה' : 'Annual mileage options to compare'}: ${memory.annualMileageOptionsKm.join(', ')} km`);
   const names = he ? { compact: 'קומפקטי', family: 'משפחתי', suv: 'רכב פנאי', seven_seat: 'שבעה מקומות' } : { compact: 'compact', family: 'family', suv: 'SUV', seven_seat: 'seven-seat' };
   if (memory.vehiclePreference !== undefined) parts.push(`${he ? 'העדפת רכב' : 'Vehicle preference'}: ${memory.vehiclePreference === null ? (he ? 'פתוחה' : 'open') : names[memory.vehiclePreference]}`);
   if (memory.fleetSize) parts.push(`${he ? 'מספר רכבים' : 'Number of cars'}: ${memory.fleetSize}`);
