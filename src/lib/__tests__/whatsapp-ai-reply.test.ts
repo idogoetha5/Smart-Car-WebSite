@@ -9,6 +9,12 @@ describe('output checks for natural conversational drafts', () => {
     const reply = 'יש לנו דגם BMW X1 בקטלוג. זמינות לתאריכים שלכם דורשת אישור.';
     expect(check(reply, { locale: 'he', input: 'אני רוצה BMW X1, יש לכם?', approvedFacts: ['BMW X1 מופיע בקטלוג הרכבים.'] })).toBe(reply);
   });
+  it('rejects a dated seven-seater readiness promise while allowing a catalogue-model acknowledgement', () => {
+    const onReject = vi.fn();
+    expect(check('We can definitely have a seven-seater ready for you at Ben Gurion Airport from December 10 to December 16. A representative will confirm availability.', { input: 'I need a seven-seat minivan from Dec 10 to Dec 16.', onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledWith('stock_assurance');
+    expect(check('BMW X1 appears in our catalogue; availability for your dates needs confirmation.', { input: 'Do you have a BMW X1?' })).not.toBeNull();
+  });
   it('rejects a date and pickup-place request combined into one question', () => {
     const input = 'מחפש לשכור BMW X1 לסוף החודש. יש לכם את הדגם?';
     const onReject = vi.fn();
