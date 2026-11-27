@@ -12,6 +12,55 @@ function chat(initial: RebuildState | null, modelReply: string, locale: 'he' | '
   return { send: (input: string) => getRebuiltBotReply('fictional-owner-rules', input, store), readTurn };
 }
 
+describe('a requested BMW model stays in the rental draft', () => {
+  it('answers a price question and collects the missing name before optional extras', async () => {
+    const initial: RebuildState = { version: 2, phase: 'explore', step: 'menu', locale: 'he',
+      booking: { vehicleNeed: 'BMW X1 (העדפה לבדיקה)', pickupDate: '2026-12-02', returnDate: '2026-12-05',
+        pickupLocation: 'הרצליה', returnLocation: 'הרצליה', driverAgeRange: '24-plus' },
+      history: [{ from: 'customer', text: 'שלום, מחפש לשכור BMW X1 בתחילת דצמבר לכמה ימים. יש לכם?' }] };
+    const c = chat(initial, 'המחיר הסופי תלוי בתאריכים ובתוספות ונקבע מול נציג SmartCar. האם תרצו להוסיף נהג נוסף?');
+    const result = await c.send('האם יש כבר מחיר לדגם הזה?');
+    expect(result.state.phase).toBe('booking');
+    expect(result.state.booking.vehicleNeed).toBe('BMW X1 (העדפה לבדיקה)');
+    expect(result.reply).toMatch(/מחיר/);
+    expect(result.reply).toMatch(/שם/);
+    expect(result.reply).not.toMatch(/להוסיף נהג נוסף/);
+  });
+  it('keeps early December approximate instead of saving December 1', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-27T10:00:00Z'));
+    try {
+      let state: RebuildState | null = null;
+      const reading = { route: 'book', direction: 'suv', fields: { pickupDate: { value: '2026-12-01', evidence: 'בתחילת דצמבר' } },
+        reply: 'נבדוק את BMW X1 לתאריכים שבחרת. באיזה תאריך תחזירו את הרכב?', source: 'gemini', model: 'fixture', groundedContext: true } as BotReading;
+      const store: RebuildStore = { isSimulation: true, loadState: async () => state, saveState: async (_p, next) => { state = structuredClone(next); },
+        activeBooking: async () => null, createRentalRequest: vi.fn(), readTurn: async () => reading };
+      const result = await getRebuiltBotReply('fictional-early-month', 'אני רוצה לשכור BMW X1 בתחילת דצמבר. יש אצלכם כזה?', store);
+      expect(result.state.booking.vehicleNeed).toBe('BMW X1 (העדפה לבדיקה)');
+      expect(result.state.booking.pickupDate).toBeUndefined();
+      expect(result.state.booking.datePreference).toContain('בתחילת דצמבר');
+      expect(result.reply).not.toContain('לתאריכים שבחרת');
+    } finally { vi.useRealTimers(); }
+  });
+  it('retains BMW X1 as an unconfirmed preference and does not ask for a category again', async () => {
+    const c = chat(null, 'BMW X1 היא ההעדפה שלכם; דגם מדויק וזמינות דורשים אישור מול נציג SmartCar. באיזה תאריך תרצו לאסוף את הרכב?');
+    const first = await c.send('אני רוצה לשכור BMW X1 בשבוע הבא. יש לכם רכב כזה?');
+    expect(first.state.booking.vehicleNeed).toBe('BMW X1 (העדפה לבדיקה)');
+    const second = await c.send('מ־10.12.2026 עד 13.12.2026, איסוף והחזרה בהרצליה. אני בן 35.');
+    expect(second.state.booking).toMatchObject({ vehicleNeed: 'BMW X1 (העדפה לבדיקה)', driverAgeRange: '24-plus' });
+    expect(second.reply).not.toMatch(/איזה סוג רכב|כמה נוסעים וציוד/);
+  });
+  it('does not select a model merely because the customer asks whether it exists', async () => {
+    const c = chat(null, 'אפשר לברר דגם מסוים מול נציג SmartCar.');
+    const result = await c.send('יש לכם BMW X1?');
+    expect(result.state.booking.vehicleNeed).toBeUndefined();
+  });
+  it.each(['אני לא רוצה BMW X1, אולי רכב אחר.', 'אם ארצה BMW X1 בהמשך, מה התנאים?'])('does not turn a rejected or hypothetical model into a selection: %s', async input => {
+    const c = chat(null, 'דגם מדויק וזמינות בודקים לפני אישור.');
+    expect((await c.send(input)).state.booking.vehicleNeed).toBeUndefined();
+  });
+});
+
 describe('warning light goes straight to a representative', () => {
   it.each([
     ['he', 'נדלקה לי נורה צהובה בלוח, מה זה אומר?'],

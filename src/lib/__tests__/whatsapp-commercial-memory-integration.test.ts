@@ -12,6 +12,16 @@ function conversation(initial: RebuildState | null = null) {
 }
 
 describe('commercial memory after the rolling conversation window', () => {
+  it('passes every undecided leasing alternative to the representative', async () => {
+    const send = conversation();
+    const first = await send('מחפש ליסינג פרטי לרכב קטן. אשמח להצעות ל־36 ול־48 חודשים, עם 25,000 או 30,000 ק״מ בשנה. עדיין לא בחרתי תקופה או מכסה.');
+    expect(first.state.commercial).toMatchObject({ termMonths: null, termOptionsMonths: [36, 48], annualMileageKm: null, annualMileageOptionsKm: [25000, 30000], vehiclePreference: 'compact' });
+    const handed = await send('כן, תעבירו את כל ארבע האפשרויות לנציג להכנת הצעה. לא בחרתי אחת מהן.');
+    expect(handed.escalate).toBe(true);
+    expect(handed.state.commercial).toMatchObject({ termMonths: null, annualMileageKm: null, termOptionsMonths: [36, 48], annualMileageOptionsKm: [25000, 30000] });
+    expect(handed.reply).toMatch(/36, 48 חודשים/);
+    expect(handed.reply).toMatch(/25000, 30000 km/);
+  });
   it('hands off the selected leasing request with the exact facts after an earlier comparison', async () => {
     const send = conversation();
     await send('שלום, אני עצמאי עם עסק קטן. מחפש רכב לעבודה ולעיתים להסעת המשפחה, ומתלבט בין ליסינג להשכרה ארוכה. מה היית ממליץ לבדוק?');

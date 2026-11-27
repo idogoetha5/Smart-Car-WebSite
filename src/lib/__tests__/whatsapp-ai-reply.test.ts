@@ -5,6 +5,44 @@ const base: ConversationalReplyInput = { reply: '', input: '', locale: 'en', kno
 const check = (reply: string, rest: Partial<ConversationalReplyInput> = {}) => validateConversationalReply({ ...base, ...rest, reply });
 
 describe('output checks for natural conversational drafts', () => {
+  it('allows acknowledging a model that is listed in the current catalogue without confirming dates', () => {
+    const reply = 'יש לנו דגם BMW X1 בקטלוג. זמינות לתאריכים שלכם דורשת אישור.';
+    expect(check(reply, { locale: 'he', input: 'אני רוצה BMW X1, יש לכם?', approvedFacts: ['BMW X1 מופיע בקטלוג הרכבים.'] })).toBe(reply);
+  });
+  it('rejects a dated seven-seater readiness promise while allowing a catalogue-model acknowledgement', () => {
+    const onReject = vi.fn();
+    expect(check('We can definitely have a seven-seater ready for you at Ben Gurion Airport from December 10 to December 16. A representative will confirm availability.', { input: 'I need a seven-seat minivan from Dec 10 to Dec 16.', onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledWith('stock_assurance');
+    expect(check('BMW X1 appears in our catalogue; availability for your dates needs confirmation.', { input: 'Do you have a BMW X1?' })).not.toBeNull();
+  });
+  it('rejects a recap that silently drops one requested leasing alternative', () => {
+    const known = { commercialTermOptionsMonths: '36, 48', commercialAnnualMileageOptionsKm: '25000, 30000' };
+    const input = 'אשמח להשוות 36 ו־48 חודשים, ו־25,000 או 30,000 ק״מ בשנה.';
+    const onReject = vi.fn();
+    expect(check('נשווה 36 ו־48 חודשים עם 30,000 ק״מ בשנה.', { locale: 'he', known, input, onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledWith('missing_comparison_option');
+    const complete = 'נשווה 36 ו־48 חודשים, ובכל תקופה 25,000 או 30,000 ק״מ בשנה.';
+    expect(check(complete, { locale: 'he', known, input })).toBe(complete);
+  });
+  it('rejects a date and pickup-place request combined into one question', () => {
+    const input = 'מחפש לשכור BMW X1 לסוף החודש. יש לכם את הדגם?';
+    const onReject = vi.fn();
+    expect(check('יש לנו רכבי פנאי ויוקרה כמו ה־BMW X1. באיזה תאריך מדויק תרצו לאסוף את הרכב ומאיפה?', { locale: 'he', input, onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledExactlyOnceWith('multiple_questions');
+    const corrected = 'יש לנו רכבי פנאי ויוקרה כמו ה־BMW X1. באיזה תאריך מדויק תרצו לאסוף את הרכב?';
+    expect(check(corrected, { locale: 'he', input })).toBe(corrected);
+  });
+  it('rejects calling an approximate month a chosen date', () => {
+    const reply = 'נוכל לבדוק את BMW X1 לתאריכים שבחרת.';
+    expect(check(reply, { locale: 'he', input: 'אני רוצה BMW X1 בתחילת דצמבר.' })).toBeNull();
+  });
+  it('asks for the exact pickup day before the return day when timing is approximate', () => {
+    const rest = { locale: 'he' as const, input: 'אני רוצה BMW X1 בתחילת דצמבר.', known: { datePreference: 'approximate: בתחילת דצמבר' } };
+    expect(check('לאילו תאריכים בדיוק תצטרכו את הרכב?', rest)).toBeNull();
+    expect(check('מתי בדיוק תרצו להחזיר את הרכב?', rest)).toBeNull();
+    const reply = 'נבדוק את BMW X1. באיזה יום בתחילת דצמבר תרצו לאסוף את הרכב?';
+    expect(check(reply, rest)).toBe(reply);
+  });
   it('rejects an unverified Hebrew promise of passenger and stroller space', () => {
     const onReject = vi.fn();
     expect(check('לזוג עם ילדה וטיולון, רכב משפחתי יתאים בדרך כלל ויעניק לכם מקום נוח לנוסעים ולציוד.', { locale: 'he', onReject })).toBeNull();
@@ -184,6 +222,14 @@ describe('output checks for natural conversational drafts', () => {
   it('allows a conditional inspection and available-records answer', () => {
     const reply = 'You can request available service records and discuss an independent inspection, subject to arrangements for the specific car.';
     expect(check(reply, { input: 'Can I get service history and an independent inspection?' })).toBe(reply);
+  });
+  it('rejects an unverified sale test-drive promise and allows a per-car check', () => {
+    const input = 'אם אמצא רכב קטן באתר, אפשר לראות אותו לפני החלטה?';
+    const onReject = vi.fn();
+    expect(check('בטח, תוכלו לבחון את הרכב ולתאם נסיעה או בדיקה עבורו מול נציג SmartCar לפני כל החלטה.', { locale: 'he', input, onReject })).toBeNull();
+    expect(onReject).toHaveBeenCalledExactlyOnceWith('sale_visit_assurance');
+    const safe = 'אפשר לברר עם נציג SmartCar אם ניתן לראות את הרכב ואם נסיעת מבחן או בדיקה עצמאית אפשריות עבורו, לפני שמגיעים.';
+    expect(check(safe, { locale: 'he', input })).toBe(safe);
   });
   it.each([
     ['השכרה חודשית גמישה ומאפשרת סיום או החלפה בכל שלב לפי הצורך.', 'he'],
