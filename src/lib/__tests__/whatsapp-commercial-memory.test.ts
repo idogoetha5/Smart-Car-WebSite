@@ -2,6 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { updateCommercialMemory, renderCommercialMemory } from '@/lib/whatsapp-commercial-memory';
 
 describe('durable explicit commercial facts', () => {
+  it('retains both term and mileage alternatives until the customer chooses', () => {
+    const first = updateCommercialMemory(undefined, 'אשמח להשוות הצעות ל־36 ול־48 חודשים, ובכל אחת 25,000 או 30,000 ק״מ בשנה. אני עוד לא בוחר תקופה או מכסה. מחפש רכב קטן וחסכוני.');
+    expect(first).toMatchObject({ termMonths: null, termOptionsMonths: [36, 48], annualMileageKm: null, annualMileageOptionsKm: [25000, 30000], vehiclePreference: 'compact' });
+    const persisted = updateCommercialMemory(first, 'אפשר לשלוח את כל האפשרויות לנציג?');
+    expect(renderCommercialMemory(persisted, 'he')).toMatch(/36, 48 חודשים.*25000, 30000 km/);
+    const selected = updateCommercialMemory(persisted, 'בחרתי 36 חודשים ו־25,000 ק״מ בשנה.');
+    expect(selected).toMatchObject({ termMonths: 36, annualMileageKm: 25000 });
+    expect(selected.termOptionsMonths).toBeUndefined();
+    expect(selected.annualMileageOptionsKm).toBeUndefined();
+  });
   it('keeps mileage stated for an explicitly one-year business need', () => {
     const memory = updateCommercialMemory(undefined, 'I need a car for about one year, around 20,000 km. I am comparing leasing and buying.');
     expect(memory).toMatchObject({ termMonths: 12, annualMileageKm: 20000 });

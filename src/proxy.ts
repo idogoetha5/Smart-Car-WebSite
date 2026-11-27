@@ -31,6 +31,9 @@ const intlMiddleware = createMiddleware({
   locales,
   defaultLocale,
   localePrefix: 'always',
+  // Pages emit hreflang for the preferred inventory ID, including a Hebrew x-default.
+  // next-intl's extra HTTP Link header instead advertises the unprefixed request path.
+  alternateLinks: false,
 });
 
 /**

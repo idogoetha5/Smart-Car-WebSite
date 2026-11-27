@@ -1,0 +1,47 @@
+{
+  "kind": "adaptive-production-simulator",
+  "deploymentId": "dpl_5QL24n6iVMPYq3tvkiV5JrgRbuxM",
+  "release": "7a9e69d",
+  "observedAt": "2026-11-27",
+  "sessionId": "adaptive-bmwx1-he-20261127-d",
+  "manualReview": "Named BMW X1 remained saved and approximate early-December timing did not become an exact date. Gemini answered, but the output validator treated approximate timing as undecided dates and rejected its draft; a correction made an unsaved date claim; the customer-facing reply fell back to generic local wording. Stop after this turn. Simulator only.",
+  "turns": [
+    {
+      "message": "היי, אני צריך BMW X1 בתחילת דצמבר לכמה ימים. יש אצלכם כזה?",
+      "reply": "רכב פנאי של SmartCar יכול להתאים לנסיעה שלכם. לאילו תאריכים תצטרכו את הרכב?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "datePreference": "dates undecided: בתחילת דצמבר",
+          "vehicleNeed": "BMW X1 (העדפה לבדיקה)"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "היי, אני צריך BMW X1 בתחילת דצמבר לכמה ימים. יש אצלכם כזה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכב פנאי של SmartCar יכול להתאים לנסיעה שלכם. לאילו תאריכים תצטרכו את הרכב?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "local",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/suv patches=[] fields={}",
+        "known_or_undecided_dates: היי! ל־SmartCar יש רכבי פנאי ויוקרה קומפקטיים, ואפשר לבדוק את הזמינות והאפשרות לדגם כמו BMW X1 לתחילת דצמבר. כדי שנוכל להמשיך, מתי בדיוק תרצו להחזיר את הרכב?",
+        "unsaved_claim: יש אצלנו רכבי פנאי (SUV) שונים, ואנחנו בהחלט יכולים לבדוק מול נציג SmartCar אם דגם כמו ה־BMW X1 פנוי לתאריכים שבחרת. באיזה יום תרצה לאסוף את הרכב בתחילת דצמבר?",
+        "reword_rejected checks={\"keepsNumbers\":false,\"sameQuestionShape\":true,\"languageOk\":true,\"commitmentOk\":true,\"tollPackageOk\":true,\"comparisonMeaningOk\":true,\"newDriverMeaningOk\":true,\"length\":78}: בשמחה, יש לנו רכבי פנאי כמו BMW X1 שתוכלו לבדוק. לאילו תאריכים תצטרכו את הרכב?"
+      ]
+    }
+  ]
+}
