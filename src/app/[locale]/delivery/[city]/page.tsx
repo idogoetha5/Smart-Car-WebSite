@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { localeAlternates, ogImage } from '@/lib/seo';
+import { localeAlternates, ogImage, siteUrl } from '@/lib/seo';
 import { DELIVERY_CITIES, deliverySearchCopy, getDeliveryCity, hePrefix, isDeliveryRegion } from '@/lib/delivery-cities';
 import { BRANCHES, branchAddress, branchName, mapsUrl, wazeUrl } from '@/lib/branches';
 import { WHATSAPP_NUMBER } from '@/lib/constants';
@@ -40,7 +40,7 @@ export default async function DeliveryCityPage({
   const isHe = locale === 'he';
   const name = isHe ? c.nameHe : c.nameEn;
   const branch = BRANCHES.find((b) => b.id === c.nearestBranch)!;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
+  const baseUrl = siteUrl();
 
   const jsonLd = {
     '@context': 'https://schema.org',
