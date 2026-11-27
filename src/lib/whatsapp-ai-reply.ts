@@ -274,6 +274,13 @@ export function validateConversationalReply(args: ConversationalReplyInput): str
     if (mentionsDates.test(sentence) && !knownValue('pickupDate') && !knownValue('returnDate')) return reject('unsaved_claim');
   }
   const comparedMileage = /\bcompare|\bversus|\bvs\b|להשוות|השוואה|לעומת|מול/i.test(input) ? annualMileageMentions(input) : [];
+  const normalizedReply = reply.replace(/(?<=\d)[, ](?=\d{3}(?!\d))/g, '');
+  const mentionsOption = (value: number) => new RegExp(`(?<!\\d)${value}(?!\\d)`).test(normalizedReply)
+    || value % 1000 === 0 && new RegExp(`(?<!\\d)${value / 1000}\\s*(?:אלף|thousand|k\\b)`, 'iu').test(reply);
+  for (const key of ['commercialTermOptionsMonths', 'commercialAnnualMileageOptionsKm']) {
+    const options = String(known[key] ?? '').split(',').map(value => Number(value.trim())).filter(Number.isFinite);
+    if (options.length > 1 && options.some(mentionsOption) && !options.every(mentionsOption)) return reject('missing_comparison_option');
+  }
   if (Number.isFinite(savedAnnualMileage) && savedAnnualMileage > 0
     && annualMileageMentions(reply).some(value => value !== savedAnnualMileage && !comparedMileage.includes(value))) return reject('mileage_conflict');
   const question = reply.match(/[^.!?؟]*[?؟]/g)?.at(-1) ?? '';
