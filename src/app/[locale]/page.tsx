@@ -1,6 +1,6 @@
 import { BRANCHES, branchAddress, branchName, getBranch, mapsUrl, wazeUrl } from '@/lib/branches';
 import NewTabHint from '@/components/ui/NewTabHint';
-import { localeAlternates } from '@/lib/seo';
+import { localeAlternates, siteUrl } from '@/lib/seo';
 import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
@@ -33,6 +33,8 @@ export async function generateMetadata({
 }
 import Image from 'next/image';
 import { Suspense } from 'react';
+import { preferredVehicleId } from '@/lib/vehicle-canonical';
+import { getRentalPageVehicles } from '@/lib/rental-page-data';
 import { getFeaturedVehicles } from '@/lib/db/vehicles';
 import VehicleCard from '@/components/catalog/VehicleCard';
 import HeroSection from '@/components/home/HeroSection';
@@ -58,8 +60,10 @@ function SkeletonCard() {
 }
 
 async function FeaturedVehicles() {
-  let vehicles: Awaited<ReturnType<typeof getFeaturedVehicles>> = [];
-  try { vehicles = await getFeaturedVehicles(); } catch {}
+  const [vehicles, fleet] = await Promise.all([
+    getFeaturedVehicles().catch(() => []),
+    getRentalPageVehicles().catch(() => []),
+  ]);
 
   if (vehicles.length === 0) {
     return (
@@ -70,7 +74,7 @@ async function FeaturedVehicles() {
   }
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {vehicles.slice(0, 3).map(v => <VehicleCard key={v.id} vehicle={v} />)}
+      {vehicles.slice(0, 3).map(v => <VehicleCard key={v.id} vehicle={v} discoveryId={preferredVehicleId(v, fleet)} />)}
     </div>
   );
 }
@@ -109,7 +113,7 @@ export default async function HomePage({
 
   const herzliya = getBranch('herzliya');
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
+  const baseUrl = siteUrl();
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'AutoRental',
