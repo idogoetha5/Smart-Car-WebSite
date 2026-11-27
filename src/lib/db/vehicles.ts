@@ -105,8 +105,8 @@ export async function getVehicleById(id: string): Promise<Vehicle | null> {
     .from('vehicles')
     .select(VEHICLE_COLUMNS)
     .eq('id', id)
-    .single();
+    .maybeSingle();
 
-  if (error) return null;
-  return mapRow(data);
+  if (error) throw error;
+  return data ? mapRow(data) : null;
 }
