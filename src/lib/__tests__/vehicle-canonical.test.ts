@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { assert, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Vehicle } from '@/types';
 import { canonicalVehicles, preferredVehicleId } from '@/lib/vehicle-canonical';
 import { vehicleSearchMetadata } from '@/lib/vehicle-search-metadata';
@@ -71,6 +71,14 @@ describe('conservative public model canonical URLs', () => {
     const routes = await sitemap();
     const rental = routes.filter(route => /\/rental\//.test(route.url));
     expect(rental).toHaveLength(4);
+    const submitted = new Set(routes.map(route => route.url));
+    for (const route of routes) {
+      const languages = route.alternates?.languages;
+      assert.isDefined(languages);
+      expect(languages['x-default']).toBe(languages.he);
+      for (const href of Object.values(languages)) expect(submitted.has(String(href))).toBe(true);
+      expect([languages.he, languages.en]).toContain(route.url);
+    }
     expect(rental.some(route => route.url.endsWith('/duplicate'))).toBe(false);
     expect(rental.filter(route => route.url.endsWith('/original'))).toHaveLength(2);
     expect(rental.filter(route => route.url.endsWith('/different-price'))).toHaveLength(2);

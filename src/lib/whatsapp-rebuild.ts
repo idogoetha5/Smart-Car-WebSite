@@ -230,6 +230,12 @@ function groundedModelReply(reading: BotReading | null, input: string, state: Re
     onReject('premature_extras');
     return null;
   }
+  if (state.phase === 'booking' && nextMissing(state.booking)
+    && !/תוספ|משהו נוסף|anything else|extras?|additions?/iu.test(input)
+    && /(?:האם\s+)?תרצו\s+להוסיף[^?؟\n]{0,55}(?:נהג|כיסא|תוספ)|(?:נהג נוסף|כיסא בטיחות)[^?؟\n]{0,30}(?:להוסיף|תרצו)|would you like to add[^?\n]{0,55}(?:driver|seat|extra)/iu.test(reading.reply.match(/[^.!?؟\n]*[?؟]/gu)?.at(-1) ?? '')) {
+    onReject('premature_extras');
+    return null;
+  }
   const relationMismatch = [
     [/אשתך|אשתכם|your wife/iu, /אשתי|אישתי|אשתו|my wife|wife/iu],
     [/בעלך|בעלכם|your husband/iu, /בעלי|בעלה|my husband|husband/iu],
@@ -551,7 +557,7 @@ function singleDateAnswer(input: string, after?: string): string | null {
   return candidate && validDate(candidate) && candidate >= today && (!after || candidate > after) && candidate <= limit.toISOString().slice(0, 10) ? candidate : null;
 }
 
-const VAGUE_DATE_PHRASE = /\b(?:next week|next month|in a week|in a month|about a week|about a month)\b|(?:מ|ב)?עוד\s+(?:כשבוע|כחודש|שבוע|חודש)|מ?עוד\s*שבוע|(?:ב|מ)שבוע הבא|(?:ב|מ)חודש הבא/iu;
+const VAGUE_DATE_PHRASE = /\b(?:next week|next month|in a week|in a month|about a week|about a month|(?:early|mid|late)\s+[a-z]+)\b|(?:מ|ב)?עוד\s+(?:כשבוע|כחודש|שבוע|חודש)|מ?עוד\s*שבוע|(?:ב|מ)שבוע הבא|(?:ב|מ)חודש הבא|(?:ב|מ|ל)?(?:תחילת|ראשית|אמצע|סוף)\s+(?:חודש\s+)?(?:ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)/iu;
 function vagueDateAnswer(input: string): boolean {
   return VAGUE_DATE_PHRASE.test(input)
     && !explicitDateRange(input) && !singleDateAnswer(input);
@@ -1052,6 +1058,8 @@ function applyExplicitNeeds(input: string, draft: BookingDraft): void {
 }
 
 function explicitVehicleNeed(input: string, locale: Locale): string | null {
+  const bmwModel = input.match(/(?<![\p{L}\d])BMW\s*X([1-7])(?![\p{L}\d])/iu);
+  if (bmwModel) return `BMW X${bmwModel[1]} ${locale === 'he' ? '(העדפה לבדיקה)' : '(preference to check)'}`;
   if (/(?:רכב\s+)?(?:מנהלים\s+)?יוקרת(?:י|ית)|רכב\s+מנהלים\s+מפנק|\bluxury\s+(?:car|vehicle|sedan)\b/iu.test(input)
     && !/(?:לא|בלי|not|without)\s+(?:רכב\s+)?(?:מנהלים\s+)?יוקרת|\b(?:not|without)\s+(?:a\s+)?luxury/iu.test(input)) {
     return locale === 'he' ? 'רכב מנהלים יוקרתי (העדפה לבדיקה)' : 'luxury executive car (preference to check)';
@@ -1070,6 +1078,10 @@ function explicitVehicleNeed(input: string, locale: Locale): string | null {
 }
 
 function customerVehicleChoice(input: string, state: RebuildState): string | null {
+  const bmwRequest = input.match(/(?:רוצה|רוצים|צריך|צריכה|מחפש|מחפשת|מעדיף|מעדיפה|אשמח|looking for|want|need|prefer|would like)[^.!?؟\n]{0,70}(?<![\p{L}\d])BMW\s*X[1-7](?![\p{L}\d])/iu);
+  const bmwPrefix = bmwRequest ? input.slice(0, bmwRequest.index).split(/[.!?؟;\n]/u).at(-1) ?? '' : '';
+  if (bmwRequest && !/(?:לא|בלי|not|without)\s*$/iu.test(bmwPrefix)
+    && !/(?:^|\s)(?:אם|אולי|if|maybe)(?:\s|$)/iu.test(`${bmwPrefix} ${bmwRequest[0]}`)) return explicitVehicleNeed(bmwRequest[0], state.locale);
   if (/(?:מחפש(?:ת)?|רוצה|צריך|צריכה|מעדיף(?:ה)?|אשמח|looking for|want|need|prefer|would like).{0,55}(?:(?:רכב\s+)?(?:מנהלים\s+)?יוקרת(?:י|ית)|רכב\s+מנהלים\s+מפנק)|(?:מחפש(?:ת)?|רוצה|צריך|צריכה|looking for|want|need).{0,55}\bluxury\s+(?:car|vehicle|sedan)\b/iu.test(input)
     && !/(?:לא|בלי|not|without)\s+(?:רכב\s+)?(?:מנהלים\s+)?יוקרת|\b(?:not|without)\s+(?:a\s+)?luxury/iu.test(input)) return explicitVehicleNeed(input, state.locale);
   if (/(?:can|could) you (?:note|record|put down|mark).{0,45}(?:as (?:our|my) preference|for (?:our|my) request)/iu.test(input)) return explicitVehicleNeed(input, state.locale);
@@ -1634,6 +1646,7 @@ function applyFields(input: string, state: RebuildState, reading: BotReading | n
     const field = fields[source];
     if (!field || !input.toLocaleLowerCase().includes(field.evidence.toLocaleLowerCase())) continue;
     if (source === 'pickupDate' || source === 'returnDate') {
+      if (VAGUE_DATE_PHRASE.test(field.evidence) && !/^מתחילת\s+/u.test(field.evidence) && !/\d{1,2}/u.test(field.evidence)) continue;
       if (ageOnly) continue;
       // A pickup-only date is not evidence that the car comes back that day.
       // The customer must tie the date to the return or state a one-day trip.
@@ -2021,6 +2034,7 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
   }
   if ((!state.booking.pickupDate || !state.booking.returnDate)
     && (hasUndecidedRentalDates(input) || uncertainDateAnswer(input) && asksRentalDates(lastBotReply))) state.booking.datePreference = 'dates undecided';
+  else if (!state.booking.pickupDate && !state.booking.datePreference && vagueDateAnswer(input)) state.booking.datePreference = `approximate: ${input.match(VAGUE_DATE_PHRASE)?.[0] ?? ''}`.slice(0, 100);
   const labelledReference = explicitServiceReference(input);
   if (labelledReference) state.serviceReference = labelledReference;
   else if (!state.serviceReference) {
@@ -2732,10 +2746,13 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
     // The model's selected category and branch facts may only be applied above.
     // Decide whether to enter intake after those facts exist, so a complete
     // rental choice asks for the remaining name before optional additions.
+    const priorRentalIntent = state.history.some(entry => entry.from === 'customer'
+      && /(?:רוצה|רוצים|מחפש|מחפשת|צריך|צריכה)[^.!?؟\n]{0,40}(?:לשכור|השכרה)|\b(?:want|need|looking for)\b[^.!?\n]{0,40}\b(?:rent|rental)\b/iu.test(entry.text));
     if (!wantsBooking && !declines && !asksHuman && !modelHumanConsent && !serviceInterpretation && !state.interest
-      && !/[?؟]/u.test(input) && state.booking.pickupDate && state.booking.returnDate
+      && state.booking.pickupDate && state.booking.returnDate
       && state.booking.pickupLocation && state.booking.returnLocation && state.booking.vehicleNeed
-      && (reading?.route === 'book' || state.history.some(entry => entry.from === 'customer' && explicitBooking(entry.text)))) wantsBooking = true;
+      && (reading?.route === 'book' || state.history.some(entry => entry.from === 'customer' && explicitBooking(entry.text))
+        || priorRentalIntent && Boolean(state.booking.driverAgeRange))) wantsBooking = true;
     if (leaveVehicleOpen && !state.interest && state.phase !== 'service') state.booking.vehicleNeed = he ? 'סוג רכב פתוח להתאמה' : 'vehicle group to be matched';
     const completedRouteInCurrentTurn = Boolean(statedRange && state.booking.pickupLocation && state.booking.returnLocation);
     // Approximate/unknown timing is a fallback for a short date answer, not a
@@ -2970,10 +2987,14 @@ export async function getRebuiltBotReply(phone: string, raw: string, store: Rebu
           reply = he
             ? `${changedChoice ? `עדכנתי את סוג הרכב ל${state.booking.vehicleNeed}` : `רשמתי ${state.booking.vehicleNeed}`}. נשארה קבוצת הגיל של הנהג — 21–23 או 24+?`
             : `${changedChoice ? `I updated the vehicle to ${state.booking.vehicleNeed}` : `I have ${state.booking.vehicleNeed}`}. Which driver age group applies: 21–23 or 24+?`;
-        } else if (wasBooking && statedAgeRange && missing === 'customerName' && lastBot.includes(question('customerName', state.locale))) {
+        } else if (wasBooking && statedAgeRange && missing === 'customerName') {
           reply = he
             ? `קבוצת הגיל ${statedAgeRange === '24-plus' ? '24+' : '21–23'} כבר רשומה. ${question('customerName', state.locale)}`
             : `The ${statedAgeRange === '24-plus' ? '24+' : '21–23'} age group is already noted. ${question('customerName', state.locale)}`;
+        } else if (wasBooking && missing === 'customerName' && lastBot.includes(question('customerName', state.locale))
+          && /(?:אני\s+)?רוצה\s+לשלוח\s+בקשה|(?:please\s+)?send\s+(?:my|the)\s+request/iu.test(input)) {
+          reply = he ? 'בשמחה. לפני העברת הבקשה דרוש השם לרישום הפנייה; אחריו נציג לכם סיכום לאישור.'
+            : 'Of course. We still need the name for the request; then we will show you the summary for approval.';
         } else if (policy && missing === 'pickupLocation' && /מאיפה אפשר לאסוף|איפה אפשר לאסוף|where can (?:i|we) pick up/i.test(input)) {
           reply = `${policy} ${question('pickupLocation', state.locale)}`;
         } else if (wasBooking && missing === 'driverAgeRange' && /לסיים את הבקשה|finish (?:the|my) request/i.test(input)

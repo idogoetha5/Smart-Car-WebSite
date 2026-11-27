@@ -121,6 +121,7 @@ export default function RentalResults({ initialVehicles, criteria = rentalSearch
 
       <VehicleGrid
         vehicles={filteredVehicles}
+        fleet={vehicles}
         isLoading={isLoading}
         pickupDate={pickupDate}
         returnDate={returnDate}

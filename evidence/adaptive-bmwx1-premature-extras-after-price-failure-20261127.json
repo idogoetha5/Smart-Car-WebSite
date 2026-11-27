@@ -1,0 +1,92 @@
+{
+  "kind": "adaptive-production-simulator",
+  "deploymentId": "dpl_2xrv5ic8xHKZ6taCxidH7CvM9u8C",
+  "release": "495719e",
+  "observedAt": "2026-11-27",
+  "sessionId": "adaptive-bmwx1-he-20261127-e",
+  "manualReview": "Gemini answered the first turn and kept BMW X1 and approximate timing. After the customer gave exact pickup/return dates, both Herzliya locations, age and a price question, the state kept those facts but remained in explore and Gemini asked about an additional driver before collecting the required name. Stop after this turn. Simulator only.",
+  "turns": [
+    {
+      "message": "שלום, מחפש לשכור BMW X1 בתחילת דצמבר לכמה ימים. יש לכם?",
+      "reply": "בשמחה! יש לנו רכבי פנאי כמו BMW X1 שתוכלו לבדוק, ונעזור לוודא זמינות לתאריכים שלכם בתחילת דצמבר. באיזה יום תרצו לאסוף את הרכב?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "datePreference": "approximate: בתחילת דצמבר",
+          "vehicleNeed": "BMW X1 (העדפה לבדיקה)"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, מחפש לשכור BMW X1 בתחילת דצמבר לכמה ימים. יש לכם?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה! יש לנו רכבי פנאי כמו BMW X1 שתוכלו לבדוק, ונעזור לוודא זמינות לתאריכים שלכם בתחילת דצמבר. באיזה יום תרצו לאסוף את הרכב?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read book/suv patches=[] fields={}"
+      ]
+    },
+    {
+      "message": "מ־2 עד 5 בדצמבר, אאסוף ואחזיר בהרצליה. אני בן 35. האם יש כבר מחיר לדגם הזה?",
+      "reply": "המחיר הסופי להשכרה תלוי בתאריכים, במשך ההשכרה ובתוספות, ונקבע מול נציג SmartCar. האם תרצו להוסיף נהג נוסף?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "vehicleNeed": "BMW X1 (העדפה לבדיקה)",
+          "pickupDate": "2026-12-02",
+          "returnDate": "2026-12-05",
+          "returnLocation": "הרצליה",
+          "pickupLocation": "הרצליה",
+          "driverAgeRange": "24-plus"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, מחפש לשכור BMW X1 בתחילת דצמבר לכמה ימים. יש לכם?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה! יש לנו רכבי פנאי כמו BMW X1 שתוכלו לבדוק, ונעזור לוודא זמינות לתאריכים שלכם בתחילת דצמבר. באיזה יום תרצו לאסוף את הרכב?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "מ־2 עד 5 בדצמבר, אאסוף ואחזיר בהרצליה. אני בן 35. האם יש כבר מחיר לדגם הזה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "המחיר הסופי להשכרה תלוי בתאריכים, במשך ההשכרה ובתוספות, ונקבע מול נציג SmartCar. האם תרצו להוסיף נהג נוסף?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/suv patches=[{\"field\":\"rentalReturnBranch\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"אאסוף ואחזיר בהרצליה\",\"value\":\"herzliya\"}] fields={\"pickupDate\":{\"value\":\"2026-12-02\",\"evidence\":\"מ־2\"},\"returnDate\":{\"value\":\"2026-12-05\",\"evidence\":\"5 בדצמבר\"}}"
+      ]
+    }
+  ]
+}

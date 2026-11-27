@@ -1,4 +1,4 @@
-import { localeAlternates, ogImage } from '@/lib/seo';
+import { localeAlternates, ogImage, siteUrl } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -245,7 +245,7 @@ export default async function ServicePage({
   const desc     = isHe ? service.descHe     : service.descEn;
   const features = isHe ? service.featuresHe : service.featuresEn;
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
+  const baseUrl = siteUrl();
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',

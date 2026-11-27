@@ -1,11 +1,13 @@
 'use client';
 
 import { useTranslations, useLocale } from 'next-intl';
+import { preferredVehicleId } from '@/lib/vehicle-canonical';
 import VehicleCard from './VehicleCard';
 import type { Vehicle } from '@/types';
 
 interface VehicleGridProps {
   vehicles: Vehicle[];
+  fleet: Vehicle[];
   isLoading?: boolean;
   pickupDate?: string;
   returnDate?: string;
@@ -35,7 +37,7 @@ function SkeletonCard() {
   );
 }
 
-export default function VehicleGrid({ vehicles, isLoading, pickupDate, returnDate, location, pickupLocation, returnLocation }: VehicleGridProps) {
+export default function VehicleGrid({ vehicles, fleet, isLoading, pickupDate, returnDate, location, pickupLocation, returnLocation }: VehicleGridProps) {
   const t = useTranslations('catalog');
   const locale = useLocale();
   const isHe = locale === 'he';
@@ -97,6 +99,7 @@ export default function VehicleGrid({ vehicles, isLoading, pickupDate, returnDat
           key={group[0].id}
           vehicle={group[0]}
           variants={group}
+          discoveryId={pickupDate || returnDate ? undefined : preferredVehicleId(group[0], fleet)}
           pickupDate={pickupDate}
           returnDate={returnDate}
           location={location}

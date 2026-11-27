@@ -76,7 +76,7 @@ export default function CatalogResults({ initialVehicles }: { initialVehicles: V
         <div className="mb-6">
           <VehicleSearch value={search} onChange={setSearch} />
         </div>
-        <VehicleGrid vehicles={filtered} />
+        <VehicleGrid vehicles={filtered} fleet={initialVehicles} />
       </div>
     </div>
   );

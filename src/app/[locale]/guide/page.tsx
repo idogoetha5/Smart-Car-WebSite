@@ -1,4 +1,4 @@
-import { localeAlternates } from '@/lib/seo';
+import { localeAlternates, siteUrl } from '@/lib/seo';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -23,7 +23,7 @@ type Section = { id: string; qHe: string; qEn: string; bodyHe: React.ReactNode; 
 export default async function GuidePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const isHe = locale === 'he';
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
+  const baseUrl = siteUrl();
 
   const sections: Section[] = [
     {

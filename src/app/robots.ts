@@ -1,9 +1,10 @@
+import { siteUrl } from '@/lib/seo';
 import { MetadataRoute } from 'next';
 
 // Must not depend on NEXT_PUBLIC_APP_URL being present — when it was
 // missing this emitted "undefined/sitemap.xml" and pointed crawlers at a
 // broken URL.
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
+const baseUrl = siteUrl();
 
 export default function robots(): MetadataRoute.Robots {
   return {

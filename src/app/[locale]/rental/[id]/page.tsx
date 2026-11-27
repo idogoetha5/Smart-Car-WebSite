@@ -1,3 +1,4 @@
+import { siteUrl } from '@/lib/seo';
 import { vehicleSearchMetadata } from '@/lib/vehicle-search-metadata';
 import { vehicleRentalSchema, rentalSchemaJson } from '@/lib/vehicle-rental-schema';
 export const revalidate = 3600;
@@ -29,7 +30,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { locale, id } = await params;
-  const vehicle = await getVehicle(id).catch(() => null);
+  const vehicle = await getVehicle(id);
   if (!vehicle) return {};
   const fleet = await getRentalPageVehicles().catch(() => []);
   return vehicleSearchMetadata(vehicle, locale, preferredVehicleId(vehicle, fleet), fleet);
@@ -45,10 +46,7 @@ export default async function RentalDetailPage({
 }) {
   const { locale, id } = await params;
 
-  let vehicle = null;
-  try {
-    vehicle = await getVehicle(id);
-  } catch {}
+  const vehicle = await getVehicle(id);
 
   // A real 404, not a 200 page that says "not found". Returning markup with a
   // 200 let search engines index every non-existent vehicle URL as a valid
@@ -61,7 +59,7 @@ export default async function RentalDetailPage({
   const description =
     locale === 'he' ? vehicle.descriptionHe : vehicle.descriptionEn;
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
+  const baseUrl = siteUrl();
   const vehicleJsonLd = vehicleRentalSchema(vehicle, locale, baseUrl);
 
   const breadcrumbJsonLd = {

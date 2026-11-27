@@ -49,9 +49,7 @@ export async function generateMetadata({
       default: `SmartCar – ${t('title')}`,
     },
     description: t('subtitle'),
-    metadataBase: new URL(
-      process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il'
-    ),
+    metadataBase: new URL(siteUrl()),
     alternates: localeAlternates(locale),
     openGraph: {
       siteName: 'SmartCar',
