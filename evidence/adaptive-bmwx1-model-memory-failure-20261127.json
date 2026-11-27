@@ -1,0 +1,92 @@
+{
+  "kind": "adaptive-production-simulator",
+  "deploymentId": "dpl_KGNgTwgEV64Cpa5QtLyCJ5WEG82o",
+  "release": "609b1fd",
+  "observedAt": "2026-11-27",
+  "sessionId": "adaptive-bmwx1-he-20261127-a",
+  "manualReview": "Gemini recognized BMW X1 as an SUV in prose, but the application did not save the requested model. After dates, locations and age, the bot asked the customer to choose a category again. The public vehicle catalogue contains BMW X1 (2025) in the luxury group; the owner explicitly permits acknowledging that model exists. The conversation stopped here. Simulator only; no customer message or staff alert was sent.",
+  "turns": [
+    {
+      "message": "היי, אני רוצה לשכור BMW X1 בשבוע הבא. יש לכם רכב כזה?",
+      "reply": "רכב מסוג BMW X1 הוא כיוון מצוין בקבוצת ה־SUV. זמינות ודגמים ספציפיים כדאי לאמת יחד מול נציג SmartCar.\n\nבאיזה תאריך תרצו לאסוף את הרכב?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_dates",
+        "locale": "he",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "היי, אני רוצה לשכור BMW X1 בשבוע הבא. יש לכם רכב כזה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכב מסוג BMW X1 הוא כיוון מצוין בקבוצת ה־SUV. זמינות ודגמים ספציפיים כדאי לאמת יחד מול נציג SmartCar.\n\nבאיזה תאריך תרצו לאסוף את הרכב?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "fixture-1"
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/suv patches=[] fields={}",
+        "assurance: אפשר לבדוק את האפשרות לרכב פנאי כמו BMW X1 בשבוע הבא מול נציג SmartCar, אבל כדאי לזכור ששמות של מותגים או דגמים ספציפיים טעונים תמיד אימות מול המלאי ואינם מובטח"
+      ]
+    },
+    {
+      "message": "ביום שני הבא עד חמישי, איסוף והחזרה בהרצליה. אני בן 35.",
+      "reply": "איזה סוג רכב תרצו, או כמה נוסעים וציוד יהיו?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_vehicle",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-11-30",
+          "returnDate": "2026-12-03",
+          "returnLocation": "הרצליה",
+          "pickupLocation": "הרצליה",
+          "driverAgeRange": "24-plus"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "היי, אני רוצה לשכור BMW X1 בשבוע הבא. יש לכם רכב כזה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכב מסוג BMW X1 הוא כיוון מצוין בקבוצת ה־SUV. זמינות ודגמים ספציפיים כדאי לאמת יחד מול נציג SmartCar.\n\nבאיזה תאריך תרצו לאסוף את הרכב?",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "ביום שני הבא עד חמישי, איסוף והחזרה בהרצליה. אני בן 35.",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "איזה סוג רכב תרצו, או כמה נוסעים וציוד יהיו?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "fixture-1"
+      },
+      "source": "local",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read book/suv patches=[{\"field\":\"rentalPickupBranch\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"איסוף והחזרה בהרצליה\",\"value\":\"herzliya\"},{\"field\":\"rentalReturnBranch\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"איסוף והחזרה בהרצליה\",\"value\":\"herzliya\"}] fields={\"pickupDate\":{\"value\":\"2026-11-30\",\"evidence\":\"ביום שני הבא\"},\"returnDate\":{\"value\":\"2026-12-03\",\"evidence\":\"עד חמישי\"},\"returnLocation\":{\"value\":\"הרצליה\",\"evidence\":\"החזרה בהרצליה\"}}",
+        "unsaved_claim: רשמתי את התאריכים מיום שני ה־30 בנובמבר ועד יום חמישי ה־3 בדצמבר, עם איסוף והחזרה בהרצליה לקבוצת ה־SUV. האם תרצו להוסיף נהג נוסף או כיסא בטיחות?"
+      ]
+    }
+  ]
+}

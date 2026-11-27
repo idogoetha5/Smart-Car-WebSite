@@ -59,7 +59,7 @@ export const NOINDEX: Metadata['robots'] = {
 
 /** Absolute site origin used inside structured data (same source as the sitemap). */
 export function siteUrl(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il').replace(/\/$/, '');
+  return (process.env.NEXT_PUBLIC_APP_URL || 'https://www.smartcar.co.il').replace(/\/$/, '');
 }
 
 export const ORGANIZATION_ID = '/#organization';

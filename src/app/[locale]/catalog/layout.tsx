@@ -10,10 +10,10 @@ export async function generateMetadata({
   const { locale } = await params;
   const isHe = locale === 'he';
   return {
-    title: { absolute: isHe ? 'צי הרכבים של SmartCar – כל הדגמים להשכרה' : 'SmartCar Fleet – All Rental Car Models' },
+    title: { absolute: isHe ? 'קטלוג רכבים להשכרה – דגמים ומפרטים | SmartCar' : 'Rental Car Fleet in Israel – Models & Specifications | SmartCar' },
     description: isHe
-      ? 'כל הדגמים בצי SmartCar: רכבים קטנים, משפחתיים, SUV, היברידיים, 7 מקומות ומסחריים. סננו לפי קטגוריה, גיר ומחיר ליום, ראו תמונות ומפרט ועברו לבקשה.'
-      : 'Every model in the SmartCar fleet: small, family, SUV, hybrid, 7-seat and commercial cars. Filter by category, transmission and daily price, see photos and specs, and request a car.',
+      ? 'הכירו מבחר רכבים להשכרה מהצי של SmartCar. סננו לפי קטגוריה, מספר מושבים ומחיר ליום, השוו תמונות ומפרטים ושלחו בקשה לרכב שמתאים לכם.'
+      : 'Explore a selection from the SmartCar rental fleet in Israel. Filter by category, seats and daily price, compare photos and specifications, and request a car.',
     alternates: localeAlternates(locale, 'catalog'),
   };
 }

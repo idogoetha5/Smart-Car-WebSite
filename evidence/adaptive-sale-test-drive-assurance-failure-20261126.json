@@ -1,0 +1,161 @@
+{
+  "kind": "adaptive-production-simulator",
+  "deploymentId": "dpl_WyhVyRpPWNRX4AVc1gg2T4RfzmYM",
+  "release": "b05e0d0",
+  "observedAt": "2026-11-26",
+  "sessionId": "adaptive-sale-he-20261126-c",
+  "manualReview": "First two turns were grounded Gemini replies and saved budget/category. Turn three claimed the customer could arrange a test drive or inspection before a specific car and its terms were verified; approved sale facts explicitly do not guarantee test drives or inspection availability. Stop here. No real WhatsApp or staff alert was sent.",
+  "turns": [
+    {
+      "message": "יש לי עסק קטן ואני מחפש רכב משומש בעיקר לנסיעות בעיר. לא מכיר דגמים, אבל רוצה משהו חסכוני. איך הייתם מתחילים לחפש?",
+      "reply": "רכב קומפקטי או רכב קטן וחסכוני הם התחלה מצוינת לנסיעות עירוניות. האם תרצו שנכוון אתכם לדגמים חסכוניים בדלק או היברידיים שמתאימים לנסיעות בעיר?\n\nאת הרכבים שמוצעים כרגע למכירה אפשר לראות כאן: https://www.smartcar.co.il/he/cars-for-sale",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "יש לי עסק קטן ואני מחפש רכב משומש בעיקר לנסיעות בעיר. לא מכיר דגמים, אבל רוצה משהו חסכוני. איך הייתם מתחילים לחפש?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכב קומפקטי או רכב קטן וחסכוני הם התחלה מצוינת לנסיעות עירוניות. האם תרצו שנכוון אתכם לדגמים חסכוניים בדלק או היברידיים שמתאימים לנסיעות בעיר?\n\nאת הרכבים שמוצעים כרגע למכירה אפשר לראות כאן: https://www.smartcar.co.il/he/cars-for-sale",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "interest": "sale",
+        "commercial": {
+          "usage": [
+            "city"
+          ]
+        }
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read sale/none patches=[] fields={}"
+      ]
+    },
+    {
+      "message": "כן, קטן או קומפקטי מתאים לי. התקציב עד 60 אלף שקל. לפני שאני בוחר דגם, האם אתם מתחייבים שיש היסטוריית טיפולים מלאה לכל רכב ושאפשר לקחת אותו לבדיקה עצמאית?",
+      "reply": "ברכישת רכב תוכלו לבקש את היסטוריית הטיפולים והתאונות ולברר על בדיקה עצמאית. יש לוודא את זמינות המסמכים ותיאום הבדיקה לרכב המסוים מול נציג SmartCar.",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "יש לי עסק קטן ואני מחפש רכב משומש בעיקר לנסיעות בעיר. לא מכיר דגמים, אבל רוצה משהו חסכוני. איך הייתם מתחילים לחפש?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכב קומפקטי או רכב קטן וחסכוני הם התחלה מצוינת לנסיעות עירוניות. האם תרצו שנכוון אתכם לדגמים חסכוניים בדלק או היברידיים שמתאימים לנסיעות בעיר?\n\nאת הרכבים שמוצעים כרגע למכירה אפשר לראות כאן: https://www.smartcar.co.il/he/cars-for-sale",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "כן, קטן או קומפקטי מתאים לי. התקציב עד 60 אלף שקל. לפני שאני בוחר דגם, האם אתם מתחייבים שיש היסטוריית טיפולים מלאה לכל רכב ושאפשר לקחת אותו לבדיקה עצמאית?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "ברכישת רכב תוכלו לבקש את היסטוריית הטיפולים והתאונות ולברר על בדיקה עצמאית. יש לוודא את זמינות המסמכים ותיאום הבדיקה לרכב המסוים מול נציג SmartCar.",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "interest": "sale",
+        "commercial": {
+          "usage": [
+            "city"
+          ],
+          "budget": {
+            "amount": 60000,
+            "currency": "ILS"
+          },
+          "vehiclePreference": "compact"
+        }
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read sale/compact patches=[{\"field\":\"commercialBudget\",\"operation\":\"set\",\"stance\":\"selected\",\"evidence\":\"התקציב עד 60 אלף שקל\",\"value\":{\"amount\":60000,\"currency\":\"ILS\"}}] fields={}"
+      ]
+    },
+    {
+      "message": "בסדר. אם אמצא באתר רכב קטן בטווח התקציב, אפשר לראות אותו לפני החלטה? אין לי כרגע דגם מסוים ואני לא סוגר עסקה בצ׳אט.",
+      "reply": "בטח, תוכלו לבחון את הרכב ולתאם נסיעה או בדיקה עבורו מול נציג SmartCar לפני כל החלטה. האם תרצו שנתקדם בבדיקת דגמים קומפקטיים שמתאימים לתקציב שלכם?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {},
+        "history": [
+          {
+            "from": "customer",
+            "text": "יש לי עסק קטן ואני מחפש רכב משומש בעיקר לנסיעות בעיר. לא מכיר דגמים, אבל רוצה משהו חסכוני. איך הייתם מתחילים לחפש?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "רכב קומפקטי או רכב קטן וחסכוני הם התחלה מצוינת לנסיעות עירוניות. האם תרצו שנכוון אתכם לדגמים חסכוניים בדלק או היברידיים שמתאימים לנסיעות בעיר?\n\nאת הרכבים שמוצעים כרגע למכירה אפשר לראות כאן: https://www.smartcar.co.il/he/cars-for-sale",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "כן, קטן או קומפקטי מתאים לי. התקציב עד 60 אלף שקל. לפני שאני בוחר דגם, האם אתם מתחייבים שיש היסטוריית טיפולים מלאה לכל רכב ושאפשר לקחת אותו לבדיקה עצמאית?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "ברכישת רכב תוכלו לבקש את היסטוריית הטיפולים והתאונות ולברר על בדיקה עצמאית. יש לוודא את זמינות המסמכים ותיאום הבדיקה לרכב המסוים מול נציג SmartCar.",
+            "private": false
+          },
+          {
+            "from": "customer",
+            "text": "בסדר. אם אמצא באתר רכב קטן בטווח התקציב, אפשר לראות אותו לפני החלטה? אין לי כרגע דגם מסוים ואני לא סוגר עסקה בצ׳אט.",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בטח, תוכלו לבחון את הרכב ולתאם נסיעה או בדיקה עבורו מול נציג SmartCar לפני כל החלטה. האם תרצו שנתקדם בבדיקת דגמים קומפקטיים שמתאימים לתקציב שלכם?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "interest": "sale",
+        "commercial": {
+          "usage": [
+            "city"
+          ],
+          "budget": {
+            "amount": 60000,
+            "currency": "ILS"
+          },
+          "vehiclePreference": "compact"
+        }
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read sale/compact patches=[] fields={}"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "kind": "adaptive-production-simulator",
+  "deploymentId": "dpl_7jbq4y5UiMQM6fTm8ekbL7PMkfwW",
+  "release": "c712f9c",
+  "observedAt": "2026-11-27",
+  "sessionId": "adaptive-bmwx1-he-20261127-c",
+  "manualReview": "BMW X1 was saved. Gemini proposed 2026-12-01 for the approximate phrase בתחילת דצמבר, and the application saved it as an exact pickup date. The reply then spoke of dates the customer had chosen and asked for a return date. This is a material date-memory error; stop after this turn. Simulator only.",
+  "turns": [
+    {
+      "message": "שלום, אני רוצה לשכור BMW X1 בתחילת דצמבר. יש אצלכם כזה?",
+      "reply": "בשמחה, יש לנו בצי רכבי פנאי ויוקרה, ונוכל לבדוק מול נציג את הזמינות של דגם כמו BMW X1 לתאריכים שבחרת.\n\nבאיזה תאריך תחזירו את הרכב?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "booking",
+        "step": "rental_dates",
+        "locale": "he",
+        "booking": {
+          "pickupDate": "2026-12-01",
+          "vehicleNeed": "BMW X1 (העדפה לבדיקה)"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "שלום, אני רוצה לשכור BMW X1 בתחילת דצמבר. יש אצלכם כזה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה, יש לנו בצי רכבי פנאי ויוקרה, ונוכל לבדוק מול נציג את הזמינות של דגם כמו BMW X1 לתאריכים שבחרת.\n\nבאיזה תאריך תחזירו את הרכב?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false,
+        "requestKey": "fixture-1"
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read book/suv patches=[] fields={\"pickupDate\":{\"value\":\"2026-12-01\",\"evidence\":\"בתחילת דצמבר\"}}",
+        "known_or_undecided_dates: בטח, יש לנו רכבי פנאי יוקרתיים כמו ה־BMW X1 בצי, ודגמים וזמינות ספציפיים ייבדקו מול נציג. באילו תאריכים בדיוק תרצו לאסוף ולהחזיר את הרכב?"
+      ]
+    }
+  ]
+}

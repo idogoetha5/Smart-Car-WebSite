@@ -1,0 +1,43 @@
+{
+  "kind": "adaptive-production-simulator",
+  "deploymentId": "dpl_HNKVX6hJnZbDqUP3C2BZWfCD2BK3",
+  "release": "525525e",
+  "observedAt": "2026-11-27",
+  "sessionId": "adaptive-bmwx1-he-20261127-b",
+  "manualReview": "BMW X1 is now preserved as the requested model. Gemini acknowledged the catalogue model, but asked for both exact pickup date and pickup place in one question, contrary to the one-thing-at-a-time conversation rule. Stop after this turn. Simulator only.",
+  "turns": [
+    {
+      "message": "היי, מחפש לשכור BMW X1 לסוף החודש. יש לכם את הדגם הזה?",
+      "reply": "בשמחה, יש לנו רכבי פנאי ויוקרה כמו ה־BMW X1, ונוכל לבדוק את הזמינות והאפשרות לדגם המסוים מול נציג. באיזה תאריך מדויק תרצו לאסוף את הרכב ומאיפה?",
+      "escalated": false,
+      "quickReplies": [],
+      "state": {
+        "version": 2,
+        "phase": "explore",
+        "step": "menu",
+        "locale": "he",
+        "booking": {
+          "vehicleNeed": "BMW X1 (העדפה לבדיקה)"
+        },
+        "history": [
+          {
+            "from": "customer",
+            "text": "היי, מחפש לשכור BMW X1 לסוף החודש. יש לכם את הדגם הזה?",
+            "private": false
+          },
+          {
+            "from": "bot",
+            "text": "בשמחה, יש לנו רכבי פנאי ויוקרה כמו ה־BMW X1, ונוכל לבדוק את הזמינות והאפשרות לדגם המסוים מול נציג. באיזה תאריך מדויק תרצו לאסוף את הרכב ומאיפה?",
+            "private": false
+          }
+        ],
+        "serviceChangeRequested": false
+      },
+      "source": "gemini",
+      "model": "gemini-3.5-flash-lite",
+      "notes": [
+        "read explore/suv patches=[] fields={\"pickupDate\":{\"value\":\"2026-11-27\",\"evidence\":\"לסוף החודש\"}}"
+      ]
+    }
+  ]
+}

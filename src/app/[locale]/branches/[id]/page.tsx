@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { BRANCHES, BRANCH_HOURS, mapsUrl, wazeUrl, type BranchId } from '@/lib/branches';
-import { localeAlternates } from '@/lib/seo';
+import { localeAlternates, siteUrl } from '@/lib/seo';
 import { BRANCH_RENTAL_ADVICE, rentalCopy } from '@/lib/public-rental-content';
 import PublicRentalAdvice from '@/components/content/PublicRentalAdvice';
 import BranchLocalGuide from '@/components/content/BranchLocalGuide';
@@ -104,7 +104,7 @@ export default async function BranchDetailPage({
   const city = isHe ? DISPLAY_CITY[branch.id].he : DISPLAY_CITY[branch.id].en;
   const content = CONTENT[branch.id];
   const hours = BRANCH_HOURS[branch.id];
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
+  const baseUrl = siteUrl();
   const locationQuestion = branch.id === 'airport'
     ? (isHe ? 'איך מקבלים רכב בנתב״ג?' : 'How do I receive a vehicle at Ben Gurion Airport?')
     : (isHe ? `איפה נמצא סניף SmartCar ב${city}?` : `Where is the SmartCar ${city} branch?`);

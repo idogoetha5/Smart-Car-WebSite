@@ -11,6 +11,7 @@ vi.mock('next-intl', () => ({ useLocale: () => state.locale, useTranslations: ()
 vi.mock('@/hooks/usePricingConfig', () => ({ usePricingConfig: () => ({ config: { seasons: [], overrides: [] }, isLoading: false }) }));
 vi.mock('swr', () => ({ default: state.swr }));
 
+import CatalogResults from '@/app/[locale]/catalog/CatalogResults';
 import RentalPage from '@/app/[locale]/rental/page';
 import { useVehicles } from '@/hooks/useVehicles';
 import VehicleCard from '@/components/catalog/VehicleCard';
@@ -30,6 +31,20 @@ beforeEach(() => {
 });
 
 describe('server-seeded rental discovery without changing dated pricing', () => {
+  it.each(['he', 'en'])('keeps canonical model links after card grouping in %s', async locale => {
+    state.locale = locale;
+    const newest = { ...fleet[0], id: 'newer', createdAt: '2026-10-24' };
+    const oldest = { ...fleet[0], id: 'older', createdAt: '2026-01-01' };
+    const listings = [newest, oldest];
+    state.fetchFleet.mockResolvedValue(listings);
+    const rental = await RentalPage({ params: Promise.resolve({ locale }) });
+    const catalog = createElement(CatalogResults, { initialVehicles: listings });
+    for (const page of [rental, catalog]) {
+      const html = renderToStaticMarkup(page);
+      expect(html).toContain(`href="/${locale}/rental/older"`);
+      expect(html).not.toContain(`href="/${locale}/rental/newer"`);
+    }
+  });
   it('aligns undated discovery with the canonical but keeps dated booking IDs and both locations', () => {
     const newer = { ...fleet[0], id: 'newer', createdAt: '2026-10-24' };
     const older = { ...fleet[0], id: 'older', createdAt: '2026-01-01' };

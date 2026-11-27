@@ -1,3 +1,4 @@
+import { siteUrl } from '@/lib/seo';
 import { MetadataRoute } from 'next';
 import { getRentalPageVehicles } from '@/lib/rental-page-data';
 import { canonicalVehicles } from '@/lib/vehicle-canonical';
@@ -8,8 +9,7 @@ import { DELIVERY_CITIES } from '@/lib/delivery-cities';
 // Inventory additions and changes to equivalent offers should reach crawlers.
 export const revalidate = 60;
 
-const baseUrl =
-  process.env.NEXT_PUBLIC_APP_URL || 'https://smartcar.co.il';
+const baseUrl = siteUrl();
 
 // Static pages don't change on every build — reporting `new Date()` for
 // each one told crawlers the whole site changed on every deploy, which
@@ -26,8 +26,18 @@ const RENTAL_GUIDANCE_LAST_MODIFIED = new Date('2026-11-11T00:00:00Z');
 const DELIVERY_GUIDANCE_LAST_MODIFIED = new Date('2026-11-11T00:00:00Z');
 // 2026-11-11: search titles, descriptions and structured data rewritten on the
 // public rental pages below (legal pages unchanged).
+const CATALOG_COPY_LAST_MODIFIED = new Date('2026-11-27T00:00:00Z');
 const SEARCH_COPY_LAST_MODIFIED = new Date('2026-11-11T00:00:00Z');
 const NATIONWIDE_RENTAL_LAST_MODIFIED = new Date('2026-11-11T00:00:00Z');
+
+function addLanguageAlternates(routes: MetadataRoute.Sitemap): MetadataRoute.Sitemap {
+  return routes.map(route => {
+    const suffix = new URL(route.url).pathname.replace(/^\/(he|en)(?=\/|$)/, '');
+    const he = `${baseUrl}/he${suffix}`;
+    const en = `${baseUrl}/en${suffix}`;
+    return { ...route, alternates: { languages: { he, en, 'x-default': he } } };
+  });
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -36,13 +46,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: NATIONWIDE_RENTAL_LAST_MODIFIED,
       changeFrequency: 'daily',
       priority: 1.0,
-      alternates: {
-        languages: { he: `${baseUrl}/he`, en: `${baseUrl}/en` },
-      },
     },
     { url: `${baseUrl}/en`, lastModified: NATIONWIDE_RENTAL_LAST_MODIFIED, changeFrequency: 'daily', priority: 1.0 },
-    { url: `${baseUrl}/he/catalog`, lastModified: SEARCH_COPY_LAST_MODIFIED, changeFrequency: 'daily', priority: 0.9 },
-    { url: `${baseUrl}/en/catalog`, lastModified: SEARCH_COPY_LAST_MODIFIED, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${baseUrl}/he/catalog`, lastModified: CATALOG_COPY_LAST_MODIFIED, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${baseUrl}/en/catalog`, lastModified: CATALOG_COPY_LAST_MODIFIED, changeFrequency: 'daily', priority: 0.9 },
     { url: `${baseUrl}/he/rental`, lastModified: RENTAL_GUIDANCE_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/en/rental`, lastModified: RENTAL_GUIDANCE_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${baseUrl}/he/leasing`, lastModified: RENTAL_GUIDANCE_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.8 },
@@ -118,8 +125,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       },
     ]);
 
-    return [...staticRoutes, ...vehicleRoutes];
+    return addLanguageAlternates([...staticRoutes, ...vehicleRoutes]);
   } catch {
-    return staticRoutes;
+    return addLanguageAlternates(staticRoutes);
   }
 }

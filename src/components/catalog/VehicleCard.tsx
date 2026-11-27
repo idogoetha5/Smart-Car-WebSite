@@ -66,6 +66,7 @@ function CarPlaceholder() {
 export interface VehicleCardProps {
   vehicle: Vehicle;
   variants?: Vehicle[];
+  discoveryId?: string;
   pickupDate?: string;
   returnDate?: string;
   location?: string;
@@ -75,7 +76,7 @@ export interface VehicleCardProps {
   priority?: boolean;
 }
 
-export default function VehicleCard({ vehicle: initialVehicle, variants = [], pickupDate, returnDate, location, pickupLocation, returnLocation, priority = false }: VehicleCardProps) {
+export default function VehicleCard({ vehicle: initialVehicle, variants = [], discoveryId, pickupDate, returnDate, location, pickupLocation, returnLocation, priority = false }: VehicleCardProps) {
   const t = useTranslations('catalog');
   const locale = useLocale();
   const isHe = locale === 'he';
@@ -291,7 +292,8 @@ export default function VehicleCard({ vehicle: initialVehicle, variants = [], pi
             const qs = p.toString();
             // Undated discovery follows Google's preferred model URL. Existing
             // date-based selections keep their exact vehicle ID and parameters.
-            const id = pickupDate || returnDate ? vehicle.id : preferredVehicleId(vehicle, allVariants);
+            const preferredId = vehicle.id === initialVehicle.id ? discoveryId : undefined;
+            const id = pickupDate || returnDate ? vehicle.id : preferredId ?? preferredVehicleId(vehicle, allVariants);
             return `/${locale}/rental/${id}${qs ? '?' + qs : ''}`;
           })()}
           className="block w-full py-2.5 px-4 bg-[#2D5F5F] text-white text-sm font-bold rounded-xl hover:bg-[#1A3A3A] transition-colors text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D5F5F] focus-visible:ring-offset-2"
